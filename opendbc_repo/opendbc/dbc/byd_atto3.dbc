@@ -1,0 +1,1119 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: MPC
+
+BO_ 85 U_0x055_L8_10ms: 8 Vector__XXX
+
+BO_ 140 U_0x08C_L8_20ms: 8 Vector__XXX
+
+BO_ 213 U_0x0D5_L8_10ms: 8 Vector__XXX
+ SG_ CONST_0x40_B2 : 23|8@0+ (1,0) [64|64] ""  MPC
+ SG_ CONST_0x80_B3 : 31|8@0+ (1,0) [128|128] ""  MPC
+ SG_ CONST_0xFF_B4 : 39|8@0+ (1,0) [255|255] ""  MPC
+ SG_ CONST_0xFF_B5 : 47|8@0+ (1,0) [255|255] ""  MPC
+ SG_ ESP_RollingCounter_0D5 : 55|4@0+ (1,0) [0|15] ""  MPC
+ SG_ Unknown_inverted_checksum_0D5 : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 287 B_0x11F_SAS_SensorState_L5_10ms: 5 Vector__XXX
+ SG_ SAS_SteeringAngle : 0|16@1- (0.1,0) [-500|510] "deg"  MPC
+ SG_ SAS_SteeringAngleSpeed : 16|8@1+ (4,0) [0|1020] "deg/s"  MPC
+ SG_ CONST_0xFF_B3 : 24|8@1+ (1,0) [255|255] ""  MPC
+ SG_ SAS_unknown_checksum_11F : 32|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 289 B_0x121_VCU_SpeedState_L8_20ms: 8 Vector__XXX
+ SG_ VCU_VehicleSpeed : 0|12@1+ (0.07142857,0) [0|292.5] "km/h"  MPC
+ SG_ VCU_RollingCounter_121 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ VCU_inverted_checksum_121 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit22 : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 290 U_0x122_L8_20ms: 8 Vector__XXX
+
+BO_ 291 C_0x123_MPC_LaneDetect_L8_10ms: 8 Vector__XXX
+ SG_ MPC_LaneConfidenceLeft : 0|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_LaneStatusLeft : 4|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_LaneStatusRight : 8|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_LaneConfidenceRight : 12|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_LaneLineTypeLeft : 16|8@1+ (1,0) [0|255] ""  MPC
+ SG_ MPC_LaneLineTypeRight : 24|8@1+ (1,0) [0|255] ""  MPC
+ SG_ MPC_LaneQualityLeft : 32|8@1+ (1,0) [0|255] ""  MPC
+ SG_ MPC_LaneQualityRight : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ MPC_RollingCounter_123 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_inverted_checksum_123 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 300 U_0x12C_L8_50ms: 8 Vector__XXX
+
+BO_ 301 U_0x12D_L8_50ms: 8 Vector__XXX
+ SG_ Unknown_inverted_checksum_12D : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 307 B_0x133_BCM_StalkState_L8_50ms: 8 Vector__XXX
+ SG_ BCM_FrontWiperStalk : 8|4@1+ (1,0) [0|15] ""  MPC
+ SG_ BCM_HeadlampSwitch : 27|3@1+ (1,0) [0|7] ""  MPC
+ SG_ BCM_HighBeamStalk : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ BCM_TurnSignalStalk : 36|3@1+ (1,0) [0|7] ""  MPC
+ SG_ BCM_RollingCounter_133 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ BCM_inverted_checksum_133 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit1 : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit3 : 3|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_RCWEnable : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit22 : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 309 U_0x135_L8_20ms: 8 Vector__XXX
+
+BO_ 311 U_0x137_L8_20ms: 8 Vector__XXX
+ SG_ Unknown_inverted_checksum_137 : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 312 U_0x138_L8_10ms: 8 Vector__XXX
+
+BO_ 324 U_0x144_L8_10ms: 8 Vector__XXX
+
+BO_ 327 U_0x147_L8_20ms: 8 Vector__XXX
+
+BO_ 330 U_0x14A_L8_20ms: 8 Vector__XXX
+
+BO_ 337 U_0x151_L8_100ms: 8 Vector__XXX
+ SG_ FAKE_ESP_HandshakeByte0 : 0|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_HandshakeByte1 : 8|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_HandshakeByte2 : 16|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_HandshakeByte3 : 24|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_HandshakeByte4 : 32|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_HandshakeByte5 : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_AlivePatternNibble : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ FAKE_ESP_AliveCounterNibble : 52|4@1+ (1,0) [0|15] ""  MPC
+ SG_ FAKE_ESP_HandshakeChecksum : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 356 U_0x164_L8_20ms: 8 Vector__XXX
+
+BO_ 371 U_0x173_L8_20ms: 8 Vector__XXX
+
+BO_ 418 U_0x1A2_L8_20ms: 8 Vector__XXX
+
+BO_ 450 U_0x1C2_L8_50ms: 8 Vector__XXX
+
+BO_ 482 A_0x1E2_MPC_Lateral_Cmd_L8_20ms: 8 MPC
+ SG_ FAKE_MPC_LateralStatusByte0 : 0|8@1+ (1,0) [0|255] ""  MPC
+ SG_ TorqueAssist_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0x0_Bit9 : 9|1@1+ (1,0) [0|0] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ DriverTorque_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ DriverTorque_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_SteeringAngleCmd : 16|16@1- (0.000387596899224806,0) [-12.7007751937984|12.7003875968992] "deg"  MPC
+ SG_ FAKE_MPC_LCCActivated : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_AssistDirection : 33|7@1+ (1,0) [0|127] ""  MPC
+ SG_ CONST_0x64_B5 : 40|8@1+ (1,0) [100|100] ""  MPC
+ SG_ CONST_0xF_Bits48_51 : 48|4@1+ (1,0) [15|15] ""  MPC
+ SG_ MPC_RollingCounter_1E2 : 52|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_inverted_checksum_1E2 : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 493 U_0x1ED_L8_100ms: 8 Vector__XXX
+
+BO_ 496 B_0x1F0_VCU_ESP_VehSpeed_L8_20ms: 8 Vector__XXX
+ SG_ ESP_VehicleSpeed : 0|16@1+ (0.07142857,0) [0|4681.16505] "km/h"  MPC
+ SG_ VCU_inverted_checksum_1F0 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit22 : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 508 B_0x1FC_EPS_MotorState_L8_20ms: 8 Vector__XXX
+ SG_ FAKE_EPS_DriverTorque : 0|16@1- (1,0) [-32768|32767] ""  MPC
+ SG_ EPS_SteeringAngle : 16|8@1- (0.1,0) [-12.8|12.7] "deg"  MPC
+ SG_ FAKE_EPS_ActiveAssist : 24|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_EPS_MotorAssist : 32|8@1- (258,0) [-128|127] ""  MPC
+ SG_ FAKE_EPS_DirectionAssist : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ CONST_0x0_Bits48_51 : 48|4@1+ (1,0) [0|0] ""  MPC
+ SG_ EPS_RollingCounter_1FC : 52|4@1+ (1,0) [0|15] ""  MPC
+ SG_ EPS_inverted_checksum_1FC : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 511 U_0x1FF_L8_20ms: 8 Vector__XXX
+
+BO_ 522 U_0x20A_L8_100ms: 8 Vector__XXX
+
+BO_ 536 U_0x218_L8_20ms: 8 Vector__XXX
+ SG_ VCU_RollingCounter_218 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ VCU_inverted_checksum_218 : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 537 U_0x219_L8_100ms: 8 Vector__XXX
+
+BO_ 544 U_0x220_L8_20ms: 8 Vector__XXX
+ SG_ FAKE_HUD_FrameHeader : 0|16@1+ (1,0) [0|65535] ""  MPC
+ SG_ FAKE_HUD_FrameToken : 16|16@1+ (1,0) [0|65535] ""  MPC
+ SG_ FAKE_HUD_FrameChar0 : 32|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_HUD_FrameChar1 : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_HUD_FrameChar2 : 48|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_HUD_FrameChar3 : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 546 U_0x222_L8_20ms: 8 Vector__XXX
+
+BO_ 547 U_0x223_L8_20ms: 8 Vector__XXX
+
+BO_ 567 U_0x237_M2X_L8_20ms: 8 Vector__XXX
+
+BO_ 576 U_0x240_L8_100ms: 8 Vector__XXX
+
+BO_ 577 U_0x241_L8_20ms: 8 Vector__XXX
+
+BO_ 578 B_0x242_VCU_DriveState_L8_20ms: 8 Vector__XXX
+ SG_ M_VCU_AccelPedal : 24|8@1+ (1,0) [0|255] "%"  MPC
+ SG_ M_VCU_BrakePressed : 37|1@0+ (1,0) [0|1] ""  MPC
+ SG_ VCU_ParkingBrake : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_GearPosition : 41|2@1+ (1,0) [0|3] ""  MPC
+ SG_ VCU_inverted_checksum_242 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit1 : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit3 : 3|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit6 : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit22 : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 588 U_0x24C_L8_1000ms: 8 Vector__XXX
+ SG_ Unknown_inverted_checksum_24C : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 629 U_0x275_L8_50ms: 8 Vector__XXX
+
+BO_ 638 U_0x27E_L8_50ms: 8 Vector__XXX
+
+BO_ 639 U_0x27F_L8_50ms: 8 Vector__XXX
+
+BO_ 657 U_0x291_L8_10ms: 8 Vector__XXX
+
+BO_ 660 B_0x294_BCM_CabinState_L8_50ms: 8 Vector__XXX
+ SG_ BCM_DoorFrontRight : 1|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_DoorFrontLeft : 3|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_DoorRearLeft : 5|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_DoorRearRight : 7|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_DriverSeatbelt : 17|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_HazardButton : 22|1@0+ (1,0) [0|1] ""  MPC
+ SG_ BCM_RollingCounter_294 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ BCM_inverted_checksum_294 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit6 : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 661 U_0x295_L8_10ms: 8 Vector__XXX
+
+BO_ 663 U_0x297_L8_10ms: 8 Vector__XXX
+
+BO_ 668 U_0x29C_L8_50ms: 8 Vector__XXX
+
+BO_ 692 U_0x2B4_L8_50ms: 8 Vector__XXX
+
+BO_ 694 C_0x2B6_HUD_DateTime_L8_500ms: 8 Vector__XXX
+ SG_ VCU_DateYear : 7|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_DateMonth : 15|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_DateDay : 23|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_TimeHour : 31|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_TimeMinute : 39|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_TimeSecond : 47|8@0+ (1,0) [0|255] ""  MPC
+ SG_ VCU_WeekNumber : 55|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit56 : 56|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit57 : 57|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit58 : 58|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit59 : 59|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit60 : 60|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit61 : 61|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit62 : 62|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit63 : 63|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 724 U_0x2D4_L8_1000ms: 8 Vector__XXX
+
+BO_ 748 U_0x2EH_L8_100ms: 8 Vector__XXX
+
+BO_ 758 U_0x2F6_L8_50ms: 8 Vector__XXX
+ SG_ FAKE_ESP_StatusByte0 : 0|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusByte1 : 8|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusCounter : 16|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusReserved : 24|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusPayloadLo : 32|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusPayloadHi : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ FAKE_ESP_StatusChecksum : 48|16@1+ (1,0) [0|65535] ""  MPC
+
+BO_ 786 U_0x312_L8_100ms: 8 Vector__XXX
+
+BO_ 790 A_0x316_MPC_MpcState_L8_20ms: 8 MPC
+ SG_ CONST_0x0_Bit39 : 39|1@1+ (1,0) [0|0] ""  MPC
+ SG_ FAKE_MPC_EPSEnabled : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_HandsOffEscalation : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_HandOffState : 49|3@1+ (1,0) [0|7] ""  MPC
+ SG_ CONST_LKA_System_Present : 0|1@1+ (1,0) [1|1] ""  MPC
+ SG_ CONST_LKA_Function_Available : 1|1@1+ (1,0) [1|1] ""  MPC
+ SG_ MPC_LKAEnabled : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0x1_Bit3 : 3|1@1+ (1,0) [1|1] ""  MPC
+ SG_ MPC_ACCEnabled : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_LKAWarning : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_LDWActivated : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_LDPActivated : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_StateByte1 : 13|2@0+ (1,0) [0|255] ""  MPC
+ SG_ CONST_0x00_B2 : 23|8@0+ (1,0) [0|0] ""  MPC
+ SG_ CONST_0x00_Bits24_26 : 24|3@1+ (1,0) [0|0] ""  MPC
+ SG_ FAKE_MPC_LCCEnabled : 28|1@1+ (1,0) [0|3] ""  MPC
+ SG_ CONST_0x1F_Bits29_33 : 29|5@1+ (1,0) [31|31] ""  MPC
+ SG_ MPC_HandsOffPhaseActive : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_TorqueResetRequest : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_ICCMenuEnable : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_EPS_DriverTorque_OverRide : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0xFF_B5 : 47|8@0+ (1,0) [255|255] ""  MPC
+ SG_ MPC_HandsOffTimerActive : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_RollingCounter_316 : 52|4@1+ (1,0) [0|15] ""  MPC
+ SG_ MPC_inverted_checksum_316 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 792 C_0x318_EPS_EpsState_L8_20ms: 8 Vector__XXX
+ SG_ EPS_Ready : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ EPS_CruiseEngaged : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ EPS_MotorTorque : 16|16@1- (1,0) [-32768|32767] "counts"  MPC
+ SG_ EPS_RollingCounter_0D5 : 55|4@0+ (1,0) [0|15] ""  MPC
+ SG_ EPS_inverted_checksum_318 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit3 : 3|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit6 : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 797 U_0x31D_L8_1000ms: 8 Vector__XXX
+ SG_ Unknown_inverted_checksum_31D : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 798 U_0x31E_L8_100ms: 8 Vector__XXX
+
+BO_ 800 U_0x320_L8_10ms: 8 Vector__XXX
+
+BO_ 801 C_0x321_ESP_BrakePress_L8_20ms: 8 Vector__XXX
+ SG_ M_ESP_BrakePressureWheelCircuit : 16|8@1+ (0.1,0) [0|25.5] "bar"  MPC
+ SG_ ESP_inverted_checksum_321 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit1 : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit3 : 3|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit6 : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit8 : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 802 U_0x322_L8_20ms: 8 Vector__XXX
+ SG_ ESP_BrakeCmdFrontLeft : 0|16@1+ (1,0) [0|65535] ""  MPC
+ SG_ ESP_BrakeCmdFrontRight : 16|16@1+ (1,0) [0|65535] ""  MPC
+ SG_ ESP_BrakeCmdRearLeft : 32|16@1+ (1,0) [0|65535] ""  MPC
+ SG_ ESP_BrakeCmdRearRight : 48|16@1+ (1,0) [0|65535] ""  MPC
+
+BO_ 803 U_0x323_L8_100ms: 8 Vector__XXX
+ SG_ Unknown_inverted_checksum_323 : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 812 U_0x32C_L8_50ms: 8 Vector__XXX
+
+BO_ 813 B_0x32D_HUD_AdasState_L8_20ms: 8 Vector__XXX
+ SG_ FAKE_VCU_SetSpeed : 0|9@1+ (0.5,0) [0|255.5] "km/h"  MPC
+ SG_ VCU_FollowDistance : 9|2@1+ (1,0) [0|3] ""  MPC
+ SG_ VCU_LeadDistance : 12|3@1+ (1,0) [0|7] ""  MPC
+ SG_ VCU_ACCReady : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0x0_Bit16 : 16|1@1+ (1,0) [0|0] ""  MPC
+ SG_ CONST_0x0_Bit17 : 17|1@1+ (1,0) [0|0] ""  MPC
+ SG_ VCU_ACCStateEnabled : 18|3@1+ (1,0) [7|7] ""  MPC
+ SG_ VCU_ACCIconEnabled : 21|1@0+ (1,0) [1|1] ""  MPC
+ SG_ VCU_CloseDistanceWarning : 22|1@0+ (1,0) [0|0] ""  MPC
+ SG_ CONST_0x0_Bit23 : 23|1@1+ (1,0) [0|0] ""  MPC
+ SG_ VCU_HUDNotify : 25|7@1+ (1,0) [0|127] ""  MPC
+ SG_ VCU_HUDStatusEnabled : 32|4@1+ (1,0) [4|4] ""  MPC
+ SG_ VCU_AEBEnabled : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0xF_Bits37_40 : 37|4@1+ (1,0) [15|15] ""  MPC
+ SG_ FAKE_VCU_LKAConfig : 44|3@1+ (1,0) [0|7] ""  MPC
+ SG_ VCU_HUDCounter : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ HUD_inverted_checksum_32D : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 814 A_0x32E_MPC_Long_Cmd_L8_50ms: 8 MPC
+ SG_ FAKE_MPC_EspMechBrakeRequest : 46|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ FAKE_MPC_AccelerationCmd : 0|8@1+ (0.05,-5) [-5|7.75] "m/s2"  MPC
+ SG_ FAKE_MPC_ComfortBandUpper : 8|8@1+ (0.05,-5) [-5|7.55] "m/s2"  MPC
+ SG_ FAKE_MPC_ComfortBandLower : 16|8@1+ (0.05,-5) [-5|7.55] "m/s2"  MPC
+ SG_ FAKE_MPC_JerkUpperLimit : 24|7@1+ (0.2,0) [0|12.7] "m/s3"  MPC
+ SG_ CONST_0x1_Bit31 : 31|1@0+ (1,0) [1|1] ""  MPC
+ SG_ FAKE_MPC_JerkLowerLimit : 32|7@1+ (0.2,-16) [-16|0] "m/s3"  MPC
+ SG_ FAKE_MPC_StandStillResume : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_StandStillBraking : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_BrakeBehaviour : 41|2@1+ (1,0) [0|3] ""  MPC
+ SG_ FAKE_MPC_AccEngaged : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_AccelRequest : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_StandstillState : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ FAKE_MPC_EspBrakeStopRequest : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ MPC_RollingCounter_32E : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ CONST_0xF_Bits52_55 : 52|4@1+ (1,0) [15|15] ""  MPC
+ SG_ MPC_inverted_checksum_32E : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 815 U_0x32F_L8_20ms: 8 Vector__XXX
+
+BO_ 831 U_0x33F_L8_1000ms: 8 Vector__XXX
+
+BO_ 833 U_0x341_L8_100ms: 8 Vector__XXX
+ SG_ VCU_StateBytes0 : 0|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes1 : 8|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes2 : 16|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes3 : 24|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes4 : 32|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes5 : 40|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes6 : 48|8@1+ (1,0) [0|255] ""  MPC
+ SG_ VCU_StateBytes7 : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 834 B_0x342_VCU_PedalState_L8_20ms: 8 Vector__XXX
+ SG_ M_VCU_AccelPedalRaw : 0|8@1+ (1,0) [0|255] "%"  MPC
+ SG_ M_VCU_BrakePedalPressure : 8|8@1+ (1.3,0) [0|100] "bar"  MPC
+ SG_ VCU_DriveModeSelect : 20|2@1+ (1,0) [0|3] ""  MPC
+ SG_ VCU_NormalModeActive : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_inverted_checksum_342 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit16 : 16|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 835 U_0x343_L8_100ms: 8 Vector__XXX
+
+BO_ 836 U_0x344_L8_100ms: 8 Vector__XXX
+
+BO_ 843 U_0x34B_L8_50ms: 8 Vector__XXX
+
+BO_ 847 U_0x34F_L8_100ms: 8 Vector__XXX
+
+BO_ 848 U_0x350_L8_20ms: 8 Vector__XXX
+
+BO_ 854 U_0x356_L8_20ms: 8 Vector__XXX
+
+BO_ 860 U_0x35C_L8_50ms: 8 Vector__XXX
+
+BO_ 863 U_0x35F_L8_50ms: 8 Vector__XXX
+
+BO_ 879 U_0x36F_L8_10ms: 8 Vector__XXX
+
+BO_ 884 U_0x374_L8_10ms: 8 Vector__XXX
+
+BO_ 901 U_0x385_L8_100ms: 8 Vector__XXX
+
+BO_ 904 U_0x388_L8_1000ms: 8 Vector__XXX
+
+BO_ 906 U_0x38A_L8_1000ms: 8 Vector__XXX
+
+BO_ 944 B_0x3B0_VCU_ButtonState_L8_50ms: 8 Vector__XXX
+ SG_ CONST_0x0_Bit2 : 2|1@0+ (1,0) [0|0] ""  MPC
+ SG_ SWC_CruiseScrollDirection : 3|2@1+ (1,0) [0|3] ""  MPC
+ SG_ SWC_LCCButton : 6|1@0+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0x0_Bit8 : 8|1@0+ (1,0) [0|0] ""  MPC
+ SG_ CONST_0x0_Bit12 : 12|1@0+ (1,0) [0|0] ""  MPC
+ SG_ SWC_DistanceSetNearButton : 15|1@0+ (1,0) [0|1] ""  MPC
+ SG_ SWC_DistanceSetFarButton : 16|1@0+ (1,0) [0|1] ""  MPC
+ SG_ SWC_CruiseSetButton : 19|1@0+ (1,0) [0|1] ""  MPC
+ SG_ VCU_inverted_checksum_3B0 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit1 : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit10 : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit17 : 17|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit18 : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit22 : 22|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit24 : 24|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit25 : 25|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit26 : 26|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit27 : 27|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit28 : 28|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit29 : 29|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit30 : 30|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit31 : 31|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit32 : 32|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit33 : 33|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit34 : 34|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit35 : 35|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit36 : 36|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit37 : 37|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit38 : 38|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit39 : 39|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit40 : 40|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit41 : 41|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit42 : 42|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit43 : 43|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit44 : 44|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit45 : 45|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit46 : 46|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit47 : 47|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 951 U_0x3B7_L8_1000ms: 8 Vector__XXX
+
+BO_ 965 U_0x3C5_L8_1000ms: 8 Vector__XXX
+
+BO_ 973 U_0x3CD_L8_1000ms: 8 Vector__XXX
+
+BO_ 985 U_0x3D9_L8_100ms: 8 Vector__XXX
+
+BO_ 1004 U_0x3EC_L8_1000ms: 8 Vector__XXX
+
+BO_ 1023 U_0x3FF_L8_50ms: 8 Vector__XXX
+
+BO_ 1028 U_0x404_L8_1000ms: 8 Vector__XXX
+ SG_ Unknown_RollingCounter_404 : 48|8@1+ (1,0) [0|255] ""  MPC
+ SG_ Unknown_unknown_checksum_404 : 56|8@1+ (1,0) [0|255] ""  MPC
+
+BO_ 1031 U_0x407_L8_1000ms: 8 Vector__XXX
+
+BO_ 1033 U_0x409_L8_1ms: 8 Vector__XXX
+
+BO_ 1036 U_0x40C_L8_100ms: 8 Vector__XXX
+
+BO_ 1037 U_0x40D_L8_1000ms: 8 Vector__XXX
+
+BO_ 1040 U_0x410_L8_20ms: 8 Vector__XXX
+
+BO_ 1048 B_0x418_VCU_BsdState_L8_50ms: 8 Vector__XXX
+ SG_ VCU_BSDLeftApproach : 8|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_BSDRightApproach : 10|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_BSDMenuEnable : 16|1@0+ (1,0) [0|1] ""  MPC
+ SG_ VCU_BSDWarning : 17|1@0+ (1,0) [0|1] ""  MPC
+ SG_ VCU_DOWMenuEnable2 : 22|1@0+ (1,0) [0|1] ""  MPC
+ SG_ CONST_0xF0_B3 : 31|8@0+ (1,0) [240|240] ""  MPC
+ SG_ CONST_0xF5_B4 : 39|8@0+ (1,0) [245|245] ""  MPC
+ SG_ CONST_0xC8_B5 : 47|8@0+ (1,0) [200|200] ""  MPC
+ SG_ VCU_inverted_checksum_418 : 63|8@0+ (1,0) [0|255] ""  MPC
+ SG_ UNKNOWN_Bit0 : 0|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit1 : 1|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit2 : 2|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit3 : 3|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit4 : 4|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit5 : 5|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit6 : 6|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit7 : 7|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit9 : 9|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit11 : 11|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit12 : 12|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit13 : 13|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit14 : 14|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit15 : 15|1@1+ (1,0) [0|1] ""  MPC
+ SG_ VCU_RCWWarning : 18|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit19 : 19|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit20 : 20|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit21 : 21|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit23 : 23|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit48 : 48|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit49 : 49|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit50 : 50|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit51 : 51|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit52 : 52|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit53 : 53|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit54 : 54|1@1+ (1,0) [0|1] ""  MPC
+ SG_ UNKNOWN_Bit55 : 55|1@1+ (1,0) [0|1] ""  MPC
+
+BO_ 1050 U_0x41A_L8_1000ms: 8 Vector__XXX
+
+BO_ 1052 U_0x41C_L8_1000ms: 8 Vector__XXX
+
+BO_ 1058 C_0x422_ESP_WheelSpeed_L8_20ms: 8 Vector__XXX
+ SG_ ESP_WheelSpeedFrontLeft : 0|16@1+ (0.05625,0) [0|3686.4] "km/h"  MPC
+ SG_ ESP_WheelSpeedFrontRight : 16|16@1+ (0.05625,0) [0|3686.4] "km/h"  MPC
+ SG_ ESP_WheelSpeedRearLeft : 32|16@1+ (0.05625,0) [0|3686.4] "km/h"  MPC
+ SG_ ESP_WheelSpeedRearRight : 48|16@1+ (0.05625,0) [0|3686.4] "km/h"  MPC
+
+BO_ 1062 U_0x426_L8_500ms: 8 Vector__XXX
+
+BO_ 1074 U_0x432_M2X_L8_1000ms: 8 Vector__XXX
+
+BO_ 1076 U_0x434_L8_1000ms: 8 Vector__XXX
+
+BO_ 1098 U_0x44A_L8_100ms: 8 Vector__XXX
+
+BO_ 1107 U_0x453_L8_1000ms: 8 Vector__XXX
+
+BO_ 1108 U_0x454_M2X_L8_1000ms: 8 Vector__XXX
+
+BO_ 1141 U_0x475_L8_1000ms: 8 Vector__XXX
+
+BO_ 1166 U_0x48E_L8_1000ms: 8 Vector__XXX
+
+BO_ 1168 U_0x490_L8_100ms: 8 Vector__XXX
+ SG_ Unknown_RollingCounter_490 : 48|4@1+ (1,0) [0|15] ""  MPC
+ SG_ Unknown_inverted_checksum_490 : 63|8@0+ (1,0) [0|255] ""  MPC
+
+BO_ 1178 U_0x49A_L8_1000ms: 8 Vector__XXX
+
+BO_ 1184 U_0x4A0_L8_1000ms: 8 Vector__XXX
+
+BO_ 1189 U_0x4A5_L8_100ms: 8 Vector__XXX
+
+BO_ 1192 U_0x4A8_L8_100ms: 8 Vector__XXX
+
+BO_ 1193 U_0x4A9_L8_1000ms: 8 Vector__XXX
+
+BO_ 1203 U_0x4B3_L64_1000ms: 64 Vector__XXX
+
+BO_ 1204 U_0x4B4_L64_1000ms: 64 Vector__XXX
+
+BO_ 1211 U_0x4BB_L8_1000ms: 8 Vector__XXX
+
+BO_ 1215 U_0x4BF_L8_1000ms: 8 Vector__XXX
+
+BO_ 1226 U_0x4CA_L16_1000ms: 16 Vector__XXX
+
+BO_ 1246 U_0x4DE_L8_1000ms: 8 Vector__XXX
+
+BO_ 1263 U_0x4EF_L8_50ms: 8 Vector__XXX
+
+BO_ 1274 U_0x4FA_L8_1000ms: 8 Vector__XXX
+
+BO_ 1278 U_0x4FE_L8_1000ms: 8 Vector__XXX
+
+BO_ 1296 U_0x510_L8_500ms: 8 Vector__XXX
+
+BO_ 1297 U_0x511_L8_500ms: 8 Vector__XXX
+
+BO_ 1298 U_0x512_L8_500ms: 8 Vector__XXX
+
+BO_ 1319 U_0x527_L8_500ms: 8 Vector__XXX
+
+BO_ 1322 U_0x52A_L8_500ms: 8 Vector__XXX
+
+
+
+BA_DEF_  "MultiplexExtEnabled" ENUM  "No","Yes";
+BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
+BA_DEF_  "DBName" STRING ;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_DEF_  "MultiplexExtEnabled" "No";
+BA_DEF_DEF_  "CANFD_BRS" "1";
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "BusType" "";
+BA_DEF_DEF_  "NodeLayerModules" "";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_  "VFrameFormat" "StandardCAN";
+BA_ "BusType" "CAN";
+BA_ "DBName" "ADAS";
+BA_ "VFrameFormat" BO_ 213 14;
+BA_ "VFrameFormat" BO_ 287 14;
+BA_ "VFrameFormat" BO_ 289 14;
+BA_ "VFrameFormat" BO_ 291 14;
+BA_ "VFrameFormat" BO_ 301 14;
+BA_ "VFrameFormat" BO_ 307 14;
+BA_ "VFrameFormat" BO_ 311 14;
+BA_ "VFrameFormat" BO_ 312 14;
+BA_ "VFrameFormat" BO_ 337 14;
+BA_ "VFrameFormat" BO_ 482 14;
+BA_ "VFrameFormat" BO_ 493 14;
+BA_ "VFrameFormat" BO_ 496 14;
+BA_ "VFrameFormat" BO_ 508 14;
+BA_ "VFrameFormat" BO_ 511 14;
+BA_ "VFrameFormat" BO_ 536 14;
+BA_ "VFrameFormat" BO_ 544 14;
+BA_ "VFrameFormat" BO_ 546 14;
+BA_ "VFrameFormat" BO_ 547 14;
+BA_ "VFrameFormat" BO_ 567 14;
+BA_ "VFrameFormat" BO_ 576 14;
+BA_ "VFrameFormat" BO_ 578 14;
+BA_ "VFrameFormat" BO_ 588 14;
+BA_ "VFrameFormat" BO_ 657 14;
+BA_ "VFrameFormat" BO_ 660 14;
+BA_ "VFrameFormat" BO_ 661 14;
+BA_ "VFrameFormat" BO_ 663 14;
+BA_ "VFrameFormat" BO_ 668 14;
+BA_ "VFrameFormat" BO_ 692 14;
+BA_ "VFrameFormat" BO_ 694 14;
+BA_ "VFrameFormat" BO_ 724 14;
+BA_ "VFrameFormat" BO_ 748 14;
+BA_ "VFrameFormat" BO_ 758 14;
+BA_ "VFrameFormat" BO_ 790 14;
+BA_ "VFrameFormat" BO_ 792 14;
+BA_ "VFrameFormat" BO_ 797 14;
+BA_ "VFrameFormat" BO_ 801 14;
+BA_ "VFrameFormat" BO_ 802 14;
+BA_ "VFrameFormat" BO_ 803 14;
+BA_ "VFrameFormat" BO_ 813 14;
+BA_ "VFrameFormat" BO_ 814 14;
+BA_ "VFrameFormat" BO_ 815 14;
+BA_ "VFrameFormat" BO_ 833 14;
+BA_ "VFrameFormat" BO_ 834 14;
+BA_ "VFrameFormat" BO_ 836 14;
+BA_ "VFrameFormat" BO_ 901 14;
+BA_ "VFrameFormat" BO_ 904 14;
+BA_ "VFrameFormat" BO_ 906 14;
+BA_ "VFrameFormat" BO_ 944 14;
+BA_ "VFrameFormat" BO_ 965 14;
+BA_ "VFrameFormat" BO_ 973 14;
+BA_ "VFrameFormat" BO_ 985 14;
+BA_ "VFrameFormat" BO_ 1028 14;
+BA_ "VFrameFormat" BO_ 1031 14;
+BA_ "VFrameFormat" BO_ 1033 14;
+BA_ "VFrameFormat" BO_ 1036 14;
+BA_ "VFrameFormat" BO_ 1263 14;
+BA_ "VFrameFormat" BO_ 1040 14;
+BA_ "VFrameFormat" BO_ 1048 14;
+BA_ "VFrameFormat" BO_ 1050 14;
+BA_ "VFrameFormat" BO_ 1058 14;
+BA_ "VFrameFormat" BO_ 1074 14;
+BA_ "VFrameFormat" BO_ 1107 14;
+BA_ "VFrameFormat" BO_ 1108 14;
+BA_ "VFrameFormat" BO_ 1141 14;
+BA_ "VFrameFormat" BO_ 1166 14;
+BA_ "VFrameFormat" BO_ 1168 14;
+BA_ "VFrameFormat" BO_ 1178 14;
+BA_ "VFrameFormat" BO_ 1189 14;
+BA_ "VFrameFormat" BO_ 1192 14;
+BA_ "VFrameFormat" BO_ 1193 14;
+BA_ "VFrameFormat" BO_ 1203 14;
+BA_ "VFrameFormat" BO_ 1204 14;
+BA_ "VFrameFormat" BO_ 1226 14;
+BA_ "VFrameFormat" BO_ 1296 14;
+BA_ "VFrameFormat" BO_ 1319 14;
+BA_ "VFrameFormat" BO_ 1322 14;
+BA_ "VFrameFormat" BO_ 85 0;
+BA_ "VFrameFormat" BO_ 140 0;
+BA_ "VFrameFormat" BO_ 290 0;
+BA_ "VFrameFormat" BO_ 300 0;
+BA_ "VFrameFormat" BO_ 309 0;
+BA_ "VFrameFormat" BO_ 324 0;
+BA_ "VFrameFormat" BO_ 327 0;
+BA_ "VFrameFormat" BO_ 330 0;
+BA_ "VFrameFormat" BO_ 356 0;
+BA_ "VFrameFormat" BO_ 371 0;
+BA_ "VFrameFormat" BO_ 418 0;
+BA_ "VFrameFormat" BO_ 450 0;
+BA_ "VFrameFormat" BO_ 522 0;
+BA_ "VFrameFormat" BO_ 537 0;
+BA_ "VFrameFormat" BO_ 577 0;
+BA_ "VFrameFormat" BO_ 629 0;
+BA_ "VFrameFormat" BO_ 638 0;
+BA_ "VFrameFormat" BO_ 639 0;
+BA_ "VFrameFormat" BO_ 786 0;
+BA_ "VFrameFormat" BO_ 798 0;
+BA_ "VFrameFormat" BO_ 800 0;
+BA_ "VFrameFormat" BO_ 812 0;
+BA_ "VFrameFormat" BO_ 831 0;
+BA_ "VFrameFormat" BO_ 835 0;
+BA_ "VFrameFormat" BO_ 843 0;
+BA_ "VFrameFormat" BO_ 847 0;
+BA_ "VFrameFormat" BO_ 848 0;
+BA_ "VFrameFormat" BO_ 854 0;
+BA_ "VFrameFormat" BO_ 860 0;
+BA_ "VFrameFormat" BO_ 863 0;
+BA_ "VFrameFormat" BO_ 879 0;
+BA_ "VFrameFormat" BO_ 884 0;
+BA_ "VFrameFormat" BO_ 951 0;
+BA_ "VFrameFormat" BO_ 1004 0;
+BA_ "VFrameFormat" BO_ 1023 0;
+BA_ "VFrameFormat" BO_ 1037 0;
+BA_ "VFrameFormat" BO_ 1052 0;
+BA_ "VFrameFormat" BO_ 1062 0;
+BA_ "VFrameFormat" BO_ 1076 0;
+BA_ "VFrameFormat" BO_ 1098 0;
+BA_ "VFrameFormat" BO_ 1184 0;
+BA_ "VFrameFormat" BO_ 1211 0;
+BA_ "VFrameFormat" BO_ 1215 0;
+BA_ "VFrameFormat" BO_ 1246 0;
+BA_ "VFrameFormat" BO_ 1274 0;
+BA_ "VFrameFormat" BO_ 1278 0;
+BA_ "VFrameFormat" BO_ 1297 0;
+BA_ "VFrameFormat" BO_ 1298 0;
+VAL_ 291 MPC_LaneConfidenceLeft 0 "No_Lane" 15 "Maximum" 14 "Very_High" 13 "Very_High" 12 "High" 11 "High" 10 "Medium_High" 9 "Medium_High" 8 "Medium" 7 "Medium" 6 "Medium" 5 "Low_Med" 4 "Low_Med" 3 "Low_Med" 2 "Low" 1 "Very_Low" ;
+VAL_ 291 MPC_LaneStatusLeft 9 "Normal" 0 "Unknown_0" ;
+VAL_ 291 MPC_LaneStatusRight 0 "Normal" ;
+VAL_ 291 MPC_LaneConfidenceRight 0 "No_Lane" 15 "Maximum" 14 "Very_High" 13 "Very_High" 12 "High" 11 "High" 10 "Medium_High" 9 "Medium_High" 8 "Medium" 7 "Medium" 6 "Medium" 5 "Low_Med" 4 "Low_Med" 3 "Low_Med" 2 "Low" 1 "Very_Low" ;
+VAL_ 291 MPC_LaneLineTypeLeft 0 "No_Lane" 93 "Lane_Detected" ;
+VAL_ 291 MPC_LaneLineTypeRight 0 "No_Lane" 192 "Lane_Detected" ;
+VAL_ 291 MPC_LaneQualityLeft 0 "No_Lane" 93 "Quality_Good" ;
+VAL_ 291 MPC_LaneQualityRight 0 "No_Lane" 198 "Quality_Good" 206 "Quality_Better" ;
+VAL_ 307 BCM_FrontWiperStalk 9 "High" 8 "Low" 7 "Intermittent_4" 6 "Intermittent_3" 5 "Intermittent_2" 4 "Intermittent_1" 1 "Off" ;
+VAL_ 307 BCM_HeadlampSwitch 4 "LOWBEAM" 3 "POSITION" 2 "AUTO" 1 "OFF" ;
+VAL_ 307 BCM_HighBeamStalk 1 "Active" 0 "Inactive" ;
+VAL_ 307 BCM_TurnSignalStalk 5 "RightFull" 4 "RightPartial" 3 "LeftFull" 2 "LeftPartial" 1 "Neutral" ;
+VAL_ 482 FAKE_MPC_LCCActivated 1 "Activated" 0 "Disabled" ;
+VAL_ 482 FAKE_MPC_AssistDirection 0 "Left" 127 "Right" ;
+VAL_ 578 M_VCU_BrakePressed 1 "Pressed" 0 "Released" ;
+VAL_ 578 VCU_ParkingBrake 1 "Engaged" 0 "Disengaged" ;
+VAL_ 578 VCU_GearPosition 3 "N" 2 "D" 1 "R" 0 "P" ;
+VAL_ 660 BCM_DoorFrontRight 1 "Open" 0 "Closed" ;
+VAL_ 660 BCM_DoorFrontLeft 1 "Open" 0 "Closed" ;
+VAL_ 660 BCM_DriverSeatbelt 1 "Plugged" 0 "Released" ;
+VAL_ 660 BCM_HazardButton 0 "On" 1 "Off" ;
+VAL_ 790 FAKE_MPC_EPSEnabled 1 "Enabled" 0 "Disabled" ;
+VAL_ 790 FAKE_MPC_HandOffState 7 "Level4_Cancel" 5 "Level3_PreCancel" 3 "Level2_Chime" 1 "Level1_Visual" 0 "Inactive" ;
+VAL_ 790 MPC_LKAEnabled 1 "Enabled" 0 "Disabled" ;
+VAL_ 790 MPC_ACCEnabled 1 "Enabled" 0 "Disabled" ;
+VAL_ 790 MPC_LKAWarning 1 "Warning" 0 "Inactive" ;
+VAL_ 790 MPC_LDWActivated 1 "Activated" 0 "Inactive" ;
+VAL_ 790 MPC_LDPActivated 1 "Activated" 0 "Inactive" ;
+VAL_ 790 FAKE_MPC_LCCEnabled 1 "Enabled" 0 "Disabled" ;
+VAL_ 790 MPC_HandsOffPhaseActive 1 "Active" 0 "Inactive" ;
+VAL_ 790 MPC_TorqueResetRequest 1 "Hands_Off" 0 "Hands_On" ;
+VAL_ 790 MPC_ICCMenuEnable 1 "On" 0 "Off" ;
+VAL_ 813 VCU_FollowDistance 0 "1bar_Closest" 1 "2bar" 2 "3bar" 3 "4bar_Farthest" ;
+VAL_ 813 VCU_LeadDistance 0 "Distance_0" 1 "Distance_1" 6 "Distance_6" ;
+VAL_ 813 VCU_ACCReady 0 "Off" 1 "On" ;
+VAL_ 813 VCU_AEBEnabled 0 "Disabled" 1 "Enabled" ;
+VAL_ 813 FAKE_VCU_LKAConfig 1 "OFF" 2 "Warning_Only" 3 "Both_Warning_Prevention" 5 "Prevention_Only" ;
+VAL_ 814 FAKE_MPC_StandStillResume 0 "No_Request" 1 "Requested" ;
+VAL_ 814 FAKE_MPC_StandStillBraking 0 "No_Request" 1 "Requested" ;
+VAL_ 814 FAKE_MPC_BrakeBehaviour 0 "Normal" 1 "Heavy_Brake" 2 "Pre_Standstill" 3 "Heavy_PreStandstill" ;
+VAL_ 814 FAKE_MPC_AccEngaged 0 "At_Standstill_Or_Inactive" 1 "Active_Not_Standstill" ;
+VAL_ 814 FAKE_MPC_StandstillState 0 "Moving" 1 "Standstill" ;
+VAL_ 834 VCU_DriveModeSelect 3 "Snow" 2 "Sport" 1 "Eco" 0 "Normal" ;
+VAL_ 834 VCU_NormalModeActive 1 "Active" 0 "Inactive" ;
+VAL_ 944 SWC_CruiseScrollDirection 3 "ScrollUp" 1 "ScrollDown" 0 "Released" ;
+VAL_ 944 SWC_LCCButton 0 "Off" 1 "On" ;
+VAL_ 944 SWC_DistanceSetNearButton 0 "Off" 1 "On" ;
+VAL_ 944 SWC_DistanceSetFarButton 0 "Off" 1 "On" ;
+VAL_ 944 SWC_CruiseSetButton 0 "Off" 1 "On" ;
+VAL_ 1048 VCU_BSDLeftApproach 0 "Off" 1 "On" ;
+VAL_ 1048 VCU_BSDRightApproach 0 "Off" 1 "On" ;
+VAL_ 1048 VCU_BSDMenuEnable 0 "Disabled" 1 "Enabled" ;
+VAL_ 1048 VCU_BSDWarning 0 "No_Warning" 1 "Warning" ;
+VAL_ 1048 VCU_DOWMenuEnable2 0 "Disabled" 1 "Enabled" ;
+

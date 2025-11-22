@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /mnt/c/Github/nagaspilot stash list)",
+      "Bash(opendbc_repo/opendbc/car/gateway/values.py)",
+      "Bash(opendbc_repo/opendbc/dbc/byd_dolphin.dbc)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
