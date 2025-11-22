@@ -1,8 +1,20 @@
 # functions common among cars
 import numpy as np
-from dataclasses import dataclass, field
-from enum import IntFlag, ReprEnum, StrEnum, EnumType, auto
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
+
+try:
+  from enum import IntFlag, ReprEnum, StrEnum, EnumType, auto
+except ImportError:  # Python < 3.11 compatibility for local tooling
+  from enum import Enum, IntFlag, EnumMeta, auto
+
+  class ReprEnum(Enum):
+    def __repr__(self):
+      return f"{self.__class__.__name__}.{self._name_}"
+
+  class StrEnum(str, Enum):
+    pass
+
+  EnumType = EnumMeta
 
 from opendbc.car import structs, uds
 from opendbc.car.can_definitions import CanData

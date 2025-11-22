@@ -27,7 +27,7 @@ from opendbc.can.can_define import CANDefine
 from opendbc.car import Bus, create_button_events, structs
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.gateway.values import DBC, STEER_THRESHOLD, CAR
-from opendbc.car.gateway.gatewaycan import CanBus, inverted_sum_checksum
+from opendbc.car.gateway.gatewaycan import CanBus, get_model_messages, inverted_sum_checksum
 from opendbc.car.interfaces import CarStateBase
 
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -142,9 +142,12 @@ class CarState(CarStateBase):
     Uses stock messages that are always present during fingerprinting.
     0x6F0 diagnostic is excluded as it's only sent by our controller.
     """
-    # BYD DOLPHIN detection: Check for unique message presence
-    # Using B_0x32D (HUD) as it's specific to BYD's ACC implementation
-    if 'B_0x32D_HUD_AdasState_L8_20ms' in can_recv:
+    # BYD ATTO3 uses MPC_* message naming in its DBC
+    if 'A_0x1E2_MPC_Lateral_Cmd_L8_20ms' in can_recv:
+      return CAR.BYD_ATTO3
+
+    # BYD DOLPHIN detection: Check for unique message presence (M2E naming)
+    if 'A_0x1E2_M2E_Lateral_Cmd_L8_20ms' in can_recv:
       return CAR.BYD_DOLPHIN
 
     return None
@@ -153,6 +156,7 @@ class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     can_define = CANDefine(DBC[CP.carFingerprint][Bus.pt])
+    self.msgs = get_model_messages(CP.carFingerprint)
 
     # Gear position tracking (simple direct mapping for EVs)
     self.shifter_values = {0: 0, 1: 1, 2: 2, 3: 3}
@@ -506,11 +510,11 @@ class CarState(CarStateBase):
 
     # Extract 0x318 counter and EPS ready signal for MPC synchronization
     try:
-      eps_vals = cp_cam.vl["B_0x318_E2X_EpsState_L8_20ms"]
+      eps_vals = cp_cam.vl[self.msgs.eps_state]
       self.stock_eps_state = dict(eps_vals)
       self.eps_state_counter = int(eps_vals.get("EPS_RollingCounter_0D5", self.eps_state_counter))
 
-      raw_eps = cp_cam.to_can_parser.msgs["B_0x318_E2X_EpsState_L8_20ms"]["data"]
+      raw_eps = cp_cam.to_can_parser.msgs[self.msgs.eps_state]["data"]
       if raw_eps and len(raw_eps) >= 1:
         self.eps_lka_ready = bool(raw_eps[0] & 0x01)
     except KeyError:
@@ -518,17 +522,17 @@ class CarState(CarStateBase):
 
     # Preserve latest stock commands (camera bus) to reuse unknown bits when transmitting
     try:
-      self.stock_lat_cmd = copy.copy(cp_cam.vl["A_0x1E2_M2E_Lateral_Cmd_L8_20ms"])
+      self.stock_lat_cmd = copy.copy(cp_cam.vl[self.msgs.lat_cmd])
     except KeyError:
       pass
 
     try:
-      self.stock_long_cmd = copy.copy(cp_cam.vl["A_0x32E_M2V_Long_Cmd_L8_50ms"])
+      self.stock_long_cmd = copy.copy(cp_cam.vl[self.msgs.long_cmd])
     except KeyError:
       pass
 
     try:
-      self.stock_mpc_state = copy.copy(cp_cam.vl["A_0x316_M2X_MpcState_L8_20ms"])
+      self.stock_mpc_state = copy.copy(cp_cam.vl[self.msgs.mpc_state])
     except KeyError:
       pass
 
@@ -538,6 +542,7 @@ class CarState(CarStateBase):
 
   @staticmethod
   def get_can_parsers(CP):
+    msgs = get_model_messages(CP.carFingerprint)
     # ==========================================================================
     # CAN BUS MESSAGE PARSERS
     # ==========================================================================
@@ -577,10 +582,10 @@ class CarState(CarStateBase):
     # We parse these to copy their unknown signal values into our own A_ messages
     # This ensures we preserve bits we don't understand when sending commands
     cam_messages = [
-      ("B_0x318_E2X_EpsState_L8_20ms", 50),   # Stock EPS state (counter sync)
-      ("A_0x1E2_M2E_Lateral_Cmd_L8_20ms", 50), # Stock lateral cmd (preserve bits)
-      ("A_0x32E_M2V_Long_Cmd_L8_50ms", 50),    # Stock long cmd (preserve bits)
-      ("A_0x316_M2X_MpcState_L8_20ms", 50),    # Stock MPC state (preserve bits)
+      (msgs.eps_state, 50),   # Stock EPS state (counter sync)
+      (msgs.lat_cmd, 50),     # Stock lateral cmd (preserve bits)
+      (msgs.long_cmd, 50),    # Stock long cmd (preserve bits)
+      (msgs.mpc_state, 50),   # Stock MPC state (preserve bits)
     ]
 
     # Return structure consumed by CarInterfaceBase
