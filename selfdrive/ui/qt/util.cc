@@ -28,11 +28,11 @@ QString getVersion() {
 
 QString getBrand() {
   const bool lite = getenv("LITE");
-  return QObject::tr("dragonpilot") + (lite ? QString::fromStdString(" - Lite") : QString(""));
+  return QObject::tr("nagaspilot") + (lite ? QString::fromStdString(" - Lite") : QString(""));
 }
 
 QString getUserAgent() {
-  return "dragonpilot-" + getVersion();
+  return "nagaspilot-" + getVersion();
 }
 
 std::optional<QString> getDongleId() {

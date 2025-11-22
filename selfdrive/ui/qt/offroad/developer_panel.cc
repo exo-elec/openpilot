@@ -1,6 +1,8 @@
 #include "selfdrive/ui/qt/offroad/developer_panel.h"
 #include "selfdrive/ui/qt/widgets/ssh_keys.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
+#include <QJsonDocument>
+#include <QJsonObject>
 
 DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   adbToggle = new ParamControl("AdbEnabled", tr("Enable ADB"),
@@ -58,8 +60,12 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(error_log_btn);
 
   QObject::connect(error_log_btn, &QPushButton::clicked, [=]() {
-    ConfirmationDialog::rich(QString::fromStdString(params.get("dp_device_last_log")), parent);
+    ConfirmationDialog::rich(QString::fromStdString(params.get("np_device_last_log")), parent);
   });
+
+  np_metrics = new LabelControl(tr("NP Metrics"), tr("Waiting..."));
+  addItem(np_metrics);
+  refreshNpMetrics();
 }
 
 void DeveloperPanel::updateToggles(bool _offroad) {
@@ -103,8 +109,61 @@ void DeveloperPanel::updateToggles(bool _offroad) {
   experimentalLongitudinalToggle->refresh();
 
   offroad = _offroad;
+  refreshNpMetrics();
 }
 
 void DeveloperPanel::showEvent(QShowEvent *event) {
   updateToggles(offroad);
+}
+
+void DeveloperPanel::refreshNpMetrics() {
+  QString cat_json = QString::fromStdString(params.get("np_cat_status"));
+  QString text = tr("NP telemetry unavailable");
+  if (!cat_json.isEmpty()) {
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(cat_json.toUtf8(), &err);
+    if (err.error == QJsonParseError::NoError && doc.isObject()) {
+      auto obj = doc.object();
+      const QString mode = obj.value("manualOverride").toBool(false) ? "Manual" :
+                           (obj.value("adaptive").toBool(false) ? "Adaptive" : "Learning");
+      const double conf = obj.value("confidence").toDouble(0.0);
+      const double sr = obj.value("steerRatio").toDouble(0.0);
+      const double stiff = obj.value("stiffnessFactor").toDouble(0.0);
+      const int samples = obj.value("samples").toInt(0);
+      text = QString("CAT %1 | conf %2 | sr %3 | stiff %4 | samples %5")
+               .arg(mode)
+               .arg(conf, 0, 'f', 2)
+               .arg(sr, 0, 'f', 3)
+               .arg(stiff, 0, 'f', 3)
+               .arg(samples);
+    }
+  }
+  // Append stack telemetry if available
+  QString stack_json = QString::fromStdString(params.get("np_stack_status"));
+  if (!stack_json.isEmpty()) {
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(stack_json.toUtf8(), &err);
+    if (err.error == QJsonParseError::NoError && doc.isObject()) {
+      auto obj = doc.object();
+      auto dlp = obj.value("dlp").toObject();
+      auto tsc = obj.value("tsc").toObject();
+      auto dem = obj.value("dem").toObject();
+      QStringList parts;
+      parts << QString("DLP %1/%2 conf %3")
+                   .arg(dlp.value("available").toBool() ? tr("avail") : tr("na"))
+                   .arg(dlp.value("active").toBool() ? tr("on") : tr("off"))
+                   .arg(dlp.value("confidence").toDouble(), 0, 'f', 2);
+      parts << QString("TSC %1 state %2 v %3 m %4%5")
+                   .arg(tsc.value("active").toBool() ? tr("on") : tr("off"))
+                   .arg(tsc.value("state").toInt())
+                   .arg(tsc.value("visionSpeed").toDouble(), 0, 'f', 1)
+                   .arg(tsc.value("mapSpeed").toDouble(), 0, 'f', 1)
+                   .arg(tsc.value("mapStale").toBool() ? tr(" stale") : "");
+      parts << QString("DEM %1 health %2")
+                   .arg(dem.value("active").toBool() ? tr("on") : tr("off"))
+                   .arg(dem.value("health").toDouble(), 0, 'f', 2);
+      text += "\n" + parts.join(" | ");
+    }
+  }
+  np_metrics->setText(text);
 }

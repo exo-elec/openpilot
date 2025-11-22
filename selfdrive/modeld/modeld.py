@@ -23,14 +23,14 @@ from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
-from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
+from nagaspilot.selfdrive.controls.lib.np_lca_controller import DesireHelper
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState
 from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
 from openpilot.selfdrive.modeld.models.commonmodel_pyx import DrivingModelFrame, CLContext
 from openpilot.selfdrive.modeld.runners.tinygrad_helpers import qcom_tensor_from_opencl_address
-from dragonpilot.selfdrive.controls.lib.road_edge_detector import RoadEdgeDetector
+from nagaspilot.selfdrive.controls.lib.road_edge_detector import RoadEdgeDetector
 
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
@@ -222,7 +222,7 @@ def main(demo=False):
 
   # messaging
   pm = PubMaster(["modelV2", "drivingModelData", "cameraOdometry", "modelExt"])
-  sm = SubMaster(["deviceState", "carState", "roadCameraState", "liveCalibration", "driverMonitoringState", "carControl", "liveDelay"])
+  sm = SubMaster(["deviceState", "carState", "roadCameraState", "liveCalibration", "driverMonitoringState", "carControl", "liveDelay", "npControlsState"])
 
   publish_state = PublishState()
   params = Params()
@@ -252,10 +252,28 @@ def main(demo=False):
   long_delay = CP.longitudinalActuatorDelay + LONG_SMOOTH_SECONDS
   prev_action = log.ModelDataV2.Action()
 
-  dp_lat_lca_speed = int(params.get("dp_lat_lca_speed"))
-  dp_lat_lca_auto_sec = float(params.get("dp_lat_lca_auto_sec"))
-  DH = DesireHelper(dp_lat_lca_speed=dp_lat_lca_speed, dp_lat_lca_auto_sec=dp_lat_lca_auto_sec)
-  RED = RoadEdgeDetector(params.get_bool("dp_lat_road_edge_detection"))
+  def get_param_int(name: str, default: int) -> int:
+    try:
+      return int(params.get(name))
+    except (TypeError, ValueError):
+      return default
+
+  def get_param_float(name: str, default: float) -> float:
+    try:
+      return float(params.get(name))
+    except (TypeError, ValueError):
+      return default
+
+  def get_param_bool(name: str, default: bool) -> bool:
+    if params.get(name) is None:
+      return default
+    return params.get_bool(name)
+
+  lca_min_speed = get_param_int("np_lca_min_speed", 60)
+  lca_auto_delay = get_param_float("np_lca_auto_delay", 2.0)
+  road_edge_enabled = get_param_bool("np_red_enable", True)
+  DH = DesireHelper(lca_min_speed, lca_auto_delay)
+  RED = RoadEdgeDetector(road_edge_enabled)
 
   while True:
     # Keep receiving frames until we are at least 1 frame ahead of previous extra frame
@@ -292,6 +310,12 @@ def main(demo=False):
 
     sm.update(0)
     desire = DH.desire
+    if sm.valid.get("npControlsState", False):
+      ncs = sm["npControlsState"].npControlsState
+      if ncs.dlpAvailable:
+        dlp_desire = int(ncs.dlpDesire)
+        if 0 <= dlp_desire < ModelConstants.DESIRE_LEN:
+          desire = dlp_desire
     is_rhd = sm["driverMonitoringState"].isRHD
     frame_id = sm["roadCameraState"].frameId
     v_ego = max(sm["carState"].vEgo, 0.)

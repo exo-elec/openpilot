@@ -56,10 +56,13 @@ def only_offroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return not started
 
 def dashy(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return int(params.get("dp_dev_dashy") or 0) > 0
+  return int(params.get("np_dev_dashy") or 0) > 0
 
 def dashy_with_video(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return int(params.get("dp_dev_dashy") or 0) == 2
+  return int(params.get("np_dev_dashy") or 0) == 2
+
+def beep_controller_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return only_onroad(started, params, CP) and params.get_bool("np_device_beep")
 
 def or_(*fns):
   return lambda *args: operator.or_(*(fn(*args) for fn in fns))
@@ -89,7 +92,7 @@ procs = [
   NativeProcess("ui", "selfdrive/ui", ["./ui"], always_run, watchdog_max_dt=(5 if not PC else None)),
   PythonProcess("raylib_ui", "selfdrive.ui.ui", always_run, enabled=False, watchdog_max_dt=(5 if not PC else None)),
   PythonProcess("soundd", "selfdrive.ui.soundd", only_onroad, enabled=not os.getenv("LITE")),
-  PythonProcess("beepd", "dragonpilot.selfdrive.ui.beepd", only_onroad, enabled=(Params().get_bool("dp_device_beep") and os.getenv("LITE"))),
+  PythonProcess("np_beep_controller", "nagaspilot.selfdrive.controls.lib.np_beep_controller", beep_controller_enabled, enabled=bool(os.getenv("LITE"))),
   PythonProcess("locationd", "selfdrive.locationd.locationd", only_onroad),
   NativeProcess("_pandad", "selfdrive/pandad", ["./pandad"], always_run, enabled=False),
   PythonProcess("calibrationd", "selfdrive.locationd.calibrationd", only_onroad),
@@ -100,7 +103,7 @@ procs = [
   PythonProcess("card", "selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
   PythonProcess("dmonitoringd", "selfdrive.monitoring.dmonitoringd", driverview, enabled=(WEBCAM or not PC) and not os.getenv("LITE")),
-  PythonProcess("dpmonitoringd", "selfdrive.monitoring.dpmonitoringd", only_onroad, enabled=os.getenv("LITE")),
+  PythonProcess("npmonitoringd", "selfdrive.monitoring.npmonitoringd", only_onroad, enabled=os.getenv("LITE")),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),
@@ -116,6 +119,10 @@ procs = [
   PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "system.statsd", always_run),
   PythonProcess("feedbackd", "selfdrive.ui.feedback.feedbackd", only_onroad, enabled=not os.getenv("LITE")),
+
+  # NagasPilot processes
+  PythonProcess("np_trip_controller", "nagaspilot.selfdrive.controls.lib.np_trip_controller", always_run),
+  PythonProcess("np_mapd_manager", "nagaspilot.selfdrive.mapd.np_mapd_manager", always_run),
 
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], or_(notcar, and_(dashy_with_video, only_onroad))),

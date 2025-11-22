@@ -132,7 +132,7 @@ void AnnotatedCameraWidget::paintGL() {
   painter.setPen(Qt::NoPen);
 
   model.draw(painter, rect());
-  bool hide_hud = s->scene.dp_ui_hide_hud_speed_kph > 0 && sm["carState"].getCarState().getVEgo() > s->scene.dp_ui_hide_hud_speed_kph * 0.278;
+  bool hide_hud = s->scene.np_ui_hud_hide_speed > 0 && sm["carState"].getCarState().getVEgo() > s->scene.np_ui_hud_hide_speed * 0.278;
   if (!hide_hud) {
     if (!s->scene.lite) {
       dmon.draw(painter, rect());

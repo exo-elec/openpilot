@@ -23,18 +23,18 @@ private:
   QColor bg = bg_colors[STATUS_DISENGAGED];
   QHBoxLayout* split;
 
-  void updateDpIndicatorSideState(bool blinker_state, bool bsm_state, bool &show, bool &show_prev, int &count, QColor &color);
-  void updateDpIndicatorStates(const UIState &s);
+  void updateNpIndicatorSideState(bool blinker_state, bool bsm_state, bool &show, bool &show_prev, int &count, QColor &color);
+  void updateNpIndicatorStates(const UIState &s);
   // left
-  int dp_indicator_count_left = 0;
-  QColor dp_indicator_color_left = DP_INDICATOR_COLOR_BLINKER;
-  bool dp_indicator_show_left = false;
-  bool dp_indicator_show_left_prev = false;
+  int np_indicator_count_left = 0;
+  QColor np_indicator_color_left = DP_INDICATOR_COLOR_BLINKER;
+  bool np_indicator_show_left = false;
+  bool np_indicator_show_left_prev = false;
   // right
-  int dp_indicator_count_right = 0;
-  QColor dp_indicator_color_right = DP_INDICATOR_COLOR_BLINKER;
-  bool dp_indicator_show_right = false;
-  bool dp_indicator_show_right_prev = false;
+  int np_indicator_count_right = 0;
+  QColor np_indicator_color_right = DP_INDICATOR_COLOR_BLINKER;
+  bool np_indicator_show_right = false;
+  bool np_indicator_show_right_prev = false;
 
 private slots:
   void offroadTransition(bool offroad);

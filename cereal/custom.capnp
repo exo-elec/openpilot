@@ -10,19 +10,96 @@ $Cxx.namespace("cereal");
 # DO rename the structs
 # DON'T change the identifier (e.g. @0x81c2f05a394cf4af)
 
-struct DpControlsState @0x81c2f05a394cf4af {
-  alkaActive @0 :Bool;
+struct NpControlsState @0x81c2f05a394cf4af {
+  alccActive @0 :Bool;
+  dlpMode @1 :UInt16;
+  dlpLcaMode @2 :UInt16;
+  dlpActive @3 :Bool;
+  dlpAvailable @4 :Bool;
+  dlpConfidence @5 :Float32;
+  dlpDesire @6 :Int16;
+  dlpReasonCode @7 :UInt16;
+  catAdaptive @8 :Bool;
+  catConfidence @9 :Float32;
+  catSteerRatio @10 :Float32;
+  catStiffnessFactor @11 :Float32;
+  catSamples @12 :UInt16;
+  catManualOverride @13 :Bool;
+  dlpAvailable @14 :Bool;
+  dlpActive @15 :Bool;
+  dlpConfidence @16 :Float32;
+  dlpReasonCode @17 :UInt16;
+  tscActive @18 :Bool;
+  tscState @19 :UInt8;  # custom.LongitudinalPlanExt.VisionTurnControllerState / MapTurnControllerState
+  tscVisionSpeed @20 :Float32;
+  tscMapSpeed @21 :Float32;
+  demActive @22 :Bool;
+  demEngagedPercent @23 :Float32;
+  tscMapStale @24 :Bool;
 }
 
-struct ModelExt @0xaedffd8f31e7b55d {
+struct NpModelExt @0xaedffd8f31e7b55d {
   leftEdgeDetected @0 :Bool;
   rightEdgeDetected @1 :Bool;
 }
 
-struct CustomReserved2 @0xf35cc4560bbf6ec2 {
+struct NpLongitudinalPlanExt @0xf35cc4560bbf6ec2 {
+  visionTurnControllerState @0 :VisionTurnControllerState;
+  visionTurnSpeed @1 :Float32;
+  mapTurnControllerState @14 :MapTurnControllerState;
+  mapTurnSpeed @15 :Float32;
+  speedLimitControlState @2 :SpeedLimitControlState;
+  speedLimit @3 :Float32;
+  speedLimitOffset @4 :Float32;
+  distToSpeedLimit @5 :Float32;
+  isMapSpeedLimit @6 :Bool;
+  speedLimitPercOffset @7 :Bool;
+  speedLimitValueOffset @8 :Float32;
+
+  distToTurn @9 :Float32;
+  turnSpeed @10 :Float32;
+  turnSpeedControlState @11 :SpeedLimitControlState;
+  turnSign @12 :Int16;
+
+  visionPlanIsBlended @13 :Bool;
+  longitudinalPlanExtSource @16 :LongitudinalPlanExtSource;
+
+  enum LongitudinalPlanExtSource {
+    cruise @0;
+    lead0 @1;
+    lead1 @2;
+    lead2 @3;
+    e2e @4;
+    turn @5;
+    limit @6;
+    turnlimit @7;
+  }
+
+  enum SpeedLimitControlState {
+    inactive @0;
+    tempInactive @1;
+    adapting @2;
+    active @3;
+  }
+
+  enum VisionTurnControllerState {
+    disabled @0;
+    entering @1;
+    turning @2;
+    leaving @3;
+  }
+
+  enum MapTurnControllerState {
+    disabled @0;
+    entering @1;
+    turning @2;
+    leaving @3;
+  }
 }
 
-struct CustomReserved3 @0xda96579883444c35 {
+struct NpLateralPlanExt @0xda96579883444c35 {
+  dPathWLinesX @0 :List(Float32);
+  dPathWLinesY @1 :List(Float32);
 }
 
 struct CustomReserved4 @0x80ae746ee2596b11 {

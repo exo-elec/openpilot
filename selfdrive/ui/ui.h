@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QColor>
 #include <QFuture>
+#include <QString>
 
 #include "cereal/messaging/messaging.h"
 #include "common/mat.h"
@@ -42,14 +43,14 @@ typedef enum UIStatus {
   STATUS_DISENGAGED,
   STATUS_OVERRIDE,
   STATUS_ENGAGED,
-  STATUS_ALKA,
+  STATUS_ALCC,
 } UIStatus;
 
 const QColor bg_colors [] = {
   [STATUS_DISENGAGED] = QColor(0x17, 0x33, 0x49, 0xc8),
   [STATUS_OVERRIDE] = QColor(0x91, 0x9b, 0x95, 0xf1),
   [STATUS_ENGAGED] = QColor(0x17, 0x86, 0x44, 0xf1),
-  [STATUS_ALKA] = QColor(0x22, 0xa0, 0xdc, 0xf1),
+  [STATUS_ALCC] = QColor(0x22, 0xa0, 0xdc, 0xf1),
 };
 
 typedef struct UIScene {
@@ -63,11 +64,15 @@ typedef struct UIScene {
   bool started, ignition, is_metric, recording_audio;
   uint64_t started_frame;
   bool lite = false;
-  bool alka_active = false;
+  bool alcc_active = false;
+  bool cat_debug_onroad = false;
+  QString cat_debug_text;
+  bool stack_debug_onroad = false;
+  QString stack_debug_text;
   int display_mode = 0;
-  int dp_ui_hide_hud_speed_kph = 0;
-  bool dp_ui_rainbow = false;
-  bool dp_ui_radar_tracks = false;
+  int np_ui_hud_hide_speed = 0;
+  bool np_ui_rainbow_path = false;
+  bool np_ui_radar_tracks = false;
 } UIScene;
 
 class UIState : public QObject {

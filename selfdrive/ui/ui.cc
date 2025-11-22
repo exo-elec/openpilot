@@ -60,7 +60,47 @@ static void update_state(UIState *s) {
     scene.light_sensor = -1;
   }
   scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
-  scene.alka_active = sm["dpControlsState"].getDpControlsState().getAlkaActive();
+  if (sm.updated("npControlsState")) {
+    scene.alcc_active = sm["npControlsState"].getNpControlsState().getAlccActive();
+  }
+  if (sm.updated("npControlsState")) {
+    const auto &npcs = sm["npControlsState"].getNpControlsState();
+    if (scene.cat_debug_onroad && npcs.getCatConfidence() > 0.0f) {
+      const QString mode = npcs.getCatManualOverride() ? "Manual" : (npcs.getCatAdaptive() ? "Adaptive" : "Learning");
+      scene.cat_debug_text = QString("CAT %1 | conf %2 | sr %3 | stiff %4 | samples %5")
+                               .arg(mode)
+                               .arg(npcs.getCatConfidence(), 0, 'f', 2)
+                               .arg(npcs.getCatSteerRatio(), 0, 'f', 3)
+                               .arg(npcs.getCatStiffnessFactor(), 0, 'f', 3)
+                               .arg(npcs.getCatSamples());
+    } else {
+      scene.cat_debug_text = "";
+    }
+
+    if (scene.stack_debug_onroad) {
+      QStringList parts;
+      const QString dlp = QString("DLP %1/%2 conf %3")
+        .arg(npcs.getDlpAvailable() ? "avail" : "na")
+        .arg(npcs.getDlpActive() ? "on" : "off")
+        .arg(npcs.getDlpConfidence(), 0, 'f', 2);
+      parts << dlp;
+      const QString tsc = QString("TSC %1 state %2 v %3 m %4")
+        .arg(npcs.getTscActive() ? "on" : "off")
+        .arg(npcs.getTscState())
+        .arg(npcs.getTscVisionSpeed(), 0, 'f', 1)
+        .arg(npcs.getTscMapSpeed(), 0, 'f', 1);
+      parts << tsc;
+      if (npcs.getTscMapStale()) {
+        parts << "map:stale";
+      }
+      const QString dem = QString("DEM %1")
+        .arg(npcs.getDemActive() ? "on" : "off");
+      parts << dem;
+      scene.stack_debug_text = parts.join(" | ");
+    } else {
+      scene.stack_debug_text = "";
+    }
+  }
 
   auto params = Params();
   scene.recording_audio = params.getBool("RecordAudio") && scene.started;
@@ -70,10 +110,12 @@ void ui_update_params(UIState *s) {
   auto params = Params();
   s->scene.is_metric = params.getBool("IsMetric");
   s->scene.lite = getenv("LITE");
-  s->scene.display_mode = std::atoi(params.get("dp_ui_display_mode").c_str());
-  s->scene.dp_ui_hide_hud_speed_kph = std::atoi(params.get("dp_ui_hide_hud_speed_kph").c_str());
-  s->scene.dp_ui_rainbow = params.getBool("dp_ui_rainbow");
-  s->scene.dp_ui_radar_tracks = params.getBool("dp_ui_radar_tracks");
+  s->scene.display_mode = std::atoi(params.get("np_ui_display_mode").c_str());
+  s->scene.np_ui_hud_hide_speed = std::atoi(params.get("np_ui_hud_hide_speed").c_str());
+  s->scene.np_ui_rainbow_path = params.getBool("np_ui_rainbow_path");
+  s->scene.np_ui_radar_tracks = params.getBool("np_ui_radar_tracks");
+  s->scene.cat_debug_onroad = params.getBool("np_cat_debug_onroad");
+  s->scene.stack_debug_onroad = params.getBool("np_stack_debug_onroad");
 }
 
 void UIState::updateStatus() {
@@ -108,7 +150,7 @@ UIState::UIState(QObject *parent) : QObject(parent) {
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
     "pandaStates", "carParams", "driverMonitoringState", "carState", "driverStateV2",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
-    "dpControlsState",
+    "npControlsState",
     "liveTracks",
   });
   prime_state = new PrimeState(this);

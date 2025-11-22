@@ -4,7 +4,7 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import Priority, config_realtime_process
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning
-from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner, DPFlags
+from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner
 import cereal.messaging as messaging
 
 
@@ -19,20 +19,13 @@ def main():
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
-  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState'],
+  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState', 'liveMapDataSP'],
                            poll='modelV2')
 
-  dp_flags = 0
-  if params.get_bool("dp_lon_acm"):
-    dp_flags |= DPFlags.ACM
-    if params.get_bool("dp_lon_acm_downhill"):
-      dp_flags |= DPFlags.ACM_DOWNHILL
-  if params.get_bool("dp_lon_aem"):
-    dp_flags |= DPFlags.AEM
   while True:
     sm.update()
     if sm.updated['modelV2']:
-      longitudinal_planner.update(sm, dp_flags)
+      longitudinal_planner.update(sm)
       longitudinal_planner.publish(sm, pm)
 
       ldw.update(sm.frame, sm['modelV2'], sm['carState'], sm['carControl'])

@@ -32,7 +32,7 @@ DESIRES = {
 
 
 class DesireHelper:
-  def __init__(self, dp_lat_lca_speed=LANE_CHANGE_SPEED_MIN, dp_lat_lca_auto_sec=0.):
+  def __init__(self, lca_min_speed_kph=LANE_CHANGE_SPEED_MIN * CV.MPH_TO_KPH, lca_auto_sec=0.0):
     self.lane_change_state = LaneChangeState.off
     self.lane_change_direction = LaneChangeDirection.none
     self.lane_change_timer = 0.0
@@ -40,14 +40,15 @@ class DesireHelper:
     self.keep_pulse_timer = 0.0
     self.prev_one_blinker = False
     self.desire = log.Desire.none
-    self.dp_lat_lca_speed = float(dp_lat_lca_speed * CV.MPH_TO_MS)
-    self.dp_lat_lca_auto_sec = dp_lat_lca_auto_sec
-    self.dp_lat_lca_auto_sec_start = 0.
+    # Store threshold in m/s
+    self.lca_min_speed_ms = float(lca_min_speed_kph * CV.KPH_TO_MS) if lca_min_speed_kph is not None else 0.0
+    self.lca_auto_sec = lca_auto_sec
+    self.lca_auto_sec_start = 0.
 
   def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected, right_edge_detected):
     v_ego = carstate.vEgo
     one_blinker = carstate.leftBlinker != carstate.rightBlinker
-    below_lane_change_speed = True if self.dp_lat_lca_speed == 0. else v_ego < self.dp_lat_lca_speed
+    below_lane_change_speed = True if self.lca_min_speed_ms == 0. else v_ego < self.lca_min_speed_ms
 
     if not lateral_active or self.lane_change_timer > LANE_CHANGE_TIME_MAX:
       self.lane_change_state = LaneChangeState.off
@@ -58,8 +59,8 @@ class DesireHelper:
       if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker and not below_lane_change_speed:
         self.lane_change_state = LaneChangeState.preLaneChange
         self.lane_change_ll_prob = 1.0
-        if self.dp_lat_lca_auto_sec > 0.:
-          self.dp_lat_lca_auto_sec_start = c_time
+        if self.lca_auto_sec > 0.:
+          self.lca_auto_sec_start = c_time
 
       # LaneChangeState.preLaneChange
       elif self.lane_change_state == LaneChangeState.preLaneChange:
@@ -75,11 +76,11 @@ class DesireHelper:
                               ((carstate.rightBlindspot or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
 
         # reset timer
-        if self.dp_lat_lca_auto_sec > 0.:
+        if self.lca_auto_sec > 0.:
           if blindspot_detected:
-            self.dp_lat_lca_auto_sec_start = c_time
+            self.lca_auto_sec_start = c_time
           else:
-            if (c_time - self.dp_lat_lca_auto_sec_start) >= self.dp_lat_lca_auto_sec:
+            if (c_time - self.lca_auto_sec_start) >= self.lca_auto_sec:
               torque_applied = True
 
         if not one_blinker or below_lane_change_speed:

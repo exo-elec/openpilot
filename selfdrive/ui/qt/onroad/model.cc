@@ -48,7 +48,7 @@ void ModelRenderer::draw(QPainter &painter, const QRect &surface_rect) {
     }
   }
 
-  if (s->scene.dp_ui_radar_tracks) {
+  if (s->scene.np_ui_radar_tracks) {
     const auto &live_tracks = sm["liveTracks"].getLiveTracks();
     drawLiveTracks(painter, live_tracks, model, surface_rect);
   }
@@ -114,34 +114,34 @@ void ModelRenderer::drawPath(QPainter &painter, const cereal::ModelDataV2::Reade
   QLinearGradient bg(0, height, 0, 0);
 
   auto *s = uiState();
-  if (s->scene.dp_ui_rainbow) {
+  if (s->scene.np_ui_rainbow_path) {
     constexpr int NUM_COLORS = 25;
     constexpr int ALPHA = 128;
 
     float v_ego = (*uiState()->sm)["carState"].getCarState().getVEgo();
 
-    if (!dp_rainbow_init) {
-      dp_rainbow_color_list.reserve(NUM_COLORS);
+    if (!np_rainbow_init) {
+      np_rainbow_color_list.reserve(NUM_COLORS);
       for (int i = 0; i < NUM_COLORS; ++i) {
         qreal t = static_cast<qreal>(i) / (NUM_COLORS - 1);
-        dp_rainbow_color_list.append(QColor::fromHsvF(t, 1.0, 1.0, ALPHA / 255.0));
+        np_rainbow_color_list.append(QColor::fromHsvF(t, 1.0, 1.0, ALPHA / 255.0));
       }
-      dp_rainbow_init = true;
+      np_rainbow_init = true;
     }
     bg.setSpread(QGradient::RepeatSpread);
     // bigger = faster, however it is still limited to the global UI_FREQ (refresh rate)
     // only way to make it move faster is to reduce NUM_COLORS, but that will also reduce the color smoothness.
     qreal rotation_speed = std::max(0.01f, v_ego) / UI_FREQ;
-    dp_rainbow_rotation -= rotation_speed;
+    np_rainbow_rotation -= rotation_speed;
 
-    if (dp_rainbow_rotation < 0.0) {
-      dp_rainbow_rotation += 1.0;
-      dp_rainbow_color_list.append(dp_rainbow_color_list.takeFirst());
+    if (np_rainbow_rotation < 0.0) {
+      np_rainbow_rotation += 1.0;
+      np_rainbow_color_list.append(np_rainbow_color_list.takeFirst());
     }
     // fill color
     const qreal step = 1.0 / (NUM_COLORS - 1);
     for (int i = 0; i < NUM_COLORS; ++i) {
-      bg.setColorAt(i * step, dp_rainbow_color_list.at(i));
+      bg.setColorAt(i * step, np_rainbow_color_list.at(i));
     }
 
   } else if (experimental_mode) {

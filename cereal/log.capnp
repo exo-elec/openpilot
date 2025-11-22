@@ -2622,10 +2622,10 @@ struct Event {
     # DO change the name of the field and struct
     # DON'T change the ID (e.g. @107)
     # DON'T change which struct it points to
-    dpControlsState @107 :Custom.DpControlsState;
-    modelExt @108 :Custom.ModelExt;
-    customReserved2 @109 :Custom.CustomReserved2;
-    customReserved3 @110 :Custom.CustomReserved3;
+    npControlsState @107 :Custom.NpControlsState;
+    npModelExt @108 :Custom.NpModelExt;
+    npLongitudinalPlanExt @109 :Custom.NpLongitudinalPlanExt;
+    npLateralPlanExt @110 :Custom.NpLateralPlanExt;
     customReserved4 @111 :Custom.CustomReserved4;
     customReserved5 @112 :Custom.CustomReserved5;
     customReserved6 @113 :Custom.CustomReserved6;

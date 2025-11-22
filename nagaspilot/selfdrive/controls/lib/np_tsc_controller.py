@@ -89,6 +89,7 @@ class NpTscController:
         self.use_map = True      # Enable map-based detection by default
         self.use_vision = True   # Enable vision-based detection by default
         self.calibrate = True    # Enable self-calibration by default
+        self.use_map_speed_limit = False  # Optional map speed limit resolver
         
         # Core parameters
         self.target_lat_a = self.TARGET_LAT_A_DEFAULT
@@ -101,6 +102,7 @@ class NpTscController:
         self._last_mapd_raw = ""
         self._last_mapd_time = 0.0
         self._mapd_stale_logged = False
+        self.map_fresh = False
         
         # Vision detection state (VTSC integration)
         self.vision_safe_speed = None
@@ -197,6 +199,10 @@ class NpTscController:
         # Get limits from each source using NagasPilot's existing controllers
         map_limit = None
         vision_limit = None
+        # Mark map stale if nothing received recently
+        now = time.monotonic()
+        if self._last_mapd_time and (now - self._last_mapd_time) > self.MAP_DATA_STALE_S:
+            self.map_fresh = False
         
         if self.use_map:
             map_limit = self._get_map_limit(v_ego, sm)
@@ -222,21 +228,30 @@ class NpTscController:
         """Get speed limit from map data using MTSC integration"""
         # Check if mapd data is available
         if not sm.valid.get('liveMapDataSP', False):
+            self.map_fresh = False
             return None
         
         map_data = sm['liveMapDataSP']
-        if not map_data or not map_data.speedLimitValid:
+        if not map_data or not getattr(map_data, "speedLimitValid", False):
+            self.map_fresh = False
             return None
         
-        # Use MTSC-style calculation with EnhancedPilot logic
-        # Get curve data from mapd
+        # Freshness using receive time
+        now = time.monotonic()
+        stale = (now - self._last_mapd_time) > self.MAP_DATA_STALE_S if self._last_mapd_time else False
+        self._last_mapd_time = now
+        self.map_fresh = not stale
+
         current_speed_limit = map_data.speedLimit
         if current_speed_limit <= 0:
             return None
         
-        # Calculate safe speed based on curvature and lateral acceleration
-        # This follows EnhancedPilot's _update_map_detection logic
-        safe_speed = self._calculate_map_safe_speed(v_ego, map_data)
+        curvature = getattr(map_data, "curvature", 0.0)
+        if curvature and curvature > 0.0:
+            safe_speed = math.sqrt(max(self.target_lat_a / curvature, 0.1)) - self.SAFETY_MARGIN
+        else:
+            safe_speed = current_speed_limit - self.SAFETY_MARGIN
+        safe_speed = max(safe_speed, self.MIN_SPEED)
         
         return safe_speed if safe_speed < v_ego else None
     

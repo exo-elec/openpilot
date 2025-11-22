@@ -37,7 +37,7 @@ private:
   QPointF lead_vertices[2] = {};
   Eigen::Matrix3f car_space_transform = Eigen::Matrix3f::Zero();
   QRectF clip_region;
-  QVector<QColor> dp_rainbow_color_list;
-  qreal dp_rainbow_rotation = 0;
-  bool dp_rainbow_init = false;
+  QVector<QColor> np_rainbow_color_list;
+  qreal np_rainbow_rotation = 0;
+  bool np_rainbow_init = false;
 };

@@ -16,6 +16,8 @@ private:
   ParamControl* experimentalLongitudinalToggle;
   bool is_release;
   bool offroad = false;
+  LabelControl* np_metrics = nullptr;
+  void refreshNpMetrics();
 
 private slots:
   void updateToggles(bool _offroad);

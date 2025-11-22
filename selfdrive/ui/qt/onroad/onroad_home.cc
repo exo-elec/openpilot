@@ -39,7 +39,7 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   QObject::connect(uiState(), &UIState::offroadTransition, this, &OnroadWindow::offroadTransition);
 }
 
-void OnroadWindow::updateDpIndicatorSideState(bool blinker_state, bool bsm_state, bool &show, bool &show_prev, int &count, QColor &color) {
+void OnroadWindow::updateNpIndicatorSideState(bool blinker_state, bool bsm_state, bool &show, bool &show_prev, int &count, QColor &color) {
   if (!blinker_state && !bsm_state) {
     show = false;
     count = 0;
@@ -60,10 +60,10 @@ void OnroadWindow::updateDpIndicatorSideState(bool blinker_state, bool bsm_state
   }
 }
 
-void OnroadWindow::updateDpIndicatorStates(const UIState &s) {
+void OnroadWindow::updateNpIndicatorStates(const UIState &s) {
   const auto cs = (*s.sm)["carState"].getCarState();
-  updateDpIndicatorSideState(cs.getLeftBlinker(), cs.getLeftBlindspot(), dp_indicator_show_left, dp_indicator_show_left_prev, dp_indicator_count_left, dp_indicator_color_left);
-  updateDpIndicatorSideState(cs.getRightBlinker(), cs.getRightBlindspot(), dp_indicator_show_right, dp_indicator_show_right_prev, dp_indicator_count_right, dp_indicator_color_right);
+  updateNpIndicatorSideState(cs.getLeftBlinker(), cs.getLeftBlindspot(), np_indicator_show_left, np_indicator_show_left_prev, np_indicator_count_left, np_indicator_color_left);
+  updateNpIndicatorSideState(cs.getRightBlinker(), cs.getRightBlindspot(), np_indicator_show_right, np_indicator_show_right_prev, np_indicator_count_right, np_indicator_color_right);
 }
 
 void OnroadWindow::updateState(const UIState &s) {
@@ -71,15 +71,15 @@ void OnroadWindow::updateState(const UIState &s) {
     return;
   }
 
-  dp_indicator_show_left_prev = dp_indicator_show_left;
-  dp_indicator_show_right_prev = dp_indicator_show_right;
-  updateDpIndicatorStates(s);
-  bool indicator_states_changed = dp_indicator_show_left != dp_indicator_show_left_prev || dp_indicator_show_right != dp_indicator_show_right_prev;
+  np_indicator_show_left_prev = np_indicator_show_left;
+  np_indicator_show_right_prev = np_indicator_show_right;
+  updateNpIndicatorStates(s);
+  bool indicator_states_changed = np_indicator_show_left != np_indicator_show_left_prev || np_indicator_show_right != np_indicator_show_right_prev;
 
   alerts->updateState(s);
   nvg->updateState(s);
 
-  QColor bgColor = bg_colors[s.scene.alka_active && s.status == STATUS_DISENGAGED? STATUS_ALKA : s.status];
+  QColor bgColor = bg_colors[s.scene.alcc_active && s.status == STATUS_DISENGAGED ? STATUS_ALCC : s.status];
   if (bg != bgColor || indicator_states_changed) {
     // repaint border
     bg = bgColor;
@@ -94,6 +94,6 @@ void OnroadWindow::offroadTransition(bool offroad) {
 void OnroadWindow::paintEvent(QPaintEvent *event) {
   QPainter p(this);
   p.fillRect(rect(), QColor(bg.red(), bg.green(), bg.blue(), 180));
-  if (dp_indicator_show_left) p.fillRect(QRect(0, 0, width() * 0.2, height()), dp_indicator_color_left);
-  if (dp_indicator_show_right) p.fillRect(QRect(width() * 0.8, 0, width() * 0.2, height()), dp_indicator_color_right);
+  if (np_indicator_show_left) p.fillRect(QRect(0, 0, width() * 0.2, height()), np_indicator_color_left);
+  if (np_indicator_show_right) p.fillRect(QRect(width() * 0.8, 0, width() * 0.2, height()), np_indicator_color_right);
 }

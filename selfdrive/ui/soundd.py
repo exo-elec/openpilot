@@ -64,9 +64,9 @@ class Soundd:
     self.spl_filter_weighted = FirstOrderFilter(0, 2.5, FILTER_DT, initialized=False)
 
     try:
-      self._dp_device_audible_alert_mode = int(Params().get("dp_device_audible_alert_mode"))
-    except:
-      self._dp_device_audible_alert_mode = 0
+      self._np_device_audible_alert_mode = int(Params().get("np_device_audible_alert_mode"))
+    except Exception:
+      self._np_device_audible_alert_mode = 0
 
   def load_sounds(self):
     self.loaded_sounds: dict[int, np.ndarray] = {}
@@ -103,7 +103,7 @@ class Soundd:
         self.current_sound_frame += frames_to_write
 
       # dp - set vol to 0 instead
-      if self._dp_device_audible_alert_mode == 2 or (self._dp_device_audible_alert_mode == 1 and self.current_alert in [AudibleAlert.engage, AudibleAlert.disengage]):
+      if self._np_device_audible_alert_mode == 2 or (self._np_device_audible_alert_mode == 1 and self.current_alert in [AudibleAlert.engage, AudibleAlert.disengage]):
         self.current_volume = 0
 
     return ret * self.current_volume

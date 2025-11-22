@@ -7,6 +7,7 @@ from cereal import log
 
 EventName = log.OnroadEvent.EventName
 
+
 class SimpleDriverMonitoring:
   def __init__(self):
     # Timing configuration (in seconds)
@@ -17,7 +18,6 @@ class SimpleDriverMonitoring:
     # State variables
     self.awareness = 1.0  # Full awareness
     self.current_events = []
-    # self.last_interaction_time = 0
     self.hands_on_steering = False
 
     # Warning thresholds (normalized to 0-1 scale)
@@ -28,8 +28,8 @@ class SimpleDriverMonitoring:
     self.step_change = DT_DMON / self.THIRD_WARNING_TIME
 
     params = Params()
-    self.is_rhd = params.get_bool("dp_device_is_rhd")
-    self.monitoring_disabled = params.get_bool("dp_device_monitoring_disabled")
+    self.is_rhd = params.get_bool("np_device_rhd")
+    self.monitoring_disabled = params.get_bool("np_device_monitoring_disable")
 
   def update_events(self, reset_condition, op_engaged):
     self.current_events = []
@@ -52,17 +52,13 @@ class SimpleDriverMonitoring:
 
     # Determine alert level based on awareness
     if self.awareness <= 0.0:
-      # Third warning (red alert) at 70 seconds
       self.current_events.append(EventName.driverUnresponsive)
     elif self.awareness <= (1.0 - self.threshold_critical):
-      # Second warning (orange alert) at 60 seconds
       self.current_events.append(EventName.promptDriverUnresponsive)
     elif self.awareness <= (1.0 - self.threshold_prompt):
-      # First warning (green alert) at 45 seconds
       self.current_events.append(EventName.preDriverUnresponsive)
 
   def get_state_packet(self, valid=True):
-    # Create driver monitoring state message
     dat = messaging.new_message('driverMonitoringState', valid=valid)
     events = []
 
@@ -73,10 +69,10 @@ class SimpleDriverMonitoring:
 
     dat.driverMonitoringState = {
       "events": events,
-      "faceDetected": False,  # Not using face detection
+      "faceDetected": False,
       "isDistracted": self.awareness <= (1.0 - self.threshold_prompt),
-      "distractedType": 0,  # Not using distraction types
-      "awarenessStatus": 1.0, #self.awareness, (always 1.0 so no decel)
+      "distractedType": 0,
+      "awarenessStatus": 1.0,
       "posePitchOffset": 0.0,
       "posePitchValidCount": 0,
       "poseYawOffset": 0.0,
@@ -91,27 +87,20 @@ class SimpleDriverMonitoring:
     }
     return dat
 
+
 def dmonitoringd_thread():
-  # Configure process priority
   config_realtime_process([0, 1, 2, 3], 5)
 
-  # Initialize parameters and messaging
   pm = messaging.PubMaster(['driverMonitoringState'])
   sm = messaging.SubMaster(['carState', 'selfdriveState'])
 
-  # Initialize driver monitoring system
   DM = SimpleDriverMonitoring()
 
-  # Create ratekeeper for 20Hz operation
   rk = Ratekeeper(20, None)
 
-  # Main loop running at 20Hz
   while True:
     sm.update()
 
-    # Check if steering is touched (only monitoring steering for hands-on)
-
-    # Reset conditions: not engaged, standstill, or any input
     reset_condition = (
       sm['carState'].standstill or
       sm['carState'].steeringPressed or
@@ -121,22 +110,18 @@ def dmonitoringd_thread():
       sm['carState'].rightBlinker
     )
 
-    # Process driver monitoring - monitoring only steering for hands-on
-    # but resetting on any input
-    DM.update_events(
-      reset_condition=reset_condition,
-      op_engaged=sm['selfdriveState'].enabled
-    )
+    op_engaged = sm['selfdriveState'].enabled
+    DM.update_events(reset_condition, op_engaged)
 
-    # Publish driver monitoring state
-    dat = DM.get_state_packet()
-    pm.send('driverMonitoringState', dat)
+    dm_packet = DM.get_state_packet(valid=sm.all_checks(['carState', 'selfdriveState']))
+    pm.send('driverMonitoringState', dm_packet)
 
-    # Maintain 20Hz
     rk.keep_time()
+
 
 def main():
   dmonitoringd_thread()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
   main()

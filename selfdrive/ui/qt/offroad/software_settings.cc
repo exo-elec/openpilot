@@ -33,8 +33,8 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
   onOffRoadBtn = new ButtonControl(tr("Onroad/Offroad Mode"), tr("Go Offroad"));
   connect(onOffRoadBtn, &ButtonControl::clicked, [&]() {
     if (ConfirmationDialog::confirm(tr("Are you sure you want to switch mode?"), tr("CONFIRM"), this)) {
-      bool val = params.getBool("dp_device_go_off_road");
-      params.putBool("dp_device_go_off_road", !val);
+      bool val = params.getBool("np_device_go_off_road");
+      params.putBool("np_device_go_off_road", !val);
     }
   });
   addItem(onOffRoadBtn);
@@ -121,7 +121,7 @@ void SoftwarePanel::updateLabels() {
   fs_watch->addParam("UpdateFailedCount");
   fs_watch->addParam("UpdaterState");
   fs_watch->addParam("UpdateAvailable");
-  fs_watch->addParam("dp_device_go_off_road");
+  fs_watch->addParam("np_device_go_off_road");
 
   if (!isVisible()) {
     return;
@@ -132,7 +132,7 @@ void SoftwarePanel::updateLabels() {
   downloadBtn->setVisible(!is_onroad);
 
   // on/off road text change
-  if (params.getBool("dp_device_go_off_road")) {
+  if (params.getBool("np_device_go_off_road")) {
     onOffRoadBtn->setText(tr("Go Onroad"));
   } else {
     onOffRoadBtn->setText(tr("Go Offroad"));

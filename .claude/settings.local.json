@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git -C /mnt/c/Github/nagaspilot stash list)",
       "Bash(opendbc_repo/opendbc/car/gateway/values.py)",
-      "Bash(opendbc_repo/opendbc/dbc/byd_dolphin.dbc)"
+      "Bash(opendbc_repo/opendbc/dbc/byd_dolphin.dbc)",
+      "Bash(/dev/null echo echo '3. Checking class names...' grep -r 'class Np' /home/vcar/NagasPilot/nagaspilot/selfdrive --include=*.py)"
     ],
     "deny": [],
     "ask": []

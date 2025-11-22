@@ -2,10 +2,14 @@
 import math
 import numpy as np
 
+import time
+
 import cereal.messaging as messaging
+from cereal import custom
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.common.constants import CV
 from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState
@@ -14,8 +18,8 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDX
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
-from dragonpilot.selfdrive.controls.lib.acm import ACM
-from dragonpilot.selfdrive.controls.lib.aem import AEM
+from nagaspilot.selfdrive.controls.lib.np_tsc_controller import NpTscController
+from nagaspilot.selfdrive.controls.lib.np_dem_controller import NpDemController
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -28,11 +32,16 @@ MIN_ALLOW_THROTTLE_SPEED = 2.5
 _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
 
-class DPFlags:
-  ACM = 1
-  ACM_DOWNHILL = 2 ** 1
-  AEM = 2 ** 2
-  pass
+PLAN_EXT_SOURCE_MAP = {
+  'cruise': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.cruise,
+  'lead0': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.lead0,
+  'lead1': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.lead1,
+  'lead2': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.lead2,
+  'e2e': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.e2e,
+  'turn': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.turn,
+  'limit': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.limit,
+  'turnlimit': custom.LongitudinalPlanExt.LongitudinalPlanExtSource.turnlimit,
+}
 
 def get_max_accel(v_ego):
   return np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS)
@@ -75,8 +84,18 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.acm = ACM()
-    self.aem = AEM()
+    self.dem = NpDemController(CP)
+    self.params = Params()
+    self.tsc = NpTscController(CP)
+    self.tsc.set_enabled(True)
+    self.frame = 0  # Frame counter for DEM logging
+    self._vision_turn_speed = init_v
+    self._vision_turn_source = 'cruise'
+    self._vision_turn_active = False
+    self._vision_turn_enabled = True
+    self._vision_turn_last_param_read = -10.0
+    self._path_w_lines_x = []
+    self._path_w_lines_y = []
 
   @staticmethod
   def parse_model(model_msg):
@@ -98,40 +117,37 @@ class LongitudinalPlanner:
       throttle_prob = 1.0
     return x, v, a, j, throttle_prob
 
-  def update(self, sm, dp_flags = 0):
+  def update(self, sm):
+    self.frame += 1  # Increment frame counter
     v_ego = sm['carState'].vEgo
 
-    # --- Calculate current cycle variables needed by AEM ---
+    # --- Calculate current cycle variables needed for mode decision ---
     x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])
     # Don't clip at low speeds since throttle_prob doesn't account for creep
     self.allow_throttle = throttle_prob > ALLOW_THROTTLE_THRESHOLD or v_ego <= MIN_ALLOW_THROTTLE_SPEED
 
-    # --- AEM Logic: Determine MPC mode ---
-    if sm['selfdriveState'].experimentalMode:
-      mode = 'blended'
+    # --- Mode Decision Logic: DEM has full control ---
+    # Enable DEM by default for experimental mode functionality
+    if not self.dem.enabled:
+      self.dem.set_enabled(True)
+      cloudlog.info("DEM enabled for longitudinal control")
+
+    # Use DEM for mode decision when enabled
+    if self.dem.enabled and self.dem.active():
+      # Update DEM with current sensor data
+      self.dem.update(sm)
+      mode = self.dem.get_mode()
+      dem_health = self.dem.get_health_status()
+      
+      # Log DEM decisions for debugging
+      if self.frame % 50 == 0:  # Every 2.5 seconds
+        cloudlog.debug(f"DEM Health: overall={dem_health['overall_health']:.3f}, "
+                      f"mode={dem_health['current_mode']}, "
+                      f"stability={dem_health['scenario_stability']:.3f}")
     else:
+      # Default to ACC mode when DEM is not active
       mode = 'acc'
-
-      if (dp_flags & DPFlags.AEM) and not self.aem.enabled:
-        self.aem.enabled = True
-
-      if self.aem.enabled:
-        steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
-        model_path_plan_for_aem = {'x': x, 'v': v, 'a': a, 'j': j}
-
-        current_cycle_mode = self.aem.get_mode(
-            v_ego_raw=v_ego,
-            lead_one_data_raw=sm['radarState'].leadOne,
-            steering_angle_deg_raw=steer_angle_without_offset,
-            standstill_raw=sm['carState'].standstill,
-            long_personality=self.aem.personality,
-            allow_throttle_planner=self.allow_throttle,
-            model_path_plan_raw=model_path_plan_for_aem,
-            a_target_from_prev_cycle=self.output_a_target,
-            model_predicts_stop_prev=self.output_should_stop,
-            fcw_active_prev=self.fcw,
-        )
-        mode = current_cycle_mode
+      dem_health = {'overall_health': 0.0, 'current_mode': 'off', 'scenario_stability': 0.0}
 
     if len(sm['carControl'].orientationNED) == 3:
       accel_coast = get_coast_accel(sm['carControl'].orientationNED[1])
@@ -141,6 +157,7 @@ class LongitudinalPlanner:
     v_ego = sm['carState'].vEgo
     v_cruise_kph = min(sm['carState'].vCruise, V_CRUISE_MAX)
     v_cruise = v_cruise_kph * CV.KPH_TO_MS
+    v_cruise_plan = v_cruise
     v_cruise_initialized = sm['carState'].vCruise != V_CRUISE_UNSET
 
     long_control_off = sm['controlsState'].longControlState == LongCtrlState.off
@@ -151,19 +168,35 @@ class LongitudinalPlanner:
     # PCM cruise speed may be updated a few cycles later, check if initialized
     reset_state = reset_state or not v_cruise_initialized
 
-    # Update ACM status
-    if not sm['selfdriveState'].experimentalMode:
-      if not self.acm.enabled and dp_flags & DPFlags.ACM:
-        self.acm.enabled = True
-        self.acm.downhill_only = bool(dp_flags & DPFlags.ACM_DOWNHILL)
+    # Update turn controller before using the cruise target in downstream logic
+    # Refresh user toggle periodically (default enabled when unset)
+    now = time.monotonic()
+    if now - self._vision_turn_last_param_read > 2.0:
+      raw = self.params.get("np_tsc_enable")
+      enabled = True if raw is None else raw == b"1"
+      if enabled != self._vision_turn_enabled:
+        self._vision_turn_enabled = enabled
+      self._vision_turn_last_param_read = now
+
+    self.tsc.set_enabled(self._vision_turn_enabled)
+
+    self._vision_turn_source = 'cruise'
+    self._vision_turn_speed = v_cruise_plan
+    self._vision_turn_active = False
+
+    # Update unified turn speed controller (EnhancedPilot-style fusion)
+    self.tsc.update(sm, not reset_state, v_ego, sm['carState'].aEgo, v_cruise_plan)
+    if self.tsc.is_active:
+      self._vision_turn_active = True
+      self._vision_turn_speed = min(v_cruise_plan, self.tsc.v_turn)
+      if self._vision_turn_speed < v_cruise_plan - 0.1:
+        self._vision_turn_source = 'tsc'
     else:
-      self.acm.enabled = False
+      self._vision_turn_speed = self.tsc.v_turn
 
-    user_control = long_control_off if self.CP.openpilotLongitudinalControl else not sm['selfdriveState'].enabled
-    self.acm.update_states(sm['carControl'], sm['radarState'], user_control, v_ego, v_cruise)
+    v_cruise_plan = min(v_cruise_plan, self._vision_turn_speed)
 
-    if self.acm.just_disabled:
-      reset_state = True
+
 
     # No change cost when user is controlling the speed, or when standstill
     prev_accel_constraint = not (reset_state or sm['carState'].standstill)
@@ -175,6 +208,9 @@ class LongitudinalPlanner:
     else:
       accel_clip = [ACCEL_MIN, ACCEL_MAX]
 
+    if self._vision_turn_active:
+      accel_clip[0] = min(accel_clip[0], self.tsc.a_target)
+
     if reset_state:
       self.v_desired_filter.x = v_ego
       # Clip aEgo to cruise limits to prevent large accelerations when becoming active
@@ -182,10 +218,6 @@ class LongitudinalPlanner:
 
     # Prevent divergence, smooth in current v_ego
     self.v_desired_filter.x = max(0.0, self.v_desired_filter.update(v_ego))
-    # AEM - move to top so it can access them
-    # x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])
-    # # Don't clip at low speeds since throttle_prob doesn't account for creep
-    # self.allow_throttle = throttle_prob > ALLOW_THROTTLE_THRESHOLD or v_ego <= MIN_ALLOW_THROTTLE_SPEED
 
     if not self.allow_throttle:
       clipped_accel_coast = max(accel_coast, accel_clip[0])
@@ -193,19 +225,28 @@ class LongitudinalPlanner:
       accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
 
     if force_slow_decel:
-      v_cruise = 0.0
+      v_cruise_plan = 0.0
 
-    self.aem.set_personality(v_ego, sm['selfdriveState'].personality)
-    self.mpc.set_weights(prev_accel_constraint, personality=self.aem.personality)
+    # Update personality for DEM when active
+    if self.dem.enabled and self.dem.active():
+      self.dem.set_personality(v_ego, sm['selfdriveState'].personality)
+      personality_for_mpc = self.dem.personality
+    else:
+      personality_for_mpc = sm['selfdriveState'].personality
+
+    # DEM telemetry for downstream consumers
+    self.dem_active = self.dem.enabled and self.dem.active()
+    self.dem_health_score = float(dem_health.get('overall_health', 0.0)) if self.dem.enabled else 0.0
+    
+    self.mpc.set_weights(prev_accel_constraint, personality=personality_for_mpc)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
-    self.mpc.update(sm['radarState'], v_cruise, x, v, a, j, personality=self.aem.personality)
+    self.mpc.update(sm['radarState'], v_cruise_plan, x, v, a, j, personality=personality_for_mpc)
+
+    self._update_lateral_ext_path(sm['modelV2'])
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
     self.j_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC[:-1], self.mpc.j_solution)
-
-    # Apply ACM post-processing to the acceleration trajectory if active
-    self.a_desired_trajectory = self.acm.update_a_desired_trajectory(self.a_desired_trajectory)
 
     # TODO counter is only needed because radar is glitchy, remove once radar is gone
     self.fcw = self.mpc.crash_cnt > 2 and not sm['carState'].standstill
@@ -229,9 +270,6 @@ class LongitudinalPlanner:
     else:
       output_a_target = min(output_a_target_mpc, output_a_target_e2e)
       self.output_should_stop = output_should_stop_e2e or output_should_stop_mpc
-
-    # Apply ACM to the final output acceleration target as well
-    output_a_target = self.acm.update_output_a_target(output_a_target)
 
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
@@ -262,3 +300,46 @@ class LongitudinalPlanner:
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
 
     pm.send('longitudinalPlan', plan_send)
+
+    plan_ext_send = messaging.new_message('longitudinalPlanExt')
+    plan_ext_send.valid = plan_send.valid
+    plan_ext = plan_ext_send.longitudinalPlanExt
+
+    plan_ext.visionTurnControllerState = self.tsc.current_state
+    plan_ext.visionTurnSpeed = float(self.tsc.v_turn)
+    # Map controller states are now integrated into the unified TSC
+    plan_ext.mapTurnControllerState = self.tsc.current_state
+    plan_ext.mapTurnSpeed = float(self.tsc.v_turn)
+    # Map freshness/state passthrough
+    plan_ext.mapDataStale = not getattr(self.tsc, "map_fresh", False)
+    plan_ext.visionPlanIsBlended = self.mpc.mode == 'blended'
+
+    source_key = self.mpc.source if self.mpc.source != 'cruise' else self._vision_turn_source
+    plan_ext.longitudinalPlanExtSource = PLAN_EXT_SOURCE_MAP.get(
+      source_key, custom.LongitudinalPlanExt.LongitudinalPlanExtSource.cruise)
+
+    pm.send('npLongitudinalPlanExt', plan_ext_send)
+
+    lateral_ext_send = messaging.new_message('lateralPlanExt')
+    lateral_ext_send.valid = sm.all_checks(service_list=['carState', 'modelV2'])
+    lateral_ext = lateral_ext_send.lateralPlanExt
+    lateral_ext.dPathWLinesX = self._path_w_lines_x
+    lateral_ext.dPathWLinesY = self._path_w_lines_y
+    pm.send('npLateralPlanExt', lateral_ext_send)
+
+  def _update_lateral_ext_path(self, model_msg):
+    if model_msg is None or len(model_msg.position.x) == 0 or len(model_msg.position.y) == 0:
+      self._path_w_lines_x = []
+      self._path_w_lines_y = []
+      return
+
+    limit = min(len(model_msg.position.x), CONTROL_N)
+    x_vals = [float(x) for x in model_msg.position.x[:limit]]
+    y_vals = [float(y) for y in model_msg.position.y[:limit]]
+
+    if len(x_vals) >= 4:
+      self._path_w_lines_x = x_vals
+      self._path_w_lines_y = y_vals
+    else:
+      self._path_w_lines_x = []
+      self._path_w_lines_y = []

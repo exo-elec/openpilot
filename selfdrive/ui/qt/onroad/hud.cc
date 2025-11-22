@@ -1,6 +1,7 @@
 #include "selfdrive/ui/qt/onroad/hud.h"
 
 #include <cmath>
+#include <QStringList>
 
 #include "selfdrive/ui/qt/util.h"
 
@@ -11,6 +12,9 @@ HudRenderer::HudRenderer() {}
 void HudRenderer::updateState(const UIState &s) {
   is_metric = s.scene.is_metric;
   status = s.status;
+  cat_debug_enabled = s.scene.cat_debug_onroad;
+  cat_debug_text = s.scene.cat_debug_text;
+  stack_debug_text = s.scene.stack_debug_text;
 
   const SubMaster &sm = *(s.sm);
   if (sm.rcv_frame("carState") < s.scene.started_frame) {
@@ -52,6 +56,21 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
     drawSetSpeed(p, surface_rect);
   }
   drawCurrentSpeed(p, surface_rect);
+  QStringList debug_lines;
+  if (cat_debug_enabled && !cat_debug_text.isEmpty()) {
+    debug_lines << cat_debug_text;
+  }
+  if (!stack_debug_text.isEmpty()) {
+    debug_lines << stack_debug_text;
+  }
+  if (!debug_lines.isEmpty()) {
+    p.setFont(InterFont(32, QFont::Normal));
+    int y = surface_rect.bottom() - 80;
+    for (const QString &line : debug_lines) {
+      drawText(p, surface_rect.left() + 220, y, line, 200);
+      y -= 36;
+    }
+  }
 
   p.restore();
 }
