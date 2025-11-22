@@ -301,9 +301,9 @@ class LongitudinalPlanner:
 
     pm.send('longitudinalPlan', plan_send)
 
-    plan_ext_send = messaging.new_message('longitudinalPlanExt')
+    plan_ext_send = messaging.new_message('npLongitudinalPlanExt')
     plan_ext_send.valid = plan_send.valid
-    plan_ext = plan_ext_send.longitudinalPlanExt
+    plan_ext = plan_ext_send.npLongitudinalPlanExt
 
     plan_ext.visionTurnControllerState = self.tsc.current_state
     plan_ext.visionTurnSpeed = float(self.tsc.v_turn)
@@ -320,9 +320,9 @@ class LongitudinalPlanner:
 
     pm.send('npLongitudinalPlanExt', plan_ext_send)
 
-    lateral_ext_send = messaging.new_message('lateralPlanExt')
+    lateral_ext_send = messaging.new_message('npLateralPlanExt')
     lateral_ext_send.valid = sm.all_checks(service_list=['carState', 'modelV2'])
-    lateral_ext = lateral_ext_send.lateralPlanExt
+    lateral_ext = lateral_ext_send.npLateralPlanExt
     lateral_ext.dPathWLinesX = self._path_w_lines_x
     lateral_ext.dPathWLinesY = self._path_w_lines_y
     pm.send('npLateralPlanExt', lateral_ext_send)

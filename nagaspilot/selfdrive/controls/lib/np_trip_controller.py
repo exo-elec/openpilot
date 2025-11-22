@@ -52,10 +52,10 @@ class NpTripController:
         self.current_standstill = True
 
         # Simple totals (persistent across restarts)
-        self.total_distance = self._load_float_param("np_trip_total_distance", 0.0)
-        self.total_time = self._load_float_param("np_trip_uptime_onroad", 0.0)
-        self.total_drives = self._load_int_param("np_trip_total_drives", 0)
-        self.engaged_time = self._load_float_param("np_trip_engaged_time", 0.0)
+        self.total_distance = self._load_float_param("np_total_distance", 0.0)
+        self.total_time = self._load_float_param("np_total_uptime_onroad", 0.0)
+        self.total_drives = self._load_int_param("np_total_drives", 0)
+        self.engaged_time = self._load_float_param("np_total_engaged_time", 0.0)
 
         # Trip A/B baselines (persistent)
         self.trip_a_start_distance = self._load_float_param("np_trip_a_start_distance", self.total_distance)
@@ -130,18 +130,22 @@ class NpTripController:
 
     def _load_weekly_stats(self):
         """Load weekly statistics from parameters"""
+        try:
+            weekly_raw = self.params.get("np_trip_weekly_stats")
+            weekly_data = json.loads(weekly_raw) if weekly_raw else {}
+        except (json.JSONDecodeError, TypeError, ValueError):
+            weekly_data = {}
+
         weekly_stats = {}
         for i in range(7):
             date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
-            stats_json = self.params.get(f"np_trip_daily_stats_{date}")
-            if stats_json:
-                try:
-                    daily_data = json.loads(stats_json)
-                    weekly_stats[date] = daily_data
-                except (json.JSONDecodeError, TypeError):
-                    weekly_stats[date] = {"distance": 0.0, "time": 0.0, "drives": 0, "engaged_time": 0.0}
-            else:
-                weekly_stats[date] = {"distance": 0.0, "time": 0.0, "drives": 0, "engaged_time": 0.0}
+            daily_data = weekly_data.get(date, {})
+            weekly_stats[date] = {
+                "distance": float(daily_data.get("distance", 0.0)),
+                "time": float(daily_data.get("time", 0.0)),
+                "drives": int(daily_data.get("drives", 0)),
+                "engaged_time": float(daily_data.get("engaged_time", 0.0)),
+            }
         return weekly_stats
 
     def _reset_daily_tracking_baselines(self):
@@ -176,12 +180,9 @@ class NpTripController:
             today_stats["drives"] += session_drives
             today_stats["engaged_time"] += session_engaged
 
-            # Save updated daily stats
-            stats_json = json.dumps(today_stats)
-            self.params.put_nonblocking(f"np_trip_daily_stats_{current_date}", stats_json)
-
         # Cleanup old stats (keep only 7 days)
         self._cleanup_old_daily_stats()
+        self._persist_weekly_stats()
 
         # Update baseline for next loop
         self._daily_last_distance = self.total_distance
@@ -192,14 +193,19 @@ class NpTripController:
     def _cleanup_old_daily_stats(self):
         """Remove daily stats older than 7 days"""
         cutoff_date = datetime.now() - timedelta(days=7)
-        for i in range(30):  # Check up to 30 days back
-            old_date = (cutoff_date - timedelta(days=i)).strftime("%Y-%m-%d")
-            old_param = f"np_trip_daily_stats_{old_date}"
-            if self.params.get(old_param):
-                self.params.delete(old_param)
-                self.weekly_stats.pop(old_date, None)
-            else:
-                break  # No more old parameters to clean
+        for date in list(self.weekly_stats.keys()):
+            try:
+                if datetime.strptime(date, "%Y-%m-%d") < cutoff_date:
+                    self.weekly_stats.pop(date, None)
+            except ValueError:
+                self.weekly_stats.pop(date, None)
+
+    def _persist_weekly_stats(self):
+        """Persist weekly stats as a single JSON blob"""
+        try:
+            self.params.put_nonblocking("np_trip_weekly_stats", json.dumps(self.weekly_stats))
+        except Exception:
+            pass
 
     def _calculate_weekly_totals(self):
         """Calculate true 7-day rolling window statistics"""
@@ -439,6 +445,16 @@ class NpTripController:
         # Write JSON blob with DONT_LOG flag to prevent excessive logging
         stats_json = json.dumps(stats, separators=(',', ':'))  # Compact JSON
         self.params.put_nonblocking("NagasPilotStats", stats_json)
+        # Also expose key values individually for UI widgets
+        self.params.put_nonblocking("np_total_distance", f"{self.total_distance}")
+        self.params.put_nonblocking("np_total_uptime_onroad", f"{self.total_time}")
+        self.params.put_nonblocking("np_total_drives", str(self.total_drives))
+        self.params.put_nonblocking("np_total_engaged_time", f"{self.engaged_time}")
+        self.params.put_nonblocking("np_trip_a_start_distance", f"{self.trip_a_start_distance}")
+        self.params.put_nonblocking("np_trip_a_start_time", f"{self.trip_a_start_time}")
+        self.params.put_nonblocking("np_trip_b_start_distance", f"{self.trip_b_start_distance}")
+        self.params.put_nonblocking("np_trip_b_start_time", f"{self.trip_b_start_time}")
+        self.params.put_nonblocking("np_trip_mode", str(self.current_trip_mode))
 
         print(f"Stats written: {self.total_distance:.0f}m, {self.total_drives} drives, {engagement_ratio:.1f}% engaged")
 

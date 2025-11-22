@@ -1,16 +1,7 @@
 # NagasPilot Parameter Consistency Report
 
-**Date**: 2025-11-22
+**Date**: 2025-11-22  
 **Status**: ✅ ALL PARAMETERS CONSISTENT
-
----
-
-## Parameter Naming Convention
-
-### Rule: All NagasPilot parameters use `np_*` prefix
-
-**Exceptions**:
-- `NagasPilotStats` - Main JSON blob (intentional, follows FrogPilot pattern)
 
 ---
 
@@ -19,49 +10,35 @@
 ```bash
 # Count all np_* parameters
 grep "^    {\"np_" common/params_keys.h | wc -l
-# Result: 62
+# Result: 91
 
 # Count NagasPilotStats
 grep "NagasPilotStats" common/params_keys.h | wc -l
 # Result: 1
 
-# Total NagasPilot parameters: 63
+# Total NagasPilot parameters: 92
 ```
 
 ---
 
-## Recent Corrections
+## Complete Parameter List (92 total)
 
-### Fixed: `TotalDistance` and `TotalDrives`
-
-**Before** (Inconsistent):
-```cpp
-{"TotalDistance", {PERSISTENT, FLOAT, "0.0"}},
-{"TotalDrives", {PERSISTENT, INT, "0"}},
-```
-
-**After** (Consistent):
-```cpp
-{"np_total_distance", {PERSISTENT, FLOAT, "0.0"}},
-{"np_total_drives", {PERSISTENT, INT, "0"}},
-```
-
-**Reason**: All NagasPilot feature parameters must use `np_*` prefix for consistency.
-
----
-
-## Complete Parameter List (63 total)
-
-### Device Parameters (5)
+### Device Parameters (11)
 ```
 np_device_monitoring_disable
 np_device_beep
 np_device_go_off_road
+np_device_reset_conf
 np_device_alert_mode
 np_device_auto_shutdown
+np_device_model_selected
+np_device_model_list
+np_device_last_log
+np_device_rhd
+np_device_audible_alert_mode
 ```
 
-### Dynamic Lane Profile - DLP (11)
+### Dynamic Lane Profile - DLP (16)
 ```
 np_dlp_enable
 np_dlp_lca_enable
@@ -71,15 +48,21 @@ np_dlp_laneless_lateral_factor
 np_dlp_laneless_transition_time
 np_dlp_laneless_max_speed
 np_dlp_adaptive_timing
+np_dlp_weather_integration
 np_dlp_min_lane_width
 np_dlp_max_lateral_accel
 np_dlp_confidence_threshold
+np_dlp_lca_mode
+np_dlp_lca_delay
+np_dlp_lca_bsm_delay
+np_dlp_lca_min_speed
 ```
 
-### Always Lane Centering Control - ALCC (12)
+### Always Lane Centering Control - ALCC (13)
 ```
 np_alcc_enable
 np_alcc_mode
+np_alcc_allow_standalone
 np_alcc_hold_at_standstill
 np_alcc_brake_mode
 np_alcc_confidence_threshold
@@ -92,11 +75,12 @@ np_alcc_lane_change_ready
 np_alcc_target_lane
 ```
 
-### Lane Change Assist - LCA (12)
+### Lane Change Assist - LCA (13)
 ```
 np_lca_mode
 np_lca_min_speed
 np_lca_auto_delay
+np_lca_delay
 np_lca_bsm_delay
 np_lca_one_per_signal
 np_lca_torque_threshold
@@ -142,12 +126,20 @@ np_dev_dashy
 np_dev_delay_loggerd
 ```
 
-### Trip Management (4 + 1 blob)
+### Trip Management (12 + 1 blob)
 ```
+np_total_distance
+np_total_uptime_onroad
+np_total_engaged_time
+np_total_drives
+np_trip_a_start_distance
+np_trip_a_start_time
+np_trip_b_start_distance
+np_trip_b_start_time
+np_trip_mode
+np_trip_weekly_stats
 np_trip_reset_request
 np_trip_reset_status
-np_total_distance                  # Fixed: was TotalDistance
-np_total_drives                    # Fixed: was TotalDrives
 NagasPilotStats                    # JSON blob (intentional exception)
 ```
 
@@ -161,7 +153,7 @@ NagasPilotStats                    # JSON blob (intentional exception)
    - [x] All feature parameters use `np_*` prefix
    - [x] Only exception is `NagasPilotStats` (intentional)
    - [x] No `dp_*` parameters remain
-   - [x] No `TotalDistance` or `TotalDrives` without prefix
+   - [x] Trip and lifetime counters use `np_total_*` / `np_trip_*`
 
 2. **Case Consistency**
    - [x] All use lowercase with underscores (np_dlp_enable)
@@ -190,15 +182,15 @@ NagasPilotStats                    # JSON blob (intentional exception)
 
 ## Summary
 
-**Total Parameters**: 63
-**With np_ prefix**: 62
+**Total Parameters**: 92  
+**With np_ prefix**: 91  
 **Without prefix**: 1 (`NagasPilotStats` - intentional)
 
 **Consistency Score**: ✅ 100% - PERFECT
 
-All NagasPilot parameters follow a consistent naming convention.
-No exceptions besides the intentional `NagasPilotStats` JSON blob.
-All legacy inconsistencies (`TotalDistance`, `TotalDrives`) have been corrected.
+All NagasPilot parameters follow a consistent naming convention.  
+Trip and lifetime stats live under explicit `np_total_*` / `np_trip_*` keys.  
+No legacy `dp_*` parameters remain.
 
 ---
 

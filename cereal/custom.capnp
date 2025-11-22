@@ -25,17 +25,13 @@ struct NpControlsState @0x81c2f05a394cf4af {
   catStiffnessFactor @11 :Float32;
   catSamples @12 :UInt16;
   catManualOverride @13 :Bool;
-  dlpAvailable @14 :Bool;
-  dlpActive @15 :Bool;
-  dlpConfidence @16 :Float32;
-  dlpReasonCode @17 :UInt16;
-  tscActive @18 :Bool;
-  tscState @19 :UInt8;  # custom.LongitudinalPlanExt.VisionTurnControllerState / MapTurnControllerState
-  tscVisionSpeed @20 :Float32;
-  tscMapSpeed @21 :Float32;
-  demActive @22 :Bool;
-  demEngagedPercent @23 :Float32;
-  tscMapStale @24 :Bool;
+  tscActive @14 :Bool;
+  tscState @15 :UInt8;  # custom.LongitudinalPlanExt.VisionTurnControllerState / MapTurnControllerState
+  tscVisionSpeed @16 :Float32;
+  tscMapSpeed @17 :Float32;
+  demActive @18 :Bool;
+  demEngagedPercent @19 :Float32;
+  tscMapStale @20 :Bool;
 }
 
 struct NpModelExt @0xaedffd8f31e7b55d {
@@ -46,23 +42,24 @@ struct NpModelExt @0xaedffd8f31e7b55d {
 struct NpLongitudinalPlanExt @0xf35cc4560bbf6ec2 {
   visionTurnControllerState @0 :VisionTurnControllerState;
   visionTurnSpeed @1 :Float32;
-  mapTurnControllerState @14 :MapTurnControllerState;
-  mapTurnSpeed @15 :Float32;
-  speedLimitControlState @2 :SpeedLimitControlState;
-  speedLimit @3 :Float32;
-  speedLimitOffset @4 :Float32;
-  distToSpeedLimit @5 :Float32;
-  isMapSpeedLimit @6 :Bool;
-  speedLimitPercOffset @7 :Bool;
-  speedLimitValueOffset @8 :Float32;
+  mapTurnControllerState @2 :MapTurnControllerState;
+  mapTurnSpeed @3 :Float32;
+  speedLimitControlState @4 :SpeedLimitControlState;
+  speedLimit @5 :Float32;
+  speedLimitOffset @6 :Float32;
+  distToSpeedLimit @7 :Float32;
+  isMapSpeedLimit @8 :Bool;
+  speedLimitPercOffset @9 :Bool;
+  speedLimitValueOffset @10 :Float32;
 
-  distToTurn @9 :Float32;
-  turnSpeed @10 :Float32;
-  turnSpeedControlState @11 :SpeedLimitControlState;
-  turnSign @12 :Int16;
+  distToTurn @11 :Float32;
+  turnSpeed @12 :Float32;
+  turnSpeedControlState @13 :SpeedLimitControlState;
+  turnSign @14 :Int16;
 
-  visionPlanIsBlended @13 :Bool;
+  visionPlanIsBlended @15 :Bool;
   longitudinalPlanExtSource @16 :LongitudinalPlanExtSource;
+  mapDataStale @17 :Bool;
 
   enum LongitudinalPlanExtSource {
     cruise @0;

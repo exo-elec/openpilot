@@ -6,6 +6,7 @@ Based on DragonPilot's beepd but integrated into NagasPilot architecture
 
 import os
 import time
+from cereal import log
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog

@@ -44,7 +44,7 @@ def manager_init() -> None:
     default_value = params.get_default_value(k)
     if default_value is not None and params.get(k) is None:
       params.put(k, default_value)
-  params.put("dp_device_model_list", VehicleModelCollector().get())
+  params.put("np_device_model_list", VehicleModelCollector().get())
 
   # Create folders needed for msgq
   try:
@@ -131,13 +131,13 @@ def manager_thread() -> None:
 
   started_prev = False
 
-  dp_dev_delay_time_started: float = 0.
-  dp_dev_delay_loggerd = int(params.get('dp_dev_delay_loggerd') or 0)
+  np_dev_delay_time_started: float = 0.
+  np_dev_delay_loggerd = int(params.get('np_dev_delay_loggerd') or 0)
 
   # Dictionary of processes to be delayed [process_name: delay_seconds]
-  dp_dev_delay_start_times: dict[str, float] = {
-    'loggerd': dp_dev_delay_loggerd,
-    'encoderd': dp_dev_delay_loggerd
+  np_dev_delay_start_times: dict[str, float] = {
+    'loggerd': np_dev_delay_loggerd,
+    'encoderd': np_dev_delay_loggerd
   }
   ignition_prev = False
 
@@ -159,22 +159,22 @@ def manager_thread() -> None:
     if started != started_prev:
       write_onroad_params(started, params)
 
-    dp_ignore: list[str] = []
+    np_ignore: list[str] = []
     if started and not started_prev:
-      dp_dev_delay_time_started = time.monotonic()
+      np_dev_delay_time_started = time.monotonic()
     elif not started and started_prev:
-      dp_dev_delay_time_started = 0.
+      np_dev_delay_time_started = 0.
 
-    if dp_dev_delay_time_started > 0.:
+    if np_dev_delay_time_started > 0.:
       cur_time = time.monotonic()
-      for name, delay_time in dp_dev_delay_start_times.items():
-        if cur_time - dp_dev_delay_time_started < delay_time: # type: ignore
-          dp_ignore.append(name)
+      for name, delay_time in np_dev_delay_start_times.items():
+        if cur_time - np_dev_delay_time_started < delay_time: # type: ignore
+          np_ignore.append(name)
 
     started_prev = started
     ignition_prev = ignition
 
-    ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=list(set(ignore) | set(dp_ignore)))
+    ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=list(set(ignore) | set(np_ignore)))
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
                        for p in managed_processes.values() if p.proc)
@@ -196,10 +196,10 @@ def manager_thread() -> None:
 
     # Exit main loop when uninstall/shutdown/reboot is needed
     shutdown = False
-    for param in ("DoUninstall", "DoShutdown", "DoReboot", "dp_device_reset_conf"):
+    for param in ("DoUninstall", "DoShutdown", "DoReboot", "np_device_reset_conf"):
       if params.get_bool(param):
-        if param == "dp_device_reset_conf":
-          os.system("rm -fr /data/params/d/dp_*")
+        if param == "np_device_reset_conf":
+          os.system("rm -fr /data/params/d/np_* /data/params/d/dp_*")
         shutdown = True
         params.put("LastManagerExitReason", f"{param} {datetime.datetime.now()}")
         cloudlog.warning(f"Shutting down manager - {param} set")

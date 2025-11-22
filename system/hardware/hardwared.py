@@ -210,7 +210,7 @@ def hardware_thread(end_event, hw_queue) -> None:
 
   fan_controller = None
 
-  dp_device_go_off_road = False
+  np_device_go_off_road = False
 
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
@@ -344,8 +344,8 @@ def hardware_thread(end_event, hw_queue) -> None:
 
     # Handle offroad/onroad transition
     if count % 6 == 0:
-      dp_device_go_off_road = params.get_bool("dp_device_go_off_road")
-    should_start = not dp_device_go_off_road and all(onroad_conditions.values())
+      np_device_go_off_road = params.get_bool("np_device_go_off_road")
+    should_start = not np_device_go_off_road and all(onroad_conditions.values())
     if started_ts is None:
       should_start = should_start and all(startup_conditions.values())
 

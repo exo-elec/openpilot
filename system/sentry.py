@@ -28,7 +28,7 @@ def report_tombstone(fn: str, message: str, contents: str) -> None:
 
 def save_exception(exc_text):
   log = "\n".join(exc_text.splitlines()) + "\n"
-  Params().put("dp_device_last_log", log)
+  Params().put("np_device_last_log", log)
 
 def capture_exception(*args, **kwargs) -> None:
   cloudlog.error("crash", exc_info=kwargs.get('exc_info', 1))

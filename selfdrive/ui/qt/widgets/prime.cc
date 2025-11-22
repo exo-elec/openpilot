@@ -85,8 +85,8 @@ DriveStats::DriveStats(QWidget* parent) : QFrame(parent) {
   add_stats_layouts(current_trip_mode_ == TRIP_A ? tr("TRIP A") : tr("TRIP B"), current_, &trip_mode_label_);
 
   // Initialize session tracking for recent activity tracking
-  std::string distance_str = params_.get("np_trip_total_distance");
-  std::string time_str = params_.get("np_trip_uptime_onroad");
+  std::string distance_str = params_.get("np_total_distance");
+  std::string time_str = params_.get("np_total_uptime_onroad");
   session_start_distance_ = distance_str.empty() ? 0.0f : std::stof(distance_str);
   session_start_time_ = time_str.empty() ? 0.0f : std::stof(time_str);
   session_date_ = QDateTime::currentDateTime().toString("yyyy-MM-dd");

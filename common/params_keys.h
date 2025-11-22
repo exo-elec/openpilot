@@ -134,6 +134,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"np_device_monitoring_disable", {PERSISTENT, BOOL, "0"}},
     {"np_device_beep", {PERSISTENT, BOOL, "0"}},
     {"np_device_go_off_road", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"np_device_reset_conf", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"np_device_alert_mode", {PERSISTENT, INT, "0"}},
     {"np_device_auto_shutdown", {PERSISTENT, INT, "-5"}},
     {"np_device_model_selected", {PERSISTENT, STRING}},
@@ -151,6 +152,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"np_dlp_laneless_transition_time", {PERSISTENT, FLOAT, "2.0"}},
     {"np_dlp_laneless_max_speed", {PERSISTENT, FLOAT, "80.0"}},
     {"np_dlp_adaptive_timing", {PERSISTENT, BOOL, "1"}},
+    {"np_dlp_weather_integration", {PERSISTENT, BOOL, "1"}},
     {"np_dlp_min_lane_width", {PERSISTENT, FLOAT, "2.5"}},
     {"np_dlp_max_lateral_accel", {PERSISTENT, FLOAT, "2.5"}},
     {"np_dlp_confidence_threshold", {PERSISTENT, FLOAT, "0.7"}},
@@ -158,6 +160,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Always Lane Centering Control (ALCC) Parameters
     {"np_alcc_enable", {PERSISTENT, BOOL, "0"}},
     {"np_alcc_mode", {PERSISTENT, STRING, "DISABLED"}},
+    {"np_alcc_allow_standalone", {PERSISTENT, STRING, "DISABLED"}},
     {"np_alcc_hold_at_standstill", {PERSISTENT, BOOL, "0"}},
     {"np_alcc_brake_mode", {PERSISTENT, STRING, "PAUSE"}},
     {"np_alcc_confidence_threshold", {PERSISTENT, FLOAT, "0.7"}},
@@ -172,7 +175,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Lane Change Assist (LCA) Parameters
     {"np_lca_mode", {PERSISTENT, STRING, "NUDGE"}},
     {"np_lca_min_speed", {PERSISTENT, INT, "60"}},
-    {"np_lca_auto_delay", {PERSISTENT, FLOAT, "2.0"}},
+    {"np_lca_auto_delay", {PERSISTENT, FLOAT, "0.5"}},
+    {"np_lca_delay", {PERSISTENT, FLOAT, "0.5"}},
     {"np_lca_bsm_delay", {PERSISTENT, BOOL, "1"}},
     {"np_lca_one_per_signal", {PERSISTENT, BOOL, "1"}},
     {"np_lca_torque_threshold", {PERSISTENT, FLOAT, "0.5"}},
@@ -182,6 +186,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"np_lca_intention_enable", {PERSISTENT, BOOL, "1"}},
     {"np_lca_auto_confirm_time", {PERSISTENT, FLOAT, "0.5"}},
     {"np_lca_intention_timeout", {PERSISTENT, FLOAT, "10.0"}},
+    {"np_dlp_lca_mode", {PERSISTENT, STRING, "NUDGE"}},
+    {"np_dlp_lca_delay", {PERSISTENT, FLOAT, "0.5"}},
+    {"np_dlp_lca_bsm_delay", {PERSISTENT, BOOL, "1"}},
+    {"np_dlp_lca_min_speed", {PERSISTENT, FLOAT, "20.0"}},
 
     // Turn Speed Controller (TSC) Parameters
     {"np_tsc_enable", {PERSISTENT, BOOL, "1"}},
@@ -221,8 +229,16 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
 
     // Trip Management
     {"NagasPilotStats", {PERSISTENT | DONT_LOG, STRING}},
+    {"np_total_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_total_uptime_onroad", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_total_engaged_time", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_total_drives", {PERSISTENT, INT, "0"}},
+    {"np_trip_a_start_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_trip_a_start_time", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_trip_b_start_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_trip_b_start_time", {PERSISTENT, FLOAT, "0.0"}},
+    {"np_trip_mode", {PERSISTENT, INT, "0"}},
+    {"np_trip_weekly_stats", {PERSISTENT | DONT_LOG, JSON}},
     {"np_trip_reset_request", {CLEAR_ON_MANAGER_START, STRING}},
     {"np_trip_reset_status", {CLEAR_ON_MANAGER_START, STRING}},
-    {"np_total_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"np_total_drives", {PERSISTENT, INT, "0"}},
 };
