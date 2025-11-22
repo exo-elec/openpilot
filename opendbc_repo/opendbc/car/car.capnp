@@ -610,7 +610,7 @@ struct CarParams {
     cadillac @7;
     hyundai @8;
     chrysler @9;
-    tesla @10;
+    gateway @10;
     subaru @11;
     gmPassive @12;
     mazda @13;

@@ -60,6 +60,7 @@ class CarInterface(CarInterfaceBase):
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
     # Basic vehicle identification
     ret.carName = "Gateway"
+    ret.brand = "gateway"
 
     # Safety configuration (hardware-level, following Honda Bosch pattern)
     ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.gateway)]

@@ -454,7 +454,7 @@ class GatewayCarDocs(CarDocs):
 class CAR(Platforms):
   BYD_ATTO3 = GatewayPlatformConfig(
     [GatewayCarDocs("BYD ATTO3")],
-    # BYD ATTO3 specifications - uses actual byd_atto3.dbc (500kbps CAN)
+    # BYD ATTO3 specifications - uses actual byd_atto3.dbc (500 kbps CAN classic)
     GatewayCarSpecs(mass=1625, wheelbase=2.720, steerRatio=15.0, minSteerSpeed=0 * CV.KPH_TO_MS),
     dbc_dict={Bus.pt: 'byd_atto3', Bus.cam: 'byd_atto3'}
   )
@@ -468,7 +468,8 @@ class CAR(Platforms):
     [GatewayCarDocs("BYD DOLPHIN")],
     # Official BYD DOLPHIN Thai market specifications
     GatewayCarSpecs(mass=1520, wheelbase=2.700, steerRatio=15.0, minSteerSpeed=0 * CV.KPH_TO_MS),
-    dbc_dict={Bus.pt: 'byd_atto3', Bus.cam: 'byd_atto3'}
+    # Dolphin uses CAN-FD (2 Mbps data, 500 kbps arbitration) with different payload packing
+    dbc_dict={Bus.pt: 'byd_dolphin', Bus.cam: 'byd_dolphin'}
   )
 
 # ---------------------------------------------------------------------------

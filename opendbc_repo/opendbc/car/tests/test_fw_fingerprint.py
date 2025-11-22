@@ -272,7 +272,6 @@ class TestFwFingerprintTiming:
         'mazda': 0.1,
         'nissan': 0.8,
         'subaru': 0.65,
-        'tesla': 0.1,
         'toyota': 0.7,
         'volkswagen': 0.65,
         'rivian': 0.3,
