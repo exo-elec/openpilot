@@ -44,6 +44,7 @@ class MDMA:
   def __init__(self, baudrate: int = 115200):
     self.baudrate = baudrate
     self.ftdi = None
+    self.cbus_pin_states = 0
     self.provisioned = False
 
   def __enter__(self):
@@ -60,14 +61,24 @@ class MDMA:
     self.ftdi.set_line_property(8, 1, 'N')
 
     # setup gpio
-    outputs = 0
+    self.cbus_pin_states = 0
     for mask, default_value in self.CBUS.values():
-      self.ftdi.set_cbus_direction(mask, mask)
-      outputs |= mask if default_value else 0x00
-    self.ftdi.set_cbus_gpio(outputs)
+      self.cbus_pin_states |= mask if default_value else 0x00
+    self.ftdi.set_cbus_direction(0xF, 0xF)
+    self.ftdi.set_cbus_gpio(self.cbus_pin_states)
 
   def close(self):
     self.ftdi.close()
+
+  def set_pins(self, pin_states: dict[str, bool]):
+    for pin, value in pin_states.items():
+      if pin not in self.CBUS:
+        raise ValueError(f"Invalid pin name: {pin}")
+      if value:
+        self.cbus_pin_states |= self.CBUS[pin][0]
+      else:
+        self.cbus_pin_states &= ~self.CBUS[pin][0]
+    self.ftdi.set_cbus_gpio(self.cbus_pin_states)
 
   def read(self) -> bytes:
     return self.ftdi.read_data(256).decode('utf-8', errors='replace')
@@ -115,10 +126,20 @@ class MDMA:
     sys.stdout.write("\x1b7\x1b[r\x1b[?6l\x1b8")
     sys.stdout.flush()
 
+  def reset(self, enter_qdl=False):
+    self.set_pins({'VIN_EN': False, 'AUX_EN': False})
+    time.sleep(2)
+    if enter_qdl:
+      self.set_pins({'AUX_EN': True})
+      time.sleep(0.5)
+    self.set_pins({'VIN_EN': True})
+
 if __name__ == "__main__":
   parser = ArgumentParser(description="MDMA FTDI utility")
   parser.add_argument('--provision', action='store_true', help="Provision the FTDI device for MDMA use")
   parser.add_argument('--terminal', '-t', action='store_true', help="Run terminal")
+  parser.add_argument('--reset', '-r', action='store_true', help='Reset device')
+  parser.add_argument('--qdl', '-q', action='store_true', help='Reset device into QDL mode. Note: requires AUX to be connected through the MDMA.')
   args = parser.parse_args()
 
   if args.provision:
@@ -126,7 +147,12 @@ if __name__ == "__main__":
     sys.exit(0)
 
   with MDMA() as mdma:
+    if args.reset:
+      mdma.reset()
+
+    if args.qdl:
+      mdma.reset(enter_qdl=True)
+
     if args.terminal:
       mdma.terminal()
-
 
