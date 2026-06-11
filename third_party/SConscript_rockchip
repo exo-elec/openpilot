@@ -1,0 +1,172 @@
+# SCons build script for Rockchip official libraries
+#
+# This script builds the official Rockchip libraries from their GitHub repos:
+# - rockchip_mpp: Media Process Platform (video codec)
+# - rockchip_rga: 2D graphics acceleration
+# - rknn_toolkit2: NPU inference runtime (replaces deprecated rockchip_rknpu2)
+#
+# Official repositories:
+# - https://github.com/rockchip-linux/mpp
+# - https://github.com/airockchip/librga
+# - https://github.com/airockchip/rknn-toolkit2 (contains rknpu2 runtime)
+#
+# Note: rockchip-linux/rknpu2 is deprecated and moved to airockchip/rknn-toolkit2
+
+import os
+import platform
+
+Import('env')
+
+# Only build on ARM64 (Rockchip platforms)
+if platform.machine() not in ['aarch64', 'arm64']:
+    print("Rockchip libraries only build on ARM64 - skipping")
+    Return()
+
+# ============================================================================
+# Build Configuration
+# ============================================================================
+
+BUILD_DIR = Dir('build')
+INSTALL_DIR = Dir('install')
+
+# CMake options for cross-compilation if needed
+CMAKE_OPTS = {
+    'CMAKE_BUILD_TYPE': 'Release',
+    'CMAKE_INSTALL_PREFIX': str(INSTALL_DIR.abspath),
+}
+
+# ============================================================================
+# MPP (Media Process Platform)
+# ============================================================================
+
+def build_mpp():
+    """Build librockchip_mpp.so from official repo."""
+    mpp_src = Dir('rockchip_mpp')
+    mpp_build = BUILD_DIR.Dir('mpp')
+    
+    if not os.path.exists(mpp_src.abspath):
+        print("MPP source not found - run: git submodule update --init third_party/rockchip_mpp")
+        return None
+    
+    # CMake configure
+    cmake_cmd = f"cd {mpp_build.abspath} && cmake {mpp_src.abspath}"
+    for opt, val in CMAKE_OPTS.items():
+        cmake_cmd += f" -D{opt}={val}"
+    
+    # Build
+    build_cmd = f"cd {mpp_build.abspath} && make -j$(nproc)"
+    install_cmd = f"cd {mpp_build.abspath} && make install"
+    
+    # Create builders
+    cmake = env.Command(
+        mpp_build.Dir('Makefile'),
+        mpp_src,
+        cmake_cmd
+    )
+    
+    build = env.Command(
+        mpp_build.Dir('librockchip_mpp.so'),
+        cmake,
+        build_cmd
+    )
+    
+    install = env.Command(
+        INSTALL_DIR.Dir('lib/librockchip_mpp.so'),
+        build,
+        install_cmd
+    )
+    
+    return install
+
+# ============================================================================
+# RGA (2D Graphics Acceleration)
+# ============================================================================
+
+def build_rga():
+    """Build librga.so from official repo."""
+    rga_src = Dir('rockchip_rga')
+    rga_build = BUILD_DIR.Dir('rga')
+    
+    if not os.path.exists(rga_src.abspath):
+        print("RGA source not found - run: git submodule update --init third_party/rockchip_rga")
+        return None
+    
+    # RGA uses CMake
+    cmake_cmd = f"cd {rga_build.abspath} && cmake {rga_src.abspath}/im2d_api"
+    for opt, val in CMAKE_OPTS.items():
+        cmake_cmd += f" -D{opt}={val}"
+    
+    build_cmd = f"cd {rga_build.abspath} && make -j$(nproc)"
+    install_cmd = f"cd {rga_build.abspath} && make install"
+    
+    cmake = env.Command(
+        rga_build.Dir('Makefile'),
+        rga_src,
+        cmake_cmd
+    )
+    
+    build = env.Command(
+        rga_build.Dir('librga.so'),
+        cmake,
+        build_cmd
+    )
+    
+    install = env.Command(
+        INSTALL_DIR.Dir('lib/librga.so'),
+        build,
+        install_cmd
+    )
+    
+    return install
+
+# ============================================================================
+# RKNN (NPU Runtime) - from rknn-toolkit2
+# ============================================================================
+
+def build_rknn():
+    """Setup RKNN runtime from rknn-toolkit2 repo.
+    
+    The rknpu2 runtime is now part of rknn-toolkit2 repository.
+    RKNN provides pre-built binaries, so we just copy them.
+    """
+    # New path: rknn_toolkit2/rknpu2/runtime
+    rknn_src = Dir('rknn_toolkit2/rknpu2')
+    rknn_lib = INSTALL_DIR.Dir('lib')
+    
+    if not os.path.exists(rknn_src.abspath):
+        print("RKNN source not found - run: git submodule update --init third_party/rknn_toolkit2")
+        return None
+    
+    # RKNN provides pre-built libraries in runtime directory
+    rknn_runtime = rknn_src.Dir('runtime')
+    
+    # Find the librknnrt.so for RK3588/RK3576 (Linux aarch64)
+    import glob
+    so_files = glob.glob(f"{rknn_runtime.abspath}/**/librknnrt.so", recursive=True)
+    
+    if not so_files:
+        print("RKNN runtime library not found")
+        return None
+    
+    # Copy to install dir
+    import shutil
+    os.makedirs(rknn_lib.abspath, exist_ok=True)
+    
+    targets = []
+    for so in so_files[:1]:  # Use first match
+        dst = os.path.join(rknn_lib.abspath, 'librknnrt.so')
+        shutil.copy2(so, dst)
+        targets.append(dst)
+    
+    return targets
+
+# ============================================================================
+# Build Targets
+# ============================================================================
+
+mpp_target = build_mpp()
+rga_target = build_rga()
+rknn_target = build_rknn()
+
+# Export for other SConscripts
+Export('mpp_target', 'rga_target', 'rknn_target')

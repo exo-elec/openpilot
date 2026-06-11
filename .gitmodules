@@ -1,6 +1,56 @@
 [submodule "msgq"]
   path = msgq_repo
-  url = ../../commaai/msgq.git
-[submodule "rednose_repo"]
+  url = ../../exo-electronics/msgq.git
+  branch = master
+[submodule "rednose"]
   path = rednose_repo
   url = ../../commaai/rednose.git
+
+[submodule "valhalla"]
+  path = third_party/valhalla
+  url = https://github.com/valhalla/valhalla.git
+  branch = 3.6.3
+
+[submodule "arm_compute"]
+  path = third_party/arm_compute
+  url = https://github.com/ARM-software/ComputeLibrary.git
+  branch = v53.0.0
+[submodule "clblast"]
+  path = third_party/clblast
+  url = https://github.com/CNugteren/CLBlast.git
+
+[submodule "rockchip_mpp"]
+  path = third_party/rockchip_mpp
+  url = https://github.com/rockchip-linux/mpp.git
+  branch = 1.0.11
+[submodule "rockchip_rga"]
+  path = third_party/rockchip_rga
+  url = https://github.com/airockchip/librga.git
+  branch = v1.10.0
+[submodule "rknpu2"]
+  path = third_party/rknpu2
+  url = https://github.com/rockchip-linux/rknpu2.git
+  branch = master
+[submodule "hailort"]
+  path = third_party/hailort
+  url = https://github.com/hailo-ai/hailort.git
+  branch = v5.3.0
+
+[submodule "python-udsoncan"]
+  path = third_party/python-udsoncan
+  url = https://github.com/pylessard/python-udsoncan.git
+  branch = master
+[submodule "python-can-isotp"]
+  path = third_party/python-can-isotp
+  url = https://github.com/pylessard/python-can-isotp.git
+[submodule "pygnssutils"]
+  path = third_party/pygnssutils
+  url = https://github.com/semuconsulting/pygnssutils.git
+  branch = main
+
+[submodule "carla"]
+  path = third_party/carla
+  url = https://github.com/carla-simulator/carla.git
+  branch = 0.9.16
+  update = none
+  shallow = true
