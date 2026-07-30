@@ -3,7 +3,7 @@ import pyray as rl
 import select
 import sys
 
-from openpilot.system.ui.lib.application import gui_app
+from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.text import wrap_text
 from openpilot.system.ui.widgets import Widget
@@ -18,6 +18,11 @@ FONT_SIZE = 96
 LINE_HEIGHT = 104
 DARKGRAY = (55, 55, 55, 255)
 
+# EXO-ELECTRONICS branding
+BRAND_TEXT = "EXO-ELECTRONICS"
+BRAND_FONT_SIZE = 72
+BRAND_SPACING = 12  # letter spacing
+
 
 def clamp(value, min_value, max_value):
   return max(min(value, max_value), min_value)
@@ -26,7 +31,6 @@ def clamp(value, min_value, max_value):
 class Spinner(Widget):
   def __init__(self):
     super().__init__()
-    self._comma_texture = gui_app.texture("images/spinner_comma.png", TEXTURE_SIZE, TEXTURE_SIZE)
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None
@@ -41,29 +45,27 @@ class Spinner(Widget):
       self._wrapped_lines = wrap_text(text, FONT_SIZE, gui_app.width - MARGIN_H)
 
   def _render(self, rect: rl.Rectangle):
-    if self._wrapped_lines:
-      # Calculate total height required for spinner and text
-      spacing = 50
-      total_height = TEXTURE_SIZE + spacing + len(self._wrapped_lines) * LINE_HEIGHT
-      center_y = (rect.height - total_height) / 2.0 + TEXTURE_SIZE / 2.0
-    else:
-      # Center spinner vertically
-      spacing = 150
-      center_y = rect.height / 2.0
-    y_pos = center_y + TEXTURE_SIZE / 2.0 + spacing
-
-    center = rl.Vector2(rect.width / 2.0, center_y)
-    spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
-    comma_position = rl.Vector2(center.x - TEXTURE_SIZE / 2.0, center.y - TEXTURE_SIZE / 2.0)
+    center = rl.Vector2(rect.width / 2.0, rect.height / 2.0)
 
     delta_time = rl.get_frame_time()
     self._rotation = (self._rotation + DEGREES_PER_SECOND * delta_time) % 360.0
 
-    # Draw rotating spinner and static comma logo
+    # Draw rotating spinner track around the center
+    spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
     rl.draw_texture_pro(self._spinner_texture, rl.Rectangle(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
-    rl.draw_texture_v(self._comma_texture, comma_position, rl.WHITE)
+
+    # Draw EXO-ELECTRONICS brand text in bold white
+    bold_font = gui_app.font(FontWeight.BOLD)
+    text_size = measure_text_cached(bold_font, BRAND_TEXT, BRAND_FONT_SIZE)
+    text_x = center.x - text_size.x / 2.0
+    text_y = center.y - text_size.y / 2.0
+    rl.draw_text_ex(bold_font, BRAND_TEXT, rl.Vector2(text_x, text_y),
+                    BRAND_FONT_SIZE, BRAND_SPACING, rl.WHITE)
+
+    # Position for progress bar / status text below the spinner
+    y_pos = center.y + TEXTURE_SIZE / 2.0 + 80
 
     # Display the progress bar or text based on user input
     if self._progress is not None:

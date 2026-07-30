@@ -31,8 +31,9 @@ BODY_FONT_SIZE = 96
 BUTTON_HEIGHT = 160
 BUTTON_SPACING = 50
 
-OPENPILOT_URL = "https://openpilot.comma.ai"
-USER_AGENT = f"AGNOSSetup-{HARDWARE.get_os_version()}"
+# EOP: No cloud installer URLs. Offline-first setup.
+OPENPILOT_URL = ""
+USER_AGENT = f"EOPSetup-{HARDWARE.get_os_version()}"
 
 CONTINUE_PATH = "/data/continue.sh"
 TMP_CONTINUE_PATH = "/data/continue.sh.new"
@@ -120,8 +121,7 @@ class Setup(Widget):
                                               + "⚠️ It has not been tested by comma.\n\n"
                                               + "⚠️ It may not comply with relevant safety standards.\n\n"
                                               + "⚠️ It may cause damage to your device and/or vehicle.\n\n"
-                                              + "If you'd like to proceed, use https://flash.comma.ai "
-                                              + "to restore your device to a factory state later.",
+                                              + "Use local recovery tools to restore your device to a factory state later.",
                                              85, text_alignment=TextAlignment.LEFT, text_padding=60)
     self._custom_software_warning_body_scroll_panel = GuiScrollPanel()
 
@@ -353,8 +353,8 @@ class Setup(Widget):
 
   def download(self, url: str):
     # autocomplete incomplete URLs
-    if re.match("^([^/.]+)/([^/]+)$", url):
-      url = f"https://installer.comma.ai/{url}"
+    # EOP: No cloud installer service. Local URLs only.
+    pass
 
     parsed = urlparse(url, scheme='https')
     self.download_url = (urlparse(f"https://{url}") if not parsed.netloc else parsed).geturl()
