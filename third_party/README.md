@@ -191,5 +191,4 @@ sudo ./scripts/install_rockchip_deps.sh
 ## See Also
 
 - [CAMERA_DRIVERS.md](CAMERA_DRIVERS.md) - Camera driver details
-- [RK3576_ISP_INTEGRATION_GUIDE.md](../docs/eop/01_Core/RK3576_ISP_INTEGRATION_GUIDE.md) - ISP integration
 - [THIRD_PARTY_SUBMODULES_STATUS.md](../docs/migration/THIRD_PARTY_SUBMODULES_STATUS.md) - Cleanup status

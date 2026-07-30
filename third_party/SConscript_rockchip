@@ -140,7 +140,7 @@ def build_rknn():
     # RKNN provides pre-built libraries in runtime directory
     rknn_runtime = rknn_src.Dir('runtime')
     
-    # Find the librknnrt.so for RK3588/RK3576 (Linux aarch64)
+    # Find the librknnrt.so for RK3588 (Linux aarch64)
     import glob
     so_files = glob.glob(f"{rknn_runtime.abspath}/**/librknnrt.so", recursive=True)
     
