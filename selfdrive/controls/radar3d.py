@@ -9,6 +9,7 @@ from cereal import messaging, log, car
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL, Priority, config_realtime_process
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.simple_kalman import KF1D
 
@@ -252,26 +253,32 @@ class RadarD:
 
 
 # fuses camera and radar data for best lead detection
-def main() -> None:
-  config_realtime_process(5, Priority.CTRL_LOW)
+def main() -> int:
+  try:
+    set_daemon_affinity("radar3d")
+    config_realtime_process(DT_MDL, Priority.CTRL_LOW)
 
-  # wait for stats about the car to come in from controls
-  cloudlog.info("radard is waiting for CarParams")
-  CP = messaging.log_from_bytes(Params().get("CarParams", block=True), car.CarParams)
-  cloudlog.info("radard got CarParams")
+    # wait for stats about the car to come in from controls
+    cloudlog.info("radar3d is waiting for CarParams")
+    CP = messaging.log_from_bytes(Params().get("CarParams", block=True), car.CarParams)
+    cloudlog.info("radar3d got CarParams")
 
-  # *** setup messaging
-  sm = messaging.SubMaster(['modelV2', 'carState', 'liveTracks'], poll='modelV2')
-  pm = messaging.PubMaster(['radarState'])
+    # *** setup messaging
+    sm = messaging.SubMaster(['modelV2', 'carState', 'radar3d'], poll='modelV2')
+    pm = messaging.PubMaster(['radarState'])
 
-  RD = RadarD(CP.radarDelay)
+    RD = RadarD(CP.radarDelay)
 
-  while 1:
-    sm.update()
+    while 1:
+      sm.update()
 
-    RD.update(sm, sm['liveTracks'])
-    RD.publish(pm)
+      RD.update(sm, sm['radar3d'])
+      RD.publish(pm)
+  except Exception as e:
+    cloudlog.exception(f"RadarD fatal error: {e}")
+    raise
+  return 0
 
 
 if __name__ == "__main__":
-  main()
+  exit(main())

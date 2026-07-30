@@ -3,12 +3,15 @@ import os
 import time
 import numpy as np
 from cereal import log
-from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
+# EOP-CLEANUP: Import from vehicled to avoid hardcoded duplication with longitudinal_planner.py
+from openpilot.selfdrive.vehicled.tesla.values import CarControllerParams
+ACCEL_MIN = CarControllerParams.ACCEL_MIN
+ACCEL_MAX = CarControllerParams.ACCEL_MAX
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
 from openpilot.selfdrive.modeld.constants import index_function
-from openpilot.selfdrive.controls.radard import _LEAD_ACCEL_TAU
+from openpilot.selfdrive.controls.radar3d import _LEAD_ACCEL_TAU
 
 if __name__ == '__main__':  # generating code
   from openpilot.third_party.acados.acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
@@ -58,26 +61,65 @@ STOP_DISTANCE = 6.0
 CRUISE_MIN_ACCEL = -1.2
 CRUISE_MAX_ACCEL = 1.6
 
+# Custom personality defaults (merged from FrogPilot)
+_PERSONALITY_DEFAULTS = {
+  log.LongitudinalPersonality.aggressive: {'jerk': 0.5, 't_follow': 1.25},
+  log.LongitudinalPersonality.standard:   {'jerk': 1.0, 't_follow': 1.45},
+  log.LongitudinalPersonality.relaxed:    {'jerk': 1.0, 't_follow': 1.75},
+  log.LongitudinalPersonality.traffic:    {'jerk': 0.8, 't_follow': 1.35},
+}
+
+# Param cache to avoid file I/O every MPC iteration
+_personality_param_cache = {'ts': 0.0, 'vals': {}}
+
+
+def _load_personality_params(now: float = None):
+  global _personality_param_cache
+  if now is None:
+    now = time.monotonic()
+  if now - _personality_param_cache['ts'] < 2.0:
+    return _personality_param_cache['vals']
+
+  try:
+    from openpilot.common.params import Params
+    p = Params()
+  except Exception:
+    # No params store available (e.g. acados codegen in a clean build env) —
+    # fall back to compile-time defaults.
+    vals = {pname: _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)].copy()
+            for pname in ('aggressive', 'standard', 'relaxed', 'traffic')}
+    _personality_param_cache = {'ts': now, 'vals': vals}
+    return vals
+  vals = {}
+  for pname in ('aggressive', 'standard', 'relaxed', 'traffic'):
+    prefix = f"EOP{pname.title()}"
+    try:
+      jerk_val = p.get(f"{prefix}Jerk")
+      follow_val = p.get(f"{prefix}Follow")
+      default = _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)]
+      vals[pname] = {
+        'jerk': float(jerk_val) if jerk_val is not None else default['jerk'],
+        't_follow': float(follow_val) if follow_val is not None else default['t_follow'],
+      }
+    except (ValueError, TypeError):
+      vals[pname] = _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)].copy()
+  _personality_param_cache = {'ts': now, 'vals': vals}
+  return vals
+
+
+_PERSONALITY_NAME_MAP = {v: k for k, v in log.LongitudinalPersonality.schema.enumerants.items()}
+
+
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
-  if personality==log.LongitudinalPersonality.relaxed:
-    return 1.0
-  elif personality==log.LongitudinalPersonality.standard:
-    return 1.0
-  elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.5
-  else:
-    raise NotImplementedError("Longitudinal personality not supported")
+  vals = _load_personality_params()
+  pname = _PERSONALITY_NAME_MAP.get(personality, 'standard')
+  return vals.get(pname, _PERSONALITY_DEFAULTS[personality])['jerk']
 
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
-  if personality==log.LongitudinalPersonality.relaxed:
-    return 1.75
-  elif personality==log.LongitudinalPersonality.standard:
-    return 1.45
-  elif personality==log.LongitudinalPersonality.aggressive:
-    return 1.25
-  else:
-    raise NotImplementedError("Longitudinal personality not supported")
+  vals = _load_personality_params()
+  pname = _PERSONALITY_NAME_MAP.get(personality, 'standard')
+  return vals.get(pname, _PERSONALITY_DEFAULTS[personality])['t_follow']
 
 def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
@@ -274,8 +316,9 @@ class LongitudinalMpc:
     for i in range(N):
       self.solver.cost_set(i, 'Zl', Zl)
 
-  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard):
-    jerk_factor = get_jerk_factor(personality)
+  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, jerk_factor=None):
+    if jerk_factor is None:
+      jerk_factor = get_jerk_factor(personality)
     if self.mode == 'acc':
       a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
       cost_weights = [X_EGO_OBSTACLE_COST, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
@@ -327,8 +370,8 @@ class LongitudinalMpc:
     lead_xv = self.extrapolate_lead(x_lead, v_lead, a_lead, a_lead_tau)
     return lead_xv
 
-  def update(self, radarstate, v_cruise, x, v, a, j, personality=log.LongitudinalPersonality.standard):
-    t_follow = get_T_FOLLOW(personality)
+  def update(self, radarstate, v_cruise, x, v, a, j, personality=log.LongitudinalPersonality.standard, t_follow_override=None):
+    t_follow = t_follow_override if t_follow_override is not None else get_T_FOLLOW(personality)
     v_ego = self.x0[1]
     self.status = radarstate.leadOne.status or radarstate.leadTwo.status
 
