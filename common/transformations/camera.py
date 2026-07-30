@@ -51,6 +51,7 @@ _os_fisheye = CameraConfig(2688 // 2, 1520 // 2, 567.0 / 4 * 3)
 _ar_ox_config = DeviceCameraConfig(CameraConfig(1928, 1208, 2648.0), _ar_ox_fisheye, _ar_ox_fisheye)
 _os_config = DeviceCameraConfig(CameraConfig(2688 // 2, 1520 // 2, 1522.0 * 3 / 4), _os_fisheye, _os_fisheye)
 _neo_config = DeviceCameraConfig(CameraConfig(1164, 874, 910.0), CameraConfig(816, 612, 650.0), _NoneCameraConfig())
+_gc4653_config = DeviceCameraConfig(CameraConfig(2560, 1440, 1250.0), _ar_ox_fisheye, _ar_ox_fisheye)
 
 DEVICE_CAMERAS = {
   # A "device camera" is defined by a device type and sensor
@@ -66,9 +67,29 @@ DEVICE_CAMERAS = {
 
   # simulator (emulates a tici)
   ("pc", "unknown"): _ar_ox_config,
+
+  # ExoPilot 01M (RK3588) - 4 MIPI cameras + 3 USB cameras
+  ("rk3588", "ox03c10"): _ar_ox_config,
+  ("rk3588", "gc4653"): _gc4653_config,
+  ("rk3588", "unknown"): _ar_ox_config,
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})
+
+def get_device_camera_config(camera_type: str = "ox03c10") -> DeviceCameraConfig:
+  """Get camera config for current hardware platform
+  
+  Args:
+    camera_type: Camera sensor type (ox03c10, gc4653)
+  
+  Returns:
+    DeviceCameraConfig for the specified camera
+  """
+  from openpilot.system.hardware import HARDWARE
+  device_type = HARDWARE.get_device_type()
+
+  # Fall back to rk3588 ox03c10 config as it is the primary supported platform
+  return DEVICE_CAMERAS.get((device_type, camera_type), _ar_ox_config)
 
 # device/mesh : x->forward, y-> right, z->down
 # view : x->right, y->down, z->forward

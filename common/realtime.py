@@ -16,15 +16,37 @@ DT_MDL = 0.05  # model
 DT_HW = 0.5  # hardwared and manager
 DT_DMON = 0.05  # driver monitoring
 
+# RK3588 CPU cores (4x A76 big + 4x A55 little)
+BIG_CORES = [0, 1, 2, 3]      # A76 - high performance
+LITTLE_CORES = [4, 5, 6, 7]   # A55 - power efficient
+
+# Core type constants for simple allocation
+CORE_BIG = "big"       # Use big cores (A76)
+CORE_LITTLE = "little" # Use little cores (A55)
+
+
+def set_core_type(core_type: str) -> None:
+  """Set CPU affinity to big or little cores.
+  
+  Args:
+    core_type: Either CORE_BIG ("big") or CORE_LITTLE ("little")
+  """
+  if core_type == CORE_BIG:
+    set_core_affinity(BIG_CORES)
+  elif core_type == CORE_LITTLE:
+    set_core_affinity(LITTLE_CORES)
+  else:
+    raise ValueError(f"Invalid core_type: {core_type}. Use CORE_BIG or CORE_LITTLE")
+
 
 class Priority:
   # CORE 2
   # - modeld = 55
-  # - camerad = 54
+  # - v4l2d = 54
   CTRL_LOW = 51 # plannerd & radard
 
   # CORE 3
-  # - pandad = 55
+  # - socketd = 55
   CTRL_HIGH = 53
 
 
@@ -33,12 +55,20 @@ def set_core_affinity(cores: list[int]) -> None:
     os.sched_setaffinity(0, cores)
 
 
-def config_realtime_process(cores: int | list[int], priority: int) -> None:
+def config_realtime_process(dt: float, priority: int) -> None:
+  """Configure real-time process scheduling priority.
+
+  EOP NOTE: Signature changed from upstream openpilot (cores: int|list[int], priority: int).
+  Core affinity is now set separately via set_core_type() in core_config.py.
+  All EOP callers pass a DT_* float as the first argument.
+
+  Args:
+    dt: Time step (unused; retained to match EOP call sites)
+    priority: Real-time priority level (1-99, higher is more critical)
+  """
   gc.disable()
   if sys.platform == 'linux' and not PC:
     os.sched_setscheduler(0, os.SCHED_FIFO, os.sched_param(priority))
-  c = cores if isinstance(cores, list) else [cores, ]
-  set_core_affinity(c)
 
 
 class Ratekeeper:

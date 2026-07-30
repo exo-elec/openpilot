@@ -62,6 +62,17 @@ int set_core_affinity(std::vector<int> cores) {
 #endif
 }
 
+int set_core_type(CoreType type) {
+  switch (type) {
+    case CoreType::BIG:
+      return set_core_affinity(std::vector<int>(BIG_CORES, BIG_CORES + 4));
+    case CoreType::LITTLE:
+      return set_core_affinity(std::vector<int>(LITTLE_CORES, LITTLE_CORES + 4));
+    default:
+      return -1;
+  }
+}
+
 int set_file_descriptor_limit(uint64_t limit_val) {
   struct rlimit limit;
   int status;
