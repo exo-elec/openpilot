@@ -38,46 +38,33 @@ PROCS = {
   # Baseline CPU usage by process
   "selfdrive.controls.controlsd": 16.0,
   "selfdrive.selfdrived.selfdrived": 16.0,
-  "selfdrive.car.card": 26.0,
+  "selfdrive.vehicled.vehicled": 26.0,
   "./loggerd": 14.0,
-  "./encoderd": 13.0,
-  "./camerad": 10.0,
+  "system.v4l2d.v4l2d": 10.0,
   "selfdrive.controls.plannerd": 8.0,
   "./ui": 18.0,
-  "system.sensord.sensord": 13.0,
-  "selfdrive.controls.radard": 2.0,
+  "system.imud.imud": 13.0,
+  "selfdrive.controls.radar3d": 2.0,
   "selfdrive.modeld.modeld": 22.0,
-  "selfdrive.modeld.dmonitoringmodeld": 18.0,
+  "selfdrive.monod.monod": 18.0,
   "system.hardware.hardwared": 4.0,
-  "selfdrive.locationd.calibrationd": 2.0,
+  "selfdrive.locationd.camera_calibrationd": 2.0,
   "selfdrive.locationd.torqued": 5.0,
   "selfdrive.locationd.locationd": 25.0,
   "selfdrive.locationd.paramsd": 9.0,
   "selfdrive.locationd.lagd": 11.0,
-  "selfdrive.ui.soundd": 3.0,
-  "selfdrive.ui.feedback.feedbackd": 1.0,
-  "selfdrive.monitoring.dmonitoringd": 4.0,
-  "./proclogd": 2.0,
-  "system.logmessaged": 1.0,
-  "system.tombstoned": 0,
-  "./logcatd": 1.0,
-  "system.micd": 5.0,
-  "system.timed": 0,
-  "selfdrive.pandad.pandad": 0,
-  "system.statsd": 1.0,
-  "system.loggerd.uploader": 15.0,
+  "selfdrive.soundd.soundd": 3.0,
+  "system.micd.micd": 5.0,
   "system.loggerd.deleter": 1.0,
 }
 
 PROCS.update({
   "tici": {
-    "./pandad": 5.0,
     "./ubloxd": 1.0,
     "system.ubloxd.pigeond": 6.0,
   },
   "tizi": {
-     "./pandad": 19.0,
-    "system.qcomgpsd.qcomgpsd": 1.0,
+    "system.ubloxd.pigeond": 6.0,
   }
 }.get(HARDWARE.get_device_type(), {}))
 
@@ -93,9 +80,9 @@ TIMINGS = {
   "longitudinalPlan": [2.5, 0.5],
   "driverAssistance": [2.5, 0.5],
   "roadCameraState": [2.5, 0.35],
-  "driverCameraState": [2.5, 0.35],
+  "rearCameraState": [2.5, 0.35],
   "modelV2": [2.5, 0.35],
-  "driverStateV2": [2.5, 0.40],
+  "driverPoseState": [2.5, 0.40],
   "livePose": [2.5, 0.35],
   "liveParameters": [2.5, 0.35],
   "wideRoadCameraState": [1.5, 0.35],
@@ -129,7 +116,7 @@ class TestOnroad:
     # setup env
     params = Params()
     params.remove("CurrentRoute")
-    params.put_bool("RecordFront", True)
+    params.put_bool("EOPRearCameraEnabled", True)
     set_params_enabled()
     os.environ['REPLAY'] = '1'
     os.environ['TESTING_CLOSET'] = '1'
@@ -229,7 +216,7 @@ class TestOnroad:
     assert np.mean(ts) < 10.
     #self.assertLess(np.std(ts), 5.)
 
-    # some slow frames are expected since camerad/modeld can preempt ui
+    # some slow frames are expected since v4l2d/modeld can preempt ui
     veryslow = [x for x in ts if x > 40.]
     assert len(veryslow) < 5, f"Too many slow frame draw times: {veryslow}"
 
@@ -306,7 +293,7 @@ class TestOnroad:
     result += "------------------------------------------------\n"
     result += "-----------------  SOF Timing ------------------\n"
     result += "------------------------------------------------\n"
-    for name in ['roadCameraState', 'wideRoadCameraState', 'driverCameraState']:
+    for name in ['roadCameraState', 'wideRoadCameraState', 'rearCameraState']:
       ts = self.ts[name]['timestampSof']
       d_ms = np.diff(ts) / 1e6
       d50 = np.abs(d_ms-50)
@@ -319,8 +306,8 @@ class TestOnroad:
     print(result)
 
   def test_camera_sync(self, subtests):
-    cam_states = ['roadCameraState', 'wideRoadCameraState', 'driverCameraState']
-    encode_cams = ['roadEncodeIdx', 'wideRoadEncodeIdx', 'driverEncodeIdx']
+    cam_states = ['roadCameraState', 'wideRoadCameraState', 'rearCameraState']
+    encode_cams = ['roadEncodeIdx', 'wideRoadEncodeIdx', 'rearEncodeIdx']
     for cams in (cam_states, encode_cams):
       with subtests.test(cams=cams):
         # sanity checks within a single cam
@@ -335,7 +322,7 @@ class TestOnroad:
 
         first_fid = {c: min(self.ts[c]['frameId']) for c in cams}
         if cam.endswith('CameraState'):
-          # camerad guarantees that all cams start on frame ID 0
+          # v4l2d guarantees that all cams start on frame ID 0
           # (note loggerd also needs to start up fast enough to catch it)
           assert set(first_fid.values()) == {0, }, "Cameras don't start on frame ID 0"
         else:
@@ -356,7 +343,7 @@ class TestOnroad:
     # sanity check that the frame metadata is consistent with the encoded frames
     pairs = [('roadCameraState', 'roadEncodeIdx'),
              ('wideRoadCameraState', 'wideRoadEncodeIdx'),
-             ('driverCameraState', 'driverEncodeIdx')]
+             ('rearCameraState', 'rearEncodeIdx')]
     for cam, enc in pairs:
       with subtests.test(camera=cam, encoder=enc):
         cam_frames = {fid: (sof, eof) for fid, sof, eof in zip(
@@ -398,8 +385,8 @@ class TestOnroad:
       # these numbers are not fully self-contained.
       ("modelV2", 0.06, 0.040),
 
-      # can miss cycles here and there, just important the avg frequency is 20Hz
-      ("driverStateV2", 0.3, 0.05),
+      # can miss cycles here and there, just important the avg frequency is 10Hz
+      ("driverPoseState", 0.15, 0.10),
     ]
     for (s, instant_max, avg_max) in cfgs:
       ts = [getattr(m, s).modelExecutionTime for m in self.msgs[s]]

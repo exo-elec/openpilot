@@ -273,6 +273,16 @@ node {
           step("test qcomgpsd", "pytest system/qcomgpsd/tests/test_qcomgpsd.py", [diffPaths: ["system/qcomgpsd/"]]),
         ])
       },
+      // EOP: ExoPilot 01M (RK3588) target
+      'rk3588 tests': {
+        deviceStage("rk3588", "rk3588-needs-can", ["UNSAFE=1"], [
+          step("build openpilot", "cd system/manager && ./build.py"),
+          step("check dirty", "release/check-dirty.sh"),
+          step("test socketd", "pytest system/socketd/tests/ -s", [diffPaths: ["system/socketd/"]]),
+          step("test v4l2d", "pytest system/v4l2d/tests/ -s", [diffPaths: ["system/v4l2d/"]]),
+          step("test pigeond", "pytest system/ubloxd/tests/test_pigeond.py", [diffPaths: ["system/ubloxd/"]]),
+        ])
+      },
 
     )
     }

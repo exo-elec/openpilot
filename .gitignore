@@ -54,9 +54,6 @@ system/proclogd/proclogd
 selfdrive/ui/translations/tmp
 selfdrive/test/longitudinal_maneuvers/out
 selfdrive/car/tests/cars_dump
-system/camerad/camerad
-system/camerad/test/ae_gray_test
-
 notebooks
 hyperthneed
 provisioning
@@ -73,6 +70,10 @@ cppcheck_report.txt
 comma*.sh
 
 selfdrive/modeld/models/*.pkl
+
+# Compiled UI binaries (should be built from source)
+selfdrive/ui/_spinner
+selfdrive/ui/_text
 
 *.bz2
 *.zst
@@ -102,3 +103,20 @@ Pipfile
 # Ignore all local history of files
 .history
 .ionide
+__pycache__/
+
+# Generated capnp files
+cereal/log.capnp.c++
+cereal/log.capnp.h
+
+# Dev-machine files (not part of the port)
+.claude/
+switch.sh
+AGENTS.md
+
+# EOP: Submodule build artifacts (not to be committed)
+third_party/catch2/build/
+third_party/json11/*.o
+models/rknn/*.rknn
+models/hef/*.hef
+models/onnx/*.onnx

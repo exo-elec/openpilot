@@ -40,15 +40,17 @@ Explain how you tested this bug fix.
 
 -->
 
-<!--- ***** Template: Car Port *****
+<!--- ***** Template: Vehicle Interface Change *****
 
 **Checklist**
 
-- [ ] added entry to CAR in selfdrive/car/*/values.py and ran `selfdrive/car/docs.py` to generate new docs
-- [ ] test route added to [routes.py](https://github.com/commaai/openpilot/blob/master/selfdrive/car/tests/routes.py)
+EOP uses a Tesla-only vehicle interface in `selfdrive/vehicled/`.
+Upstream multi-brand car porting (`selfdrive/car/`) does not apply.
+
+- [ ] change is isolated to `selfdrive/vehicled/{car,safety,tesla}/`
+- [ ] test route added to `selfdrive/vehicled/car/tests/routes.py`
 - [ ] route with openpilot:
 - [ ] route with stock system:
-- [ ] car harness used (if comma doesn't sell it, put N/A):
 
 
 -->
