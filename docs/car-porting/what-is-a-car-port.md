@@ -1,5 +1,7 @@
 # What is a car port?
 
+> **EOP Notice:** EOP is **Tesla-only** via `selfdrive/vehicled/`. The upstream multi-brand car porting architecture (`selfdrive/car/`, `opendbc`, `panda`) has been replaced. This document is preserved from upstream for reference only.
+
 A car port enables openpilot support on a particular car. Each car model openpilot supports needs to be individually ported. The complexity of a car port varies depending on many factors including:
 
 * existing openpilot support for similar cars
