@@ -61,7 +61,7 @@ def flash_panda(panda_serial: str) -> Panda:
   return panda
 
 
-def main() -> None:
+def main() -> int:
   # signal pandad to close the relay and exit
   def signal_handler(signum, frame):
     cloudlog.info(f"Caught signal {signum}, exiting")
@@ -174,6 +174,8 @@ def main() -> None:
     process = subprocess.Popen(["./pandad", *panda_serials], cwd=os.path.join(BASEDIR, "selfdrive/pandad"))
     process.wait()
 
+  return 0
+
 
 if __name__ == "__main__":
-  main()
+  exit(main())
