@@ -175,16 +175,8 @@
         <translation>Serial</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Câmera do Motorista</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>VER</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Pré-visualizar a câmera voltada para o motorista para garantir que o monitoramento do sistema tenha uma boa visibilidade (veículo precisa estar desligado)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -937,14 +929,6 @@ O Modo Firehose permite maximizar o envio de dados de treinamento para melhorar 
         <translation>Exibir velocidade em km/h invés de mph.</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Gravar e Upload Câmera Motorista</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Upload dados da câmera voltada para o motorista e ajude a melhorar o algoritmo de monitoramentor.</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>Desacionar com Pedal do Acelerador</translation>
     </message>
@@ -1011,14 +995,6 @@ O Modo Firehose permite maximizar o envio de dados de treinamento para melhorar 
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>A visualização de condução fará a transição para a câmera grande angular voltada para a estrada em baixas velocidades para mostrar melhor algumas curvas. O logotipo do modo Experimental também será mostrado no canto superior direito.</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>Monitoramento do Motorista Sempre Ativo</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>Habilite o monitoramento do motorista mesmo quando o openpilot não estiver acionado.</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

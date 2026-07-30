@@ -29,7 +29,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
     QPushButton* advancedSettings = new QPushButton(tr("Advanced"));
     advancedSettings->setObjectName("advanced_btn");
     advancedSettings->setStyleSheet("margin-right: 30px;");
-    advancedSettings->setFixedSize(400, 100);
+    advancedSettings->setFixedSize(140, 40);
     connect(advancedSettings, &QPushButton::clicked, [=]() { main_layout->setCurrentWidget(an); });
     vlayout->addSpacing(10);
     vlayout->addWidget(advancedSettings, 0, Qt::AlignRight);
@@ -57,7 +57,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
 
   setStyleSheet(R"(
     #wifiWidget > QPushButton, #back_btn, #advanced_btn {
-      font-size: 50px;
+      font-size: 30px;
       margin: 0px;
       padding: 15px;
       border-width: 0;
@@ -73,8 +73,9 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
 }
 
 void Networking::setPrimeType(PrimeState::Type type) {
-  an->setGsmVisible(type == PrimeState::PRIME_TYPE_NONE || type == PrimeState::PRIME_TYPE_LITE);
-  wifi->ipv4_forward = (type == PrimeState::PRIME_TYPE_NONE || type == PrimeState::PRIME_TYPE_LITE);
+  // EOP: No prime subscription. Always show GSM/cellular settings.
+  an->setGsmVisible(true);
+  wifi->ipv4_forward = true;
 }
 
 void Networking::refresh() {
@@ -125,7 +126,7 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
   // Back button
   QPushButton* back = new QPushButton(tr("Back"));
   back->setObjectName("back_btn");
-  back->setFixedSize(400, 100);
+  back->setFixedSize(140, 40);
   connect(back, &QPushButton::clicked, [=]() { emit backPress(); });
   main_layout->addWidget(back, 0, Qt::AlignLeft);
 
@@ -278,7 +279,7 @@ WifiUI::WifiUI(QWidget *parent, WifiManager* wifi) : QWidget(parent), wifi(wifi)
   circled_slash = QPixmap(ASSET_PATH + "icons/circled_slash.svg").scaledToWidth(ICON_WIDTH, Qt::SmoothTransformation);
 
   scanningLabel = new QLabel(tr("Scanning for networks..."));
-  scanningLabel->setStyleSheet("font-size: 65px;");
+  scanningLabel->setStyleSheet("font-size: 38px;");
   main_layout->addWidget(scanningLabel, 0, Qt::AlignCenter);
 
   wifi_list_widget = new ListWidget(this);
@@ -378,8 +379,8 @@ WifiItem *WifiUI::getItem(int n) {
 
 WifiItem::WifiItem(const QString &connecting_text, const QString &forget_text, QWidget *parent) : QWidget(parent) {
   QHBoxLayout *hlayout = new QHBoxLayout(this);
-  hlayout->setContentsMargins(44, 0, 73, 0);
-  hlayout->setSpacing(50);
+  hlayout->setContentsMargins(25, 0, 40, 0);
+  hlayout->setSpacing(25);
 
   hlayout->addWidget(ssidLabel = new ElidedLabel());
   ssidLabel->setObjectName("ssidLabel");
@@ -403,7 +404,7 @@ void WifiItem::setItem(const Network &n, const QPixmap &status_icon, bool show_f
 
   ssidLabel->setText(n.ssid);
   ssidLabel->setEnabled(n.security_type != SecurityType::UNSUPPORTED);
-  ssidLabel->setFont(InterFont(55, network.connected == ConnectedType::DISCONNECTED ? QFont::Normal : QFont::Bold));
+  ssidLabel->setFont(InterFont(32, network.connected == ConnectedType::DISCONNECTED ? QFont::Normal : QFont::Bold));
 
   connecting->setVisible(n.connected == ConnectedType::CONNECTING);
   forgetBtn->setVisible(show_forget_btn);

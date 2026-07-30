@@ -41,11 +41,8 @@ class UIState:
         "liveCalibration",
         "radarState",
         "deviceState",
-        "pandaStates",
         "carParams",
-        "driverMonitoringState",
         "carState",
-        "driverStateV2",
         "roadCameraState",
         "wideRoadCameraState",
         "managerState",
@@ -89,18 +86,9 @@ class UIState:
     device.update()
 
   def _update_state(self) -> None:
-    # Handle panda states updates
-    if self.sm.updated["pandaStates"]:
-      panda_states = self.sm["pandaStates"]
-
-      if len(panda_states) > 0:
-        # Get panda type from first panda
-        self.panda_type = panda_states[0].pandaType
-        # Check ignition status across all pandas
-        if self.panda_type != log.PandaState.PandaType.unknown:
-          self.ignition = any(state.ignitionLine or state.ignitionCan for state in panda_states)
-    elif self.sm.frame - self.sm.recv_frame["pandaStates"] > 5 * rl.get_fps():
-      self.panda_type = log.PandaState.PandaType.unknown
+    # EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + TC275)
+    self.ignition = self.params.get_bool("EOPIgnitionOn")
+    self.panda_type = log.PandaState.PandaType.unknown
 
     # Handle wide road camera state updates
     if self.sm.updated["wideRoadCameraState"]:

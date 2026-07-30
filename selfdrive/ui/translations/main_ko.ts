@@ -175,16 +175,8 @@
         <translation>시리얼</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>운전자 카메라</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>미리보기</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>운전자 모니터링이 잘 되는지 확인하기 위해 후면 카메라를 미리 봅니다. (차량 시동이 꺼져 있어야 합니다)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -932,14 +924,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>mph 대신 km/h로 속도를 표시합니다.</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>운전자 카메라 녹화 및 업로드</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>운전자 카메라의 영상 데이터를 업로드하여 운전자 모니터링 알고리즘을 개선합니다.</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>가속페달 조작 시 해제</translation>
     </message>
@@ -1006,14 +990,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>운전 시각화는 일부 회전을 더 잘 보여주기 위해 저속에서 도로를 향한 광각 카메라로 전환됩니다. 우측 상단에 실험 모드 로고가 표시됩니다.</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>상시 운전자 모니터링</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>오픈파일럿이 활성화되지 않은 경우에도 드라이버 모니터링을 활성화합니다.</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

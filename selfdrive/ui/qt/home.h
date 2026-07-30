@@ -8,12 +8,12 @@
 #include <QWidget>
 
 #include "common/params.h"
-#include "selfdrive/ui/qt/offroad/driverview.h"
 #include "selfdrive/ui/qt/body.h"
 #include "selfdrive/ui/qt/onroad/onroad_home.h"
 #include "selfdrive/ui/qt/sidebar.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/offroad_alerts.h"
+#include "selfdrive/ui/qt/offroad/safety_panel.h"
 #include "selfdrive/ui/ui.h"
 
 class OffroadHome : public QFrame {
@@ -33,6 +33,7 @@ private:
   Params params;
 
   QTimer* timer;
+  ElidedLabel* date;
   ElidedLabel* version;
   QStackedLayout* center_layout;
   UpdateAlert *update_widget;
@@ -53,7 +54,6 @@ signals:
 
 public slots:
   void offroadTransition(bool offroad);
-  void showDriverView(bool show);
   void showSidebar(bool show);
 
 protected:
@@ -65,7 +65,6 @@ private:
   OffroadHome *home;
   OnroadWindow *onroad;
   BodyWindow *body;
-  DriverViewWindow *driver_view;
   QStackedLayout *slayout;
 
 private slots:

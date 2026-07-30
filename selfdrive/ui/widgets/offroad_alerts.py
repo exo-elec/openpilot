@@ -1,4 +1,5 @@
 import json
+import time
 import pyray as rl
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -180,10 +181,17 @@ class OffroadAlert(AbstractAlert):
   def __init__(self):
     super().__init__(has_reboot_btn=False)
     self.sorted_alerts: list[AlertData] = []
+    self._last_refresh_t = 0.0
+    self._refresh_interval = 5.0  # Cache alert params for 5 seconds
 
   def refresh(self):
     if not self.sorted_alerts:
       self._build_alerts()
+
+    now = time.monotonic()
+    if now - self._last_refresh_t < self._refresh_interval:
+      return sum(1 for a in self.sorted_alerts if a.visible)
+    self._last_refresh_t = now
 
     active_count = 0
     connectivity_needed = False

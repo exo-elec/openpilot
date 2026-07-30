@@ -5,10 +5,10 @@ from cereal import log
 from msgq.visionipc import VisionStreamType
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus, UI_BORDER_SIZE
 from openpilot.selfdrive.ui.onroad.alert_renderer import AlertRenderer
-from openpilot.selfdrive.ui.onroad.driver_state import DriverStateRenderer
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
+from openpilot.selfdrive.ui.onroad.camera_overlay import CameraSourceSwitcher
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.common.transformations.camera import DEVICE_CAMERAS, DeviceCameraConfig, view_frame_from_device_frame
 from openpilot.common.transformations.orientation import rot_from_euler
@@ -17,7 +17,7 @@ OpState = log.SelfdriveState.OpenpilotState
 CALIBRATED = log.LiveCalibrationData.Status.calibrated
 ROAD_CAM = VisionStreamType.VISION_STREAM_ROAD
 WIDE_CAM = VisionStreamType.VISION_STREAM_WIDE_ROAD
-DEFAULT_DEVICE_CAMERA = DEVICE_CAMERAS["tici", "ar0231"]
+DEFAULT_DEVICE_CAMERA = DEVICE_CAMERAS.get(("rk3588", "unknown")) or list(DEVICE_CAMERAS.values())[0]
 
 BORDER_COLORS = {
   UIStatus.DISENGAGED: rl.Color(0x17, 0x33, 0x49, 0xC8),   # Blue for disengaged state
@@ -25,13 +25,13 @@ BORDER_COLORS = {
   UIStatus.ENGAGED: rl.Color(0x17, 0x86, 0x44, 0xF1),      # Green for engaged state
 }
 
-WIDE_CAM_MAX_SPEED = 10.0  # m/s (22 mph)
+WIDE_CAM_MAX_SPEED = 12.0  # m/s (EVP zone 1 ceiling, ~43 km/h)
 ROAD_CAM_MIN_SPEED = 15.0  # m/s (34 mph)
 
 
 class AugmentedRoadView(CameraView):
   def __init__(self, stream_type: VisionStreamType = VisionStreamType.VISION_STREAM_ROAD):
-    super().__init__("camerad", stream_type)
+    super().__init__("v4l2d", stream_type)
     self._set_placeholder_color(BORDER_COLORS[UIStatus.DISENGAGED])
 
     self.device_camera: DeviceCameraConfig | None = None
@@ -47,13 +47,19 @@ class AugmentedRoadView(CameraView):
     self.model_renderer = ModelRenderer()
     self._hud_renderer = HudRenderer()
     self.alert_renderer = AlertRenderer()
-    self.driver_state_renderer = DriverStateRenderer()
+    self._camera_switcher = CameraSourceSwitcher()
 
     # Callbacks
     self._click_callback: Callable | None = None
 
   def set_callbacks(self, on_click: Callable | None = None):
     self._click_callback = on_click
+
+  def close(self) -> None:
+    """Clean up UVC camera resources in addition to base CameraView cleanup."""
+    if hasattr(self, '_camera_switcher'):
+      self._camera_switcher.close()
+    super().close()
 
   def _render(self, rect):
     # Only render when system is started to avoid invalid data access
@@ -62,8 +68,12 @@ class AugmentedRoadView(CameraView):
 
     self._switch_stream_if_needed(ui_state.sm)
 
-    # Update calibration before rendering
-    self._update_calibration()
+    # Determine if UVC camera should replace the main road view
+    show_uvc = self._camera_switcher.should_show_uvc()
+
+    # Update calibration before rendering (only for road cameras)
+    if not show_uvc:
+      self._update_calibration()
 
     # Create inner content area with border padding
     self._content_rect = rl.Rectangle(
@@ -85,17 +95,18 @@ class AugmentedRoadView(CameraView):
       int(self._content_rect.height)
     )
 
-    # Render the base camera view
-    super()._render(rect)
+    # Render the base camera view (road/wide OR full-screen UVC replacement)
+    if show_uvc:
+      uvc_camera = self._camera_switcher.get_uvc_camera()
+      uvc_camera.render(rect)
+    else:
+      super()._render(rect)
 
-    # Draw all UI overlays
-    self.model_renderer.render(self._content_rect)
+    # Draw UI overlays (skip model renderer for UVC cameras — model expects road cam)
+    if not show_uvc:
+      self.model_renderer.render(self._content_rect)
     self._hud_renderer.render(self._content_rect)
-    if not self.alert_renderer.render(self._content_rect):
-      self.driver_state_renderer.render(self._content_rect)
-
-    # Custom UI extension point - add custom overlays here
-    # Use self._content_rect for positioning within camera bounds
+    self.alert_renderer.render(self._content_rect)
 
     # End clipping region
     rl.end_scissor_mode()
@@ -144,7 +155,7 @@ class AugmentedRoadView(CameraView):
     device_from_calib = rot_from_euler(calib.rpyCalib)
     self.view_from_calib = view_frame_from_device_frame @ device_from_calib
 
-    # Update wide calibration if available
+    # Update wide road calibration if available
     if hasattr(calib, 'wideFromDeviceEuler') and len(calib.wideFromDeviceEuler) == 3:
       wide_from_device = rot_from_euler(calib.wideFromDeviceEuler)
       self.view_from_wide_calib = view_frame_from_device_frame @ wide_from_device @ device_from_calib

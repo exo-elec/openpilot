@@ -16,7 +16,7 @@
 #include "selfdrive/ui/qt/prime_state.h"
 
 const int UI_BORDER_SIZE = 30;
-const int UI_HEADER_HEIGHT = 420;
+const int UI_HEADER_HEIGHT = 250;
 
 const int UI_FREQ = 20; // Hz
 const int BACKLIGHT_OFFROAD = 50;
@@ -31,7 +31,7 @@ const Eigen::Matrix3f FCAM_INTRINSIC_MATRIX = (Eigen::Matrix3f() <<
   0.0, 2648.0, 1208.0 / 2,
   0.0, 0.0, 1.0).finished();
 
-// tici ecam focal probably wrong? magnification is not consistent across frame
+// wide camera focal probably wrong? magnification is not consistent across frame
 // Need to retrain model before this can be changed
 const Eigen::Matrix3f ECAM_INTRINSIC_MATRIX = (Eigen::Matrix3f() <<
   567.0, 0.0, 1928.0 / 2,
@@ -60,6 +60,34 @@ typedef struct UIScene {
   float light_sensor = -1;
   bool started, ignition, is_metric, recording_audio;
   uint64_t started_frame;
+
+  // Speed limit (m/s, 0 = not available) — priority: mapData OSM > navInstruction
+  float nav_speed_limit_ms = 0.0f;
+
+  // OBD2 telemetry — plain copies from obdState (safe across sm updates)
+  struct {
+    std::string vehicle_type;
+    float battery_soc = 0.0f;
+    float battery_voltage = 0.0f;
+    float battery_current = 0.0f;
+    float motor_temp = 0.0f;
+    float engine_rpm = 0.0f;
+    float coolant_temp = 0.0f;
+    float fuel_level = 0.0f;
+    int error_codes = 0;
+  } obd_state;
+
+  // Voice assistant state — plain copies from voiceState
+  struct {
+    cereal::VoiceState::VoiceAssistantState state = cereal::VoiceState::VoiceAssistantState::IDLE;
+    std::string transcript;
+    std::string intent;
+    std::string reply;
+    float confidence = 0.0f;
+  } voice_state;
+
+  bool tts_playing = false;
+  float mic_level_db = 0.0f;
 } UIScene;
 
 class UIState : public QObject {

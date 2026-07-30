@@ -37,21 +37,6 @@ static void update_state(UIState *s) {
       s->scene.view_from_calib = s->scene.view_from_wide_calib = VIEW_FROM_DEVICE;
     }
   }
-  if (sm.updated("pandaStates")) {
-    auto pandaStates = sm["pandaStates"].getPandaStates();
-    if (pandaStates.size() > 0) {
-      scene.pandaType = pandaStates[0].getPandaType();
-
-      if (scene.pandaType != cereal::PandaState::PandaType::UNKNOWN) {
-        scene.ignition = false;
-        for (const auto& pandaState : pandaStates) {
-          scene.ignition |= pandaState.getIgnitionLine() || pandaState.getIgnitionCan();
-        }
-      }
-    }
-  } else if ((s->sm->frame - s->sm->rcv_frame("pandaStates")) > 5*UI_FREQ) {
-    scene.pandaType = cereal::PandaState::PandaType::UNKNOWN;
-  }
   if (sm.updated("wideRoadCameraState")) {
     auto cam_state = sm["wideRoadCameraState"].getWideRoadCameraState();
     float scale = (cam_state.getSensor() == cereal::FrameData::ImageSensor::AR0231) ? 6.0f : 1.0f;
@@ -59,10 +44,58 @@ static void update_state(UIState *s) {
   } else if (!sm.allAliveAndValid({"wideRoadCameraState"})) {
     scene.light_sensor = -1;
   }
-  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
 
+  // EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + TC275)
   auto params = Params();
+  scene.ignition = params.getBool("EOPIgnitionOn");
+  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
   scene.recording_audio = params.getBool("RecordAudio") && scene.started;
+
+  // Speed limit: OSM mapData (km/h → m/s) has priority over navInstruction (already m/s)
+  float speed_limit_ms = 0.0f;
+  if (sm.valid("mapData")) {
+    float osl = sm["mapData"].getMapData().getSpeedLimit();
+    if (osl > 0.0f) {
+      speed_limit_ms = osl / 3.6f;  // km/h → m/s
+    }
+  }
+  if (speed_limit_ms == 0.0f && sm.valid("navInstruction")) {
+    float nsl = sm["navInstruction"].getNavInstruction().getSpeedLimit();
+    if (nsl > 0.0f) {
+      speed_limit_ms = nsl;  // already m/s
+    }
+  }
+  scene.nav_speed_limit_ms = speed_limit_ms;
+  
+  // OBD2 telemetry — copy primitives out before sm buffer is recycled
+  if (sm.valid("obdState")) {
+    auto obd = sm["obdState"].getObdState();
+    scene.obd_state.vehicle_type   = obd.getVehicleType();
+    scene.obd_state.battery_soc    = obd.getBatterySoc();
+    scene.obd_state.battery_voltage = obd.getBatteryVoltage();
+    scene.obd_state.battery_current = obd.getBatteryCurrent();
+    scene.obd_state.motor_temp     = obd.getMotorTemp();
+    scene.obd_state.engine_rpm     = obd.getEngineRpm();
+    scene.obd_state.coolant_temp   = obd.getCoolantTemp();
+    scene.obd_state.fuel_level     = obd.getFuelLevel();
+    // scene.obd_state.error_codes    = obd.getErrorCodes();  // EOP: not in ObdState schema
+  }
+
+  // Voice assistant state — copy primitives out
+  if (sm.valid("voiceState")) {
+    auto vs = sm["voiceState"].getVoiceState();
+    scene.voice_state.state      = vs.getState();
+    scene.voice_state.transcript = vs.getTranscript();
+    scene.voice_state.intent     = vs.getIntent();
+    scene.voice_state.reply      = vs.getReply();
+    scene.voice_state.confidence = vs.getConfidence();
+  }
+  if (sm.valid("ttsStatus")) {
+    scene.tts_playing = sm["ttsStatus"].getTtsStatus().getPlaying();
+  }
+  if (sm.valid("micStatus")) {
+    scene.mic_level_db = sm["micStatus"].getMicStatus().getMicLevelDb();
+  }
 }
 
 void ui_update_params(UIState *s) {
@@ -100,8 +133,12 @@ void UIState::updateStatus() {
 UIState::UIState(QObject *parent) : QObject(parent) {
   sm = std::make_unique<SubMaster>(std::vector<const char*>{
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
-    "pandaStates", "carParams", "driverMonitoringState", "carState", "driverStateV2",
+    "carParams", "driverPoseState", "carState",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
+    "navInstruction", "navRoute", "liveLocationKalman", "mapData",
+    "obdState", "voiceState", "ttsStatus", "micStatus",
+    "driverStatus", "gpsLocation", "gpsLocationExternal",
+    "pandaState", "sensorEvents",
   });
   prime_state = new PrimeState(this);
   language = QString::fromStdString(Params().get("LanguageSetting"));
@@ -138,7 +175,7 @@ void Device::update(const UIState &s) {
 void Device::setAwake(bool on) {
   if (on != awake) {
     awake = on;
-    Hardware::set_display_power(awake);
+    // Hardware::set_display_power(awake);  // EOP: not in Hardware class
     LOGD("setting display power %d", awake);
     emit displayPowerChanged(awake);
   }
@@ -174,7 +211,8 @@ void Device::updateBrightness(const UIState &s) {
 
   if (brightness != last_brightness) {
     if (!brightness_future.isRunning()) {
-      brightness_future = QtConcurrent::run(Hardware::set_brightness, brightness);
+      // brightness_future = QtConcurrent::run(Hardware::set_brightness, brightness);  // EOP: not in Hardware class
+      last_brightness = brightness;
       last_brightness = brightness;
     }
   }

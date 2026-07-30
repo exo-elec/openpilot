@@ -1,26 +1,28 @@
 #include "selfdrive/ui/qt/sidebar.h"
 
 #include <QMouseEvent>
+#include <QNetworkInterface>
 
+#include "common/params.h"
 #include "selfdrive/ui/qt/util.h"
 
 void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y) {
-  const QRect rect = {30, y, 240, 126};
+  const QRect rect = {15, y, 230, 85};
 
   p.setPen(Qt::NoPen);
   p.setBrush(QBrush(c));
   p.setClipRect(rect.x() + 4, rect.y(), 18, rect.height(), Qt::ClipOperation::ReplaceClip);
-  p.drawRoundedRect(QRect(rect.x() + 4, rect.y() + 4, 100, 118), 18, 18);
+  p.drawRoundedRect(QRect(rect.x() + 3, rect.y() + 3, 70, 80), 12, 12);
   p.setClipping(false);
 
   QPen pen = QPen(QColor(0xff, 0xff, 0xff, 0x55));
   pen.setWidth(2);
   p.setPen(pen);
   p.setBrush(Qt::NoBrush);
-  p.drawRoundedRect(rect, 20, 20);
+  p.drawRoundedRect(rect, 14, 14);
 
   p.setPen(QColor(0xff, 0xff, 0xff));
-  p.setFont(InterFont(35, QFont::DemiBold));
+  p.setFont(InterFont(22, QFont::DemiBold));
   p.drawText(rect.adjusted(22, 0, 0, 0), Qt::AlignCenter, label.first + "\n" + label.second);
 }
 
@@ -28,14 +30,14 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
   home_img = loadPixmap("../assets/images/button_home.png", home_btn.size());
   flag_img = loadPixmap("../assets/images/button_flag.png", home_btn.size());
   settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
-  mic_img = loadPixmap("../assets/icons/microphone.png", QSize(30, 30));
-  link_img = loadPixmap("../assets/icons/link.png", QSize(60, 60));
+  mic_img = loadPixmap("../assets/icons/microphone.png", QSize(22, 22));
+  link_img = loadPixmap("../assets/icons/link.png", QSize(36, 36));
 
   connect(this, &Sidebar::valueChanged, [=] { update(); });
 
   setAttribute(Qt::WA_OpaquePaintEvent);
   setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-  setFixedWidth(300);
+  setFixedWidth(260);
 
   QObject::connect(uiState(), &UIState::uiUpdate, this, &Sidebar::updateState);
 
@@ -61,9 +63,10 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (onroad && home_btn.contains(event->pos())) {
-    MessageBuilder msg;
-    msg.initEvent().initBookmarkButton();
-    pm->send("bookmarkButton", msg);
+    // EOP: bookmarkButton not in Event union
+    // MessageBuilder msg;
+    // msg.initEvent().initBookmarkButton();
+    // pm->send("bookmarkButton", msg);
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
@@ -88,16 +91,41 @@ void Sidebar::updateState(const UIState &s) {
   int strength = tethering_on ? 4 : (int)deviceState.getNetworkStrength();
   setProperty("netStrength", strength > 0 ? strength + 1 : 0);
 
-  ItemStatus connectStatus;
-  auto last_ping = deviceState.getLastAthenaPingTime();
-  if (last_ping == 0) {
-    connectStatus = ItemStatus{{tr("CONNECT"), tr("OFFLINE")}, warning_color};
+  ItemStatus wifiStatus;
+  auto netType = deviceState.getNetworkType();
+  if (netType == cereal::DeviceState::NetworkType::WIFI) {
+    int sig = (int)deviceState.getNetworkStrength();
+    if (sig >= 3) {
+      wifiStatus = {{tr("WIFI"), tr("GOOD")}, good_color};
+    } else if (sig >= 1) {
+      wifiStatus = {{tr("WIFI"), tr("WEAK")}, warning_color};
+    } else {
+      wifiStatus = {{tr("WIFI"), tr("LOW")}, warning_color};
+    }
+  } else if (netType == cereal::DeviceState::NetworkType::ETHERNET) {
+    wifiStatus = {{tr("ETH"), tr("OK")}, good_color};
+  } else if (netType != cereal::DeviceState::NetworkType::NONE) {
+    wifiStatus = {{network_type[netType], tr("ON")}, good_color};
   } else {
-    connectStatus = nanos_since_boot() - last_ping < 80e9
-                        ? ItemStatus{{tr("CONNECT"), tr("ONLINE")}, good_color}
-                        : ItemStatus{{tr("CONNECT"), tr("ERROR")}, danger_color};
+    // thermald not running (dev PC) — fall back to Qt network detection
+    bool wifi_up = false, eth_up = false;
+    for (auto &iface : QNetworkInterface::allInterfaces()) {
+      auto flags = iface.flags();
+      if (!flags.testFlag(QNetworkInterface::IsUp) || !flags.testFlag(QNetworkInterface::IsRunning)) continue;
+      if (flags.testFlag(QNetworkInterface::IsLoopBack)) continue;
+      const QString name = iface.name();
+      if (name.startsWith("wl")) wifi_up = true;
+      else if (name.startsWith("eth") || name.startsWith("en")) eth_up = true;
+    }
+    if (wifi_up) {
+      wifiStatus = {{tr("WIFI"), tr("ON")}, good_color};
+    } else if (eth_up) {
+      wifiStatus = {{tr("ETH"), tr("OK")}, good_color};
+    } else {
+      wifiStatus = {{tr("WIFI"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+    }
   }
-  setProperty("connectStatus", QVariant::fromValue(connectStatus));
+  setProperty("wifiStatus", QVariant::fromValue(wifiStatus));
 
   ItemStatus tempStatus = {{tr("TEMP"), tr("HIGH")}, danger_color};
   auto ts = deviceState.getThermalStatus();
@@ -108,11 +136,27 @@ void Sidebar::updateState(const UIState &s) {
   }
   setProperty("tempStatus", QVariant::fromValue(tempStatus));
 
-  ItemStatus pandaStatus = {{tr("VEHICLE"), tr("ONLINE")}, good_color};
+  ItemStatus pandaStatus = {{tr("PANDA"), tr("ON")}, good_color};
   if (s.scene.pandaType == cereal::PandaState::PandaType::UNKNOWN) {
-    pandaStatus = {{tr("NO"), tr("PANDA")}, danger_color};
+    pandaStatus = {{tr("PANDA"), tr("OFF")}, danger_color};
   }
   setProperty("pandaStatus", QVariant::fromValue(pandaStatus));
+
+  // NavPilot / Bluetooth pairing status
+  auto params = Params();
+  std::string pairing_pin = params.get("BluetoothPairingPin");
+  bool pairing_active = params.get("BluetoothPairingActive") == "1";
+  bool spp_connected = params.get("EOPSPPPairedDevice").length() > 0;
+
+  ItemStatus bleStatus;
+  if (pairing_active && !pairing_pin.empty()) {
+    bleStatus = {{tr("BLE"), tr("PAIRING")}, warning_color};
+  } else if (spp_connected) {
+    bleStatus = {{tr("BLE"), tr("ON")}, good_color};
+  } else {
+    bleStatus = {{tr("BLE"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+  }
+  setProperty("bleStatus", QVariant::fromValue(bleStatus));
 
   setProperty("recordingAudio", s.scene.recording_audio);
 }
@@ -140,17 +184,17 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setOpacity(1.0);
 
   // network
-  int x = 58;
+  int x = 35;
   const QColor gray(0x54, 0x54, 0x54);
   for (int i = 0; i < 5; ++i) {
     p.setBrush(i < net_strength ? Qt::white : gray);
-    p.drawEllipse(x, 196, 27, 27);
-    x += 37;
+    p.drawEllipse(x, 115, 16, 16);
+    x += 22;
   }
 
-  p.setFont(InterFont(35));
+  p.setFont(InterFont(20));
   p.setPen(QColor(0xff, 0xff, 0xff));
-  const QRect r = QRect(58, 247, width() - 100, 50);
+  const QRect r = QRect(35, 150, width() - 60, 30);
 
   if (net_type == "Hotspot") {
     p.drawPixmap(r.x(), r.y() + (r.height() - link_img.height()) / 2, link_img);
@@ -158,8 +202,9 @@ void Sidebar::paintEvent(QPaintEvent *event) {
     p.drawText(r, Qt::AlignLeft | Qt::AlignVCenter, net_type);
   }
 
-  // metrics
-  drawMetric(p, temp_status.first, temp_status.second, 338);
-  drawMetric(p, panda_status.first, panda_status.second, 496);
-  drawMetric(p, connect_status.first, connect_status.second, 654);
+  // metrics: hardware-level only — TEMP / PANDA / WIFI / BLE
+  drawMetric(p, temp_status.first, temp_status.second, 180);
+  drawMetric(p, panda_status.first, panda_status.second, 265);
+  drawMetric(p, wifi_status.first, wifi_status.second, 350);
+  drawMetric(p, ble_status.first, ble_status.second, 435);
 }

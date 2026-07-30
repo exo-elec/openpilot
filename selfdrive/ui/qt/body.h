@@ -27,7 +27,7 @@ private:
   bool charging = false;
   uint64_t last_button = 0;
   FirstOrderFilter fuel_filter;
-  QLabel *face;
+  QLabel *body_anim;
   QMovie *awake, *sleep;
   RecordButton *btn;
   void paintEvent(QPaintEvent*) override;

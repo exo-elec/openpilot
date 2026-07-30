@@ -9,6 +9,8 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPushButton>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
 
 #include "common/params.h"
 #include "selfdrive/ui/qt/widgets/input.h"
@@ -119,7 +121,7 @@ class ToggleControl : public AbstractControl {
 
 public:
   ToggleControl(const QString &title, const QString &desc = "", const QString &icon = "", const bool state = false, QWidget *parent = nullptr) : AbstractControl(title, desc, icon, parent) {
-    toggle.setFixedSize(150, 100);
+    toggle.setFixedSize(110, 55);
     if (state) {
       toggle.togglePosition();
     }
@@ -187,14 +189,14 @@ class MultiButtonControl : public AbstractControl {
   Q_OBJECT
 public:
   MultiButtonControl(const QString &title, const QString &desc, const QString &icon,
-                     const std::vector<QString> &button_texts, const int minimum_button_width = 225) : AbstractControl(title, desc, icon) {
+                     const std::vector<QString> &button_texts, const int minimum_button_width = 100) : AbstractControl(title, desc, icon) {
     const QString style = R"(
       QPushButton {
-        border-radius: 50px;
-        font-size: 40px;
+        border-radius: 10px;
+        font-size: 18px;
         font-weight: 500;
-        height:100px;
-        padding: 0 25 0 25;
+        height: 44px;
+        padding: 0 10px;
         color: #E4E4E4;
         background-color: #393939;
       }
@@ -248,7 +250,7 @@ class ButtonParamControl : public MultiButtonControl {
   Q_OBJECT
 public:
   ButtonParamControl(const QString &param, const QString &title, const QString &desc, const QString &icon,
-                     const std::vector<QString> &button_texts, const int minimum_button_width = 225) : MultiButtonControl(title, desc, icon,
+                     const std::vector<QString> &button_texts, const int minimum_button_width = 100) : MultiButtonControl(title, desc, icon,
                                                                                                                           button_texts, minimum_button_width) {
     key = param.toStdString();
     int value = atoi(params.get(key).c_str());
@@ -274,6 +276,101 @@ public:
 private:
   std::string key;
   Params params;
+};
+
+class ParamSpinBoxControl : public AbstractControl {
+  Q_OBJECT
+public:
+  ParamSpinBoxControl(const QString &param, const QString &title, const QString &desc, const QString &icon,
+                      int min, int max, int step, const QString &suffix = "", const QString &placeholder = "",
+                      int default_value = 0) : AbstractControl(title, desc, icon) {
+    key = param.toStdString();
+    spin = new QSpinBox(this);
+    spin->setRange(min, max);
+    spin->setSingleStep(step);
+    spin->setSuffix(suffix);
+    spin->setAlignment(Qt::AlignRight);
+    spin->setStyleSheet(R"(
+      QSpinBox {
+        background-color: #393939;
+        border-radius: 10px;
+        padding: 5px 15px;
+        font-size: 32px;
+        color: #E4E4E4;
+      }
+    )");
+    hlayout->addWidget(spin);
+
+    std::string param_val = params.get(key);
+    int value = param_val.empty() ? default_value : atoi(param_val.c_str());
+    spin->setValue(std::clamp(value, min, max));
+
+    QObject::connect(spin, QOverload<int>::of(&QSpinBox::valueChanged), [=](int v) {
+      params.put(key, std::to_string(v));
+    });
+  }
+
+  void refresh() {
+    int value = atoi(params.get(key).c_str());
+    spin->setValue(value);
+  }
+
+  void showEvent(QShowEvent *event) override {
+    refresh();
+  }
+
+private:
+  std::string key;
+  Params params;
+  QSpinBox *spin;
+};
+
+class ParamDoubleSpinBoxControl : public AbstractControl {
+  Q_OBJECT
+public:
+  ParamDoubleSpinBoxControl(const QString &param, const QString &title, const QString &desc, const QString &icon,
+                            double min, double max, double step, const QString &suffix = "", const QString &placeholder = "",
+                            double default_value = 0.0) : AbstractControl(title, desc, icon) {
+    key = param.toStdString();
+    spin = new QDoubleSpinBox(this);
+    spin->setRange(min, max);
+    spin->setSingleStep(step);
+    spin->setSuffix(suffix);
+    spin->setDecimals(1);
+    spin->setAlignment(Qt::AlignRight);
+    spin->setStyleSheet(R"(
+      QDoubleSpinBox {
+        background-color: #393939;
+        border-radius: 10px;
+        padding: 5px 15px;
+        font-size: 32px;
+        color: #E4E4E4;
+      }
+    )");
+    hlayout->addWidget(spin);
+
+    std::string param_val = params.get(key);
+    double value = param_val.empty() ? default_value : atof(param_val.c_str());
+    spin->setValue(std::clamp(value, min, max));
+
+    QObject::connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double v) {
+      params.put(key, QString::number(v, 'f', 1).toStdString());
+    });
+  }
+
+  void refresh() {
+    double value = atof(params.get(key).c_str());
+    spin->setValue(value);
+  }
+
+  void showEvent(QShowEvent *event) override {
+    refresh();
+  }
+
+private:
+  std::string key;
+  Params params;
+  QDoubleSpinBox *spin;
 };
 
 class ListWidget : public QWidget {

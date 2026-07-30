@@ -10,7 +10,7 @@
 
 // Window that shows camera view and variety of info drawn on top
 AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *parent)
-    : fps_filter(UI_FREQ, 3, 1. / UI_FREQ), CameraWidget("camerad", type, parent) {
+    : fps_filter(UI_FREQ, 3, 1. / UI_FREQ), CameraWidget("v4l2d", type, parent) {
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"uiDebug"});
 
   main_layout = new QVBoxLayout(this);
@@ -19,12 +19,18 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
 
   experimental_btn = new ExperimentalButton(this);
   main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
+  
+  // BEV Widget (Bird's Eye View)
+  bev_widget = new BEVWidget(this);
+  bev_widget->setParent(this);
+  bev_widget->move(width() - 145, height() - 200);
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
-  dmon.updateState(s);
+  // Update BEV widget
+  bev_widget->updateState(s);
 }
 
 void AnnotatedCameraWidget::initializeGL() {
@@ -39,6 +45,11 @@ void AnnotatedCameraWidget::initializeGL() {
 }
 
 mat4 AnnotatedCameraWidget::calcFrameMatrix() {
+  // Rear camera: simple scale-to-fit (no calibration needed)
+  if (active_stream_type == VISION_STREAM_REAR) {
+    return CameraWidget::calcFrameMatrix();
+  }
+
   // Project point at "infinity" to compute x and y offsets
   // to ensure this ends up in the middle of the screen
   // for narrow come and a little lower for wide cam.
@@ -109,7 +120,7 @@ void AnnotatedCameraWidget::paintGL() {
       skip_frame_count = 5;
     }
 
-    // Wide or narrow cam dependent on speed
+    // Wide or narrow cam dependent on speed (road camera always stays active)
     bool has_wide_cam = available_streams.count(VISION_STREAM_WIDE_ROAD);
     if (has_wide_cam) {
       float v_ego = sm["carState"].getCarState().getVEgo();
@@ -129,8 +140,8 @@ void AnnotatedCameraWidget::paintGL() {
   painter.setRenderHint(QPainter::Antialiasing);
   painter.setPen(Qt::NoPen);
 
+  // Model and HUD overlays always drawn (rear camera is now a PIP overlay)
   model.draw(painter, rect());
-  dmon.draw(painter, rect());
   hud.updateState(*s);
   hud.draw(painter, rect());
 

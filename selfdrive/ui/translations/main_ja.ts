@@ -175,16 +175,8 @@
         <translation>シリアル番号</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>車内カメラ</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>プレビュー</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>車内カメラでドライバー監視システムのカメラ画像を確認できます。(車両のパワーOFF時の機能です)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -932,14 +924,6 @@ Firehoseモードを有効にすると学習データを最大限アップロー
         <translation>速度は mph ではなく km/h で表示されます。</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>車内カメラの録画とアップロード</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>車内カメラの映像をアップロードし、ドライバー監視システムのアルゴリズムの向上に役立てます。</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>アクセルを踏むと運転サポートを中断</translation>
     </message>
@@ -1006,14 +990,6 @@ Firehoseモードを有効にすると学習データを最大限アップロー
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>運転時の画面効果として、低速時にカーブをより良く表示するために道路用の広角カメラに切り替わります。またExperimentalモードのロゴが右上隅に表示されます。</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>運転者の常時モニタリング</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>openpilotが作動していない場合でも運転者モニタリングを有効にする。</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

@@ -24,7 +24,7 @@ DialogBase::DialogBase(QWidget *parent) : QDialog(parent) {
     }
     QPushButton {
       height: 160;
-      font-size: 55px;
+      font-size: 32px;
       font-weight: 400;
       border-radius: 10px;
       color: white;
@@ -50,7 +50,7 @@ int DialogBase::exec() {
 
 InputDialog::InputDialog(const QString &title, QWidget *parent, const QString &subtitle, bool secret) : DialogBase(parent) {
   main_layout = new QVBoxLayout(this);
-  main_layout->setContentsMargins(50, 55, 50, 50);
+  main_layout->setContentsMargins(25, 25, 25, 25);
   main_layout->setSpacing(0);
 
   // build header
@@ -59,20 +59,20 @@ InputDialog::InputDialog(const QString &title, QWidget *parent, const QString &s
   QVBoxLayout *vlayout = new QVBoxLayout;
   header_layout->addLayout(vlayout);
   label = new QLabel(title, this);
-  label->setStyleSheet("font-size: 90px; font-weight: bold;");
+  label->setStyleSheet("font-size: 32px; font-weight: bold;");
   vlayout->addWidget(label, 1, Qt::AlignTop | Qt::AlignLeft);
 
   if (!subtitle.isEmpty()) {
     sublabel = new QLabel(subtitle, this);
-    sublabel->setStyleSheet("font-size: 55px; font-weight: light; color: #BDBDBD;");
+    sublabel->setStyleSheet("font-size: 22px; font-weight: light; color: #BDBDBD;");
     vlayout->addWidget(sublabel, 1, Qt::AlignTop | Qt::AlignLeft);
   }
 
   QPushButton* cancel_btn = new QPushButton(tr("Cancel"));
-  cancel_btn->setFixedSize(386, 125);
+  cancel_btn->setFixedSize(190, 44);
   cancel_btn->setStyleSheet(R"(
     QPushButton {
-      font-size: 48px;
+      font-size: 28px;
       border-radius: 10px;
       color: #E4E4E4;
       background-color: #333333;
@@ -104,7 +104,7 @@ InputDialog::InputDialog(const QString &title, QWidget *parent, const QString &s
     }
     * {
       border: none;
-      font-size: 80px;
+      font-size: 30px;
       font-weight: light;
       background-color: transparent;
     }
@@ -117,7 +117,7 @@ InputDialog::InputDialog(const QString &title, QWidget *parent, const QString &s
   if (secret) {
     eye_btn = new QPushButton();
     eye_btn->setCheckable(true);
-    eye_btn->setFixedSize(150, 120);
+    eye_btn->setFixedSize(55, 42);
     QObject::connect(eye_btn, &QPushButton::toggled, [=](bool checked) {
       if (checked) {
         eye_btn->setIcon(QIcon(ASSET_PATH + "icons/eye_closed.svg"));
@@ -202,7 +202,7 @@ ConfirmationDialog::ConfirmationDialog(const QString &prompt_text, const QString
   QLabel *prompt = new QLabel(prompt_text, this);
   prompt->setWordWrap(true);
   prompt->setAlignment(rich ? Qt::AlignLeft : Qt::AlignHCenter);
-  prompt->setStyleSheet((rich ? "font-size: 42px; font-weight: light;" : "font-size: 70px; font-weight: bold;") + QString(" margin: 45px;"));
+  prompt->setStyleSheet((rich ? "font-size: 26px; font-weight: light;" : "font-size: 40px; font-weight: bold;") + QString(" margin: 25px;"));
   main_layout->addWidget(rich ? (QWidget*)new ScrollView(prompt, this) : (QWidget*)prompt, 1, Qt::AlignTop);
 
   // cancel + confirm buttons
@@ -256,10 +256,10 @@ MultiOptionDialog::MultiOptionDialog(const QString &prompt_text, const QStringLi
   )");
 
   QVBoxLayout *main_layout = new QVBoxLayout(container);
-  main_layout->setContentsMargins(55, 50, 55, 50);
+  main_layout->setContentsMargins(25, 25, 25, 25);
 
   QLabel *title = new QLabel(prompt_text, this);
-  title->setStyleSheet("font-size: 70px; font-weight: 500;");
+  title->setStyleSheet("font-size: 40px; font-weight: 500;");
   main_layout->addWidget(title, 0, Qt::AlignLeft | Qt::AlignTop);
   main_layout->addSpacing(25);
 
@@ -271,7 +271,7 @@ MultiOptionDialog::MultiOptionDialog(const QString &prompt_text, const QStringLi
       height: 135;
       padding: 0px 50px;
       text-align: left;
-      font-size: 55px;
+      font-size: 32px;
       font-weight: 300;
       border-radius: 10px;
       background-color: #4F4F4F;
@@ -323,7 +323,7 @@ MultiOptionDialog::MultiOptionDialog(const QString &prompt_text, const QStringLi
   blayout->addWidget(confirm_btn);
 
   QVBoxLayout *outer_layout = new QVBoxLayout(this);
-  outer_layout->setContentsMargins(50, 50, 50, 50);
+  outer_layout->setContentsMargins(25, 25, 25, 25);
   outer_layout->addWidget(container);
 }
 

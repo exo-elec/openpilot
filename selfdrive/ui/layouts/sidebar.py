@@ -122,13 +122,8 @@ class Sidebar(Widget):
       self._temp_status.update("TEMP", "HIGH", Colors.DANGER)
 
   def _update_connection_status(self, device_state):
-    last_ping = device_state.lastAthenaPingTime
-    if last_ping == 0:
-      self._connect_status.update("CONNECT", "OFFLINE", Colors.WARNING)
-    elif time.monotonic_ns() - last_ping < 80_000_000_000:  # 80 seconds in nanoseconds
-      self._connect_status.update("CONNECT", "ONLINE", Colors.GOOD)
-    else:
-      self._connect_status.update("CONNECT", "ERROR", Colors.DANGER)
+    # EOP: No cloud connection. Always show as offline (intentional).
+    self._connect_status.update("CONNECT", "OFFLINE", Colors.WARNING)
 
   def _update_panda_status(self):
     if ui_state.panda_type == log.PandaState.PandaType.unknown:

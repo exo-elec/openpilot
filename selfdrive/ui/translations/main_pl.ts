@@ -131,16 +131,8 @@
         <translation>Numer seryjny</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Kamera kierowcy</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>PODGLĄD</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Wyświetl podgląd z kamery skierowanej na kierowcę, aby upewnić się, że monitoring kierowcy ma dobry zakres widzenia. (pojazd musi być wyłączony)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -1001,14 +993,6 @@ nie zostało ustawione</translation>
     <message>
         <source>Display speed in km/h instead of mph.</source>
         <translation>Wyświetl prędkość w km/h zamiast mph.</translation>
-    </message>
-    <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Nagraj i prześlij nagranie z kamery kierowcy</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Prześlij dane z kamery skierowanej na kierowcę i pomóż poprawiać algorytm monitorowania kierowcy.</translation>
     </message>
     <message>
         <source>Disengage on Accelerator Pedal</source>

@@ -19,8 +19,8 @@ private:
 
   Params params;
   bool experimental_mode;
-  int img_width = 100;
-  int horizontal_padding = 30;
+  int img_width = 70;
+  int horizontal_padding = 20;
   QPixmap experimental_pixmap;
   QPixmap chill_pixmap;
   QLabel *mode_label;

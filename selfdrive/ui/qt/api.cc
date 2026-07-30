@@ -17,12 +17,13 @@
 #include "system/hardware/hw.h"
 #include "selfdrive/ui/qt/util.h"
 
-namespace CommaApi {
+namespace ExoApi {
 
 RSA *get_rsa_private_key() {
   static std::unique_ptr<RSA, decltype(&RSA_free)> rsa_private(nullptr, RSA_free);
   if (!rsa_private) {
-    FILE *fp = fopen(Path::rsa_file().c_str(), "rb");
+    // EOP: No comma API / RSA key
+    FILE *fp = nullptr; // fopen(Path::rsa_file().c_str(), "rb");
     if (!fp) {
       qDebug() << "No RSA private key found, please run manager.py or registration.py";
       return nullptr;
@@ -46,23 +47,13 @@ QByteArray rsa_sign(const QByteArray &data) {
 }
 
 QString create_jwt(const QJsonObject &payloads, int expiry) {
-  QJsonObject header = {{"alg", "RS256"}};
-
-  auto t = QDateTime::currentSecsSinceEpoch();
-  QJsonObject payload = {{"identity", getDongleId().value_or("")}, {"nbf", t}, {"iat", t}, {"exp", t + expiry}};
-  for (auto it = payloads.begin(); it != payloads.end(); ++it) {
-    payload.insert(it.key(), it.value());
-  }
-
-  auto b64_opts = QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals;
-  QString jwt = QJsonDocument(header).toJson(QJsonDocument::Compact).toBase64(b64_opts) + '.' +
-                QJsonDocument(payload).toJson(QJsonDocument::Compact).toBase64(b64_opts);
-
-  auto hash = QCryptographicHash::hash(jwt.toUtf8(), QCryptographicHash::Sha256);
-  return jwt + "." + rsa_sign(hash).toBase64(b64_opts);
+  // EOP: No cloud JWT needed. Return empty string.
+  Q_UNUSED(payloads)
+  Q_UNUSED(expiry)
+  return "";
 }
 
-}  // namespace CommaApi
+}  // namespace ExoApi
 
 HttpRequest::HttpRequest(QObject *parent, bool create_jwt, int timeout) : create_jwt(create_jwt), QObject(parent) {
   networkTimer = new QTimer(this);
@@ -80,35 +71,12 @@ bool HttpRequest::timeout() const {
 }
 
 void HttpRequest::sendRequest(const QString &requestURL, const HttpRequest::Method method) {
-  if (active()) {
-    qDebug() << "HttpRequest is active";
-    return;
-  }
-  QString token;
-  if (create_jwt) {
-    token = CommaApi::create_jwt();
-  } else {
-    QString token_json = QString::fromStdString(util::read_file(util::getenv("HOME") + "/.comma/auth.json"));
-    QJsonDocument json_d = QJsonDocument::fromJson(token_json.toUtf8());
-    token = json_d["access_token"].toString();
-  }
-
-  QNetworkRequest request;
-  request.setUrl(QUrl(requestURL));
-  request.setRawHeader("User-Agent", getUserAgent().toUtf8());
-
-  if (!token.isEmpty()) {
-    request.setRawHeader(QByteArray("Authorization"), ("JWT " + token).toUtf8());
-  }
-
-  if (method == HttpRequest::Method::GET) {
-    reply = nam()->get(request);
-  } else if (method == HttpRequest::Method::DELETE) {
-    reply = nam()->deleteResource(request);
-  }
-
-  networkTimer->start();
-  connect(reply, &QNetworkReply::finished, this, &HttpRequest::requestFinished);
+  // EOP: No cloud requests. Immediately emit failure.
+  Q_UNUSED(requestURL)
+  Q_UNUSED(method)
+  QTimer::singleShot(0, [this]() {
+    emit requestDone("EOP: Cloud requests disabled", false, QNetworkReply::HostNotFoundError);
+  });
 }
 
 void HttpRequest::requestTimeout() {
