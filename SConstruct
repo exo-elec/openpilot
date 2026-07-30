@@ -10,129 +10,108 @@ import SCons.Errors
 SCons.Warnings.warningAsException(True)
 
 # pending upstream fix - https://github.com/SCons/scons/issues/4461
-#SetOption('warn', 'all')
-
-TICI = os.path.isfile('/TICI')
-AGNOS = TICI
+# SetOption('warn', 'all')
 
 Decider('MD5-timestamp')
 
-SetOption('num_jobs', max(1, int(os.cpu_count()/2)))
+SetOption('num_jobs', max(1, int(os.cpu_count() / 2)))
 
-AddOption('--kaitai',
+AddOption('--kaitai', action='store_true', help='Regenerate kaitai struct parsers')
+
+AddOption('--asan', action='store_true', help='turn on ASAN')
+
+AddOption('--ubsan', action='store_true', help='turn on UBSan')
+
+AddOption('--coverage', action='store_true', help='build with test coverage options')
+
+AddOption('--clazy', action='store_true', help='build with clazy')
+
+AddOption('--ccflags', action='store', type='string', default='', help='pass arbitrary flags over the command line')
+
+AddOption('--external-sconscript', action='store', metavar='FILE', dest='external_sconscript', help='add an external SConscript to the build')
+
+AddOption('--mutation', action='store_true', help='generate mutation-ready code')
+
+AddOption('--with-valhalla',
           action='store_true',
-          help='Regenerate kaitai struct parsers')
+          dest='with_valhalla',
+          default=False,
+          help='Build local Valhalla routing engine (offline navigation)')
 
-AddOption('--asan',
-          action='store_true',
-          help='turn on ASAN')
-
-AddOption('--ubsan',
-          action='store_true',
-          help='turn on UBSan')
-
-AddOption('--coverage',
-          action='store_true',
-          help='build with test coverage options')
-
-AddOption('--clazy',
-          action='store_true',
-          help='build with clazy')
-
-AddOption('--ccflags',
-          action='store',
-          type='string',
-          default='',
-          help='pass arbitrary flags over the command line')
-
-AddOption('--external-sconscript',
-          action='store',
-          metavar='FILE',
-          dest='external_sconscript',
-          help='add an external SConscript to the build')
-
-AddOption('--mutation',
-          action='store_true',
-          help='generate mutation-ready code')
-
-AddOption('--minimal',
-          action='store_false',
-          dest='extras',
-          default=os.path.exists(File('#.lfsconfig').abspath), # minimal by default on release branch (where there's no LFS)
-          help='the minimum build to run openpilot. no tests, tools, etc.')
+AddOption(
+  '--minimal',
+  action='store_false',
+  dest='extras',
+  default=os.path.exists(File('#.lfsconfig').abspath),  # minimal by default on release branch (where there's no LFS)
+  help='the minimum build to run openpilot. no tests, tools, etc.',
+)
 
 ## Architecture name breakdown (arch)
-## - larch64: linux tici aarch64
-## - aarch64: linux pc aarch64
+## - aarch64: linux rk3588 aarch64
 ## - x86_64:  linux pc x64
 ## - Darwin:  mac x64 or arm64
 real_arch = arch = subprocess.check_output(["uname", "-m"], encoding='utf8').rstrip()
 if platform.system() == "Darwin":
   arch = "Darwin"
   brew_prefix = subprocess.check_output(['brew', '--prefix'], encoding='utf8').strip()
-elif arch == "aarch64" and AGNOS:
-  arch = "larch64"
-assert arch in ["larch64", "aarch64", "x86_64", "Darwin"]
+assert arch in ["aarch64", "x86_64", "Darwin"]
+
+# Detect specific SoC for platform-specific optimizations (RK3588)
+soc = None
+if arch == "aarch64":
+  try:
+    with open('/proc/device-tree/compatible', 'r') as f:
+      compatible = f.read()
+      if 'rk3588' in compatible:
+        soc = 'rk3588'
+  except (FileNotFoundError, OSError):
+    pass
 
 lenv = {
   "PATH": os.environ['PATH'],
   "PYTHONPATH": Dir("#").abspath + ':' + Dir(f"#third_party/acados").abspath,
-
   "ACADOS_SOURCE_DIR": Dir("#third_party/acados").abspath,
   "ACADOS_PYTHON_INTERFACE_PATH": Dir("#third_party/acados/acados_template").abspath,
-  "TERA_PATH": Dir("#").abspath + f"/third_party/acados/{arch}/t_renderer"
+  "TERA_PATH": Dir("#").abspath + f"/third_party/acados/{arch}/t_renderer",
 }
 
 rpath = []
 
-if arch == "larch64":
-  cpppath = [
-    "#third_party/opencl/include",
-  ]
+cflags = []
+cxxflags = []
+cpppath = []
+rpath += []
 
+# MacOS
+if arch == "Darwin":
   libpath = [
-    "/usr/local/lib",
-    "/system/vendor/lib64",
+    f"#third_party/libyuv/{arch}/lib",
+    f"#third_party/raylib/{arch}",
     f"#third_party/acados/{arch}/lib",
+    f"{brew_prefix}/lib",
+    f"{brew_prefix}/opt/openssl@3.0/lib",
+    "/System/Library/Frameworks/OpenGL.framework/Libraries",
   ]
 
-  libpath += [
-    "#third_party/libyuv/larch64/lib",
-    "/usr/lib/aarch64-linux-gnu"
+  cflags += ["-DGL_SILENCE_DEPRECATION"]
+  cxxflags += ["-DGL_SILENCE_DEPRECATION"]
+  cpppath += [
+    f"{brew_prefix}/include",
+    f"{brew_prefix}/opt/openssl@3.0/include",
   ]
-  cflags = ["-DQCOM2", "-mcpu=cortex-a57"]
-  cxxflags = ["-DQCOM2", "-mcpu=cortex-a57"]
-  rpath += ["/usr/local/lib"]
+# Linux
 else:
-  cflags = []
-  cxxflags = []
-  cpppath = []
-  rpath += []
+  libpath = [
+    f"#third_party/acados/{arch}/lib",
+    f"#third_party/libyuv/{arch}/lib",
+    f"#third_party/raylib/{arch}",
+    "/usr/lib",
+    "/usr/local/lib",
+  ]
 
-  # MacOS
-  if arch == "Darwin":
-    libpath = [
-      f"#third_party/libyuv/{arch}/lib",
-      f"#third_party/acados/{arch}/lib",
-      f"{brew_prefix}/lib",
-      f"{brew_prefix}/opt/openssl@3.0/lib",
-      "/System/Library/Frameworks/OpenGL.framework/Libraries",
-    ]
-
-    cflags += ["-DGL_SILENCE_DEPRECATION"]
-    cxxflags += ["-DGL_SILENCE_DEPRECATION"]
-    cpppath += [
-      f"{brew_prefix}/include",
-      f"{brew_prefix}/opt/openssl@3.0/include",
-    ]
-  # Linux
-  else:
-    libpath = [
-      f"#third_party/acados/{arch}/lib",
-      f"#third_party/libyuv/{arch}/lib",
-      "/usr/lib",
-      "/usr/local/lib",
-    ]
+  if arch == "aarch64":
+    cflags += ["-DROCKCHIP"]
+    cxxflags += ["-DROCKCHIP"]
 
 if GetOption('asan'):
   ccflags = ["-fsanitize=address", "-fno-omit-frame-pointer"]
@@ -166,30 +145,30 @@ env = Environment(
     "-Wno-c99-designator",
     "-Wno-reorder-init-list",
     "-Wno-vla-cxx-extension",
-  ] + cflags + ccflags,
-
-  CPPPATH=cpppath + [
+  ]
+  + cflags
+  + ccflags,
+  CPPPATH=cpppath
+  + [
     "#",
     "#third_party/acados/include",
     "#third_party/acados/include/blasfeo/include",
     "#third_party/acados/include/hpipm/include",
-    "#third_party/catch2/include",
+    "#third_party/catch2/src",
     "#third_party/libyuv/include",
     "#third_party/json11",
-    "#third_party/linux/include",
     "#third_party",
+    "#third_party/raylib/src",
     "#msgq",
   ],
-
   CC='clang',
   CXX='clang++',
   LINKFLAGS=ldflags,
-
   RPATH=rpath,
-
   CFLAGS=["-std=gnu11"] + cflags,
   CXXFLAGS=["-std=c++1z"] + cxxflags,
-  LIBPATH=libpath + [
+  LIBPATH=libpath
+  + [
     "#msgq_repo",
     "#third_party",
     "#selfdrive/pandad",
@@ -211,16 +190,20 @@ if arch == "Darwin":
 env.CompilationDatabase('compile_commands.json')
 
 # Setup cache dir
-cache_dir = '/data/scons_cache' if AGNOS else '/tmp/scons_cache'
+# Use /data for cache on embedded platforms (RK3588); /tmp on dev PCs
+cache_dir = '/data/scons_cache' if arch == "aarch64" else '/tmp/scons_cache'
 CacheDir(cache_dir)
 Clean(["."], cache_dir)
 
 node_interval = 5
 node_count = 0
+
+
 def progress_function(node):
   global node_count
   node_count += node_interval
   sys.stderr.write("progress: %d\n" % node_count)
+
 
 if os.environ.get('SCONS_PROGRESS'):
   Progress(progress_function, interval=node_interval)
@@ -240,6 +223,11 @@ else:
 
 np_version = SCons.Script.Value(np.__version__)
 Export('envCython', 'np_version')
+
+# NOTE: libyuv/catch2/raylib use the vendored prebuilt copies under
+# third_party/{libyuv,catch2,raylib}/ (upstream layout). The submodule-era
+# CMake bootstrap blocks were removed in the upstream-delta audit (D32) —
+# the SConscripts all link the vendored {arch}/lib paths.
 
 # Qt build environment
 qt_env = env.Clone()
@@ -266,14 +254,17 @@ else:
 
   qt_gui_path = os.path.join(qt_install_headers, "QtGui")
   qt_gui_dirs = [d for d in os.listdir(qt_gui_path) if os.path.isdir(os.path.join(qt_gui_path, d))]
-  qt_dirs += [f"{qt_install_headers}/QtGui/{qt_gui_dirs[0]}/QtGui", ] if qt_gui_dirs else []
+  qt_dirs += (
+    [
+      f"{qt_install_headers}/QtGui/{qt_gui_dirs[0]}/QtGui",
+    ]
+    if qt_gui_dirs
+    else []
+  )
   qt_dirs += [f"{qt_install_headers}/Qt{m}" for m in qt_modules]
 
   qt_libs = [f"Qt5{m}" for m in qt_modules]
-  if arch == "larch64":
-    qt_libs += ["GLESv2", "wayland-client"]
-    qt_env.PrependENVPath('PATH', Dir("#third_party/qt5/larch64/bin/").abspath)
-  elif arch != "Darwin":
+  if arch != "Darwin":
     qt_libs += ["GL"]
 qt_env['QT3DIR'] = qt_env['QTDIR']
 qt_env.Tool('qt3')
@@ -288,7 +279,9 @@ qt_flags = [
   "-DQT_MESSAGELOGCONTEXT",
 ]
 qt_env['CXXFLAGS'] += qt_flags
-qt_env['LIBPATH'] += ['#selfdrive/ui', ]
+qt_env['LIBPATH'] += [
+  '#selfdrive/ui',
+]
 qt_env['LIBS'] = qt_libs
 
 if GetOption("clazy"):
@@ -318,44 +311,46 @@ Export('common', 'gpucommon')
 env_swaglog = env.Clone()
 env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
 SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
-SConscript(['opendbc_repo/SConscript'], exports={'env': env_swaglog})
+# opendbc_repo removed - using vehicled instead
 
 SConscript(['cereal/SConscript'])
 
 Import('socketmaster', 'msgq')
-messaging = [socketmaster, msgq, 'capnp', 'kj',]
+messaging = [
+  socketmaster,
+  msgq,
+  'capnp',
+  'kj',
+]
 Export('messaging')
 
 
-# Build other submodules
-SConscript(['panda/SConscript'])
+# panda removed - safety moved to vehicled
 
 # Build rednose library
 SConscript(['rednose/SConscript'])
 
+# Build Valhalla (optional, for offline routing)
+if GetOption('with_valhalla'):
+  from site_scons.valhalla_build import build_valhalla
+  valhalla_bin_dir = build_valhalla(env)
+  if valhalla_bin_dir:
+    env['VALHALLA_BIN_DIR'] = valhalla_bin_dir
+
 # Build system services
-SConscript([
-  'system/ubloxd/SConscript',
-  'system/loggerd/SConscript',
-])
-if arch != "Darwin":
-  SConscript([
-    'system/logcatd/SConscript',
-    'system/proclogd/SConscript',
-  ])
-
-if arch == "larch64":
-  SConscript(['system/camerad/SConscript'])
-
+SConscript(
+  [
+    'system/ubloxd/SConscript',
+    'system/loggerd/SConscript',
+  ]
+)
 # Build openpilot
 SConscript(['third_party/SConscript'])
 
 SConscript(['selfdrive/SConscript'])
 
-if Dir('#tools/cabana/').exists() and GetOption('extras'):
+if GetOption('extras'):
   SConscript(['tools/replay/SConscript'])
-  if arch != "larch64":
-    SConscript(['tools/cabana/SConscript'])
 
 external_sconscript = GetOption('external_sconscript')
 if external_sconscript:
