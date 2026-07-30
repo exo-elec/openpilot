@@ -1,12 +1,13 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
 export PASSIVE="0"
 export NOBOARD="1"
 export SIMULATION="1"
 export SKIP_FW_QUERY="1"
-export FINGERPRINT="HONDA_CIVIC_2022"
+# EOP: vehicled is Tesla-protocol, no fingerprinting needed
 
-export BLOCK="${BLOCK},camerad,loggerd,encoderd,micd,logmessaged"
+# Block hardware daemons that cannot run on PC
+export BLOCK="${BLOCK},v4l2d,loggerd,encoderd,micd,spkd,logmessaged,socketd,inferenced,uvcd,wdgd,imud,pigeond,hardwared,thermald,bluetoothd,rtkd,mcapd"
 if [[ "$CI" ]]; then
   # TODO: offscreen UI should work
   export BLOCK="${BLOCK},ui"
@@ -18,4 +19,6 @@ SCRIPT_DIR=$(dirname "$0")
 OPENPILOT_DIR=$SCRIPT_DIR/../../
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-cd $OPENPILOT_DIR/system/manager && exec ./manager.py
+OPENPILOT_ABS="$( cd "$OPENPILOT_DIR" >/dev/null && pwd )"
+export PYTHONPATH="$OPENPILOT_ABS${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 "$OPENPILOT_ABS/system/manager/manager.py"

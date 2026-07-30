@@ -1,0 +1,26 @@
+[Unit]
+Description=openpilot (EOP RK3588)
+After=network-online.target rockchip.service
+Wants=network-online.target
+Conflicts=visionpilot.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=@@DIR@@
+Environment=OPENPILOT_PREFIX=rk3588
+EnvironmentFile=-/etc/openpilot/env
+
+ExecStartPre=/bin/bash -c 'source /etc/profile.d/99-rockchip-rk3588-env.sh 2>/dev/null || true'
+ExecStartPre=/bin/bash -c 'until [ -e /dev/video-camera0 ]; do sleep 0.5; done'
+
+ExecStart=/bin/bash @@DIR@@/launch_openpilot.sh
+
+Restart=on-failure
+RestartSec=5
+
+LimitAS=3G
+LimitRSS=2G
+
+[Install]
+WantedBy=multi-user.target

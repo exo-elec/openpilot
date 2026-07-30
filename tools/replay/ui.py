@@ -55,7 +55,7 @@ def ui_thread(addr):
   top_down_surface = pygame.surface.Surface((UP.lidar_x, UP.lidar_y), 0, 8)
 
   sm = messaging.SubMaster(['carState', 'longitudinalPlan', 'carControl', 'radarState', 'liveCalibration', 'controlsState',
-                            'selfdriveState', 'liveTracks', 'modelV2', 'liveParameters', 'roadCameraState'], addr=addr)
+                            'selfdriveState', 'radar3d', 'modelV2', 'liveParameters', 'roadCameraState'], addr=addr)
 
   img = np.zeros((480, 640, 3), dtype='uint8')
   imgff = None
@@ -99,7 +99,7 @@ def ui_thread(addr):
 
   draw_plots = init_plots(plot_arr, name_to_arr_idx, plot_xlims, plot_ylims, plot_names, plot_colors, plot_styles)
 
-  vipc_client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_ROAD, True)
+  vipc_client = VisionIpcClient("v4l2d", VisionStreamType.VISION_STREAM_ROAD, True)
   while True:
     for event in pygame.event.get():
       if event.type == pygame.QUIT:
@@ -149,8 +149,7 @@ def ui_thread(addr):
     plot_arr[-1, name_to_arr_idx['angle_steers']] = sm['carState'].steeringAngleDeg
     plot_arr[-1, name_to_arr_idx['angle_steers_des']] = sm['carControl'].actuators.steeringAngleDeg
     plot_arr[-1, name_to_arr_idx['angle_steers_k']] = angle_steers_k
-    plot_arr[-1, name_to_arr_idx['gas']] = sm['carState'].gasDEPRECATED
-    # TODO gas is deprecated
+    plot_arr[-1, name_to_arr_idx['gas']] = sm['carState'].gas
     plot_arr[-1, name_to_arr_idx['computer_gas']] = np.clip(sm['carControl'].actuators.accel/4.0, 0.0, 1.0)
     plot_arr[-1, name_to_arr_idx['user_brake']] = sm['carState'].brake
     plot_arr[-1, name_to_arr_idx['steer_torque']] = sm['carControl'].actuators.torque * ANGLE_SCALE
@@ -170,7 +169,7 @@ def ui_thread(addr):
       plot_lead(sm['radarState'], top_down)
 
     # draw all radar points
-    maybe_update_radar_points(sm['liveTracks'].points, top_down[1])
+    maybe_update_radar_points(sm['radar3d'].points, top_down[1])
 
     if sm.updated['liveCalibration'] and num_px:
       rpyCalib = np.asarray(sm['liveCalibration'].rpyCalib)

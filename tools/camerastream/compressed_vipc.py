@@ -117,7 +117,7 @@ class CompressedVipc:
     os.environ.pop("ZMQ")
     messaging.reset_context()
 
-    self.vipc_server = VisionIpcServer("camerad")
+    self.vipc_server = VisionIpcServer("v4l2d")
     for vst in vision_streams:
       ed = sm[ENCODE_SOCKETS[vst]]
       self.vipc_server.create_buffers(vst, 4, ed.width, ed.height)

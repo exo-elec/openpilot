@@ -5,17 +5,25 @@
 
 #include <capnp/dynamic.h>
 
-#include "third_party/linux/include/msm_media_info.h"
 #include "tools/replay/util.h"
 
 const int BUFFER_COUNT = 40;
 
+// Standard NV12 stride calculation (replacing Qualcomm VENUS macros)
+// NV12 requires Y plane stride to be 64-byte aligned for most hardware
+static inline int align64(int value) {
+  return (value + 63) & ~63;
+}
+
 std::tuple<size_t, size_t, size_t> get_nv12_info(int width, int height) {
-  int nv12_width = VENUS_Y_STRIDE(COLOR_FMT_NV12, width);
-  int nv12_height = VENUS_Y_SCANLINES(COLOR_FMT_NV12, height);
-  assert(nv12_width == VENUS_UV_STRIDE(COLOR_FMT_NV12, width));
-  assert(nv12_height / 2 == VENUS_UV_SCANLINES(COLOR_FMT_NV12, height));
-  size_t nv12_buffer_size = 2346 * nv12_width;  // comes from v4l2_format.fmt.pix_mp.plane_fmt[0].sizeimage
+  // Standard NV12: Y stride is width aligned to 64 bytes
+  // UV stride is same as Y stride
+  int nv12_width = align64(width);
+  int nv12_height = align64(height);
+  // NV12 buffer size: Y plane + UV plane (half height, interleaved UV)
+  size_t y_size = nv12_width * nv12_height;
+  size_t uv_size = nv12_width * (nv12_height / 2);
+  size_t nv12_buffer_size = y_size + uv_size;
   return {nv12_width, nv12_height, nv12_buffer_size};
 }
 
@@ -44,7 +52,7 @@ CameraServer::~CameraServer() {
 }
 
 void CameraServer::startVipcServer() {
-  vipc_server_.reset(new VisionIpcServer("camerad"));
+  vipc_server_.reset(new VisionIpcServer("v4l2d"));
   for (auto &cam : cameras_) {
     cam.cached_buf.clear();
 

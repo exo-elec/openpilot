@@ -1,5 +1,7 @@
 # tools/car_porting
 
+> **EOP Notice:** EOP is **Tesla-only** via `selfdrive/vehicled/`. The upstream multi-brand car porting tools and tests in this directory are preserved for reference but do not apply to EOP.
+
 Check out [this blog post](https://blog.comma.ai/how-to-write-a-car-port-for-openpilot/) for a high-level overview of porting a car.
 
 ## Useful car porting utilities
