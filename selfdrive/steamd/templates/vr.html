@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SteamD VR Status</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 48px;
+            color: #00ff88;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 24px;
+            color: #888;
+            max-width: 700px;
+            line-height: 1.5;
+            margin-bottom: 40px;
+        }
+        .info-box {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 16px;
+            padding: 30px 50px;
+            font-size: 22px;
+            font-family: monospace;
+        }
+        .info-box .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 60px;
+            margin: 12px 0;
+        }
+        .info-box .label { color: #888; }
+        .info-box .value { color: #00ff88; font-weight: 700; }
+        .disengage-btn {
+            margin-top: 40px;
+            padding: 24px 80px;
+            font-size: 32px;
+            font-weight: 700;
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        .disengage-btn:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+    <h1>SteamD VR Status</h1>
+    <p>Video is streamed via UDP H264 to the headset player.<br>Use the OpenArmX APK or a UDP H264 receiver for the immersive view.</p>
+
+    <div class="info-box">
+        <div class="row"><span class="label">Speed</span><span class="value"><span id="speed">0</span> km/h</span></div>
+        <div class="row"><span class="label">Steering</span><span class="value"><span id="steering">0</span>°</span></div>
+        <div class="row"><span class="label">Mode</span><span class="value" id="mode">Standby</span></div>
+        <div class="row"><span class="label">Gear</span><span class="value" id="gear">N</span></div>
+        <div class="row"><span class="label">Gas / Brake</span><span class="value"><span id="gas">0</span>% / <span id="brake">0</span>%</span></div>
+        <div class="row"><span class="label">UDP Lag</span><span class="value" id="udp-last">N/A</span></div>
+    </div>
+
+    <button class="disengage-btn" onclick="window.steamdClient && window.steamdClient.disengage()">EMERGENCY STOP</button>
+
+    <script src="/static/steamd.js"></script>
+</body>
+</html>
