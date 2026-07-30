@@ -1,0 +1,129 @@
+models:
+  # Main forward camera models (RKNN - Primary NPU Core 0)
+  # NOTE: modeld uses RKNN runtime on RK3588 NPU
+  # Convert ONNX models to RKNN format using: tools/convert_models_to_rknn.py
+  - id: vision_model
+    task: vision
+    backend: rknn
+    path: /data/openpilot/models/rknn/driving_vision.rknn
+    input_size: [512, 256]
+    priority: 0
+    cores: "0"
+    metadata:
+      model_type: supercombo
+      outputs: ["path", "lane_lines", "road_edges", "lead"]
+      runtime: "rknn"
+      onnx_source: selfdrive/modeld/models/driving_vision.onnx
+      
+  - id: policy_model
+    task: policy
+    backend: rknn
+    path: /data/openpilot/models/rknn/driving_policy.rknn
+    input_size: [512, 256]
+    priority: 0
+    cores: "0"
+    metadata:
+      model_type: supercombo
+      outputs: ["desired_curvature", "desired_speed"]
+      runtime: "rknn"
+      onnx_source: selfdrive/modeld/models/driving_policy.onnx
+      
+  # NOTE: Dead RKNN wrappers removed:
+  # - autospeed_rknn.py - REDUNDANT: driving_vision handles lead detection
+  # - domainseg_rknn.py - NOT INTEGRATED
+  # - scene3d_rknn.py - NOT INTEGRATED  
+  # - depth_anything_rknn.py - NOT INTEGRATED
+  # - driving_policy_rknn.py - REPLACED by direct RKNNRunner usage
+  # - driving_vision_rknn.py - REPLACED by direct RKNNRunner usage
+  # - pp_liteseg_rknn.py - gridd has its own implementation
+
+  # ADAS Enhancement Specialist Models
+  - id: sceneseg
+    task: segmentation
+    backend: rknn
+    path: selfdrive/modeld/models/sceneseg_lite_rk3588.rknn
+    input_size: [512, 288]
+    priority: 1
+    cores: "1"
+    metadata:
+      model_type: semantic_segmentation
+      description: Dynamic Object Specialist (Bikes, Cars, Barriers)
+
+  - id: ppliteseg
+    task: segmentation
+    backend: rknn
+    path: selfdrive/modeld/models/pp_liteseg_320_rk3588.rknn
+    input_size: [320, 320]
+    priority: 1
+    cores: "1"
+    metadata:
+      model_type: semantic_segmentation
+      description: Road Specialist (Drivable Area) — Core 1 shared with SceneSeg
+      runs_on_cameras: ["stereo_right"]
+
+  # NOTE: Pothole YOLO detection removed - using stereo depth-based shock detection
+  # surfaced daemon uses stereo point cloud analysis (SGBM) instead of AI model
+  # This avoids NPU load and provides better depth estimation
+  
+  # NOTE: License plate detection removed per AGENTS.md
+  # The model config is kept for reference but NOT USED
+  # - id: license_plate
+  #   task: detection
+  #   backend: axcl
+  #   path: selfdrive/modeld/models/tiny_yolov4_license_plate_ax650n.axmodel
+  #   input_size: [416, 416]
+  #   priority: 3
+  #   metadata:
+  #     yolo_format: yolov4
+  #     obj_threshold: 0.5
+  #     nms_threshold: 0.45
+  #     classes: ["license_plate"]
+  #     runs_on_vehicle_crops: true
+  #     # NOTE: subscribed_streams outdated - stereoObjects empty, griddObjects doesn't exist
+  #     subscribed_streams: ["stereoObjects", "leftObjects", "rightObjects"]
+  #     publishes: "gridObjects"  # NOTE: was "griddObjects" - typo
+
+  # Blindspot camera models (AXCL - AX650N PCIe accelerator)
+  # NOTE: No sided daemon - these would run in gridd if AX650N present
+  - id: blindspot_yolo
+    task: detection
+    backend: axcl
+    path: selfdrive/modeld/models/yolov11m_ax650n.axmodel
+    input_size: [640, 640]
+    priority: 4
+    metadata:
+      yolo_format: yolov8
+      obj_threshold: 0.25
+      nms_threshold: 0.45
+
+  - id: blindspot_depth
+    task: depth_estimation
+    backend: axcl
+    path: selfdrive/modeld/models/depth_anything_v2_vits_ax650.axmodel
+    input_size: [384, 640]
+    priority: 5
+    metadata:
+      scale_factor: 1.0
+      min_depth: 0.1
+      max_depth: 80.0
+
+  - id: blindspot_seg
+    task: segmentation
+    backend: axcl
+    path: selfdrive/modeld/models/pp_liteseg_ax650n.axmodel
+    input_size: [512, 512]
+    priority: 6
+    metadata:
+      num_classes: 19
+      class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
+  # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
+  # These models require voxeld daemon which was never created
+  # Kept for reference only
+  #
+  # Lidar processing models (HAILO - HAILO M8 PCIe accelerator)
+  # - id: pointpillars
+  #   task: detection
+  #   backend: hailo
+  #   path: selfdrive/voxeld/models/pointpillars.hef  # NOTE: voxeld/ doesn't exist
+  #   ...

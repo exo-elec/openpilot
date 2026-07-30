@@ -1,0 +1,4 @@
+# Downloaded model binaries — not committed to git
+onnx/
+rknn/
+hef/
