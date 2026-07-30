@@ -11,11 +11,12 @@ import cereal.messaging as messaging
 import openpilot.system.sentry as sentry
 from openpilot.common.params import Params, ParamKeyFlag
 from openpilot.common.text_window import TextWindow
-from openpilot.system.hardware import HARDWARE
+from openpilot.system.hardware import HARDWARE, HAS_SPEAKER, HAS_VOICE_INPUT, HAS_SIDE_CAMERAS, HAS_REAR_CAMERA
+from openpilot.system.hardware.base import HardwareCapability
 from openpilot.system.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
 from openpilot.system.manager.process import ensure_running
 from openpilot.system.manager.process_config import managed_processes
-from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_ID
+# Offline mode - no cloud registration needed
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata, terms_version, training_version
 from openpilot.system.hardware.hw import Paths
@@ -33,9 +34,6 @@ def manager_init() -> None:
   params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
   if build_metadata.release_channel:
     params.clear_all(ParamKeyFlag.DEVELOPMENT_ONLY)
-
-  if params.get_bool("RecordFrontLock"):
-    params.put_bool("RecordFront", True)
 
   # set unset params to their default value
   for k in params.all_keys():
@@ -64,12 +62,38 @@ def manager_init() -> None:
   params.put_bool("IsReleaseBranch", build_metadata.release_channel)
   params.put("HardwareSerial", serial)
 
-  # set dongle id
-  reg_res = register(show_spinner=True)
-  if reg_res:
-    dongle_id = reg_res
-  else:
-    raise Exception(f"Registration failed for device {serial}")
+  # Auto-configure voice pipeline based on hardware detection
+  # RK3588 (ExoPilot 01M) has no on-board mic -> disable voice input, speaker-only
+  if not params.get("EOPVoiceEnabled"):
+    # Only set default if user hasn't explicitly configured it
+    params.put_bool("EOPVoiceEnabled", HAS_VOICE_INPUT)
+    cloudlog.info(f"manager: Auto-configured EOPVoiceEnabled={HAS_VOICE_INPUT} based on hardware")
+
+  # Auto-configure side cameras based on hardware detection
+  if not params.get("EOPSideCamerasEnabled"):
+    params.put_bool("EOPSideCamerasEnabled", HAS_SIDE_CAMERAS)
+    cloudlog.info(f"manager: Auto-configured EOPSideCamerasEnabled={HAS_SIDE_CAMERAS} based on hardware")
+
+  # Auto-configure rear camera based on hardware detection
+  if not params.get("EOPRearCameraEnabled"):
+    params.put_bool("EOPRearCameraEnabled", HAS_REAR_CAMERA)
+    cloudlog.info(f"manager: Auto-configured EOPRearCameraEnabled={HAS_REAR_CAMERA} based on hardware")
+
+  # Auto-configure mono detection daemon (RKNN NPU only — no PCIe accelerator required)
+  if not params.get("EOPMonoDEnabled"):
+    has_npu = HardwareCapability.NPU in HARDWARE.get_capabilities()
+    params.put_bool("EOPMonoDEnabled", has_npu)
+    cloudlog.info(f"manager: Auto-configured EOPMonoDEnabled={has_npu} based on hardware")
+
+  # Log hardware capabilities for debugging
+  cloudlog.info(f"manager: Hardware - speaker={HAS_SPEAKER}, voice={HAS_VOICE_INPUT}, "
+                f"side_cameras={HAS_SIDE_CAMERAS}, rear_camera={HAS_REAR_CAMERA}")
+
+  # set dongle id (offline mode - use eMMC CID)
+  dongle_id = HARDWARE.get_dongle_id()
+  if not dongle_id:
+    dongle_id = "unknown"
+  params.put("DongleId", dongle_id)
   os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
   os.environ['GIT_ORIGIN'] = build_metadata.openpilot.git_normalized_origin # Needed for swaglog
   os.environ['GIT_BRANCH'] = build_metadata.channel # Needed for swaglog
@@ -113,13 +137,11 @@ def manager_thread() -> None:
   params = Params()
 
   ignore: list[str] = []
-  if params.get("DongleId") in (None, UNREGISTERED_DONGLE_ID):
-    ignore += ["manage_athenad", "uploader"]
-  if os.getenv("NOBOARD") is not None:
-    ignore.append("pandad")
+  if params.get("DongleId") is None:
+    ignore += ["uploader"]
   ignore += [x for x in os.getenv("BLOCK", "").split(",") if len(x) > 0]
 
-  sm = messaging.SubMaster(['deviceState', 'carParams', 'pandaStates'], poll='deviceState')
+  sm = messaging.SubMaster(['deviceState', 'carParams'], poll='deviceState')
   pm = messaging.PubMaster(['managerState'])
 
   write_onroad_params(False, params)
@@ -138,11 +160,11 @@ def manager_thread() -> None:
     elif not started and started_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
 
-    ignition = any(ps.ignitionLine or ps.ignitionCan for ps in sm['pandaStates'] if ps.pandaType != log.PandaState.PandaType.unknown)
+    ignition = params.get_bool("EOPIgnitionOn")
     if ignition and not ignition_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
 
-    # update onroad params, which drives pandad's safety setter thread
+    # update onroad params, which drives socketd's safety configuration
     if started != started_prev:
       write_onroad_params(started, params)
 
@@ -161,7 +183,7 @@ def manager_thread() -> None:
     msg.managerState.processes = [p.get_process_state_msg() for p in managed_processes.values()]
     pm.send('managerState', msg)
 
-    # kick AGNOS power monitoring watchdog
+    # kick power monitoring watchdog (if enabled)
     try:
       if sm.all_checks(['deviceState']):
         with open("/var/tmp/power_watchdog", "w") as f:

@@ -197,13 +197,14 @@ class NativeProcess(ManagerProcess):
 
 
 class PythonProcess(ManagerProcess):
-  def __init__(self, name, module, should_run, enabled=True, sigkill=False, watchdog_max_dt=None):
+  def __init__(self, name, module, should_run, enabled=True, sigkill=False, watchdog_max_dt=None, enabled_callback=None):
     self.name = name
     self.module = module
     self.should_run = should_run
     self.enabled = enabled
     self.sigkill = sigkill
     self.watchdog_max_dt = watchdog_max_dt
+    self.enabled_callback = enabled_callback
     self.launcher = launcher
 
   def prepare(self) -> None:
@@ -231,8 +232,7 @@ class PythonProcess(ManagerProcess):
 
 
 class DaemonProcess(ManagerProcess):
-  """Python process that has to stay running across manager restart.
-  This is used for athena so you don't lose SSH access when restarting manager."""
+  """Python process that has to stay running across manager restart."""
   def __init__(self, name, module, param_name, enabled=True):
     self.name = name
     self.module = module
@@ -283,7 +283,10 @@ def ensure_running(procs: ValuesView[ManagerProcess], started: bool, params=None
 
   running = []
   for p in procs:
-    if p.enabled and p.name not in not_run and p.should_run(started, params, CP):
+    enabled = p.enabled
+    if getattr(p, 'enabled_callback', None) is not None:
+      enabled = p.enabled_callback(started, params, CP)
+    if enabled and p.name not in not_run and p.should_run(started, params, CP):
       running.append(p)
     else:
       p.stop(block=False)
