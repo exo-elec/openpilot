@@ -1,11 +1,52 @@
-import os
+#!/usr/bin/env python3
+"""Hardware Base Classes for Rockchip platforms."""
+
 from abc import abstractmethod, ABC
+import os
 from dataclasses import dataclass, fields
-
 from cereal import log
+from enum import Enum, auto
 
-NetworkType = log.DeviceState.NetworkType
 
+class HardwareCapability(Enum):
+    """Hardware capabilities."""
+    NPU = auto()
+    GPU = auto()
+    DSP = auto()
+    GPIO = auto()
+    CAN = auto()
+    SPI = auto()
+    I2C = auto()
+    UART = auto()
+    CAMERA_MIPI = auto()
+    CAMERA_USB = auto()
+    V4L2 = auto()
+    RGA = auto()
+    ISP = auto()
+    GPS = auto()
+    RTK = auto()
+    EMMC = auto()
+    NVME = auto()
+    SD_CARD = auto()
+    STORAGE = auto()
+    ETHERNET = auto()
+    WIFI = auto()
+    BLUETOOTH = auto()
+    CELLULAR = auto()
+    PMIC = auto()
+    BATTERY = auto()
+    TEMP_SENSORS = auto()
+    FAN_CONTROL = auto()
+    TEE = auto()
+    HSM = auto()
+    SECURE_BOOT = auto()
+    PCIE = auto()
+    MICROPHONE = auto()
+    SPEAKER = auto()
+    VOICE_INPUT = auto()  # Microphone + voice-tier accelerator for Whisper STT
+
+
+# ---- restored upstream support classes (used by preserved pc/ and tici/ HALs) ----
 class LPAError(RuntimeError):
   pass
 
@@ -89,139 +130,187 @@ class LPABase(ABC):
   def switch_profile(self, iccid: str) -> None:
     pass
 
+
 class HardwareBase(ABC):
-  @staticmethod
-  def get_cmdline() -> dict[str, str]:
-    with open('/proc/cmdline') as f:
-      cmdline = f.read()
-    return {kv[0]: kv[1] for kv in [s.split('=') for s in cmdline.split(' ')] if len(kv) == 2}
+    """Base class for hardware platforms."""
+    
+    @staticmethod
+    @abstractmethod
+    def detect() -> bool:
+        """Detect if this hardware is present."""
+        pass
+    
+    @abstractmethod
+    def get_device_type(self) -> str:
+        """Get device type string."""
+        pass
+    
+    @abstractmethod
+    def reboot(self, reason=None):
+        """Reboot the system."""
+        pass
+    
+    @abstractmethod
+    def uninstall(self):
+        """Uninstall software."""
+        pass
+    
+    @abstractmethod
+    def get_os_version(self):
+        """Get OS version."""
+        pass
+    
+    @abstractmethod
+    def get_imei(self, slot) -> str:
+        """Get IMEI."""
+        pass
+    
+    @abstractmethod
+    def get_serial(self):
+        """Get hardware serial number."""
+        pass
 
-  @staticmethod
-  def read_param_file(path, parser, default=0):
-    try:
-      with open(path) as f:
-        return parser(f.read())
-    except Exception:
-      return default
+    def get_dongle_id(self):
+        """Get dongle ID (device identity). Defaults to serial for backward compatibility."""
+        return self.get_serial()
+    
+    @abstractmethod
+    def get_network_info(self):
+        """Get network info."""
+        pass
+    
+    @abstractmethod
+    def get_network_type(self):
+        """Get network type."""
+        pass
+    
+    @abstractmethod
+    def get_sim_info(self):
+        """Get SIM info."""
+        pass
+    
+    @abstractmethod
+    def get_sim_lpa(self):
+        """Get LPA."""
+        pass
+    
+    @abstractmethod
+    def get_network_strength(self, network_type):
+        """Get network strength."""
+        pass
+    
+    @abstractmethod
+    def get_current_power_draw(self):
+        """Get current power draw."""
+        pass
+    
+    @abstractmethod
+    def get_som_power_draw(self):
+        """Get SoM power draw."""
+        pass
+    
+    @abstractmethod
+    def shutdown(self):
+        """Shutdown the system."""
+        pass
+    
+    @abstractmethod
+    def set_screen_brightness(self, percentage):
+        """Set screen brightness."""
+        pass
+    
+    @abstractmethod
+    def get_screen_brightness(self):
+        """Get screen brightness."""
+        pass
+    
+    @abstractmethod
+    def set_power_save(self, powersave_enabled):
+        """Set power save mode."""
+        pass
+    
+    @abstractmethod
+    def get_gpu_usage_percent(self):
+        """Get GPU usage percentage."""
+        pass
+    
+    @abstractmethod
+    def get_modem_temperatures(self):
+        """Get modem temperatures."""
+        pass
+    
+    @abstractmethod
+    def initialize_hardware(self):
+        """Initialize hardware."""
+        pass
+    
+    @abstractmethod
+    def get_networks(self):
+        """Get available networks."""
+        pass
 
-  def booted(self) -> bool:
-    return True
+    def modem_power_on(self) -> bool:
+        """Power on cellular modem.
 
-  @abstractmethod
-  def reboot(self, reason=None):
-    pass
+        Platform-specific implementation (e.g., sysfs GPIO for RK3588 Mini-PCIe).
+        Returns True if control attempted.
+        """
+        return False
 
-  @abstractmethod
-  def uninstall(self):
-    pass
+    def modem_power_off(self) -> bool:
+        """Power off cellular modem."""
+        return False
 
-  @abstractmethod
-  def get_os_version(self):
-    pass
+    def get_cellular_interface(self) -> str:
+        """Return active cellular network interface (e.g. 'usb0', 'wwan0')."""
+        return "usb0"
 
-  @abstractmethod
-  def get_device_type(self):
-    pass
+    def get_modem_type(self) -> str:
+        """Return detected cellular modem identifier (e.g. 'quectel_ec25')."""
+        return "unknown"
+    
+    def get_camera_array_config(self) -> dict:
+        """Get camera array configuration."""
+        return {
+            "platform": "Unknown",
+            "num_cameras": 0,
+            "stereo_baseline_mm": 0.0,
+            "cameras": []
+        }
+    
+    def get_stereo_baseline_mm(self) -> float:
+        """Get stereo baseline in mm."""
+        return 0.0
+    
+    def get_capabilities(self) -> set:
+        """Get hardware capabilities."""
+        return set()
+    
+    def has_speaker(self) -> bool:
+        """Check if platform has speaker for audio output."""
+        return False
+    
+    def has_voice_input(self) -> bool:
+        """Check if platform has voice input hardware (microphone + Hailo NPU)."""
+        return False
+    
+    def has_side_cameras(self) -> bool:
+        """Check if platform has side cameras (UVC via USB 3.0 hub RTS5411S)."""
+        return False
+    
+    def has_rear_camera(self) -> bool:
+        """Check if platform supports a rear-facing USB camera."""
+        return False
 
-  @abstractmethod
-  def get_imei(self, slot) -> str:
-    pass
+    def get_max_reliable_depth_m(self) -> float:
+        """Get maximum reliable stereo depth distance in meters."""
+        return 80.0
+    
+    def get_can_bitrate(self) -> int:
+        """Return default CAN bitrate in bits per second."""
+        return 500000
 
-  @abstractmethod
-  def get_serial(self):
-    pass
-
-  @abstractmethod
-  def get_network_info(self):
-    pass
-
-  @abstractmethod
-  def get_network_type(self):
-    pass
-
-  @abstractmethod
-  def get_sim_info(self):
-    pass
-
-  @abstractmethod
-  def get_sim_lpa(self) -> LPABase:
-    pass
-
-  @abstractmethod
-  def get_network_strength(self, network_type):
-    pass
-
-  def get_network_metered(self, network_type) -> bool:
-    return network_type not in (NetworkType.none, NetworkType.wifi, NetworkType.ethernet)
-
-  @staticmethod
-  def set_bandwidth_limit(upload_speed_kbps: int, download_speed_kbps: int) -> None:
-    pass
-
-  @abstractmethod
-  def get_current_power_draw(self):
-    pass
-
-  @abstractmethod
-  def get_som_power_draw(self):
-    pass
-
-  @abstractmethod
-  def shutdown(self):
-    pass
-
-  def get_thermal_config(self):
-    return ThermalConfig()
-
-  def set_display_power(self, on: bool):
-    pass
-
-  @abstractmethod
-  def set_screen_brightness(self, percentage):
-    pass
-
-  @abstractmethod
-  def get_screen_brightness(self):
-    pass
-
-  @abstractmethod
-  def set_power_save(self, powersave_enabled):
-    pass
-
-  @abstractmethod
-  def get_gpu_usage_percent(self):
-    pass
-
-  def get_modem_version(self):
-    return None
-
-  @abstractmethod
-  def get_modem_temperatures(self):
-    pass
-
-
-  @abstractmethod
-  def initialize_hardware(self):
-    pass
-
-  def configure_modem(self):
-    pass
-
-  def reboot_modem(self):
-    pass
-
-  @abstractmethod
-  def get_networks(self):
-    pass
-
-  def has_internal_panda(self) -> bool:
-    return False
-
-  def reset_internal_panda(self):
-    pass
-
-  def recover_internal_panda(self):
-    pass
-
-  def get_modem_data_usage(self):
-    return -1, -1
+    def get_camera_hal(self):
+        """Return camera HAL for V4L2 driver selection."""
+        from openpilot.system.v4l2d.camera_hal import CameraHAL
+        return CameraHAL()

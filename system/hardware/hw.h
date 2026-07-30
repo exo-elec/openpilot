@@ -1,17 +1,102 @@
 #pragma once
 
+// Hardware platform detection for C++ code
+// Mirrors the Python hardware abstraction in system/hardware/
+
+#include <cstdlib>
 #include <string>
+#include <map>
 
-#include "system/hardware/base.h"
 #include "common/util.h"
+#include "cereal/gen/cpp/log.capnp.h"
 
-#if QCOM2
-#include "system/hardware/tici/hardware.h"
-#define Hardware HardwareTici
-#else
-#include "system/hardware/pc/hardware.h"
-#define Hardware HardwarePC
-#endif
+class Hardware {
+public:
+  // Check if running on PC (development/testing)
+  static bool PC() {
+    const char* pc_env = std::getenv("OPENPILOT_PC");
+    if (pc_env && std::string(pc_env) == "1") {
+      return true;
+    }
+    // Mirrors python: PC = not ROCKCHIP (device-tree based)
+    return !ROCKCHIP();
+  }
+
+  // Check if running on TICI (comma 3/3X - legacy Qualcomm platform)
+  // For EOP, this returns false as we use Rockchip instead
+  static bool TICI() {
+    // EOP uses Rockchip, not Qualcomm TICI
+    return false;
+  }
+
+  // Check if running on RK3588 (ExoPilot 01M)
+  static bool RK3588() {
+    const char* platform = std::getenv("EOP_PLATFORM");
+    if (platform && std::string(platform) == "rk3588") {
+      return true;
+    }
+    std::string compat = util::read_file("/proc/device-tree/compatible");
+    if (compat.find("rk3588") != std::string::npos) {
+      return true;
+    }
+    return false;
+  }
+
+  // Generic Rockchip detection
+  static bool ROCKCHIP() {
+    return RK3588();
+  }
+
+  // Device name for logging
+  static std::string get_name() {
+    if (RK3588()) return "rk3588";
+    return "pc";
+  }
+
+  static cereal::InitData::DeviceType get_device_type() {
+    if (RK3588()) return cereal::InitData::DeviceType::TICI;
+    return cereal::InitData::DeviceType::PC;
+  }
+
+  static int get_voltage() { return 0; }
+  static int get_current() { return 0; }
+
+  static std::string get_serial() {
+    // Rockchip: try OTP first, then device-tree serial
+    if (ROCKCHIP()) {
+      std::string otp = util::read_file("/sys/bus/nvmem/devices/rockchip-otp0/nvmem");
+      if (!otp.empty()) {
+        // Return first 16 bytes as hex (SHA256-like stable ID)
+        std::string hex;
+        for (size_t i = 0; i < otp.size() && i < 16; ++i) {
+          char buf[3];
+          snprintf(buf, sizeof(buf), "%02x", static_cast<unsigned char>(otp[i]));
+          hex += buf;
+        }
+        if (!hex.empty()) return hex;
+      }
+      std::string dt_serial = util::read_file("/proc/device-tree/serial-number");
+      if (!dt_serial.empty()) return dt_serial;
+    }
+    return "cccccc";
+  }
+
+  static std::map<std::string, std::string> get_init_logs() {
+    return {};
+  }
+
+  static void set_ir_power(int percentage) { (void)percentage; }
+
+  // Get SSH enabled state (always true for development)
+  static bool get_ssh_enabled() {
+    return true;
+  }
+
+  static void set_ssh_enabled(bool enabled) {
+    // No-op for now
+    (void)enabled;
+  }
+};
 
 namespace Path {
   inline std::string openpilot_prefix() {
@@ -33,10 +118,6 @@ namespace Path {
     return util::getenv("PARAMS_ROOT", Hardware::PC() ? (Path::comma_home() + "/params") : "/data/params");
   }
 
-  inline std::string rsa_file() {
-    return Hardware::PC() ? Path::comma_home() + "/persist/comma/id_rsa" : "/persist/comma/id_rsa";
-  }
-
   inline std::string swaglog_ipc() {
     return "ipc:///tmp/logmessage" + Path::openpilot_prefix();
   }
@@ -48,11 +129,11 @@ namespace Path {
     return "/tmp/comma_download_cache" + Path::openpilot_prefix() + "/";
   }
 
- inline std::string shm_path() {
-    #ifdef __APPLE__
-     return"/tmp";
-    #else
-     return "/dev/shm";
-    #endif
- }
+  inline std::string shm_path() {
+#ifdef __APPLE__
+    return "/tmp";
+#else
+    return "/dev/shm";
+#endif
+  }
 }  // namespace Path

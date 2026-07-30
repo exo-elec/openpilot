@@ -1,0 +1,43 @@
+# RK3588 Camera Udev Rules (ExoPilot 01 series)
+# Install to /etc/udev/rules.d/88-rockchip-camera.rules
+#
+# Creates stable /dev/video-cameraN symlinks for the 4-camera MIPI array.
+# Each ISP instance (rkisp0-3) has mainpath/selfpath/bypass/scale outputs.
+# We symlink the mainpath of each ISP to a stable camera name.
+#
+# Camera layout:
+#   video-camera0  -> stereo_left  (rkisp0 mainpath, GC4653, SDR)
+#   video-camera1  -> stereo_right (rkisp1 mainpath, GC4653, SDR)
+#   video-camera2  -> wide_road    (rkisp2 mainpath, OX03C10, HDR4)
+#   video-camera3  -> road         (rkisp3 mainpath, OX03C10, HDR4)
+#
+# USB cameras (UVC via USB-C hub RTS5411S or direct SoC USB):
+#   video-side-left  -> side_left UVC camera (hub port 1)
+#   video-side-right -> side_right UVC camera (hub port 2)
+#   video-rear       -> rear_camera UVC camera (direct SoC USB)
+#
+# NOTE: If your board uses different ISP-to-sensor routing, adjust
+# the KERNEL paths below to match your device tree.
+# For USB cameras, uncomment and adjust the ENV{ID_PATH} patterns after
+# running `lsusb -t` and `udevadm info /dev/video*` to discover hub topology.
+
+# Stereo pair (TOP) - GC4653, SDR
+ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="rkisp_mainpath", ENV{ID_PATH}=="*rkisp0*", SYMLINK+="video-camera0", TAG+="systemd"
+ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="rkisp_mainpath", ENV{ID_PATH}=="*rkisp1*", SYMLINK+="video-camera1", TAG+="systemd"
+
+# Mono cameras (BOTTOM) - OX03C10, HDR4
+ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="rkisp_mainpath", ENV{ID_PATH}=="*rkisp2*", SYMLINK+="video-camera2", TAG+="systemd"
+ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="rkisp_mainpath", ENV{ID_PATH}=="*rkisp3*", SYMLINK+="video-camera3", TAG+="systemd"
+
+# ---------------------------------------------------------------------------
+# USB UVC cameras — uncomment and customize after hub topology is known.
+# ---------------------------------------------------------------------------
+# To find the correct ENV{ID_PATH} for each camera:
+#   1. Connect one camera at a time to its designated hub port.
+#   2. Run: udevadm info --query=all --name=/dev/videoN | grep ID_PATH
+#   3. Copy the ID_PATH value into the rule below.
+#
+# Example (adjust *usb*-1.1* to match your actual hub port path):
+# ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="*UVC*", ENV{ID_PATH}=="*usb*-1.1*", SYMLINK+="video-side-left", TAG+="systemd"
+# ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="*UVC*", ENV{ID_PATH}=="*usb*-1.2*", SYMLINK+="video-side-right", TAG+="systemd"
+# ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{name}=="*UVC*", ENV{ID_PATH}=="*usb*-2*", SYMLINK+="video-rear", TAG+="systemd"
