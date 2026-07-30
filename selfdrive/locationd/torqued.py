@@ -7,6 +7,7 @@ from cereal import car, log
 from openpilot.common.constants import ACCELERATION_DUE_TO_GRAVITY
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, DT_MDL
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.locationd.helpers import PointBuckets, ParameterEstimator, PoseCalibrator, Pose
@@ -240,7 +241,8 @@ class TorqueEstimator(ParameterEstimator):
 
 
 def main(demo=False):
-  config_realtime_process([0, 1, 2, 3], 5)
+  set_daemon_affinity("torqued")
+  config_realtime_process(DT_MDL, 5)
 
   pm = messaging.PubMaster(['liveTorqueParameters'])
   sm = messaging.SubMaster(['carControl', 'carOutput', 'carState', 'liveCalibration', 'livePose', 'liveDelay'], poll='livePose')

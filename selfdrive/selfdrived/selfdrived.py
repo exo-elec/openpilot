@@ -11,15 +11,17 @@ from msgq.visionipc import VisionIpcClient, VisionStreamType
 
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.gps import get_gps_location_service
 
-from openpilot.selfdrive.car.car_specific import CarSpecificEvents
+from openpilot.selfdrive.vehicled.car.events import VehicleEvents as CarSpecificEvents
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
-from openpilot.selfdrive.selfdrived.events import Events, ET
+from openpilot.selfdrive.selfdrived.events import Events, ET, AlertStatus, AudibleAlert
 from openpilot.selfdrive.selfdrived.helpers import ExcessiveActuationCheck
 from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
+from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.version import get_build_metadata
@@ -40,6 +42,13 @@ ButtonType = car.CarState.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
 
 IGNORED_SAFETY_MODES = (SafetyModel.silent, SafetyModel.noOutput)
+
+# EOP: road invisible to the camera in severe weather (whiteout, mud-caked
+# glass, spray wall). laneLineProbs collapse alone also fires on unmarked
+# roads, so radar4d must corroborate bad weather / a blocked view.
+LANE_PROB_ROAD_INVISIBLE = 0.05
+LOW_VIS_SEVERITY_MIN = 2                       # radar4d moderate+ corroboration
+LOW_VIS_CONFIRM_FRAMES = int(1.0 / DT_CTRL)    # 1 s sustained before takeover
 
 
 class SelfdriveD:
@@ -64,29 +73,39 @@ class SelfdriveD:
     self.excessive_actuation = self.params.get("Offroad_ExcessiveActuation") is not None
 
     # Setup sockets
-    self.pm = messaging.PubMaster(['selfdriveState', 'onroadEvents'])
+    self.pm = messaging.PubMaster(['selfdriveState', 'onroadEvents', 'ttsRequest'])
 
     self.gps_location_service = get_gps_location_service(self.params)
     self.gps_packets = [self.gps_location_service]
     self.sensor_packets = ["accelerometer", "gyroscope"]
-    self.camera_packets = ["roadCameraState", "driverCameraState", "wideRoadCameraState"]
+    self.camera_packets = ["roadCameraState", "wideRoadCameraState"]
 
     # TODO: de-couple selfdrived with card/conflate on carState without introducing controls mismatches
     self.car_state_sock = messaging.sub_sock('carState', timeout=20)
 
     ignore = self.sensor_packets + self.gps_packets + ['alertDebug']
     if SIMULATION:
-      ignore += ['driverCameraState', 'managerState']
+      ignore += ['managerState']
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
-    self.sm = messaging.SubMaster(['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
-                                   'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
-                                   'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
-                                   'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback'] + \
-                                   self.camera_packets + self.sensor_packets + self.gps_packets,
-                                  ignore_alive=ignore, ignore_avg_freq=ignore,
-                                  ignore_valid=ignore, frequency=int(1/DT_CTRL))
+    if not self.params.get_bool("EOPRearCameraEnabled"):
+      ignore += ['rearCameraState']
+    _eop_status = ['stereoStatus', 'monoStatus', 'gridStatus', 'pointcloudStatus',
+                   'rgaStatus', 'mppStatus', 'inferencedStatus', 'driverStatus', 'blindSpotAlert']
+    # Optional perception sockets (absent when the feature param is off)
+    _eop_optional = ['radar4d']
+    self.sm = messaging.SubMaster(
+      ['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
+       'carOutput', 'longitudinalPlan', 'livePose', 'liveDelay',
+       'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
+       'controlsState', 'carControl', 'driverAssistance', 'alertDebug',
+       'driverPoseState', 'adaptiveDrivingState'] + _eop_status + _eop_optional + \
+      self.camera_packets + self.sensor_packets + self.gps_packets,
+      ignore_alive=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
+      ignore_avg_freq=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
+      ignore_valid=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
+      frequency=int(1/DT_CTRL))
 
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
@@ -113,6 +132,7 @@ class SelfdriveD:
     self.last_steering_pressed_frame = 0
     self.distance_traveled = 0
     self.last_functional_fan_frame = 0
+    self.low_vis_frames = 0
     self.events_prev = []
     self.logged_comm_issue = None
     self.not_running_prev = None
@@ -121,6 +141,23 @@ class SelfdriveD:
     self.recalibrating_seen = False
     self.state_machine = StateMachine()
     self.rk = Ratekeeper(100, print_delay_threshold=None)
+
+    # TTS alert announcement tracking
+    self.tts_alerts_enabled = self.params.get_bool("EOPTTSAlertsEnabled")
+    self._last_tts_alert_text = ""  # deduplicate repeated alerts
+    self._tts_green_light_active = False
+    self._tts_lead_departing_active = False
+
+    # EOP: Green light / lead departing alert state
+    self._was_force_stopped = False
+    self._lead_distance_at_stop = None
+
+    # EOP: Health Monitor — graduated system degradation on thermal/CPU/memory stress
+    self._health_monitor_enabled = self.params.get_bool("EOPHealthMonitorEnabled")
+    self._health_cpu_history = []  # CPU usage samples for trend detection
+    self._health_thermal_history = []  # Thermal level samples
+    self._health_warning_active = False
+    self._health_warn_start_time = 0.0
 
     # some comma three with NVMe experience NVMe dropouts mid-drive that
     # cause loggerd to crash on write, so ignore it only on that platform
@@ -143,6 +180,118 @@ class SelfdriveD:
       set_offroad_alert("Offroad_CarUnrecognized", True)
     elif self.CP.passive:
       self.events.add(EventName.dashcamMode, static=True)
+
+  def _evaluate_health_monitor(self):
+    """EOP: Health Monitor — evaluate system health and trigger graduated responses.
+
+    Merges VisionPilot health monitor concepts into openpilot's existing event system:
+      - Level 0 (NORMAL): nothing
+      - Level 1 (WARNING): yellow thermal OR high CPU/memory trend → healthWarning
+      - Level 2 (DEGRADED): red thermal OR very high CPU/memory → healthDegradedStop (SOFT_DISABLE)
+      - Level 3 (CRITICAL): danger thermal → healthCriticalStop (IMMEDIATE_DISABLE)
+    """
+    if not self._health_monitor_enabled or SIMULATION:
+      return
+
+    ds = self.sm['deviceState']
+    thermal = ds.thermalStatus
+    cpu_samples = ds.cpuUsagePercent
+    cpu_avg = sum(cpu_samples) / max(len(cpu_samples), 1) if cpu_samples else 0
+    mem = ds.memoryUsagePercent
+
+    # Update history for trend detection (keep last 3s at 100Hz = 300 samples)
+    self._health_cpu_history.append(cpu_avg)
+    self._health_cpu_history = self._health_cpu_history[-300:]
+    self._health_thermal_history.append(int(thermal.raw))
+    self._health_thermal_history = self._health_thermal_history[-300:]
+
+    # Trend: rising thermal or CPU over last 3 seconds (300 frames)
+    cpu_trend = 0
+    thermal_trend = 0
+    if len(self._health_cpu_history) >= 300:
+      cpu_trend = self._health_cpu_history[-1] - self._health_cpu_history[-300]
+    if len(self._health_thermal_history) >= 300:
+      thermal_trend = self._health_thermal_history[-1] - self._health_thermal_history[-300]
+
+    # Count how many warning signs are present
+    warning_signs = 0
+    if thermal == ThermalStatus.yellow:
+      warning_signs += 1
+    if cpu_avg > 80:
+      warning_signs += 1
+    if mem > 85:
+      warning_signs += 1
+    if cpu_trend > 10:
+      warning_signs += 1  # CPU rising fast
+    if thermal_trend > 0:
+      warning_signs += 1  # Thermal rising
+
+    degraded_signs = 0
+    if thermal == ThermalStatus.red:
+      degraded_signs += 1
+    if cpu_avg > 95:
+      degraded_signs += 1
+    if mem > 95:
+      degraded_signs += 1
+
+    # Health Monitor level decision
+    if thermal == ThermalStatus.danger:
+      self.events.add(EventName.healthCriticalStop)
+      self._health_warning_active = False
+      return
+
+    if degraded_signs >= 1:
+      self.events.add(EventName.healthDegradedStop)
+      self._health_warning_active = False
+      return
+
+    if warning_signs >= 2:
+      # Multiple warning signs → escalate immediately
+      self.events.add(EventName.healthWarning)
+      if not self._health_warning_active:
+        self._health_warning_active = True
+        self._health_warn_start_time = time.monotonic()
+      # Escalate to comfortable stop if warning persists > 10 seconds
+      if time.monotonic() - self._health_warn_start_time > 10.0:
+        self.events.add(EventName.healthDegradedStop)
+      return
+
+    if warning_signs >= 1:
+      if self._health_warning_active:
+        # Sustained single warning → escalate
+        self.events.add(EventName.healthWarning)
+        if time.monotonic() - self._health_warn_start_time > 10.0:
+          self.events.add(EventName.healthDegradedStop)
+        return
+      else:
+        # First single warning → arm but don't escalate yet
+        self._health_warning_active = True
+        self._health_warn_start_time = time.monotonic()
+        return
+
+    # No issues
+    self._health_warning_active = False
+
+  def _update_low_visibility(self):
+    """Road invisible to the camera in severe weather → takeover.
+
+    Camera side: modelV2 lane-structure collapse (all laneLineProbs ~0).
+    Radar corroboration (weatherSeverity moderate+ or visionBlocked) is
+    required so unmarked roads in clear weather never trigger this.
+    """
+    camera_blind = False
+    if self.sm.valid['modelV2']:
+      probs = self.sm['modelV2'].laneLineProbs
+      camera_blind = len(probs) > 0 and max(probs) < LANE_PROB_ROAD_INVISIBLE
+    radar_severity = 0
+    radar_blocked = False
+    if self.sm.valid['radar4d']:
+      radar_severity = int(self.sm['radar4d'].weatherSeverity)
+      radar_blocked = bool(self.sm['radar4d'].visionBlocked)
+    blind = camera_blind and (radar_severity >= LOW_VIS_SEVERITY_MIN or radar_blocked)
+    self.low_vis_frames = self.low_vis_frames + 1 if blind else 0
+    if self.low_vis_frames >= LOW_VIS_CONFIRM_FRAMES:
+      self.events.add(EventName.lowVisibility)
 
   def update_events(self, CS):
     """Compute onroadEvents from carState"""
@@ -167,13 +316,6 @@ class SelfdriveD:
       self.events.add(EventName.selfdriveInitializing)
       return
 
-    # Check for user bookmark press (bookmark button or end of LKAS button feedback)
-    if self.sm.updated['userBookmark']:
-      self.events.add(EventName.userBookmark)
-
-    if self.sm.updated['audioFeedback']:
-      self.events.add(EventName.audioFeedback)
-
     # Don't add any more events while in dashcam mode
     if self.CP.passive:
       return
@@ -184,7 +326,8 @@ class SelfdriveD:
       self.events.add(EventName.resumeBlocked)
 
     if not self.CP.notCar:
-      self.events.add_from_msg(self.sm['driverMonitoringState'].events)
+      if self.sm.valid.get('driverPoseState', False):
+        self.events.add_from_msg(self.sm['driverPoseState'].events)
 
     # Add car events, ignore if CAN isn't valid
     if CS.canValid:
@@ -203,7 +346,11 @@ class SelfdriveD:
         (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
         self.events.add(EventName.pedalPressed)
 
-    # Create events for temperature, disk space, and memory
+    # EOP: Health Monitor — graduated system degradation
+    # Evaluates aggregated health: thermal + CPU + memory trends
+    self._evaluate_health_monitor()
+
+    # Legacy individual health checks (kept for compatibility)
     if self.sm['deviceState'].thermalStatus >= ThermalStatus.red:
       self.events.add(EventName.overheat)
     if self.sm['deviceState'].freeSpacePercent < 7 and not SIMULATION:
@@ -261,8 +408,11 @@ class SelfdriveD:
     # Handle lane change
     if self.sm['modelV2'].meta.laneChangeState == LaneChangeState.preLaneChange:
       direction = self.sm['modelV2'].meta.laneChangeDirection
-      if (CS.leftBlindspot and direction == LaneChangeDirection.left) or \
-         (CS.rightBlindspot and direction == LaneChangeDirection.right):
+      bsa = self.sm['blindSpotAlert'] if self.sm.valid.get('blindSpotAlert') else None
+      left_blocked = CS.leftBlindspot or (bsa is not None and (bsa.leftDetected or bsa.leftAlertLevel >= 1))
+      right_blocked = CS.rightBlindspot or (bsa is not None and (bsa.rightDetected or bsa.rightAlertLevel >= 1))
+      if (left_blocked and direction == LaneChangeDirection.left) or \
+         (right_blocked and direction == LaneChangeDirection.right):
         self.events.add(EventName.laneChangeBlocked)
       else:
         if direction == LaneChangeDirection.left:
@@ -282,7 +432,7 @@ class SelfdriveD:
       else:
         safety_mismatch = pandaState.safetyModel not in IGNORED_SAFETY_MODES
 
-      # safety mismatch allows some time for pandad to set the safety mode and publish it back from panda
+      # safety mismatch allows some time for socketd to configure safety mode
       if (safety_mismatch and self.sm.frame*DT_CTRL > 10.) or pandaState.safetyRxChecksInvalid or self.mismatch_counter >= 200:
         self.events.add(EventName.controlsMismatch)
 
@@ -309,12 +459,45 @@ class SelfdriveD:
           self.events.add(EventName.cameraFrameRate)
     if not REPLAY and self.rk.lagging:
       self.events.add(EventName.selfdrivedLagging)
-    if self.sm['radarState'].radarErrors.canError:
+    _radar_err = str(self.sm['radarState'].radarErrors)
+    if _radar_err == 'canError':
       self.events.add(EventName.canError)
-    elif self.sm['radarState'].radarErrors.radarUnavailableTemporary:
-      self.events.add(EventName.radarTempUnavailable)
-    elif any(self.sm['radarState'].radarErrors.to_dict().values()):
+    elif _radar_err not in ('none', 'canError'):
       self.events.add(EventName.radarFault)
+    # EOP: road invisible to the camera in severe weather — takeover, not gating
+    self._update_low_visibility()
+    # EOP: Stereo GPU fault → VisionPilot-style IMMEDIATE_DISABLE (no CPU fallback)
+    if self.sm.valid['stereoStatus'] and self.sm['stereoStatus'].enabled:
+      if self.sm['stereoStatus'].fault:
+        self.events.add(EventName.stereoFault)
+
+    # EOP: Mono NPU fault → IMMEDIATE_DISABLE
+    if self.sm.valid['monoStatus'] and self.sm['monoStatus'].enabled:
+      if self.sm['monoStatus'].fault:
+        self.events.add(EventName.monoFault)
+
+    # EOP: Grid detection NPU fault → IMMEDIATE_DISABLE
+    if self.sm.valid['gridStatus'] and self.sm['gridStatus'].enabled:
+      if self.sm['gridStatus'].fault:
+        self.events.add(EventName.gridFault)
+
+    # EOP: RGA hardware fault → SOFT_DISABLE (OpenCV fallback active, latency risk)
+    # (RgaStatus has no 'enabled' field; fault already implies the HW path was active)
+    if self.sm.valid['rgaStatus'] and self.sm['rgaStatus'].fault:
+      self.events.add(EventName.rgaFault)
+
+    # EOP: MPP encode fault → PERMANENT alert only (recording stops, driving unaffected)
+    if self.sm.valid['mppStatus'] and self.sm['mppStatus'].fault:
+      self.events.add(EventName.mppFault)
+
+    # EOP: Inference backend fault → IMMEDIATE_DISABLE (all backends unavailable)
+    if self.sm.valid['inferencedStatus'] and self.sm['inferencedStatus'].enabled and self.sm['inferencedStatus'].fault:
+      self.events.add(EventName.inferenceFault)
+
+    # EOP: Point cloud recording fault → PERMANENT alert (recording stops, driving OK)
+    if self.sm.valid['pointcloudStatus'] and self.sm['pointcloudStatus'].enabled and self.sm['pointcloudStatus'].fault:
+      self.events.add(EventName.pointcloudFault)
+
     if not self.sm.valid['pandaStates']:
       self.events.add(EventName.usbError)
     if CS.canTimeout:
@@ -386,6 +569,31 @@ class SelfdriveD:
     if (planner_fcw or model_fcw) and not self.CP.notCar:
       self.events.add(EventName.fcw)
 
+    # EOP: Green light alert — stopped for light, light turned green
+    dlon_force_stop = self.sm.valid.get('longitudinalPlan', False) and self.sm['longitudinalPlan'].dlonForceStop
+    if self._was_force_stopped and not dlon_force_stop and CS.standstill:
+      self.events.add(EventName.greenLightAlert)
+      if self.tts_alerts_enabled and not self._tts_green_light_active:
+        self._publish_tts_direct("Green light. You may proceed.", priority=1)
+        self._tts_green_light_active = True
+    else:
+      self._tts_green_light_active = False
+    self._was_force_stopped = dlon_force_stop
+
+    # EOP: Lead departing alert — lead moves away while we're stopped
+    radar_state = self.sm['radarState']
+    if CS.standstill and radar_state.leadOne.status:
+      if self._lead_distance_at_stop is None:
+        self._lead_distance_at_stop = radar_state.leadOne.dRel
+      elif radar_state.leadOne.dRel - self._lead_distance_at_stop > 1.0 and radar_state.leadOne.vLead > 1.0:
+        self.events.add(EventName.leadDepartingAlert)
+        if self.tts_alerts_enabled and not self._tts_lead_departing_active:
+          self._publish_tts_direct("Lead vehicle departing.", priority=1)
+          self._tts_lead_departing_active = True
+    else:
+      self._lead_distance_at_stop = None
+      self._tts_lead_departing_active = False
+
     # GPS checks
     gps_ok = self.sm.recv_frame[self.gps_location_service] > 0 and (self.sm.frame - self.sm.recv_frame[self.gps_location_service]) * DT_CTRL < 2.0
     if not gps_ok and self.sm['livePose'].inputsOK and (self.distance_traveled > 1500):
@@ -399,12 +607,21 @@ class SelfdriveD:
       if self.sm['modelV2'].frameDropPerc > 20:
         self.events.add(EventName.modeldLagging)
 
-    # Decrement personality on distance button press
+    # Decrement personality on distance button press (4 personalities with traffic mode)
     if self.CP.openpilotLongitudinalControl:
       if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
-        self.personality = (self.personality - 1) % 3
+        self.personality = (self.personality - 1) % 4
         self.params.put_nonblocking('LongitudinalPersonality', self.personality)
         self.events.add(EventName.personalityChanged)
+
+    # EOP: adaptd adaptive driving override — only when no button press this frame
+    if self.CP.openpilotLongitudinalControl and self.sm.valid.get('adaptiveDrivingState', False):
+      ads = self.sm['adaptiveDrivingState']
+      if ads.enabled:
+        ads_personality = int(ads.personality)
+        if 0 <= ads_personality <= 3 and ads_personality != self.personality:
+          self.personality = ads_personality
+          self.params.put_nonblocking('LongitudinalPersonality', self.personality)
 
   def data_sample(self):
     _car_state = messaging.recv_one(self.car_state_sock)
@@ -416,7 +633,7 @@ class SelfdriveD:
       all_valid = CS.canValid and self.sm.all_checks()
       timed_out = self.sm.frame * DT_CTRL > 6.
       if all_valid or timed_out or (SIMULATION and not REPLAY):
-        available_streams = VisionIpcClient.available_streams("camerad", block=False)
+        available_streams = VisionIpcClient.available_streams("v4l2d", block=False)
         if VisionStreamType.VISION_STREAM_ROAD not in available_streams:
           self.sm.ignore_alive.append('roadCameraState')
           self.sm.ignore_valid.append('roadCameraState')
@@ -453,6 +670,52 @@ class SelfdriveD:
 
     return CS
 
+  def _publish_tts_direct(self, text: str, priority: int = 1):
+    """Publish a TTS request directly (for non-critical contextual announcements)."""
+    msg = messaging.new_message('ttsRequest')
+    msg.ttsRequest.text = text
+    msg.ttsRequest.priority = priority
+    msg.ttsRequest.interrupt = True
+    self.pm.send('ttsRequest', msg)
+
+  def _publish_tts_for_alert(self, alert):
+    """Publish TTS request for critical alerts that need voice announcement."""
+    if not self.tts_alerts_enabled:
+      return
+    if alert == EmptyAlert:
+      return
+
+    # Build TTS text from alert
+    text = alert.alert_text_1
+    if alert.alert_text_2:
+      text = f"{text}. {alert.alert_text_2}"
+
+    # Skip if same as last announced alert (deduplication)
+    if text == self._last_tts_alert_text:
+      return
+    self._last_tts_alert_text = text
+
+    # Only announce alerts that are critical, warnings, or user prompts
+    # Skip normal/info alerts to avoid chatter
+    if alert.alert_status not in (AlertStatus.critical, AlertStatus.userPrompt):
+      return
+
+    # Skip alerts that already have audible_alert (they make their own sound)
+    if alert.audible_alert != AudibleAlert.none:
+      return
+
+    # Priority mapping
+    priority = 1  # high default
+    if alert.alert_status == AlertStatus.critical:
+      priority = 0  # critical
+
+    cloudlog.info(f"selfdrived: TTS alert: {text}")
+    msg = messaging.new_message('ttsRequest')
+    msg.ttsRequest.text = text
+    msg.ttsRequest.priority = priority
+    msg.ttsRequest.interrupt = True
+    self.pm.send('ttsRequest', msg)
+
   def update_alerts(self, CS):
     clear_event_types = set()
     if ET.WARNING not in self.state_machine.current_alert_types:
@@ -487,6 +750,9 @@ class SelfdriveD:
     ss.alertHudVisual = self.AM.current_alert.visual_alert
 
     self.pm.send('selfdriveState', ss_msg)
+
+    # TTS for critical alerts (only when alert changes)
+    self._publish_tts_for_alert(self.AM.current_alert)
 
     # onroadEvents - logged every second or on change
     if (self.sm.frame % int(1. / DT_CTRL) == 0) or (self.events.names != self.events_prev):
@@ -526,13 +792,19 @@ class SelfdriveD:
         self.rk.monitor_time()
     finally:
       e.set()
-      t.join()
+      t.join(timeout=2.0)
 
 
-def main():
-  config_realtime_process(4, Priority.CTRL_HIGH)
-  s = SelfdriveD()
-  s.run()
+def main() -> int:
+  try:
+    set_daemon_affinity("selfdrived")
+    config_realtime_process(DT_CTRL, Priority.CTRL_HIGH)
+    s = SelfdriveD()
+    s.run()
+    return 0
+  except Exception as e:
+    cloudlog.exception(f"SelfdriveD fatal error: {e}")
+    raise
 
 if __name__ == "__main__":
-  main()
+  exit(main())

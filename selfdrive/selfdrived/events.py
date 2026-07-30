@@ -11,8 +11,6 @@ from openpilot.common.constants import CV
 from openpilot.common.git import get_short_branch
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
-from openpilot.system.micd import SAMPLE_RATE, SAMPLE_BUFFER
-from openpilot.selfdrive.ui.feedback.feedbackd import FEEDBACK_MAX_DURATION
 
 AlertSize = log.SelfdriveState.AlertSize
 AlertStatus = log.SelfdriveState.AlertStatus
@@ -47,6 +45,14 @@ class ET:
 
 # get event name from enum
 EVENT_NAME = {v: k for k, v in EventName.schema.enumerants.items()}
+
+# EOP steering-attention ("steerd") speed gates. Internal units are m/s to
+# match vEgo; driver-facing text shows km/h. Thresholds on the 12/24/36 m/s grid:
+# 12 m/s ~= 43 km/h (zone 2 entry), 36 m/s ~= 130 km/h (UN R79 Cat B1 upper bound).
+# Base (no DMS): HOW required from 12 m/s.
+# With DMS (+1 step, face detected): HOW required only from 24 m/s.
+ATTENTION_BYPASS_SPEED = 12.0  # m/s — base: at or below, no hand-on-wheel required
+ATTENTION_MAX_SPEED = 36.0     # m/s — upper bound of the warning band
 
 
 class Events:
@@ -255,14 +261,6 @@ def calibration_incomplete_alert(CP: car.CarParams, CS: car.CarState, sm: messag
     Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .2)
 
 
-def audio_feedback_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
-  duration = FEEDBACK_MAX_DURATION - ((sm['audioFeedback'].blockNum + 1) * SAMPLE_BUFFER / SAMPLE_RATE)
-  return NormalPermanentAlert(
-    "Recording Audio Feedback",
-    f"{round(duration)} second{'s' if round(duration) != 1 else ''} remaining. Press again to save early.",
-    priority=Priority.LOW)
-
-
 # *** debug alerts ***
 
 def out_of_space_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
@@ -290,7 +288,7 @@ def comm_issue_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaste
 
 
 def camera_malfunction_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
-  all_cams = ('roadCameraState', 'driverCameraState', 'wideRoadCameraState')
+  all_cams = ('roadCameraState', 'rearCameraState', 'wideRoadCameraState')
   bad_cams = [s.replace('State', '') for s in all_cams if s in sm.data.keys() and not sm.all_checks([s, ])]
   return NormalPermanentAlert("Camera Malfunction", ', '.join(bad_cams))
 
@@ -521,7 +519,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
 
   EventName.preDriverUnresponsive: {
     ET.PERMANENT: Alert(
-      "Touch Steering Wheel: No Face Detected",
+      "Touch Steering Wheel: No Driver Detected",
       "",
       AlertStatus.normal, AlertSize.small,
       Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .1),
@@ -790,7 +788,6 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   # For example if the device is pointed too much to the left or the right.
   # Usually this can only be solved by removing the mount from the windshield completely,
   # and attaching while making sure the device is pointed straight forward and is level.
-  # See https://comma.ai/setup for more information
   EventName.calibrationInvalid: {
     ET.PERMANENT: calibration_invalid_alert,
     ET.SOFT_DISABLE: soft_disable_alert("Calibration Invalid: Remount Device & Recalibrate"),
@@ -1003,12 +1000,155 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.WARNING: personality_changed_alert,
   },
 
-  EventName.userBookmark: {
-    ET.PERMANENT: NormalPermanentAlert("Bookmark Saved", duration=1.5),
+  # EOP: Stereo GPU fault — GPU SGM unavailable, no CPU fallback (VisionPilot fault pattern).
+  # Fires IMMEDIATE_DISABLE (same frame, no countdown) + NO_ENTRY to block re-engagement.
+  # Clears when stereod reports fault=False (GPU recovers).
+  EventName.stereoFault: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Stereo GPU Fault: Restart the Car"),
+    ET.NO_ENTRY: NoEntryAlert("Stereo GPU Fault"),
+    ET.PERMANENT: NormalPermanentAlert("Stereo GPU Fault", "Depth perception unavailable"),
   },
 
-  EventName.audioFeedback: {
-    ET.PERMANENT: audio_feedback_alert,
+  # EOP: Inference backend fault — NPU/GPU backend unrecoverable.
+  # Fires when inferenced reports backends all down.
+  EventName.inferenceFault: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Inference Backend Fault: Restart the Car"),
+    ET.NO_ENTRY: NoEntryAlert("Inference Backend Fault"),
+    ET.PERMANENT: NormalPermanentAlert("Inference Backend Fault", "NPU/GPU unavailable"),
+  },
+
+  # EOP: Mono NPU fault — road/wide_road camera inference unrecoverable.
+  # Fires when monod NPU scheduler fails after consecutive failures.
+  # Clears when monod reports fault=False (NPU recovers).
+  EventName.monoFault: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Mono Camera Fault: Restart the Car"),
+    ET.NO_ENTRY: NoEntryAlert("Mono Camera Fault"),
+    ET.PERMANENT: NormalPermanentAlert("Mono Camera Fault", "Road perception unavailable"),
+  },
+
+  # EOP: road not visible to the camera in severe weather (whiteout, mud-caked
+  # glass, spray wall) — modelV2 lane-structure collapse corroborated by radar4d
+  # (weatherSeverity >= moderate or visionBlocked), sustained 1 s.
+  # The car cannot steer what it cannot see → immediate takeover, and block
+  # re-engagement while the condition persists.
+  EventName.lowVisibility: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Road Not Visible: Severe Weather"),
+    ET.NO_ENTRY: NoEntryAlert("Road Not Visible: Severe Weather"),
+    ET.PERMANENT: NormalPermanentAlert("Road Not Visible", "Severe weather limits visibility"),
+  },
+
+  # EOP: RGA hardware fault — image preprocessing falling back to OpenCV.
+  # SOFT_DISABLE because OpenCV fallback works but causes latency that may drop 20Hz frames.
+  # Clears when inferenced reports rgaStatus.fault=False (RGA hardware recovers).
+  EventName.rgaFault: {
+    ET.SOFT_DISABLE: soft_disable_alert("RGA Hardware Fault"),
+    ET.NO_ENTRY: NoEntryAlert("RGA Hardware Fault"),
+    ET.PERMANENT: NormalPermanentAlert("RGA Hardware Fault", "Image processing degraded"),
+  },
+
+  # EOP: MPP encode fault — hardware video encoding unavailable.
+  # PERMANENT alert only — recording stops but perception and control unaffected.
+  EventName.mppFault: {
+    ET.PERMANENT: NormalPermanentAlert("MPP Encode Fault", "Recording unavailable"),
+  },
+
+  # EOP: Grid detection NPU fault — object/segmentation inference unrecoverable.
+  # Fires when gridd NPU scheduler fails after consecutive failures.
+  # Clears when gridd reports fault=False (NPU recovers).
+  EventName.gridFault: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Grid Detection Fault: Restart the Car"),
+    ET.NO_ENTRY: NoEntryAlert("Grid Detection Fault"),
+    ET.PERMANENT: NormalPermanentAlert("Grid Detection Fault", "Object detection unavailable"),
+  },
+
+  # EOP: Point cloud recording I/O fault — PCD/MCAP recording unavailable.
+  # Fires when pointcloudd has consecutive write failures or storage issues.
+  # PERMANENT alert only — recording stops but perception and control unaffected.
+  EventName.pointcloudFault: {
+    ET.PERMANENT: NormalPermanentAlert("Point Cloud Recording Fault", "Recording unavailable"),
+  },
+
+  # EOP: Health Monitor — graduated system degradation
+  # Merged from VisionPilot safety stack, adapted for L2:
+  #   warning → alert driver to prepare
+  #   comfortable stop → soft disable with gentle deceleration
+  #   emergency stop → immediate disable (AEB fallback if available)
+  EventName.healthWarning: {
+    ET.PERMANENT: NormalPermanentAlert("System Stressed", "Consider taking over soon"),
+  },
+  EventName.healthDegradedStop: {
+    ET.SOFT_DISABLE: soft_disable_alert("System Degraded"),
+    ET.PERMANENT: NormalPermanentAlert("System Degraded", "Slowing down safely"),
+    ET.NO_ENTRY: NoEntryAlert("System Degraded"),
+  },
+  EventName.healthCriticalStop: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("System Critical: Disengaging"),
+    ET.PERMANENT: NormalPermanentAlert("System Critical", "Take control immediately"),
+    ET.NO_ENTRY: NoEntryAlert("System Critical"),
+  },
+
+  # ALCC / lateral-only engagement events
+  EventName.lkasEnable: {
+    ET.ENABLE: EngagementAlert(AudibleAlert.engage),
+  },
+
+  EventName.lkasDisable: {
+    ET.USER_DISABLE: EngagementAlert(AudibleAlert.disengage),
+  },
+
+  EventName.manualSteeringRequired: {
+    ET.WARNING: Alert("Manual Steering Required", "", AlertStatus.userPrompt, AlertSize.small,
+                      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.prompt, 1.),
+  },
+
+  EventName.controlsMismatchLateral: {
+    ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Controls Mismatch Lateral"),
+  },
+
+  # EOP: FrogPilot-style custom alerts
+  EventName.greenLightAlert: {
+    ET.PERMANENT: Alert(
+      "Light Turned Green",
+      "",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
+  },
+
+  EventName.leadDepartingAlert: {
+    ET.PERMANENT: Alert(
+      "Lead Vehicle Departing",
+      "",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
+  },
+
+  # EOP: Steering-based driver alerts ("steerd") — escalating warning, NO disengagement
+  # UN R79 Cat B1 long-form timing: 15 s / 30 s / 60 s
+  # Speed gates are defined in m/s (ATTENTION_BYPASS_SPEED / ATTENTION_MAX_SPEED
+  # at module top): ≤ 18 m/s (~65 km/h) bypassed; 18–36 m/s (~65–130 km/h)
+  # hand-on-wheel warning without disengagement.
+  EventName.driverAttention: {
+    ET.PERMANENT: Alert(
+      "Hand on Wheel",
+      "Please Keep Hands on Steering Wheel",
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .1),
+  },
+
+  EventName.driverWarning: {
+    ET.PERMANENT: Alert(
+      "Hand on Wheel",
+      "Hands Not Detected on Steering Wheel",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.MID, VisualAlert.steerRequired, AudibleAlert.promptDistracted, .1),
+  },
+
+  EventName.driverCritical: {
+    ET.PERMANENT: Alert(
+      "ATTENTION REQUIRED",
+      "Hands Not on Steering Wheel",
+      AlertStatus.critical, AlertSize.full,
+      Priority.HIGH, VisualAlert.steerRequired, AudibleAlert.warningImmediate, .1),
   },
 }
 
