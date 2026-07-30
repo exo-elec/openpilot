@@ -19,6 +19,7 @@ from openpilot.common.transformations.transformations cimport LocalCoord_c
 
 import numpy as np
 cimport numpy as np
+np.import_array()
 
 cdef np.ndarray[double, ndim=2] matrix2numpy(Matrix3 m):
     return np.array([
