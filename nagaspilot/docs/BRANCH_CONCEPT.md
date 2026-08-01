@@ -18,7 +18,7 @@ keeping project-specific changes small, reviewable, and reversible.
   `c085b8af19438956c15592828bd082803f43dfaf`
 
 The `dragonpilot/` tree and Rick Lan's history must remain intact. EDP changes
-belong in `edp/` or in narrowly scoped integration commits with attribution.
+belong in `nagaspilot/` or in narrowly scoped integration commits with attribution.
 
 ## Product Scope
 
