@@ -208,6 +208,18 @@ void ignition_can_hook(CANPacket_t *msg) {
       ignition_can_cnt = 0U;
     }
 
+    // BYD Atto 3: DRIVE_STATE.GEAR is byte 5 bits 0-2 and is broadcast while
+    // the vehicle is powered/ready. Require the observed field shape so an
+    // unrelated 0x242 frame cannot falsely keep ignition alive.
+    if ((addr == 0x242) && (len == 8)) {
+      const uint8_t gear = msg->data[5] & 0x7U;
+      const bool byd_drive_state = (msg->data[5] & 0xF8U) == 0U;
+      if (byd_drive_state) {
+        ignition_can = (gear >= 1U) && (gear <= 4U);
+        ignition_can_cnt = 0U;
+      }
+    }
+
   }
 }
 
