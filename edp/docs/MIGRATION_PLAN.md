@@ -23,6 +23,16 @@ comma 3 requirement is demonstrated.
 8. Keep MonoD/SOC in shadow mode until comma 3 resource use, camera geometry,
    temporal tracking, and guardrail behavior are demonstrated from recordings.
 
+## Current Port State
+
+The first BYD slice is passive and is adapted from `dev/EDP11` plus
+`shemps/byd-atto3-openpilot-port` commit
+`5b34194240bb831719629d2fd095fae5daaed1e0`. It registers the Atto 3,
+reference fingerprints and firmware, DBC/checksum, state parser, and parser
+tests. The interface uses Panda `noOutput`, reports `dashcamOnly`, advertises no
+openpilot-longitudinal trial, and its controller always returns an empty CAN
+send list. Actuation and Panda safety remain later, independent stages.
+
 ## Explicit Non-Goals
 
 Do not replay wholesale UI, `cereal`, `modeld`, or `dmonitoring` API changes

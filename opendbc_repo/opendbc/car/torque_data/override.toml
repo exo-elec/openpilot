@@ -1,4 +1,7 @@
 legend = ["LAT_ACCEL_FACTOR", "MAX_LAT_ACCEL_MEASURED", "FRICTION"]
+
+# Angle-control platform; only MAX_LAT_ACCEL_MEASURED is consumed.
+"BYD_ATTO_3" = [nan, 2.5, nan]
 ### angle control
 # Nissan appears to have torque
 "NISSAN_XTRAIL" = [nan, 1.5, nan]
