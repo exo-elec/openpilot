@@ -13,7 +13,7 @@ class TripSnapshot:
   override_free_distance_m: float
 
 
-class NGP10TripStats:
+class NGPTripStats:
   def __init__(self):
     self.distance_m = 0.0
     self.onroad_time_s = 0.0

@@ -29,7 +29,7 @@ class DLATResult:
   model_valid: bool
 
 
-class NGP10DLAT:
+class NGPDLAT:
   """Hysteretic lane confidence arbiter; output is non-controlling."""
 
   def __init__(self, enter_threshold=0.40, exit_threshold=0.70,

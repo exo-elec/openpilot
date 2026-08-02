@@ -28,7 +28,7 @@ class TrafficControlResult:
   control_authority: bool = False
 
 
-class NGP10TrafficControl:
+class NGPTrafficControl:
   MIN_DISTANCE = 3.0
   MAX_DISTANCE = 80.0
   MIN_CONFIDENCE = 0.60

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from openpilot.nagaspilot.speed_zones import SpeedZone, speed_zone
+from nagaspilot.speed_zones import SpeedZone, speed_zone
 
 
 class SpeedLimitSource(IntEnum):
@@ -40,7 +40,7 @@ class SpeedPolicyResult:
   control_applied: bool = False
 
 
-class NGP10SpeedPolicy:
+class NGPSpeedPolicy:
   """Resolve available limits without modifying cruise or actuator state."""
 
   def __init__(self, policy: SpeedLimitPolicy = SpeedLimitPolicy.LOWEST):

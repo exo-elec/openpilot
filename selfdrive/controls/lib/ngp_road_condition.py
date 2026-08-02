@@ -30,7 +30,7 @@ class RoadConditionResult:
   control_authority: bool = False
 
 
-class NGP10RoadCondition:
+class NGPRoadCondition:
   FACTORS = {
     RoadCondition.UNKNOWN: (1.0, 2.0, -3.48),
     RoadCondition.DRY: (1.0, 2.0, -3.48),

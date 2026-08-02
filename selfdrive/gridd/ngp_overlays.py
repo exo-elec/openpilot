@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, NGP10Capabilities
+from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, NGPCapabilities
 
 
 class OverlaySide(IntEnum):
@@ -21,7 +21,7 @@ class OverlaySelection:
   control_authority: bool = False
 
 
-def select_overlay(capabilities: NGP10Capabilities, side: OverlaySide) -> OverlaySelection:
+def select_overlay(capabilities: NGPCapabilities, side: OverlaySide) -> OverlaySelection:
   requested = {
     OverlaySide.LEFT: CameraRole.SIDE_LEFT,
     OverlaySide.RIGHT: CameraRole.SIDE_RIGHT,

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from openpilot.selfdrive.controls.lib.ngp_vtsc import NGP10VTSC, VTSCState
+from openpilot.selfdrive.controls.lib.ngp_vtsc import NGPVTSC, VTSCState
 
 
 def model(rates, velocities):
@@ -8,7 +8,7 @@ def model(rates, velocities):
 
 
 def test_vtsc_shadow_enters_and_produces_target():
-  vtsc = NGP10VTSC()
+  vtsc = NGPVTSC()
   assert vtsc.update(20.0, model([0.0], [20.0])).state is VTSCState.ENABLED
   result = vtsc.update(20.0, model([0.15] * 10, [20.0] * 10))
   assert result.state is VTSCState.ENTERING
@@ -17,7 +17,7 @@ def test_vtsc_shadow_enters_and_produces_target():
 
 
 def test_vtsc_turning_then_leaves_without_target():
-  vtsc = NGP10VTSC()
+  vtsc = NGPVTSC()
   vtsc.update(20.0, model([0.0], [20.0]))
   vtsc.update(20.0, model([0.15] * 10, [20.0] * 10))
   vtsc.update(20.0, model([0.15] * 10, [20.0] * 10))
@@ -27,7 +27,7 @@ def test_vtsc_turning_then_leaves_without_target():
 
 
 def test_vtsc_missing_model_and_disable_are_safe():
-  vtsc = NGP10VTSC()
+  vtsc = NGPVTSC()
   result = vtsc.update(20.0, None)
   assert result.state is VTSCState.ENABLED
   assert result.target_speed is None

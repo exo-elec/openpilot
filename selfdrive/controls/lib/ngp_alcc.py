@@ -41,7 +41,7 @@ class ALCCResult:
   reason: str
 
 
-class NGP10ALCC:
+class NGPALCC:
   SOFT_DISABLE_TIME = 3.0
 
   def __init__(self):
