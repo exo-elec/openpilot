@@ -64,14 +64,23 @@ conflated):
 | EOP10 `tesla_safety.py` (Layer 1, EOP10-only) | 270° max angle, 20°/s rate | steering-wheel | app-layer for a different vehicle boundary (Tesla-format gateway path) |
 | `opendbc/safety/modes/tesla.h` `_vm` | ISO-11270-derived, continuous | steering-wheel | uses Tesla's own `steer_ratio=12` — do not reuse for BYD |
 
-The "TC275's 500°/s is an arbitrary Tesla-copy" framing from earlier in this
-session was wrong once the road-wheel/steering-wheel conversion is done with
-BYD's actual ratio — it lands close to a real regulatory number. What's
-still unresolved is whether it's the *right* regulatory number for this
-specific EPS, and whether the byd.h max_angle discrepancy (390° vs TC275's
-120°, both labeled "physical steering wheel limit") reflects a frame
-mismatch (steering wheel vs. some other reference) rather than one of them
-being simply wrong. Neither has been checked against a wire capture.
+**Resolved (2026-08-02, later in this session):** the max-angle discrepancy
+was not a frame mismatch — it was TC275's 120° that was wrong. Checked
+against `~/panda/byd-atto3-openpilot-port` (the route-driven community
+reference this whole port cites elsewhere): its
+`opendbc/safety/safety/safety_byd.h` uses `max_angle = 3900` (390°)
+explicitly because it "matches the python-side ANGLE_LIMITS," and its
+`values.py` documents `MAX_ANGLE_RATE = 3` deg/20ms with real telemetry
+("Stock Veoneer max=4.8 (5 caused 29deg spikes/shaky wheel), so 3 stays
+within the safe stock range"). TC275's 120° traces to
+`TC275_BrownPanda` commit `36c23c0bb5` ("update safety"), which introduced
+it with zero citation. `opendbc/safety/modes/byd.h`, `opendbc/car/byd/values.py`,
+and `opendbc/safety/tests/test_byd.py` are corrected back to 390° (matching
+their own state before this session's earlier, mistaken "align to TC275"
+change); TC275/TC375 firmware's `MAX_STEERING_ANGLE_DEG` still needs the
+same correction. The rate side did not have this problem — TC275's old flat
+500°/s and the new ISO-vm floor (4°/20ms) are both in a defensible range
+relative to the reference's evidenced 3-4.8 deg/20ms.
 
 ## Two structural constraints found
 

@@ -26,8 +26,8 @@ class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
   # matches `gas_pressed = msg->data[0] > 10U` in opendbc/safety/modes/byd.h
   GAS_PRESSED_THRESHOLD = 10
 
-  STEER_ANGLE_MAX = 120
-  STEER_ANGLE_TEST_MAX = 120
+  STEER_ANGLE_MAX = 390
+  STEER_ANGLE_TEST_MAX = 380
   DEG_TO_CAN = 10
   # CRAWL / WALK / CITY / URBAN / HIGHWAY comfort breakpoints;
   # see byd.h's BYD_STEERING_LIMITS comment for provenance.

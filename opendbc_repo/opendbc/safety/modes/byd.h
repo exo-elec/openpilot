@@ -50,14 +50,14 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
   bool violation = false;
   // Controller comfort anchors are CRAWL (0-2), WALK (2-6), CITY (6-12),
   // URBAN (12-24), and HIGHWAY (24-36 m/s).
-  // The low-speed rate
-  // (4 deg/cycle) is unchanged from the original flat draft so low-speed
-  // behavior is unaffected. CITY/HIGHWAY rates are provisional pending
-  // target-car validation - no BYD-specific steering-rate capture exists
-  // yet; the taper shape (down faster than up) matches psa.h's precedent,
-  // which shares this struct's exact max_angle/angle_deg_to_can scale.
+  // max_angle = 390 deg matches shemps/byd-atto3-openpilot-port's
+  // opendbc/safety/safety/safety_byd.h (route-driven reference, "max_angle
+  // 390 deg matches the python-side ANGLE_LIMITS"), NOT TC275/TC375
+  // firmware's 120 deg - that number was an uncited placeholder introduced
+  // in TC275_BrownPanda commit 36c23c0bb5 ("update safety") with no source,
+  // and is the one that should be treated as unverified going forward.
   static const AngleSteeringLimits BYD_STEERING_LIMITS = {
-    .max_angle = 1200,
+    .max_angle = 3900,
     .angle_deg_to_can = 10,
     // Legacy lookup storage is fixed at three points; the VM check below is
     // continuous and is the enforced ISO accel/jerk limit.

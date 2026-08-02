@@ -31,7 +31,9 @@ class CarControllerParams:
   # byd.h's BYD_STEERING_PARAMS is a provisional design, not target-car
   # evidence.
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
-    120,  # deg, matches the TC275/TC375 physical gateway limit
+    390,  # deg, matches shemps/byd-atto3-openpilot-port's route-driven
+          # safety_byd.h max_angle=3900. NOT TC275/TC375's 120 deg, which
+          # is an uncited placeholder (see byd.h's comment for the commit).
     ([0., 2., 6., 12., 24.], [4., 4., 3., 2., .5]),
     ([0., 2., 6., 12., 24.], [4., 4., 3.5, 3., 1.5]),
     MAX_LATERAL_ACCEL=MAX_LATERAL_ACCEL,
