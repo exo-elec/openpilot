@@ -35,15 +35,22 @@ into EOP10 for HAL and hardware-in-the-loop testing.
 
 | Area | Status |
 | --- | --- |
-| DLAT | Non-controlling arbiter implemented; schema/replay integration pending |
+| DLAT | v0.10.0 model adapter and non-controlling arbiter implemented; recorded-route replay pending |
 | DLON | Pure trigger/state evaluator implemented; actuator integration disabled |
 | VTSC | Model-only shadow estimator implemented |
 | MTSC | Map-independent curvature evaluator implemented |
-| GridD/SOC/MonoD/overlays | Capability contract implemented; feature modules pending |
-| Radar2D/radar3D | Scope defined; Tesla-normalized ingestion/tracking pending |
-| BrownPanda/Tesla HW3 boundary | Wire contract and gateway validation pending |
+| Speed policy/ALCC/LCA | Portable non-controlling proposal modules implemented |
+| GridD/SOC/MonoD/overlays | Minimal capability-gated shadow modules implemented |
+| Radar2D/radar3D | Tesla-normalized tracking and LCA zone gates implemented; source binding pending |
+| Adaptive telemetry | Pure normalized profile computer implemented; transport excluded |
+| BrownPanda/Tesla HW3 boundary | Upstream OpenDBC retained; external gateway validation pending |
+
+`ngpshadowd` composes the portable modules and publishes the reserved-fork
+`ngpState` cereal service at model cadence. The schema includes an explicit
+`controlAuthority = false` field and has no control or planner consumer.
 
 ## Non-goals
 
-Do not rebrand or delete DragonPilot code, import EOP hardware infrastructure
-into NGP10, or enable untested lateral/longitudinal output on a moving vehicle.
+Do not import EOP `vehicled`/`socketd`, duplicate upstream Tesla/OpenDBC code,
+rebrand or delete DragonPilot code, import EOP hardware infrastructure into
+NGP10, or enable untested lateral/longitudinal output on a moving vehicle.

@@ -1,12 +1,13 @@
-from openpilot.selfdrive.controls.lib.ngp_dlon import DLONInput, DLONMode, NGP10DLON
+from openpilot.selfdrive.controls.lib.ngp_dlon import DLONInput, NGP10DLON
 from openpilot.selfdrive.controls.lib.ngp_mtsc import MTSCState, NGP10MTSC
 
 
 def test_dlon_hysteresis_and_triggers():
   dlon = NGP10DLON(enter_frames=2, exit_frames=2)
   sample = DLONInput(8.0, should_stop=True, traffic_control=True)
-  assert dlon.evaluate(sample).triggers == ("low_speed", "stop_prediction", "traffic_control")
-  assert not dlon.evaluate(sample).e2e_suggestion
+  result = dlon.evaluate(sample)
+  assert result.triggers == ("low_speed", "stop_prediction", "traffic_control")
+  assert not result.e2e_suggestion
   assert dlon.evaluate(sample).e2e_suggestion
   assert dlon.evaluate(DLONInput(25.0)).e2e_suggestion
   assert not dlon.evaluate(DLONInput(25.0)).e2e_suggestion

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class CameraRole(str, Enum):
+class CameraRole(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
   ROAD = "road"
   WIDE_ROAD = "wide_road"
   DRIVER = "driver"
@@ -18,13 +18,16 @@ class CameraRole(str, Enum):
   REAR = "rear"
 
 
-class Feature(str, Enum):
+class Feature(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
   GRID = "gridd"
   SOC = "soc"
   SIDE_OVERLAY = "side_overlay"
   REAR_OVERLAY = "rear_overlay"
   MONOD = "monod"
   STEREO = "stereo"
+  RADAR_2D = "radar2d"
+  RADAR_3D = "radar3d"
+  ADAPTIVE_TELEMETRY = "adaptive_telemetry"
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,9 @@ class NGP10Capabilities:
   driver_camera: bool = False
   depth_backend: bool = False
   accelerator_backend: bool = False
+  radar_2d: bool = False
+  radar_3d: bool = False
+  adaptive_telemetry: bool = False
 
   @classmethod
   def comma3(cls, driver_camera: bool = False) -> "NGP10Capabilities":
@@ -58,6 +64,12 @@ class NGP10Capabilities:
     if feature is Feature.STEREO:
       # StereoD is never enabled by this two-road-camera contract.
       return False
+    if feature is Feature.RADAR_2D:
+      return self.radar_2d
+    if feature is Feature.RADAR_3D:
+      return self.radar_3d
+    if feature is Feature.ADAPTIVE_TELEMETRY:
+      return self.adaptive_telemetry
     return False
 
   def available_features(self) -> frozenset[Feature]:

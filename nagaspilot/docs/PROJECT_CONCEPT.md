@@ -24,6 +24,9 @@ car.
   need extra streams or compute are capability-gated rather than removed.
 - BrownPanda proves Tesla-format wire compatibility, gateway safety, and target
   car translation.
+- NGP10 retains upstream `selfdrive/car`, OpenDBC Tesla parsing, and Panda
+  safety. EOP10 `vehicled`/`socketd` and duplicate Tesla vehicle layers are not
+  ported.
 - EOP10 proves HAL, packaging, camera transport, and hardware-in-the-loop
   behavior using only NGP10 commits that already passed application gates.
 - EOP10 infrastructure changes (vehicled/socketd, cereal topics, v4l2d,
@@ -32,6 +35,8 @@ car.
   gateway parity is demonstrated.
 - `adaptd` may be ported as a pure normalized-telemetry profile computer;
   Bluetooth/NCP/OBD transport remains outside comma 3 selfdrive.
+- A single `ngpshadowd` process publishes portable feature diagnostics without
+  writing planner, control, Panda, or CAN command services.
 
 ## Non-goals
 

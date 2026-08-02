@@ -50,10 +50,10 @@ guardrail-safety evidence passes.
 6. **Radar and lane change**: implement normalized Tesla radar2D/radar3D
    ingestion, tracking, and safety-limited LCA gap/blind-spot decisions. Keep
    radar4D, point-cloud fusion, and raw radar hardware drivers out of NGP10.
-7. **Gateway/interface**: validate TC275 FreeRTOS BrownPanda translation,
-   Tesla Model 3 HW3 message timing/checksums, and gateway safety. Port the
-   portable Tesla-format vehicle parser/controller/safety contract only after
-   those wire tests pass.
+7. **Gateway/interface**: validate TC275 FreeRTOS BrownPanda translation and
+   Tesla Model 3 HW3 message timing/checksums against upstream OpenDBC/Panda.
+   Do not port EOP10 `vehicled`, `socketd`, or its duplicate Tesla Python
+   parser/controller/safety stack into NGP10.
 8. **Adaptive telemetry**: port `adaptd`'s pure profile computer for
    normalized `ncpVehicleData`; keep BLE/NCP/OBD transport and target-car PID
    interpretation on the gateway/NavPilot side.
@@ -64,9 +64,9 @@ The EOP10 tree also changes infrastructure outside `selfdrive/`. NGP10 must
 classify these explicitly:
 
 - **Vehicle boundary**: EOP10's `selfdrive/vehicled`, Tesla CAN packer/parser,
-  `system/socketd`, and Tesla safety layer are the relevant transition pieces.
-  Port their normalized interfaces and tests; do not delete generic upstream
-  Panda/OpenDBC until BrownPanda wire and safety parity is demonstrated.
+  `system/socketd`, and Python safety layer are references only. Retain generic
+  upstream Panda/OpenDBC and require BrownPanda to present its Tesla-compatible
+  wire contract at that existing boundary.
 - **Cereal**: EOP10 adds vehicle, adaptive telemetry, radar, and UI topics.
   Add only fields required by the normalized Tesla contract and keep absent
   topics optional on comma 3.

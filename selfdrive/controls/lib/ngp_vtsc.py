@@ -62,7 +62,7 @@ class NGP10VTSC:
       velocities = list(cls._field(model, "velocity_x"))
     current = abs(float(rates[0])) * max(0.0, float(v_ego)) if rates else 0.0
     samples = [abs(float(rate)) * float(speed)
-               for rate, speed in zip(rates[:10], velocities[:10]) if float(speed) > 1.0]
+               for rate, speed in zip(rates[:10], velocities[:10], strict=False) if float(speed) > 1.0]
     if not samples:
       return current, 0.0
     samples.sort()
