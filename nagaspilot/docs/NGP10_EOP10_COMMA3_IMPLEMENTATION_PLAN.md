@@ -45,6 +45,27 @@ camera defaults or its four-camera stereo assumptions.
 - **AEB/RED/traffic helpers** (`aeb.py`, `red.py`, `tlsc.py`, `cslb.py`) must
   remain stock safety paths until their v0.10.0 message fields and event
   semantics are verified.
+
+## Full `selfdrive/` tree audit
+
+The EOP10 tree contains more than controllers. The following additions are
+explicitly classified before any port:
+
+| EOP10 area | Examples | NGP10 decision |
+| --- | --- | --- |
+| Application control | `controls/lib/*`, `plannerd.py` | Candidate only after v0.10.0 API and replay tests |
+| Camera/perception | `gridd/`, `monod/`, `pathd/`, `pointcloudd/` | Defer stereo/depth/BEV; retain only two-camera-compatible pure logic |
+| Model runtime | `modeld/vision/*`, `rknn_*` | Do not port RKNN/NPU runners; keep v0.10.0 modeld |
+| Radar/perception | `radar4d*`, `radar3d.py`, `radar_zones.py` | Excluded; project is camera-only |
+| Platform daemons | `steamd/`, `sided/`, `stereod/`, `reard/`, `adaptd/` | Excluded from comma 3; HAL/process boundary differs |
+| Navigation/map | `mapd/`, `navd/`, `coordinationd/` | Audit as optional inputs; no required dependency for core control |
+| Calibration/location | `camera_calibrationd.py`, `side_camera_calibrator.py`, `locationd/*` | Keep stock calibration; no side-camera calibration |
+| Vehicle/diagnostics | `obd2d/`, `pandad/` changes | Port only BYD/Panda safety changes already proven separately |
+| UI/assets/recording | `ui/`, `assets/`, `recordd/` | Do not import EOP branding or hardware-specific recording paths |
+
+In particular, EOP10's `gridd` uses four MIPI cameras plus optional USB cameras,
+`monod`/`stereod` assume depth or stereo, `pathd/soc.py` assumes richer object
+geometry, and RKNN files target RK3588. None are direct comma 3 ports.
 - **GridD/multi-camera fusion** assumes RK3588 road, wide, and stereo cameras,
   RGA, and a seven-camera platform. It is not a comma 3 port target.
 - **StereoD/side/rear cameras** and `system/hardware/rk3588` are HAL/platform
@@ -80,7 +101,7 @@ camera defaults or its four-camera stereo assumptions.
 | Speed limits | Resolve sources, no forced output initially | Dashboard/nav/map dependent |
 | ALCC | Audit state machine; preserve stock engagement and DM | Requires vehicle/cereal validation |
 | LCA | Preserve human-nudge default; audit gap/BSM gates | Requires vehicle/cereal validation |
-| SOC/MonoD/GridD/stereo | Defer | Not suitable for two-camera comma 3 |
+| SOC/MonoD/GridD/stereo | Defer | Not suitable for two-camera comma 3 without a new resource/geometry study |
 
 ## Comma 3 constraints
 
