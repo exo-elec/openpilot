@@ -284,7 +284,7 @@ class canbridge:
 
   def _can_send_loop(self) -> None:
     """Transmit loop: forwards sendcan messages to SocketCAN."""
-        cloudlog.info("CAN send loop started (socketd safety + BrownPanda)")
+    cloudlog.info("CAN send loop started (socketd safety + BrownPanda)")
     consecutive_errors = 0
     max_consecutive_errors = 10
     
