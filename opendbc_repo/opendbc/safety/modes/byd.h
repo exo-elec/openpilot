@@ -48,22 +48,31 @@ static void byd_rx_hook(const CANPacket_t *msg) {
 
 static bool byd_tx_hook(const CANPacket_t *msg) {
   bool violation = false;
-  // Breakpoints are CRAWL (0 m/s) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS
-  // (24), per nagaspilot/docs/SPEED_ZONE_POLICY.md. The CRAWL rate
+  // Controller comfort anchors are CRAWL (0-2), WALK (2-6), CITY (6-12),
+  // URBAN (12-24), and HIGHWAY (24-36 m/s).
+  // The low-speed rate
   // (4 deg/cycle) is unchanged from the original flat draft so low-speed
   // behavior is unaffected. CITY/HIGHWAY rates are provisional pending
   // target-car validation - no BYD-specific steering-rate capture exists
   // yet; the taper shape (down faster than up) matches psa.h's precedent,
   // which shares this struct's exact max_angle/angle_deg_to_can scale.
   static const AngleSteeringLimits BYD_STEERING_LIMITS = {
-    .max_angle = 3900,
+    .max_angle = 1200,
     .angle_deg_to_can = 10,
+    // Legacy lookup storage is fixed at three points; the VM check below is
+    // continuous and is the enforced ISO accel/jerk limit.
     .angle_rate_up_lookup = {{0., 12., 24.}, {4., 2., .5}},
     .angle_rate_down_lookup = {{0., 12., 24.}, {4., 3., 1.5}},
     .max_angle_error = 500,
     .angle_error_min_speed = 3.,
     .frequency = 50U,
     .enforce_angle_error = true,
+  };
+
+  const AngleSteeringParams BYD_STEERING_PARAMS = {
+    .slip_factor = -0.0006166479,
+    .steer_ratio = 19.8,
+    .wheelbase = 2.72,
   };
 
   if (msg->addr == BYD_MPC_LATERAL_CMD) {
@@ -80,7 +89,17 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
     violation |= (msg->data[5] != 0xFFU) || ((msg->data[6] & 0xFU) != 0xFU);
     violation |= max_limit_check(desired_angle, BYD_STEERING_LIMITS.max_angle,
                                  -BYD_STEERING_LIMITS.max_angle);
-    violation |= steer_angle_cmd_checks(desired_angle, steer_req, BYD_STEERING_LIMITS);
+    // Bound the low-speed physical command step to 4 deg/frame. At speed the
+    // continuous VM jerk check below becomes tighter than this ceiling.
+    if (controls_allowed && steer_req) {
+      violation |= max_limit_check(desired_angle, desired_angle_last + 40,
+                                   desired_angle_last - 40);
+    }
+    violation |= steer_angle_cmd_checks_vm(desired_angle, steer_req, BYD_STEERING_LIMITS, BYD_STEERING_PARAMS);
+    if (violation) {
+      desired_angle_last = CLAMP(angle_meas.values[0], -BYD_STEERING_LIMITS.max_angle,
+                                 BYD_STEERING_LIMITS.max_angle);
+    }
   }
 
   if (msg->addr == BYD_MPC_STATE) {

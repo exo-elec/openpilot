@@ -2,12 +2,18 @@ import numpy as np
 
 from opendbc.can import CANPacker
 from opendbc.car import Bus, structs
-from opendbc.car.lateral import apply_std_steer_angle_limits
+from opendbc.car.lateral import apply_steer_angle_limits_vm
 from opendbc.car.interfaces import CarControllerBase
+from opendbc.car.vehicle_model import VehicleModel
 from opendbc.car.byd.bydcan import create_acc_cmd, create_lkas_hud, create_steering_control
 from opendbc.car.byd.values import CarControllerParams
 
 LongCtrlState = structs.CarControl.Actuators.LongControlState
+
+
+def get_safety_CP():
+  from opendbc.car.byd.interface import CarInterface
+  return CarInterface.get_non_essential_params("BYD_ATTO_3")
 
 
 class CarController(CarControllerBase):
@@ -44,6 +50,7 @@ class CarController(CarControllerBase):
     self.packer = CANPacker(dbc_names[Bus.pt])
     self.apply_angle_last = 0.
     self.accel_last = 0.
+    self.VM = VehicleModel(get_safety_CP())
 
   def update(self, CC, CS, now_nanos):
     del now_nanos
@@ -52,9 +59,9 @@ class CarController(CarControllerBase):
     accel = 0.
 
     if (CC.enabled or CC.latActive) and (self.frame % CarControllerParams.STEER_STEP == 0):
-      self.apply_angle_last = apply_std_steer_angle_limits(
+      self.apply_angle_last = apply_steer_angle_limits_vm(
         actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, CS.out.steeringAngleDeg,
-        CC.latActive, CarControllerParams.ANGLE_LIMITS)
+        CC.latActive, CarControllerParams, self.VM)
 
       cntr = (self.frame // CarControllerParams.STEER_STEP) % 16
       can_sends.append(create_steering_control(self.packer, self.apply_angle_last, CC.latActive, cntr))

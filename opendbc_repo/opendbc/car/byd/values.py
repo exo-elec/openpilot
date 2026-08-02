@@ -4,7 +4,7 @@ from enum import StrEnum
 from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, structs
 from opendbc.car.docs_definitions import CarDocs, CarHarness, CarParts
 from opendbc.car.fw_query_definitions import FwQueryConfig, Request, StdQueries
-from opendbc.car.lateral import AngleSteeringLimits
+from opendbc.car.lateral import AngleSteeringLimits, ISO_LATERAL_ACCEL
 
 Ecu = structs.CarParams.Ecu
 
@@ -12,20 +12,31 @@ Ecu = structs.CarParams.Ecu
 class CarControllerParams:
   STEER_DRIVER_OVERRIDE = 10
   STEER_STEP = 2  # 50 Hz, matches byd.h's AngleSteeringLimits.frequency = 50U
+  AVERAGE_ROAD_ROLL = 0.06
+  MAX_LATERAL_ACCEL = ISO_LATERAL_ACCEL + (9.81 * AVERAGE_ROAD_ROLL)
+  MAX_LATERAL_JERK = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)
+  MAX_ANGLE_RATE = 4.0
 
   # Mirrors opendbc/safety/modes/byd.h's BYD_STEERING_LIMITS exactly; any
   # divergence here is caught by test_byd.py's cross-check against byd_tx_hook.
-  # Breakpoints are CRAWL (0 m/s) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS
-  # (24), per nagaspilot/docs/SPEED_ZONE_POLICY.md - hardcoded rather than
-  # imported, since opendbc_repo has no dependency on nagaspilot/ (and that
-  # doc's cited canonical source, nagaspilot/speed_zones.py, does not
-  # currently exist in this tree). Rates are a provisional design
-  # (higher/looser at CRAWL/CITY for low-speed maneuvering, tighter at
-  # HIGHWAY), not target-car evidence.
+  # STEER_ANGLE_MAX and the MAX_LATERAL_*/MAX_ANGLE_RATE kwargs are what
+  # apply_steer_angle_limits_vm() actually reads (continuous ISO 11270
+  # accel/jerk limit, same formula as opendbc/safety/lateral.h and byd.h's
+  # steer_angle_cmd_checks_vm). The two breakpoint-list positional args
+  # below are NOT consumed by the vm path - they're kept only to document
+  # NagasPilot's CRAWL(0)/WALK(2)/CITY(6)/URBAN(12)/HIGHWAY(24) m/s policy
+  # ranges from nagaspilot/docs/SPEED_ZONE_POLICY.md and
+  # nagaspilot/speed_zones.py (hardcoded rather than imported, since
+  # opendbc_repo has no dependency on nagaspilot/). The slip factor in
+  # byd.h's BYD_STEERING_PARAMS is a provisional design, not target-car
+  # evidence.
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
-    390,  # deg, matches BYD_STEERING_LIMITS.max_angle / angle_deg_to_can
-    ([0., 12., 24.], [4., 2., .5]),
-    ([0., 12., 24.], [4., 3., 1.5]),
+    120,  # deg, matches the TC275/TC375 physical gateway limit
+    ([0., 2., 6., 12., 24.], [4., 4., 3., 2., .5]),
+    ([0., 2., 6., 12., 24.], [4., 4., 3.5, 3., 1.5]),
+    MAX_LATERAL_ACCEL=MAX_LATERAL_ACCEL,
+    MAX_LATERAL_JERK=MAX_LATERAL_JERK,
+    MAX_ANGLE_RATE=MAX_ANGLE_RATE,
   )
 
   # Longitudinal (0x32E trial). Comfort envelope, well inside the safety cap

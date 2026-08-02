@@ -138,7 +138,7 @@ void DPPanel::add_lateral_toggles() {
     },
     {
       "dp_lat_alka",
-      tr("Always-on Lane Keeping Assist (ALKA)"),
+      tr("Always-on Lane Centering Control (ALCC)"),
       "",
     },
     {

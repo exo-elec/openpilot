@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import unittest
+import numpy as np
 
+from opendbc.car.byd.carcontroller import get_safety_CP
+from opendbc.car.byd.values import CarControllerParams
+from opendbc.car.lateral import get_max_angle_delta_vm, get_max_angle_vm
 from opendbc.car.structs import CarParams
+from opendbc.car.vehicle_model import VehicleModel
 from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerPanda
@@ -21,22 +26,55 @@ class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
   # matches `gas_pressed = msg->data[0] > 10U` in opendbc/safety/modes/byd.h
   GAS_PRESSED_THRESHOLD = 10
 
-  STEER_ANGLE_MAX = 390
-  STEER_ANGLE_TEST_MAX = 380
+  STEER_ANGLE_MAX = 120
+  STEER_ANGLE_TEST_MAX = 120
   DEG_TO_CAN = 10
-  # CRAWL (0) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS (24) breakpoints;
+  # CRAWL / WALK / CITY / URBAN / HIGHWAY comfort breakpoints;
   # see byd.h's BYD_STEERING_LIMITS comment for provenance.
   ANGLE_RATE_BP = [0., 12., 24.]
   ANGLE_RATE_UP = [4., 2., .5]
   ANGLE_RATE_DOWN = [4., 3., 1.5]
+  LATERAL_FREQUENCY = 50
+  cnt_angle_cmd = 0
 
   def setUp(self):
     self.packer = CANPackerPanda("byd_atto3")
     self.safety = libsafety_py.libsafety
     self.safety.set_safety_hooks(CarParams.SafetyModel.byd, 0)
     self.safety.init_tests()
+    self.VM = VehicleModel(get_safety_CP())
 
-  def _angle_cmd_msg(self, angle: float, enabled: bool):
+  def _get_steer_cmd_angle_max(self, speed):
+    return min(self.STEER_ANGLE_MAX, get_max_angle_vm(max(speed, 1.0), self.VM, CarControllerParams))
+
+  def test_angle_cmd_when_enabled(self):
+    # BYD uses the continuous ISO vehicle-model checks tested below.
+    pass
+
+  def test_iso_lateral_accel_and_jerk_limits(self):
+    speed = 24.0
+    self.safety.set_controls_allowed(True)
+    self._reset_speed_measurement(speed + 1.0)
+
+    max_angle = min(self.STEER_ANGLE_MAX, get_max_angle_vm(speed, self.VM, CarControllerParams))
+    max_angle = np.floor(max_angle * self.DEG_TO_CAN) / self.DEG_TO_CAN
+    self.safety.set_desired_angle_last(round(max_angle * self.DEG_TO_CAN))
+    self.assertTrue(self._tx(self._angle_cmd_msg(max_angle, True)))
+    self.assertFalse(self._tx(self._angle_cmd_msg(max_angle + 0.2, True)))
+
+    self.safety.set_controls_allowed(True)
+    self._reset_speed_measurement(speed + 1.0)
+    self.safety.set_desired_angle_last(0)
+    max_delta = np.floor(get_max_angle_delta_vm(speed, self.VM, CarControllerParams) * self.DEG_TO_CAN) / self.DEG_TO_CAN
+    self.assertTrue(self._tx(self._angle_cmd_msg(max_delta + 0.1, True)))
+    self.safety.set_controls_allowed(True)
+    self.safety.set_desired_angle_last(0)
+    self.assertFalse(self._tx(self._angle_cmd_msg(max_delta + 0.2, True)))
+
+  def _angle_cmd_msg(self, angle: float, enabled: bool, increment_timer: bool = True):
+    if increment_timer:
+      self.safety.set_timer(self.cnt_angle_cmd * int(1e6 / self.LATERAL_FREQUENCY))
+      self.__class__.cnt_angle_cmd += 1
     values = {
       "MPC_SteerAngleRateUpper": 251 if enabled else 0,
       "MPC_SteerAngleRateLower": -252 if enabled else 0,

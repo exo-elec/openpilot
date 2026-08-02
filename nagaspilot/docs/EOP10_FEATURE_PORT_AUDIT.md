@@ -12,7 +12,8 @@ or DLON. The EOP10 implementations are more elaborate on paper, but they do not
 provide a safer or more effective baseline for a minimal BYD Atto 3 port on
 original comma 3 hardware.
 
-Retain DragonPilot AEM, ALKA, LCA and road-edge lane-change protection. Port no
+Retain DragonPilot AEM internals and LCA/road-edge lane-change protection. Present
+the always-on lane-centering feature to drivers as ALCC. Port no
 EOP10 control feature until the basic BYD lateral port and Panda safety model
 are validated.
 
@@ -83,7 +84,7 @@ distance have not been validated on the BYD test car.
 | Lane-change lead handoff | Uses native camera leads for target-lane following | Experimental; defer until longitudinal and LCA are stable |
 | CAT | Wraps already learned `liveParameters` with another filter/persistence layer | Reject; retain upstream `paramsd` |
 | RED | Can add curvature using EOP perception inputs | Reject; retain DragonPilot's conservative lane-change block |
-| ALCC/LCA | Broad independent lateral state and event manipulation | Do not replace DragonPilot ALKA/LCA |
+| ALCC/LCA | Broad independent lateral state and event manipulation | Present the shared user-facing feature as ALCC; retain DragonPilot internal compatibility names |
 | AEB/RCD/BSD perception | Additional perception-driven interventions | Reject for phase one; retain stock BYD AEB and decoded BSM |
 | LatNudge/LonNudge | Depends on EOP dedicated stereo/PathD | Reject for comma 3 wide/narrow cameras |
 | TripD | Non-controlling trip statistics | Optional after vehicle support; not part of the control port |

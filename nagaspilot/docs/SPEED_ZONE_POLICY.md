@@ -1,44 +1,25 @@
-# NagasPilot speed-zone policy
+# Speed zones and Traffic Jam Assist
 
-NagasPilot defines `CITY_SPEED_MPS`, `HIGHWAY_SPEED_MPS`, and `MAX_SPEED_MPS`
-at 12, 24, and 36 m/s (approximately 43, 86, and 130 km/h). They describe
-reviewable operating zones; they are not automatically a vehicle speed limiter.
+EDP10, NGP10, and EOP10 use one range contract:
 
-| Consumer | Zone behavior | Decision |
-|---|---|---|
-| `steerd` | No-camera nudge above 12; attentive-camera nudge above 24; short timing for both at or above 36 | Implement in NagasPilot |
-| Camera distraction | Existing vision 3/5/11-second alerts | Preserve; stricter alert wins |
-| LCA | Fixed 12 m/s entry and fixed 3.0 s automatic delay; NagasPilot hides both DragonPilot controls | Implement |
-| ALKA | Safety/engagement conditions, not a lane-change speed gate | Do not couple to zones |
-| Road-edge detection | Always-on model-confidence block for the requested lane-change side | Implement; no speed gate |
-| SOC | Selectable fixed 0.20 m offset away from one-sided BYD BSM; sustained four-line 2.8–3.6 m geometry at or above 24 m/s | Rear-approach trial only; full overtaking support requires validated adjacent tracks |
-| Longitudinal acceleration | 0/12/24/36 m/s interpolation with the existing acceleration values | Implement; values unchanged |
-| Turn acceleration limit | 24/36 m/s interpolation with the existing total-acceleration values | Implement; values unchanged |
-| Wide-camera UI | Wide view below 12 m/s, existing 12–15 m/s hysteresis, road view above 15 m/s | Implement on original comma 3 UI |
-| BYD `0x1E2` angle-rate limit | 3-step interpolation at `CRAWL`(0)/`CITY_SPEED_MPS`(12)/`HIGHWAY_SPEED_MPS`(24) m/s: `4`/`2`/`.5` deg-per-50Hz-cycle windup, `4`/`3`/`1.5` unwind. `opendbc/safety/modes/byd.h`'s `BYD_STEERING_LIMITS` and `opendbc/car/byd/values.py`'s `CarControllerParams.ANGLE_LIMITS` | Implemented, hardcoded not imported (see note below); rates are a provisional design pending target-car steering-rate capture, not route-tested values like the other rows in this table |
+| Zone | Range | Positive acceleration cap | Positive jerk cap |
+|---|---:|---:|---:|
+| CRAWL | 0–2 m/s | 0.45 m/s² | 0.35 m/s³ |
+| WALK | 2–6 m/s | ramps to 0.70 m/s² | ramps to 0.55 m/s³ |
+| CITY | 6–12 m/s | ramps to 1.00 m/s² | ramps to 0.80 m/s³ |
+| URBAN | 12–24 m/s | ramps to 1.20 m/s² | ramps to 1.20 m/s³ |
+| HIGHWAY | 24–36 m/s | ramps to 1.40 m/s² | ramps to 1.50 m/s³ |
 
-EOP10 also applies the grid to DLON, PathD scaling, NNFF torque friction,
-road-condition speed caps, and hardware-specific perception. Those consumers
-remain deferred because their supporting stacks or evidence are not present on
-the original comma 3 BYD baseline.
+MAX_SPEED_MPS=36 is a policy clamp, not a zone. The profile only limits
+positive acceleration and rising jerk. It never delays braking.
 
-The canonical constants live in `nagaspilot/speed_zones.py`. A new consumer may
-import them only after its behavior, boundary equality, fallback, and transition
-tests are documented. Crossing a boundary must not reset or extend an active
-safety alert.
+Traffic Jam Assist is implemented in selfdrive/controls/lib/dp_tja.py on
+EDP10. Below 6 m/s, it uses lead distance, relative speed, model confidence,
+and radar track continuity. Stable oversized gaps permit controlled closing.
+A cut-in, sudden distance drop, short time-to-collision, or undersized gap
+suppresses positive acceleration immediately.
 
-**`nagaspilot/speed_zones.py` does not currently exist in this tree** (only
-stale `.pyc` caches do), and nothing under `nagaspilot/selfdrive/` or
-`nagaspilot/system/` currently imports it or references
-`CITY_SPEED_MPS`/`HIGHWAY_SPEED_MPS` by name (checked 2026-08-02). Every row
-in the table above other than the BYD one is therefore this policy's intended
-design, not yet-implemented code, as far as this check found - worth
-confirming before treating any of those rows as live behavior. The BYD row
-is coded but cannot import the module even once it exists, since
-`opendbc_repo` (where `byd.h`/`values.py` live) has no dependency on
-`nagaspilot/`; its `12`/`24` m/s values are hardcoded in
-`opendbc/car/byd/values.py` with a citation to this file instead. If this
-file's canonical values ever change or `speed_zones.py` is restored,
-`opendbc/car/byd/values.py` and `opendbc/safety/modes/byd.h` will not update
-automatically and must be checked by hand.
+The canonical constants live in nagaspilot/speed_zones.py. OpenDBC safety
+cannot import that package; its continuous vehicle-model ISO steering check is
+kept in sync by tests and review rather than Python imports.
 

@@ -157,8 +157,8 @@
         <translation>橫向控制</translation>
     </message>
     <message>
-        <source>Always-on Lane Keeping Assist (ALKA)</source>
-        <translation>全時車維 (ALKA)</translation>
+        <source>Always-on Lane Centering Control (ALCC)</source>
+        <translation>全時車道置中控制 (ALCC)</translation>
     </message>
     <message>
         <source>Road Edge Detection (RED)</source>

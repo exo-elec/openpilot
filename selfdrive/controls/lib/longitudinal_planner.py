@@ -14,6 +14,8 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDX
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
+from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from openpilot.selfdrive.controls.lib.dp_tja import TrafficJamAssist
 from dragonpilot.selfdrive.controls.lib.acm import ACM
 from dragonpilot.selfdrive.controls.lib.aem import AEM
 
@@ -35,7 +37,7 @@ class DPFlags:
   pass
 
 def get_max_accel(v_ego):
-  return np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS)
+  return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
 
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
@@ -70,6 +72,7 @@ class LongitudinalPlanner:
     self.prev_accel_clip = [ACCEL_MIN, ACCEL_MAX]
     self.output_a_target = 0.0
     self.output_should_stop = False
+    self.tja = TrafficJamAssist(self.dt)
 
     self.v_desired_trajectory = np.zeros(CONTROL_N)
     self.a_desired_trajectory = np.zeros(CONTROL_N)
@@ -100,6 +103,7 @@ class LongitudinalPlanner:
 
   def update(self, sm, dp_flags = 0):
     v_ego = sm['carState'].vEgo
+    tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
 
     # --- Calculate current cycle variables needed by AEM ---
     x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])
@@ -235,6 +239,13 @@ class LongitudinalPlanner:
 
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
+    # Limit only rising acceleration. Planner-requested braking remains
+    # immediately available.
+    if tja_result.active:
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * tja_result.accel_scale)
+    if not reset_state:
+      output_a_target = min(output_a_target,
+                            self.output_a_target + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip
 
