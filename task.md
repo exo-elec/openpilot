@@ -168,28 +168,78 @@ Completed:
 
 Known remaining work:
 
-- [ ] **Dev-PC Python environment is broken for anything touching `cereal.messaging`**
-  (pre-existing, not introduced by this session — confirmed via `git stash` on a
-  clean tree). Root causes, so a future session doesn't have to re-diagnose:
-  - `msgq_repo` and `rednose_repo` submodules are uninitialized (`git submodule
-    status` shows them with a `-` prefix — never `git submodule update --init`'d).
-  - `.venv` is Python 3.12, but `common/params_pyx.so` is a stale build for a
-    different Python ABI (`undefined symbol: PyCode_NewWithPosOnlyArgs`).
-  - `opendbc_repo` is a populated submodule but is never `pip install -e`'d or
-    added to `PYTHONPATH` by any launch script or `SConstruct` rule — so
-    `system/socketd/vehicle/car/{card,carstate,carcontroller}.py`'s existing
-    `from opendbc.car.tesla...` imports can't resolve here either, from either
-    the 3.12 `.venv` or system `/usr/bin/python3.10`.
-  - System `/usr/bin/python3.10` has the `carla` PyPI package installed
-    globally (`~/.local/lib/python3.10/site-packages`) — but not `msgq`.
-  - Fix needs: `git submodule update --init msgq_repo rednose_repo`, build/
-    install their Cython extensions against whichever Python is canonical for
-    this checkout (`.python-version` says 3.12, but the only environment with
-    any of these packages present is 3.10), and either `pip install -e
-    opendbc_repo` or add it to `PYTHONPATH`.
 - [ ] **This tool's exec sandbox has no GPU device passthrough** — only
   `/dev/nvidiactl` is present, not `/dev/nvidia0`, so `nvidia-smi` can't reach
   the driver here even though the host has an RTX 3090. CARLA needs real
   GPU/Vulkan rendering (`tools/sim/start_carla.sh` explicitly requires a
   discrete GPU) and cannot run from this sandboxed shell — would need to run
-  directly on the host outside this tool.
+  directly on the host outside this tool. Still open; everything else below
+  is fixed.
+
+## Follow-up session (dev-PC build environment repair, 2026-08-02)
+
+The "Dev-PC Python environment is broken" item above is now fixed, and it
+went further than initially scoped once real tests could actually run
+in this environment for the first time. Commit `bcce0e24d`.
+
+Root-caused and fixed:
+
+- `msgq_repo`/`rednose_repo` submodules were never initialized
+  (`git submodule update --init msgq_repo rednose_repo`) — the `msgq`/
+  `rednose` symlinks at repo root (committed since upstream's "Restructure
+  msgq #32652") pointed into empty directories. Populated them, then built
+  their Cython extensions for this checkout's Python (3.12) via
+  `scons -j$(nproc) msgq_repo/` — `cereal.messaging` now imports.
+- `common/params_pyx.so` was a stale build for a different Python ABI
+  (`undefined symbol: PyCode_NewWithPosOnlyArgs`); rebuilt via
+  `scons -j$(nproc) common/params_pyx.so`.
+- `opendbc_repo` is a populated submodule but, unlike `msgq_repo`/
+  `rednose_repo`, had **no** root-level `opendbc` symlink — nothing could
+  ever `import opendbc` here, including `system/socketd/vehicle/car/*.py`'s
+  existing `from opendbc.car.tesla...` imports. Added `opendbc ->
+  opendbc_repo/opendbc` (same convention as msgq/rednose, now committed) and
+  built opendbc_repo's own Cython extension (`opendbc/can/parser_pyx.so`) by
+  running `scons` inside `opendbc_repo/` against the main `.venv`.
+- `common/transformations/transformations.so` had the same stale-ABI
+  problem; rebuilt via `scons -j$(nproc) common/`.
+- `casadi` (3.7.1, pinned in `uv.lock`) was installed but corrupted — only
+  its bundled `.so` solver libraries were present, no `casadi.py`/
+  `_casadi` Python binding, so `from casadi import SX` failed. A plain
+  `uv sync --all-extras` reinstall fixed it (was a bad local install, not a
+  version problem).
+- `selfdrive/controls/lib/{longitudinal,lateral}_mpc_lib/c_generated_code/
+  acados_ocp_solver_pyx.so` (plannerd's/lateral MPC's acados solvers) had
+  the same stale-ABI problem once casadi worked; rebuilt both via
+  `scons -j$(nproc) selfdrive/controls/lib/{longitudinal,lateral}_mpc_lib/`.
+- `pyproject.toml` was silently missing two dependencies that real installs
+  would also hit: `scipy` (imported by `pointcloudd/feature_extractor.py`
+  and `controls/radar4d_pointcloud.py`) and `pytest-env` (required by
+  `[tool.pytest.ini_options]`'s `env = [...]`; the whole suite couldn't
+  even collect without it). Declared both properly and re-locked
+  (`uv lock`), rather than leaving them as ad-hoc venv installs.
+  **Caution for next session**: `uv sync --extra <name>` syncs to *only*
+  that extra and uninstalls everything else not declared for it — always
+  use `--all-extras` on this project, or packages silently disappear.
+
+Two real (not environment) bugs surfaced once the suite could actually run,
+both fixed:
+
+- `system/bluetoothd/{pairing_agent,ble_gatt}.py`: `@dbus.service.method`/
+  `.signal` are decorator factories evaluated at class-body execution time.
+  Both modules correctly guard their base class (`dbus.service.Object if
+  DBUS_AVAILABLE else object`) and `__init__`, but the bare decorators still
+  ran unconditionally at import time and raised `AttributeError` whenever
+  dbus-python isn't installed. Added no-op decorator fallbacks
+  (`dbus_method`/`dbus_signal`) used in both files.
+- `selfdrive/gridd/tests/test_fuse_radar4d.py`: `GridD._estimate_box_kinematics`
+  is a `@classmethod`; accessing it through the class already returns a
+  bound method. The test harness re-wrapped that bound method in
+  `classmethod(...)` again, binding a second `cls` and breaking the call
+  arity (`TypeError: takes 3 positional arguments but 4 were given`).
+  Fixed by unwrapping with `.__func__` before re-wrapping.
+
+Net result: `test_daemon_imports.py` 31/40 → 40/40.
+`selfdrive/controls/tests/ selfdrive/gridd/tests/ system/socketd/tests/`
+(minus `tici`-marked): 272 passed, 2 failed — both the already-documented,
+hardware-data-dependent gaps (`test_nslc::test_get_nslc_speed_helper`,
+`test_depth_validation::test_with_real_calibration`), nothing new.
