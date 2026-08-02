@@ -35,10 +35,13 @@ camera defaults or its four-camera stereo assumptions.
   `speed_limit_resolver.py`) can be audited as input resolution, but any
   automatic cruise-speed change must respect the fixed CITY/HIGHWAY policy and
   stock driver-monitoring events.
-- **LCA/ALKA helpers** (`alcc.py`, `lc_lead_handoff.py`) are vehicle- and
-  cereal-integration code. The adjacent-lead handoff is camera-only in EOP10,
-  but it depends on `leadsV3`, lane-change state, and longitudinal MPC; port
-  only after core lane-change safety tests exist.
+- **ALCC and LCA are separate EOP10 features.** `alcc.py` implements **ALCC
+  (Always Lane Centering Control)** inside `controlsd`; it is not called ALKA
+  in EOP10. `desire_helper.py` and `lc_lead_handoff.py` implement **LCA (Lane
+  Change Assist)**. ALCC is the lateral-centering execution layer, while LCA
+  handles turn-signal lane changes and gap/BSM checks. The adjacent-lead
+  handoff is camera-only in EOP10, but depends on `leadsV3`, lane-change state,
+  and longitudinal MPC; port only after core lane-change safety tests exist.
 - **AEB/RED/traffic helpers** (`aeb.py`, `red.py`, `tlsc.py`, `cslb.py`) must
   remain stock safety paths until their v0.10.0 message fields and event
   semantics are verified.
@@ -75,7 +78,8 @@ camera defaults or its four-camera stereo assumptions.
 | VTSC | Next candidate; shadow speed target | Wide + narrow `modelV2` |
 | MTSC | Test pure math only; map input optional | Not camera-only by itself |
 | Speed limits | Resolve sources, no forced output initially | Dashboard/nav/map dependent |
-| LCA/ALKA | Preserve stock engagement and DM | Requires vehicle/cereal validation |
+| ALCC | Audit state machine; preserve stock engagement and DM | Requires vehicle/cereal validation |
+| LCA | Preserve human-nudge default; audit gap/BSM gates | Requires vehicle/cereal validation |
 | SOC/MonoD/GridD/stereo | Defer | Not suitable for two-camera comma 3 |
 
 ## Comma 3 constraints
