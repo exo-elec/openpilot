@@ -57,7 +57,7 @@ explicitly classified before any port:
 | Camera/perception | `gridd/`, `monod/`, `pathd/`, `pointcloudd/` | Defer stereo/depth/BEV; retain only two-camera-compatible pure logic |
 | Model runtime | `modeld/vision/*`, `rknn_*` | Do not port RKNN/NPU runners; keep v0.10.0 modeld |
 | Radar/perception | `radar4d*`, `radar3d.py`, `radar_zones.py` | Excluded; project is camera-only |
-| Platform daemons | `steamd/`, `sided/`, `stereod/`, `reard/`, `adaptd/` | Excluded from comma 3; HAL/process boundary differs |
+| Platform daemons | `steamd/`, `sided/`, `stereod/`, `reard/`, `adaptd/` | Portable contracts may be implemented; hardware daemons are EOP10-only |
 | Navigation/map | `mapd/`, `navd/`, `coordinationd/` | Audit as optional inputs; no required dependency for core control |
 | Calibration/location | `camera_calibrationd.py`, `side_camera_calibrator.py`, `locationd/*` | Keep stock calibration; no side-camera calibration |
 | Vehicle/diagnostics | `obd2d/`, `pandad/` changes | Port only BYD/Panda safety changes already proven separately |
@@ -101,7 +101,7 @@ geometry, and RKNN files target RK3588. None are direct comma 3 ports.
 | Speed limits | Resolve sources, no forced output initially | Dashboard/nav/map dependent |
 | ALCC | Audit state machine; preserve stock engagement and DM | Requires vehicle/cereal validation |
 | LCA | Preserve human-nudge default; audit gap/BSM gates | Requires vehicle/cereal validation |
-| SOC/MonoD/GridD/stereo | Defer | Not suitable for two-camera comma 3 without a new resource/geometry study |
+| SOC/MonoD/GridD/stereo | Capability-gated implementation | Comma 3 diagnostics/fallback; EOP10 enables extra streams after geometry/resource tests |
 
 ## Comma 3 constraints
 
