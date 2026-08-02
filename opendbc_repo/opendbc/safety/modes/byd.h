@@ -48,13 +48,13 @@ static void byd_rx_hook(const CANPacket_t *msg) {
 
 static bool byd_tx_hook(const CANPacket_t *msg) {
   bool violation = false;
-  // Breakpoints follow nagaspilot/speed_zones.py's CITY_SPEED_MPS (12) and
-  // HIGHWAY_SPEED_MPS (24); the low-speed rate (4 deg/cycle) is unchanged
-  // from the original flat draft so city behavior is unaffected. Highway
-  // rates are provisional pending target-car validation - no BYD-specific
-  // steering-rate capture exists yet; the taper shape (down faster than up)
-  // matches psa.h's precedent, which shares this struct's exact
-  // max_angle/angle_deg_to_can scale.
+  // Breakpoints are CRAWL (0 m/s) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS
+  // (24), per nagaspilot/docs/SPEED_ZONE_POLICY.md. The CRAWL rate
+  // (4 deg/cycle) is unchanged from the original flat draft so low-speed
+  // behavior is unaffected. CITY/HIGHWAY rates are provisional pending
+  // target-car validation - no BYD-specific steering-rate capture exists
+  // yet; the taper shape (down faster than up) matches psa.h's precedent,
+  // which shares this struct's exact max_angle/angle_deg_to_can scale.
   static const AngleSteeringLimits BYD_STEERING_LIMITS = {
     .max_angle = 3900,
     .angle_deg_to_can = 10,

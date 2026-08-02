@@ -24,8 +24,8 @@ class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
   STEER_ANGLE_MAX = 390
   STEER_ANGLE_TEST_MAX = 380
   DEG_TO_CAN = 10
-  # CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS (24) breakpoints; see byd.h's
-  # BYD_STEERING_LIMITS comment for provenance.
+  # CRAWL (0) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS (24) breakpoints;
+  # see byd.h's BYD_STEERING_LIMITS comment for provenance.
   ANGLE_RATE_BP = [0., 12., 24.]
   ANGLE_RATE_UP = [4., 2., .5]
   ANGLE_RATE_DOWN = [4., 3., 1.5]

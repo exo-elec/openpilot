@@ -15,12 +15,13 @@ class CarControllerParams:
 
   # Mirrors opendbc/safety/modes/byd.h's BYD_STEERING_LIMITS exactly; any
   # divergence here is caught by test_byd.py's cross-check against byd_tx_hook.
-  # Breakpoints are nagaspilot/docs/SPEED_ZONE_POLICY.md's CITY_SPEED_MPS (12)
-  # and HIGHWAY_SPEED_MPS (24) - hardcoded rather than imported, since
-  # opendbc_repo has no dependency on nagaspilot/ (and that doc's cited
-  # canonical source, nagaspilot/speed_zones.py, does not currently exist in
-  # this tree). Rates are a provisional design (higher/looser at low speed
-  # for city maneuvering, tighter at highway speed), not target-car evidence.
+  # Breakpoints are CRAWL (0 m/s) / CITY_SPEED_MPS (12) / HIGHWAY_SPEED_MPS
+  # (24), per nagaspilot/docs/SPEED_ZONE_POLICY.md - hardcoded rather than
+  # imported, since opendbc_repo has no dependency on nagaspilot/ (and that
+  # doc's cited canonical source, nagaspilot/speed_zones.py, does not
+  # currently exist in this tree). Rates are a provisional design
+  # (higher/looser at CRAWL/CITY for low-speed maneuvering, tighter at
+  # HIGHWAY), not target-car evidence.
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
     390,  # deg, matches BYD_STEERING_LIMITS.max_angle / angle_deg_to_can
     ([0., 12., 24.], [4., 2., .5]),
