@@ -306,6 +306,13 @@ void EopPanel::add_longitudinal_toggles() {
           tr("Traffic Jam Assist (TJA)"),
           tr("Gentle acceleration ramp after stops in stop-and-go traffic."),
       },
+      {
+          "NGPBRSCEnabled",
+          tr("Bumpy Road Speed Controller (BRSC)"),
+          tr("Reduce speed and acceleration on rough pavement, detected from "
+             "vertical IMU acceleration. Recovers gradually a few seconds "
+             "after the road smooths out."),
+      },
   };
 
   QWidget *label = nullptr;

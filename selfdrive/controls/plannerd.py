@@ -24,10 +24,11 @@ def main() -> int:
     pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'speedLimitState', 'ttsRequest'])
     sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
                               'mapData', 'navInstruction', 'stereoObjects', 'surfaceStatus', 'liveLocationKalman',
-                              'enhancedTrajectory', 'radar4d'],
+                              'enhancedTrajectory', 'radar4d', 'accelerometer'],
                              poll='modelV2',
                              ignore_alive=['mapData', 'navInstruction', 'stereoObjects',
-                                           'surfaceStatus', 'liveLocationKalman', 'enhancedTrajectory', 'radar4d'])
+                                           'surfaceStatus', 'liveLocationKalman', 'enhancedTrajectory', 'radar4d',
+                                           'accelerometer'])
 
     while True:
       sm.update()

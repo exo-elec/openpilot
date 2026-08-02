@@ -50,6 +50,11 @@ from openpilot.selfdrive.controls.lib.rcd import RCD
 from openpilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 # EOP: Lane Change Lead Handoff (pure camera — adjacent lead tracking during lane change)
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
+# BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
+# EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
+# Interacts with v_cruise the same way VTSC/SQSC/RCD do: it only ever tightens the
+# clamp already established by VTSC/MTSC's curve-speed blend earlier in update().
+from nagaspilot.controls.ngp_brsc import NGPBRSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 # EOP: breakpoints aligned with CRAWL/URBAN/HIGHWAY/MAX (0/43/86/130 km/h).
@@ -139,6 +144,27 @@ def _apply_weather_severity_limit(max_accel: float, severity: int) -> float:
   """Scale max acceleration by the radar4d weather severity level (0-3)."""
   level = min(max(int(severity), 0), len(WEATHER_ACCEL_SCALE) - 1)
   return max_accel * WEATHER_ACCEL_SCALE[level]
+
+
+# BRSC: Bumpy Road Speed Controller — reduce speed/accel on rough pavement, detected
+# from vertical IMU acceleration (nagaspilot.controls.ngp_brsc). Only applies above
+# walking speed and never cuts speed below a floor, mirroring VTSC's MIN_VELOCITY.
+BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
+BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
+_brsc_enabled_cache = {'ts': 0.0, 'enabled': True}
+
+
+def _load_brsc_enabled():
+  """Read the BRSC toggle from Params (cached, 2s TTL)."""
+  global _brsc_enabled_cache
+  now = time.monotonic()
+  if now - _brsc_enabled_cache['ts'] < 2.0:
+    return _brsc_enabled_cache['enabled']
+  from openpilot.common.params import Params
+  p = Params().get("NGPBRSCEnabled")
+  enabled = p != b"0" if p else True
+  _brsc_enabled_cache = {'ts': now, 'enabled': enabled}
+  return enabled
 
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
@@ -241,7 +267,12 @@ class LongitudinalPlanner:
     # EOP: RCD initialization (Road Condition Detection)
     self.rcd = RCD()
     self.rcd_v_target = None
-    
+
+    # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
+    self.brsc = NGPBRSC()
+    self.brsc_result = None
+    self.brsc_v_target = None
+
     # EOP: LHLC initialization (Long Horizon Lateral Controller - 500m Hybrid A* from pathd)
     self.lhlc_active = False
     self.lhlc_v_target = None
@@ -310,6 +341,15 @@ class LongitudinalPlanner:
       accel_coast = ACCEL_MAX
 
     v_ego = sm['carState'].vEgo
+
+    # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy (always fed
+    # so its internal baseline/hold state stays current; application is gated below).
+    brsc_enabled = _load_brsc_enabled()
+    if sm.valid.get('accelerometer', False):
+      az = sm['accelerometer'].acceleration.v[2]
+      # accel_max_full=1.0 makes result.accel_max double as the [0-1] accel-scale
+      # fraction directly, since the real max_accel isn't computed until below.
+      self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
     tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
     v_cruise_kph = min(sm['carState'].vCruise, V_CRUISE_MAX)
     v_cruise = v_cruise_kph * CV.KPH_TO_MS
@@ -334,6 +374,10 @@ class LongitudinalPlanner:
       # (clutter + wiper + glass contamination) steps max accel down per level.
       if sm.valid.get('radar4d', False):
         max_accel = _apply_weather_severity_limit(max_accel, int(sm['radar4d'].weatherSeverity))
+      # BRSC: cap positive accel while rough-road hold is active.
+      if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
+        accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
+        max_accel = max_accel * accel_scale
       accel_clip = [ACCEL_MIN, max_accel]
       steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
       accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP, self.VM)
@@ -531,7 +575,18 @@ class LongitudinalPlanner:
     rcd_state = self.rcd.update(sm)
     self.rcd_v_target = rcd_state.speed_limit_ms if rcd_state.is_active else None
     v_cruise = self._apply_speed_limit(v_cruise, self.rcd_v_target)
-    
+
+    # BRSC: reduce cruise speed while rough-road hold is active, on top of whatever
+    # VTSC/MTSC/SQSC/RCD/TLSC already set v_cruise to. Gated on v_ego (matches VTSC's
+    # MIN_VELOCITY) and floored so a long rough stretch can't crawl the car below a
+    # safe minimum.
+    self.brsc_v_target = None
+    if (brsc_enabled and self.brsc_result is not None
+        and self.brsc_result.active and v_ego > BRSC_MIN_V_EGO):
+      self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor,
+                                          BRSC_MIN_SPEED_MS)
+    v_cruise = self._apply_speed_limit(v_cruise, self.brsc_v_target)
+
     # EOP: Adaptive Gap — adjust t_follow and jerk based on lead relative speed
     # Merged from FrogPilot. Only active when enabled via param (default off for safety).
     # Disabled in traffic mode — traffic personality uses its own tight-gap tables.
@@ -715,7 +770,14 @@ class LongitudinalPlanner:
     longitudinalPlan.rcdActive = self.rcd_v_target is not None
     if self.rcd_v_target is not None:
       longitudinalPlan.rcdSpeed = float(self.rcd_v_target)
-    
+
+    # BRSC debug info
+    if self.brsc_result is not None:
+      longitudinalPlan.brscActive = self.brsc_result.active
+      longitudinalPlan.brscRoughness = float(self.brsc_result.roughness_rms)
+    if self.brsc_v_target is not None:
+      longitudinalPlan.brscSpeed = float(self.brsc_v_target)
+
     # EOP: LHLC (Long Horizon Lateral Controller)
     longitudinalPlan.lhlcActive = self.lhlc_active
     if self.lhlc_v_target is not None:

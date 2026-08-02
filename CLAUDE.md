@@ -64,6 +64,26 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 |----------|----------|------|
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
 
+## New Features
+
+**BRSC — Bumpy Road Speed Controller (2026-08-03):**
+- Reduces cruise speed / positive accel on rough pavement, detected from vertical
+  IMU acceleration (`accelerometer` service, not vision — complements VTSC/MTSC
+  which only see path curvature). Real-world tuned: isolated single-spike events
+  (railroad crossing, one pothole) don't trigger a slowdown; sustained roughness
+  (washboard/broken pavement) does; recovery ramps back over a few seconds instead
+  of stepping, and a retriggerable hold (capped) rides out closely-spaced bumps.
+- Pure policy lives in `nagaspilot/controls/ngp_brsc.py` (`NGPBRSC` class, zero
+  cereal/Params deps) so the identical file ports to `dev/NGP10` and `dev/EDP10`.
+  `NGP`-prefixed (not `EOP`-prefixed) param `NGPBRSCEnabled` is a deliberate
+  exception to the `EOP<Feature><Param>` rule, made for features shared verbatim
+  across branches — see `docs/eop/03_Software/Controllers/BRSC.md`.
+- EOP10 wiring: `selfdrive/controls/plannerd.py` (subscribes `accelerometer`) +
+  `selfdrive/controls/lib/longitudinal_planner.py` (same `_apply_speed_limit`
+  pattern as SQSC/RCD/TLSC — applied after VTSC/MTSC's curve-speed blend).
+- capnp: `LongitudinalPlan.brscActive/brscSpeed/brscRoughness` (`log.capnp` @66-68).
+- Tests: `nagaspilot/tests/test_ngp_brsc.py` (pure-Python, no capnp/build needed).
+
 ## Recent Bug Fixes
 
 **BLE / Bluetooth stack (2026-05-31):**
@@ -87,7 +107,7 @@ See `docs/upstream-audit/DELTA_AUDIT.md` Step 15 for earlier Python runtime bugs
 
 ---
 
-**Last updated**: 2026-05-31  
+**Last updated**: 2026-08-03  
 **Branch**: EOP10
 
 ---

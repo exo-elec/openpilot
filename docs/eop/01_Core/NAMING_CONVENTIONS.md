@@ -250,6 +250,7 @@ selfdrive/controls/lib/
 | **VTSC** | `VTSC.md` | `longitudinal_planner` | Vision Turn Speed Control (0-250m) |
 | **MTSC** | `MTSC.md` | `longitudinal_planner` | Map Turn Speed Control (250-500m) |
 | **TJA** | `TJA.md` | `longcontrol` | Traffic Jam Assist (smooth start) |
+| **BRSC** | `BRSC.md` | `nagaspilot/controls/ngp_brsc.py` + `longitudinal_planner` | Bumpy Road Speed Controller — vertical-IMU roughness (`NGP`-prefixed exception: shared verbatim across EOP10/NGP10/EDP10, see doc) |
 
 ### Enhanced Vision Features (Daemons - standalone processes)
 

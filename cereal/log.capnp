@@ -1922,6 +1922,11 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   ddscStandstillLatched @64 :Bool;
   ddscSpeed @65 :Float32;
 
+  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via nagaspilot/controls)
+  brscActive @66 :Bool;
+  brscSpeed @67 :Float32;
+  brscRoughness @68 :Float32;
+
   enum LongitudinalPlanSource {
     cruise @0;
     lead0 @1;
