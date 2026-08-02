@@ -69,23 +69,21 @@ only until their individual exit gates are met.
    controller and the safety model actually agree on every limit and
    sentinel, not just that each passes its own test in isolation.
 
-   Angle-rate limits are 3-step, tapering with speed at
-   `nagaspilot/docs/SPEED_ZONE_POLICY.md`'s `CITY_SPEED_MPS`/`HIGHWAY_SPEED_MPS`
-   breakpoints (12/24 m/s): `4`/`2`/`.5` deg-per-50Hz-cycle winding up,
-   `4`/`3`/`1.5` unwinding (always faster than winding up, for recovery
-   safety). The 0 m/s value is unchanged from the original flat draft so city
-   behavior is untouched; the 12/24 m/s values are a provisional design (no
-   BYD-specific steering-rate capture exists) shaped after `psa.h`'s taper,
-   which shares this struct's exact `max_angle`/`angle_deg_to_can` scale. Both
-   `opendbc/safety/modes/byd.h`'s `BYD_STEERING_LIMITS` and
-   `opendbc/car/byd/values.py`'s `CarControllerParams.ANGLE_LIMITS` must stay
-   mirrored; `test_controller_engaged_matches_safety_model` is what enforces
-   that. Note: `nagaspilot/docs/SPEED_ZONE_POLICY.md` cites
-   `nagaspilot/speed_zones.py` as the canonical constants source, but that
-   file does not currently exist in this tree (only stale `.pyc` caches do) -
-   the values above are hardcoded in `opendbc/car/byd/values.py` with a
-   citation comment instead, since `opendbc_repo` has no dependency on
-   `nagaspilot/` regardless.
+   **Superseded (2026-08-03):** the 3-step breakpoint taper described above
+   was replaced with a continuous ISO 11270 vehicle-model formula
+   (`steer_angle_cmd_checks_vm`/`apply_steer_angle_limits_vm`, both angle
+   and rate), matching upstream's own deprecation of the breakpoint
+   approach (`opendbc/safety/lateral.h:298`'s TODO). A speed-zoned 7-point
+   backstop LUT sits on top for defense-in-depth (100% on the panda/gateway
+   side, 80% on the openpilot controller side) - see
+   `nagaspilot/docs/STEERING_LIMIT_POLICY.md` for the full design and the
+   verified numbers. `nagaspilot/speed_zones.py` now exists (created
+   alongside `dp_tja.py`, this doc's earlier note about it being missing is
+   stale) but `opendbc_repo` still has no dependency on `nagaspilot/`, so
+   the BYD-specific slip factor and LUT values stay hardcoded in
+   `opendbc/car/byd/values.py` and `opendbc/safety/modes/byd.h` with
+   citations rather than an import. Both files must stay mirrored;
+   `test_controller_engaged_matches_safety_model` is what enforces that.
    **The `0x316` HUD side is now coded, at the user's explicit direction to
    follow the CarrotPilot-derived reference and finish the code rather than
    wait on capture.** `bydcan.create_lkas_hud` passes every field through
