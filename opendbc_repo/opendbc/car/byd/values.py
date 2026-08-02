@@ -28,6 +28,18 @@ class CarControllerParams:
     ([0., 12., 24.], [4., 3., 1.5]),
   )
 
+  # Longitudinal (0x32E trial). Comfort envelope, well inside the safety cap
+  # (byd.h enforces -3.5..+2.0 on 0x32E per BYD_ATTO3_COMMA3_PORT_PLAN.md).
+  # Ported from shemps/byd-atto3-openpilot-port's CarrotPilot-derived revision
+  # (see bydcan.py's module docstring); unvalidated against this project's
+  # target car. Only reachable when openpilotLongitudinalControl is set, which
+  # interface.py currently never does.
+  ACCEL_MIN = -3.0  # m/s^2
+  ACCEL_MAX = 1.5   # m/s^2
+  JERK_UP = 2.5         # accel increasing (m/s^3)
+  JERK_UP_LAUNCH = 4.0  # pull-away only (vEgo < 2, cmd > 0)
+  JERK_DOWN = 5.0       # accel decreasing (m/s^3)
+
 
 class WMI(StrEnum):
   BYD_AUTO = "LGX"

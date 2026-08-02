@@ -86,20 +86,28 @@ only until their individual exit gates are met.
    the values above are hardcoded in `opendbc/car/byd/values.py` with a
    citation comment instead, since `opendbc_repo` has no dependency on
    `nagaspilot/` regardless.
-   **The `0x316` HUD side remains blocked:** `byd.h`'s
-   `check_relay = true` on both `0x1E2` and `0x316` statically blocks
-   camera-to-car forwarding for both addresses the moment this safety mode is
-   active — regardless of `controls_allowed` — so the controller must also emit
-   a substitute `0x316` every cycle or the cluster/EPS loses that frame
-   entirely. A byte-exact software passthrough is not safe to assume:
-   `AUTO_LIGHT`, `HMA_ON_OFF`, `LDSW_TYPE` have no firmware witness, and the
-   firmware reads an unexplained bit 35 (`handsOffDetected`) that overlaps
-   `MPC_RightLaneState`'s low bit. Capture `0x316`'s full bit pattern on the
-   target car (BLF/MF4, per `community_port_comparison.md`'s update
-   procedure) before writing the controller's HUD side; the DBC's `CM_ BO_
-   790` comment already flags the specific fields to verify.
-4. Add factory-longitudinal recording/replay checks before considering the
-   opt-in openpilot `0x32E` trial. Radar remains outside the software path.
+   **The `0x316` HUD side is now coded, at the user's explicit direction to
+   follow the CarrotPilot-derived reference and finish the code rather than
+   wait on capture.** `bydcan.create_lkas_hud` passes every field through
+   from `CS.lkas_hud` (the real last-decoded camera frame, not a fabricated
+   one) and overrides only the specific bits that fork's own on-car captures
+   proved safe (`MPC_LkasState`'s low 2 bits, `MPC_LeftLaneState`/
+   `MPC_RightLaneState`'s high bit) — avoiding the byte-exact-fabrication risk
+   flagged earlier, since the untouched fields are always the real camera
+   bytes. This is **not** target-car evidence: `AUTO_LIGHT`, `HMA_ON_OFF`,
+   `LDSW_TYPE`, and the bit-35/`MPC_RightLaneState` overlap remain unverified
+   on this project's car, and the override bit pattern itself is only proven
+   on the reference fork's own vehicle. Capture `0x316`'s full bit pattern on
+   the target car (BLF/MF4, per `community_port_comparison.md`'s update
+   procedure) before any bench/stationary trial of this code path; the DBC's
+   `CM_ BO_ 790` comment flags the specific fields to verify.
+4. `bydcan.create_acc_cmd` (also ported from the CarrotPilot-derived
+   reference) and the corresponding `openpilotLongitudinalControl` branch in
+   `carcontroller.py` are coded but unreachable: `interface.py` still sets
+   `openpilotLongitudinalControl = False`. Add factory-longitudinal
+   recording/replay checks before flipping that, or before considering the
+   opt-in openpilot `0x32E` trial at all. Radar remains outside the software
+   path.
 5. Validate comma 3 camera/driver-camera profiles and BYD fingerprints against
    target-car recordings; the current fingerprint is single-vehicle evidence.
 6. Run the relevant Panda build and host tests under Python 3.11/3.12; retain

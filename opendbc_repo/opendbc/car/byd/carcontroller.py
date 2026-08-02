@@ -1,48 +1,80 @@
+import numpy as np
+
 from opendbc.can import CANPacker
-from opendbc.car import Bus
+from opendbc.car import Bus, structs
 from opendbc.car.lateral import apply_std_steer_angle_limits
 from opendbc.car.interfaces import CarControllerBase
-from opendbc.car.byd.bydcan import create_steering_control
+from opendbc.car.byd.bydcan import create_acc_cmd, create_lkas_hud, create_steering_control
 from opendbc.car.byd.values import CarControllerParams
+
+LongCtrlState = structs.CarControl.Actuators.LongControlState
 
 
 class CarController(CarControllerBase):
-  """0x1E2 steering-command generation only.
+  """0x1E2 steering + 0x316 HUD + (when openpilotLongitudinalControl) 0x32E accel.
 
-  Byte-verified against the tc275_freertos/TC275_BrownPanda firmware's real
-  WriteRaw sequence (opendbc/car/byd/tests/test_byd.py) and against
-  opendbc/safety/modes/byd.h's byd_tx_hook (opendbc/safety/tests/test_byd.py).
+  0x1E2 is byte-verified against the tc275_freertos/TC275_BrownPanda firmware's
+  real WriteRaw sequence and against opendbc/safety/modes/byd.h's byd_tx_hook
+  (opendbc/car/byd/tests/test_byd.py, opendbc/safety/tests/test_byd.py).
+
+  0x316 and 0x32E are ported from shemps/byd-atto3-openpilot-port's later
+  CarrotPilot-derived revision (see opendbc/car/byd/bydcan.py's module
+  docstring) - real on-car behavior observed on that fork's own vehicle, not
+  validated against this project's target car. 0x316 passes every stock field
+  through from CS.lkas_hud untouched except the specific bits that fork's
+  captures proved safe to override.
+
   Not wired to a live vehicle: opendbc/car/byd/interface.py still selects
-  SafetyModel.noOutput, so panda never installs byd_hooks and nothing here
-  reaches a CAN bus. HUD (0x316) generation is not implemented -
-  opendbc/safety/modes/byd.h statically blocks camera->car forwarding of both
-  0x1E2 and 0x316 once the byd safety model is active, so a controller must
-  emit a substitute 0x316 too, and that requires a target-car capture to
-  verify AUTO_LIGHT/HMA_ON_OFF/LDSW_TYPE and an unexplained bit-35 overlap
-  with MPC_RightLaneState first (see nagaspilot/docs/MIGRATION_PLAN.md).
+  SafetyModel.noOutput and openpilotLongitudinalControl=False, so panda never
+  installs byd_hooks, the 0x32E branch never runs, and nothing here reaches a
+  CAN bus.
   """
 
   def __init__(self, dbc_names, CP):
     super().__init__(dbc_names, CP)
     self.packer = CANPacker(dbc_names[Bus.pt])
-    self.apply_angle_last = 0
-    self.counter = 0
+    self.apply_angle_last = 0.
+    self.accel_last = 0.
 
   def update(self, CC, CS, now_nanos):
     del now_nanos
     actuators = CC.actuators
     can_sends = []
+    accel = 0.
 
-    if CC.enabled and (self.frame % CarControllerParams.STEER_STEP == 0):
+    if (CC.enabled or CC.latActive) and (self.frame % CarControllerParams.STEER_STEP == 0):
       self.apply_angle_last = apply_std_steer_angle_limits(
         actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, CS.out.steeringAngleDeg,
         CC.latActive, CarControllerParams.ANGLE_LIMITS)
 
-      can_sends.append(create_steering_control(self.packer, self.apply_angle_last, CC.latActive, self.counter))
-      self.counter = (self.counter + 1) % 16
+      cntr = (self.frame // CarControllerParams.STEER_STEP) % 16
+      can_sends.append(create_steering_control(self.packer, self.apply_angle_last, CC.latActive, cntr))
+      can_sends.append(create_lkas_hud(self.packer, CC.latActive, cntr, CS.lkas_hud))
+
+    if self.CP.openpilotLongitudinalControl and CC.longActive and (self.frame % 3 == 0):
+      target = float(np.clip(actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
+      lcs = actuators.longControlState
+      stopping = (lcs == LongCtrlState.stopping) or (CS.out.standstill and target <= 0.)
+      resume = (lcs == LongCtrlState.starting) or CC.cruiseControl.resume
+
+      if resume and CS.out.standstill and self.accel_last < 0.:
+        self.accel_last = 0.
+
+      launch = CS.out.vEgo < 2.0 and target > 0.
+      up = (CarControllerParams.JERK_UP_LAUNCH if launch else CarControllerParams.JERK_UP) * 0.03
+      down = CarControllerParams.JERK_DOWN * 0.03
+      accel = float(np.clip(target, self.accel_last - down, self.accel_last + up))
+
+      cntr = (self.frame // 3) % 16
+      can_sends.append(create_acc_cmd(self.packer, accel, True, cntr,
+                                      standstill=stopping and CS.out.standstill, resume=resume))
+      self.accel_last = accel
+    elif self.frame % 3 == 0:
+      self.accel_last = float(np.clip(CS.out.aEgo, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
 
     new_actuators = actuators.as_builder()
     new_actuators.steeringAngleDeg = self.apply_angle_last
+    new_actuators.accel = accel
 
     self.frame += 1
     return new_actuators, can_sends
