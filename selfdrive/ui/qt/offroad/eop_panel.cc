@@ -53,7 +53,7 @@ void EopPanel::add_lateral_toggles() {
       },
       {
           "EOPLatALCC",
-          tr("Adaptive Lane Centering (ALCC)"),
+          tr("Always-on Lane Centering Control (ALCC)"),
           tr("Keeps lateral control active when cruise main is available."
              "\nCan optionally run without cruise and hold at a stop."),
       },
@@ -65,7 +65,7 @@ void EopPanel::add_lateral_toggles() {
       {
           "EOPALCCAllowAlways",
           tr("ALCC Without Cruise"),
-          tr("Allow ALCC even when cruise main is off. Useful for platforms without LKAS button."),
+          tr("Allow ALCC even when cruise main is off. Useful for platforms without LCC button."),
       },
       {
           "EOPALCCHoldAtStandstill",

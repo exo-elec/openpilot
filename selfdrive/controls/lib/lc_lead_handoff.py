@@ -16,12 +16,13 @@ from cereal import log
 from openpilot.common.params import Params
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import DT_MDL
+from nagaspilot.speed_zones import URBAN_SPEED_MPS
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
 
 # EOP 3-zone speed boundary: ALC disabled in zone 1 (< 12 m/s)
-LANE_CHANGE_SPEED_MIN = 12.0  # m/s
+LANE_CHANGE_SPEED_MIN = URBAN_SPEED_MPS
 
 # Lateral threshold for adjacent lane
 ADJACENT_LANE_Y_MIN = 1.5  # m, |y| > 1.5

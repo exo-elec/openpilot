@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Continental ARS4-B compatibility interface for TC375 BrownPanda.
+"""Continental ARS4-B compatibility interface for BrownPanda v2 (TC375).
 
-TC375 emits converted Continental ARS4-B frames on Tesla party bus 0:
+BrownPanda v2 emits converted Continental ARS4-B frames on Tesla party bus 0:
 
   0x401              RadarStatus     — status, ~16Hz
   0x410 + slot*2     Object_A[0..39] — LongDist, LongSpeed, LatDist, Valid, Tracked, Index
@@ -126,7 +126,7 @@ class ContinentalRadarInterface:
       if now - self._last_fault_mono < _FAULT_REPORT_PERIOD_S:
         return None
 
-      # Absence of the TC375 stream is itself the unavailable signal. Clear
+      # Absence of the BrownPanda v2 stream is itself the unavailable signal. Clear
       # cached points and publish a bounded-rate fault without requiring the
       # gateway to synthesize status frames.
       self._last_fault_mono = now

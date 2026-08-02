@@ -2,7 +2,10 @@
 
 ## Overview
 
-`vehicled` is the unified vehicle interface daemon using Tesla-format CAN protocol. It replaces the generic `opendbc`-based `card.py` and the `panda` safety firmware, supporting generic vehicle platforms via TC275 gateway.
+`vehicled` is the unified SocketCAN vehicle adapter using Tesla-format CAN
+protocol. It replaces the Panda-dependent generic `card.py` path while using
+the pinned OpenDBC submodule as the shared protocol/model source. The
+BrownPanda gateway remains the hardware safety gateway (v1 = TC275, v2 = TC375).
 
 ## Safety Architecture
 
@@ -17,11 +20,11 @@
 │  - Purpose: Catch bugs, enforce smooth control                  │
 │  - Runs on: RK3588/RK3576 A76 cores                             │
 │                                                                  │
-│  Layer 2 (Hardware): TC275 Gateway                              │
+│  Layer 2 (Hardware): BrownPanda Gateway                          │
 │  - Location: External microcontroller                           │
 │  - Limits: LOOSER (100% of Panda limits)                        │
 │  - Purpose: Safety net, hardware enforcement                    │
-│  - Runs on: Infineon TC275                                      │
+│  - Runs on: BrownPanda v1 (TC275) or v2 (TC375)                  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -77,7 +80,7 @@
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     TC275 Gateway (Hardware)                    │
+│                  BrownPanda Gateway (Hardware)                  │
 │                     Layer 2 Safety                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
@@ -103,7 +106,7 @@ Tesla CAN → socketd → 'can' topic → vehicled (safety RX processing) → Ve
 
 ### TX Path (openpilot → Vehicle)
 ```
-'carControl' topic → vehicled (VehicleController) → vehicled (Safety Check) → 'sendcan' topic → socketd → TC275 → Tesla
+'carControl' topic → vehicled (VehicleController) → vehicled (Safety Check) → 'sendcan' topic → socketd → BrownPanda → Tesla
 ```
 
 ## Key Files
@@ -113,7 +116,7 @@ Tesla CAN → socketd → 'can' topic → vehicled (safety RX processing) → Ve
 | `vehicle.py` | Main daemon, coordinates all components |
 | `state.py` | VehicleState - parses CAN, tracks vehicle state |
 | `controller.py` | VehicleController - generates CAN commands |
-| `teslacan.py` | Tesla CAN message packer (minimal) |
+| OpenDBC Tesla modules | Tesla CAN parser, packer, controller, and DBC |
 | `tesla_parser.py` | Tesla CAN message parser (minimal) |
 | `safety.py` | TeslaSafety - 1st layer safety implementation |
 | `safety_manager.py` | SafetyManager - wraps safety for vehicled |
@@ -136,7 +139,7 @@ Tesla CAN → socketd → 'can' topic → vehicled (safety RX processing) → Ve
 ## Removed Dependencies
 
 - `opendbc_repo` - Car interfaces moved to vehicled
-- `panda` - Safety moved to vehicled (software) + TC275 (hardware)
+- `panda` - Safety moved to vehicled (software) + BrownPanda gateway (hardware)
 
 ## Process Configuration
 

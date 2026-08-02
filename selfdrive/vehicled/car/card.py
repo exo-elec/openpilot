@@ -68,6 +68,7 @@ class Car:
     # Initialize car state and controller
     self.CS = CS or CarState(self.CP)
     self.CC = CC or CarController(self.CP)
+    self.can_parsers = self.CS.get_can_parsers(self.CP)
     self.radar = ContinentalRadarInterface(self.CP)
 
     # Layer 1 Safety (replaces panda safety)
@@ -107,6 +108,13 @@ class Car:
     CP.mass = platform.mass
     CP.wheelbase = platform.wheelbase
     CP.steerRatio = platform.steer_ratio
+    # OpenDBC's proven Tesla controller consumes these standard vehicle-model
+    # fields. BrownPanda supplies the same geometry through EOP params.
+    CP.centerToFront = platform.wheelbase * 0.5
+    CP.steerRatioRear = 0.0
+    CP.rotationalInertia = platform.mass * platform.wheelbase ** 2 / 12.0
+    CP.tireStiffnessFront = platform.mass * 9.81 * 0.5 / max(platform.steer_ratio, 1.0)
+    CP.tireStiffnessRear = CP.tireStiffnessFront
 
     # Steering
     CP.steerControlType = car.CarParams.SteerControlType.angle
@@ -119,7 +127,7 @@ class Car:
 
     # Longitudinal
     CP.openpilotLongitudinalControl = self.params.get_bool("AlphaLongitudinalEnabled")
-    # EOP10 parses TC375's converted ARS4-B frames on party bus 0. The parser
+    # EOP10 parses BrownPanda v2's converted ARS4-B frames on party bus 0. The parser
     # reports unavailable itself when that stream is absent or stale.
     CP.radarUnavailable = False
     CP.minEnableSpeed = -1.0
@@ -157,8 +165,11 @@ class Car:
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = can_capnp_to_list(can_strs)
 
-    # Update carState from CAN
-    CS = self.CS.update(can_list)
+    # Update the OpenDBC-backed (or compatibility) parser before translating
+    # values into EOP's BrownPanda carState schema.
+    for parser in self.can_parsers.values():
+      parser.update(can_list)
+    CS = self.CS.update(self.can_parsers)
 
     # In simulation, Tesla CAN is not present. Override with valid defaults so
     # selfdrived doesn't generate wrongGear/seatbelt/wrongCarMode events.

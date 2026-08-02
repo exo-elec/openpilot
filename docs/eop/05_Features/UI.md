@@ -87,7 +87,7 @@ private:
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPLatALCC` | Toggle | Adaptive Lane Centering Control |
+| `EOPLatALCC` | Toggle | Always-on Lane Centering Control (ALCC) |
 | `EOPALCCAllowAlways` | Toggle | ALCC without cruise main |
 | `EOPALCCHoldAtStandstill` | Toggle | Keep lateral torque at stop |
 | `EOPALCCBrakeMode` | ButtonSelect | Maintain/Pause/Disengage |

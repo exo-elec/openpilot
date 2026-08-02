@@ -311,7 +311,8 @@ Export('common', 'gpucommon')
 env_swaglog = env.Clone()
 env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
 SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
-# opendbc_repo removed - using vehicled instead
+# EOP vehicled remains the transport/safety adapter; OpenDBC is available as a
+# pinned protocol/model submodule for Tesla definitions and future adapters.
 
 SConscript(['cereal/SConscript'])
 

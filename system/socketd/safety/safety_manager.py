@@ -18,11 +18,13 @@ class SafetyManager:
     Manages safety checks for SocketD CAN bridge.
     
     This is the 1st layer safety check that runs in openpilot/visionpilot.
-    TC275 provides the 2nd layer with tighter limits.
+    BrownPanda v1/v2 provides the final hardware safety layer.
     """
     
-    # Required RX message IDs for safety_tick() validation
-    REQUIRED_RX_MESSAGES = [0x370, 0x257]  # EPS status, Vehicle speed
+    # Required BrownPanda RX topology. Check the bus and CAN ID explicitly;
+    # optional gateway safety-status telemetry is not part of liveness.
+    REQUIRED_RX_TOPOLOGY = ((0, 0x370), (0, 0x257))  # EPS status, vehicle speed
+    REQUIRED_RX_MESSAGES = [can_id for _bus, can_id in REQUIRED_RX_TOPOLOGY]
     
     def __init__(self, limits: SafetyLimits | None = None, use_params: bool = True):
         # Load limits from params if not provided
@@ -172,7 +174,7 @@ class SafetyManager:
         # Check required messages are recent
         timeout = self.safety.limits.MESSAGE_TIMEOUT_MS / 1000.0
         
-        for addr in self.REQUIRED_RX_MESSAGES:
+        for bus, addr in self.REQUIRED_RX_TOPOLOGY:
             last_time = self.safety.state.message_timestamps.get(addr, 0)
             if now - last_time > timeout:
                 # Message is stale
@@ -181,7 +183,8 @@ class SafetyManager:
                 
                 if self.safety.state.controls_allowed:
                     self.safety._log_event('safety_tick_timeout', {
-                        'addr': hex(addr),
+                        'bus': bus,
+                        'can_id': hex(addr),
                         'elapsed': now - last_time,
                         'timeout': timeout,
                     })

@@ -4,11 +4,12 @@ from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
+from nagaspilot.speed_zones import URBAN_SPEED_MPS
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
 
-LANE_CHANGE_SPEED_MIN = 12.0  # ~43 km/h — EOP 3-zone ALC spec: zone 2+ (docs/eop/lane_change_assist.md)
+LANE_CHANGE_SPEED_MIN = URBAN_SPEED_MPS
 LANE_CHANGE_TIME_MAX = 10.
 
 # EOP: LCA Constants

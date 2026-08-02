@@ -121,7 +121,6 @@ models/rknn/*.rknn
 models/hef/*.hef
 models/onnx/*.onnx
 
-# EOP vehicle stack is in-tree; these are optional local reference/build trees,
-# not dependencies. Never rely on them for a reproducible checkout.
-/opendbc_repo/
+# EOP uses the pinned OpenDBC fork as a reproducible dependency. Panda remains
+# optional because EOP's active transport and safety path is socketd + TC275.
 /panda/

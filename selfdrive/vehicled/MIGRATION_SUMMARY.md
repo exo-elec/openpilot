@@ -13,11 +13,9 @@ selfdrive/vehicled/
 │   ├── cruise.py            # VCruiseHelper
 │   ├── events.py            # CarSpecificEvents
 │   └── vehicle_model.py     # Vehicle dynamics model
-├── tesla/                   # FROM: opendbc/can/ (minimal replacement)
+├── tesla/                   # EOP BrownPanda adapter over pinned OpenDBC DBCs
 │   ├── values.py            # Tesla constants
-│   ├── teslacan.py          # CAN message creation
-│   ├── tesla_packer.py      # Minimal CAN packer
-│   └── tesla_parser.py      # Minimal CAN parser
+│   └── tesla_parser.py      # OpenDBC CANParser boundary wrapper
 ├── safety/                  # FROM: panda/board/safety/ + socketd/safety/
 │   ├── safety.py            # TeslaSafety (Layer 1)
 │   └── safety_manager.py    # SafetyManager wrapper
@@ -32,8 +30,8 @@ selfdrive/vehicled/
 | `selfdrive/car/card.py` | `vehicled/car/card.py` | Main daemon |
 | `selfdrive/car/car_specific.py` | `vehicled/car/events.py` | Events |
 | `selfdrive/car/cruise.py` | `vehicled/car/cruise.py` | Cruise helper |
-| `opendbc/car/tesla/carstate.py` | `vehicled/car/carstate.py` | CAN parsing |
-| `opendbc/car/tesla/carcontroller.py` | `vehicled/car/carcontroller.py` | CAN generation |
+| `opendbc/car/tesla/carstate.py` | `vehicled/car/carstate.py` | Adapter boundary; shared source migration staged |
+| `opendbc/car/tesla/carcontroller.py` | `vehicled/car/carcontroller.py` | Adapter boundary; shared source migration staged |
 | `opendbc/car/tesla/interface.py` | Merged into `card.py` | Params setup |
 | `opendbc/car/vehicle_model.py` | `vehicled/car/vehicle_model.py` | Dynamics |
 | `opendbc/can/packer.py` | `vehicled/tesla/tesla_packer.py` | CAN packer |
@@ -64,7 +62,7 @@ selfdrive/vehicled/
 │  socketd (system level)                                 │
 │  - Plain CAN bridge (NO SAFETY)                         │
 ├─────────────────────────────────────────────────────────┤
-│  TC275 (hardware)                                       │
+│  BrownPanda gateway (hardware; v1=TC275, v2=TC375)      │
 │  - Layer 2 Safety (LOOSER limits)                       │
 ├─────────────────────────────────────────────────────────┤
 │  Tesla Vehicle                                          │

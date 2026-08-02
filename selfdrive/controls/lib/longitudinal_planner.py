@@ -24,6 +24,9 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import (
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.vehicled.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
+from nagaspilot.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS, URBAN_SPEED_MPS,
+                                    longitudinal_accel_max, longitudinal_jerk_up)
+from openpilot.selfdrive.controls.lib.tja import TrafficJamAssist
 
 # EOP: Vision Turn Speed Control
 from openpilot.selfdrive.controls.lib.vtsc import VTSC
@@ -49,9 +52,9 @@ from openpilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitReso
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
-# EOP: breakpoints shifted to EVP 3-zone boundaries (0/43/86/130 km/h).
+# EOP: breakpoints aligned with CRAWL/URBAN/HIGHWAY/MAX (0/43/86/130 km/h).
 # Upstream: [0, 10, 25, 40] m/s
-A_CRUISE_MAX_BP = [0., 12.0, 24.0, 36.0]
+A_CRUISE_MAX_BP = [CRAWL_SPEED_MPS, URBAN_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS]
 
 # EOP: Acceleration profiles (merged from FrogPilot)
 # Normal: stock conservative curve
@@ -69,7 +72,7 @@ MIN_ALLOW_THROTTLE_SPEED = 2.5
 
 # Lookup table for turns
 _A_TOTAL_MAX_V = [1.7, 3.2]
-_A_TOTAL_MAX_BP = [24.0, 36.0]
+_A_TOTAL_MAX_BP = [HIGHWAY_SPEED_MPS, MAX_SPEED_MPS]
 
 # Param caches (module-level to avoid per-frame I/O)
 _accel_profile_cache = {'ts': 0.0, 'profile': 'normal'}
@@ -107,7 +110,7 @@ def _load_adaptive_gap_enabled():
 def get_max_accel(v_ego):
   profile = _load_accel_profile()
   vals = _A_CRUISE_PROFILES[profile]
-  return np.interp(v_ego, A_CRUISE_MAX_BP, vals)
+  return min(np.interp(v_ego, A_CRUISE_MAX_BP, vals), longitudinal_accel_max(v_ego))
 
 
 # EOP: Adaptive acceleration — merged from FrogPilot
@@ -191,6 +194,7 @@ class LongitudinalPlanner:
     self.prev_accel_clip = [ACCEL_MIN, ACCEL_MAX]
     self.output_a_target = 0.0
     self.output_should_stop = False
+    self.tja = TrafficJamAssist(self.dt)
 
     self.v_desired_trajectory = np.zeros(CONTROL_N)
     self.a_desired_trajectory = np.zeros(CONTROL_N)
@@ -306,6 +310,7 @@ class LongitudinalPlanner:
       accel_coast = ACCEL_MAX
 
     v_ego = sm['carState'].vEgo
+    tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
     v_cruise_kph = min(sm['carState'].vCruise, V_CRUISE_MAX)
     v_cruise = v_cruise_kph * CV.KPH_TO_MS
     v_cruise_initialized = sm['carState'].vCruise != V_CRUISE_UNSET
@@ -640,6 +645,13 @@ class LongitudinalPlanner:
 
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
+    # Limit only rising acceleration. Planner-requested braking remains
+    # immediately available.
+    if tja_result.active:
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * tja_result.accel_scale)
+    if not reset_state:
+      output_a_target = min(output_a_target,
+                            self.output_a_target + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip
 

@@ -23,7 +23,13 @@ patch. EOP10's vehicle stack and safety integration are in-tree, so local
 `opendbc_repo/` and `panda/` build/reference directories are not submodules or
 runtime dependencies.
 
-The shared modified OpenDBC authority is `exo-electronics/opendbc`. NGP10 uses
-its pinned `master` commit. If EOP10 later adopts that OpenDBC dependency, it
-must pin the same fork master when API-compatible rather than creating another
-fork or relying on a local copy.
+The shared modified OpenDBC authority is `exo-electronics/opendbc`. EOP10 and
+NGP10 pin the same commit, `62c915ce4b9ca5d0ce561f7d59b7fff5dac6b5c1`.
+It is descended from the official `v0.2.1` release and includes the Tesla
+BrownPanda radar/safety work required by both products.
+
+The official `v0.2.1` tag is a compatibility reference, not the selected
+runtime pin: it declares Python 3.9+ but does not contain the BrownPanda safety
+tree. Rebasing to that tag would remove required safety APIs. The shared fork
+also carries a small Python 3.10 compatibility layer for Ubuntu 22.04 and ROS
+2 Humble.

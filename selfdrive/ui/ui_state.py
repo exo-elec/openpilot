@@ -86,7 +86,7 @@ class UIState:
     device.update()
 
   def _update_state(self) -> None:
-    # EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + TC275)
+    # EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + BrownPanda)
     self.ignition = self.params.get_bool("EOPIgnitionOn")
     self.panda_type = log.PandaState.PandaType.unknown
 

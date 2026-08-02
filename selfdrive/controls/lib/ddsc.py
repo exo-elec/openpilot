@@ -27,13 +27,14 @@ UNCONSCIOUS MODE (medical emergency - heart attack, seizure, etc.):
 """
 
 from typing import Optional
+from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
 
 # Base DMS cap when too_distracted (m/s)
 DMS_BASE_LIMIT_MPS = 16.67  # 60 km/h
 
 # Highway cap — empty highway, no lead car
 HIGHWAY_CAP_MPS = 22.2  # 80 km/h
-HIGHWAY_VEGO_THRESHOLD_MPS = 24.0  # >= 86 km/h: highway entry (EVP zone 3)
+HIGHWAY_VEGO_THRESHOLD_MPS = HIGHWAY_SPEED_MPS
 HIGHWAY_EXIT_THRESHOLD_MPS = 20.0  # < 72 km/h: highway exit (hysteresis band 20–24)
 
 # Lead-car margin — when following, stay within this ratio of lead speed

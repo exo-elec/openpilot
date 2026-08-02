@@ -21,8 +21,9 @@ MPH_TO_MS = 0.44704
 class CarState:
   """Parses CAN messages into CarState.
   
-  This replaces the generic CarState with a protocol-specific
-  implementation that doesn't require the opendbc_repo submodule.
+  This is the EOP SocketCAN/BrownPanda adapter. Its protocol implementation remains
+  local while the pinned OpenDBC submodule is available for shared Tesla DBC,
+  parser, packer, and vehicle-model code.
   """
   
   def __init__(self, CP: car.CarParams):
@@ -177,7 +178,7 @@ class CarState:
     ret.seatbeltUnlatched = ui_warning.get("buckleStatus", 0) != 1
     
     # --- Blindspot ---
-    # DAS_status (0x39B) — TC275 sends on CAN0 (autopilot_party bus 2)
+    # DAS_status (0x39B) — BrownPanda sends on CAN0 (autopilot_party bus 2)
     das_status = cp_ap_party.vl.get("DAS_status", {})
     ret.leftBlindspot = das_status.get("DAS_blindSpotRearLeft", 0) != 0
     ret.rightBlindspot = das_status.get("DAS_blindSpotRearRight", 0) != 0
@@ -189,9 +190,9 @@ class CarState:
     else:
       ret.speedLimit = 0.0
 
-    # --- ALCC state (TC275 0x700) ---
-    # confidence=85: real driver hands on (normal), 20: TC275-managed fake (alarm only), 0: ALCC inactive
-    # TC275 suppresses handsOnLevel in 0x370 to 0 when ALCC active, preventing openpilot auto-disengage.
+    # --- ALCC state (BrownPanda 0x700) ---
+    # confidence=85: real driver hands on (normal), 20: gateway-managed fake (alarm only), 0: ALCC inactive
+    # BrownPanda suppresses handsOnLevel in 0x370 to 0 when ALCC active, preventing openpilot auto-disengage.
     alcc_msg = cp_party.vl.get("ALCC_state", {})
     self.alcc_confidence = int(alcc_msg.get("ALCC_confidence", 0))
     self.alcc_active = alcc_msg.get("ALCC_active", 0) == 1

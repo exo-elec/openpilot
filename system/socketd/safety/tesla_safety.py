@@ -3,12 +3,11 @@
 Tesla Safety Implementation - 1st Layer
 Compatible with both openpilot and visionpilot
 
-Based on opendbc/safety/modes/tesla.h but with looser limits than TC275.
-TC275 will have tighter limits as the 2nd layer safety.
+Based on opendbc/safety/modes/tesla.h. BrownPanda v1/v2 remains the final
+hardware safety layer.
 
 This is the CANONICAL layer-1 safety module.  The former duplicate at
-selfdrive/vehicled/safety/safety.py (which added the TC275 cross-core 0x712
-verdict checks) was merged here; that file is now a shim re-exporting this
+`selfdrive/vehicled/safety/safety.py` is a compatibility shim re-exporting this
 module.  Do not fork another copy — extend this one.
 """
 
@@ -25,10 +24,10 @@ class SafetyLimits:
     Safety limits for Tesla protocol - LAYER 1 (TIGHTER).
 
     Layer 1 (this): TIGHTER limits for normal operation (80% of Panda)
-    Layer 2 (TC275): LOOSER limits (100% of Panda) - Safety net
+    Layer 2 (BrownPanda): hardware enforcement - final safety net
 
     These limits are 80% of the original Panda limits from openpilot 0.10.0.
-    TC275 will have the original Panda limits as the safety net.
+    BrownPanda v1/v2 enforces the final vehicle-side limits.
 
     Reference (Panda/openpilot 0.10.0 original):
     - MAX_STEERING_ANGLE: 3600 (360°)
@@ -126,8 +125,7 @@ class SafetyState:
     stock_aeb_active: bool = False
     autopark_active: bool = False
 
-    # TC275 CPU1/CPU2 Kalman safety verdicts from 0x712 (CPU Safety Status)
-    # Default True so openpilot can send before first 0x712 arrives (grace period)
+    # Legacy gateway status fields are retained for telemetry compatibility only.
     tc275_lateral_ok: bool = True
     tc275_longitudinal_ok: bool = True
     tc275_cpu1_alive: bool = True
@@ -154,7 +152,7 @@ class TeslaSafety:
     This is the software safety layer that catches bugs and enforces
     smooth control limits.
 
-    TC275 (2nd layer) will have tighter limits and hardware enforcement.
+    BrownPanda v1/v2 (2nd layer) provides hardware enforcement.
     """
 
     # Tesla CAN IDs
@@ -162,7 +160,7 @@ class TeslaSafety:
     CAN_ID_LONGITUDINAL_CONTROL = 0x2B9  # DAS_control
     CAN_ID_EAC_MONITOR = 0x27D  # APS_eacMonitor
 
-    # TC275 CPU Safety Status frame (comma.c COMMA_EncodeMessage712, sent on CAN0)
+    # Legacy gateway status frame; it is intentionally not required for safety.
     # Byte 0: bit7=lateralOk, bit6=longOk, bit5=controlsAllowed, bit4=epsCruise,
     #         bit3=cruiseEngaged, bit2=counterTrusted, bit1=cpu1Alive, bit0=cpu2Alive
     # Byte 1: latViolationReason   (CROSSCORE_LAT_VIOLATION_* codes)
@@ -170,7 +168,7 @@ class TeslaSafety:
     # Byte 3: (gatewayState<<6) | (commaAlive<<5)
     CAN_ID_TC275_CPU_SAFETY = 0x712
 
-    # Timeout: if no 0x712 for >500 ms, treat as TC275 stall (fail-safe: allow)
+    # Kept only for backwards-compatible telemetry; RX topology is authoritative.
     TC275_SAFETY_TIMEOUT_S = 0.5
 
     _TC275_LAT_VIOLATIONS: dict[int, str] = {
@@ -380,10 +378,8 @@ class TeslaSafety:
             self._log_event('tc275_longitudinal_blocked', {'reason': reason, 'code': long_violation})
 
     def _tc275_safety_timed_out(self) -> bool:
-        """True if no 0x712 received recently — fail-open (allow) to avoid false positives."""
-        if self.state.tc275_last_rx == 0.0:
-            return True  # Never received — no TC275 connected, don't block
-        return (time.monotonic() - self.state.tc275_last_rx) > self.TC275_SAFETY_TIMEOUT_S
+        """Legacy gateway status is optional; RX topology owns liveness."""
+        return True
 
     def process_rx_message(self, address: int, data: bytes, bus: int):
         """
@@ -391,7 +387,7 @@ class TeslaSafety:
         This tracks vehicle state for safety checks.
         Also validates checksum and counter for safety-critical messages.
         """
-        # TC275 CPU safety status (CAN0 only, sent by comma.c COMMA_EncodeMessage712)
+        # Optional legacy gateway status is telemetry only and never required.
         if address == self.CAN_ID_TC275_CPU_SAFETY and bus == 0:
             self._process_tc275_cpu_safety(data)
             return

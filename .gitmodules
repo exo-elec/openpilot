@@ -54,3 +54,7 @@
   branch = 0.9.16
   update = none
   shallow = true
+[submodule "opendbc_repo"]
+	path = opendbc_repo
+	url = git@github.com:exo-electronics/opendbc.git
+	branch = master

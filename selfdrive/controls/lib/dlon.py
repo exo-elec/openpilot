@@ -12,6 +12,7 @@ from enum import Enum
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.eop_utils import SmoothEMA
+from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
 
 
 class DLONMode(Enum):
@@ -96,8 +97,8 @@ class DLON:
   
   # Trigger thresholds
   LEAD_SLOW_VELOCITY_THRESHOLD = -5.0  # m/s (~18 km/h slower)
-  LOW_SPEED_THRESHOLD = 12.0  # m/s (~43 km/h — EVP zone 1/2 boundary)
-  HIGHWAY_SPEED_THRESHOLD = 24.0  # m/s (~86 km/h — EVP zone 2/3 boundary)
+  LOW_SPEED_THRESHOLD = URBAN_SPEED_MPS
+  HIGHWAY_SPEED_THRESHOLD = HIGHWAY_SPEED_MPS
   TRAFFIC_LIGHT_THRESHOLD = 0.5  # Probability threshold
   STOP_SIGN_THRESHOLD = 0.5  # Probability threshold
   CURVE_LAT_ACC_THRESHOLD = 1.2  # m/s² - curve threshold (CEM merge)

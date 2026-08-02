@@ -3,5 +3,5 @@
 
 This replaces the generic opendbc-based car interface with a unified
 vehicle interface using Tesla CAN protocol format, adapted for generic
-vehicle platforms via TC275 gateway.
+vehicle platforms via the BrownPanda gateway (v1=TC275, v2=TC375).
 """

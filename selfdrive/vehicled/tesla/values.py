@@ -160,7 +160,7 @@ class CarControllerParams:
   # Lateral acceleration limits
   # Add extra tolerance for average banked road (~3.4 degrees, 6% superelevation)
   AVERAGE_ROAD_ROLL = 0.06
-  MAX_LATERAL_ACCEL = 3.6 + (9.81 * AVERAGE_ROAD_ROLL)  # ~3.6 m/s^2
+  MAX_LATERAL_ACCEL = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)  # ~3.6 m/s^2
   MAX_LATERAL_JERK = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)   # ~3.6 m/s^3
   
   # Longitudinal

@@ -2,14 +2,14 @@
 """CAN bridge daemon for SocketCAN-compatible hardware.
 
 PLAIN CAN BRIDGE - NO SAFETY CHECKS
-Safety is handled by vehicled (Layer 1) and TC275 (Layer 2).
+Safety is handled by vehicled (Layer 1) and BrownPanda (Layer 2).
 
 This daemon only proxies CAN <-> messaging (can/sendcan).
 Works with native CAN (RK3588 SocketCAN) and other SocketCAN interfaces.
 
 SAFETY ARCHITECTURE:
     Layer 1 (Software): vehicled safety - TIGHTER limits
-    Layer 2 (Hardware): TC275 Gateway - LOOSER limits, hardware enforcement
+    Layer 2 (Hardware): BrownPanda Gateway - hardware enforcement
     
 This module (socketd) has NO safety - it just bridges CAN traffic.
 """
@@ -321,7 +321,7 @@ class SocketD:
   
   Safety is handled by:
     - vehicled: Layer 1 software safety (TIGHTER limits)
-    - TC275: Layer 2 hardware safety (LOOSER limits)
+    - BrownPanda: Layer 2 hardware safety
   """
 
   def __init__(self) -> None:
@@ -364,7 +364,7 @@ class SocketD:
     self.message_bridge = canbridge(self.devices, enable_send=enable_bridge_send)
     
     if enable_bridge_send:
-      cloudlog.info("CAN bridge initialized (PLAIN BRIDGE - safety in vehicled + TC275)")
+      cloudlog.info("CAN bridge initialized (PLAIN BRIDGE - safety in vehicled + BrownPanda)")
     else:
       cloudlog.info("CAN bridge initialized (TX forwarding disabled)")
 
@@ -374,7 +374,7 @@ class SocketD:
 
     self.running = True
     cloudlog.info(f"Starting socketd with {len(self.devices)} interfaces (PLAIN BRIDGE)")
-    cloudlog.info("Safety: vehicled (Layer 1) + TC275 (Layer 2)")
+      cloudlog.info("Safety: vehicled (Layer 1) + BrownPanda (Layer 2)")
 
     if self.message_bridge:
       self.message_bridge.start()

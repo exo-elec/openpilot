@@ -45,7 +45,7 @@ static void update_state(UIState *s) {
     scene.light_sensor = -1;
   }
 
-  // EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + TC275)
+  // EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + BrownPanda)
   auto params = Params();
   scene.ignition = params.getBool("EOPIgnitionOn");
   scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;

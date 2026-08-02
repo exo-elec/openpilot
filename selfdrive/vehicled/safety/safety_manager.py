@@ -17,7 +17,7 @@ class SafetyManager:
     Manages safety checks for SocketD CAN bridge.
     
     This is the 1st layer safety check that runs in openpilot/visionpilot.
-    TC275 provides the 2nd layer with tighter limits.
+    BrownPanda provides the 2nd layer with the hardware safety limits.
     """
     
     # Required RX message IDs for safety_tick() validation
