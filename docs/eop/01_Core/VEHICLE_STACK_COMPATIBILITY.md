@@ -9,26 +9,24 @@ Panda transport, `pandaStates`, Panda safety configuration, and the standard
 car-interface lifecycle. EOP10 intentionally replaced that path with:
 
 ```
-SocketCAN -> socketd -> can topic -> vehicled -> carState
-carControl -> vehicled safety -> sendcan -> socketd -> BrownPanda gateway -> vehicle
+SocketCAN -> socketd/OpenDBC adapter -> carState
+carControl -> socketd safety -> sendcan -> BrownPanda gateway -> vehicle
 ```
 
 Therefore:
 
-- Keep `vehicled` as the EOP adapter and safety boundary for now.
-- Reuse the forked OpenDBC Tesla CAN definitions, parser, packer, vehicle
-  parameters, and vehicle model inside that adapter.
-- Keep `socketd` as the transport and BrownPanda gateway as the hardware safety layer.
+- `socketd` owns the vehicle adapter lifecycle and transport boundary.
+- Reuse the shared OpenDBC Tesla CAN definitions, parser, packer, vehicle
+  parameters, and radar interface from the v0.2.1-based fork.
+- Keep BrownPanda as the final hardware safety layer; ALCC policy remains in
+  socketd/controls, not OpenDBC.
 - Do not restore stock `selfdrive/car/card.py` merely to consume OpenDBC; that
   would reintroduce Panda assumptions and bypass the BrownPanda contract.
 
-The eventual migration target is an EOP `CarInterface` adapter that exposes the
-same `carState`, `carParams`, `carOutput`, and `sendcan` boundaries while using
-OpenDBC internally. Once that adapter is tested against SocketCAN and the
-BrownPanda gateway,
-the duplicated Tesla parser/controller code in `vehicled` can be removed. A
-full daemon replacement before that point would remove the active safety and
-transport integration.
+The active daemon is now socketd and exposes the same `carState`, `carParams`,
+`carOutput`, and `sendcan` boundaries. The former `vehicled` modules remain as
+a source-compatible migration wrapper until their code is moved into the
+socketd package.
 
 EOP10 and NGP10 pin the same OpenDBC fork commit. The official `v0.2.1` tag
 was evaluated as a possible rebase point: it contains Tesla Model 3/Model Y

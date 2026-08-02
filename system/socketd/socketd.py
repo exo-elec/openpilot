@@ -9,7 +9,7 @@ publishes carState/carOutput and consumes carControl.
 Works with native CAN (RK3588 SocketCAN) and other SocketCAN interfaces.
 
 SAFETY ARCHITECTURE:
-    Layer 1 (Software): vehicled safety - TIGHTER limits
+    Layer 1 (Software): socketd vehicle safety - tighter limits
     Layer 2 (Hardware): BrownPanda Gateway - hardware enforcement
     
 This module (socketd) has NO safety - it just bridges CAN traffic.
@@ -203,7 +203,7 @@ class canbridge:
   """PLAIN CAN BRIDGE - No safety checks.
   
   Bridges SocketCAN messages to/from the messaging system.
-  Safety is handled by vehicled (Layer 1) and TC275 (Layer 2).
+  Safety is handled by socketd (Layer 1) and BrownPanda (Layer 2).
   """
 
   def __init__(self, devices: list[candevice], enable_send: bool = True):
@@ -284,7 +284,7 @@ class canbridge:
 
   def _can_send_loop(self) -> None:
     """Transmit loop: forwards sendcan messages to SocketCAN."""
-    cloudlog.info("CAN send loop started (PLAIN BRIDGE - no safety)")
+        cloudlog.info("CAN send loop started (socketd safety + BrownPanda)")
     consecutive_errors = 0
     max_consecutive_errors = 10
     
