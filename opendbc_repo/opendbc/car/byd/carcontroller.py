@@ -28,6 +28,15 @@ class CarController(CarControllerBase):
   SafetyModel.noOutput and openpilotLongitudinalControl=False, so panda never
   installs byd_hooks, the 0x32E branch never runs, and nothing here reaches a
   CAN bus.
+
+  Separately, opendbc/safety/modes/byd.h's BYD_TX_MSGS whitelist does not yet
+  include 0x32E at all - only 0x1E2/0x316. Even if openpilotLongitudinalControl
+  were set, a real panda would reject every create_acc_cmd frame at the
+  generic TX_MSGS check, before byd_tx_hook's own logic ever runs (a safe,
+  fail-closed gap, not a silent-transmit one). Adding 0x32E to BYD_TX_MSGS and
+  writing its own byd_tx_hook validation (accel bounds, checksum, standstill/
+  resume state checks) is required before this branch could ever go live -
+  not just flipping openpilotLongitudinalControl. See MIGRATION_PLAN.md task 4.
   """
 
   def __init__(self, dbc_names, CP):
