@@ -107,6 +107,11 @@ class MessageType(IntEnum):
     CMD_VEHICLE_DATA     = 0x2E   # Interpreted OBD telemetry from companion app
     CMD_OAUTH_TOKEN      = 0x2F   # Google OAuth token sync (NavPilot → device for Gemini)
 
+    # --- Convoy (capability-gated: 'convoyFollow' in supportedServices) — PHONE→DEVICE unless noted ---
+    CMD_CONVOY_LEAD          = 0x70   # Lead friend's live position (moving destination)
+    CMD_CONVOY_CANCEL        = 0x71   # Stop following the lead friend
+    TELEMETRY_CONVOY_STATUS  = 0x72   # DEVICE→PHONE: follow status
+
     # --- Responses (DEVICE→PHONE) — must match frame_protocol.dart exactly ---
     RESPONSE_ACK          = 0x30   # Command acknowledgment
     RESPONSE_ERROR        = 0x31   # Error response
@@ -309,26 +314,24 @@ def get_device_info(phase: str = "phase_1", supports_mode22: bool = True,
             'vehicleInfo',         # Vehicle detection/identification
             'elm327Passthrough',   # Raw ELM327 bridge to any scanner app
             'adaptiveDriving',     # Adaptive profile control via VehicleData
+            'convoyFollow',        # Dedicated CMD_CONVOY_LEAD/CANCEL (0x70/0x71) handling
         ],
     }
 
 
 def parse_navigate_command(payload: dict) -> tuple[float, float, str | None, str | None]:
     """Parse navigate command from companion app.
-    
+
     Args:
-        payload: JSON payload from CMD_NAVIGATE
-    
+        payload: JSON payload from CMD_NAVIGATE — fields are flat (`latitude`/`lat`,
+            `longitude`/`lon`), not nested under a `destination` object.
+
     Returns:
         (latitude, longitude, name, address)
     """
-    dest = payload.get('destination', {})
-    return (
-        dest.get('latitude', 0.0),
-        dest.get('longitude', 0.0),
-        dest.get('name'),
-        dest.get('address'),
-    )
+    lat = payload.get('latitude', payload.get('lat', 0.0))
+    lon = payload.get('longitude', payload.get('lon', 0.0))
+    return (lat, lon, payload.get('name'), payload.get('address'))
 
 
 # ---------------------------------------------------------------------------

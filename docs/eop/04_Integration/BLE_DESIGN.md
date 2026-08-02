@@ -1,6 +1,6 @@
 # EOP BLE / Bluetooth Integration Design
 
-**Last updated:** 2026-05-30  
+**Last updated:** 2026-08-03  
 **Protocol:** NCP v4.1  
 **Transport:** Classic SPP (RFCOMM) + BLE GATT (Nordic UART Service)
 
@@ -14,6 +14,7 @@
 | BLE GATT (Nordic UART) | ✅ Complete — NavPilot iOS + Android |
 | Pairing agent (6-digit PIN) | ✅ Complete — `DisplayOnly`, user must type PIN |
 | Adaptive driving (adaptd) | ✅ Complete — consumes `ncpVehicleData` from NavPilot |
+| Convoy follow (`CMD_CONVOY_LEAD`/`CANCEL`) | ✅ Complete — capability-gated via `convoyFollow`, reuses `NavDestination` |
 
 ---
 
@@ -122,6 +123,9 @@ SPP carries this framed format plus raw ELM327 ASCII on the same socket (auto-de
 | `0x2D` | `CMD_OBD_REQUEST` | P→D | Raw OBD PID request |
 | `0x2E` | `CMD_VEHICLE_DATA` | P→D | Interpreted vehicle telemetry from NavPilot |
 | `0x2F` | `CMD_OAUTH_TOKEN` | P→D | Google OAuth token for on-device Gemini |
+| `0x70` | `CMD_CONVOY_LEAD` | P→D | Lead friend's live position (moving destination) — capability-gated, `'convoyFollow'` |
+| `0x71` | `CMD_CONVOY_CANCEL` | P→D | Stop following the lead friend |
+| `0x72` | `TELEMETRY_CONVOY_STATUS` | D→P | Convoy follow status — reserved, not yet sent |
 | `0x30` | `RESPONSE_ACK` | D→P | Command acknowledged |
 | `0x34` | `RESPONSE_VEHICLE_INFO` | D→P | VIN, type, make |
 | `0x36` | `RESPONSE_PAIR` | D→P | Pair accept/reject |
@@ -168,8 +172,10 @@ Set at flash time: `params put EOPDeviceName "EXOPILOT 01"`
 | `system/bluetoothd/ble_gatt.py` | BLE GATT server (Nordic UART Service) |
 | `system/bluetoothd/spp.py` | Classic SPP server + NCP+ELM327 mux |
 | `system/bluetoothd/protocol.py` | NCP frame codec (source of truth) |
+| `system/bluetoothd/ncp_session.py` | Command dispatch — navigate, convoy, vehicle data, auth, etc. |
 | `system/bluetoothd/pairing_agent.py` | BlueZ Agent1, DisplayOnly, DisplayPasskey |
 | `selfdrive/adaptd/adaptd.py` | Adaptive driving daemon (consumes ncpVehicleData) |
+| `selfdrive/navd/navd.py` | Consumes `NavDestination` param (set by CMD_NAVIGATE / CMD_CONVOY_LEAD), re-routes via Valhalla |
 
 **NavPilot (Flutter):**
 

@@ -155,6 +155,10 @@ class NCPSession:
             return self._handle_pair(frame)
         if t == protocol.MessageType.CMD_UNPAIR:
             return self._handle_unpair(frame)
+        if t == protocol.MessageType.CMD_CONVOY_LEAD:
+            return self._handle_convoy_lead(frame)
+        if t == protocol.MessageType.CMD_CONVOY_CANCEL:
+            return self._handle_convoy_cancel(frame)
         if t == protocol.MessageType.DEVICE_CAPABILITIES:
             return protocol.Frame.from_json(
                 protocol.MessageType.RESPONSE_DEVICE_INFO,
@@ -195,6 +199,42 @@ class NCPSession:
             return protocol.make_ack(protocol.MessageType.CMD_CANCEL_NAV)
         except Exception as e:
             return protocol.make_error(f'Cancel failed: {e}')
+
+    def _handle_convoy_lead(self, frame: protocol.Frame) -> protocol.Frame:
+        """Lead friend's live position → moving destination (dedicated convoy path).
+
+        Same effect as CMD_NAVIGATE (writes NavDestination, which navd re-routes to);
+        the dedicated type just lets NavPilot distinguish "following a friend" from a
+        one-off destination without touching the planner.
+        """
+        try:
+            data = frame.to_json()
+            lat = data.get('latitude')
+            lon = data.get('longitude')
+            friend_id = data.get('friendId', '')
+            if lat is None or lon is None:
+                return protocol.make_error('Missing lat/lon')
+            if self.params:
+                self.params.put('NavDestination', json.dumps({
+                    'latitude': float(lat), 'longitude': float(lon),
+                    'place_name': f'Convoy: {friend_id}' if friend_id else 'Convoy',
+                }))
+                self.params.remove('NavDestinationWaypoints')
+            logger.info('%s: convoy lead → %s (%.5f, %.5f)', self._name, friend_id, lat, lon)
+            return protocol.make_ack(protocol.MessageType.CMD_CONVOY_LEAD)
+        except Exception as e:
+            logger.error('%s: convoy lead error: %s', self._name, e)
+            return protocol.make_error(f'Convoy lead failed: {e}')
+
+    def _handle_convoy_cancel(self, frame: protocol.Frame) -> protocol.Frame:
+        try:
+            if self.params:
+                self.params.remove('NavDestination')
+                self.params.remove('NavDestinationWaypoints')
+            logger.info('%s: convoy cancelled', self._name)
+            return protocol.make_ack(protocol.MessageType.CMD_CONVOY_CANCEL)
+        except Exception as e:
+            return protocol.make_error(f'Convoy cancel failed: {e}')
 
     def _handle_obd(self, frame: protocol.Frame) -> protocol.Frame:
         if not self.pm or not messaging:

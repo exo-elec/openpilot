@@ -73,7 +73,9 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 | `0x20–0x2F` | phone → device | Commands (navigate, OBD, vehicle data, pair, auth, driving profile) |
 | `0x30–0x3F` | device → phone | Responses (ACK, error, vehicle info, pair result) |
 | `0x40–0x4F` | bidirectional | Control (PING/PONG) |
+| `0x50–0x5F` | phone → device (fallback) | Search |
 | `0x60–0x6F` | device → phone | Auth / subscription state |
+| `0x70–0x7F` | phone → device (0x70/0x71), device → phone (0x72) | Convoy (follow-a-friend) — capability-gated via `convoyFollow` |
 
 ## Parameters
 
