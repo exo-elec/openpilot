@@ -1,7 +1,8 @@
 # EOP10 feature-port audit
 
-- Status: decision recorded; no EOP10 control feature imported
-- Compared branches: `EOP10` at `22a0f3aff` and `NGP11.1` at `9297098fc`
+- Status: decision recorded for EDP10; NGP10 is the separate trial line for
+  EOP10-derived DLAT/DLON work
+- Compared branches: `dev/EOP10` at `22a0f3aff` and `dev/EDP10` at `a2394317d`
 - Audit recorded: 2026-07-31
 
 ## Decision
@@ -15,13 +16,18 @@ Retain DragonPilot AEM, ALKA, LCA and road-edge lane-change protection. Port no
 EOP10 control feature until the basic BYD lateral port and Panda safety model
 are validated.
 
+For `dev/NGP10`, DLAT and DLON may be prototyped as isolated, comma-3-safe
+features. They must not be copied wholesale: keep the v0.10.0 schema/API,
+preserve driver monitoring, and gate control changes with unit tests and
+recorded-route replay before enabling vehicle output.
+
 ## DLAT finding
 
 EOP10 DLAT claims to arbitrate between lane-line following and an end-to-end
 path. Its implementation does not currently change the path used for steering:
 
 - `selfdrive/controls/lib/dlat.py` reads `predictedPath` and
-  `predictedPathStd`, but those fields are absent from the EOP10 and NGP11.1
+  `predictedPathStd`, but those fields are absent from the EOP10 and EDP10
   `ModelDataV2` schemas;
 - the returned `dlat_use_laneless` state is consumed by EOP road-edge gating
   and debug publication, not by the desired-curvature calculation;
@@ -116,4 +122,3 @@ its history. A status label is therefore not accepted as validation evidence.
 Required evidence for any future feature consists of focused unit tests,
 recorded-route replay, invalid/stale-input tests, bounded output tests and
 hardware-in-the-loop results appropriate to the feature's authority.
-

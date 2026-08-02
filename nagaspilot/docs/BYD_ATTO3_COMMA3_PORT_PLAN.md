@@ -1,18 +1,18 @@
 # BYD Atto 3 on comma 3 port plan
 
 This implementation plan is governed by the
-[NGP11.1 conservative branch concept](BRANCH_CONCEPT.md). If a proposed porting
+[EDP10 transition branch concept](BRANCH_CONCEPT.md). If a proposed porting
 shortcut conflicts with that concept, stability and minimal DragonPilot delta
 take priority.
 
 - Status: software port in progress; hardware output remains disabled
-- Target branch: `NGP11.1`
+- Target branch: `dev/EDP10`
 - Plan recorded: 2026-07-31
 
 ## Objective
 
 Build a minimal BYD Atto 3 integration for original comma 3 hardware while
-keeping this branch close to openpilot/DragonPilot 0.11.1. The first usable
+keeping this branch close to the openpilot/DragonPilot 0.10.0 generation. The first usable
 version will provide camera-based lateral control and retain the vehicle's
 stock ACC, braking, AEB, and radar behavior. A separately selected trial mode
 can generate the native BYD longitudinal command from openpilot. Both modes are
@@ -33,8 +33,8 @@ The implementation will combine three clearly attributed sources:
 
 | Source | Role | Rule |
 |---|---|---|
-| openpilot 0.11.1 | Core controls, car interface and comma 3 runtime | Keep changes from upstream as small as possible. |
-| DragonPilot 0.11.1, tag `dragonpilot-0.11.1` (`2d9cae2d8`) | Proven comma 3 base and DragonPilot features | Preserve Rick Lan's `dragonpilot/` namespace, attribution and history. Do not rebrand or rewrite it. |
+| openpilot 0.10.0 | Comparable original comma 3 software baseline | Keep changes from upstream as small as possible. |
+| DragonPilot 0.10.0-pre-build, base tag `base/dev-EDP10-dragonpilot-0.10.0` (`549577a29`) | Proven comma 3 base and DragonPilot features | Preserve Rick Lan's `dragonpilot/` namespace, attribution and history. Do not rebrand or rewrite it. |
 | [BYD Atto 3 openpilot port](https://github.com/shemps/byd-atto3-openpilot-port), local checkout `/home/vcar/panda/byd-atto3-openpilot-port`, commit `5b34194240bb831719629d2fd095fae5daaed1e0` | BYD CAN observations, DBC, fingerprint, firmware query, state decoding and control messages | Port only the relevant behavior to current APIs. Preserve its MIT notice and third-party attribution to openpilot/OpenDBC, CarrotPilot and BukaPilot. |
 
 New NagasPilot-owned features belong under `nagaspilot/` where possible.
@@ -86,7 +86,7 @@ Phase one includes:
 - angle-based lateral steering through message `0x1E2`;
 - stock-field-preserving lane/HUD output through message `0x316`;
 - stock ACC-based engagement and disengagement;
-- Panda safety support for both the standard and `panda_tici` firmware trees;
+- Panda safety support for the standard Panda firmware tree used by this base;
 - existing DragonPilot ALKA/LCA/road-edge behavior only after baseline lateral
   control is safe and stable.
 
@@ -184,7 +184,7 @@ and every copied or adapted component has an attribution trail.
 
 - Port steering angle, driver torque, EPS state, speed, gear, brake, accelerator,
   stock cruise, blinkers, blind spots, doors and seat belt.
-- Adapt to the current 0.11.1 car-interface API, including `dp_params`.
+- Adapt to the DragonPilot 0.10.0 car-interface API, including `dp_params`.
 - Keep reference POC engagement, rocker-button cruise modification, `gearStep`
   and bring-up switches out of the passive decoder; track them as later,
   independently tested parity stages.
@@ -209,8 +209,8 @@ comparisons pass without connecting the transmit path to a moving vehicle.
 
 ### 4. Panda safety
 
-- Allocate a new stable BYD safety-model ID after checking the complete current
-  enumeration. ID 35 is already used by MG and must not be replaced.
+- Allocate a new stable BYD safety-model ID after checking the complete EDP10
+  enumeration. Do not copy a numeric safety ID from another branch blindly.
 - Implement the current OpenDBC safety API rather than copying the reference
   fork's packet-aware forwarding API.
 - Permit only the phase-one steering and HUD transmit messages.
@@ -231,10 +231,10 @@ states, idle steering frames, and ALKA state transitions.
 Exit gate: the complete Panda safety suite passes for both host safety tests and
 the relevant firmware build paths.
 
-Current software status: BYD safety model ID 36 and focused host tests are
-implemented. Factory mode allows only `0x1E2` and `0x316`; longitudinal flag 1
-additionally allows bounded `0x32E`. The vehicle interface intentionally still
-selects `noOutput`, so neither mode can reach vehicle actuators yet.
+Current software status: passive BYD parsing and the standard Panda ignition
+recognition are implemented. A BYD safety-model draft exists locally but is not
+yet validated against the EDP10 host-test API. The vehicle interface still
+selects `noOutput`, so no actuator path is enabled.
 
 ### 4b. Openpilot longitudinal trial
 
@@ -251,10 +251,11 @@ any stationary hardware trial. On-road tuning is not authorized by host tests.
 
 ### 5. Original comma 3 integration
 
-- Build and test the shared safety implementation through both `panda/` and
-  `panda_tici/`.
-- Add BYD ignition detection to both board-specific CAN paths if captured data
-  confirms that `0x242` drive state is required.
+- Build and test the shared safety implementation through the standard `panda/`
+  path used by EDP10.
+- BYD ignition detection is implemented in the standard Panda CAN path; add
+  another board path only if this branch later gains one and captured data
+  requires it.
 - Preserve the normal `pandad_tici` ELM327/firmware-query lifecycle. Do not copy
   the reference's forced-silent or `SKIP_FW_QUERY` workaround unless target-car
   evidence proves it necessary and it receives a separate safety review.
@@ -264,8 +265,8 @@ any stationary hardware trial. On-road tuning is not authorized by host tests.
 Exit gate: both firmware targets build, ignition transitions correctly, firmware
 query completes, relay forwarding is correct, and no unexpected DTC appears.
 
-Current software status: standard Panda and `panda_tici` firmware builds pass.
-Both ignition paths recognize the reference vehicle's bus-0 `0x242`
+Current software status: the standard Panda firmware build passes. The standard
+ignition path recognizes the reference vehicle's bus-0 `0x242`
 `DRIVE_STATE.GEAR`, narrowed to values 1 through 4 with unused upper bits clear
 to reduce collisions with unrelated `0x242` messages. Host tests pass; actual
 comma 3 power-on, ready, park, shutdown, and two-second timeout transitions must
@@ -311,7 +312,7 @@ The detailed EOP10 comparison is recorded in
 DLAT and DLON must not replace the baseline DragonPilot controls:
 
 - DLAT does not currently alter the steering path and references model fields
-  absent from the 0.11.1 schema;
+  absent from the EDP10 schema;
 - DLON cannot affect a BYD that retains stock longitudinal control, and its
   heuristic force-stop behavior is outside the phase-one safety boundary;
 - DragonPilot AEM, ALKA, LCA and conservative road-edge lane-change blocking
@@ -329,7 +330,7 @@ Keep every commit buildable and reviewable:
 4. `[SAFETY] Add lateral-only BYD safety model and tests`
 5. `[SAFETY] Add payload-aware BYD AEB pass-through`
 6. `[BYD] Add opt-in openpilot longitudinal trial path`
-7. `[PANDA] Add verified BYD ignition support for panda and panda_tici`
+7. `[PANDA] Add verified BYD ignition support for standard panda`
 8. `[BYD] Register platform with stock-ACC engagement`
 9. `[NGP] Add separately tested BYD ALKA/LCA compatibility`
 10. `[BYD] Record bench, HIL and closed-course validation results`
@@ -337,6 +338,17 @@ Keep every commit buildable and reviewable:
 Do not squash these stages into an unattributed import. The history should make
 it possible to compare each BYD-derived change with commit `5b34194`, distinguish
 NagasPilot adaptations, and revert one capability without disturbing the rest.
+
+EDP10 execution status:
+
+- Metadata, DBC, fingerprints, firmware query, passive state, and parser tests:
+  complete in `a2394317d`.
+- Standard Panda ignition recognition: complete in `7a7bb4fe5`; target-car
+  power-state evidence is still required.
+- BYD safety model: draft only; current host test adaptation does not yet pass
+  the EDP10 safety test API and is not committed as a usable safety gate.
+- Angle/HUD control, stock-ACC registration, openpilot longitudinal, and ALKA/
+  LCA integration: not started or not hardware-validated.
 
 ## Completion criteria for the minimal port
 
@@ -346,7 +358,7 @@ The phase-one port is complete only when:
 - the vehicle matches by verified fingerprint/firmware evidence without unsafe
   broad matching;
 - all parser, controller and Panda safety tests pass;
-- both comma 3 Panda firmware paths build and pass their relevant tests;
+- the standard Panda firmware path builds and passes its relevant tests;
 - steering and HUD traffic meet the captured checksum, counter and frequency
   behavior;
 - stock ACC and AEB remain operational and unmodified;
@@ -354,4 +366,3 @@ The phase-one port is complete only when:
 - bench, stationary and closed-course results are recorded; and
 - the documentation clearly distinguishes validated behavior from deferred or
   experimental work.
-

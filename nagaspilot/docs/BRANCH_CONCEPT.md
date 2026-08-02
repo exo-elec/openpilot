@@ -47,8 +47,12 @@ interchangeable.
 | Branch | Base | Role |
 | --- | --- | --- |
 | `dev/EDP10` | DragonPilot 0.10.0 | Primary conservative comma 3/BYD line |
-| `dev/EDP11` | DragonPilot 0.11.1 | Compatibility and forward-port reference |
 | `dev/EOP10` | openpilot v0.10.0 + EOP | Experimental feature reference |
-| `dev/NGP10` | openpilot v0.10.0 | Future clean openpilot-based line |
+| `dev/NGP10` | openpilot v0.10.0 | Comma 3 transition line; EOP10-derived DLAT/DLON candidates |
 
 All branches remain development-only until vehicle evidence supports release.
+
+`dev/NGP10` is intentionally separate from `dev/EDP10`: it may adopt EOP10
+DLAT/DLON behavior, but only behind tests and recorded-route evidence. It must
+retain the original comma 3 camera and process boundary; EOP10 hardware HAL,
+RK3588, and stereo dependencies are out of scope.

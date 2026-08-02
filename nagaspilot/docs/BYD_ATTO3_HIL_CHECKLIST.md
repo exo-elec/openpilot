@@ -1,6 +1,6 @@
 # BYD Atto 3 comma 3 HIL checklist
 
-This checklist validates the single BYD test car without broadening NGP11.1 or
+This checklist validates the single BYD test car without broadening EDP10 or
 enabling multiple unproven features together. Complete factory-longitudinal
 baseline testing before selecting openpilot longitudinal.
 
@@ -128,4 +128,3 @@ For every gate record:
 
 Do not mark a feature supported from memory, screenshots, or console summaries;
 retain the raw data needed to reproduce the decision.
-

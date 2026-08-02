@@ -1,6 +1,6 @@
 # BYD Atto 3 camera-port parity audit
 
-- Audited branch: `NGP11.1`
+- Audited transition branch: `dev/EDP10`
 - Reference: `/home/vcar/panda/byd-atto3-openpilot-port`
 - Reference commit: `5b34194240bb831719629d2fd095fae5daaed1e0`
 - Audit date: 2026-07-31
@@ -81,4 +81,3 @@ video and buses 0/2 CAN together, then replay and cross-check:
 
 Until those gates pass, the precise statement is: **camera-port software
 baseline parity, target-car recording parity pending**.
-
