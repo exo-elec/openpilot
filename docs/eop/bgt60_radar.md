@@ -4,7 +4,7 @@
 
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
-| `radar3d` | car OEM CAN radar (panda/TC275) | 15–200m | `radard.py` → `radarState` | ACC, lead car tracking |
+| `radar3d` | car OEM CAN radar (TC375 BrownPanda) | 15–200m | `radard.py` → `radarState` | ACC, lead car tracking |
 | `radar4d` | BGT60TR13C (radar4d.py, SPI0) | 0–15m | `gridd.py` → `stereoObjects` | close-range maneuvering |
 | `radar2d` | *(reserved)* corner/blind-spot | — | — | future |
 
@@ -69,7 +69,7 @@ radar4d.py  →  ego-velocity compensation (liveLocationKalman → carState → 
                  ↓
               pathd  (lateral maneuvering in dense traffic)
 
-car OEM CAN radar (via panda/TC275)
+car OEM CAN radar (via TC375 BrownPanda)
     →  cereal "radar3d"  →  radard.py  →  "radarState"  →  controlsd/ACC
        (unchanged — renamed from liveTracks, same wire ordinal @131)
 ```

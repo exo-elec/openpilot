@@ -15,11 +15,11 @@ class ParsedSignal:
   """A parsed CAN signal value."""
   name: str
   value: Any
-  
+
 
 class TeslaParser:
   """Minimal CAN parser for Tesla messages."""
-  
+
   def __init__(self):
     # Message definitions for Tesla Model 3/Y
     # Format: (address, name, signals)
@@ -156,18 +156,23 @@ class TeslaParser:
         }
       },
       # BrownPanda Continental radar conversion on Tesla party bus 0
-      # 0x401: RadarStatus — trigger frame, presence = sensor OK
+      # 0x401: RadarStatus — fault semantics match Tesla's Continental DBC
       0x401: {
         'name': 'RadarStatus',
         'size': 8,
-        'signals': {}   # Zeroed payload; presence is the only check
+        'signals': {
+          'shortTermUnavailable': (23, 1, 1.0, 0.0, False),
+          'sensorBlocked':         (26, 1, 1.0, 0.0, False),
+          'vehDynamicsError':      (27, 1, 1.0, 0.0, False),
+        }
       },
       # Object_A frames: 0x410 + slot*2 (slots 0..39)
       # Object_B frames: 0x411 + slot*2 (slots 0..39)
-      # Active: slot 0 = left BSD, slot 1 = right BSD; others empty (Tracked=0)
+      # BYD slots 0..9 are direct MVS4 tracks; remaining slots are empty.
       # Signals (all Intel @1+):
       #   Object_A: LongDist(0|12,0.0625), LongSpeed(12|12,0.0625,-128),
-      #             LatDist(24|11,0.125,-128), Valid(55|1), Tracked(62|1), Index(63|1)
+      #             LatDist(24|11,0.125,-128), LongAccel(40|10,0.03125,-16),
+      #             Valid(55|1), Meas(61|1), Tracked(62|1), Index(63|1)
       #   Object_B: LatSpeed(0|10,0.125,-64), Index2(63|1)
       # Trigger: 0x45F (slot-39 Object_B arrives last)
       **{
@@ -178,7 +183,9 @@ class TeslaParser:
             'CA_LongDist':   (0,  12, 0.0625,   0.0,   False),
             'CA_LongSpeed':  (12, 12, 0.0625, -128.0,  False),
             'CA_LatDist':    (24, 11, 0.125,  -128.0,  False),
+            'CA_LongAccel':  (40, 10, 0.03125, -16.0, False),
             'CA_Valid':      (55,  1, 1.0,      0.0,   False),
+            'CA_Meas':       (61,  1, 1.0,      0.0,   False),
             'CA_Tracked':    (62,  1, 1.0,      0.0,   False),
             'CA_Index':      (63,  1, 1.0,      0.0,   False),
           }
@@ -197,10 +204,10 @@ class TeslaParser:
         for s in range(40)
       },
     }
-    
+
     # Current values
     self.vl: dict[str, dict[str, Any]] = {}
-    
+
   def _extract_signal(self, data: bytes, start_bit: int, size: int,
                       scale: float, offset: float, is_signed: bool) -> float:
     """Extract a little-endian (Intel) CAN signal. start_bit is LSB position."""
@@ -250,19 +257,19 @@ class TeslaParser:
       else:
         result[sig_name] = self._extract_signal(data, start_bit, size, scale, offset, is_signed)
     return result
-    
+
   def update(self, can_messages: list[tuple[int, bytes, int]]) -> None:
     """Update parser with new CAN messages.
-    
+
     Args:
       can_messages: List of (address, data, bus) tuples
     """
-    for addr, data, bus in can_messages:
+    for addr, data, _bus in can_messages:
       parsed = self.parse_message(addr, data)
       if parsed:
         name = parsed.pop('name')
         self.vl[name] = parsed
-        
+
   def update_strings(self, can_strings: list[list[tuple[int, bytes, int]]]) -> None:
     """Update from can_strings format (list of lists)."""
     for can_list in can_strings:
@@ -271,10 +278,10 @@ class TeslaParser:
 
 class SimpleCANParser:
   """Simplified CAN parser that mimics opendbc.can.CANParser interface."""
-  
+
   def __init__(self, dbc_name: str, signals: list[Any], bus: int):
     """Initialize parser.
-    
+
     Args:
       dbc_name: Ignored (for compatibility)
       signals: Ignored (for compatibility)
@@ -283,7 +290,7 @@ class SimpleCANParser:
     self.bus = bus
     self.parser = TeslaParser()
     self.vl = self.parser.vl
-    
+
   def update_strings(self, can_strings: list[list[tuple[int, bytes, int]]]) -> None:
     """Update parser with CAN data."""
     # Filter messages for our bus

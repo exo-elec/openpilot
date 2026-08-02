@@ -119,7 +119,9 @@ class Car:
 
     # Longitudinal
     CP.openpilotLongitudinalControl = self.params.get_bool("AlphaLongitudinalEnabled")
-    CP.radarUnavailable = False  # BrownPanda radar shares Tesla party bus 0
+    # EOP10 parses TC375's converted ARS4-B frames on party bus 0. The parser
+    # reports unavailable itself when that stream is absent or stale.
+    CP.radarUnavailable = False
     CP.minEnableSpeed = -1.0
     CP.minSteerSpeed = 0.0
 

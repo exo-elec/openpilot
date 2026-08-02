@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
-"""Continental ARS4-xx Radar Interface for BrownPanda gateways.
+"""Continental ARS4-B compatibility interface for TC375 BrownPanda.
 
-TC275/TC375 emit converted Continental ARS4-B frames on Tesla party bus 0:
+TC375 emits converted Continental ARS4-B frames on Tesla party bus 0:
 
-  0x401              RadarStatus     — trigger, 100ms
+  0x401              RadarStatus     — status, ~16Hz
   0x410 + slot*2     Object_A[0..39] — LongDist, LongSpeed, LatDist, Valid, Tracked, Index
   0x411 + slot*2     Object_B[0..39] — LatSpeed, Index2
 
-Active slots: 0 = left BSD, 1 = right BSD. Slots 2-39 are always empty (Tracked=0).
+BYD MVS4 slots 0..9 are mapped directly; slots 10..39 are empty (Tracked=0).
 0x45F (slot 39 Object_B) arrives last and is used as the update trigger.
 
 Object pair valid when: Tracked==1 AND Valid==1 AND Index==Index2.
 
-Reference: TC275_BrownPanda/DBC/comma.c and TC375_BrownPanda/DBC/comma.c
+Signal semantics are copied from commaai/opendbc and cross-checked against
+sunnypilot and dragonpilot. EOP10 intentionally receives the converted stream
+on its two-bus BrownPanda party bus rather than stock Tesla radar bus 1.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
+from time import monotonic
+
 from cereal import car
 from openpilot.selfdrive.vehicled.tesla.values import CANBUS
-
-# Radar-to-camera offset (m)
-RADAR_TO_CAMERA = 1.52
 
 # ID constants
 _STATUS_ID  = 0x401
@@ -28,11 +30,8 @@ _OBJ_A_BASE = 0x410   # Object_A for slot s = 0x410 + s*2
 _OBJ_B_BASE = 0x411   # Object_B for slot s = 0x411 + s*2
 _NUM_SLOTS   = 40
 _TRIGGER_ID  = _OBJ_B_BASE + (_NUM_SLOTS - 1) * 2   # 0x45F — last Object_B
-
-# Active BSD slots
-_LEFT_SLOT  = 0
-_RIGHT_SLOT = 1
-
+_STATUS_TIMEOUT_S = 0.2
+_FAULT_REPORT_PERIOD_S = 0.1
 
 def _le(data: bytes, start_bit: int, size: int, scale: float = 1.0, offset: float = 0.0) -> float:
   """Extract a little-endian (Intel) CAN field with bounds checking."""
@@ -48,15 +47,16 @@ def _le(data: bytes, start_bit: int, size: int, scale: float = 1.0, offset: floa
 
 
 class ContinentalRadarInterface:
-  """Parses TC275 Continental ARS4-xx radar frames and produces car.RadarData.
+  """Parse the BrownPanda ARS4-B stream into ``car.RadarData``.
 
-  - Triggered by 0x45F (last Object_B in the 100ms burst).
-  - Two slots: 0 = left BSD, 1 = right BSD.
+  - Triggered by 0x45F (last Object_B in each paced ~16 Hz set).
+  - Processes all 40 slots, matching the stock Tesla radar interface.
   - A and B frames of the same slot must have matching Index / Index2.
   """
 
-  def __init__(self, CP: car.CarParams):
+  def __init__(self, CP: car.CarParams, time_fn: Callable[[], float] = monotonic):
     self.CP = CP
+    self._time_fn = time_fn
     self.pts: dict[int, car.RadarData.RadarPoint] = {}
     self.frame = 0
 
@@ -64,24 +64,31 @@ class ContinentalRadarInterface:
     self._obj_a: dict[int, dict] = {}
     self._obj_b: dict[int, dict] = {}
     self._sensor_ok = False
-    self._updated: set[int] = set()
+    self._status_mono = self._time_fn()
+    self._last_fault_mono = self._status_mono - _FAULT_REPORT_PERIOD_S
+    self._have_status = False
 
   def update(self, can_list: list) -> car.RadarData | None:
     self.frame += 1
     triggered = False
-    self._sensor_ok = False  # reset each cycle — absence of status = fault
 
     for m in can_list:
       addr = m.address
       dat  = bytes(m.dat)
       # Radar shares the Tesla party wire; no third comma CAN is required.
-      if getattr(m, 'src', 0) != CANBUS.party:
+      if getattr(m, 'src', None) != CANBUS.party:
         continue
-      self._updated.add(addr)
-
-      if addr == _STATUS_ID:
-        # RadarStatus — zeroed payload; presence = sensor OK
-        self._sensor_ok = True
+      if addr == _STATUS_ID and len(dat) >= 8:
+        # Status is the start-of-set marker. Drop incomplete halves from a
+        # previous set before the one-bit pair index can wrap and match stale data.
+        self._obj_a.clear()
+        self._obj_b.clear()
+        short_term_unavailable = bool(_le(dat, 23, 1))
+        sensor_blocked = bool(_le(dat, 26, 1))
+        vehicle_dynamics_error = bool(_le(dat, 27, 1))
+        self._sensor_ok = not (short_term_unavailable or sensor_blocked or vehicle_dynamics_error)
+        self._status_mono = self._time_fn()
+        self._have_status = True
 
       elif (_OBJ_A_BASE <= addr < _OBJ_A_BASE + _NUM_SLOTS * 2) and (addr & 1) == 0:
         # Object_A
@@ -97,6 +104,8 @@ class ContinentalRadarInterface:
             'dRel':    _le(dat,  0, 12, scale=0.0625),
             'vRel':    _le(dat, 12, 12, scale=0.0625, offset=-128.0),
             'yRel':    _le(dat, 24, 11, scale=0.125,  offset=-128.0),
+            'aRel':    _le(dat, 40, 10, scale=0.03125, offset=-16.0),
+            'measured': bool(_le(dat, 61, 1)),
           }
 
       elif (_OBJ_B_BASE <= addr < _OBJ_B_BASE + _NUM_SLOTS * 2) and (addr & 1) == 1:
@@ -110,14 +119,32 @@ class ContinentalRadarInterface:
         if addr == _TRIGGER_ID:
           triggered = True
 
+    now = self._time_fn()
     if not triggered:
-      return None
+      if now - self._status_mono <= _STATUS_TIMEOUT_S:
+        return None
+      if now - self._last_fault_mono < _FAULT_REPORT_PERIOD_S:
+        return None
+
+      # Absence of the TC375 stream is itself the unavailable signal. Clear
+      # cached points and publish a bounded-rate fault without requiring the
+      # gateway to synthesize status frames.
+      self._last_fault_mono = now
+      self._sensor_ok = False
+      self.pts.clear()
+      self._obj_a.clear()
+      self._obj_b.clear()
+      ret = car.RadarData.new_message()
+      ret.errors = ['fault']
+      ret.points = []
+      return ret
 
     ret = car.RadarData.new_message()
-    ret.errors = [] if self._sensor_ok else ['fault']
+    status_fresh = self._have_status and (now - self._status_mono) <= _STATUS_TIMEOUT_S
+    ret.errors = [] if self._sensor_ok and status_fresh else ['fault']
 
-    for slot in (_LEFT_SLOT, _RIGHT_SLOT):
-      track_id = slot + 1   # 1-based track IDs
+    for slot in range(_NUM_SLOTS):
+      track_id = slot + 1
       a = self._obj_a.get(slot)
       b = self._obj_b.get(slot)
 
@@ -133,12 +160,13 @@ class ContinentalRadarInterface:
         self.pts[track_id].trackId = track_id
 
       pt = self.pts[track_id]
-      pt.dRel     = a['dRel'] - RADAR_TO_CAMERA
-      pt.yRel     = -a['yRel']   # positive left in openpilot
+      # Match official opendbc exactly. radard owns radar/camera geometry.
+      pt.dRel     = a['dRel']
+      pt.yRel     = a['yRel']
       pt.vRel     = a['vRel']
       pt.yvRel    = b['yvRel']
-      pt.aRel     = float('nan')
-      pt.measured = True
+      pt.aRel     = a['aRel']
+      pt.measured = a['measured']
 
     # Clear Object_A/B buffers for next cycle
     self._obj_a.clear()
