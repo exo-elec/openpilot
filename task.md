@@ -81,10 +81,31 @@ Completed:
   is now the single canonical module (TC275 0x712 cross-core checks merged in,
   `VehicleSafetyLayer` kept as an alias); `selfdrive/vehicled/safety/safety.py` is a
   re-export shim. Both safety managers verified against it.
-- [ ] **Simulation integration tests**: `tools/sim/tests/` run locally → 29 passed
-  except `test_carla_bridge.py::test_driving` (needs a CARLA server; docker socket
-  is permission-denied for this user — needs sudo/group fix + multi-GB image pull)
-  and `test_metadrive_bridge.py` (metadrive package not installed).
+- [x] **Simulation integration tests — docker permission fixed (2026-08-02)**:
+  `tools/sim/tests/` run locally → 29 passed except `test_carla_bridge.py::test_driving`
+  (needed a CARLA server; docker socket was permission-denied for this user) and
+  `test_metadrive_bridge.py` (metadrive package not installed). The docker blocker
+  is fixed: `vcar` was added to the `docker` group (`sudo usermod -aG docker
+  vcar`); takes effect in new shells, or immediately via `sg docker -c "..."` in
+  an existing one. The `carlasim/carla:0.9.16` image is already pulled locally
+  (29.4GB) — no download needed.
+  **Actually attempting `test_driving` surfaced two more blockers, unrelated to
+  docker, that stop it running from this shell/sandbox:**
+  1. The `.venv` (Python 3.12) has no `msgq`, no `opendbc`, and a `params_pyx.so`
+     built for a different Python ABI — `msgq_repo`/`rednose_repo` submodules
+     are uninitialized (`git submodule status` shows them unpopulated) and
+     `opendbc_repo` is never added to `PYTHONPATH` or `pip install -e`'d
+     anywhere in this checkout (see the `opendbc_repo` entry below). The
+     system `/usr/bin/python3.10` has the `carla` PyPI package installed
+     (`~/.local/lib/python3.10/site-packages`) but *not* `msgq` either — so
+     neither interpreter currently has a working `cereal.messaging` import.
+  2. This exec environment only exposes `/dev/nvidiactl`, not `/dev/nvidia0`
+     — no real GPU device passthrough — so `nvidia-smi` fails to reach the
+     driver here even though the host has an RTX 3090 (used by the local
+     inference stack in `CLAUDE.md`). CARLA needs actual GPU/Vulkan
+     rendering; it cannot run from this sandboxed shell regardless of the
+     Python/package fixes above. Running it would need to happen directly on
+     the host, outside this tool's sandbox.
 - [x] **RadarZoneMonitor alert priority** (`controls/lib/radar_zones.py`): side
   blind-spot messages now take priority over rear cross traffic in the zone-overlap
   region (an overtaking car behind-and-lateral is a blind-spot threat, not RCTA);
@@ -140,12 +161,35 @@ Completed:
   caused by this session's changes — `opendbc_repo` is not currently
   `pip install -e`'d or added to `PYTHONPATH` by any launch script or
   `SConstruct` rule in this checkout.
+- [x] Committed (`11e38d891`, "remove vehicled daemon, dedupe tesla values
+  against OpenDBC") and pushed to `origin/dev/EOP10`.
+- [x] Fixed the CARLA sim-test docker permission blocker: `vcar` added to the
+  `docker` group. See "Simulation integration tests" above.
 
 Known remaining work:
 
-- [ ] **`opendbc_repo` is not importable in the dev-PC venv** (`ModuleNotFoundError:
-  No module named 'opendbc'`) — none of `system/socketd/vehicle/car/{card,carstate,
-  carcontroller}.py`'s existing `from opendbc.car.tesla...` imports can actually
-  resolve here either. Needs either an editable pip install of `opendbc_repo`
-  or a `PYTHONPATH`/`sys.path` entry added by `launch_openpilot.sh` /
-  `SConstruct`. Pre-existing gap, not introduced by this session.
+- [ ] **Dev-PC Python environment is broken for anything touching `cereal.messaging`**
+  (pre-existing, not introduced by this session — confirmed via `git stash` on a
+  clean tree). Root causes, so a future session doesn't have to re-diagnose:
+  - `msgq_repo` and `rednose_repo` submodules are uninitialized (`git submodule
+    status` shows them with a `-` prefix — never `git submodule update --init`'d).
+  - `.venv` is Python 3.12, but `common/params_pyx.so` is a stale build for a
+    different Python ABI (`undefined symbol: PyCode_NewWithPosOnlyArgs`).
+  - `opendbc_repo` is a populated submodule but is never `pip install -e`'d or
+    added to `PYTHONPATH` by any launch script or `SConstruct` rule — so
+    `system/socketd/vehicle/car/{card,carstate,carcontroller}.py`'s existing
+    `from opendbc.car.tesla...` imports can't resolve here either, from either
+    the 3.12 `.venv` or system `/usr/bin/python3.10`.
+  - System `/usr/bin/python3.10` has the `carla` PyPI package installed
+    globally (`~/.local/lib/python3.10/site-packages`) — but not `msgq`.
+  - Fix needs: `git submodule update --init msgq_repo rednose_repo`, build/
+    install their Cython extensions against whichever Python is canonical for
+    this checkout (`.python-version` says 3.12, but the only environment with
+    any of these packages present is 3.10), and either `pip install -e
+    opendbc_repo` or add it to `PYTHONPATH`.
+- [ ] **This tool's exec sandbox has no GPU device passthrough** — only
+  `/dev/nvidiactl` is present, not `/dev/nvidia0`, so `nvidia-smi` can't reach
+  the driver here even though the host has an RTX 3090. CARLA needs real
+  GPU/Vulkan rendering (`tools/sim/start_carla.sh` explicitly requires a
+  discrete GPU) and cannot run from this sandboxed shell — would need to run
+  directly on the host outside this tool.
