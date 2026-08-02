@@ -19,7 +19,8 @@ car.
 ## Responsibilities
 
 - NGP10 proves DLAT, DLON, VTSC, MTSC, ALCC, LCA, speed policy, SOC, GridD,
-  single-camera MonoD, radar2D/radar3D, and overlay contracts with unit tests and recorded routes. Features that
+  single-camera MonoD, radar2D/radar3D, and overlay contracts with unit tests
+  and recorded routes. Features that
   need extra streams or compute are capability-gated rather than removed.
 - BrownPanda proves Tesla-format wire compatibility, gateway safety, and target
   car translation.
@@ -35,8 +36,9 @@ car.
 ## Non-goals
 
 Do not import RK3588/RKNN or EOP HAL implementation into the comma 3 runtime.
-GridD, single-camera MonoD, radar2D/radar3D, SOC, and side/left/right/rear overlays may exist as portable,
-capability-gated application modules; radar4D remains excluded, and comma 3 must fall back to its two road
-cameras when those streams are absent. Keep driver monitoring enabled and
+GridD, single-camera MonoD, radar2D/radar3D, SOC, and side/left/right/rear
+overlays may exist as portable, capability-gated application modules; radar4D
+remains excluded, and comma 3 must fall back to its two road cameras when those
+streams are absent. Keep driver monitoring enabled and
 preserve stock AEB/longitudinal authority until gateway and route evidence
 supports a controlled promotion.

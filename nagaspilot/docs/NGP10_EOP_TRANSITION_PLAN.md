@@ -1,17 +1,18 @@
 # NGP10 EOP Transition Plan
 
 `dev/NGP10` is the application/selfdrive proving line. It starts from official
-openpilot v0.10.0, the same application baseline as EOP10, and ports selected
-EOP10 behavior while keeping the original comma 3 camera and process APIs.
-Features are proven here first, then promoted into EOP10 for hardware/HAL
-integration testing.
+openpilot v0.10.0 and ports selected EOP10 behavior while keeping the original
+comma 3 camera/process APIs. TC275 FreeRTOS BrownPanda presents the target car
+as Tesla Model 3 HW3-format CAN. Features are proven here first, then promoted
+into EOP10 for HAL and hardware-in-the-loop testing.
 
 ## Scope
 
-- Port DLAT and DLON as isolated, reviewable features.
+- Port DLAT, DLON, VTSC, MTSC, ALCC, LCA, radar2D/radar3D, SOC, GridD, and
+  single-camera MonoD as isolated, reviewable features.
 - Keep driver monitoring enabled and preserve the CITY/HIGHWAY speed policy.
-- Use the proven BYD Atto 3 parser and Panda safety work as references. NGP10
-  must not import EOP RK3588, stereo, radar, or hardware-specific HAL code.
+- Use BYD/Panda work and BrownPanda Tesla-format wire tests as references.
+  NGP10 must not import EOP RK3588, stereo, radar4D, or hardware HAL code.
 - Keep control output disabled until unit tests, replay checks, and stationary
   CAN validation pass.
 
@@ -29,6 +30,18 @@ integration testing.
    camera plumbing, and hardware-in-the-loop behavior are tested.
 6. Compare comma 3 routes with and without the driver camera and retain the
    evidence in this directory.
+
+## Current implementation status
+
+| Area | Status |
+| --- | --- |
+| DLAT | Non-controlling arbiter implemented; schema/replay integration pending |
+| DLON | Pure trigger/state evaluator implemented; actuator integration disabled |
+| VTSC | Model-only shadow estimator implemented |
+| MTSC | Map-independent curvature evaluator implemented |
+| GridD/SOC/MonoD/overlays | Capability contract implemented; feature modules pending |
+| Radar2D/radar3D | Scope defined; Tesla-normalized ingestion/tracking pending |
+| BrownPanda/Tesla HW3 boundary | Wire contract and gateway validation pending |
 
 ## Non-goals
 
