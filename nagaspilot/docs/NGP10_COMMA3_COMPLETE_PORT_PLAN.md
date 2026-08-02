@@ -18,8 +18,9 @@ inside NGP10.
 
 Do not port RK3588/RKNN/NPU runners, PCIe/Hailo accelerators, or EOP HAL code
 into the comma 3 runtime. Implement capability-gated interfaces for GridD,
-SOC, StereoD/MonoD, and side/left/right/rear overlays, but keep them disabled
-when their streams or compute backend are unavailable. Radar4d/radar3d,
+SOC, single-camera MonoD, and side/left/right/rear overlays, but keep them disabled
+when their streams or compute backend are unavailable. Radar2D and radar3D are
+allowed through the normalized Tesla radar protocol; radar4D,
 CAN-FD, `steamd`, `sided`, `reard`, and EOP branding remain out of the comma 3
 runtime. Do not replace the Tesla-format gateway with a Python vehicle daemon.
 Defer YOLO/3D detection and SOC actuation until resource, geometry, and
@@ -43,14 +44,17 @@ guardrail-safety evidence passes.
    speed-limit sources before allowing any cruise-speed change. Implement ALCC
    and LCA state machines with stock driver-monitoring and human override.
 5. **Perception/overlays**: implement GridD's capability contract, lazy BEV,
-   SOC offset proposal, and side/left/right/rear overlay interfaces. On comma
+   single-camera MonoD shadow inference, SOC offset proposal, and side/left/right/rear overlay interfaces. On comma
    3, publish diagnostics and use narrow/wide fallbacks; on EOP10, bind real
    side/rear streams through HAL only after synchronization and calibration.
-6. **Gateway/interface**: validate TC275 FreeRTOS BrownPanda translation,
+6. **Radar and lane change**: implement normalized Tesla radar2D/radar3D
+   ingestion, tracking, and safety-limited LCA gap/blind-spot decisions. Keep
+   radar4D, point-cloud fusion, and raw radar hardware drivers out of NGP10.
+7. **Gateway/interface**: validate TC275 FreeRTOS BrownPanda translation,
    Tesla Model 3 HW3 message timing/checksums, and gateway safety. Port the
    portable Tesla-format vehicle parser/controller/safety contract only after
    those wire tests pass.
-7. **Adaptive telemetry**: port `adaptd`'s pure profile computer for
+8. **Adaptive telemetry**: port `adaptd`'s pure profile computer for
    normalized `ncpVehicleData`; keep BLE/NCP/OBD transport and target-car PID
    interpretation on the gateway/NavPilot side.
 

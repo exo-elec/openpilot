@@ -56,7 +56,7 @@ explicitly classified before any port:
 | Application control | `controls/lib/*`, `plannerd.py` | Candidate only after v0.10.0 API and replay tests |
 | Camera/perception | `gridd/`, `monod/`, `pathd/`, `pointcloudd/` | Defer stereo/depth/BEV; retain only two-camera-compatible pure logic |
 | Model runtime | `modeld/vision/*`, `rknn_*` | Do not port RKNN/NPU runners; keep v0.10.0 modeld |
-| Radar/perception | `radar4d*`, `radar3d.py`, `radar_zones.py` | Excluded; project is camera-only |
+| Radar/perception | Tesla-normalized radar2D/radar3D, `radar_zones.py` | Implement behind gateway capability and safety tests; omit radar4D |
 | Platform daemons | `steamd/`, `sided/`, `stereod/`, `reard/`, `adaptd/` | Portable contracts may be implemented; hardware daemons are EOP10-only |
 | Navigation/map | `mapd/`, `navd/`, `coordinationd/` | Audit as optional inputs; no required dependency for core control |
 | Calibration/location | `camera_calibrationd.py`, `side_camera_calibrator.py`, `locationd/*` | Keep stock calibration; no side-camera calibration |
@@ -100,7 +100,7 @@ geometry, and RKNN files target RK3588. None are direct comma 3 ports.
 | MTSC | Test pure math only; map input optional | Not camera-only by itself |
 | Speed limits | Resolve sources, no forced output initially | Dashboard/nav/map dependent |
 | ALCC | Audit state machine; preserve stock engagement and DM | Requires vehicle/cereal validation |
-| LCA | Preserve human-nudge default; audit gap/BSM gates | Requires vehicle/cereal validation |
+| LCA | Use radar2D/3D gap and blind-spot gates; retain human override | Requires Tesla radar/cereal validation |
 | SOC/MonoD/GridD/stereo | Capability-gated implementation | Comma 3 diagnostics/fallback; EOP10 enables extra streams after geometry/resource tests |
 
 ## Comma 3 constraints
