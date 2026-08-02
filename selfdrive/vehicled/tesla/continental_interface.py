@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Continental ARS4-xx Radar Interface for TC275 BrownPanda gateway.
+"""Continental ARS4-xx Radar Interface for BrownPanda gateways.
 
-TC275 emits Continental ARS4-B frames on CAN3 (comma bus 1):
+TC275/TC375 emit converted Continental ARS4-B frames on Tesla party bus 0:
 
   0x401              RadarStatus     — trigger, 100ms
   0x410 + slot*2     Object_A[0..39] — LongDist, LongSpeed, LatDist, Valid, Tracked, Index
@@ -12,12 +12,12 @@ Active slots: 0 = left BSD, 1 = right BSD. Slots 2-39 are always empty (Tracked=
 
 Object pair valid when: Tracked==1 AND Valid==1 AND Index==Index2.
 
-Reference: tc275_freertos/DBC/comma.c COMMA_SendContinentalSlot()
-           tc275_freertos/docs/architecture.md "Continental ARS4-xx Radar"
+Reference: TC275_BrownPanda/DBC/comma.c and TC375_BrownPanda/DBC/comma.c
 """
 from __future__ import annotations
 
 from cereal import car
+from openpilot.selfdrive.vehicled.tesla.values import CANBUS
 
 # Radar-to-camera offset (m)
 RADAR_TO_CAMERA = 1.52
@@ -74,8 +74,8 @@ class ContinentalRadarInterface:
     for m in can_list:
       addr = m.address
       dat  = bytes(m.dat)
-      # TC275 Continental radar is on CAN3 → comma bus 1
-      if getattr(m, 'src', 0) != 1:
+      # Radar shares the Tesla party wire; no third comma CAN is required.
+      if getattr(m, 'src', 0) != CANBUS.party:
         continue
       self._updated.add(addr)
 

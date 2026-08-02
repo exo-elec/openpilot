@@ -155,7 +155,7 @@ class TeslaParser:
           'ALCC_counter':       (52, 4, 1, 0, False),
         }
       },
-      # Continental ARS4-xx radar (TC275 CAN3 → comma bus 1)
+      # BrownPanda Continental radar conversion on Tesla party bus 0
       # 0x401: RadarStatus — trigger frame, presence = sensor OK
       0x401: {
         'name': 'RadarStatus',

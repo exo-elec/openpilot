@@ -119,7 +119,7 @@ class Car:
 
     # Longitudinal
     CP.openpilotLongitudinalControl = self.params.get_bool("AlphaLongitudinalEnabled")
-    CP.radarUnavailable = False  # Continental ARS4-xx radar via TC275 CAN3 (0x401, 0x410-0x45F)
+    CP.radarUnavailable = False  # BrownPanda radar shares Tesla party bus 0
     CP.minEnableSpeed = -1.0
     CP.minSteerSpeed = 0.0
 
