@@ -128,7 +128,7 @@ class NGPDLAT:
     return self.suggestion
 
   def update_model(self, model, v_ego=None):
-    """Adapt a v0.10.0 ``ModelDataV2`` sample into a shadow DLAT result.
+    """Adapt a v0.10.0 ``ModelDataV2`` sample into an advisory DLAT result.
 
     v0.10.0 exposes the laneless path as ``position`` and its uncertainty as
     ``position.yStd``; the EOP prototype's ``predictedPath`` fields do not

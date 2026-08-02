@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from openpilot.selfdrive.controls.lib.ngp_vtsc import NGPVTSC, VTSCState
+from nagaspilot.controls.ngp_vtsc import NGPVTSC, VTSCState
 
 
 def model(rates, velocities):

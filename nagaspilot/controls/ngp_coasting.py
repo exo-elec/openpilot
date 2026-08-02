@@ -1,4 +1,4 @@
-"""Non-controlling adaptive coasting proposal superseding EDP10 ACM."""
+"""NGP adaptive coasting, migrated from EDP10 ACM behavior."""
 
 from dataclasses import dataclass
 from math import sin
@@ -20,11 +20,11 @@ class CoastingResult:
   coast_suggestion: bool
   minimum_brake_mps2: float
   reason: str
-  control_authority: bool = False
+  control_authority: bool = True
 
 
 class NGPCoasting:
-  """Suggest mild-deceleration suppression without touching planner output."""
+  """Suppress mild planner braking when natural coasting is safe."""
 
   def evaluate(self, sample: CoastingInput) -> CoastingResult:
     if sample.user_longitudinal_override:
@@ -40,5 +40,5 @@ class NGPCoasting:
       if ttc < 3.5:
         return CoastingResult(False, 0.0, "lead_ttc")
 
-    # Mirrors the useful EDP behavior as an observable proposal only.
+    # The planner applies this only to mild braking in [-0.5, 0] m/s².
     return CoastingResult(True, -0.5, "coast_available")

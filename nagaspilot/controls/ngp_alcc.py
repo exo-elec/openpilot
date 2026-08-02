@@ -1,7 +1,7 @@
-"""Comma 3-safe Always Lane Centering Control state proposal.
+"""Always-on Lane Centering Control (ALCC) state machine.
 
-Unlike the EOP10 controller, this module does not mutate controls events or
-claim Panda authority. It can be wired to logging before any control consumer.
+This helper owns ALCC state only. Runtime actuation and Panda authorization
+remain explicit integration responsibilities.
 """
 
 from dataclasses import dataclass

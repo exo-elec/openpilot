@@ -1,21 +1,45 @@
-from openpilot.selfdrive.controls.lib.ngp_dlon import DLONInput, NGPDLON
-from openpilot.selfdrive.controls.lib.ngp_mtsc import MTSCState, NGPMTSC
+from types import SimpleNamespace
+
+from nagaspilot.controls.ngp_dlon import NGPDLON, NGPDLONMode, NGPDriveMode
+from nagaspilot.controls.ngp_mtsc import MTSCState, NGPMTSC
 
 
-def test_dlon_hysteresis_and_triggers():
-  dlon = NGPDLON(enter_frames=2, exit_frames=2)
-  sample = DLONInput(8.0, should_stop=True, traffic_control=True)
-  result = dlon.evaluate(sample)
-  assert result.triggers == ("low_speed", "stop_prediction", "traffic_control")
-  assert not result.e2e_suggestion
-  assert dlon.evaluate(sample).e2e_suggestion
-  assert dlon.evaluate(DLONInput(25.0)).e2e_suggestion
-  assert not dlon.evaluate(DLONInput(25.0)).e2e_suggestion
+class FakeSubMaster(dict):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.valid = {"radarState": True, "navInstruction": False}
 
 
-def test_dlon_fcw_is_immediate_but_shadow_only():
-  result = NGPDLON().evaluate(DLONInput(20.0, mpc_fcw=True))
-  assert result.e2e_suggestion
+def make_dlon_sm(v_ego=5.0, should_stop=False, has_lead=False, gas_pressed=False):
+  return FakeSubMaster({
+    "carState": SimpleNamespace(vEgo=v_ego, gasPressed=gas_pressed, leftBlinker=False, rightBlinker=False),
+    "modelV2": SimpleNamespace(action=SimpleNamespace(shouldStop=should_stop), orientationRate=SimpleNamespace(z=[0.0] * 10)),
+    "radarState": SimpleNamespace(leadOne=SimpleNamespace(status=has_lead, vLead=v_ego)),
+  })
+
+
+def test_dlon_matches_eop_force_stop_debounce_and_gas_override():
+  dlon = NGPDLON()
+  dlon.update_params = lambda: None
+  dlon.force_stops_enabled = True
+  sm = make_dlon_sm(should_stop=True)
+  assert not dlon.update(sm)["force_stop"]
+  dlon.force_stop_timer = 1.0
+  assert dlon.update(sm)["force_stop"]
+  sm["carState"].gasPressed = True
+  assert not dlon.update(sm)["force_stop"]
+
+
+def test_dlon_matches_eop_chill_experimental_and_auto_modes():
+  dlon = NGPDLON()
+  dlon.update_params = lambda: None
+  sm = make_dlon_sm()
+  dlon.mode = NGPDLONMode.CHILL
+  assert not dlon.update(sm)["e2e_enabled"]
+  dlon.mode = NGPDLONMode.EXPERIMENTAL
+  dlon._active = True
+  dlon.mode_manager.current_mode = NGPDriveMode.E2E
+  assert dlon.update(sm)["e2e_enabled"]
 
 
 def test_mtsc_restrictive_curve_and_handover():

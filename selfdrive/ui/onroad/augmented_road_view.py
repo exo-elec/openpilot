@@ -21,6 +21,7 @@ DEFAULT_DEVICE_CAMERA = DEVICE_CAMERAS["tici", "ar0231"]
 
 BORDER_COLORS = {
   UIStatus.DISENGAGED: rl.Color(0x17, 0x33, 0x49, 0xC8),   # Blue for disengaged state
+  UIStatus.ALCC: rl.Color(0x17, 0x62, 0xA0, 0xF1),         # Bright blue for lateral-only control
   UIStatus.OVERRIDE: rl.Color(0x91, 0x9B, 0x95, 0xF1),     # Gray for override state
   UIStatus.ENGAGED: rl.Color(0x17, 0x86, 0x44, 0xF1),      # Green for engaged state
 }

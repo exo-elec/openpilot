@@ -20,3 +20,19 @@ names such as `ngpDlonMode`.
 The EDP branch intentionally retains dragonpilot's established `dp_` names.
 Renaming those persisted parameters to `edp_` would break existing device
 settings and is not a porting-style improvement.
+
+## Driver-facing lateral names
+
+| Name | Meaning | Where it is used |
+| --- | --- | --- |
+| LCC | Lane Centering Control | Generic description of the driving function |
+| ALCC | Always-on Lane Centering Control | NGP10, EOP10, and EDP10 driver-facing feature |
+| LKAS | Lane Keeping Assist System | The vehicle's stock button, camera, fault, or CAN protocol only |
+
+LKAS and LCC are related but are not interchangeable. LKAS commonly nudges a
+vehicle away from lane boundaries, while LCC continuously targets the lane
+center. NGP, EOP, and EDP code/UI therefore present the feature as ALCC. EDP's
+internal `dp_lat_alka`, `STATUS_ALKA`, and cereal compatibility fields remain
+stable for persisted settings and wire compatibility. Existing `LKAS`
+identifiers remain unchanged only when they describe an OEM interface or an
+upstream generic API.

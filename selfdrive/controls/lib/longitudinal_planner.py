@@ -14,6 +14,15 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDX
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
+from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from nagaspilot.controls.ngp_tja import TrafficJamAssist
+from nagaspilot.controls.ngp_coasting import CoastingInput, NGPCoasting
+from nagaspilot.controls.ngp_dlon import NGPDLON
+# BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
+# EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
+# Interacts with v_cruise the same way TJA interacts with accel: it only ever
+# tightens the clamp.
+from nagaspilot.controls.ngp_brsc import NGPBRSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -27,8 +36,19 @@ _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
 
 
+class NGPFlags:
+  DLON = 1
+  COASTING = 2 ** 1
+  COASTING_DOWNHILL = 2 ** 2
+  BRSC = 2 ** 3
+
+# BRSC: only applies above walking speed and never cuts speed below a floor.
+BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
+BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
+
+
 def get_max_accel(v_ego):
-  return np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS)
+  return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
 
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
@@ -63,11 +83,21 @@ class LongitudinalPlanner:
     self.prev_accel_clip = [ACCEL_MIN, ACCEL_MAX]
     self.output_a_target = 0.0
     self.output_should_stop = False
+    self.tja = TrafficJamAssist(self.dt)
+    self.tja_result = self.tja.update(init_v, None)
 
     self.v_desired_trajectory = np.zeros(CONTROL_N)
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
+    self.ngp_dlon = NGPDLON()
+    self.ngp_coasting = NGPCoasting()
+    self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
+
+    # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
+    self.brsc = NGPBRSC()
+    self.brsc_result = None
+    self.brsc_v_target = None
 
   @staticmethod
   def parse_model(model_msg):
@@ -89,8 +119,22 @@ class LongitudinalPlanner:
       throttle_prob = 1.0
     return x, v, a, j, throttle_prob
 
-  def update(self, sm):
+  def update(self, sm, ngp_flags=0):
+    # BRSC: vertical-IMU roughness policy (always fed so its internal baseline/hold
+    # state stays current; application is gated below). accel_max_full=1.0 makes
+    # result.accel_max double as the [0-1] accel-scale fraction directly, matching
+    # TJA's own accel_scale usage below.
+    brsc_enabled = bool(ngp_flags & NGPFlags.BRSC)
+    if sm.valid.get('accelerometer', False):
+      az = sm['accelerometer'].acceleration.v[2]
+      self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
+
     mode = 'blended' if sm['selfdriveState'].experimentalMode else 'acc'
+    if ngp_flags & NGPFlags.DLON:
+      self.ngp_dlon_result = self.ngp_dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
+      mode = 'blended' if self.ngp_dlon_result['e2e_enabled'] else 'acc'
+    else:
+      self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': mode == 'blended', 'force_stop': False}
 
     if len(sm['carControl'].orientationNED) == 3:
       accel_coast = get_coast_accel(sm['carControl'].orientationNED[1])
@@ -98,6 +142,8 @@ class LongitudinalPlanner:
       accel_coast = ACCEL_MAX
 
     v_ego = sm['carState'].vEgo
+    self.tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
+
     v_cruise_kph = min(sm['carState'].vCruise, V_CRUISE_MAX)
     v_cruise = v_cruise_kph * CV.KPH_TO_MS
     v_cruise_initialized = sm['carState'].vCruise != V_CRUISE_UNSET
@@ -136,6 +182,14 @@ class LongitudinalPlanner:
       clipped_accel_coast_interp = np.interp(v_ego, [MIN_ALLOW_THROTTLE_SPEED, MIN_ALLOW_THROTTLE_SPEED*2], [accel_clip[1], clipped_accel_coast])
       accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
 
+    # BRSC: reduce cruise speed while rough-road hold is active. Gated on v_ego and
+    # floored so a long rough stretch can't crawl the car below a safe minimum.
+    self.brsc_v_target = None
+    if (brsc_enabled and self.brsc_result is not None
+        and self.brsc_result.active and v_ego > BRSC_MIN_V_EGO):
+      self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor, BRSC_MIN_SPEED_MS)
+      v_cruise = min(v_cruise, self.brsc_v_target)
+
     if force_slow_decel:
       v_cruise = 0.0
 
@@ -146,6 +200,22 @@ class LongitudinalPlanner:
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
     self.j_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC[:-1], self.mpc.j_solution)
+
+    if mode == 'acc' and ngp_flags & NGPFlags.COASTING:
+      lead = sm['radarState'].leadOne
+      pitch = sm['carControl'].orientationNED[1] if len(sm['carControl'].orientationNED) == 3 else None
+      coast = self.ngp_coasting.evaluate(CoastingInput(
+        v_ego=v_ego,
+        v_cruise=v_cruise,
+        pitch_rad=pitch,
+        lead_distance=float(lead.dRel) if lead.status else None,
+        lead_v_rel=float(lead.vRel) if lead.status else None,
+        user_longitudinal_override=long_control_off,
+        downhill_only=bool(ngp_flags & NGPFlags.COASTING_DOWNHILL),
+      ))
+      if coast.coast_suggestion:
+        mild_braking = (self.a_desired_trajectory < 0.0) & (self.a_desired_trajectory >= coast.minimum_brake_mps2)
+        self.a_desired_trajectory[mild_braking] = 0.0
 
     # TODO counter is only needed because radar is glitchy, remove once radar is gone
     self.fcw = self.mpc.crash_cnt > 2 and not sm['carState'].standstill
@@ -170,8 +240,22 @@ class LongitudinalPlanner:
       output_a_target = min(output_a_target_mpc, output_a_target_e2e)
       self.output_should_stop = output_should_stop_e2e or output_should_stop_mpc
 
+    if self.ngp_dlon_result.get('force_stop', False):
+      self.output_should_stop = True
+
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
+    # Limit only rising acceleration. Planner-requested braking remains
+    # immediately available.
+    if self.tja_result.active:
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * self.tja_result.accel_scale)
+    # BRSC: cap positive accel while rough-road hold is active.
+    if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
+      accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * accel_scale)
+    if not reset_state:
+      output_a_target = min(output_a_target,
+                            self.output_a_target + longitudinal_jerk_up(v_ego) * self.tja_result.jerk_scale * self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip
 
@@ -197,5 +281,18 @@ class LongitudinalPlanner:
     longitudinalPlan.shouldStop = bool(self.output_should_stop)
     longitudinalPlan.allowBrake = True
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
+    longitudinalPlan.ngpDlonMode = self.ngp_dlon_result['mode']
+    longitudinalPlan.ngpDlonE2EEnabled = bool(self.ngp_dlon_result['e2e_enabled'])
+    longitudinalPlan.ngpDlonForceStop = bool(self.ngp_dlon_result.get('force_stop', False))
+    longitudinalPlan.ngpTjaActive = bool(self.tja_result.active)
+    longitudinalPlan.ngpTjaCutIn = bool(self.tja_result.cut_in)
+    longitudinalPlan.ngpTjaDesiredGap = float(self.tja_result.desired_gap)
+
+    # BRSC debug info
+    if self.brsc_result is not None:
+      longitudinalPlan.ngpBrscActive = self.brsc_result.active
+      longitudinalPlan.ngpBrscRoughness = float(self.brsc_result.roughness_rms)
+    if self.brsc_v_target is not None:
+      longitudinalPlan.ngpBrscSpeed = float(self.brsc_v_target)
 
     pm.send('longitudinalPlan', plan_send)

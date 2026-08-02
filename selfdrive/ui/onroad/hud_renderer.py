@@ -38,6 +38,7 @@ class Colors:
   disengaged: rl.Color = rl.Color(145, 155, 149, 255)
   override: rl.Color = rl.Color(145, 155, 149, 255)  # Added
   engaged: rl.Color = rl.Color(128, 216, 166, 255)
+  alcc: rl.Color = rl.Color(80, 170, 235, 255)
   disengaged_bg: rl.Color = rl.Color(0, 0, 0, 153)
   override_bg: rl.Color = rl.Color(145, 155, 149, 204)
   engaged_bg: rl.Color = rl.Color(128, 216, 166, 204)
@@ -139,6 +140,8 @@ class HudRenderer(Widget):
       set_speed_color = COLORS.white
       if ui_state.status == UIStatus.ENGAGED:
         max_color = COLORS.engaged
+      elif ui_state.status == UIStatus.ALCC:
+        max_color = COLORS.alcc
       elif ui_state.status == UIStatus.DISENGAGED:
         max_color = COLORS.disengaged
       elif ui_state.status == UIStatus.OVERRIDE:
