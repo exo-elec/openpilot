@@ -18,21 +18,19 @@ def _message(address: int, data: bytes, src: int = CANBUS.party):
   return SimpleNamespace(address=address, dat=data, src=src)
 
 
-def _point_pair(slot: int, index: int = 1):
+def _point_pair(slot: int, index: int = 1, wire_a_rel: float = 0.0,
+                wire_yv_rel: float = 0.0, measured: bool = True):
   a = bytearray(8)
   b = bytearray(8)
   _set_le(a, 0, 12, round(42.5 / 0.0625))
   _set_le(a, 12, 12, round((-3.0 + 128.0) / 0.0625))
   _set_le(a, 24, 11, round((2.25 + 128.0) / 0.125))
-  # TC375 intentionally publishes zero until the overlapping BYD ALEAD field
-  # is resolved from captures.
-  _set_le(a, 40, 10, round(16.0 / 0.03125))
+  _set_le(a, 40, 10, round((wire_a_rel + 16.0) / 0.03125))
   _set_le(a, 55, 1, 1)
-  _set_le(a, 61, 1, 1)
+  _set_le(a, 61, 1, int(measured))
   _set_le(a, 62, 1, 1)
   _set_le(a, 63, 1, index)
-  # TC375 reserves unproven BYD LAT_RELATED as neutral Tesla LatSpeed.
-  _set_le(b, 0, 10, round(64.0 / 0.125))
+  _set_le(b, 0, 10, round((wire_yv_rel + 64.0) / 0.125))
   _set_le(b, 63, 1, index)
   return (
     _message(0x410 + slot * 2, bytes(a)),
@@ -71,7 +69,35 @@ def test_status_unavailable_and_bus_filter():
   # Stock radar bus 1 is deliberately ignored by the EOP10 two-bus consumer.
   assert radar.update([_message(0x401, bytes(8), src=1)]) is None
   assert radar.update([_message(0x401, bytes(unavailable))]) is None
-  ret = radar.update([_message(0x45F, bytes(8))])
+  point_a, point_b = _point_pair(0)
+  ret = radar.update([point_a, point_b, _message(0x45F, bytes(8))])
+
+  assert ret is not None
+  assert list(ret.errors) == [car.RadarData.Error.fault]
+  assert not ret.points
+
+
+def test_reserved_motion_fields_are_not_accepted_as_measurements():
+  radar = ContinentalRadarInterface(car.CarParams.new_message())
+  assert radar.update([_message(0x401, bytes(8))]) is None
+
+  point_a, point_b = _point_pair(0, wire_a_rel=7.0, wire_yv_rel=-8.0)
+  ret = radar.update([point_a, point_b, _message(0x45F, bytes(8))])
+
+  assert ret is not None
+  assert len(ret.points) == 1
+  assert ret.points[0].aRel == pytest.approx(0.0)
+  assert ret.points[0].yvRel == pytest.approx(0.0)
+
+
+def test_stale_status_suppresses_complete_object_set():
+  now = [100.0]
+  radar = ContinentalRadarInterface(car.CarParams.new_message(), time_fn=lambda: now[0])
+  assert radar.update([_message(0x401, bytes(8))]) is None
+
+  now[0] += 0.201
+  point_a, point_b = _point_pair(0)
+  ret = radar.update([point_a, point_b, _message(0x45F, bytes(8))])
 
   assert ret is not None
   assert list(ret.errors) == [car.RadarData.Error.fault]
@@ -87,6 +113,22 @@ def test_new_status_discards_incomplete_previous_pair():
   # the stale A even if a future one-bit index happens to match.
   assert radar.update([_message(0x401, bytes(8)), point_b, _message(0x45F, bytes(8))]) is not None
   assert not radar.pts
+
+
+def test_short_trigger_and_unmeasured_object_are_rejected():
+  radar = ContinentalRadarInterface(car.CarParams.new_message())
+  assert radar.update([_message(0x401, bytes(8))]) is None
+  point_a, point_b = _point_pair(0)
+
+  assert radar.update([point_a, point_b, _message(0x45F, bytes(7))]) is None
+
+  # Start a clean set after the rejected trigger; an estimated/unmeasured
+  # object is outside the BrownPanda contract even if Valid/Tracked are set.
+  assert radar.update([_message(0x401, bytes(8))]) is None
+  point_a, point_b = _point_pair(0, measured=False)
+  ret = radar.update([point_a, point_b, _message(0x45F, bytes(8))])
+  assert ret is not None
+  assert not ret.points
 
 
 def test_absent_stream_times_out_without_gateway_status_frames():

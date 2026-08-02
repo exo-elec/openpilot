@@ -8,7 +8,9 @@ TC375 emits converted Continental ARS4-B frames on Tesla party bus 0:
   0x411 + slot*2     Object_B[0..39] — LatSpeed, Index2
 
 BYD MVS4 slots 0..9 are mapped directly; slots 10..39 are empty (Tracked=0).
-Unproven BYD acceleration and lateral-speed fields are transmitted as neutral.
+Unproven BYD acceleration and lateral-speed fields are transmitted as neutral
+and deliberately ignored here. radar3d derives lead acceleration from the
+measured longitudinal velocity and ego speed with its existing Kalman filter.
 0x45F (slot 39 Object_B) arrives last and is used as the update trigger.
 
 Object pair valid when: Tracked==1 AND Valid==1 AND Index==Index2.
@@ -105,7 +107,6 @@ class ContinentalRadarInterface:
             'dRel':    _le(dat,  0, 12, scale=0.0625),
             'vRel':    _le(dat, 12, 12, scale=0.0625, offset=-128.0),
             'yRel':    _le(dat, 24, 11, scale=0.125,  offset=-128.0),
-            'aRel':    _le(dat, 40, 10, scale=0.03125, offset=-16.0),
             'measured': bool(_le(dat, 61, 1)),
           }
 
@@ -114,11 +115,9 @@ class ContinentalRadarInterface:
         slot = (addr - _OBJ_B_BASE) // 2
         if len(dat) >= 8:
           index2  = int(_le(dat, 63, 1))
-          yvRel   = _le(dat, 0, 10, scale=0.125, offset=-64.0)
-          self._obj_b[slot] = {'index2': index2, 'yvRel': yvRel}
-
-        if addr == _TRIGGER_ID:
-          triggered = True
+          self._obj_b[slot] = {'index2': index2}
+          if addr == _TRIGGER_ID:
+            triggered = True
 
     now = self._time_fn()
     if not triggered:
@@ -142,7 +141,18 @@ class ContinentalRadarInterface:
 
     ret = car.RadarData.new_message()
     status_fresh = self._have_status and (now - self._status_mono) <= _STATUS_TIMEOUT_S
-    ret.errors = [] if self._sensor_ok and status_fresh else ['fault']
+    set_healthy = self._sensor_ok and status_fresh
+    ret.errors = [] if set_healthy else ['fault']
+
+    # Never publish measurements beside a fault. In particular, object frames
+    # must not remain usable when 0x401 is missing, stale, or reports a sensor
+    # fault, even if a syntactically complete A/B set follows.
+    if not set_healthy:
+      self.pts.clear()
+      self._obj_a.clear()
+      self._obj_b.clear()
+      ret.points = []
+      return ret
 
     for slot in range(_NUM_SLOTS):
       track_id = slot + 1
@@ -152,6 +162,7 @@ class ContinentalRadarInterface:
       if (a is None or b is None
           or not a['tracked']
           or not a['valid']
+          or not a['measured']
           or a['index'] != b['index2']):
         self.pts.pop(track_id, None)
         continue
@@ -165,8 +176,10 @@ class ContinentalRadarInterface:
       pt.dRel     = a['dRel']
       pt.yRel     = a['yRel']
       pt.vRel     = a['vRel']
-      pt.yvRel    = b['yvRel']
-      pt.aRel     = a['aRel']
+      # These wire fields are reserved by the BYD compatibility contract.
+      # Do not let a non-neutral sender turn unproven bits into measurements.
+      pt.yvRel    = 0.0
+      pt.aRel     = 0.0
       pt.measured = a['measured']
 
     # Clear Object_A/B buffers for next cycle
