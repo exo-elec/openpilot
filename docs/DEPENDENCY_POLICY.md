@@ -10,8 +10,8 @@ Submodule rules shared with NGP10:
 2. Pin every dependency to an exact public commit. A branch field is only an
    update hint and never replaces the gitlink.
 3. When either product must modify a dependency, create one
-   `exo-electronics/<dependency>` fork and use product branches such as
-   `dev/EOP10` and `dev/NGP10` in that shared fork.
+   `exo-electronics/<dependency>` fork and keep the shared stable dependency on
+   that fork's `master` branch.
 4. Never pin a local-only or unreachable commit. A clean recursive clone must
    reproduce the source tree without developer-machine directories.
 5. Different product pins are allowed when runtime/API requirements differ,
@@ -24,6 +24,6 @@ patch. EOP10's vehicle stack and safety integration are in-tree, so local
 runtime dependencies.
 
 The shared modified OpenDBC authority is `exo-electronics/opendbc`. NGP10 uses
-its `dev/NGP10` branch. If EOP10 later adopts that OpenDBC dependency, it must
-use a pinned `dev/EOP10` commit in the same fork rather than another fork or a
-local copy.
+its pinned `master` commit. If EOP10 later adopts that OpenDBC dependency, it
+must pin the same fork master when API-compatible rather than creating another
+fork or relying on a local copy.
