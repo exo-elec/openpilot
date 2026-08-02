@@ -35,7 +35,7 @@ class DLONResult:
   force_stop_suggestion: bool
 
 
-class NGP10DLON:
+class NGPDLON:
   """Hysteretic, non-controlling E2E/ACC trigger state."""
   LOW_SPEED = 12.0
   HIGHWAY_SPEED = 24.0

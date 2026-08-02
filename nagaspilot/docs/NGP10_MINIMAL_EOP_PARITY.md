@@ -37,7 +37,7 @@ MonoD accepts metric positions only from an independently calibrated backend.
 Radar4D, RKNN/RGA, EOP HAL, side/rear daemons, BLE/NCP/OBD transports, and
 target-car PID decoding remain excluded.
 
-The modules are composed by `ngpshadowd`, which consumes existing v0.10.0
+The modules are composed by `ngp_shadowd`, which consumes existing v0.10.0
 `modelV2`, `carState`, `radarState`, `liveTracks`, driver-monitoring, and
 navigation services. It publishes `ngpState` diagnostics at 20 Hz. It never
 publishes `carControl`, `sendcan`, or a planner command.

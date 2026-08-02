@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from openpilot.nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
+from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
 
 
 @dataclass(frozen=True)
@@ -24,7 +24,7 @@ class SOCResult:
   control_authority: bool = False
 
 
-class NGP10SOC:
+class NGPSOC:
   OFFSET_M = 0.20
 
   def __init__(self, confirmation_frames: int = 20):

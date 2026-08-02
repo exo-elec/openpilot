@@ -39,7 +39,7 @@ class RadarZones:
   right_ttc: float = inf
 
 
-class NGP10RadarTracker:
+class NGPRadarTracker:
   TRACK_TIMEOUT = 0.6
   MIN_PROBABILITY = 0.35
 

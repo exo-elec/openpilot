@@ -32,7 +32,7 @@ guardrail-safety evidence passes.
    document narrow/wide streams, frame timing, calibration, and D=80 mm
    geometry. Missing driver camera affects monitoring only; missing road camera
    falls back safely to stock behavior.
-2. **Lateral**: keep NGP10DLAT non-controlling until v0.10.0 model fields,
+2. **Lateral**: keep `NGPDLAT` non-controlling until v0.10.0 model fields,
    lane confidence, predicted path, and hysteresis pass replay tests. Preserve
    EOP terminology: ALCC is Always Lane Centering Control; LCA is Lane Change
    Assist. LCA remains human-nudge by default with driver override and DM.

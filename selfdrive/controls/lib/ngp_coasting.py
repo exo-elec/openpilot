@@ -23,7 +23,7 @@ class CoastingResult:
   control_authority: bool = False
 
 
-class NGP10Coasting:
+class NGPCoasting:
   """Suggest mild-deceleration suppression without touching planner output."""
 
   def evaluate(self, sample: CoastingInput) -> CoastingResult:

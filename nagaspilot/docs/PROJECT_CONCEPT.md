@@ -36,7 +36,7 @@ Tesla party bus 0 and autopilot-party bus 2.
   gateway parity is demonstrated.
 - `adaptd` may be ported as a pure normalized-telemetry profile computer;
   Bluetooth/NCP/OBD transport remains outside comma 3 selfdrive.
-- A single `ngpshadowd` process publishes portable feature diagnostics without
+- A single `ngp_shadowd` process publishes portable feature diagnostics without
   writing planner, control, Panda, or CAN command services.
 
 ## Non-goals

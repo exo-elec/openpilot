@@ -28,7 +28,7 @@ class VTSCResult:
   curvature: float
 
 
-class NGP10VTSC:
+class NGPVTSC:
   """Vision turn-speed estimator using only v0.10.0 model outputs."""
 
   MIN_VELOCITY = 5.0

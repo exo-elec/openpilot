@@ -7,7 +7,7 @@ positions. NGP10 never estimates metric depth from bounding-box size alone.
 from dataclasses import dataclass
 from typing import Protocol
 
-from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, Feature, NGP10Capabilities
+from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, Feature, NGPCapabilities
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class MonoDBackend(Protocol):
   def infer(self, frame) -> list[dict]: ...
 
 
-class NGP10MonoD:
+class NGPMonoD:
   def __init__(self, enabled: bool = False, backend: MonoDBackend | None = None,
                min_confidence: float = 0.5):
     self.enabled = enabled
@@ -44,7 +44,7 @@ class NGP10MonoD:
     self.min_confidence = max(0.0, min(1.0, float(min_confidence)))
 
   def update(self, frame, frame_id: int, timestamp_sof: int,
-             capabilities: NGP10Capabilities, calibration_valid: bool) -> MonoDResult:
+             capabilities: NGPCapabilities, calibration_valid: bool) -> MonoDResult:
     if not self.enabled:
       return MonoDResult(frame_id, timestamp_sof, CameraRole.ROAD, (), False, "disabled")
     if not capabilities.supports(Feature.MONOD):

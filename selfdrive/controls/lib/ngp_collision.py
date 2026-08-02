@@ -23,7 +23,7 @@ class CollisionResult:
   control_authority: bool = False
 
 
-class NGP10CollisionRisk:
+class NGPCollisionRisk:
   RESPONSE_TIME = 1.0
   EGO_BRAKING = 4.0
   OBJECT_BRAKING = 4.0

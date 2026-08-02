@@ -18,7 +18,7 @@ class MTSCResult:
   curvature: float
 
 
-class NGP10MTSC:
+class NGPMTSC:
   MIN_DISTANCE = 150.0
   MAX_DISTANCE = 500.0
   MIN_CURVATURE = 0.001

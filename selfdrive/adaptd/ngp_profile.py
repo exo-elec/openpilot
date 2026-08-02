@@ -38,7 +38,7 @@ class AdaptiveProfile:
   control_authority: bool = False
 
 
-class NGP10AdaptiveProfile:
+class NGPAdaptiveProfile:
   DEFAULT_ACCEL_MAX = 2.0
   DEFAULT_ACCEL_MIN = -3.48
 

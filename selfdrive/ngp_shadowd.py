@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the minimized NGP10 feature suite as non-controlling diagnostics."""
+"""Publish the minimized NGP feature suite as non-controlling diagnostics."""
 
 import time
 
@@ -11,14 +11,14 @@ from openpilot.selfdrive.controls.lib.ngp_lca import LCAInput
 from openpilot.selfdrive.controls.lib.ngp_radar import RadarObservation, RadarSource
 from openpilot.selfdrive.controls.lib.ngp_road_edge import evaluate_road_edges
 from openpilot.selfdrive.controls.lib.ngp_speed_policy import SpeedLimitObservation, SpeedLimitSource
-from openpilot.selfdrive.controls.lib.ngp_suite import NGP10FeatureSuite
-from openpilot.selfdrive.gridd.ngp_capabilities import NGP10Capabilities
+from openpilot.selfdrive.controls.lib.ngp_suite import NGPFeatureSuite
+from openpilot.selfdrive.gridd.ngp_capabilities import NGPCapabilities
 from openpilot.selfdrive.pathd.ngp_soc import SOCInput
 
 
 class NGPShadowD:
   def __init__(self):
-    self.suite = NGP10FeatureSuite()
+    self.suite = NGPFeatureSuite()
     self.pm = messaging.PubMaster(["ngpState"])
     self.sm = messaging.SubMaster([
       "modelV2", "carState", "radarState", "liveTracks",
@@ -96,8 +96,8 @@ class NGPShadowD:
     soc = self.suite.soc.update(SOCInput(
       v_ego, zones.left_detected, zones.right_detected, lane_lines, lane_probs, lane_stds,
     ))
-    capabilities = NGP10Capabilities.comma3()
-    capabilities = NGP10Capabilities(
+    capabilities = NGPCapabilities.comma3()
+    capabilities = NGPCapabilities(
       cameras=capabilities.cameras,
       driver_camera=bool(dm.faceDetected),
       radar_2d=bool(tracks),

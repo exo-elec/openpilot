@@ -3,24 +3,24 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from openpilot.selfdrive.adaptd.ngp_profile import NGP10AdaptiveProfile
-from openpilot.selfdrive.controls.lib.ngp_alcc import NGP10ALCC
-from openpilot.selfdrive.controls.lib.ngp_coasting import NGP10Coasting
-from openpilot.selfdrive.controls.lib.ngp_collision import NGP10CollisionRisk
-from openpilot.selfdrive.controls.lib.ngp_dlat import NGP10DLAT
-from openpilot.selfdrive.controls.lib.ngp_dlon import NGP10DLON
-from openpilot.selfdrive.controls.lib.ngp_lca import NGP10LCA
-from openpilot.selfdrive.controls.lib.ngp_mtsc import NGP10MTSC
-from openpilot.selfdrive.controls.lib.ngp_radar import NGP10RadarTracker
-from openpilot.selfdrive.controls.lib.ngp_road_condition import NGP10RoadCondition
-from openpilot.selfdrive.controls.lib.ngp_speed_policy import NGP10SpeedPolicy
-from openpilot.selfdrive.controls.lib.ngp_traffic_control import NGP10TrafficControl
-from openpilot.selfdrive.controls.lib.ngp_vtsc import NGP10VTSC
-from openpilot.selfdrive.gridd.lazy_bev import NGP10LazyBEV
-from openpilot.selfdrive.gridd.ngp_capabilities import NGP10Capabilities
-from openpilot.selfdrive.monod.ngp_monod import NGP10MonoD
-from openpilot.selfdrive.pathd.ngp_soc import NGP10SOC
-from openpilot.selfdrive.tripd.ngp_trip import NGP10TripStats
+from openpilot.selfdrive.adaptd.ngp_profile import NGPAdaptiveProfile
+from openpilot.selfdrive.controls.lib.ngp_alcc import NGPALCC
+from openpilot.selfdrive.controls.lib.ngp_coasting import NGPCoasting
+from openpilot.selfdrive.controls.lib.ngp_collision import NGPCollisionRisk
+from openpilot.selfdrive.controls.lib.ngp_dlat import NGPDLAT
+from openpilot.selfdrive.controls.lib.ngp_dlon import NGPDLON
+from openpilot.selfdrive.controls.lib.ngp_lca import NGPLCA
+from openpilot.selfdrive.controls.lib.ngp_mtsc import NGPMTSC
+from openpilot.selfdrive.controls.lib.ngp_radar import NGPRadarTracker
+from openpilot.selfdrive.controls.lib.ngp_road_condition import NGPRoadCondition
+from openpilot.selfdrive.controls.lib.ngp_speed_policy import NGPSpeedPolicy
+from openpilot.selfdrive.controls.lib.ngp_traffic_control import NGPTrafficControl
+from openpilot.selfdrive.controls.lib.ngp_vtsc import NGPVTSC
+from openpilot.selfdrive.gridd.lazy_bev import NGPLazyBEV
+from openpilot.selfdrive.gridd.ngp_capabilities import NGPCapabilities
+from openpilot.selfdrive.monod.ngp_monod import NGPMonoD
+from openpilot.selfdrive.pathd.ngp_soc import NGPSOC
+from openpilot.selfdrive.tripd.ngp_trip import NGPTripStats
 
 
 class PortState(IntEnum):
@@ -38,28 +38,28 @@ class FeaturePort:
   control_authority: bool = False
 
 
-class NGP10FeatureSuite:
+class NGPFeatureSuite:
   """Own all portable feature state without changing upstream control paths."""
 
-  def __init__(self, capabilities: NGP10Capabilities | None = None, monod_backend=None):
-    self.capabilities = capabilities or NGP10Capabilities.comma3()
-    self.dlat = NGP10DLAT()
-    self.dlon = NGP10DLON()
-    self.coasting = NGP10Coasting()
-    self.collision_risk = NGP10CollisionRisk()
-    self.vtsc = NGP10VTSC()
-    self.mtsc = NGP10MTSC()
-    self.speed_policy = NGP10SpeedPolicy()
-    self.alcc = NGP10ALCC()
-    self.radar = NGP10RadarTracker()
-    self.road_condition = NGP10RoadCondition()
-    self.traffic_control = NGP10TrafficControl()
-    self.lca = NGP10LCA()
-    self.bev = NGP10LazyBEV()
-    self.monod = NGP10MonoD(enabled=False, backend=monod_backend)
-    self.soc = NGP10SOC()
-    self.adaptive_profile = NGP10AdaptiveProfile()
-    self.trip_stats = NGP10TripStats()
+  def __init__(self, capabilities: NGPCapabilities | None = None, monod_backend=None):
+    self.capabilities = capabilities or NGPCapabilities.comma3()
+    self.dlat = NGPDLAT()
+    self.dlon = NGPDLON()
+    self.coasting = NGPCoasting()
+    self.collision_risk = NGPCollisionRisk()
+    self.vtsc = NGPVTSC()
+    self.mtsc = NGPMTSC()
+    self.speed_policy = NGPSpeedPolicy()
+    self.alcc = NGPALCC()
+    self.radar = NGPRadarTracker()
+    self.road_condition = NGPRoadCondition()
+    self.traffic_control = NGPTrafficControl()
+    self.lca = NGPLCA()
+    self.bev = NGPLazyBEV()
+    self.monod = NGPMonoD(enabled=False, backend=monod_backend)
+    self.soc = NGPSOC()
+    self.adaptive_profile = NGPAdaptiveProfile()
+    self.trip_stats = NGPTripStats()
 
   @staticmethod
   def manifest() -> tuple[FeaturePort, ...]:

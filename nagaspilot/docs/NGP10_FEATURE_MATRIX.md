@@ -23,5 +23,5 @@
 | Platform | Target-car translation | TC275 gateway | External | TC275 |
 | Excluded | RKNN/RGA/EOP HAL/stereo/radar4D | None | Excluded | N/A |
 
-Runtime-visible shadow results are composed by `ngpshadowd` and published as
+Runtime-visible shadow results are composed by `ngp_shadowd` and published as
 `ngpState`. Pure helpers without a valid source remain inactive.

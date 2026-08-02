@@ -45,9 +45,23 @@ into EOP10 for HAL and hardware-in-the-loop testing.
 | Adaptive telemetry | Pure normalized profile computer implemented; transport excluded |
 | BrownPanda/Tesla HW3 boundary | Upstream OpenDBC retained; external gateway validation pending |
 
-`ngpshadowd` composes the portable modules and publishes the reserved-fork
+`ngp_shadowd` composes the portable modules and publishes the reserved-fork
 `ngpState` cereal service at model cadence. The schema includes an explicit
 `controlAuthority = false` field and has no control or planner consumer.
+
+## Host validation (2026-08-02)
+
+| Gate | Result |
+| --- | --- |
+| Cereal schema and service generation | Pass |
+| Portable feature, capability, and gateway contract tests | 112 passed |
+| Manager process preparation | 4 passed, 1 platform skip |
+| `ngp_shadowd` one-cycle messaging smoke test | Pass |
+| Ruff and whitespace checks | Pass |
+
+Recorded-route replay, stationary CAN, comma 3 resource measurement, and
+hardware-in-the-loop validation remain promotion gates; host validation does
+not grant control authority.
 
 ## Non-goals
 

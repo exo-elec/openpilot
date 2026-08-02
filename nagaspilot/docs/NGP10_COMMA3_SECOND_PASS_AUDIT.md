@@ -13,7 +13,7 @@
 | EOP RCD/SQSC | Pure road-condition policy accepting validated observations | Avoid OpenCV camera load and persistent surface DB |
 | EOP TLSC | Traffic-control stop proposal | Useful for replay; never requests braking |
 | EOP MapD curvature | Route-polyline curvature helper | No OSM daemon, network, cache, or GPS requirement |
-| EOP TripD | In-memory trip accumulator inside `ngpshadowd` | Negligible resource cost and no parameter churn |
+| EOP TripD | In-memory trip accumulator inside `ngp_shadowd` | Negligible resource cost and no parameter churn |
 
 ## Already covered or superseded
 

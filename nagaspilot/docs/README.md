@@ -4,11 +4,12 @@
 
 1. `PROJECT_CONCEPT.md` — product, hardware, and vehicle boundaries.
 2. `NGP10_MINIMAL_EOP_PARITY.md` — what “surpass EDP10” means.
-3. `NGP10_FEATURE_MATRIX.md` — one-page module/status/ownership table.
-4. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
-5. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
-6. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
-7. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
+3. `NAMING_CONVENTIONS.md` — cross-branch implementation-prefix rules.
+4. `NGP10_FEATURE_MATRIX.md` — one-page module/status/ownership table.
+5. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
+6. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
+7. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
+8. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
    audit; retained for history and rationale.
 
 ## Source-code map
@@ -17,7 +18,7 @@
 | --- | --- |
 | Composition and manifest | `selfdrive/controls/lib/ngp_suite.py` |
 | Control/safety proposals | `selfdrive/controls/lib/ngp_*.py` |
-| Runtime diagnostics | `selfdrive/ngpshadowd.py` |
+| Runtime diagnostics | `selfdrive/ngp_shadowd.py` |
 | Capability, BEV, overlays | `selfdrive/gridd/` |
 | Single-camera detection contract | `selfdrive/monod/` |
 | SOC path proposal | `selfdrive/pathd/` |

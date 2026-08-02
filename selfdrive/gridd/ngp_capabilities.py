@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class CameraRole(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
+class CameraRole(str, Enum):
   ROAD = "road"
   WIDE_ROAD = "wide_road"
   DRIVER = "driver"
@@ -18,7 +18,7 @@ class CameraRole(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
   REAR = "rear"
 
 
-class Feature(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
+class Feature(str, Enum):
   GRID = "gridd"
   SOC = "soc"
   SIDE_OVERLAY = "side_overlay"
@@ -31,7 +31,7 @@ class Feature(str, Enum):  # noqa: UP042 - comma 3 runtime is Python 3.10
 
 
 @dataclass(frozen=True)
-class NGP10Capabilities:
+class NGPCapabilities:
   """Declared streams and optional compute support for one device."""
 
   cameras: frozenset[CameraRole] = frozenset((CameraRole.ROAD, CameraRole.WIDE_ROAD))
@@ -43,7 +43,7 @@ class NGP10Capabilities:
   adaptive_telemetry: bool = False
 
   @classmethod
-  def comma3(cls, driver_camera: bool = False) -> "NGP10Capabilities":
+  def comma3(cls, driver_camera: bool = False) -> "NGPCapabilities":
     return cls(driver_camera=driver_camera)
 
   def has_camera(self, role: CameraRole) -> bool:

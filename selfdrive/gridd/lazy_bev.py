@@ -7,7 +7,7 @@ constructs stereo depth from the comma 3 wide/narrow camera pair.
 from dataclasses import dataclass
 from math import floor
 
-from openpilot.selfdrive.gridd.ngp_capabilities import Feature, NGP10Capabilities
+from openpilot.selfdrive.gridd.ngp_capabilities import Feature, NGPCapabilities
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class LazyBEVResult:
   control_authority: bool = False
 
 
-class NGP10LazyBEV:
+class NGPLazyBEV:
   def __init__(self, resolution_m: float = 1.0, x_limits=(-30.0, 150.0), y_limits=(-12.0, 12.0)):
     if resolution_m <= 0.0:
       raise ValueError("resolution must be positive")
@@ -34,7 +34,7 @@ class NGP10LazyBEV:
     self.x_limits = tuple(float(value) for value in x_limits)
     self.y_limits = tuple(float(value) for value in y_limits)
 
-  def update(self, observations, capabilities: NGP10Capabilities,
+  def update(self, observations, capabilities: NGPCapabilities,
              metric_observations: bool) -> LazyBEVResult:
     if not capabilities.supports(Feature.GRID):
       return LazyBEVResult(False, (), "camera_contract_unavailable")

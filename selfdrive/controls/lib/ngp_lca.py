@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from openpilot.nagaspilot.speed_zones import CITY_SPEED_MPS
+from nagaspilot.speed_zones import CITY_SPEED_MPS
 from openpilot.selfdrive.controls.lib.ngp_radar import RadarZones
 
 
@@ -48,7 +48,7 @@ class LCAResult:
   blocked_reasons: tuple[str, ...]
 
 
-class NGP10LCA:
+class NGPLCA:
   AUTO_DELAY = 3.0
 
   def __init__(self):
