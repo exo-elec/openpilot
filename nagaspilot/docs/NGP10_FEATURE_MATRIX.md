@@ -1,27 +1,18 @@
-# NGP10 Feature Matrix
+# NGP10 feature matrix
 
-| Group | Feature | NGP10 module | Status | Authority |
-| --- | --- | --- | --- | --- |
-| Core | DLAT | `ngp_dlat.py` | Shadow | None |
-| Core | DLON | `ngp_dlon.py` | Shadow | None |
-| Core | VTSC / MTSC | `ngp_vtsc.py`, `ngp_mtsc.py` | Proposal | None |
-| Core | Speed sources/zones | `ngp_speed_policy.py`, `nagaspilot/speed_zones.py` | Proposal | None |
-| Core | Adaptive coasting | `ngp_coasting.py` | Proposal | None |
-| Lateral | ALCC | `ngp_alcc.py` | Proposal | None |
-| Lateral | LCA / road edge | `ngp_lca.py`, `ngp_road_edge.py` | Proposal/shadow | None |
-| Safety | Radar zones | `ngp_radar.py` | Shadow | None |
-| Safety | Collision risk | `ngp_collision.py` | Shadow | Stock AEB |
-| Safety | Road condition | `ngp_road_condition.py` | Proposal | None |
-| Safety | Traffic control | `ngp_traffic_control.py` | Proposal | None |
-| Perception | Sparse GridD/BEV | `gridd/lazy_bev.py` | Shadow | None |
-| Perception | MonoD backend | `monod/ngp_monod.py` | Default-off contract | None |
-| Perception | SOC / overlays | `pathd/ngp_soc.py`, `gridd/ngp_overlays.py` | Proposal/shadow | None |
-| Optional data | Route curvature | `mapd/ngp_curvature.py` | Pure helper | None |
-| Optional data | Adaptive telemetry | `adaptd/ngp_profile.py` | Proposal | None |
-| Diagnostics | Trip statistics | `tripd/ngp_trip.py` | Shadow/in-memory | None |
-| Platform | Vehicle parsing/control | NGP OpenDBC Tesla + BrownPanda radar interface | External | Upstream/Panda/BrownPanda |
-| Platform | Target-car translation | BrownPanda gateway | External | BrownPanda |
-| Excluded | RKNN/RGA/EOP HAL/stereo/radar4D | None | Excluded | N/A |
+| Area | Feature | Runtime path | Status |
+|---|---|---|---|
+| Longitudinal | DLON | `nagaspilot/controls/ngp_dlon.py` → longitudinal planner | Integrated |
+| Longitudinal | Coasting/downhill | `nagaspilot/controls/ngp_coasting.py` → longitudinal planner | Integrated, default off |
+| Longitudinal | TJA gap/cut-in gate | `nagaspilot/controls/ngp_tja.py` → longitudinal planner | Integrated |
+| Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
+| Lateral | ALCC/always-on lateral | `controlsd.py`, car safety flag | Integrated, default off |
+| Lateral | LCA and road-edge gate | `ngp_lca.py`, `ngp_road_edge.py`, modeld | Integrated, default off |
+| Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
+| Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
+| Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
+| Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
+| Perception | GridD/SOC/radar helpers | existing bounded helper modules | Portable; no control authority |
 
-Runtime-visible shadow results are composed by `ngp_shadowd` and published as
-`ngpState`. Pure helpers without a valid source remain inactive.
+Vehicle actuation still requires the branch’s normal safety model and hardware
+validation. A module being integrated does not claim target-car HIL completion.

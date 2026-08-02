@@ -12,9 +12,10 @@ stable when a release advances from 10 to a later version.
 
 Python classes use the corresponding stable uppercase product prefix where a
 prefix is needed, for example `NGPCapabilities` and `NGPDLAT`, never
-`NGP10Capabilities` or `NGP10DLAT`. Daemon module and process names retain the
-prefix separator, for example `ngp_shadowd`; cereal fields follow their normal
-lower-camel convention, such as `ngpState`.
+`NGP10Capabilities` or `NGP10DLAT`. NGP-owned policy modules live in
+`nagaspilot/controls/` and retain names such as `ngp_tja.py`. Upstream runtime
+files contain only integration hooks. Cereal fields use normal lower-camel
+names such as `ngpDlonMode`.
 
 The EDP branch intentionally retains dragonpilot's established `dp_` names.
 Renaming those persisted parameters to `edp_` would break existing device

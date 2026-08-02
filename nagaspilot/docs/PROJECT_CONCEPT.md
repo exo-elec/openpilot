@@ -1,53 +1,22 @@
-# NGP10 Project Concept
+# NGP10 concept
 
-## Product boundary
+NGP10 is a minimized EOP10 experience for comma 3. It should surpass EDP10 in
+portable behavior without carrying EOP10 services that require unavailable
+hardware or duplicate upstream estimators.
 
-NGP10 is the comma 3 selfdrive/application proving line between the conservative
-EDP10 port and EOP10 hardware integration. It starts from official openpilot
-v0.10.0 and keeps the original comma 3 camera/process boundary: narrow/road and
-wide-road cameras, with the driver camera optional for monitoring.
+Design rules:
 
-## Vehicle abstraction
+- integrate through normal openpilot planner, controls, model, UI, and safety paths;
+- keep NGP-owned implementations in `nagaspilot/controls/` with `ngp_` names;
+- reuse upstream `paramsd` for real-time steering ratio/stiffness learning and persistence;
+- keep gateway geometry learning local and persistent when Tesla-format CAN has no verified parameter transport;
+- enforce steering with continuous vehicle-model ISO accel/jerk limits plus physical limits;
+- treat 2/6/12/24/36 m/s as ranges, not equality triggers;
+- add outputs only with tests and retain bench/HIL gates for vehicle authority.
 
-The test car or any target vehicle is presented to selfdrive as a Tesla Model 3
-HW3-style vehicle. FreeRTOS BrownPanda is the gateway: it translates target-car
-CAN into the Tesla-format protocol and translates commands back.
-Target-car-specific CAN decoding, checksums, timing, and actuation safety belong
-in the gateway. NGP10 must not create a separate selfdrive brand fork for each
-car. The physical product boundary has exactly two comma-facing channels:
-Tesla party bus 0 and autopilot-party bus 2.
-
-## Responsibilities
-
-- NGP10 proves DLAT, DLON, VTSC, MTSC, ALCC, LCA, speed policy, SOC, GridD,
-  single-camera MonoD, radar2D/radar3D, and overlay contracts with unit tests
-  and recorded routes. Features that
-  need extra streams or compute are capability-gated rather than removed.
-- BrownPanda proves Tesla-format wire compatibility, gateway safety, and target
-  car translation.
-- A radar-capable BrownPanda converts BYD radar to Tesla Continental frames on
-  party bus 0; NGP10's dedicated adapter provides this privilege without
-  changing sunnypilot or dragonpilot.
-- NGP10 retains upstream `selfdrive/car`, OpenDBC Tesla parsing, and Panda
-  safety, adding only the BrownPanda radar interface in its OpenDBC fork. EOP10
-  `vehicled`/`socketd` and duplicate Tesla vehicle layers are not ported.
-- EOP10 proves HAL, packaging, camera transport, and hardware-in-the-loop
-  behavior using only NGP10 commits that already passed application gates.
-- EOP10 infrastructure changes (vehicled/socketd, cereal topics, v4l2d,
-  inferenced, and Rockchip services) are integrated only at the EOP10 boundary;
-  NGP10 keeps upstream comma 3 camera and Panda/OpenDBC behavior until Tesla
-  gateway parity is demonstrated.
-- `adaptd` may be ported as a pure normalized-telemetry profile computer;
-  Bluetooth/NCP/OBD transport remains outside comma 3 selfdrive.
-- A single `ngp_shadowd` process publishes portable feature diagnostics without
-  writing planner, control, Panda, or CAN command services.
-
-## Non-goals
-
-Do not import RK3588/RKNN or EOP HAL implementation into the comma 3 runtime.
-GridD, single-camera MonoD, radar2D/radar3D, SOC, and side/left/right/rear
-overlays may exist as portable, capability-gated application modules; radar4D
-remains excluded, and comma 3 must fall back to its two road cameras when those
-streams are absent. Keep driver monitoring enabled and
-preserve stock AEB/longitudinal authority until gateway and route evidence
-supports a controlled promotion.
+BrownPanda exposes only Tesla party bus 0 and autopilot-party bus 2 to comma.
+NGP10 does not select or name the gateway MCU variant. Its pinned OpenDBC
+adapter enables the optional converted measurements from their party-bus wire
+signature and fails closed when that signature or stream is absent. Unmodified
+sunnypilot and dragonpilot remain compatible with BrownPanda vehicle/control
+traffic but do not receive the party-bus radar extension.
