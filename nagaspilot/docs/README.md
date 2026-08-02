@@ -7,10 +7,11 @@
 3. `NAMING_CONVENTIONS.md` — cross-branch implementation-prefix rules.
 4. `NGP10_FEATURE_MATRIX.md` — one-page module/status/ownership table.
 5. `BROWNPANDA_RADAR.md` — NGP-only radar allocation and safety contract.
-6. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
-7. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
-8. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
-9. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
+6. `DEPENDENCY_POLICY.md` — shared upstream/fork and exact-pin rules.
+7. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
+8. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
+9. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
+10. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
    audit; retained for history and rationale.
 
 ## Source-code map
