@@ -1,6 +1,6 @@
 [submodule "msgq"]
   path = msgq_repo
-  url = ../../exo-electronics/msgq.git
+  url = ../../commaai/msgq.git
   branch = master
 [submodule "rednose"]
   path = rednose_repo

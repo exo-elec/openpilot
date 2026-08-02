@@ -120,3 +120,8 @@ third_party/json11/*.o
 models/rknn/*.rknn
 models/hef/*.hef
 models/onnx/*.onnx
+
+# EOP vehicle stack is in-tree; these are optional local reference/build trees,
+# not dependencies. Never rely on them for a reproducible checkout.
+/opendbc_repo/
+/panda/
