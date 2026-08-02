@@ -25,6 +25,10 @@ car.
   car translation.
 - EOP10 proves HAL, packaging, camera transport, and hardware-in-the-loop
   behavior using only NGP10 commits that already passed application gates.
+- EOP10 infrastructure changes (vehicled/socketd, cereal topics, v4l2d,
+  inferenced, and Rockchip services) are integrated only at the EOP10 boundary;
+  NGP10 keeps upstream comma 3 camera and Panda/OpenDBC behavior until Tesla
+  gateway parity is demonstrated.
 - `adaptd` may be ported as a pure normalized-telemetry profile computer;
   Bluetooth/NCP/OBD transport remains outside comma 3 selfdrive.
 

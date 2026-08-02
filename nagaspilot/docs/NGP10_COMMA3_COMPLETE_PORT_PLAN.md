@@ -58,6 +58,32 @@ guardrail-safety evidence passes.
    normalized `ncpVehicleData`; keep BLE/NCP/OBD transport and target-car PID
    interpretation on the gateway/NavPilot side.
 
+## Whole-tree EOP audit
+
+The EOP10 tree also changes infrastructure outside `selfdrive/`. NGP10 must
+classify these explicitly:
+
+- **Vehicle boundary**: EOP10's `selfdrive/vehicled`, Tesla CAN packer/parser,
+  `system/socketd`, and Tesla safety layer are the relevant transition pieces.
+  Port their normalized interfaces and tests; do not delete generic upstream
+  Panda/OpenDBC until BrownPanda wire and safety parity is demonstrated.
+- **Cereal**: EOP10 adds vehicle, adaptive telemetry, radar, and UI topics.
+  Add only fields required by the normalized Tesla contract and keep absent
+  topics optional on comma 3.
+- **Camera/HAL**: EOP10 replaces the Qualcomm camera path with `v4l2d`,
+  Rockchip camera geometry, RKAIQ, and inferenced backends. These are EOP10/HAL
+  work; NGP10 keeps the v0.10.0 comma 3 camera pipeline.
+- **System services**: `bluetoothd`, `networkd`, `inferenced`, `rtcd`,
+  `subscribed`, `uvcd`, `wdgd`, and Rockchip thermald services are not required
+  for NGP10 application proving. Only portable message contracts and tests may
+  be reused.
+- **Model/runtime and common code**: RKNN, Rockchip MPP/RGA, GPU/NPU helpers,
+  broad parameter rewrites, and EOP model schemas are excluded unless a
+  v0.10.0-compatible, measured comma 3 implementation is written.
+- **Tools/docs/assets**: EOP UI branding, installer/update replacements,
+  cabana/bodyteleop/WebRTC assets, and EOP-only documentation are references,
+  not automatic ports.
+
 ## Promotion gates
 
 Every feature must pass pure unit tests, missing-field/camera tests, recorded
