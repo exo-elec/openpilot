@@ -31,7 +31,8 @@ def _point_pair(slot: int, index: int = 1):
   _set_le(a, 61, 1, 1)
   _set_le(a, 62, 1, 1)
   _set_le(a, 63, 1, index)
-  _set_le(b, 0, 10, round((-1.25 + 64.0) / 0.125))
+  # TC375 reserves unproven BYD LAT_RELATED as neutral Tesla LatSpeed.
+  _set_le(b, 0, 10, round(64.0 / 0.125))
   _set_le(b, 63, 1, index)
   return (
     _message(0x410 + slot * 2, bytes(a)),
@@ -58,7 +59,7 @@ def test_shared_party_bus_all_slots_and_official_geometry():
   assert point.yRel == pytest.approx(2.25)
   assert point.vRel == pytest.approx(-3.0)
   assert point.aRel == pytest.approx(0.0)
-  assert point.yvRel == pytest.approx(-1.25)
+  assert point.yvRel == pytest.approx(0.0)
   assert point.measured
 
 

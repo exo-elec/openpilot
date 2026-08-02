@@ -8,6 +8,7 @@ TC375 emits converted Continental ARS4-B frames on Tesla party bus 0:
   0x411 + slot*2     Object_B[0..39] — LatSpeed, Index2
 
 BYD MVS4 slots 0..9 are mapped directly; slots 10..39 are empty (Tracked=0).
+Unproven BYD acceleration and lateral-speed fields are transmitted as neutral.
 0x45F (slot 39 Object_B) arrives last and is used as the update trigger.
 
 Object pair valid when: Tracked==1 AND Valid==1 AND Index==Index2.
