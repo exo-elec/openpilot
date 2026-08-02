@@ -46,3 +46,59 @@ def test_dbc_messages_and_checksum():
   })
   assert msg[0] == 0x1E2
   assert msg[1][7] == ((~sum(msg[1][:7])) & 0xFF)
+
+
+def _lateral_cmd_msg(packer, angle, active, counter):
+  values = {
+    "MPC_SteerAngleRateUpper": 251 if active else 0,
+    "MPC_SteerAngleRateLower": -252 if active else 0,
+    "MPC_SteerRequestActiveLow": int(not active),
+    "MPC_SteerRequest": int(active),
+    "MPC_E2EAlive1": 1,
+    "MPC_E2EAlive2": 1,
+    "MPC_SteeringAngleCmd": angle,
+    "SET_ME_FF": 0xFF,
+    "SET_ME_F": 0xF,
+    "COUNTER": counter,
+  }
+  return packer.make_can_msg("A_0x1E2_MPC_Lateral_Cmd_L8_20ms", 0, values)
+
+
+def test_lateral_cmd_matches_firmware_wire_layout():
+  # Byte-level cross-check against the real, car-tested firmware's WriteRaw
+  # sequence for 0x1E2 (tc275_freertos/TC275_BrownPanda DBC/byd_atto3.c,
+  # lines 1173-1201). This is the only check that would have caught the
+  # COUNTER (55->52) and Motorola->Intel bit-numbering fixes made to
+  # opendbc/dbc/byd_atto3.dbc: opendbc/safety/tests/test_byd.py only exercises
+  # the fields opendbc/safety/modes/byd.h reads directly (bits 20-23, the
+  # angle, data[5]/data[6] constants, and the checksum byte); it never reads
+  # COUNTER, so a wrong counter position was invisible to that suite.
+  packer = CANPacker("byd_atto3")
+
+  for active in (True, False):
+    addr, dat, bus = _lateral_cmd_msg(packer, angle=12.3, active=active, counter=7)
+    assert addr == 0x1E2
+    assert bus == 0
+
+    # steer_req (bit 21) / steer_req_active_low (bit 20) are mutually exclusive
+    assert bool(dat[2] & (1 << 5)) == active           # bit 21 -> byte 2, bit 5
+    assert bool(dat[2] & (1 << 4)) == (not active)      # bit 20 -> byte 2, bit 4
+    # E2E alive bits (22, 23) are always set
+    assert dat[2] & (1 << 6)
+    assert dat[2] & (1 << 7)
+    # fixed sentinel bytes the EPS module requires unconditionally
+    assert dat[5] == 0xFF
+    assert dat[6] & 0x0F == 0x0F
+    # counter occupies the high nibble of byte 6 (bits 52-55)
+    assert (dat[6] >> 4) == 7
+    # checksum is the inverted sum of the first 7 bytes
+    assert dat[7] == ((~sum(dat[:7])) & 0xFF)
+
+  # angle rate fields (bits 0-9, 10-19) are fixed sentinels, not a computed
+  # rate: 251 / -252 while active, 0 / 0 while inactive
+  _, active_dat, _ = _lateral_cmd_msg(packer, angle=0, active=True, counter=0)
+  active_rate_upper = active_dat[0] | ((active_dat[1] & 0x03) << 8)
+  assert active_rate_upper == 251
+  _, idle_dat, _ = _lateral_cmd_msg(packer, angle=0, active=False, counter=0)
+  idle_rate_upper = idle_dat[0] | ((idle_dat[1] & 0x03) << 8)
+  assert idle_rate_upper == 0

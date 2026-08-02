@@ -54,6 +54,22 @@ only until their individual exit gates are met.
    unique against the full `safety_declarations.h` enum.
 3. Port the angle/HUD controller as a separate, byte-tested commit. Preserve
    stock ACC/AEB and keep output disabled until stationary hardware validation.
+   The `0x1E2` steering-command side is now byte-tested against the firmware's
+   real `WriteRaw` sequence
+   (`opendbc/car/byd/tests/test_byd.py::test_lateral_cmd_matches_firmware_wire_layout`,
+   cross-checked against `~/panda/TC275_BrownPanda/DBC/byd_atto3.c:1173-1201`)
+   and ready to wire into a controller. **Blocked:** `byd.h`'s
+   `check_relay = true` on both `0x1E2` and `0x316` statically blocks
+   camera-to-car forwarding for both addresses the moment this safety mode is
+   active — regardless of `controls_allowed` — so a controller must also emit
+   a substitute `0x316` every cycle or the cluster/EPS loses that frame
+   entirely. A byte-exact software passthrough is not safe to assume:
+   `AUTO_LIGHT`, `HMA_ON_OFF`, `LDSW_TYPE` have no firmware witness, and the
+   firmware reads an unexplained bit 35 (`handsOffDetected`) that overlaps
+   `MPC_RightLaneState`'s low bit. Capture `0x316`'s full bit pattern on the
+   target car (BLF/MF4, per `community_port_comparison.md`'s update
+   procedure) before writing the controller's HUD side; the DBC's `CM_ BO_
+   790` comment already flags the specific fields to verify.
 4. Add factory-longitudinal recording/replay checks before considering the
    opt-in openpilot `0x32E` trial. Radar remains outside the software path.
 5. Validate comma 3 camera/driver-camera profiles and BYD fingerprints against
