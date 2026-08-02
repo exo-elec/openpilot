@@ -31,6 +31,18 @@ except ImportError:
     dbus = None
     DBUS_AVAILABLE = False
 
+if DBUS_AVAILABLE:
+    dbus_method = dbus.service.method
+else:
+    # dbus.service.method() is evaluated at class-body execution time (it's a
+    # decorator factory), so it must have a working no-op fallback even when
+    # dbus-python isn't installed — PairingAgent.__init__ already raises in
+    # that case, but the class body still needs to import cleanly.
+    def dbus_method(*_args, **_kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 try:
     from openpilot.common.params import Params
 except ImportError:
@@ -65,7 +77,7 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         self._current_pin: str = ''
         self._lock = threading.Lock()
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='o', out_signature='s')
+    @dbus_method(AGENT_INTERFACE, in_signature='o', out_signature='s')
     def RequestPinCode(self, device: dbus.ObjectPath) -> str:
         """Legacy pairing — we provide the PIN code.
 
@@ -78,7 +90,7 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         self._store_pin(pin, addr)
         return pin
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='ou', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='ou', out_signature='')
     def DisplayPinCode(self, device: dbus.ObjectPath, pincode: int):
         """Legacy pairing — display PIN code (classic BT PIN pairing fallback)."""
         pin = str(pincode).zfill(6)
@@ -86,7 +98,7 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         logger.info(f'DisplayPinCode for {addr} → PIN {pin}')
         self._store_pin(pin, addr)
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='ouu', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='ouu', out_signature='')
     def DisplayPasskey(self, device: dbus.ObjectPath, passkey: int, entered: int):
         """SSP Passkey Entry — device shows passkey; phone user must TYPE it.
 
@@ -99,7 +111,7 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         logger.info(f'DisplayPasskey for {addr} → {pin} (entered={entered})')
         self._store_pin(pin, addr)
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='ou', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='ou', out_signature='')
     def RequestConfirmation(self, device: dbus.ObjectPath, passkey: int):
         """Numeric Comparison — reject to enforce Passkey Entry.
 
@@ -114,19 +126,19 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
             'Numeric comparison not permitted; use Passkey Entry',
         )
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='os', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='os', out_signature='')
     def AuthorizeService(self, device: dbus.ObjectPath, uuid: str):
         """Authorize a specific service connection. Auto-accept."""
         addr = self._device_address(device)
         logger.info(f'AuthorizeService for {addr} UUID {uuid}')
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='', out_signature='')
     def Cancel(self):
         """Pairing cancelled — clear the displayed PIN."""
         logger.info('Pairing cancelled')
         self._clear_pin()
 
-    @dbus.service.method(AGENT_INTERFACE, in_signature='', out_signature='')
+    @dbus_method(AGENT_INTERFACE, in_signature='', out_signature='')
     def Release(self):
         """Agent released."""
         logger.info('Pairing agent released')

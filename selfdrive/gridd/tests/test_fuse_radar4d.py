@@ -66,7 +66,11 @@ class _FuseHost:
     _fuse_radar4d_points = GridD._fuse_radar4d_points
     _merge_radar4d_dropoff = GridD._merge_radar4d_dropoff
     _object_box_m = staticmethod(GridD._object_box_m)
-    _estimate_box_kinematics = classmethod(GridD._estimate_box_kinematics)
+    # GridD._estimate_box_kinematics is itself a classmethod, so accessing it
+    # through the class already returns a bound method (cls=GridD baked in).
+    # Re-wrapping that bound method in classmethod(...) would bind a second
+    # cls on top, corrupting the call signature — unwrap with __func__ first.
+    _estimate_box_kinematics = classmethod(GridD._estimate_box_kinematics.__func__)
     _radar4d_in_camera_fov = GridD._radar4d_in_camera_fov
     _ego_lane_bounds = GridD._ego_lane_bounds
 

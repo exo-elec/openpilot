@@ -35,6 +35,22 @@ try:
 except ImportError:
     Params = None
 
+# dbus.service.method()/.signal() are decorator factories evaluated at
+# class-body execution time, so they need working no-op fallbacks even when
+# dbus-python isn't installed — the classes below already guard their base
+# class and __init__ on DBUS_AVAILABLE, but the class bodies still need to
+# import cleanly.
+if DBUS_AVAILABLE:
+    dbus_method = dbus.service.method
+    dbus_signal = dbus.service.signal
+else:
+    def _dbus_noop_decorator(*_args, **_kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    dbus_method = _dbus_noop_decorator
+    dbus_signal = _dbus_noop_decorator
+
 from openpilot.system.bluetoothd import protocol, ncp_session
 
 logger = logging.getLogger('bluetoothd.ble_gatt')
@@ -82,7 +98,7 @@ class _Application(dbus.service.Object if DBUS_AVAILABLE else object):  # type: 
             dbus.service.Object.__init__(self, bus, GATT_APP_PATH)
         self._svc, self._rx, self._tx = service, rx, tx
 
-    @dbus.service.method(OBJMGR_IFACE, out_signature='a{oa{sa{sv}}}')  # type: ignore[misc]
+    @dbus_method(OBJMGR_IFACE, out_signature='a{oa{sa{sv}}}')  # type: ignore[misc]
     def GetManagedObjects(self):  # noqa: N802
         return {
             dbus.ObjectPath(NUS_SVC_PATH): self._svc.get_properties(),
@@ -106,7 +122,7 @@ class _NUSService(dbus.service.Object if DBUS_AVAILABLE else object):  # type: i
                 [dbus.ObjectPath(NUS_RX_PATH), dbus.ObjectPath(NUS_TX_PATH)], signature='o'),
         }}
 
-    @dbus.service.method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
+    @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
     def GetAll(self, interface):  # noqa: N802
         return self.get_properties().get(interface, {})
 
@@ -127,22 +143,22 @@ class _RXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
             'Value':   dbus.Array([], signature='y'),
         }}
 
-    @dbus.service.method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
+    @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
     def GetAll(self, interface):  # noqa: N802
         return self.get_properties().get(interface, {})
 
-    @dbus.service.method(GATT_CHAR_IFACE, in_signature='aya{sv}', out_signature='')  # type: ignore[misc]
+    @dbus_method(GATT_CHAR_IFACE, in_signature='aya{sv}', out_signature='')  # type: ignore[misc]
     def WriteValue(self, value, options):  # noqa: N802
         data = bytes(bytearray(value))
         logger.debug('BLE RX: %d bytes', len(data))
         if self._on_write:
             self._on_write(data)
 
-    @dbus.service.method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
+    @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
     def StartNotify(self):  # noqa: N802
         raise NotSupported('RX is write-only')
 
-    @dbus.service.method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
+    @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
     def StopNotify(self):  # noqa: N802
         raise NotSupported('RX is write-only')
 
@@ -170,11 +186,11 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
             'Notifying': dbus.Boolean(self._notifying),
         }}
 
-    @dbus.service.method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
+    @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
     def GetAll(self, interface):  # noqa: N802
         return self.get_properties().get(interface, {})
 
-    @dbus.service.method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
+    @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
     def StartNotify(self):  # noqa: N802
         with self._lock:
             self._notifying = True
@@ -182,7 +198,7 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
         if self._on_notify_start:
             self._on_notify_start()
 
-    @dbus.service.method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
+    @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
     def StopNotify(self):  # noqa: N802
         with self._lock:
             self._notifying = False
@@ -190,7 +206,7 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
         if self._on_notify_stop:
             self._on_notify_stop()
 
-    @dbus.service.signal(PROPS_IFACE, signature='sa{sv}as')  # type: ignore[misc]
+    @dbus_signal(PROPS_IFACE, signature='sa{sv}as')  # type: ignore[misc]
     def PropertiesChanged(self, interface, changed, invalidated):  # noqa: N802
         pass
 
@@ -223,7 +239,7 @@ class _LEAdvertisement(dbus.service.Object if DBUS_AVAILABLE else object):  # ty
             dbus.service.Object.__init__(self, bus, ADVERT_PATH)
         self._name = name
 
-    @dbus.service.method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
+    @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
     def GetAll(self, interface):  # noqa: N802
         if interface != LE_ADV_IFACE:
             raise InvalidArgs()
@@ -234,7 +250,7 @@ class _LEAdvertisement(dbus.service.Object if DBUS_AVAILABLE else object):  # ty
             'Includes':     dbus.Array(['tx-power'], signature='s'),
         }
 
-    @dbus.service.method(LE_ADV_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
+    @dbus_method(LE_ADV_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
     def Release(self):  # noqa: N802
         logger.info('BLE advertisement released')
 
