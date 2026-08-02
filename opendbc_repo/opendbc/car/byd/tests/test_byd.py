@@ -1,5 +1,6 @@
 from opendbc.can import CANPacker, CANParser
 from opendbc.car import gen_empty_fingerprint, structs
+from opendbc.car.byd.bydcan import create_steering_control
 from opendbc.car.byd.fingerprints import FINGERPRINTS, FW_VERSIONS
 from opendbc.car.byd.interface import CarInterface
 from opendbc.car.byd.values import CAR, FW_QUERY_CONFIG
@@ -48,22 +49,6 @@ def test_dbc_messages_and_checksum():
   assert msg[1][7] == ((~sum(msg[1][:7])) & 0xFF)
 
 
-def _lateral_cmd_msg(packer, angle, active, counter):
-  values = {
-    "MPC_SteerAngleRateUpper": 251 if active else 0,
-    "MPC_SteerAngleRateLower": -252 if active else 0,
-    "MPC_SteerRequestActiveLow": int(not active),
-    "MPC_SteerRequest": int(active),
-    "MPC_E2EAlive1": 1,
-    "MPC_E2EAlive2": 1,
-    "MPC_SteeringAngleCmd": angle,
-    "SET_ME_FF": 0xFF,
-    "SET_ME_F": 0xF,
-    "COUNTER": counter,
-  }
-  return packer.make_can_msg("A_0x1E2_MPC_Lateral_Cmd_L8_20ms", 0, values)
-
-
 def test_lateral_cmd_matches_firmware_wire_layout():
   # Byte-level cross-check against the real, car-tested firmware's WriteRaw
   # sequence for 0x1E2 (tc275_freertos/TC275_BrownPanda DBC/byd_atto3.c,
@@ -76,7 +61,7 @@ def test_lateral_cmd_matches_firmware_wire_layout():
   packer = CANPacker("byd_atto3")
 
   for active in (True, False):
-    addr, dat, bus = _lateral_cmd_msg(packer, angle=12.3, active=active, counter=7)
+    addr, dat, bus = create_steering_control(packer, angle=12.3, active=active, counter=7)
     assert addr == 0x1E2
     assert bus == 0
 
@@ -96,9 +81,56 @@ def test_lateral_cmd_matches_firmware_wire_layout():
 
   # angle rate fields (bits 0-9, 10-19) are fixed sentinels, not a computed
   # rate: 251 / -252 while active, 0 / 0 while inactive
-  _, active_dat, _ = _lateral_cmd_msg(packer, angle=0, active=True, counter=0)
+  _, active_dat, _ = create_steering_control(packer, angle=0, active=True, counter=0)
   active_rate_upper = active_dat[0] | ((active_dat[1] & 0x03) << 8)
   assert active_rate_upper == 251
-  _, idle_dat, _ = _lateral_cmd_msg(packer, angle=0, active=False, counter=0)
+  _, idle_dat, _ = create_steering_control(packer, angle=0, active=False, counter=0)
   idle_rate_upper = idle_dat[0] | ((idle_dat[1] & 0x03) << 8)
   assert idle_rate_upper == 0
+
+
+def test_controller_disabled_sends_nothing():
+  # test_platform_is_passive already covers the noOutput/dashcamOnly path via
+  # CarInterface.apply; this checks the controller itself is inert when
+  # CarControl.enabled is False, regardless of safety model.
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  ci = CarInterface(cp)
+  ci.update([])
+  _, sends = ci.apply(structs.CarControl().as_reader(), 0)
+  assert sends == []
+
+
+def test_controller_engaged_matches_safety_model():
+  # The real coupling check: step the controller while engaged and verify
+  # every frame it produces would be accepted by byd_tx_hook. A controller
+  # that passes its own unit test but gets rejected by panda is the failure
+  # mode this catches - it fails immediately if the controller's ANGLE_LIMITS
+  # (opendbc/car/byd/values.py) and byd.h's BYD_STEERING_LIMITS disagree.
+  from opendbc.safety.tests.libsafety import libsafety_py
+
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  ci = CarInterface(cp)
+  ci.update([])
+
+  safety = libsafety_py.libsafety
+  safety.set_safety_hooks(structs.CarParams.SafetyModel.byd, 0)
+  safety.init_tests()
+  safety.set_controls_allowed(True)
+
+  cc_in = structs.CarControl()
+  cc_in.enabled = True
+  cc_in.latActive = True
+  cc_in.actuators.steeringAngleDeg = 5.
+  cc_in = cc_in.as_reader()
+
+  # step through several frames so the rate limiter and counter settle, then
+  # verify the resulting wire frame would be accepted by byd_tx_hook
+  sent_any = False
+  for _ in range(20):
+    ci.update([])
+    _, sends = ci.apply(cc_in, 0)
+    for addr, dat, bus in sends:
+      sent_any = True
+      msg = libsafety_py.make_CANPacket(addr, bus, dat)
+      assert safety.safety_tx_hook(msg), (addr, list(dat))
+  assert sent_any

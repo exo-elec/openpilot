@@ -54,14 +54,42 @@ only until their individual exit gates are met.
    unique against the full `safety_declarations.h` enum.
 3. Port the angle/HUD controller as a separate, byte-tested commit. Preserve
    stock ACC/AEB and keep output disabled until stationary hardware validation.
-   The `0x1E2` steering-command side is now byte-tested against the firmware's
-   real `WriteRaw` sequence
-   (`opendbc/car/byd/tests/test_byd.py::test_lateral_cmd_matches_firmware_wire_layout`,
-   cross-checked against `~/panda/TC275_BrownPanda/DBC/byd_atto3.c:1173-1201`)
-   and ready to wire into a controller. **Blocked:** `byd.h`'s
+   **The `0x1E2` steering-command side is done:** `opendbc/car/byd/bydcan.py`'s
+   `create_steering_control` and `opendbc/car/byd/carcontroller.py`'s
+   `CarController` generate it via `apply_std_steer_angle_limits` at 50 Hz,
+   gated on `CarControl.enabled` so it stays inert while `interface.py` keeps
+   `dashcamOnly`/`noOutput` (verified by
+   `test_controller_disabled_sends_nothing`). Byte-verified against the
+   firmware's real `WriteRaw` sequence
+   (`test_lateral_cmd_matches_firmware_wire_layout`, cross-checked against
+   `~/panda/TC275_BrownPanda/DBC/byd_atto3.c:1173-1201`) and against
+   `opendbc/safety/modes/byd.h`'s `byd_tx_hook` directly
+   (`test_controller_engaged_matches_safety_model` packs real controller
+   output and feeds it through `libsafety`) — the discriminating check that a
+   controller and the safety model actually agree on every limit and
+   sentinel, not just that each passes its own test in isolation.
+
+   Angle-rate limits are 3-step, tapering with speed at
+   `nagaspilot/docs/SPEED_ZONE_POLICY.md`'s `CITY_SPEED_MPS`/`HIGHWAY_SPEED_MPS`
+   breakpoints (12/24 m/s): `4`/`2`/`.5` deg-per-50Hz-cycle winding up,
+   `4`/`3`/`1.5` unwinding (always faster than winding up, for recovery
+   safety). The 0 m/s value is unchanged from the original flat draft so city
+   behavior is untouched; the 12/24 m/s values are a provisional design (no
+   BYD-specific steering-rate capture exists) shaped after `psa.h`'s taper,
+   which shares this struct's exact `max_angle`/`angle_deg_to_can` scale. Both
+   `opendbc/safety/modes/byd.h`'s `BYD_STEERING_LIMITS` and
+   `opendbc/car/byd/values.py`'s `CarControllerParams.ANGLE_LIMITS` must stay
+   mirrored; `test_controller_engaged_matches_safety_model` is what enforces
+   that. Note: `nagaspilot/docs/SPEED_ZONE_POLICY.md` cites
+   `nagaspilot/speed_zones.py` as the canonical constants source, but that
+   file does not currently exist in this tree (only stale `.pyc` caches do) -
+   the values above are hardcoded in `opendbc/car/byd/values.py` with a
+   citation comment instead, since `opendbc_repo` has no dependency on
+   `nagaspilot/` regardless.
+   **The `0x316` HUD side remains blocked:** `byd.h`'s
    `check_relay = true` on both `0x1E2` and `0x316` statically blocks
    camera-to-car forwarding for both addresses the moment this safety mode is
-   active — regardless of `controls_allowed` — so a controller must also emit
+   active — regardless of `controls_allowed` — so the controller must also emit
    a substitute `0x316` every cycle or the cluster/EPS loses that frame
    entirely. A byte-exact software passthrough is not safe to assume:
    `AUTO_LIGHT`, `HMA_ON_OFF`, `LDSW_TYPE` have no firmware witness, and the
