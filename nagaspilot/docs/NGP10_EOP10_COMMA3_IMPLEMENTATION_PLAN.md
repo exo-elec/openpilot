@@ -22,6 +22,26 @@ camera defaults or its four-camera stereo assumptions.
   curve, navigation, and speed-limit triggers. Several EOP parameters and
   radar assumptions are optional and must not become user-facing knobs by
   default.
+- **VTSC** (`selfdrive/controls/lib/vtsc.py`) is a camera/model-based curve
+  speed candidate. It uses `orientationRate` and `velocity`, learned
+  per-curvature comfort limits, and a state machine; it is the best next EOP
+  feature to evaluate after DLAT/DLON, but its deceleration output must remain
+  shadow-only until replay proves it cannot fight stock longitudinal control.
+- **MTSC** (`selfdrive/controls/lib/mtsc.py`) consumes MapD/OSM curvature in a
+  150--500 m lookahead. Keep its pure curvature calculation available for
+  testing, but do not require maps or GPS for comma 3 and do not enable it by
+  default.
+- **Speed-limit modules** (`mslc.py`, `nslc.py`, and
+  `speed_limit_resolver.py`) can be audited as input resolution, but any
+  automatic cruise-speed change must respect the fixed CITY/HIGHWAY policy and
+  stock driver-monitoring events.
+- **LCA/ALKA helpers** (`alcc.py`, `lc_lead_handoff.py`) are vehicle- and
+  cereal-integration code. The adjacent-lead handoff is camera-only in EOP10,
+  but it depends on `leadsV3`, lane-change state, and longitudinal MPC; port
+  only after core lane-change safety tests exist.
+- **AEB/RED/traffic helpers** (`aeb.py`, `red.py`, `tlsc.py`, `cslb.py`) must
+  remain stock safety paths until their v0.10.0 message fields and event
+  semantics are verified.
 - **GridD/multi-camera fusion** assumes RK3588 road, wide, and stereo cameras,
   RGA, and a seven-camera platform. It is not a comma 3 port target.
 - **StereoD/side/rear cameras** and `system/hardware/rk3588` are HAL/platform
@@ -45,6 +65,18 @@ camera defaults or its four-camera stereo assumptions.
    navigation data. Keep emergency/AEB handling in the stock path.
 6. **Promotion to EOP10**: move only commits that pass NGP10 unit/replay tests;
    validate HAL, packaging, camera transport, and hardware behavior in EOP10.
+
+## Feature triage
+
+| Feature | NGP10 action | Camera 3 suitability |
+| --- | --- | --- |
+| DLAT | Implement shadow arbiter, then replay gate | Wide + narrow model outputs |
+| DLON | Implement trigger/state decision only | Model, car state; radar optional |
+| VTSC | Next candidate; shadow speed target | Wide + narrow `modelV2` |
+| MTSC | Test pure math only; map input optional | Not camera-only by itself |
+| Speed limits | Resolve sources, no forced output initially | Dashboard/nav/map dependent |
+| LCA/ALKA | Preserve stock engagement and DM | Requires vehicle/cereal validation |
+| SOC/MonoD/GridD/stereo | Defer | Not suitable for two-camera comma 3 |
 
 ## Comma 3 constraints
 
