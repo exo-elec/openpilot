@@ -101,6 +101,9 @@ only until their individual exit gates are met.
    the target car (BLF/MF4, per `community_port_comparison.md`'s update
    procedure) before any bench/stationary trial of this code path; the DBC's
    `CM_ BO_ 790` comment flags the specific fields to verify.
+   [BYD_CANAPE_OPEN_QUESTIONS.md](BYD_CANAPE_OPEN_QUESTIONS.md) is the
+   concrete signal-by-signal capture plan for this - what to load in CANape,
+   which scenario resolves which field, and what counts as resolved.
 4. `bydcan.create_acc_cmd` (also ported from the CarrotPilot-derived
    reference) and the corresponding `openpilotLongitudinalControl` branch in
    `carcontroller.py` are coded but unreachable: `interface.py` still sets

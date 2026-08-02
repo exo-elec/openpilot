@@ -298,7 +298,11 @@ still be captured on the target vehicle.
 Use the [manual factory-MPC validation workflow](MANUAL_CAPTURE_VALIDATION.md)
 followed by the feature-by-feature
 [BYD Atto 3 comma 3 HIL checklist](BYD_ATTO3_HIL_CHECKLIST.md) and retain the
-raw evidence it requires.
+raw evidence it requires. Before either, a passive CANape session against
+[BYD_CANAPE_OPEN_QUESTIONS.md](BYD_CANAPE_OPEN_QUESTIONS.md)'s signal
+watch-list resolves the specific DBC fields currently flagged unverified in
+`opendbc/dbc/byd_atto3.dbc`'s `CM_ BO_ *` comments - it requires only a normal,
+unmodified car and no comma 3/panda hardware.
 
 Validate in this order:
 

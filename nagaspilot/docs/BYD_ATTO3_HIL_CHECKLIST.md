@@ -4,6 +4,11 @@ This checklist validates the single BYD test car without broadening EDP10 or
 enabling multiple unproven features together. Complete factory-longitudinal
 baseline testing before selecting openpilot longitudinal.
 
+Before this checklist, resolve
+[BYD_CANAPE_OPEN_QUESTIONS.md](BYD_CANAPE_OPEN_QUESTIONS.md)'s open DBC
+fields with a passive CANape session - it needs only a normal car, not comma
+3/panda hardware, and its answers feed directly into Gate 3 below.
+
 ## Required setup
 
 - Test car VIN, model year, market, camera and harness identifiers.
