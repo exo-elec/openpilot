@@ -28,17 +28,18 @@ def test_reference_evidence_registered():
 def test_dbc_messages_and_checksum():
   parser = CANParser("byd_atto3", [], 0)
   required = (
-    "WHEELSPEED_CLEAN", "STEER_MODULE_2", "STEERING_TORQUE", "DRIVE_STATE",
-    "PEDAL", "STALKS", "BSD_RADAR", "METER_CLUSTER", "ACC_HUD_ADAS",
-    "ACC_CMD", "LKAS_HUD_ADAS", "STEERING_MODULE_ADAS",
+    "B_0x1F0_VCU_ESP_VehSpeed_L8_20ms", "B_0x11F_SAS_SensorState_L5_10ms", "B_0x1FC_EPS_MotorState_L8_20ms",
+    "B_0x242_VCU_DriveState_L8_20ms", "B_0x342_VCU_PedalState_L8_20ms", "B_0x133_BCM_StalkState_L8_50ms",
+    "B_0x418_VCU_BsdState_L8_50ms", "B_0x294_BCM_CabinState_L8_50ms", "B_0x32D_HUD_AdasState_L8_20ms",
+    "A_0x32E_MPC_Long_Cmd_L8_20ms", "A_0x316_MPC_MpcState_L8_20ms", "A_0x1E2_MPC_Lateral_Cmd_L8_20ms",
   )
   assert all(name in parser.dbc.name_to_msg for name in required)
 
   packer = CANPacker("byd_atto3")
-  msg = packer.make_can_msg("STEERING_MODULE_ADAS", 0, {
-    "STEER_REQ_ACTIVE_LOW": 1,
-    "E2E_ALIVE_1": 1,
-    "E2E_ALIVE_2": 1,
+  msg = packer.make_can_msg("A_0x1E2_MPC_Lateral_Cmd_L8_20ms", 0, {
+    "MPC_SteerRequestActiveLow": 1,
+    "MPC_E2EAlive1": 1,
+    "MPC_E2EAlive2": 1,
     "SET_ME_FF": 0xFF,
     "SET_ME_F": 0xF,
     "COUNTER": 7,

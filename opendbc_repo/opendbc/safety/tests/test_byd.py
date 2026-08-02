@@ -7,10 +7,19 @@ import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerPanda
 
 
+MPC_LATERAL_CMD = 0x1E2  # A_0x1E2_MPC_Lateral_Cmd_L8_20ms
+MPC_MPC_STATE = 0x316  # A_0x316_MPC_MpcState_L8_20ms
+
+
 class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
-  TX_MSGS = [[0x1E2, 0], [0x316, 0]]
-  RELAY_MALFUNCTION_ADDRS = {0: (0x1E2, 0x316)}
-  FWD_BLACKLISTED_ADDRS = {2: [0x1E2, 0x316]}
+  TX_MSGS = [[MPC_LATERAL_CMD, 0], [MPC_MPC_STATE, 0]]
+  RELAY_MALFUNCTION_ADDRS = {0: (MPC_LATERAL_CMD, MPC_MPC_STATE)}
+  FWD_BLACKLISTED_ADDRS = {2: [MPC_LATERAL_CMD, MPC_MPC_STATE]}
+
+  # matches `vehicle_moving = speed > 0.1` in opendbc/safety/modes/byd.h
+  STANDSTILL_THRESHOLD = 0.1
+  # matches `gas_pressed = msg->data[0] > 10U` in opendbc/safety/modes/byd.h
+  GAS_PRESSED_THRESHOLD = 10
 
   STEER_ANGLE_MAX = 390
   STEER_ANGLE_TEST_MAX = 380
@@ -27,36 +36,37 @@ class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
 
   def _angle_cmd_msg(self, angle: float, enabled: bool):
     values = {
-      "ANGLE_RATE_LIMIT_UPPER": 251 if enabled else 0,
-      "ANGLE_RATE_LIMIT_LOWER": -252 if enabled else 0,
-      "STEER_REQ_ACTIVE_LOW": int(not enabled),
-      "STEER_REQ": int(enabled),
-      "E2E_ALIVE_1": 1,
-      "E2E_ALIVE_2": 1,
-      "STEER_ANGLE": angle,
+      "MPC_SteerAngleRateUpper": 251 if enabled else 0,
+      "MPC_SteerAngleRateLower": -252 if enabled else 0,
+      "MPC_SteerRequestActiveLow": int(not enabled),
+      "MPC_SteerRequest": int(enabled),
+      "MPC_E2EAlive1": 1,
+      "MPC_E2EAlive2": 1,
+      "MPC_SteeringAngleCmd": angle,
       "SET_ME_FF": 0xFF,
       "SET_ME_F": 0xF,
     }
-    return self.packer.make_can_msg_panda("STEERING_MODULE_ADAS", 0, values)
+    return self.packer.make_can_msg_panda("A_0x1E2_MPC_Lateral_Cmd_L8_20ms", 0, values)
 
   def _angle_meas_msg(self, angle: float):
-    return self.packer.make_can_msg_panda("STEER_MODULE_2", 0, {"STEER_ANGLE_2": angle})
+    return self.packer.make_can_msg_panda("B_0x11F_SAS_SensorState_L5_10ms", 0, {"SAS_SteeringAngle": angle})
 
   def _speed_msg(self, speed: float):
-    return self.packer.make_can_msg_panda("WHEELSPEED_CLEAN", 0, {"WHEELSPEED_CLEAN": speed * 3.6})
+    return self.packer.make_can_msg_panda("B_0x1F0_VCU_ESP_VehSpeed_L8_20ms", 0, {"ESP_VehicleSpeed": speed * 3.6})
 
   def _speed_msg_2(self, speed: float):
     # BYD exposes one authoritative wheel-speed frame in this safety mode.
     return None
 
   def _user_brake_msg(self, brake):
-    return self.packer.make_can_msg_panda("DRIVE_STATE", 0, {"BRAKE_PRESSED": int(bool(brake))})
+    return self.packer.make_can_msg_panda("B_0x242_VCU_DriveState_L8_20ms", 0, {"VCU_BrakePressed": int(bool(brake))})
 
   def _user_gas_msg(self, gas):
-    return self.packer.make_can_msg_panda("PEDAL", 0, {"GAS_PEDAL": gas})
+    # VCU_AccelPedalRaw is unscaled (0-255); byd_rx_hook reads the same raw byte
+    return self.packer.make_can_msg_panda("B_0x342_VCU_PedalState_L8_20ms", 0, {"VCU_AccelPedalRaw": gas})
 
   def _pcm_status_msg(self, enabled):
-    return self.packer.make_can_msg_panda("ACC_HUD_ADAS", 2, {"ACC_STATE": 3 if enabled else 2})
+    return self.packer.make_can_msg_panda("B_0x32D_HUD_AdasState_L8_20ms", 2, {"VCU_ACCState": 3 if enabled else 2})
 
   def test_valid_angle_requires_stock_acc(self):
     self._reset_angle_measurement(0)
@@ -78,6 +88,7 @@ class TestBydSafety(common.PandaCarSafetyTest, common.AngleSteeringSafetyTest):
     msg = self._angle_cmd_msg(0, True)
     msg[0].data[7] ^= 1
     self.assertFalse(self._tx(msg))
+
 
 if __name__ == "__main__":
   unittest.main()

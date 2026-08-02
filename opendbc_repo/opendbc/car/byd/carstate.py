@@ -34,51 +34,61 @@ class CarState(CarStateBase):
     cp_cam = can_parsers[Bus.cam]
     ret = structs.CarState()
 
-    speed_kph = cp.vl["WHEELSPEED_CLEAN"]["WHEELSPEED_CLEAN"]
+    speed_kph = cp.vl["B_0x1F0_VCU_ESP_VehSpeed_L8_20ms"]["ESP_VehicleSpeed"]
     ret.vEgoRaw = speed_kph * CV.KPH_TO_MS
     ret.vEgo, ret.aEgo = self.update_speed_kf(ret.vEgoRaw)
     ret.vEgoCluster = ret.vEgo
     ret.standstill = speed_kph < 0.1
 
-    ret.steeringAngleDeg = cp.vl["STEER_MODULE_2"]["STEER_ANGLE_2"]
-    ret.steeringTorque = cp.vl["STEERING_TORQUE"]["MAIN_TORQUE"]
-    ret.steeringTorqueEps = cp.vl["STEER_MODULE_2"]["DRIVER_EPS_TORQUE"]
+    ret.steeringAngleDeg = cp.vl["B_0x11F_SAS_SensorState_L5_10ms"]["SAS_SteeringAngle"]
+    ret.steeringTorque = cp.vl["B_0x1FC_EPS_MotorState_L8_20ms"]["EPS_MainTorque"]
+    ret.steeringTorqueEps = cp.vl["B_0x11F_SAS_SensorState_L5_10ms"]["EPS_DriverTorque"]
     driver_override = abs(ret.steeringTorqueEps) > CarControllerParams.STEER_DRIVER_OVERRIDE
     ret.steeringPressed = self.update_steering_pressed(driver_override, 5)
 
-    lks_prepared = bool(cp.vl["STEERING_TORQUE"]["LKS_PREPARED"])
-    lks_activated = bool(cp.vl["STEERING_TORQUE"]["CRUISE_ACTIVATED"])
+    lks_prepared = bool(cp.vl["B_0x1FC_EPS_MotorState_L8_20ms"]["EPS_LkasPrepared"])
+    lks_activated = bool(cp.vl["B_0x1FC_EPS_MotorState_L8_20ms"]["EPS_CruiseActivated"])
     eps_stream_dropout = lks_prepared and lks_activated
-    camera_fault = int(cp_cam.vl["LKAS_HUD_ADAS"]["LKAS_STATE"]) == 4
+    camera_fault = int(cp_cam.vl["A_0x316_MPC_MpcState_L8_20ms"]["MPC_LkasState"]) == 4
     ret.steerFaultTemporary = camera_fault or eps_stream_dropout
 
-    ret.gasPressed = cp.vl["PEDAL"]["GAS_PEDAL"] > 0.10
-    ret.brake = cp.vl["PEDAL"]["BRAKE_PEDAL"]
-    ret.brakePressed = bool(cp.vl["DRIVE_STATE"]["BRAKE_PRESSED"])
-    ret.gearShifter = GEAR_MAP.get(int(cp.vl["DRIVE_STATE"]["GEAR"]), GearShifter.unknown)
+    # VCU_AccelPedalRaw/VCU_BrakePedalPressureCount are raw counts (0-255), matching
+    # tc275_freertos DBC/byd_atto3.c case 0x342; 10 raw is the tested gas-pressed
+    # threshold (also used raw in opendbc/safety/modes/byd.h).
+    ret.gasPressed = cp.vl["B_0x342_VCU_PedalState_L8_20ms"]["VCU_AccelPedalRaw"] > 10
+    ret.brake = cp.vl["B_0x342_VCU_PedalState_L8_20ms"]["VCU_BrakePedalPressureCount"] * 0.01
+    ret.brakePressed = bool(cp.vl["B_0x242_VCU_DriveState_L8_20ms"]["VCU_BrakePressed"])
+    ret.gearShifter = GEAR_MAP.get(int(cp.vl["B_0x242_VCU_DriveState_L8_20ms"]["VCU_Gear"]), GearShifter.unknown)
 
-    ret.leftBlinker = bool(cp.vl["STALKS"]["LEFT_BLINKER"])
-    ret.rightBlinker = bool(cp.vl["STALKS"]["RIGHT_BLINKER"])
-    ret.leftBlindspot = cp.vl["BSD_RADAR"]["LEFT_APPROACH"] != 0
-    ret.rightBlindspot = cp.vl["BSD_RADAR"]["RIGHT_APPROACH"] != 0
+    # BCM_TurnSignalStalk is a single 3-bit enum (tc275_freertos DBC/byd_atto3.c case
+    # 0x133): only 1=LEFT and 2=RIGHT are firmware-validated. Reading one field rather
+    # than two independent bit-flags means a reversed stalk push (e.g. right while left
+    # is active) already cancels the opposite side for free, since the field can only
+    # ever hold one value at a time. Values other than 0/1/2 (e.g. a light lane-change
+    # tap that doesn't reach a full detent) are not yet captured against a real car;
+    # treat them as OFF until verified.
+    ret.leftBlinker = cp.vl["B_0x133_BCM_StalkState_L8_50ms"]["BCM_TurnSignalStalk"] == 1
+    ret.rightBlinker = cp.vl["B_0x133_BCM_StalkState_L8_50ms"]["BCM_TurnSignalStalk"] == 2
+    ret.leftBlindspot = cp.vl["B_0x418_VCU_BsdState_L8_50ms"]["VCU_BSDLeftApproach"] != 0
+    ret.rightBlindspot = cp.vl["B_0x418_VCU_BsdState_L8_50ms"]["VCU_BSDRightApproach"] != 0
 
     ret.doorOpen = any((
-      cp.vl["METER_CLUSTER"]["FRONT_LEFT_DOOR"],
-      cp.vl["METER_CLUSTER"]["FRONT_RIGHT_DOOR"],
-      cp.vl["METER_CLUSTER"]["BACK_LEFT_DOOR"],
-      cp.vl["METER_CLUSTER"]["BACK_RIGHT_DOOR"],
+      cp.vl["B_0x294_BCM_CabinState_L8_50ms"]["BCM_DoorFrontLeft"],
+      cp.vl["B_0x294_BCM_CabinState_L8_50ms"]["BCM_DoorFrontRight"],
+      cp.vl["B_0x294_BCM_CabinState_L8_50ms"]["BCM_DoorRearLeft"],
+      cp.vl["B_0x294_BCM_CabinState_L8_50ms"]["BCM_DoorRearRight"],
     ))
-    ret.seatbeltUnlatched = not bool(cp.vl["METER_CLUSTER"]["SEATBELT_DRIVER"])
+    ret.seatbeltUnlatched = not bool(cp.vl["B_0x294_BCM_CabinState_L8_50ms"]["BCM_DriverSeatbelt"])
 
-    acc_state = int(cp_cam.vl["ACC_HUD_ADAS"]["ACC_STATE"])
-    ret.cruiseState.speed = cp_cam.vl["ACC_HUD_ADAS"]["SET_SPEED"] * CV.KPH_TO_MS
+    acc_state = int(cp_cam.vl["B_0x32D_HUD_AdasState_L8_20ms"]["VCU_ACCState"])
+    ret.cruiseState.speed = cp_cam.vl["B_0x32D_HUD_AdasState_L8_20ms"]["VCU_ACCSetSpeed"] * CV.KPH_TO_MS
     ret.cruiseState.available = acc_state in (2, 3, 5)
     ret.cruiseState.enabled = acc_state in (3, 5)
-    ret.cruiseState.standstill = bool(cp_cam.vl["ACC_CMD"]["STANDSTILL_STATE"])
+    ret.cruiseState.standstill = bool(cp_cam.vl["A_0x32E_MPC_Long_Cmd_L8_20ms"]["MPC_StandstillState"])
 
     # DragonPilot ALKA uses this as the stock lateral-availability state.
     self.lkas_on = ret.cruiseState.available
-    self.lkas_hud = copy.copy(cp_cam.vl["LKAS_HUD_ADAS"])
+    self.lkas_hud = copy.copy(cp_cam.vl["A_0x316_MPC_MpcState_L8_20ms"])
 
     return ret
 

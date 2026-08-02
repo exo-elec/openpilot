@@ -220,8 +220,13 @@ comparisons pass without connecting the transmit path to a moving vehicle.
 - Use DragonPilot's existing `lat_control_allowed()`/ALKA mechanism where
   appropriate. Start with ordinary stock-ACC lateral control; enable ALKA as a
   separate subphase.
-- Forward stock longitudinal and AEB traffic untouched. Dynamically block only
-  the stock camera steering/HUD messages when NagasPilot has lateral authority.
+- Forward stock longitudinal and AEB traffic untouched. Statically block the
+  two NagasPilot-owned steering/HUD addresses from camera-to-main forwarding
+  via `CanMsg.check_relay`, matching the current `psa.h`/`nissan.h` pattern —
+  the shared `safety_fwd_hook` API blocks `check_relay` addresses before any
+  `.fwd` hook runs, so a `controls_allowed`-gated `.fwd` hook is both
+  redundant and fails `PandaSafetyTest.test_fwd_hook`'s static
+  `(bus, addr) -> bus` contract.
 
 Required safety tests include controls-disabled rejection, malformed checksum,
 stale RX, excessive angle, excessive rate, excessive angle error, brake/gas
@@ -232,9 +237,25 @@ Exit gate: the complete Panda safety suite passes for both host safety tests and
 the relevant firmware build paths.
 
 Current software status: passive BYD parsing and the standard Panda ignition
-recognition are implemented. A BYD safety-model draft exists locally but is not
-yet validated against the EDP10 host-test API. The vehicle interface still
-selects `noOutput`, so no actuator path is enabled.
+recognition are implemented. The BYD safety model now targets the current
+EDP10 host-test API (`PandaCarSafetyTest`/`AngleSteeringSafetyTest`); the full
+Panda safety suite (2600+ tests across all safety modes, including
+cross-mode TX-address collision checks) passes locally. Target-car
+power-state, checksum, and route evidence are still outstanding. The vehicle
+interface still selects `noOutput`, so no actuator path is enabled.
+
+Message and signal names in `opendbc/dbc/byd_atto3.dbc`, `opendbc/safety/modes/byd.h`
+and `opendbc/car/byd/carstate.py` now follow the tc275_freertos/BYD_Atto3 local
+CANape convention (`{A|B|C|U}_0xNNN_Function_Ln_period`) rather than the
+`shemps/byd-atto3-openpilot-port` fork's names, per
+[BYD_REFERENCE_PARITY_AUDIT.md](BYD_REFERENCE_PARITY_AUDIT.md) and
+`~/panda/BYD_Atto3/DOC/community_port_comparison.md`. Renamed fields are those
+the comparison doc confirms are bit-identical; `COUNTER`/`CHECKSUM` stay
+literal because `opendbc/can/dbc.py:set_signal_type` matches those exact names
+to attach checksum semantics. Fields with an unconfirmed or differing bit
+layout (`STALKS` L/R blinkers, `PEDAL` gas/brake scale, `PCM_BUTTONS`, and a
+few `0x1FC`/`0x242`/`0x316`/`0x32D` extras) keep their current names, each with
+a `CM_` comment in the DBC naming the pending local-capture verification.
 
 ### 4b. Openpilot longitudinal trial
 

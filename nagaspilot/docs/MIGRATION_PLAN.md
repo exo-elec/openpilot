@@ -41,11 +41,17 @@ only until their individual exit gates are met.
 
 ## Remaining Agent Tasks
 
-1. Finish the EDP10-compatible BYD safety model. Resolve safety enum/API
-   differences from newer DragonPilot APIs, add complete host safety tests, and do not switch the
-   interface away from `noOutput` until those tests pass.
-2. Confirm the current safety model ID against the complete EDP10 enum; never
-   reuse an ID from a newer branch or assume `panda_tici` exists in this base.
+1. ~~Finish the EDP10-compatible BYD safety model.~~ **Done.** `test_byd.py`
+   now subclasses `PandaCarSafetyTest`/`AngleSteeringSafetyTest` (the current
+   EDP10 API, not the `CarSafetyTest`/`make_can_msg_safety` API `test_byd.py`
+   was drafted against). The dynamic, `controls_allowed`-gated `.fwd` hook was
+   removed — `check_relay` in `BYD_TX_MSGS` already gives static forwarding
+   block, which is what `test_fwd_hook`'s API requires and what
+   `BYD_ATTO3_COMMA3_PORT_PLAN.md` asks for. Full local safety suite (2600+
+   tests, all safety modes) passes with no TX-address collisions. Interface
+   still selects `noOutput`.
+2. ~~Confirm the current safety model ID.~~ **Done.** `SAFETY_BYD 35U` is
+   unique against the full `safety_declarations.h` enum.
 3. Port the angle/HUD controller as a separate, byte-tested commit. Preserve
    stock ACC/AEB and keep output disabled until stationary hardware validation.
 4. Add factory-longitudinal recording/replay checks before considering the
