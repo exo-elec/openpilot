@@ -41,6 +41,27 @@ class CarControllerParams:
     MAX_ANGLE_RATE=MAX_ANGLE_RATE,
   )
 
+  # Backstop angle ceiling, controller side: 80% of opendbc/safety/modes/byd.h's
+  # own backstop LUT (byd_zone_max_angle_can, ~1.3g), which works out to ~1.0g
+  # here since G-force scales linearly with angle at fixed speed (0.8 * 1.3g
+  # = 1.04g). Same "app layer tighter, panda layer looser" relationship
+  # ARCHITECTURE_TESLA_TO_BYD.md describes for the Tesla-gateway path, just
+  # grounded in real physics instead of an arbitrary percentage. This is
+  # defense-in-depth, not the operating limit - MAX_LATERAL_ACCEL/JERK above
+  # (0.3g) is what apply_steer_angle_limits_vm() actually enforces day to
+  # day; this should never bind in normal operation.
+  ZONE_MAX_ANGLE_BP = (0., 6., 12., 18., 24., 30., 36.)
+  ZONE_MAX_ANGLE_DEG = (312., 288., 192., 96., 48., 36., 24.)
+
+  # Backstop rate ceiling, controller side: 80% of byd.h's rate LUT
+  # (BYD_ATTO3_ZONE_RATE_*). 0/6/12 m/s hold at 3.2 deg/20ms (80% of the
+  # panda-side 4 deg/20ms mechanical-EPS floor - see byd.h's comment for the
+  # stock Veoneer citation); 18/24/30/36 m/s taper with the same jerk curve
+  # as the panda side, each still tighter than MAX_ANGLE_RATE below in
+  # normal operation.
+  ZONE_MAX_RATE_BP = (0., 6., 12., 18., 24., 30., 36.)
+  ZONE_MAX_RATE_DEG_20MS = (3.2, 3.2, 3.2, 2.56, 1.92, 1.28, 0.96)
+
   # Longitudinal (0x32E trial). Comfort envelope, well inside the safety cap
   # (byd.h enforces -3.5..+2.0 on 0x32E per BYD_ATTO3_COMMA3_PORT_PLAN.md).
   # Ported from shemps/byd-atto3-openpilot-port's CarrotPilot-derived revision

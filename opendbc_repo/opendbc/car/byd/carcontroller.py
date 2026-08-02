@@ -59,9 +59,21 @@ class CarController(CarControllerBase):
     accel = 0.
 
     if (CC.enabled or CC.latActive) and (self.frame % CarControllerParams.STEER_STEP == 0):
+      prev_angle = self.apply_angle_last
       self.apply_angle_last = apply_steer_angle_limits_vm(
         actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, CS.out.steeringAngleDeg,
         CC.latActive, CarControllerParams, self.VM)
+
+      # Backstop ceilings, defense-in-depth on top of apply_steer_angle_limits_vm's
+      # own 0.3g comfort limit above - see CarControllerParams.ZONE_MAX_ANGLE_*/
+      # ZONE_MAX_RATE_*. Neither should bind in normal operation.
+      zone_max_rate = np.interp(CS.out.vEgoRaw, CarControllerParams.ZONE_MAX_RATE_BP,
+                                CarControllerParams.ZONE_MAX_RATE_DEG_20MS)
+      self.apply_angle_last = float(np.clip(self.apply_angle_last, prev_angle - zone_max_rate, prev_angle + zone_max_rate))
+
+      zone_max_angle = np.interp(CS.out.vEgoRaw, CarControllerParams.ZONE_MAX_ANGLE_BP,
+                                 CarControllerParams.ZONE_MAX_ANGLE_DEG)
+      self.apply_angle_last = float(np.clip(self.apply_angle_last, -zone_max_angle, zone_max_angle))
 
       cntr = (self.frame // CarControllerParams.STEER_STEP) % 16
       can_sends.append(create_steering_control(self.packer, self.apply_angle_last, CC.latActive, cntr))

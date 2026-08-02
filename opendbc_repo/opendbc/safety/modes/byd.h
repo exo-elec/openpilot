@@ -46,6 +46,54 @@ static void byd_rx_hook(const CANPacket_t *msg) {
   }
 }
 
+// Backstop angle ceiling: the steering-wheel angle that implies ~1.3g
+// lateral accel at each speed (steer_ratio=19.8, wheelbase=2.72, rounded for
+// readability). Defense-in-depth, not the operating limit - the continuous
+// ISO vm check below (~63/16/7 deg at 12/24/36 m/s, 0.3g) is tighter at
+// every real speed, so this only matters if the vm check is ever bypassed
+// or wrong. 1.3g is above dry tire grip (~1.0g) by design margin but still
+// physically bounded, unlike a flat per-zone value that would exceed 2g+ at
+// the top of its band.
+static const float BYD_ATTO3_ZONE_ANGLE_BP_MS[7] = {0., 6., 12., 18., 24., 30., 36.};
+static const float BYD_ATTO3_ZONE_ANGLE_DEG[7] = {390., 360., 240., 120., 60., 45., 30.};
+
+// Backstop angle-rate ceiling, same speed grid as the angle ceiling above.
+// 0/6/12 m/s hold at the real evidenced EPS mechanical ceiling (~4 deg/20ms;
+// shemps/byd-atto3-openpilot-port's stock Veoneer measurement: "max=4.8,
+// 5 caused 29deg spikes/shaky wheel") since the jerk formula alone would
+// otherwise imply an unachievable rate near zero speed. 18/24/30/36 m/s
+// follow the same 1.3g-equivalent jerk taper as the angle ceiling, each
+// already below that mechanical ceiling so it's the binding term there.
+static const float BYD_ATTO3_ZONE_RATE_BP_MS[7] = {0., 6., 12., 18., 24., 30., 36.};
+static const float BYD_ATTO3_ZONE_RATE_DEG_20MS[7] = {4., 4., 4., 3.2, 2.4, 1.6, 1.2};
+
+static float byd_zone_interp(float speed_ms, const float *bp, const float *vals) {
+  float speed = speed_ms;
+  if (speed < bp[0]) {
+    speed = bp[0];
+  }
+  int i = 0;
+  while ((i < 5) && (speed > bp[i + 1])) {
+    i += 1;
+  }
+  const float x0 = bp[i];
+  const float x1 = bp[i + 1];
+  const float y0 = vals[i];
+  const float y1 = vals[i + 1];
+  const float frac = (x1 > x0) ? ((speed - x0) / (x1 - x0)) : 0.;
+  return y0 + (frac * (y1 - y0));
+}
+
+static int byd_zone_max_angle_can(float speed_ms) {
+  const float angle_deg = byd_zone_interp(speed_ms, BYD_ATTO3_ZONE_ANGLE_BP_MS, BYD_ATTO3_ZONE_ANGLE_DEG);
+  return (int)(angle_deg * 10.);
+}
+
+static float byd_zone_max_rate_degps(float speed_ms) {
+  const float rate_deg_20ms = byd_zone_interp(speed_ms, BYD_ATTO3_ZONE_RATE_BP_MS, BYD_ATTO3_ZONE_RATE_DEG_20MS);
+  return rate_deg_20ms * 50.;
+}
+
 static bool byd_tx_hook(const CANPacket_t *msg) {
   bool violation = false;
   // Controller comfort anchors are CRAWL (0-2), WALK (2-6), CITY (6-12),
@@ -76,6 +124,9 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
   };
 
   if (msg->addr == BYD_MPC_LATERAL_CMD) {
+    const float speed_ms = vehicle_speed.values[0] / VEHICLE_SPEED_FACTOR;
+    const int zone_max_angle_can = byd_zone_max_angle_can(speed_ms);
+    const int zone_max_rate_can = (int)(byd_zone_max_rate_degps(speed_ms) * 10.);
     const bool steer_req = GET_BIT(msg, 21U);
     const bool steer_req_active_low = GET_BIT(msg, 20U);
     const int desired_angle = to_signed((msg->data[4] << 8U) | msg->data[3], 16);
@@ -89,11 +140,13 @@ static bool byd_tx_hook(const CANPacket_t *msg) {
     violation |= (msg->data[5] != 0xFFU) || ((msg->data[6] & 0xFU) != 0xFU);
     violation |= max_limit_check(desired_angle, BYD_STEERING_LIMITS.max_angle,
                                  -BYD_STEERING_LIMITS.max_angle);
-    // Bound the low-speed physical command step to 4 deg/frame. At speed the
-    // continuous VM jerk check below becomes tighter than this ceiling.
+    violation |= max_limit_check(desired_angle, zone_max_angle_can, -zone_max_angle_can);
+    // Zone-based rate backstop (BYD_ATTO3_ZONE_RATE_*): defense-in-depth
+    // alongside the continuous VM jerk check below, same role as the angle
+    // ceiling above.
     if (controls_allowed && steer_req) {
-      violation |= max_limit_check(desired_angle, desired_angle_last + 40,
-                                   desired_angle_last - 40);
+      violation |= max_limit_check(desired_angle, desired_angle_last + zone_max_rate_can,
+                                   desired_angle_last - zone_max_rate_can);
     }
     violation |= steer_angle_cmd_checks_vm(desired_angle, steer_req, BYD_STEERING_LIMITS, BYD_STEERING_PARAMS);
     if (violation) {
