@@ -19,9 +19,9 @@ inside NGP10.
 Do not port RK3588/RKNN/NPU runners, PCIe/Hailo accelerators, or EOP HAL code
 into the comma 3 runtime. Implement capability-gated interfaces for GridD,
 SOC, single-camera MonoD, and side/left/right/rear overlays, but keep them disabled
-when their streams or compute backend are unavailable. Radar2D and radar3D are
-allowed through the normalized Tesla radar protocol; radar4D,
-CAN-FD, `steamd`, `sided`, `reard`, and EOP branding remain out of the comma 3
+when their streams or compute backend are unavailable. Optional perception-track
+consumers remain capability-gated; radar4D, CAN-FD, `steamd`, `sided`, `reard`,
+and EOP branding remain out of the comma 3
 runtime. Do not replace the Tesla-format gateway with a Python vehicle daemon.
 Defer YOLO/3D detection and SOC actuation until resource, geometry, and
 guardrail-safety evidence passes.

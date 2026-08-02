@@ -14,7 +14,8 @@ HW3-style vehicle. TC275 FreeRTOS BrownPanda is the gateway: it translates
 target-car CAN into the Tesla-format protocol and translates commands back.
 Target-car-specific CAN decoding, checksums, timing, and actuation safety belong
 in the gateway. NGP10 must not create a separate selfdrive brand fork for each
-car.
+car. The physical product boundary has exactly two comma-facing channels:
+Tesla party bus 0 and autopilot-party bus 2.
 
 ## Responsibilities
 
