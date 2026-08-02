@@ -120,15 +120,12 @@ procs = [
 
   # Control Loop
   # controlsd is load-bearing: it is the ONLY onroad publisher of carControl
-  # (vehicled actuates it) and controlsState (selfdrived/modeld/plannerd/UI
+  # (socketd actuates it) and controlsState (selfdrived/modeld/plannerd/UI
   # consume it).  selfdrived owns the state machine + events only.  Do not
   # remove controlsd until carControl/controlsState move elsewhere.
   PythonProcess("controlsd", "selfdrive.controls.controlsd", and_(ignition_on, not_joystick, not_remote_control, iscar)),
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", ignition_on),
-  # Vehicle Interface (Tesla-only, replaces opendbc-based card)
-  # Main implementation: selfdrive.vehicled.card (old-style naming)
-  # Wrapper: selfdrive.vehicled.vehicled (new-style naming)
-  PythonProcess("vehicled", "selfdrive.vehicled.vehicled", ignition_on),
+  # socketd owns SocketCAN transport and the OpenDBC vehicle adapter loop.
   PythonProcess("radar3d", "selfdrive.controls.radar3d", ignition_on),
   # BGT60TR13C 4D short-range radar (EOP 01M) — gated on hardware presence, unlike
   # radar3d (car OEM CAN radar, always present when the car has one).

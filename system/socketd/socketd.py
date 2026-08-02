@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""CAN bridge daemon for SocketCAN-compatible hardware.
+"""SocketCAN and OpenDBC vehicle daemon for BrownPanda hardware.
 
-PLAIN CAN BRIDGE - NO SAFETY CHECKS
-Safety is handled by vehicled (Layer 1) and BrownPanda (Layer 2).
+Socketd owns the SocketCAN bridge and vehicle adapter loop. BrownPanda remains
+the final hardware safety layer.
 
-This daemon only proxies CAN <-> messaging (can/sendcan).
+The bridge proxies CAN <-> messaging (can/sendcan); the co-located adapter
+publishes carState/carOutput and consumes carControl.
 Works with native CAN (RK3588 SocketCAN) and other SocketCAN interfaces.
 
 SAFETY ARCHITECTURE:
@@ -317,12 +318,7 @@ class canbridge:
 
 
 class SocketD:
-  """Main SocketCAN daemon - PLAIN BRIDGE, NO SAFETY.
-  
-  Safety is handled by:
-    - vehicled: Layer 1 software safety (TIGHTER limits)
-    - BrownPanda: Layer 2 hardware safety
-  """
+  """Main SocketCAN + vehicle adapter daemon."""
 
   def __init__(self) -> None:
     # CAN bridge runs on A76 big cores
@@ -332,10 +328,11 @@ class SocketD:
     self.devices: list[candevice] = []
     self.running = False
     self.message_bridge: canbridge | None = None
+    self.vehicle = None
     self.disable_bridge_tx = os.getenv("SOCKETCAN_DISABLE_BRIDGE_TX", "0").lower() in ("1", "true", "on")
 
   def initialize(self) -> None:
-    cloudlog.info("Initializing CAN bridge daemon (PLAIN BRIDGE)")
+    cloudlog.info("Initializing socketd CAN bridge and OpenDBC vehicle adapter")
 
     interfaces = HARDWARE.get_can_interfaces()
     if not interfaces:
@@ -364,7 +361,7 @@ class SocketD:
     self.message_bridge = canbridge(self.devices, enable_send=enable_bridge_send)
     
     if enable_bridge_send:
-      cloudlog.info("CAN bridge initialized (PLAIN BRIDGE - safety in vehicled + BrownPanda)")
+      cloudlog.info("CAN bridge initialized (vehicle adapter + BrownPanda safety)")
     else:
       cloudlog.info("CAN bridge initialized (TX forwarding disabled)")
 
@@ -373,15 +370,15 @@ class SocketD:
       raise RuntimeError("No CAN devices initialized - call initialize() first")
 
     self.running = True
-    cloudlog.info(f"Starting socketd with {len(self.devices)} interfaces (PLAIN BRIDGE)")
-      cloudlog.info("Safety: vehicled (Layer 1) + BrownPanda (Layer 2)")
+    cloudlog.info(f"Starting socketd with {len(self.devices)} interfaces")
 
     if self.message_bridge:
       self.message_bridge.start()
 
     try:
-      while self.running:
-        time.sleep(0.1)
+      from openpilot.system.socketd.vehicle import Car
+      self.vehicle = Car()
+      self.vehicle.card_thread()
     except KeyboardInterrupt:
       cloudlog.info("Shutting down SocketCAN daemon")
       self.stop()
