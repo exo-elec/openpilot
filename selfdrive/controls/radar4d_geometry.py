@@ -14,9 +14,24 @@ Coordinate frames:
   - Radar / vehicle / world: X=forward, Y=left, Z=up (ISO 8855)
   - Camera (OpenCV): X=right, Y=down, Z=forward
 
-The radar frame is identical to the world frame, so radar (range, azimuth,
-elevation) converts directly to world (x, y, z).  Camera projection then
-uses the existing CameraArrayGeometry.
+The radar frame is identical to the world frame modulo this module's mount
+rotation, so radar (range, azimuth, elevation) converts directly to world
+(x, y, z).  Camera projection then uses the existing CameraArrayGeometry.
+
+Extrinsics split, same as camera calibration (see calibration_storage.py's
+factory-vs-runtime split on the VisionPilot side):
+  - x/y/z/roll: FACTORY bracket geometry.  Roll is never estimated on-road —
+    OnRoadCalibrator/calibrationd assume a level mount, so there is no roll
+    signal to share.
+  - yaw/pitch: this module's fields are the FACTORY BORESIGHT RESIDUAL only
+    (radar-to-camera-array alignment tolerance at assembly — nominally 0).
+    The much larger on-road VEHICLE TILT (windshield angle, mount drift) is
+    already applied upstream, before values reach this module: radar4d.py's
+    `_apply_calibration()` rotates every detection's az/el by
+    `liveCalibration.rpyCalib` (the same signal camera images are corrected
+    by) before gridd.py ever calls into RadarStereoGeometry.  Composing that
+    rotation again here would double-apply it — see radar4d.py's docstring
+    and docs/eop/bgt60_radar.md#extrinsic-calibration for the full design.
 """
 
 from __future__ import annotations
@@ -28,6 +43,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from openpilot.common.transformations.orientation import rot_from_euler
 from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 from openpilot.system.hardware.hw import Paths
 
@@ -91,6 +107,25 @@ class RadarMounting:
 RADAR_MOUNT = RadarMounting(x_m=0.0, y_m=0.0, z_m=0.0)
 
 
+def _world_from_radar_rotation(mount: RadarMounting) -> np.ndarray:
+    """Rotation matrix mapping a radar-frame vector into the world frame.
+
+    Built from rot_from_euler() (same primitive radar4d.py/calibrationd use
+    elsewhere) with no transpose: mount's (roll, pitch, yaw) directly
+    describes the radar frame's orientation relative to the world frame,
+    matching this function's pre-existing yaw-only formula (verified to
+    reduce to the identical result at pitch=roll=0 — do not add a `.T` here
+    without re-checking that against the yaw-only case, since the transposed
+    form silently flips rotation direction).  mount's angles are the small
+    factory boresight residual (nominally 0,0,0), NOT the on-road vehicle
+    tilt — see this module's docstring.
+    """
+    rpy = np.array([math.radians(mount.roll_deg),
+                     math.radians(mount.pitch_deg),
+                     math.radians(mount.yaw_deg)])
+    return rot_from_euler(rpy)
+
+
 def radar_polar_to_world(range_m: float, azimuth_deg: float, elevation_deg: float,
                          mount: RadarMounting = RADAR_MOUNT) -> np.ndarray:
     """Convert radar polar measurement to world coordinates.
@@ -109,18 +144,14 @@ def radar_polar_to_world(range_m: float, azimuth_deg: float, elevation_deg: floa
     cos_el = math.cos(el)
 
     # Radar frame: x=forward, y=left, z=up
-    x_r = range_m * cos_el * math.cos(az)
-    y_r = range_m * cos_el * math.sin(az)
-    z_r = range_m * math.sin(el)
+    v_r = np.array([
+        range_m * cos_el * math.cos(az),
+        range_m * cos_el * math.sin(az),
+        range_m * math.sin(el),
+    ])
 
-    # Apply mounting rotation (yaw only for now; pitch/roll are small)
-    yaw = math.radians(mount.yaw_deg)
-    cy, sy = math.cos(yaw), math.sin(yaw)
-    x_w = cy * x_r - sy * y_r + mount.x_m
-    y_w = sy * x_r + cy * y_r + mount.y_m
-    z_w = z_r + mount.z_m
-
-    return np.array([x_w, y_w, z_w])
+    v_w = _world_from_radar_rotation(mount) @ v_r
+    return v_w + mount.position
 
 
 def world_to_radar_polar(point_world: np.ndarray,
@@ -131,11 +162,8 @@ def world_to_radar_polar(point_world: np.ndarray,
         (range_m, azimuth_deg, elevation_deg)
     """
     rel = point_world - mount.position
-    yaw = math.radians(mount.yaw_deg)
-    cy, sy = math.cos(-yaw), math.sin(-yaw)
-    x_r = cy * rel[0] - sy * rel[1]
-    y_r = sy * rel[0] + cy * rel[1]
-    z_r = rel[2]
+    v_r = _world_from_radar_rotation(mount).T @ rel
+    x_r, y_r, z_r = v_r
 
     r = math.hypot(x_r, math.hypot(y_r, z_r))
     az = math.degrees(math.atan2(y_r, x_r))

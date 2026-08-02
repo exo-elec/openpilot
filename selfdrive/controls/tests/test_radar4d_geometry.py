@@ -39,6 +39,34 @@ class TestRadarPolarConversions:
         P = radar_polar_to_world(10.0, 0.0, 0.0, mount)
         assert np.allclose(P, [10.5, 0.1, 0.2])
 
+    def test_yaw_only_matches_pre_full_rpy_formula(self):
+        """Regression anchor: full-RPY rotation must not change the
+        pre-existing yaw-only behavior (pitch=roll=0) that was already
+        relied on before pitch/roll were wired in."""
+        mount = RadarMounting(yaw_deg=30.0)
+        P = radar_polar_to_world(10.0, 0.0, 0.0, mount)
+        yaw = math.radians(30.0)
+        expected = np.array([10.0 * math.cos(yaw), 10.0 * math.sin(yaw), 0.0])
+        assert np.allclose(P, expected, atol=1e-9)
+
+    def test_pitch_now_applied_not_ignored(self):
+        """Before the full-RPY fix, mount pitch/roll were silently dropped —
+        a boresight-mounted radar with any pitch residual would have every
+        detection's elevation reported wrong."""
+        mount = RadarMounting(pitch_deg=10.0)
+        P = radar_polar_to_world(10.0, 0.0, 0.0, mount)
+        assert abs(P[2]) > 1.0
+
+    def test_round_trip_with_full_rpy_mount(self):
+        mount = RadarMounting(x_m=0.1, y_m=-0.05, z_m=0.3,
+                              yaw_deg=5.0, pitch_deg=3.0, roll_deg=-2.0)
+        r, az, el = 8.0, 12.0, 4.0
+        P = radar_polar_to_world(r, az, el, mount)
+        r2, az2, el2 = world_to_radar_polar(P, mount)
+        assert abs(r - r2) < 1e-6
+        assert abs(az - az2) < 1e-6
+        assert abs(el - el2) < 1e-6
+
 
 class TestRadarMountingStorage:
     def test_save_load_roundtrip(self, tmp_path):

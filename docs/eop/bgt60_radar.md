@@ -156,6 +156,44 @@ The wizard guides target placement at known (x, y, z) positions, captures
 strongest detections, and builds a 4-band × 8-bin correction grid.  Automotive
 range bands (3/6/9/12 m) replace DISP_RADAR4D's indoor 1.5/2.5/3.5 m bands.
 
+## Extrinsic calibration
+
+The radar sits mid-bracket on the same tiltable mount as the stereo camera
+pair, and the device (bracket + cameras + radar) can be installed at a range
+of windshield/mount angles and can drift on the road. Extrinsics split into
+two, independently-sourced pieces — same factory-vs-runtime pattern
+`calibration_storage.py` uses on the VisionPilot side:
+
+| Component | Owner | Where it's applied |
+|---|---|---|
+| **On-road vehicle tilt** (pitch, yaw — the dominant term) | `calibrationd.py`'s `liveCalibration.rpyCalib`, the same signal that de-tilts camera images | `radar4d.py`: `_update_calibration()` caches `calib_from_device = rot_from_euler(rpyCalib).T` from `liveCalibration`; `_apply_calibration()` rotates every detection's (azimuth, elevation) by it before publishing on the `radar4d` cereal socket |
+| **Factory boresight residual** (position always; yaw/pitch nominally 0, roll never estimated) | `RadarMounting` (`radar4d_geometry.py`), loaded from `radar_extrinsics.json` | `RadarStereoGeometry` in `gridd.py`, for camera-FOV gating/visualization only — operates on az/el **already** rotated by `_apply_calibration()` above |
+
+**Why two separate mechanisms and not one composed rotation:** `radar4d.py`
+publishes az/el already in the calibrated (de-tilted) frame. `gridd.py`
+(`_radar4d_in_camera_fov`) consumes that already-corrected az/el through
+`RadarStereoGeometry.radar_to_image()` → `radar_polar_to_world()`. If
+`RadarMounting`'s rotation also carried the vehicle tilt, it would be applied
+**twice**. So `RadarMounting`'s (yaw, pitch) must stay at the small,
+near-zero factory value (radar physically centered and boresight-aligned in
+the bracket) — it is not a place to route on-road calibration output.
+`radar_polar_to_world`/`world_to_radar_polar` do apply the full mount
+rotation now (roll included, previously yaw-only — fixed because a nonzero
+factory-mount file would otherwise have silently ignored pitch/roll), but in
+practice this only matters for the small assembly-tolerance residual.
+
+Roll is never estimated on either path — `calibrationd.py` assumes a level
+mount by convention (roll is not part of `PITCH_LIMITS`/`YAW_LIMITS`
+sanity-clipping), matching upstream openpilot's own comment ("we assume it's
+zero"). `RadarMounting.roll_deg` is factory-only.
+
+This is the openpilot side of the same design VisionPilot uses on
+`EVP09` (`docs/bgt60_radar.md#extrinsic-calibration`); VisionPilot shares
+the camera's on-road tilt via a ROS 2 topic
+(`/calibration/camera_calibration/camera_rpy`) and re-broadcasts a `tf2`
+static transform instead of rotating each point explicitly, since its
+downstream consumers already resolve `radar4d_link` through the TF tree.
+
 ## Changed files (this port)
 
 | File | Change |
