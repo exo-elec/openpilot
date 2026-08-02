@@ -19,8 +19,8 @@
 | Optional data | Route curvature | `mapd/ngp_curvature.py` | Pure helper | None |
 | Optional data | Adaptive telemetry | `adaptd/ngp_profile.py` | Proposal | None |
 | Diagnostics | Trip statistics | `tripd/ngp_trip.py` | Shadow/in-memory | None |
-| Platform | Vehicle parsing/control | Upstream OpenDBC Tesla | External | Upstream/Panda |
-| Platform | Target-car translation | TC275 gateway | External | TC275 |
+| Platform | Vehicle parsing/control | NGP OpenDBC Tesla + BrownPanda radar interface | External | Upstream/Panda/BrownPanda |
+| Platform | Target-car translation | BrownPanda gateway | External | BrownPanda |
 | Excluded | RKNN/RGA/EOP HAL/stereo/radar4D | None | Excluded | N/A |
 
 Runtime-visible shadow results are composed by `ngp_shadowd` and published as

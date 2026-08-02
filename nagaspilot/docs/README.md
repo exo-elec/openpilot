@@ -6,10 +6,11 @@
 2. `NGP10_MINIMAL_EOP_PARITY.md` — what “surpass EDP10” means.
 3. `NAMING_CONVENTIONS.md` — cross-branch implementation-prefix rules.
 4. `NGP10_FEATURE_MATRIX.md` — one-page module/status/ownership table.
-5. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
-6. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
-7. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
-8. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
+5. `BROWNPANDA_RADAR.md` — NGP-only radar allocation and safety contract.
+6. `NGP10_COMMA3_COMPLETE_PORT_PLAN.md` — complete port and promotion gates.
+7. `NGP10_EOP_TRANSITION_PLAN.md` — current implementation status.
+8. `NGP10_COMMA3_SECOND_PASS_AUDIT.md` — additional EDP10/EOP10 candidates.
+9. `NGP10_EOP10_COMMA3_IMPLEMENTATION_PLAN.md` — original detailed source
    audit; retained for history and rationale.
 
 ## Source-code map
@@ -17,6 +18,7 @@
 | Area | Location |
 | --- | --- |
 | Composition and manifest | `selfdrive/controls/lib/ngp_suite.py` |
+| BrownPanda radar adapter | `opendbc/car/tesla/radar_interface.py` |
 | Control/safety proposals | `selfdrive/controls/lib/ngp_*.py` |
 | Runtime diagnostics | `selfdrive/ngp_shadowd.py` |
 | Capability, BEV, overlays | `selfdrive/gridd/` |
@@ -31,7 +33,7 @@
 
 - **Shadow**: runs or can run, publishes diagnostics, no command consumer.
 - **Proposal**: pure result available, not connected to planning or control.
-- **External**: owned by TC275, upstream OpenDBC, or Panda.
+- **External**: owned by BrownPanda, upstream OpenDBC, or Panda.
 - **Excluded**: intentionally incompatible with comma 3 or the minimized scope.
 
 No feature in this directory has control authority until the documented replay,

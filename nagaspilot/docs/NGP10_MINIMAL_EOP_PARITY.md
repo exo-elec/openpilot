@@ -6,10 +6,11 @@ NGP10 is a minimized EOP10 application layer on official openpilot v0.10.0.
 It must exceed the usable application features in EDP10 without copying
 EOP10's RK3588 platform stack or replacing upstream OpenDBC.
 
-TC275 owns target-car translation and presents Tesla Model 3 HW3-style CAN.
-NGP10 continues to use upstream `selfdrive/car`, OpenDBC Tesla parsing and
-Panda safety. EOP10 `vehicled`, `socketd`, duplicate Tesla parser/controller,
-and Python safety layers are explicitly excluded.
+BrownPanda owns target-car translation and presents Tesla Model 3 HW3-style CAN.
+NGP10 continues to use upstream OpenDBC Tesla vehicle parsing/control and Panda
+safety. A radar-capable BrownPanda exposes converted radar on party bus 0 through
+NGP10's narrow OpenDBC Tesla `RadarInterface`. EOP10 `vehicled`, `socketd`,
+duplicate Tesla vehicle parser/controller, and Python safety layers are explicitly excluded.
 
 ## EDP10 parity and supersession
 
@@ -22,7 +23,7 @@ and Python safety layers are explicitly excluded.
 | Road-edge lane-change block | v0.10.0 road-edge confidence gate | Implemented |
 | EDP/DragonPilot VTSC direction | VTSC p97 model estimator | Non-controlling proposal |
 | CITY/HIGHWAY policy document | Canonical 12/24/36 m/s zone module | Implemented |
-| BYD parser/controller/safety | TC275 BYD-to-Tesla translation + upstream Tesla OpenDBC | External gateway responsibility |
+| BYD parser/controller/safety | BrownPanda translation + upstream Tesla OpenDBC; NGP radar adapter | External gateway responsibility |
 | Stock/factory AEB and longitudinal | Preserved unchanged | Authoritative |
 
 ## Additional minimized EOP10 features

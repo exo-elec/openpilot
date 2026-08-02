@@ -10,8 +10,8 @@ wide-road cameras, with the driver camera optional for monitoring.
 ## Vehicle abstraction
 
 The test car or any target vehicle is presented to selfdrive as a Tesla Model 3
-HW3-style vehicle. TC275 FreeRTOS BrownPanda is the gateway: it translates
-target-car CAN into the Tesla-format protocol and translates commands back.
+HW3-style vehicle. FreeRTOS BrownPanda is the gateway: it translates target-car
+CAN into the Tesla-format protocol and translates commands back.
 Target-car-specific CAN decoding, checksums, timing, and actuation safety belong
 in the gateway. NGP10 must not create a separate selfdrive brand fork for each
 car. The physical product boundary has exactly two comma-facing channels:
@@ -25,9 +25,12 @@ Tesla party bus 0 and autopilot-party bus 2.
   need extra streams or compute are capability-gated rather than removed.
 - BrownPanda proves Tesla-format wire compatibility, gateway safety, and target
   car translation.
+- A radar-capable BrownPanda converts BYD radar to Tesla Continental frames on
+  party bus 0; NGP10's dedicated adapter provides this privilege without
+  changing sunnypilot or dragonpilot.
 - NGP10 retains upstream `selfdrive/car`, OpenDBC Tesla parsing, and Panda
-  safety. EOP10 `vehicled`/`socketd` and duplicate Tesla vehicle layers are not
-  ported.
+  safety, adding only the BrownPanda radar interface in its OpenDBC fork. EOP10
+  `vehicled`/`socketd` and duplicate Tesla vehicle layers are not ported.
 - EOP10 proves HAL, packaging, camera transport, and hardware-in-the-loop
   behavior using only NGP10 commits that already passed application gates.
 - EOP10 infrastructure changes (vehicled/socketd, cereal topics, v4l2d,
