@@ -9,7 +9,7 @@ import threading
 import time
 from collections.abc import Callable
 
-from openpilot.selfdrive.vehicled.safety.safety import VehicleSafetyLayer, SafetyLimits, SafetyViolation
+from openpilot.system.socketd.vehicle.safety.safety import VehicleSafetyLayer, SafetyLimits, SafetyViolation
 
 
 class SafetyManager:

@@ -45,7 +45,7 @@ CRITICAL_DAEMONS = [
     "selfdrive.recordd.recordd",
     "selfdrive.tripd.tripd",
     # Vehicle interface & adaptive driving
-    "selfdrive.vehicled.vehicled",
+    "system.socketd.vehicle",
     "selfdrive.adaptd.adaptd",
     # Infrastructure
     "system.inferenced.inferenced",

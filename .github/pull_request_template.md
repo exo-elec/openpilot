@@ -44,11 +44,11 @@ Explain how you tested this bug fix.
 
 **Checklist**
 
-EOP uses a Tesla-only vehicle interface in `selfdrive/vehicled/`.
+EOP uses a Tesla-only vehicle interface in `system/socketd/vehicle/`.
 Upstream multi-brand car porting (`selfdrive/car/`) does not apply.
 
-- [ ] change is isolated to `selfdrive/vehicled/{car,safety,tesla}/`
-- [ ] test route added to `selfdrive/vehicled/car/tests/routes.py`
+- [ ] change is isolated to `system/socketd/vehicle/{car,safety,tesla}/`
+- [ ] test route added to `system/socketd/vehicle/car/tests/routes.py`
 - [ ] route with openpilot:
 - [ ] route with stock system:
 

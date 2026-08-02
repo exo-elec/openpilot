@@ -25,7 +25,7 @@ from collections.abc import Callable
 from time import monotonic
 
 from cereal import car
-from openpilot.selfdrive.vehicled.tesla.values import CANBUS
+from openpilot.system.socketd.vehicle.tesla.values import CANBUS
 
 # ID constants
 _STATUS_ID  = 0x401

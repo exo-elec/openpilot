@@ -15,7 +15,7 @@ from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.gps import get_gps_location_service
 
-from openpilot.selfdrive.vehicled.car.events import VehicleEvents as CarSpecificEvents
+from openpilot.system.socketd.vehicle.car.events import VehicleEvents as CarSpecificEvents
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 from openpilot.selfdrive.selfdrived.events import Events, ET, AlertStatus, AudibleAlert
 from openpilot.selfdrive.selfdrived.helpers import ExcessiveActuationCheck

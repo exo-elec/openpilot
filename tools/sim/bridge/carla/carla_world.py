@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 from openpilot.common.params import Params
-from openpilot.selfdrive.vehicled.tesla.values import VEHICLE
+from openpilot.system.socketd.vehicle.tesla.values import VEHICLE
 from openpilot.tools.sim.lib.common import SimulatorState, vec3
 from openpilot.tools.sim.lib.camera_sim import W, H, STEREO_W, STEREO_H
 from openpilot.tools.sim.bridge.common import World

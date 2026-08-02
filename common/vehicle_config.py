@@ -1,4 +1,4 @@
-"""Shared vehicle configuration for simulation and vehicled.
+"""Shared vehicle configuration for simulation and the socketd vehicle adapter.
 
 Defines baseline parameters for common vehicle categories.
 Select via EOPVehicleType param or --vehicle-type CLI argument.

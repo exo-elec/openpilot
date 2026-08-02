@@ -2,28 +2,16 @@
 """Tesla vehicle constants and configuration."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum, IntFlag
+from dataclasses import dataclass
 
-from cereal import car
+# CANBUS and the accel/jerk limits are canonical in the shared OpenDBC fork
+# (pinned submodule, also used by dev/NGP10) — re-exported here so this
+# module stays the single import path for socketd/vehicle consumers without
+# keeping a second copy of numbers that can drift out of sync (see
+# MIGRATION_SUMMARY.md for the accel-limit bug this caused previously).
+from opendbc.car.tesla.values import CANBUS, CarControllerParams as _OpenDBCCarControllerParams
 
-# CAN Bus definitions
-class CANBUS:
-  """Tesla CAN bus mapping."""
-  party = 0           # Primary vehicle bus
-  vehicle = 1         # Vehicle bus
-  autopilot_party = 2  # Autopilot bus
-
-
-# Gear mapping from Tesla DI_gear to openpilot GearShifter
-GEAR_MAP = {
-  "DI_GEAR_INVALID": car.CarState.GearShifter.unknown,
-  "DI_GEAR_P": car.CarState.GearShifter.park,
-  "DI_GEAR_R": car.CarState.GearShifter.reverse,
-  "DI_GEAR_N": car.CarState.GearShifter.neutral,
-  "DI_GEAR_D": car.CarState.GearShifter.drive,
-  "DI_GEAR_SNA": car.CarState.GearShifter.unknown,
-}
+__all__ = ["CANBUS", "VEHICLE", "PlatformConfig", "CarControllerParams"]
 
 
 # Tesla platform configurations
@@ -163,52 +151,14 @@ class CarControllerParams:
   MAX_LATERAL_ACCEL = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)  # ~3.6 m/s^2
   MAX_LATERAL_JERK = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)   # ~3.6 m/s^3
   
-  # Longitudinal
-  ACCEL_MAX = 2.0             # m/s^2
-  ACCEL_MIN = -3.48           # m/s^2
-  JERK_LIMIT_MAX = 4.9        # m/s^3, ACC faults at 5.0
-  JERK_LIMIT_MIN = -4.9       # m/s^3, ACC faults at 5.0
-  
+  # Longitudinal — sourced from the shared OpenDBC fork's tesla/values.py,
+  # the canonical numbers for Tesla's DAS_control accel encoding.
+  ACCEL_MAX = _OpenDBCCarControllerParams.ACCEL_MAX          # m/s^2
+  ACCEL_MIN = _OpenDBCCarControllerParams.ACCEL_MIN           # m/s^2
+  JERK_LIMIT_MAX = _OpenDBCCarControllerParams.JERK_LIMIT_MAX  # m/s^3, ACC faults at 5.0
+  JERK_LIMIT_MIN = _OpenDBCCarControllerParams.JERK_LIMIT_MIN  # m/s^3, ACC faults at 5.0
+
   # Speed thresholds
   V_EGO_STOPPING = 0.1        # m/s
   V_EGO_STARTING = 0.1        # m/s
   STOPPING_DECEL_RATE = 0.3   # m/s^3
-
-
-class TeslaSafetyFlags(IntFlag):
-  """Safety flags for Tesla."""
-  LONG_CONTROL = 1
-
-
-class TeslaFlags(IntFlag):
-  """Feature flags for Tesla."""
-  LONG_CONTROL = 1
-
-
-# DBC file mapping
-DBC: dict[str, dict[int, str]] = {
-  "SEDAN_D": {CANBUS.party: "tesla_model3_party"},
-  "SUV_D": {CANBUS.party: "tesla_model3_party"},
-  "SUV_E": {CANBUS.party: "tesla_model3_party"},
-  "SUV_C": {CANBUS.party: "tesla_model3_party"},
-  "SUV_B": {CANBUS.party: "tesla_model3_party"},
-  "SEDAN_B": {CANBUS.party: "tesla_model3_party"},
-  "SEDAN_C": {CANBUS.party: "tesla_model3_party"},
-  "HATCH_A": {CANBUS.party: "tesla_model3_party"},
-  "HATCH_B": {CANBUS.party: "tesla_model3_party"},
-  "MPV": {CANBUS.party: "tesla_model3_party"},
-}
-
-# Steering threshold for detecting driver override
-STEER_THRESHOLD = 1.0
-
-# Firmware query configuration (simplified)
-FW_QUERY_CONFIG = {
-  "requests": [
-    {
-      "tx": [b"\x02\x3e\x00\x00\x00\x00\x00\x00", b"\x02\x1a\x9f\x00\x00\x00\x00\x00"],
-      "rx": [b"\x02\x7e\x00\x00\x00\x00\x00\x00", b"\x06\x5a\x9f\x00\x00\x00\x00"],
-      "bus": 0,
-    }
-  ]
-}

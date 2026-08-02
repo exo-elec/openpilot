@@ -11,7 +11,7 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.selfdrive.vehicled.car.vehicle_model import VehicleModel
+from openpilot.system.socketd.vehicle.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID

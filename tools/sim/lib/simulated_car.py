@@ -10,7 +10,7 @@ import cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.system.socketd import can_list_to_can_capnp
 from openpilot.tools.sim.lib.common import SimulatorState
-from openpilot.selfdrive.vehicled.tesla.values import CANBUS
+from openpilot.system.socketd.vehicle.tesla.values import CANBUS
 
 
 class SimulatedCar:

@@ -5,11 +5,11 @@ import numpy as np
 
 import cereal.messaging as messaging
 from cereal import log
-from openpilot.selfdrive.vehicled.car.vehicle_model import VehicleModel
+from openpilot.system.socketd.vehicle.car.vehicle_model import VehicleModel
 
 # Upstream used opendbc.car.interfaces.ACCEL_MIN/ACCEL_MAX (generic per-car limits).
 # EOP uses Tesla CarControllerParams directly (single-vehicle fork; opendbc removed).
-from openpilot.selfdrive.vehicled.tesla.values import CarControllerParams
+from openpilot.system.socketd.vehicle.tesla.values import CarControllerParams
 ACCEL_MIN = CarControllerParams.ACCEL_MIN
 ACCEL_MAX = CarControllerParams.ACCEL_MAX
 from openpilot.common.constants import CV
@@ -22,7 +22,7 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import (
   get_T_FOLLOW, get_jerk_factor, STOP_DISTANCE, COMFORT_BRAKE,
 )
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
-from openpilot.selfdrive.vehicled.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
+from openpilot.system.socketd.vehicle.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS, URBAN_SPEED_MPS,
                                     longitudinal_accel_max, longitudinal_jerk_up)

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Car Interface Daemon (card.py) - Tesla-format protocol.
 
-This is a port of selfdrive/car/card.py with minimal modifications.
-Replaces opendbc dependencies with local vehicled modules.
+This is the socketd-owned Tesla/BrownPanda vehicle adapter.
 """
 import os
 import time
@@ -18,15 +17,15 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 
-# Replaced opendbc imports with local vehicled modules
-from openpilot.selfdrive.vehicled.tesla.values import VEHICLE, CarControllerParams
-from openpilot.selfdrive.vehicled.car.carstate import CarState
-from openpilot.selfdrive.vehicled.car.carcontroller import CarController
-from openpilot.selfdrive.vehicled.safety.safety_manager import SafetyManager, SafetyLimits
-from openpilot.selfdrive.vehicled.car.cruise import VCruiseHelper
-from openpilot.selfdrive.vehicled.car.events import VehicleEvents
+# Vehicle-specific adapter modules remain under this socketd package.
+from openpilot.system.socketd.vehicle.tesla.values import VEHICLE, CarControllerParams
+from openpilot.system.socketd.vehicle.car.carstate import CarState
+from openpilot.system.socketd.vehicle.car.carcontroller import CarController
+from openpilot.system.socketd.vehicle.safety.safety_manager import SafetyManager, SafetyLimits
+from openpilot.system.socketd.vehicle.car.cruise import VCruiseHelper
+from openpilot.system.socketd.vehicle.car.events import VehicleEvents
 from openpilot.system.socketd import can_capnp_to_list, can_list_to_can_capnp
-from openpilot.selfdrive.vehicled.tesla.continental_interface import ContinentalRadarInterface
+from opendbc.car.tesla.radar_interface import RadarInterface
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
@@ -68,8 +67,8 @@ class Car:
     # Initialize car state and controller
     self.CS = CS or CarState(self.CP)
     self.CC = CC or CarController(self.CP)
-    self.can_parsers = self.CS.get_can_parsers(self.CP)
-    self.radar = ContinentalRadarInterface(self.CP)
+    self.can_parsers = self.CS.can_parsers
+    self.radar = RadarInterface(self.CP)
 
     # Layer 1 Safety (replaces panda safety)
     safety_limits = SafetyLimits()
@@ -100,7 +99,10 @@ class Car:
     vehicle_cfg = VehicleType.get(vehicle_type_name)
     platform = VEHICLE.from_vehicle_config(vehicle_cfg)
 
-    CP.carFingerprint = vehicle_type_name.upper()
+    # OpenDBC owns Tesla DBC/parser/controller selection. BrownPanda adapts
+    # non-Tesla vehicle geometry at the gateway, so the comma-facing protocol
+    # remains the proven Tesla Model 3 party-bus contract.
+    CP.carFingerprint = "TESLA_MODEL_3"
     CP.brand = "tesla"
     CP.carName = "tesla"
 
@@ -165,11 +167,8 @@ class Car:
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = can_capnp_to_list(can_strs)
 
-    # Update the OpenDBC-backed (or compatibility) parser before translating
-    # values into EOP's BrownPanda carState schema.
-    for parser in self.can_parsers.values():
-      parser.update(can_list)
-    CS = self.CS.update(self.can_parsers)
+    # OpenDBC owns CAN parsing and Tesla CarState translation.
+    CS = self.CS.update(can_list)
 
     # In simulation, Tesla CAN is not present. Override with valid defaults so
     # selfdrived doesn't generate wrongGear/seatbelt/wrongCarMode events.
@@ -321,7 +320,7 @@ class Car:
 
 
 def main():
-  set_daemon_affinity("vehicled")
+  set_daemon_affinity("socketd")
   config_realtime_process(DT_CTRL, Priority.CTRL_HIGH)
   car = Car()
   car.card_thread()

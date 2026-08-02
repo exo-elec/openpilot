@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from cereal import car
-from openpilot.selfdrive.vehicled.tesla.continental_interface import ContinentalRadarInterface
-from openpilot.selfdrive.vehicled.tesla.values import CANBUS
+from openpilot.system.socketd.vehicle.tesla.continental_interface import ContinentalRadarInterface
+from openpilot.system.socketd.vehicle.tesla.values import CANBUS
 
 
 def _set_le(data: bytearray, start_bit: int, size: int, raw: int) -> None:

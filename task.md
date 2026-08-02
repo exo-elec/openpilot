@@ -95,3 +95,57 @@ Completed:
   caused by these changes): `test_daemon_imports[monod]` (needs `hal` package),
   `test_depth_validation` (needs `/data/calibration/stereo_calibration.npz`),
   `test_nslc::test_get_nslc_speed_helper` (returns None on dev PC).
+
+## Follow-up session (vehicled removal + OpenDBC de-duplication, 2026-08-02)
+
+Completed:
+
+- [x] **Finished `selfdrive/vehicled/` → `system/socketd/vehicle/` removal**:
+  the in-progress rename (staged in the index from a prior session) is now
+  fully coherent. `system/socketd/vehicle.py` (the old single-file shim) and
+  `system/socketd/vehicle/vehicled.py` (the standalone process wrapper) are
+  both deleted — `socketd` runs `vehicle.Car` as a thread inside its own
+  process (`SocketD.start()` in `system/socketd/socketd.py`), there is no
+  separate `vehicled` process entry in `process_config.py`.
+- [x] **Fixed a real test bug**: `selfdrive/test/test_onroad.py` still
+  budgeted CPU for `system.socketd.vehicle.vehicled` — a module whose file
+  had already been deleted, so it could never match a real process and would
+  silently report "NO METRICS FOUND". Renamed the key to
+  `system.socketd.socketd`, the actual running process.
+- [x] Removed the dead `"vehicled": CORE_BIG` entry from
+  `common/core_config.py`'s CPU-affinity table (no such process exists;
+  `socketd` already has its own mapping).
+- [x] Rewrote `system/socketd/vehicle/ARCHITECTURE.md` and
+  `MIGRATION_SUMMARY.md` — a prior mechanical find/replace had corrupted them
+  into nonsense (`selfdrive/socketd vehicle adapter/`, etc.). Both now
+  accurately describe the single-process `socketd` architecture.
+- [x] Updated contributor-facing docs that still pointed at the deleted
+  `selfdrive/vehicled/` path: `.github/pull_request_template.md`,
+  `tools/car_porting/README.md`, `docs/CARS.md`,
+  `docs/car-porting/what-is-a-car-port.md`,
+  `docs/eop/01_Core/NAMING_CONVENTIONS.md`,
+  `docs/eop/01_Core/VEHICLE_STACK_COMPATIBILITY.md`.
+- [x] **De-duplicated `system/socketd/vehicle/tesla/values.py` against the
+  pinned OpenDBC fork** (shared commit with `dev/NGP10`): `CANBUS` and
+  `CarControllerParams.ACCEL_MIN/ACCEL_MAX/JERK_LIMIT_MIN/JERK_LIMIT_MAX` are
+  now re-exported from `opendbc.car.tesla.values` instead of being a second
+  hardcoded copy — the exact kind of duplication that caused the accel-limit
+  bug in the "Safety reconciliation" entry above. Also removed `GEAR_MAP`,
+  `TeslaSafetyFlags`, `TeslaFlags`, `STEER_THRESHOLD`, `FW_QUERY_CONFIG` —
+  confirmed dead code with zero importers anywhere in the tree. See
+  `system/socketd/vehicle/MIGRATION_SUMMARY.md` → "OpenDBC De-duplication".
+- [x] Verified `python3 -m py_compile` on all touched files, and confirmed
+  (via `git stash` on a clean tree) that the `msgq`/`opendbc` module-not-found
+  import failures in this dev-PC venv are pre-existing environment gaps, not
+  caused by this session's changes — `opendbc_repo` is not currently
+  `pip install -e`'d or added to `PYTHONPATH` by any launch script or
+  `SConstruct` rule in this checkout.
+
+Known remaining work:
+
+- [ ] **`opendbc_repo` is not importable in the dev-PC venv** (`ModuleNotFoundError:
+  No module named 'opendbc'`) — none of `system/socketd/vehicle/car/{card,carstate,
+  carcontroller}.py`'s existing `from opendbc.car.tesla...` imports can actually
+  resolve here either. Needs either an editable pip install of `opendbc_repo`
+  or a `PYTHONPATH`/`sys.path` entry added by `launch_openpilot.sh` /
+  `SConstruct`. Pre-existing gap, not introduced by this session.

@@ -287,7 +287,7 @@ selfdrive/controls/lib/
 | `paramsd` | `selfdrive/locationd/paramsd.py` | `ParamsD` | Parameter learning | 20 Hz |
 | `torqued` | `selfdrive/locationd/torqued.py` | `TorqueD` | Torque estimation | 20 Hz |
 | `selfdrived` | `selfdrive/selfdrived/selfdrived.py` | `SelfdriveD` | Self-drive state machine | 20 Hz |
-| `card` | `selfdrive/vehicled/car/card.py` | `CarD` | Car interface (Tesla-only) | 100 Hz |
+| `card` | `system/socketd/vehicle/car/card.py` | `CarD` | Car interface (Tesla-only) | 100 Hz |
 | `soundd` | `selfdrive/ui/soundd.py` *(not implemented)* | `SoundD` | Audio feedback | On-road |
 
 ### Non-Daemon Processes (NO `d` Suffix)

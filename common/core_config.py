@@ -84,7 +84,6 @@ DAEMON_CORE_TYPE = {
     "pigeond": CORE_LITTLE,     # GPS driver
     "rtcd": CORE_LITTLE,        # RTC time sync
     "stated": CORE_LITTLE,      # System state machine
-    "vehicled": CORE_BIG,       # Tesla CAN vehicle interface (safety path)
     "navd": CORE_LITTLE,        # Navigation
     "locationd": CORE_BIG,      # Localization - sensor fusion critical
     "lagd": CORE_BIG,           # Latency measurement daemon

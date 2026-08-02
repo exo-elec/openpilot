@@ -4,7 +4,7 @@ import time
 import numpy as np
 from cereal import log
 # EOP-CLEANUP: Import from vehicled to avoid hardcoded duplication with longitudinal_planner.py
-from openpilot.selfdrive.vehicled.tesla.values import CarControllerParams
+from openpilot.system.socketd.vehicle.tesla.values import CarControllerParams
 ACCEL_MIN = CarControllerParams.ACCEL_MIN
 ACCEL_MAX = CarControllerParams.ACCEL_MAX
 from openpilot.common.realtime import DT_MDL

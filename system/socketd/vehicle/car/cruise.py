@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cruise control helper for Tesla-format protocol.
 
-Ported from selfdrive/car/cruise.py for vehicled.
+Ported from selfdrive/car/cruise.py for socketd vehicle adapter.
 """
 import math
 import numpy as np
