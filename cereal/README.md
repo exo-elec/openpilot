@@ -1,6 +1,6 @@
 # What is cereal?
 
-cereal is the messaging system for openpilot. It uses [msgq](https://github.com/exo-electronics/msgq) as a pub/sub backend, and [Cap'n proto](https://capnproto.org/capnp-tool.html) for serialization of the structs.
+cereal is the messaging system for openpilot. It uses [msgq](https://github.com/commaai/msgq) as a pub/sub backend, and [Cap'n proto](https://capnproto.org/capnp-tool.html) for serialization of the structs.
 
 
 ## Messaging Spec
