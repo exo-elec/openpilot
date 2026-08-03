@@ -94,3 +94,19 @@ brace-counting check, but is still not the project's actual `scons` Qt build
 (blocked in this worktree by an unrelated, pre-existing `opendbc.INCLUDE_PATH`
 gap in `panda/SConscript` — not fixed, out of scope) — an on-hardware or
 working-scons-env build/render check is still recommended before shipping.
+`-fsyntax-only` also proves the code parses, not that the two new `Q_OBJECT`
+classes' moc output links; risk is low (`controls.h` already carries ten other
+`Q_OBJECT` classes moc'd the same way), but this hasn't been linked or run.
+
+**Not gated by `vehicle_has_long_ctrl`:** unlike `dp_panel.cc` (which hides
+`dp_lon_acm`/`dp_lon_acm_downhill` on stock-longitudinal cars), `NGPPanel`
+shows DLON/coasting/BRSC unconditionally. NGP10 runs on comma 3 hardware
+across many car brands, so stock-long cars are common here — on those, these
+toggles are visible but their longitudinal-planner output is never actuated.
+Deferred rather than fixed: `NGPPanel`'s constructor doesn't currently read
+`CarParams` at all (dp_panel/eop_panel do, from `CarParamsPersistent`), so
+adding this gating is a small but real scope increase, not a one-line change.
+If it's added later, note that `updateStates()`'s unconditional
+`toggles["ngp_lon_coasting_downhill"]->setVisible(...)` assumes the map entry
+always exists — gating construction of that toggle would need the same
+existence guard `dp_panel.cc` uses before it's safe.
