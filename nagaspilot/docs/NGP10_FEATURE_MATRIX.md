@@ -32,3 +32,15 @@ after `ngpTjaDesiredGap @45`) — a different range than EOP10's `@66`-`@68` and
 EDP10's `@40`-`@42`, since all three schemas have diverged independently. `ngp_suite.py`
 is *not* wired into the runtime path on any branch (it's a standalone feature-port
 inventory), so BRSC was intentionally not added to its manifest.
+
+**NGP panel (2026-08-04):** `ngp_lon_brsc` is now exposed as a toggle in a new
+`NGPPanel` class (`selfdrive/ui/qt/offroad/ngp_panel.{h,cc}`), registered as the
+"NGP" tab in `settings.cc` (added to `selfdrive/ui/SConscript` build sources).
+NGP10 previously had no dragonpilot/EOP-style toggle panel at all — only
+`DeveloperPanel`. Named `NGP` (not `DP`) because this branch is mid-migration
+toward `dev/EOP10`'s naming, matching the `ngp_`-prefix convention already used
+for shared modules (see `nagaspilot/docs/NAMING_CONVENTIONS.md`). Scope is
+intentionally minimal — just the BRSC toggle, mirroring exactly what `dp_panel.cc`
+(EDP10) and `eop_panel.cc` (EOP10) gained for this feature. Exposing this branch's
+other already-integrated `ngp_*` params (ALCC, LCA, road-edge, coasting, DLON, TJA)
+through the same panel is deferred, not part of this change.
