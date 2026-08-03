@@ -141,7 +141,7 @@ Each branch exposes `ngp_lon_brsc` through its own settings-panel convention:
 |---|---|---|
 | `dev/EOP10` | `EopPanel` (`eop_panel.cc`), under "ExoPilot" tab | Full EOP toggle panel, pre-existing |
 | `dev/EDP10` | `DPPanel` (`dp_panel.cc`), under "DP" tab | Pre-existing dragonpilot-style panel, `add_longitudinal_toggles()` |
-| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | **New** — NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`); added minimally, scoped to `add_longitudinal_toggles()` with just the BRSC entry. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. Broader exposure of NGP10's other already-integrated `ngp_*` params (ALCC, LCA, road-edge, coasting, DLON, TJA — see `nagaspilot/docs/NGP10_FEATURE_MATRIX.md`) through this panel is deliberately deferred, not part of the BRSC change. |
+| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then completed the same day to expose every other already-integrated `ngp_*` param (ALCC, LCA, road-edge, coasting, DLON) alongside it — full detail in `nagaspilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
 
 ---
 
