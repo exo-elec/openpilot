@@ -46,6 +46,15 @@ static void byd_rx_hook(const CANPacket_t *msg) {
   }
 }
 
+// Canonical 8-point grid, matching nagaspilot/speed_zones.py's
+// STEER_ZONE_SPEEDS_MPS exactly (0/2/6/12/18/24/30/36 m/s: the union of the
+// named CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX zones plus two technical
+// midpoints at 18/30, added so linear interpolation doesn't loosen the
+// worst-case lateral accel bound between URBAN and HIGHWAY - verified:
+// dropping to the 6 named points alone raises the 12-24 m/s peak from
+// 1.35g to 1.61g). opendbc_repo has no dependency on nagaspilot/, so this
+// hardcodes the same numbers rather than importing them.
+//
 // Backstop angle ceiling: the steering-wheel angle that implies ~1.3g
 // lateral accel at each speed (steer_ratio=19.8, wheelbase=2.72, rounded for
 // readability). Defense-in-depth, not the operating limit - the continuous
@@ -54,18 +63,18 @@ static void byd_rx_hook(const CANPacket_t *msg) {
 // or wrong. 1.3g is above dry tire grip (~1.0g) by design margin but still
 // physically bounded, unlike a flat per-zone value that would exceed 2g+ at
 // the top of its band.
-static const float BYD_ATTO3_ZONE_ANGLE_BP_MS[7] = {0., 6., 12., 18., 24., 30., 36.};
-static const float BYD_ATTO3_ZONE_ANGLE_DEG[7] = {390., 360., 240., 120., 60., 45., 30.};
+static const float BYD_ATTO3_ZONE_ANGLE_BP_MS[8] = {0., 2., 6., 12., 18., 24., 30., 36.};
+static const float BYD_ATTO3_ZONE_ANGLE_DEG[8] = {390., 390., 360., 240., 120., 60., 45., 30.};
 
-// Backstop angle-rate ceiling, same speed grid as the angle ceiling above.
-// 0/6/12 m/s hold at the real evidenced EPS mechanical ceiling (~4 deg/20ms;
+// Backstop angle-rate ceiling, same 8-point grid as the angle ceiling above.
+// 0/2/6/12 m/s hold at the real evidenced EPS mechanical ceiling (~4 deg/20ms;
 // shemps/byd-atto3-openpilot-port's stock Veoneer measurement: "max=4.8,
 // 5 caused 29deg spikes/shaky wheel") since the jerk formula alone would
 // otherwise imply an unachievable rate near zero speed. 18/24/30/36 m/s
 // follow the same 1.3g-equivalent jerk taper as the angle ceiling, each
 // already below that mechanical ceiling so it's the binding term there.
-static const float BYD_ATTO3_ZONE_RATE_BP_MS[7] = {0., 6., 12., 18., 24., 30., 36.};
-static const float BYD_ATTO3_ZONE_RATE_DEG_20MS[7] = {4., 4., 4., 3.2, 2.4, 1.6, 1.2};
+static const float BYD_ATTO3_ZONE_RATE_BP_MS[8] = {0., 2., 6., 12., 18., 24., 30., 36.};
+static const float BYD_ATTO3_ZONE_RATE_DEG_20MS[8] = {4., 4., 4., 4., 3.2, 2.4, 1.6, 1.2};
 
 static float byd_zone_interp(float speed_ms, const float *bp, const float *vals) {
   float speed = speed_ms;
@@ -73,7 +82,7 @@ static float byd_zone_interp(float speed_ms, const float *bp, const float *vals)
     speed = bp[0];
   }
   int i = 0;
-  while ((i < 5) && (speed > bp[i + 1])) {
+  while ((i < 6) && (speed > bp[i + 1])) {
     i += 1;
   }
   const float x0 = bp[i];

@@ -24,18 +24,17 @@ class CarControllerParams:
   # accel/jerk limit, same formula as opendbc/safety/lateral.h and byd.h's
   # steer_angle_cmd_checks_vm). The two breakpoint-list positional args
   # below are NOT consumed by the vm path - they're kept only to document
-  # NagasPilot's CRAWL(0)/WALK(2)/CITY(6)/URBAN(12)/HIGHWAY(24) m/s policy
-  # ranges from nagaspilot/docs/SPEED_ZONE_POLICY.md and
-  # nagaspilot/speed_zones.py (hardcoded rather than imported, since
-  # opendbc_repo has no dependency on nagaspilot/). The slip factor in
-  # byd.h's BYD_STEERING_PARAMS is a provisional design, not target-car
-  # evidence.
+  # nagaspilot/speed_zones.py's canonical 8-point STEER_ZONE_SPEEDS_MPS grid
+  # (0/2/6/12/18/24/30/36 m/s: CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX plus two
+  # technical midpoints), hardcoded rather than imported since opendbc_repo
+  # has no dependency on nagaspilot/. The slip factor in byd.h's
+  # BYD_STEERING_PARAMS is a provisional design, not target-car evidence.
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
     390,  # deg, matches shemps/byd-atto3-openpilot-port's route-driven
           # safety_byd.h max_angle=3900. NOT TC275/TC375's 120 deg, which
           # is an uncited placeholder (see byd.h's comment for the commit).
-    ([0., 2., 6., 12., 24.], [4., 4., 3., 2., .5]),
-    ([0., 2., 6., 12., 24.], [4., 4., 3.5, 3., 1.5]),
+    ([0., 2., 6., 12., 18., 24., 30., 36.], [4., 4., 4., 4., 3.2, 2.4, 1.6, 1.2]),
+    ([0., 2., 6., 12., 18., 24., 30., 36.], [4., 4., 4., 4., 3.2, 2.4, 1.6, 1.2]),
     MAX_LATERAL_ACCEL=MAX_LATERAL_ACCEL,
     MAX_LATERAL_JERK=MAX_LATERAL_JERK,
     MAX_ANGLE_RATE=MAX_ANGLE_RATE,
@@ -50,17 +49,25 @@ class CarControllerParams:
   # defense-in-depth, not the operating limit - MAX_LATERAL_ACCEL/JERK above
   # (0.3g) is what apply_steer_angle_limits_vm() actually enforces day to
   # day; this should never bind in normal operation.
-  ZONE_MAX_ANGLE_BP = (0., 6., 12., 18., 24., 30., 36.)
-  ZONE_MAX_ANGLE_DEG = (312., 288., 192., 96., 48., 36., 24.)
+  #
+  # Breakpoints are the canonical 8-point grid from nagaspilot/speed_zones.py's
+  # STEER_ZONE_SPEEDS_MPS (0/2/6/12/18/24/30/36 m/s - the union of the named
+  # CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX zones plus two technical midpoints
+  # added so linear interpolation doesn't loosen the worst-case lateral
+  # accel bound between URBAN and HIGHWAY). Hardcoded here rather than
+  # imported since opendbc_repo has no dependency on nagaspilot/; values
+  # below are 80% of nagaspilot.speed_zones.STEER_ZONE_ANGLE_DEG.
+  ZONE_MAX_ANGLE_BP = (0., 2., 6., 12., 18., 24., 30., 36.)
+  ZONE_MAX_ANGLE_DEG = (312., 312., 288., 192., 96., 48., 36., 24.)
 
   # Backstop rate ceiling, controller side: 80% of byd.h's rate LUT
-  # (BYD_ATTO3_ZONE_RATE_*). 0/6/12 m/s hold at 3.2 deg/20ms (80% of the
-  # panda-side 4 deg/20ms mechanical-EPS floor - see byd.h's comment for the
-  # stock Veoneer citation); 18/24/30/36 m/s taper with the same jerk curve
-  # as the panda side, each still tighter than MAX_ANGLE_RATE below in
-  # normal operation.
-  ZONE_MAX_RATE_BP = (0., 6., 12., 18., 24., 30., 36.)
-  ZONE_MAX_RATE_DEG_20MS = (3.2, 3.2, 3.2, 2.56, 1.92, 1.28, 0.96)
+  # (BYD_ATTO3_ZONE_RATE_*), same 8-point grid. 0/2/6/12 m/s hold at
+  # 3.2 deg/20ms (80% of the panda-side 4 deg/20ms mechanical-EPS floor -
+  # see byd.h's comment for the stock Veoneer citation); 18/24/30/36 m/s
+  # taper with the same jerk curve as the panda side, each still tighter
+  # than MAX_ANGLE_RATE above in normal operation.
+  ZONE_MAX_RATE_BP = (0., 2., 6., 12., 18., 24., 30., 36.)
+  ZONE_MAX_RATE_DEG_20MS = (3.2, 3.2, 3.2, 3.2, 2.56, 1.92, 1.28, 0.96)
 
   # Longitudinal (0x32E trial). Comfort envelope, well inside the safety cap
   # (byd.h enforces -3.5..+2.0 on 0x32E per BYD_ATTO3_COMMA3_PORT_PLAN.md).
