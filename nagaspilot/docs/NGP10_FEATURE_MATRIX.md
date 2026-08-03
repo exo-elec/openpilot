@@ -33,14 +33,51 @@ EDP10's `@40`-`@42`, since all three schemas have diverged independently. `ngp_s
 is *not* wired into the runtime path on any branch (it's a standalone feature-port
 inventory), so BRSC was intentionally not added to its manifest.
 
-**NGP panel (2026-08-04):** `ngp_lon_brsc` is now exposed as a toggle in a new
-`NGPPanel` class (`selfdrive/ui/qt/offroad/ngp_panel.{h,cc}`), registered as the
-"NGP" tab in `settings.cc` (added to `selfdrive/ui/SConscript` build sources).
-NGP10 previously had no dragonpilot/EOP-style toggle panel at all — only
-`DeveloperPanel`. Named `NGP` (not `DP`) because this branch is mid-migration
-toward `dev/EOP10`'s naming, matching the `ngp_`-prefix convention already used
-for shared modules (see `nagaspilot/docs/NAMING_CONVENTIONS.md`). Scope is
-intentionally minimal — just the BRSC toggle, mirroring exactly what `dp_panel.cc`
-(EDP10) and `eop_panel.cc` (EOP10) gained for this feature. Exposing this branch's
-other already-integrated `ngp_*` params (ALCC, LCA, road-edge, coasting, DLON, TJA)
-through the same panel is deferred, not part of this change.
+**NGP panel (2026-08-04, completed same day):** a new `NGPPanel` class
+(`selfdrive/ui/qt/offroad/ngp_panel.{h,cc}`) was added as the "NGP" tab in
+`settings.cc` (registered in `selfdrive/ui/SConscript`). NGP10 previously had no
+dragonpilot/EOP-style toggle panel at all — only `DeveloperPanel`. Named `NGP`
+(not `DP`) because this branch is mid-migration toward `dev/EOP10`'s naming,
+matching the `ngp_`-prefix convention already used for shared modules (see
+`nagaspilot/docs/NAMING_CONVENTIONS.md`).
+
+First pass exposed only the BRSC toggle; now completed with every other
+already-integrated, user-facing `ngp_*` param this branch has (all 15 keys in
+`common/params_keys.h`'s `ngp_*` block are now reachable from the UI — none
+left unexposed):
+
+- **Lateral Ctrl section** (`add_lateral_toggles()`): `ngp_lat_alcc` (Always-on
+  Lane Centering Control), `ngp_lat_road_edge_detection` (Road Edge Detection),
+  `ngp_lat_lca_speed` (LCA Speed spinbox, mph) and `ngp_lat_lca_auto_sec` (Auto
+  Lane Change delay, only shown once LCA speed > 0) — same
+  `ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` + show/hide pattern as
+  `dp_panel.cc`.
+- **Longitudinal Ctrl section** (`add_longitudinal_toggles()`, extended):
+  `ngp_lon_dlon` (DLON master toggle) plus a `ButtonParamControl` mode selector
+  for `ngp_lon_dlon_mode` (Chill/Experimental/Auto, mirroring
+  `ngp_dlon.py::NGPDLONMode`), `ngp_lon_coasting` (Adaptive Coasting Mode) with
+  `ngp_lon_coasting_downhill` shown only while coasting is enabled, and the
+  existing `ngp_lon_brsc` toggle.
+- **Deliberately still not exposed**: DLON's eight individual per-trigger
+  sub-toggles (`ngp_lon_dlon_curves`/`_slow_lead`/`_low_speed`/
+  `_stop_prediction`/`_navigation`/`_signal`/`_speed_limit`/`_force_stops`) —
+  `dev/EOP10`'s `eop_panel.cc` has the identical set of backing params
+  (`EOPDLON*Enabled`) and made the same choice to expose only the mode selector,
+  not each trigger individually. Matching that precedent rather than inventing
+  new UI surface not modeled on any sibling branch. TJA has no backing param on
+  any branch (always active, not user-toggleable), so it was never a panel
+  candidate.
+
+`ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` didn't exist in NGP10's
+`selfdrive/ui/qt/widgets/controls.h` before this — ported verbatim from
+`dev/EOP10`'s self-contained versions (not EDP10's, which depend on a
+`DoubleSpinBoxControl` base styled with dragonpilot-specific icon assets that
+don't exist in this tree). Verified with a real (non-scons) syntax-only
+`g++ -fsyntax-only` compile of `ngp_panel.cc` and `settings.cc` against the
+system's Qt5 dev headers + `moc` — both compile clean (zero errors, only a
+pre-existing unrelated `QButtonGroup::buttonClicked` deprecation warning also
+present in `dp_panel.cc`/`eop_panel.cc`). This is stronger than the previous
+brace-counting check, but is still not the project's actual `scons` Qt build
+(blocked in this worktree by an unrelated, pre-existing `opendbc.INCLUDE_PATH`
+gap in `panda/SConscript` — not fixed, out of scope) — an on-hardware or
+working-scons-env build/render check is still recommended before shipping.

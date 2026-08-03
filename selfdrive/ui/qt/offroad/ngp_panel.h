@@ -12,7 +12,13 @@ public slots:
 
 private:
   Params params;
+  ParamWatcher *fs_watch;
   std::map<std::string, ParamControl*> toggles;
 
+  void add_lateral_toggles();
   void add_longitudinal_toggles();
+  void updateStates();
+  void showEvent(QShowEvent *event) override;
+
+  ParamDoubleSpinBoxControl* lca_sec_toggle;
 };
