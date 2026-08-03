@@ -10,58 +10,7 @@ $Cxx.namespace("cereal");
 # DO rename the structs
 # DON'T change the identifier (e.g. @0x81c2f05a394cf4af)
 
-struct NGPState @0x81c2f05a394cf4af {
-  controlAuthority @0 :Bool;
-  modelValid @1 :Bool;
-
-  dlatSuggestion @2 :UInt8;
-  dlatLaneConfidence @3 :Float32;
-  dlatPathConfidence @4 :Float32;
-  dlatModelConfidence @5 :Float32;
-  dlatHasPathDeviation @6 :Bool;
-  dlatPathDeviation @7 :Float32;
-
-  dlonE2eSuggestion @8 :Bool;
-  dlonTriggers @9 :List(Text);
-  dlonForceStopSuggestion @10 :Bool;
-
-  vtscState @11 :UInt8;
-  vtscHasTarget @12 :Bool;
-  vtscTargetSpeed @13 :Float32;
-  vtscPredictedLatAccel @14 :Float32;
-
-  speedZone @15 :UInt8;
-  speedLimitSource @16 :UInt8;
-  speedLimitValid @17 :Bool;
-  speedLimit @18 :Float32;
-
-  alccState @19 :UInt8;
-  alccActiveSuggestion @20 :Bool;
-  lcaState @21 :UInt8;
-  lcaDirection @22 :UInt8;
-  lcaSafeToStart @23 :Bool;
-  lcaDesireSuggestion @24 :Bool;
-  lcaBlockedReasons @25 :List(Text);
-
-  roadEdgeValid @26 :Bool;
-  leftRoadEdge @27 :Bool;
-  rightRoadEdge @28 :Bool;
-  radarTrackCount @29 :UInt16;
-  radarLeftBlocked @30 :Bool;
-  radarRightBlocked @31 :Bool;
-
-  socActiveSuggestion @32 :Bool;
-  socOffset @33 :Float32;
-  bevAvailable @34 :Bool;
-  bevCellCount @35 :UInt16;
-
-  collisionLevel @36 :UInt8;
-  collisionTrackValid @37 :Bool;
-  collisionTrackId @38 :UInt64;
-  collisionTtc @39 :Float32;
-  collisionSafeDistance @40 :Float32;
-  tripDistance @41 :Float32;
-  tripEngagementRatio @42 :Float32;
+struct CustomReserved0 @0x81c2f05a394cf4af {
 }
 
 struct CustomReserved1 @0xaedffd8f31e7b55d {
