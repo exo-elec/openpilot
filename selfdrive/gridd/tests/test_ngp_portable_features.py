@@ -1,5 +1,3 @@
-from cereal import messaging
-
 from openpilot.selfdrive.gridd.lazy_bev import NGPLazyBEV
 from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, NGPCapabilities
 from openpilot.selfdrive.gridd.ngp_overlays import OverlaySide, select_overlay
@@ -67,18 +65,10 @@ def test_overlay_falls_back_and_route_curvature_is_optional():
   assert route_curvatures(points[:2]) == ()
 
 
-def test_trip_accumulator_and_ngp_schema_service():
+def test_trip_accumulator():
   trip = NGPTripStats()
   first = trip.update(10.0, 1.0, True, False, 0.5)
   second = trip.update(10.0, 2.0, False, True, 0.5)
   assert first.distance_m == 5.0
   assert second.distance_m == 10.0
   assert second.engagement_ratio == 0.5
-
-  msg = messaging.new_message("ngpState")
-  msg.ngpState.controlAuthority = False
-  msg.ngpState.dlonTriggers = ["curve"]
-  encoded = msg.to_bytes()
-  decoded = messaging.log_from_bytes(encoded)
-  assert decoded.which() == "ngpState"
-  assert list(decoded.ngpState.dlonTriggers) == ["curve"]

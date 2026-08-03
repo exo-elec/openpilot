@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from openpilot.selfdrive.controls.lib.ngp_dlat import DLATSuggestion, NGPDLAT
+from nagaspilot.controls.ngp_dlat import DLATSuggestion, NGPDLAT
 
 
 def model_sample(lane_probs=(0.9, 0.9, 0.9, 0.9), path_y=0.0, path_std=0.25,
