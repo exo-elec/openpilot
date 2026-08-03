@@ -311,9 +311,9 @@ class LongitudinalPlanner:
 
     # BRSC debug info
     if self.brsc_result is not None:
-      longitudinalPlan.brscActive = self.brsc_result.active
-      longitudinalPlan.brscRoughness = float(self.brsc_result.roughness_rms)
+      longitudinalPlan.ngpBrscActive = self.brsc_result.active
+      longitudinalPlan.ngpBrscRoughness = float(self.brsc_result.roughness_rms)
     if self.brsc_v_target is not None:
-      longitudinalPlan.brscSpeed = float(self.brsc_v_target)
+      longitudinalPlan.ngpBrscSpeed = float(self.brsc_v_target)
 
     pm.send('longitudinalPlan', plan_send)

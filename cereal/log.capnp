@@ -1253,9 +1253,9 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   allowBrake @39: Bool;
 
   # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via nagaspilot/controls)
-  brscActive @40 :Bool;
-  brscSpeed @41 :Float32;
-  brscRoughness @42 :Float32;
+  ngpBrscActive @40 :Bool;
+  ngpBrscSpeed @41 :Float32;
+  ngpBrscRoughness @42 :Float32;
 
   solverExecutionTime @35 :Float32;
 

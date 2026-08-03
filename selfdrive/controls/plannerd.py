@@ -33,7 +33,7 @@ def main():
     dp_flags |= DPFlags.AEM
   # BRSC: Bumpy Road Speed Controller — NGP-prefixed since it's shared verbatim
   # across EOP10/NGP10/EDP10, unlike this branch's own dp_* toggles.
-  if params.get_bool("NGPBRSCEnabled"):
+  if params.get_bool("ngp_lon_brsc"):
     dp_flags |= DPFlags.BRSC
   while True:
     sm.update()

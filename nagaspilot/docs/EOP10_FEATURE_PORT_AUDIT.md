@@ -131,19 +131,19 @@ What differs per branch is only the glue:
   zeroes `v_cruise`; the accel cap is applied the same way TJA's `accel_scale` is,
   at the bottom of `update()`. Enablement follows this branch's existing
   `DPFlags` bitmask pattern (`DPFlags.BRSC`, read once in `plannerd.py` from
-  `NGPBRSCEnabled`) rather than EOP10's per-frame Params cache, since that's the
+  `ngp_lon_brsc`) rather than EOP10's per-frame Params cache, since that's the
   idiom `dp_lon_acm`/`dp_lon_aem` already use here.
-- The param itself stays `NGPBRSCEnabled` (not translated to a `dp_lon_*` name) on
+- The param itself stays `ngp_lon_brsc` (not translated to a `dp_lon_*` name) on
   purpose -- it is the one identity meant to be shared verbatim, unlike this
   branch's own `dp_*` toggles.
 
-capnp fields (`brscActive`/`brscSpeed`/`brscRoughness`) were added at `@40`-`@42`
+capnp fields (`ngpBrscActive`/`ngpBrscSpeed`/`ngpBrscRoughness`) were added at `@40`-`@42`
 on this branch's `LongitudinalPlan` (next free after `allowBrake @39`) -- a
 **different field number range than EOP10's `@66`-`@68`**, since the two
 branches' schemas have diverged independently and have no common merge base.
 Field numbers are per-branch; only the semantic field *names* are shared.
 
-BRSC is user-selectable (`NGPBRSCEnabled`, default on) via `dp_panel.cc`,
+BRSC is user-selectable (`ngp_lon_brsc`, default on) via `dp_panel.cc`,
 alongside ACM/AEM.
 
 ## Audit evidence
