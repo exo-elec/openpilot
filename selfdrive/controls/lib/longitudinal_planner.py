@@ -18,6 +18,11 @@ from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from openpilot.selfdrive.controls.lib.dp_tja import TrafficJamAssist
 from dragonpilot.selfdrive.controls.lib.acm import ACM
 from dragonpilot.selfdrive.controls.lib.aem import AEM
+# BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
+# EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
+# Interacts with v_cruise the same way TJA interacts with accel: it only ever
+# tightens the clamp, applied after ACM/AEM's own adjustments.
+from nagaspilot.controls.ngp_brsc import NGPBRSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -30,10 +35,15 @@ MIN_ALLOW_THROTTLE_SPEED = 2.5
 _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
 
+# BRSC: only applies above walking speed and never cuts speed below a floor.
+BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
+BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
+
 class DPFlags:
   ACM = 1
   ACM_DOWNHILL = 2 ** 1
   AEM = 2 ** 2
+  BRSC = 2 ** 3
   pass
 
 def get_max_accel(v_ego):
@@ -81,6 +91,11 @@ class LongitudinalPlanner:
     self.acm = ACM()
     self.aem = AEM()
 
+    # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
+    self.brsc = NGPBRSC()
+    self.brsc_result = None
+    self.brsc_v_target = None
+
   @staticmethod
   def parse_model(model_msg):
     if (len(model_msg.position.x) == ModelConstants.IDX_N and
@@ -103,6 +118,16 @@ class LongitudinalPlanner:
 
   def update(self, sm, dp_flags = 0):
     v_ego = sm['carState'].vEgo
+
+    # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy (always fed
+    # so its internal baseline/hold state stays current; application is gated below).
+    # accel_max_full=1.0 makes result.accel_max double as the [0-1] accel-scale
+    # fraction directly, matching TJA's own accel_scale usage below.
+    brsc_enabled = bool(dp_flags & DPFlags.BRSC)
+    if sm.valid.get('accelerometer', False):
+      az = sm['accelerometer'].acceleration.v[2]
+      self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
+
     tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
 
     # --- Calculate current cycle variables needed by AEM ---
@@ -196,6 +221,14 @@ class LongitudinalPlanner:
       clipped_accel_coast_interp = np.interp(v_ego, [MIN_ALLOW_THROTTLE_SPEED, MIN_ALLOW_THROTTLE_SPEED*2], [accel_clip[1], clipped_accel_coast])
       accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
 
+    # BRSC: reduce cruise speed while rough-road hold is active. Gated on v_ego and
+    # floored so a long rough stretch can't crawl the car below a safe minimum.
+    self.brsc_v_target = None
+    if (brsc_enabled and self.brsc_result is not None
+        and self.brsc_result.active and v_ego > BRSC_MIN_V_EGO):
+      self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor, BRSC_MIN_SPEED_MS)
+      v_cruise = min(v_cruise, self.brsc_v_target)
+
     if force_slow_decel:
       v_cruise = 0.0
 
@@ -243,6 +276,10 @@ class LongitudinalPlanner:
     # immediately available.
     if tja_result.active:
       output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * tja_result.accel_scale)
+    # BRSC: cap positive accel while rough-road hold is active.
+    if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
+      accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * accel_scale)
     if not reset_state:
       output_a_target = min(output_a_target,
                             self.output_a_target + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)
@@ -271,5 +308,12 @@ class LongitudinalPlanner:
     longitudinalPlan.shouldStop = bool(self.output_should_stop)
     longitudinalPlan.allowBrake = True
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
+
+    # BRSC debug info
+    if self.brsc_result is not None:
+      longitudinalPlan.brscActive = self.brsc_result.active
+      longitudinalPlan.brscRoughness = float(self.brsc_result.roughness_rms)
+    if self.brsc_v_target is not None:
+      longitudinalPlan.brscSpeed = float(self.brsc_v_target)
 
     pm.send('longitudinalPlan', plan_send)

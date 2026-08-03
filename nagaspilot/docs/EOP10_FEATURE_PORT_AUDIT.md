@@ -87,6 +87,7 @@ distance have not been validated on the BYD test car.
 | ALCC/LCA | Broad independent lateral state and event manipulation | Present the shared user-facing feature as ALCC; retain DragonPilot internal compatibility names |
 | AEB/RCD/BSD perception | Additional perception-driven interventions | Reject for phase one; retain stock BYD AEB and decoded BSM |
 | LatNudge/LonNudge | Depends on EOP dedicated stereo/PathD | Reject for comma 3 wide/narrow cameras |
+| BRSC | Vertical-IMU roughness slowdown, no camera/map dependency | Ported: pure policy module is identical on all three branches, only the DPFlags/plannerd glue differs |
 | TripD | Non-controlling trip statistics | Optional after vehicle support; not part of the control port |
 
 ## Reuse order
@@ -112,6 +113,38 @@ comfort parameters.
 
 VTSC is user-selectable and defaults off. It is shown only for BYD with
 openpilot longitudinal selected. Factory BYD ACC never consumes its target.
+
+## BRSC disposition
+
+Unlike every other entry in this audit, BRSC did not originate as an EOP10
+feature being evaluated for portability after the fact -- it was designed from
+the start to be identical across `dev/EOP10`, `dev/NGP10`, and `dev/EDP10`. The
+policy (`nagaspilot/controls/ngp_brsc.py`, class `NGPBRSC`) has zero
+`cereal`/`Params`/messaging imports, so the file itself needed no adaptation for
+this branch -- it was copied byte-identical from `dev/EOP10`.
+
+What differs per branch is only the glue:
+- **EOP10**: reads `EOPAdaptiveGapEnabled`-style cached `Params()` polling; applies
+  via the shared `_apply_speed_limit()` helper that SQSC/RCD/TLSC also use.
+- **EDP10** (this branch): no `_apply_speed_limit()` helper exists here, so the
+  reduction is applied with a plain `min()` at the same point `force_slow_decel`
+  zeroes `v_cruise`; the accel cap is applied the same way TJA's `accel_scale` is,
+  at the bottom of `update()`. Enablement follows this branch's existing
+  `DPFlags` bitmask pattern (`DPFlags.BRSC`, read once in `plannerd.py` from
+  `NGPBRSCEnabled`) rather than EOP10's per-frame Params cache, since that's the
+  idiom `dp_lon_acm`/`dp_lon_aem` already use here.
+- The param itself stays `NGPBRSCEnabled` (not translated to a `dp_lon_*` name) on
+  purpose -- it is the one identity meant to be shared verbatim, unlike this
+  branch's own `dp_*` toggles.
+
+capnp fields (`brscActive`/`brscSpeed`/`brscRoughness`) were added at `@40`-`@42`
+on this branch's `LongitudinalPlan` (next free after `allowBrake @39`) -- a
+**different field number range than EOP10's `@66`-`@68`**, since the two
+branches' schemas have diverged independently and have no common merge base.
+Field numbers are per-branch; only the semantic field *names* are shared.
+
+BRSC is user-selectable (`NGPBRSCEnabled`, default on) via `dp_panel.cc`,
+alongside ACM/AEM.
 
 ## Audit evidence
 

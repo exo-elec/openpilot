@@ -204,6 +204,13 @@ void DPPanel::add_longitudinal_toggles() {
       QString::fromUtf8("🚧 ") + tr("Adaptive Experimental Mode (AEM)"),
       tr("Adaptive mode switcher between ACC and Blended based on driving context."),
     },
+    {
+      "NGPBRSCEnabled",
+      tr("Bumpy Road Speed Controller (BRSC)"),
+      tr("Reduce speed and acceleration on rough pavement, detected from "
+         "vertical IMU acceleration. Recovers gradually a few seconds "
+         "after the road smooths out."),
+    },
   };
 
   QWidget *label = nullptr;

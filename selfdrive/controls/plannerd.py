@@ -19,8 +19,10 @@ def main():
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
-  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState'],
-                           poll='modelV2')
+  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
+                            'accelerometer'],
+                           poll='modelV2',
+                           ignore_alive=['accelerometer'])
 
   dp_flags = 0
   if params.get_bool("dp_lon_acm"):
@@ -29,6 +31,10 @@ def main():
       dp_flags |= DPFlags.ACM_DOWNHILL
   if params.get_bool("dp_lon_aem"):
     dp_flags |= DPFlags.AEM
+  # BRSC: Bumpy Road Speed Controller — NGP-prefixed since it's shared verbatim
+  # across EOP10/NGP10/EDP10, unlike this branch's own dp_* toggles.
+  if params.get_bool("NGPBRSCEnabled"):
+    dp_flags |= DPFlags.BRSC
   while True:
     sm.update()
     if sm.updated['modelV2']:
