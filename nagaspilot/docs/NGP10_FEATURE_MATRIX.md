@@ -68,6 +68,19 @@ left unexposed):
   any branch (always active, not user-toggleable), so it was never a panel
   candidate.
 
+**Live vs. next-drive toggles:** `ngp_lon_dlon_mode` is the only one of these
+params re-read while driving (`ngp_dlon.py::update_params()` polls it every
+1s). Every other toggle added here (`ngp_lat_alcc`, `ngp_lat_lca_speed`,
+`ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`, `ngp_lon_dlon`,
+`ngp_lon_coasting`, `ngp_lon_coasting_downhill`, `ngp_lon_brsc`) is read once
+at process start (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their
+`while True:` loop) — a change takes effect on the next onroad transition
+(these are `only_onroad`/car-gated processes in `process_config.py`, so this
+means "next drive," not "reboot the device"), not mid-drive. This matches how
+most openpilot/dragonpilot settings-panel toggles behave (the panel itself is
+normally only reachable offroad), so it's expected UX, not a bug — noted here
+so it isn't mistaken for one.
+
 `ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` didn't exist in NGP10's
 `selfdrive/ui/qt/widgets/controls.h` before this — ported verbatim from
 `dev/EOP10`'s self-contained versions (not EDP10's, which depend on a

@@ -289,6 +289,7 @@ public:
     spin->setRange(min, max);
     spin->setSingleStep(step);
     spin->setSuffix(suffix);
+    spin->setSpecialValueText(placeholder);
     spin->setAlignment(Qt::AlignRight);
     spin->setStyleSheet(R"(
       QSpinBox {
@@ -337,6 +338,7 @@ public:
     spin->setSingleStep(step);
     spin->setSuffix(suffix);
     spin->setDecimals(1);
+    spin->setSpecialValueText(placeholder);
     spin->setAlignment(Qt::AlignRight);
     spin->setStyleSheet(R"(
       QDoubleSpinBox {

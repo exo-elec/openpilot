@@ -18,8 +18,13 @@ void NGPPanel::add_lateral_toggles() {
       tr("Block lane change assist when the system detects the road edge.\nNOTE: This will show 'Car Detected in Blindspot' warning.")
     },
   };
-  auto lca_speed_toggle = new ParamSpinBoxControl("ngp_lat_lca_speed", tr("LCA Speed:"), tr("Off = Disable LCA\n1 mph ≈ 1.2 km/h"), "", 0, 100, 5, tr(" mph"), tr("Off"));
-  lca_sec_toggle = new ParamDoubleSpinBoxControl("ngp_lat_lca_auto_sec", QString::fromUtf8("　") + tr("Auto Lane Change after:"), tr("Off = Disable Auto Lane Change."), "", 0, 5.0, 0.5, tr(" sec"), tr("Off"));
+  // Default values below match the registered defaults in common/params_keys.h
+  // (ngp_lat_lca_speed=20, ngp_lat_lca_auto_sec=0.0) -- Params::get() has no
+  // registered-default fallback of its own, unlike the Python side's
+  // return_default=True (see modeld.py), so a fresh device with no param file
+  // yet written would otherwise show 0/Off here while the daemon actually runs at 20.
+  auto lca_speed_toggle = new ParamSpinBoxControl("ngp_lat_lca_speed", tr("LCA Speed:"), tr("Off = Disable LCA\n1 mph ≈ 1.2 km/h"), "", 0, 100, 5, tr(" mph"), tr("Off"), 20);
+  lca_sec_toggle = new ParamDoubleSpinBoxControl("ngp_lat_lca_auto_sec", QString::fromUtf8("　") + tr("Auto Lane Change after:"), tr("Off = Disable Auto Lane Change."), "", 0, 5.0, 0.5, tr(" sec"), tr("Off"), 0.0);
 
   QWidget *label = nullptr;
   bool has_toggle = false;
