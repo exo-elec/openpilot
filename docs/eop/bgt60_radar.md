@@ -187,6 +187,46 @@ mount by convention (roll is not part of `PITCH_LIMITS`/`YAW_LIMITS`
 sanity-clipping), matching upstream openpilot's own comment ("we assume it's
 zero"). `RadarMounting.roll_deg` is factory-only.
 
+### How this was checked against the rest of the codebase
+
+Every place in this repo (and VisionPilot) that combines two orientation
+estimates uses proper rotation composition — `rot_from_euler(A).dot(rot_from_euler(B))`
+or the quaternion equivalent — never adds Euler angles together:
+
+- `calibrationd.py` composes each new observation with the running estimate via
+  `rot_from_euler(current_rpy) @ rot_from_euler(observed_rpy)` (then converts
+  back with `euler_from_rot`).
+- `camera_calibrationd.py` (EOP10's multi-camera extension, not on
+  upstream `master`) does the identical `rot_from_euler(current_rpy).dot(rot_from_euler(observed_rpy))`
+  for each of its cameras.
+- `augmented_road_view.py`'s wide-camera projection — the closest existing
+  precedent to this module's own "fixed sensor offset + on-road device
+  tilt" problem — builds `view_from_wide_calib = view_frame_from_device_frame @ wide_from_device @ device_from_calib`,
+  i.e. composes the wide camera's fixed offset from the device with the
+  live `rpyCalib`-derived rotation via matrix multiplication.
+- VisionPilot's `OnRoadCalibrator._compute_observed_rpy` and its local
+  `geometry/transforms.py::rot_from_euler` (`Rz @ Ry @ Rx`) follow the same
+  pattern, and that exact `Rz@Ry@Rx` construction was independently
+  cross-checked against this repo's real compiled `rot_from_euler` (27
+  combined nonzero roll/pitch/yaw cases, floating-point exact) while fixing
+  a scalar-Euler-addition bug on the VisionPilot side (see
+  `docs/bgt60_radar.md#extrinsic-calibration` there) — it was never wrong
+  here, but worth confirming given the same mistake was found nearby.
+
+This module's `radar_polar_to_world`/`world_to_radar_polar` fix (full RPY via
+`rot_from_euler`, no `.T` — verified to reproduce the pre-existing yaw-only
+formula exactly at pitch=roll=0) is consistent with that pattern. The
+decision to keep `RadarMounting`'s rotation and `radar4d.py`'s live-tilt
+rotation as two separate, un-composed stages (rather than precomputing one
+combined matrix the way `view_from_wide_calib` does) is deliberate, not an
+oversight: composing them would require changing what `radar4d.py` publishes
+on the cereal wire (currently already-tilt-corrected az/el, consumed as such
+downstream), a larger change than this fix warrants. It is safe today only
+because `RadarMounting` defaults to all-zero rotation — this is a convention
+enforced by documentation, not a structural guarantee, and is the one
+argument in favor of eventually adopting the single-composed-matrix pattern
+if a real nonzero boresight file is ever needed.
+
 This is the openpilot side of the same design VisionPilot uses on
 `EVP09` (`docs/bgt60_radar.md#extrinsic-calibration`); VisionPilot shares
 the camera's on-road tilt via a ROS 2 topic
