@@ -57,6 +57,9 @@ class Controls:
     elif self.CP.lateralTuning.which() == 'torque':
       self.LaC = LatControlTorque(self.CP, self.CI)
 
+    self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    self.alcc_active = False
+
   def update(self):
     self.sm.update(15)
     if self.sm.updated["liveCalibration"]:
@@ -92,7 +95,10 @@ class Controls:
 
     # Check which actuators can be enabled
     standstill = abs(CS.vEgo) <= max(self.CP.minSteerSpeed, 0.3) or CS.standstill
-    CC.latActive = self.sm['selfdriveState'].active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+    self.alcc_active = self.alcc_enabled and CS.cruiseState.available and not standstill and \
+                       CS.gearShifter != car.CarState.GearShifter.reverse
+    lat_active = self.sm['selfdriveState'].active or self.alcc_active
+    CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
@@ -190,6 +196,7 @@ class Controls:
     cs.ufAccelCmd = float(self.LoC.pid.f)
     cs.forceDecel = bool((self.sm['driverMonitoringState'].awarenessStatus < 0.) or
                          (self.sm['selfdriveState'].state == State.softDisabling))
+    cs.ngpAlccActive = bool(self.alcc_active)
 
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:

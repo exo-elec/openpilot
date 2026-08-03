@@ -865,6 +865,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   curvature @37 :Float32;  # path curvature from vehicle model
   desiredCurvature @61 :Float32;  # lag adjusted curvatures used by lateral controllers
   forceDecel @51 :Bool;
+  ngpAlccActive @67 :Bool;
 
   lateralControlState :union {
     pidState @53 :LateralPIDState;
@@ -1251,6 +1252,12 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   shouldStop @37: Bool;
   allowThrottle @38: Bool;
   allowBrake @39: Bool;
+  ngpDlonMode @40 :Text;
+  ngpDlonE2EEnabled @41 :Bool;
+  ngpDlonForceStop @42 :Bool;
+  ngpTjaActive @43 :Bool;
+  ngpTjaCutIn @44 :Bool;
+  ngpTjaDesiredGap @45 :Float32;
 
 
   solverExecutionTime @35 :Float32;
@@ -2622,7 +2629,7 @@ struct Event {
     # DO change the name of the field and struct
     # DON'T change the ID (e.g. @107)
     # DON'T change which struct it points to
-    ngpState @107 :Custom.NGPState;
+    customReserved0 @107 :Custom.CustomReserved0;
     customReserved1 @108 :Custom.CustomReserved1;
     customReserved2 @109 :Custom.CustomReserved2;
     customReserved3 @110 :Custom.CustomReserved3;

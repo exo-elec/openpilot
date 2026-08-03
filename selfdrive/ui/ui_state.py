@@ -19,6 +19,7 @@ BACKLIGHT_OFFROAD = 50
 
 class UIStatus(Enum):
   DISENGAGED = "disengaged"
+  ALCC = "alcc"
   ENGAGED = "engaged"
   OVERRIDE = "override"
 
@@ -120,7 +121,9 @@ class UIState:
       ss = self.sm["selfdriveState"]
       state = ss.state
 
-      if state in (log.SelfdriveState.OpenpilotState.preEnabled, log.SelfdriveState.OpenpilotState.overriding):
+      if self.sm["controlsState"].ngpAlccActive and not ss.enabled:
+        self.status = UIStatus.ALCC
+      elif state in (log.SelfdriveState.OpenpilotState.preEnabled, log.SelfdriveState.OpenpilotState.overriding):
         self.status = UIStatus.OVERRIDE
       else:
         self.status = UIStatus.ENGAGED if ss.enabled else UIStatus.DISENGAGED

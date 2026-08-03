@@ -24,6 +24,7 @@ from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
+from nagaspilot.controls.ngp_road_edge import evaluate_road_edges
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState
@@ -242,7 +243,11 @@ def main(demo=False):
   long_delay = CP.longitudinalActuatorDelay + LONG_SMOOTH_SECONDS
   prev_action = log.ModelDataV2.Action()
 
-  DH = DesireHelper()
+  DH = DesireHelper(
+    ngp_lca_speed_mph=int(params.get("ngp_lat_lca_speed", return_default=True)),
+    ngp_lca_auto_sec=float(params.get("ngp_lat_lca_auto_sec", return_default=True)),
+  )
+  ngp_road_edge_enabled = params.get_bool("ngp_lat_road_edge_detection")
 
   while True:
     # Keep receiving frames until we are at least 1 frame ahead of previous extra frame
@@ -337,7 +342,10 @@ def main(demo=False):
       l_lane_change_prob = desire_state[log.Desire.laneChangeLeft]
       r_lane_change_prob = desire_state[log.Desire.laneChangeRight]
       lane_change_prob = l_lane_change_prob + r_lane_change_prob
-      DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob)
+      road_edges = evaluate_road_edges(modelv2_send.modelV2.roadEdgeStds, modelv2_send.modelV2.laneLineProbs) if ngp_road_edge_enabled else None
+      DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob,
+                left_edge_detected=bool(road_edges and road_edges.left_blocked),
+                right_edge_detected=bool(road_edges and road_edges.right_blocked))
       modelv2_send.modelV2.meta.laneChangeState = DH.lane_change_state
       modelv2_send.modelV2.meta.laneChangeDirection = DH.lane_change_direction
       drivingdata_send.drivingModelData.meta.laneChangeState = DH.lane_change_state
