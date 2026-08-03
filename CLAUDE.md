@@ -75,13 +75,13 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
   of stepping, and a retriggerable hold (capped) rides out closely-spaced bumps.
 - Pure policy lives in `nagaspilot/controls/ngp_brsc.py` (`NGPBRSC` class, zero
   cereal/Params deps) so the identical file ports to `dev/NGP10` and `dev/EDP10`.
-  `NGP`-prefixed (not `EOP`-prefixed) param `NGPBRSCEnabled` is a deliberate
+  `NGP`-prefixed (not `EOP`-prefixed) param `ngp_lon_brsc` is a deliberate
   exception to the `EOP<Feature><Param>` rule, made for features shared verbatim
   across branches — see `docs/eop/03_Software/Controllers/BRSC.md`.
 - EOP10 wiring: `selfdrive/controls/plannerd.py` (subscribes `accelerometer`) +
   `selfdrive/controls/lib/longitudinal_planner.py` (same `_apply_speed_limit`
   pattern as SQSC/RCD/TLSC — applied after VTSC/MTSC's curve-speed blend).
-- capnp: `LongitudinalPlan.brscActive/brscSpeed/brscRoughness` (`log.capnp` @66-68).
+- capnp: `LongitudinalPlan.ngpBrscActive/ngpBrscSpeed/ngpBrscRoughness` (`log.capnp` @66-68).
 - Tests: `nagaspilot/tests/test_ngp_brsc.py` (pure-Python, no capnp/build needed).
 
 ## Recent Bug Fixes

@@ -115,9 +115,9 @@ copy-portable to `dev/NGP10` and `dev/EDP10` without modification.
 - **Accel**: while `active`, `max_accel` is scaled by the accel-cap fraction inside
   the existing `mode == 'acc'` block, alongside the weather-severity limit
   (`_apply_weather_severity_limit`) — same pattern, same insertion point.
-- Debug fields on `longitudinalPlan`: `brscActive`, `brscSpeed`,
-  `brscRoughness` (capnp `@66`-`@68`, next free after `ddscSpeed @65`).
-- Toggle: `NGPBRSCEnabled` (default on), `selfdrive/ui/qt/offroad/eop_panel.cc`
+- Debug fields on `longitudinalPlan`: `ngpBrscActive`, `ngpBrscSpeed`,
+  `ngpBrscRoughness` (capnp `@66`-`@68`, next free after `ddscSpeed @65`).
+- Toggle: `ngp_lon_brsc` (default on), `selfdrive/ui/qt/offroad/eop_panel.cc`
   under Speed Control, cached/refreshed every 2s like `EOPAdaptiveGapEnabled`.
 
 ### 3.4 Cross-Branch Port

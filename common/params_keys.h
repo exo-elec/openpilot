@@ -395,7 +395,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // BRSC: Bumpy Road Speed Controller — shared across EOP10/NGP10/EDP10 via
     // nagaspilot/controls/ngp_brsc.py; NGP prefix (not EOP) marks features
     // ported verbatim across all three branches. See docs/eop/03_Software/Controllers/BRSC.md
-    {"NGPBRSCEnabled", {PERSISTENT, BOOL, "1"}},
+    {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
     {"NavPilotOAuthEmail", {PERSISTENT | DONT_LOG, STRING}},
     {"NavPilotOAuthToken", {PERSISTENT | DONT_LOG, STRING}},
     {"OpenBLTFirmwareVersion", {PERSISTENT, STRING}},

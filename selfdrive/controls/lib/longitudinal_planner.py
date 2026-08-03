@@ -161,7 +161,7 @@ def _load_brsc_enabled():
   if now - _brsc_enabled_cache['ts'] < 2.0:
     return _brsc_enabled_cache['enabled']
   from openpilot.common.params import Params
-  p = Params().get("NGPBRSCEnabled")
+  p = Params().get("ngp_lon_brsc")
   enabled = p != b"0" if p else True
   _brsc_enabled_cache = {'ts': now, 'enabled': enabled}
   return enabled
@@ -773,10 +773,10 @@ class LongitudinalPlanner:
 
     # BRSC debug info
     if self.brsc_result is not None:
-      longitudinalPlan.brscActive = self.brsc_result.active
-      longitudinalPlan.brscRoughness = float(self.brsc_result.roughness_rms)
+      longitudinalPlan.ngpBrscActive = self.brsc_result.active
+      longitudinalPlan.ngpBrscRoughness = float(self.brsc_result.roughness_rms)
     if self.brsc_v_target is not None:
-      longitudinalPlan.brscSpeed = float(self.brsc_v_target)
+      longitudinalPlan.ngpBrscSpeed = float(self.brsc_v_target)
 
     # EOP: LHLC (Long Horizon Lateral Controller)
     longitudinalPlan.lhlcActive = self.lhlc_active
