@@ -73,7 +73,7 @@ only until their individual exit gates are met.
    was replaced with a continuous ISO 11270 vehicle-model formula
    (`steer_angle_cmd_checks_vm`/`apply_steer_angle_limits_vm`, both angle
    and rate), matching upstream's own deprecation of the breakpoint
-   approach (`opendbc/safety/lateral.h:298`'s TODO). A speed-zoned 7-point
+   approach (`opendbc/safety/lateral.h:298`'s TODO). A speed-zoned 8-point
    backstop LUT sits on top for defense-in-depth (100% on the panda/gateway
    side, 80% on the openpilot controller side) - see
    `nagaspilot/docs/STEERING_LIMIT_POLICY.md` for the full design and the

@@ -54,21 +54,28 @@ ceiling.
 
 ### Speed-zoned backstop LUT (defense-in-depth)
 
-A 7-point piecewise-linear table at `0/6/12/18/24/30/36` m/s, chosen to
-keep lateral accel in a **0-1.35g band** at every breakpoint *and* every
-midpoint between them (verified numerically - an earlier idea to use a
-straight line from 390°@0 to 30°@36 m/s was rejected because G-force
-depends on v², not v, and that line's implied accel bulges to **2.89g**
-around 27 m/s despite looking reasonable at both endpoints):
+An 8-point piecewise-linear table at `0/2/6/12/18/24/30/36` m/s - the
+canonical `nagaspilot/speed_zones.py` `STEER_ZONE_SPEEDS_MPS` grid, unifying
+what were originally two separate tables: this 7-point steering LUT and the
+6-point named CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX speed-zone policy. The two
+extra technical midpoints (18, 30 m/s, beyond the 6 named zones) are kept
+rather than dropped, since a 6-point-only version measurably loosens the
+worst-case backstop G-force in the 12-24 m/s gap (1.35g -> 1.61g, verified
+numerically) - the LUT itself is chosen to keep lateral accel in a
+**0-1.35g band** at every breakpoint *and* every midpoint between them
+(an earlier idea to use a straight line from 390°@0 to 30°@36 m/s was
+rejected because G-force depends on v², not v, and that line's implied
+accel bulges to **2.89g** around 27 m/s despite looking reasonable at both
+endpoints):
 
-| Speed (m/s) | 0 | 6 | 12 | 18 | 24 | 30 | 36 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Angle, panda/gateway (100%) | 390° | 360° | 240° | 120° | 60° | 45° | 30° |
-| Angle, openpilot (80%) | 312° | 288° | 192° | 96° | 48° | 36° | 24° |
-| Rate, panda/gateway (100%) | 4 | 4 | 4 | 3.2 | 2.4 | 1.6 | 1.2 |
-| Rate, openpilot (80%) | 3.2 | 3.2 | 3.2 | 2.56 | 1.92 | 1.28 | 0.96 |
+| Speed (m/s) | 0 | 2 | 6 | 12 | 18 | 24 | 30 | 36 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Angle, panda/gateway (100%) | 390° | 390° | 360° | 240° | 120° | 60° | 45° | 30° |
+| Angle, openpilot (80%) | 312° | 312° | 288° | 192° | 96° | 48° | 36° | 24° |
+| Rate, panda/gateway (100%) | 4 | 4 | 4 | 4 | 3.2 | 2.4 | 1.6 | 1.2 |
+| Rate, openpilot (80%) | 3.2 | 3.2 | 3.2 | 3.2 | 2.56 | 1.92 | 1.28 | 0.96 |
 
-(Rate in deg/20ms frame.) The rate LUT's 0/6/12 m/s points hold flat at the
+(Rate in deg/20ms frame.) The rate LUT's 0/2/6/12 m/s points hold flat at the
 real evidenced EPS mechanical ceiling instead of following the jerk formula,
 which diverges to a physically unachievable number near zero speed - see
 `~/panda/byd-atto3-openpilot-port`'s `values.py`: *"Stock Veoneer max=4.8,
