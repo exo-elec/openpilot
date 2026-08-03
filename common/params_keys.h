@@ -88,6 +88,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
+    // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
+    // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
+    {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_coasting", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_coasting_downhill", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_dlon", {PERSISTENT, BOOL, "0"}},

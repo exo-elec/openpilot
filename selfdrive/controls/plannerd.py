@@ -19,8 +19,10 @@ def main():
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
-  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState', 'navInstruction'],
-                           poll='modelV2')
+  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState', 'navInstruction',
+                            'accelerometer'],
+                           poll='modelV2',
+                           ignore_alive=['accelerometer'])
 
   ngp_flags = 0
   if params.get_bool("ngp_lon_dlon"):
@@ -29,6 +31,8 @@ def main():
     ngp_flags |= NGPFlags.COASTING
     if params.get_bool("ngp_lon_coasting_downhill"):
       ngp_flags |= NGPFlags.COASTING_DOWNHILL
+  if params.get_bool("ngp_lon_brsc"):
+    ngp_flags |= NGPFlags.BRSC
 
   while True:
     sm.update()
