@@ -1,4 +1,4 @@
-"""Comma 3-safe Vision Turn Speed Control (VTSC) shadow calculation.
+"""Comma 3-safe Vision Turn Speed Control (VTSC) advisory calculation.
 
 This is the application proving slice of EOP10 VTSC.  It intentionally has no
 Params, cereal, GPS, or actuator integration: callers provide the model arrays
@@ -20,7 +20,7 @@ class VTSCState(Enum):
 
 @dataclass(frozen=True)
 class VTSCResult:
-  """One shadow update; ``target_speed`` is informational only."""
+  """One advisory update; ``target_speed`` is informational only."""
   target_speed: float | None
   state: VTSCState
   current_lat_acc: float
@@ -101,7 +101,7 @@ class NGPVTSC:
     return sqrt(comfort / curvature), curvature
 
   def update(self, v_ego, model, enabled=None):
-    """Return a shadow result; never writes controls or parameters."""
+    """Return an advisory result; never writes controls or parameters."""
     if enabled is not None:
       self.enabled = bool(enabled)
     v_ego = max(0.0, float(v_ego))

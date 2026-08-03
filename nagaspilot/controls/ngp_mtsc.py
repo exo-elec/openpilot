@@ -1,4 +1,4 @@
-"""NGP10 MTSC pure curvature evaluator (non-controlling shadow output)."""
+"""NGP10 MTSC pure curvature evaluator (non-controlling advisory output)."""
 from dataclasses import dataclass
 from enum import Enum
 from math import sqrt

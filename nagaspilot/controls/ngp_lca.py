@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from nagaspilot.speed_zones import CITY_SPEED_MPS
-from openpilot.selfdrive.controls.lib.ngp_radar import RadarZones
+from nagaspilot.speed_zones import URBAN_SPEED_MPS
+from nagaspilot.controls.ngp_radar import RadarZones
 
 
 class LCADirection(IntEnum):
@@ -77,7 +77,7 @@ class NGPLCA:
 
     self._pre_time += max(0.0, sample.dt)
     blocked = []
-    if sample.v_ego < CITY_SPEED_MPS:
+    if sample.v_ego < URBAN_SPEED_MPS:
       blocked.append("below_city_speed")
     if not sample.driver_attentive:
       blocked.append("driver_monitoring")

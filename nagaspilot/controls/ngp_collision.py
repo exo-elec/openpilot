@@ -1,4 +1,4 @@
-"""Shadow collision-risk assessment using normalized radar tracks."""
+"""Advisory collision-risk assessment using normalized radar tracks."""
 
 from dataclasses import dataclass
 from enum import IntEnum
