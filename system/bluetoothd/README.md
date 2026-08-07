@@ -31,11 +31,52 @@ BluetoothD (bluetoothd.py)
 carState ───────────────────► SPPD + GATTD ──► TELEMETRY_VEHICLE (10 Hz)
 navInstruction ─────────────► SPPD + GATTD ──► TELEMETRY_NAV
 navRoute ───────────────────► SPPD + GATTD ──► TELEMETRY_ROUTE
+blindSpotAlert + radar2d ───► SPPD + GATTD ──► BLIND_SPOT 0x0602 (see below)
 
 Phone (ELM327 raw) ──► SPPD ──► obdCommand ──► obd2d ──► obdResponse ──► SPPD ──► phone
 Phone (CMD_NAVIGATE) ───────► SPPD / GATTD ──► NavDestination param ──► navd
 Phone (CMD_VEHICLE_DATA) ───► SPPD / GATTD ──► ncpVehicleData ──► adaptd
 ```
+
+## Blind-spot feed (BLIND_SPOT 0x0602, 10 Hz)
+
+Sources: cereal `blindSpotAlert` (fused BSD/RCTA/LCA decision from controlsd)
++ cereal `radar2d` (raw corner presence, published by `ble_central.py`).
+Payload schema is the cross-repo contract with navpilot — see
+`ncp_session.build_blindspot_payload`, do not rename fields.
+
+Parked-degraded semantics: controlsd runs ignition_on only, so when parked
+`valid=false` and the decision fields are nulled — but `radarPresence`
+(frontLeft/frontRight/rearLeft/rearRight booleans) keeps streaming from
+radar2d, which bluetoothd receives always_run (walk-around mode).
+Single-publisher rule untouched: NCP telemetry is read-only on cereal;
+`radar2d` remains solely owned by `ble_central.py`.
+
+## Corner-radar BLE central (ble_central.py)
+
+Connects to up to 4 ESP32-S3 corner radars (GATT notifications → `radar2d`
+at 20 Hz). Admission mirrors the WiFi fleet's MAC-ACL semantics: paired units
+(`BLECornerPairs`) always connect; learning NEW units requires
+bootstrap/pairing-window (`BLERadarPairingOpen`) PLUS eligibility —
+advertising dwell ≥ 10 s (presence stability) and the node's claimed WiFi
+STA MAC (BLE mfg data, Espressif company id 0x02E5) present in
+`/etc/hostapd/ap0.accept` (the identity check). RSSI is advisory-only
+(weak-signal anomaly warning, never a gate — BLE RSSI is not distance).
+Without that roster the identity check degrades to dwell-only (one startup
+warning). Full contract in the module docstring.
+
+### Radar pairing service tool (NCP)
+
+NavPilot doubles as the commissioning UI for the corner radars:
+
+- `RADAR_PAIR_CONTROL` `0x0610` (phone → device): `{"open": bool}` —
+  persists `BLERadarPairingOpen`; ACK/error like other commands.
+- `RADAR_PAIR_STATUS` `0x0611` (device → phone): `{windowOpen, pairs,
+  candidates}` — ~1 Hz while the window is open, one frame on any
+  windowOpen/pair-set transition, quiet otherwise. Candidates carry
+  `address/wifiMac/corner/dwellS/eligible/reason` (`corner` null until the
+  node connects and its datagrams identify it). Payload keys are the pinned
+  cross-repo contract — see `ncp_session.build_radar_pair_status`.
 
 ## Pairing Flow (6-digit PIN, user must type)
 
@@ -76,12 +117,17 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 | `0x50–0x5F` | phone → device (fallback) | Search |
 | `0x60–0x6F` | device → phone | Auth / subscription state |
 | `0x70–0x7F` | phone → device (0x70/0x71), device → phone (0x72) | Convoy (follow-a-friend) — capability-gated via `convoyFollow` |
+| `0x0602` | device → phone | BlindSpot — BSD/LCA/RCTA decision + corner-radar presence |
+| `0x0610/0x0611` | bidirectional | Radar pairing service tool (window control / live status) |
 
 ## Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `EOPBluetoothEnabled` | bool | `true` | Master enable |
+| `EOPBluetoothRadarEnabled` | bool | `false` | BLE central for ESP32 corner radars (`ble_central.py`, sole `radar2d` publisher when on) |
+| `BLECornerPairs` | str (JSON) | — | Learned BLE MAC → corner_id pair set (`ble_central.py`), written automatically |
+| `BLERadarPairingOpen` | bool | `false` | Corner-radar pairing window — while `1`, unknown units may be learned/connected; close after pairing (mirrors WiFi MAC-ACL ritual) |
 | `EOPDeviceName` | str | `EXOPILOT` | BT adapter name — set per unit: `EXOPILOT 01`, `EXOPILOT 02M`, `EXOPILOT 02M` |
 | `EOPSPPEnabled` | bool | `false` | Classic SPP sub-daemon enable |
 | `EOPSPPAutoReconnect` | bool | `true` | Outward-connect to saved mobile device |
@@ -97,6 +143,7 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 | `bluetoothd.py` | Entry point — GLib loop, adapter name, SPP + GATT startup, pairing agent |
 | `spp.py` | Classic SPP — RFCOMM server, dual ELM327+NCP mux, telemetry loop |
 | `ble_gatt.py` | BLE GATT — Nordic UART Service via BlueZ D-Bus API, telemetry loop |
+| `ble_central.py` | BLE central — ESP32 corner radar GATT client, decodes object datagrams, publishes `radar2d` |
 | `protocol.py` | NCP v4.1 frame codec — source of truth for wire format |
 | `pairing_agent.py` | BlueZ Agent1 — `DisplayOnly`, `DisplayPasskey` handler, PIN param store |
 | `device.py` | Bluetooth device classifier (MOBILE / UNKNOWN) |

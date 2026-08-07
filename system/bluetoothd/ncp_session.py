@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import threading
 import time
 from typing import Callable
@@ -29,6 +30,76 @@ except ImportError:
 from openpilot.system.bluetoothd import protocol
 
 logger = logging.getLogger('bluetoothd.ncp')
+
+# radar2d legacy-return side → navpilot payload key (cereal side: 0=LF,1=LR,2=RF,3=RR)
+_RADAR_SIDE_KEYS = {0: 'frontLeft', 1: 'rearLeft', 2: 'frontRight', 3: 'rearRight'}
+
+
+def _blindspot_side(bsa, prefix: str) -> dict:
+    """One side of the BlindSpot payload. distance/relativeSpeed are null when
+    nothing is detected — radar_zones' ZoneState.off uses distance_m=inf as
+    its absence sentinel, so non-finite values also map to null."""
+    detected = bool(getattr(bsa, f'{prefix}Detected'))
+    distance = float(getattr(bsa, f'{prefix}Distance'))
+    v_rel = float(getattr(bsa, f'{prefix}RelativeSpeed'))
+    return {
+        'alertLevel': int(getattr(bsa, f'{prefix}AlertLevel')),
+        'detected': detected,
+        'distanceM': round(distance, 2) if detected and math.isfinite(distance) else None,
+        'relativeSpeedMps': round(v_rel, 2) if detected and math.isfinite(v_rel) else None,
+    }
+
+
+def build_blindspot_payload(bsa, radar2d, decision_valid: bool) -> dict:
+    """BlindSpot (0x0602) JSON payload — CROSS-REPO WIRE CONTRACT with the
+    navpilot Flutter app: do not rename fields.
+
+    decision_valid=False is the parked / walk-around mode: controlsd runs
+    ignition_on only, so blindSpotAlert goes stale when parked while
+    bluetoothd (always_run) keeps receiving radar2d — the decision fields are
+    then nulled but radarPresence is STILL populated.
+    """
+    null_side = {'alertLevel': 0, 'detected': False, 'distanceM': None, 'relativeSpeedMps': None}
+    valid = decision_valid and bsa is not None
+    payload = {
+        'valid': valid,
+        'left': _blindspot_side(bsa, 'left') if valid else dict(null_side),
+        'right': _blindspot_side(bsa, 'right') if valid else dict(null_side),
+        # cereal carries a single rearCrossTrafficDetected (no per-side split) —
+        # both keys faithfully mirror it
+        'rearCrossTraffic': {
+            'left': bool(bsa.rearCrossTrafficDetected) if valid else False,
+            'right': bool(bsa.rearCrossTrafficDetected) if valid else False,
+        },
+        'lcaBlocked': {
+            'left': bool(bsa.lcaBlockedLeft) if valid else False,
+            'right': bool(bsa.lcaBlockedRight) if valid else False,
+        },
+        'radarPresence': {'frontLeft': False, 'frontRight': False,
+                          'rearLeft': False, 'rearRight': False},
+    }
+    if radar2d is not None:
+        for ret in radar2d.returns:
+            key = _RADAR_SIDE_KEYS.get(int(ret.side))
+            if key:
+                payload['radarPresence'][key] = payload['radarPresence'][key] or bool(ret.present)
+    return payload
+
+
+RADAR_PAIR_STATUS_HZ = 1.0  # status cadence while the pairing window is open
+
+
+def build_radar_pair_status(ble_central, now: float | None = None) -> dict | None:
+    """RADAR_PAIR_STATUS (0x0611) payload — CROSS-REPO WIRE CONTRACT with the
+    navpilot Flutter app: do not rename fields. Returns None when no
+    BLECentral is wired (corner-radar feature absent)."""
+    if ble_central is None:
+        return None
+    return {
+        'windowOpen': ble_central.pairing_window_open(),
+        'pairs': ble_central.pairs_dump(),
+        'candidates': ble_central.candidates_dump(now),
+    }
 
 
 class NCPSession:
@@ -54,9 +125,15 @@ class NCPSession:
 
     TELEMETRY_RATE = 10.0  # Hz
 
-    def __init__(self, params: Params | None = None):
+    def __init__(self, params: Params | None = None, ble_central=None):
         self.params = params or (Params() if Params else None)
         self._name = 'ncp'  # used in log messages only
+
+        # Radar pairing service tool (RADAR_PAIR_CONTROL/STATUS) — the
+        # BLECentral instance owned by bluetoothd; None when not wired
+        self._ble_central = ble_central
+        self._pair_status_fingerprint = None   # last emitted (windowOpen, pairs)
+        self._pair_status_last_emit = 0.0
 
         # Active transports: name → thread-safe send_fn
         # Key = transport name ('spp', 'gatt'); removed on disconnect.
@@ -74,6 +151,7 @@ class NCPSession:
             self.sm = messaging.SubMaster([
                 'carState', 'navInstruction', 'navRoute', 'obdState',
                 'selfdriveState', 'controlsState', 'deviceState', 'alertDebug',
+                'blindSpotAlert', 'radar2d',
             ])
         else:
             self.pm = None
@@ -159,6 +237,8 @@ class NCPSession:
             return self._handle_convoy_lead(frame)
         if t == protocol.MessageType.CMD_CONVOY_CANCEL:
             return self._handle_convoy_cancel(frame)
+        if t == protocol.MessageType.RADAR_PAIR_CONTROL:
+            return self._handle_radar_pair_control(frame)
         if t == protocol.MessageType.DEVICE_CAPABILITIES:
             return protocol.Frame.from_json(
                 protocol.MessageType.RESPONSE_DEVICE_INFO,
@@ -417,6 +497,45 @@ class NCPSession:
         except Exception as e:
             return protocol.make_error(f'Search error: {e}')
 
+    def _handle_radar_pair_control(self, frame: protocol.Frame) -> protocol.Frame:
+        """navpilot service tool: {"open": bool} → persisted BLERadarPairingOpen
+        param (ble_central re-reads it within its TTL). Mirrors the ACK/error
+        reply semantics of the other inbound commands."""
+        try:
+            open_window = bool(frame.to_json().get('open', False))
+            if self.params:
+                self.params.put('BLERadarPairingOpen', '1' if open_window else '0')
+            logger.info('%s: radar pairing window %s (service tool)',
+                        self._name, 'OPEN' if open_window else 'CLOSED')
+            return protocol.make_ack(protocol.MessageType.RADAR_PAIR_CONTROL)
+        except Exception as e:
+            logger.error('%s: radar pair control error: %s', self._name, e)
+            return protocol.make_error(f'Radar pair control failed: {e}')
+
+    def _maybe_send_radar_pair_status(self) -> None:
+        """RADAR_PAIR_STATUS cadence: ~1 Hz while the window is open, plus one
+        frame on any windowOpen / pair-set transition — quiet otherwise."""
+        if self._ble_central is None:
+            return
+        try:
+            payload = build_radar_pair_status(self._ble_central)
+            fingerprint = (payload['windowOpen'],
+                           tuple((p['address'], p['corner']) for p in payload['pairs']))
+            now = time.monotonic()
+            due = payload['windowOpen'] and \
+                  (now - self._pair_status_last_emit) >= 1.0 / RADAR_PAIR_STATUS_HZ
+            changed = fingerprint != self._pair_status_fingerprint
+            if due or changed:
+                self._pair_status_last_emit = now
+                self._pair_status_fingerprint = fingerprint
+                self._send_frame(protocol.MessageType.RADAR_PAIR_STATUS, {
+                    'protocolVersion': protocol.PROTOCOL_VERSION,
+                    'msgType': 'RadarPairStatus',
+                    **payload,
+                })
+        except Exception as e:
+            logger.debug('%s: radar pair status error: %s', self._name, e)
+
     # ── Telemetry ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
@@ -561,3 +680,25 @@ class NCPSession:
                     })
             except Exception as e:
                 logger.debug('%s: alert telem error: %s', self._name, e)
+
+        # Blind-spot feed — fused decision from controlsd (ignition_on only)
+        # plus raw corner presence from radar2d (always_run). Emitted at
+        # telemetry cadence whenever either source updates. Parked /
+        # walk-around mode: blindSpotAlert stale → valid=false, decision
+        # fields nulled, radarPresence still sent (see build_blindspot_payload).
+        if self.sm.updated.get('blindSpotAlert') or self.sm.updated.get('radar2d'):
+            try:
+                decision_valid = bool(self.sm.valid['blindSpotAlert'] and
+                                      self.sm.alive['blindSpotAlert'])
+                bsa = self.sm['blindSpotAlert'] if decision_valid else None
+                radar2d = self.sm['radar2d'] if self.sm.alive.get('radar2d') else None
+                self._send_frame(protocol.MessageType.BLIND_SPOT, {
+                    'protocolVersion': protocol.PROTOCOL_VERSION,
+                    'msgType': 'BlindSpot',
+                    **build_blindspot_payload(bsa, radar2d, decision_valid),
+                })
+            except Exception as e:
+                logger.debug('%s: blindspot telem error: %s', self._name, e)
+
+        # Radar pairing service tool — self-throttling (1 Hz open / transitions)
+        self._maybe_send_radar_pair_status()

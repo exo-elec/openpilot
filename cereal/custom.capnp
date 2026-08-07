@@ -1148,8 +1148,29 @@ struct Radar2DReturn @0xd2a3b4c5e6f70819 {
   vRel    @2 :Float32;  # approaching speed (m/s, negative=approaching); NaN if unavailable
 }
 
+struct Radar2DObject @0xc4d5e6f7a8092131 {
+  # Tracked object from an ESP32-S3 corner radar node (on-node Kalman tracker
+  # with occlusion coasting — see ESP32_RADAR repo).  Polar position is in the
+  # corner node's own frame; gridd converts to vehicle frame with the
+  # per-corner mounting pose.
+  trackId       @0 :UInt64;   # stable track ID from the on-node tracker
+  corner        @1 :UInt8;    # 0=FL, 1=FR, 2=RL, 3=RR — matches ESP32_RADAR radar_corner_id_t
+  rangM         @2 :Float32;  # radial distance to object center (m)
+  azimuthDeg    @3 :Float32;  # deg, 0=sensor boresight, +left, -right
+  vRel          @4 :Float32;  # Doppler relative velocity (m/s), NEGATIVE = approaching
+  aRel          @5 :Float32;  # relative acceleration (m/s^2), NaN if unavailable
+  snrDb         @6 :Float32;  # peak SNR dB — proxy for radar cross section (RCS)
+  existenceProb @7 :Float32;  # 0-100, from tracker confirm hit-streak (same convention as Radar4DObject)
+  measured      @8 :Bool;     # false = coasted through occlusion, predict-only this frame
+  dynProp       @9 :UInt8;    # ARS-style: 0=stationary, 1=moving, 2=stopped
+  lengthM       @10 :Float32; # estimated object length (m), forward axis
+  widthM        @11 :Float32; # estimated object width (m), lateral axis
+}
+
 struct Radar2D @0xe3f4a5b6c7d80920 {
-  # Socket: radar2d  |  Future corner/blind-spot radars (EOP 01M/02M)
-  # No position like radar3d or radar4d — just zone presence + speed.
+  # Socket: radar2d  |  ESP32-S3 corner radars (on-node tracked objects)
+  # objects carries real corner-tracked objects when the node tracker is
+  # running; returns stays as the legacy zone-presence fallback.
   returns @0 :List(Radar2DReturn);
+  objects @1 :List(Radar2DObject);
 }

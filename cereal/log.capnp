@@ -3843,7 +3843,7 @@ struct Event {
     livestreamRearLeftEncodeData @298 :EncodeData;
     livestreamRearRightEncodeData @299 :EncodeData;
     radar4d @300 :Custom.Radar4D;   # BGT60TR13C 4D short-range (radar4d.py → gridd)
-    radar2d @301 :Custom.Radar2D;   # corner/blind-spot radars — presence + speed (future)
+    radar2d @301 :Custom.Radar2D;   # ESP32-S3 corner radars — tracked objects + legacy zone presence
     # ---- restored upstream members (wire compat; unused by EOP code) ----
     userBookmark @93 :UserBookmark;
     bookmarkButton @148 :UserBookmark;

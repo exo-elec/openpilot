@@ -24,7 +24,7 @@ except ImportError:
 
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session
+from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central
 
 
 def _set_adapter_name(bus: dbus.Bus, name: str) -> None:
@@ -69,8 +69,13 @@ class BluetoothD:
         else:
             self.bus = None
 
+        # BLE central for ESP32 corner radars — self-gates on EOPBluetoothRadarEnabled.
+        # Created BEFORE the NCP session so the session can serve its pairing
+        # service-tool messages (RADAR_PAIR_CONTROL/STATUS) against it.
+        self.ble_central = ble_central.BLECentral(params=self.params)
+
         # ONE shared NCP session — ensures a single PubMaster per service in this process
-        self._session = ncp_session.NCPSession(params=self.params)
+        self._session = ncp_session.NCPSession(params=self.params, ble_central=self.ble_central)
 
         self.sppd  = spp.SPPD(params=self.params,      session=self._session)
         self.gattd = ble_gatt.GATTD(params=self.params, session=self._session)
@@ -127,6 +132,16 @@ class BluetoothD:
             else:
                 cloudlog.warning('bluetoothd: BLE GATT not available')
 
+        # Start BLE central for ESP32 corner radars — only when its param is on.
+        # When enabled, ble_central is the SOLE radar2d publisher (msgq allows
+        # one publisher per service — see ble_central.py docstring warning).
+        if self.bus and self.ble_central.enabled:
+            if self.ble_central.setup(self.bus):
+                self.ble_central.start()
+                cloudlog.info('bluetoothd: BLE central (corner radars) started')
+            else:
+                cloudlog.warning('bluetoothd: BLE central not available')
+
         cloudlog.info('bluetoothd: running')
 
         try:
@@ -141,6 +156,7 @@ class BluetoothD:
         cloudlog.info('bluetoothd: stopping')
         self._session.stop()
         self.gattd.stop()
+        self.ble_central.stop()
         pairing_agent.unregister_agent(self._pairing_agent)
         self.sppd.stop()
         if self._glib_loop:

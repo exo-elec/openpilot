@@ -42,6 +42,7 @@ import os
 from dataclasses import dataclass
 
 import numpy as np
+import yaml
 
 from openpilot.common.transformations.orientation import rot_from_euler
 from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
@@ -52,6 +53,44 @@ from openpilot.system.hardware.hw import Paths
 # they live at the application layer — unlike factory intrinsics, which are
 # owned by the exopilot HAL.
 EXTRINSICS_PATH = os.path.join(Paths.eop_data_root(), "calibration", "radar_extrinsics.json")
+
+# Shared vehicle-frame extrinsics registry (see ESP32_RADAR
+# docs/pairing-and-calibration.md "Unified vehicle-frame extrinsics"):
+# visionpilot WRITES it (pairing seeds, on-road refines); openpilot only READS.
+SENSOR_REGISTRY_PATH = os.path.join(Paths.eop_data_root(), "calibration", "sensor_calibration.yaml")
+
+# ESP32 corner id (radar_corner_id_t: 0=FL,1=FR,2=RL,3=RR) → registry key
+R2D_CORNER_NAMES = {0: 'front_left', 1: 'front_right', 2: 'rear_left', 3: 'rear_right'}
+
+
+def load_sensor_registry(path: str = SENSOR_REGISTRY_PATH) -> dict | None:
+    """Read the shared sensor_calibration.yaml registry. Returns the parsed
+    dict, or None if the file is absent/unparseable (callers fall back)."""
+    try:
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def load_corner_poses(path: str = SENSOR_REGISTRY_PATH) -> dict[int, tuple[float, float, float]] | None:
+    """corner_radars section → {corner_id: (x_m, y_m, yaw_deg)} in the vehicle
+    frame. Returns None if the registry, the section, or ANY corner entry is
+    missing/garbled — the caller then falls back to its placeholder table."""
+    corners = (load_sensor_registry(path) or {}).get('corner_radars')
+    if not isinstance(corners, dict):
+        return None
+    poses = {}
+    for corner_id, name in R2D_CORNER_NAMES.items():
+        entry = corners.get(name)
+        try:
+            pos, rot = entry['position'], entry['rotation']
+            poses[corner_id] = (float(pos['x_m']), float(pos['y_m']),
+                                float(rot['yaw_deg']))
+        except (TypeError, KeyError, ValueError):
+            return None
+    return poses
 
 
 @dataclass

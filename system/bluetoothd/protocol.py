@@ -75,6 +75,7 @@ class MessageType(IntEnum):
         0x40–0x4F  Control
         0x50–0x5F  Search
         0x60–0x6F  Auth (DEVICE→PHONE)
+        0x0600+    Reclaimed v3.x 16-bit slots (msg_type field is 2 bytes)
     """
     # --- Device info ---
     DEVICE_CAPABILITIES = 0x00   # PHONE→DEVICE: Request capabilities
@@ -134,6 +135,19 @@ class MessageType(IntEnum):
     AUTH_SUBSCRIPTION_STATE = 0x61  # DEVICE→PHONE: Subscription tier state
     AUTH_TOKEN_VALIDATE     = 0x62  # DEVICE→PHONE: Token validation result
     OAUTH_STATUS            = 0x63  # DEVICE→PHONE: Token status (missing/valid/expiring_soon/expired)
+
+    # --- Perception (DEVICE→PHONE) ---
+    # Reclaims the reserved-but-never-specified v3.x 0x0602 slot; JSON payload —
+    # the peer Flutter app implements the same value. Payload schema is the
+    # cross-repo contract in ncp_session.build_blindspot_payload — do not rename.
+    BLIND_SPOT = 0x0602  # blind-spot decision (blindSpotAlert) + corner-radar presence (radar2d)
+
+    # Radar pairing service tool — navpilot acts as the commissioning UI for
+    # the ESP32 corner radars. NEW values: 0x0602 was the only reserved v3.x
+    # slot reused; 0x0610/0x0611 reclaim nothing. Flutter peer implements both.
+    # Payload schemas are the pinned cross-repo contract — do not rename fields.
+    RADAR_PAIR_CONTROL = 0x0610  # PHONE→DEVICE: {"open": bool} → BLERadarPairingOpen param
+    RADAR_PAIR_STATUS  = 0x0611  # DEVICE→PHONE: window/pairs/candidates (ncp_session)
 
 
 @dataclass(frozen=True)

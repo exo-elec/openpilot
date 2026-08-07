@@ -463,6 +463,18 @@ class GridD:
     _R2D_ZONE_RADIUS   = 2.0   # costmap obstacle radius (m)
     _R2D_PROB          = 0.92  # hardware detection — high confidence
 
+    # radar2d corner mounting poses in vehicle frame (x_m forward, y_m left, yaw_deg CCW).
+    # Keys match ESP32_RADAR radar_corner_id_t: 0=FL, 1=FR, 2=RL, 3=RR.
+    # PLACEHOLDER values pending extrinsic calibration — same honesty convention
+    # as the ESP32_RADAR pins.h placeholders; on-node extrinsics params are all
+    # zeros today, so do not trust these to centimetre level.
+    _R2D_CORNER_POSE = {
+        0: ( 1.8,  0.8,   45.0),   # front-left
+        1: ( 1.8, -0.8,  -45.0),   # front-right
+        2: (-1.8,  0.8,  135.0),   # rear-left
+        3: (-1.8, -0.8, -135.0),   # rear-right
+    }
+
     # radar3d fusion constants (OEM CAN radar — raw RadarPoint list)
     _R3D_MIN_DREL       = 12.0   # m — below this radar4d has better coverage; skip overlap
     _R3D_ASSOC_M        = 3.0    # Cartesian match radius to existing stereo object (m)
@@ -953,6 +965,68 @@ class GridD:
         return self._fuse_radar4d_points(objects, radar4d)
 
     def _fuse_radar2d(self, objects: list, radar2d) -> list:
+        """Orchestrate radar2d corner fusion.
+
+        Prefer on-node tracked Radar2DObjects when the ESP32-S3 corner nodes
+        publish them; fall back to the legacy zone-presence returns path when
+        the object list is empty (presence-only nodes / diagnostic paths).
+        """
+        if radar2d is None:
+            return objects
+        if len(radar2d.objects) > 0:
+            return self._fuse_radar2d_objects(objects, radar2d)
+        return self._fuse_radar2d_returns(objects, radar2d)
+
+    def _fuse_radar2d_objects(self, objects: list, radar2d) -> list:
+        """Fuse on-node tracked Radar2DObjects from the ESP32-S3 corner radars.
+
+        Each corner node runs its own Kalman tracker (with occlusion coasting)
+        and reports polar tracks in its own frame; we rotate them into the
+        vehicle frame with the per-corner mounting pose (_R2D_CORNER_POSE).
+        Coasted tracks (measured=false) are predict-only this frame: they stay
+        in the objects list with halved confidence but must not stamp a hard
+        obstacle into the costmap.
+        """
+        for obj_msg in radar2d.objects:
+            if obj_msg.corner not in self._R2D_CORNER_POSE:
+                # 0xFF = unresolved corner strap (ESP32_RADAR wire_format.h) —
+                # without a mounting pose we cannot place the track.
+                continue
+            px, py, yaw_deg = self._R2D_CORNER_POSE[obj_msg.corner]
+            az = math.radians(obj_msg.azimuthDeg)
+            yaw = math.radians(yaw_deg)
+            sx = obj_msg.rangM * math.cos(az)   # forward in sensor frame
+            sy = obj_msg.rangM * math.sin(az)   # left in sensor frame
+            d_rel = px + sx * math.cos(yaw) - sy * math.sin(yaw)
+            y_rel = py + sx * math.sin(yaw) + sy * math.cos(yaw)
+
+            snr_frac = min(obj_msg.snrDb / self._R4D_SNR_REF_DB, 1.0)
+            existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)  # 0-100, same convention as Radar4DObject
+            confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R4D_CONFIDENCE_BOOST
+            confidence = 0.5 + confidence_boost
+            if not obj_msg.measured:
+                # Predict-only coast through occlusion — softer evidence.
+                confidence *= 0.5
+
+            objects.append({
+                'dRel': d_rel, 'yRel': y_rel, 'vRel': float(obj_msg.vRel),
+                'aRel': float(obj_msg.aRel),
+                'confidence': confidence, 'prob': confidence,
+                'trackId': int(obj_msg.trackId), 'obstacleType': 0,
+                'dynProp': int(obj_msg.dynProp),
+                'length': float(obj_msg.lengthM),
+                'width': float(obj_msg.widthM),
+            })
+
+            if obj_msg.measured and self._active_costmap is not None:
+                radius = self._R2D_ZONE_RADIUS
+                if 0.1 < obj_msg.lengthM < 10.0 and 0.1 < obj_msg.widthM < 10.0:
+                    radius = max(obj_msg.lengthM, obj_msg.widthM) / 2.0
+                self._active_costmap.add_obstacle(d_rel, y_rel, radius=radius, cost=0.9)
+
+        return objects
+
+    def _fuse_radar2d_returns(self, objects: list, radar2d) -> list:
         """Map corner-sensor zone presence to costmap obstacles and stereoObjects entries."""
         for r in radar2d.returns:
             if not r.present:
