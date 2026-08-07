@@ -11,6 +11,20 @@
 **Backups:** tag `backup/EOP10-squashed-20260610` (pre-final-audit squashed state)  
 **Last updated:** 2026-06-11 — **FINAL AUDIT COMPLETE**, see `FINAL_AUDIT_2026-06-10/LEDGER.md`
 
+> **⚠️ Hash reachability note (2026-08-08):** the individual commit hashes
+> recorded in this file below (`1d5f050ef` and earlier) are **no longer
+> reachable** from the current branch tip — a later history rewrite orphaned
+> them (`git merge-base --is-ancestor 1d5f050ef HEAD` fails; `git branch
+> --contains 1d5f050ef` returns nothing). `git log 1d5f050ef..HEAD` will
+> silently return the *entire* branch history instead of a real delta — do
+> not use it to compute "what's new since the last audit." The content
+> record below is still accurate (tree-identical per the squash), but to
+> compute a real delta, anchor on **`858419d7d`** (`[DOCS] EOP architecture
+> documentation and upstream audit records` — the last old topic commit that
+> *is* still reachable) instead. See `docs/upstream-audit/CROSS_BRANCH_AUDIT.md`
+> (Node 8) for the commits audited past that point (`858419d7d..ba0151e03`,
+> plus the working tree as of 2026-08-08).
+
 **Constraints given by user:**
 - No LFS (adds repo complexity).
 - Foundation-first commit layout.
