@@ -1922,7 +1922,11 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   ddscStandstillLatched @64 :Bool;
   ddscSpeed @65 :Float32;
 
-  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via nagaspilot/controls)
+  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy). The
+  # nagaspilot/controls/ngp_brsc.py policy source is shared byte-identical
+  # across EOP10/NGP10/EDP10, but these wire ordinals are NOT synchronized
+  # across branches' schemas — do not decode one branch's radar/plan logs
+  # with another branch's cereal bindings. See docs/upstream-audit/NODE_05.
   ngpBrscActive @66 :Bool;
   ngpBrscSpeed @67 :Float32;
   ngpBrscRoughness @68 :Float32;

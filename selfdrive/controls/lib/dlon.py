@@ -10,6 +10,7 @@ Based on Sunnypilot DEC architecture with simplified trigger set.
 import time
 from enum import Enum
 from openpilot.common.realtime import DT_MDL
+from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.eop_utils import SmoothEMA
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
@@ -104,6 +105,11 @@ class DLON:
   CURVE_LAT_ACC_THRESHOLD = 1.2  # m/s² - curve threshold (CEM merge)
   STOP_PREDICTION_DISTANCE = 50.0  # meters
   EXIT_DEBOUNCE = 2.0  # seconds
+  # E2E handles the deceleration into a lower posted limit more smoothly than
+  # stock ACC; only trigger for a meaningfully lower limit, not noise right
+  # at the boundary (map/nav speed-limit values are step functions, not
+  # continuous, so a small margin avoids chatter at the zone edge).
+  SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
   
   def __init__(self):
     self.params = Params()
@@ -120,6 +126,7 @@ class DLON:
     self.curve_filter = SmoothEMA(alpha=0.3)
     self.stop_filter = SmoothEMA(alpha=0.3)
     self.nav_filter = SmoothEMA(alpha=0.3)
+    self.speed_limit_filter = SmoothEMA(alpha=0.3)
 
     # State
     self.frame = 0
@@ -129,6 +136,7 @@ class DLON:
     self._in_sharp_curve = False
     self._should_stop = False
     self._nav_trigger = False
+    self._speed_limit_trigger = False
 
     # Per-trigger enable toggles (CEM merge)
     self._trigger_enabled = {
@@ -247,7 +255,26 @@ class DLON:
     if hasattr(nav, 'maneuverDistance'):
       return nav.maneuverDistance < self.STOP_PREDICTION_DISTANCE
     return False
-      
+
+  def detect_speed_limit_trigger(self, sm, v_ego) -> bool:
+    """Detect an active mapped/nav speed limit meaningfully lower than
+    current speed — E2E's smoother deceleration profile handles the
+    transition better than stock ACC. Same map-then-nav source preference
+    and unit handling as nslc.py's NSLC.update()."""
+    limit_ms = None
+    if 'mapData' in sm.valid and sm.valid['mapData']:
+      map_limit = sm['mapData'].speedLimit  # km/h
+      if map_limit > 0:
+        limit_ms = map_limit * CV.KPH_TO_MS
+    if limit_ms is None and 'navInstruction' in sm.valid and sm.valid['navInstruction']:
+      nav_limit = sm['navInstruction'].speedLimit  # m/s
+      if nav_limit > 0:
+        limit_ms = nav_limit
+
+    if limit_ms is None:
+      return False
+    return limit_ms < v_ego - self.SPEED_LIMIT_TRIGGER_MARGIN_MS
+
   def update(self, sm, mpc_crash_cnt: int = 0) -> dict:
     """
     Main update method.
@@ -290,6 +317,10 @@ class DLON:
     nav_trigger = self.detect_nav_trigger(sm)
     self.nav_filter.update(float(nav_trigger))
     self._nav_trigger = self.nav_filter.get_value() > 0.5
+
+    speed_limit_trigger = self.detect_speed_limit_trigger(sm, v_ego)
+    self.speed_limit_filter.update(float(speed_limit_trigger))
+    self._speed_limit_trigger = self.speed_limit_filter.get_value() > 0.5
 
     # Force stops (merged from FrogPilot)
     force_stop = False
@@ -365,13 +396,15 @@ class DLON:
         'low_speed': self.detect_low_speed_scenario(v_ego, has_lead),
         'turn_intent': self.detect_turn_intent(CS, v_ego),
         'sharp_curve': self._in_sharp_curve,
-        'mpc_fcw': self._has_mpc_fcw
+        'mpc_fcw': self._has_mpc_fcw,
+        'speed_limit': self._speed_limit_trigger
       },
       'confidences': {
         'lead': round(self.lead_filter.get_confidence(), 3),
         'traffic': round(self.traffic_filter.get_confidence(), 3),
         'fcw': round(self.fcw_filter.get_confidence(), 3),
-        'curve': round(self.curve_filter.get_confidence(), 3)
+        'curve': round(self.curve_filter.get_confidence(), 3),
+        'speed_limit': round(self.speed_limit_filter.get_confidence(), 3)
       }
     }
 
@@ -402,6 +435,9 @@ class DLON:
     if self._trigger_enabled['low_speed'] and self.detect_low_speed_scenario(v_ego, radar_state.leadOne.status if radar_state else False):
       return True
 
+    if self._trigger_enabled['speed_limit'] and self._speed_limit_trigger:
+      return True
+
     if self._trigger_enabled['signal'] and self.detect_turn_intent(CS, v_ego):
       return True
 
@@ -421,7 +457,9 @@ class DLON:
       confidences.append(self.fcw_filter.get_confidence())
     if self._in_sharp_curve:
       confidences.append(self.curve_filter.get_confidence())
-      
+    if self._speed_limit_trigger:
+      confidences.append(self.speed_limit_filter.get_confidence())
+
     # Lead confidence is always relevant if present
     if self._has_lead_filtered:
       confidences.append(self.lead_filter.get_confidence())
