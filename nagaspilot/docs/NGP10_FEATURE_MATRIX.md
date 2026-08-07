@@ -64,7 +64,26 @@ left unexposed):
   `dev/EOP10`'s `eop_panel.cc` has the identical set of backing params
   (`EOPDLON*Enabled`) and made the same choice to expose only the mode selector,
   not each trigger individually. Matching that precedent rather than inventing
-  new UI surface not modeled on any sibling branch. TJA has no backing param on
+  new UI surface not modeled on any sibling branch.
+  **`_speed_limit` history (2026-08-08):** an audit found this toggle read
+  its param every second but was never consulted by any trigger-evaluation
+  logic on either EOP10 or NGP10 — no `detect_speed_limit_*` trigger existed.
+  Root cause was that the trigger itself had never been implemented, not
+  that the toggle was meant to be permanently inert. Implemented the real
+  trigger the same day: `detect_speed_limit_trigger()` in `ngp_dlon.py`
+  reads `mapData.speedLimit` (km/h, preferred) falling back to
+  `navInstruction.speedLimit` (m/s) — same source preference and unit
+  handling as `dev/EOP10`'s `nslc.py` — and fires when that limit is more
+  than `SPEED_LIMIT_TRIGGER_MARGIN_MS` (2 m/s) below current speed, on the
+  theory that E2E's smoother deceleration profile handles the transition
+  into a lower posted limit better than stock ACC (same rationale as the
+  existing `navigation` trigger, which uses `navInstruction.maneuverDistance`
+  for the analogous "upcoming route event" case). `plannerd.py`'s
+  `SubMaster` gained a `mapData` subscription (was missing entirely) and
+  `navInstruction` moved into `ignore_alive` (both optional/intermittent
+  services, matching EOP10's existing pattern) so the new trigger actually
+  has data to read.
+  TJA has no backing param on
   any branch (always active, not user-toggleable), so it was never a panel
   candidate.
 
