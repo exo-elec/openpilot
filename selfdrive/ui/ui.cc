@@ -71,10 +71,16 @@ void ui_update_params(UIState *s) {
 }
 
 void UIState::updateStatus() {
+  if (sm->updated("controlsState")) {
+    scene.alcc_active = (*sm)["controlsState"].getControlsState().getNgpAlccActive();
+  }
+
   if (scene.started && sm->updated("selfdriveState")) {
     auto ss = (*sm)["selfdriveState"].getSelfdriveState();
     auto state = ss.getState();
-    if (state == cereal::SelfdriveState::OpenpilotState::PRE_ENABLED || state == cereal::SelfdriveState::OpenpilotState::OVERRIDING) {
+    if (scene.alcc_active && !ss.getEnabled()) {
+      status = STATUS_ALCC;
+    } else if (state == cereal::SelfdriveState::OpenpilotState::PRE_ENABLED || state == cereal::SelfdriveState::OpenpilotState::OVERRIDING) {
       status = STATUS_OVERRIDE;
     } else {
       status = ss.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;

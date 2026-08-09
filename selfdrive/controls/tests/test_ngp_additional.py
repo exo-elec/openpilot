@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 from openpilot.selfdrive.adaptd.ngp_profile import AdaptivePersonality, NGPAdaptiveProfile, VehicleTelemetry
 from nagaspilot.controls.ngp_alcc import ALCCInput, ALCCState, NGPALCC
-from nagaspilot.controls.ngp_coasting import CoastingInput, NGPCoasting
 from nagaspilot.controls.ngp_collision import CollisionLevel, NGPCollisionRisk
 from nagaspilot.controls.ngp_lca import LCAInput, LCAState, NGPLCA
 from nagaspilot.controls.ngp_radar import NGPRadarTracker, RadarObservation, RadarSource, RadarZones
@@ -13,7 +12,6 @@ from nagaspilot.controls.ngp_road_edge import evaluate_road_edges
 from nagaspilot.controls.ngp_speed_policy import (
   NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource,
 )
-from nagaspilot.controls.ngp_suite import NGPFeatureSuite
 from nagaspilot.controls.ngp_traffic_control import (
   NGPTrafficControl, TrafficControlObservation, TrafficControlState,
 )
@@ -65,11 +63,7 @@ def test_normalized_radar_tracks_and_blocks_fast_rear_approach():
   assert tracker.update((), 2.0) == ()
 
 
-def test_coasting_is_integrated_while_collision_remains_advisory():
-  coast = NGPCoasting().evaluate(CoastingInput(25.0, 20.0))
-  assert coast.coast_suggestion and coast.minimum_brake_mps2 == -0.5
-  assert coast.control_authority
-
+def test_collision_risk_is_advisory_only():
   track = SimpleNamespace(track_id=7, d_rel=12.0, y_rel=0.2, v_rel=-10.0)
   collision = NGPCollisionRisk().evaluate(25.0, (track,))
   assert collision.level is CollisionLevel.CRITICAL
@@ -92,12 +86,9 @@ def test_road_and_traffic_policies_fail_closed():
   assert not traffic.evaluate(10.0, (red,), has_lead=True).stop_suggestion
 
 
-def test_adaptive_profile_and_manifest_distinguish_integrated_features():
+def test_adaptive_profile_distinguishes_personality():
   computer = NGPAdaptiveProfile(personality_hysteresis_s=0.0)
   profile = computer.update(VehicleTelemetry(valid=True, battery_soc=8.0, range_remaining_km=20.0), now=1.0)
   assert profile.personality is AdaptivePersonality.RELAXED
   assert profile.accel_max == 0.8
   assert not profile.control_authority
-  authority = {feature.name: feature.control_authority for feature in NGPFeatureSuite.manifest()}
-  assert authority["DLON"] and authority["adaptive_coasting"] and authority["TJA"]
-  assert not authority["collision_risk"] and not authority["VTSC"]

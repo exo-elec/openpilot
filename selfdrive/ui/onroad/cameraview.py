@@ -4,6 +4,7 @@ import pyray as rl
 
 from msgq.visionipc import VisionIpcClient, VisionStreamType, VisionBuf
 from openpilot.common.swaglog import cloudlog
+from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.hardware import TICI
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.egl import init_egl, create_egl_image, destroy_egl_image, bind_egl_image_to_texture, EGLImage
@@ -103,6 +104,17 @@ class CameraView(Widget):
       self.egl_texture = rl.load_texture_from_image(temp_image)
       rl.unload_image(temp_image)
 
+    ui_state.add_offroad_transition_callback(self._offroad_transition)
+
+  def _offroad_transition(self):
+    # Reconnect if not first time going onroad, to flush stale buffered frames.
+    # Re-connecting the client alone is not enough; the message queue itself
+    # needs a fresh client, not just clearing internal buffers.
+    if ui_state.is_onroad() and self.frame is not None:
+      self.frame = None
+      self.available_streams.clear()
+      self.client = VisionIpcClient(self._name, self._stream_type, conflate=True)
+
   def _set_placeholder_color(self, color: rl.Color):
     """Set a placeholder color to be drawn when no frame is available."""
     self._placeholder_color = color
@@ -175,6 +187,8 @@ class CameraView(Widget):
     if buffer:
       self._texture_needs_update = True
       self.frame = buffer
+    elif not self.client.is_connected():
+      self.frame = None
 
     if not self.frame:
       self._draw_placeholder(rect)

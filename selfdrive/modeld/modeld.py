@@ -25,6 +25,7 @@ from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
 from nagaspilot.controls.ngp_road_edge import evaluate_road_edges
+from nagaspilot.controls.ngp_dlat import NGPDLAT, DEFAULT_ENTER_THRESHOLD
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState
@@ -343,9 +344,16 @@ def main(demo=False):
       r_lane_change_prob = desire_state[log.Desire.laneChangeRight]
       lane_change_prob = l_lane_change_prob + r_lane_change_prob
       road_edges = evaluate_road_edges(modelv2_send.modelV2.roadEdgeStds, modelv2_send.modelV2.laneLineProbs) if ngp_road_edge_enabled else None
+      # DLAT lane-confidence LCA initiation gate: default on, no toggle -- see
+      # desire_helper.py's low_lane_confidence docstring. Reuses NGPDLAT's own
+      # static confidence formula + enter threshold directly (no NGPDLAT
+      # instance/hysteresis needed here; this is a one-shot check, not the
+      # stateful Laneful/Laneless arbiter that lives in controlsd.py).
+      lane_confidence = NGPDLAT.lane_confidence(modelv2_send.modelV2.laneLineProbs)
       DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob,
                 left_edge_detected=bool(road_edges and road_edges.left_blocked),
-                right_edge_detected=bool(road_edges and road_edges.right_blocked))
+                right_edge_detected=bool(road_edges and road_edges.right_blocked),
+                low_lane_confidence=lane_confidence < DEFAULT_ENTER_THRESHOLD)
       modelv2_send.modelV2.meta.laneChangeState = DH.lane_change_state
       modelv2_send.modelV2.meta.laneChangeDirection = DH.lane_change_direction
       drivingdata_send.drivingModelData.meta.laneChangeState = DH.lane_change_state

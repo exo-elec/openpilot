@@ -47,6 +47,10 @@ void NGPPanel::add_lateral_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
+  // DLAT (Dynamic Lateral Profile) is a default, always-on behavior of this
+  // branch -- automatic Laneful/Laneless confidence arbitration, not a
+  // user-selectable mode. No panel control by design.
+
   // If no toggles were added, hide the label
   if (!has_toggle && label) {
     label->hide();
@@ -59,22 +63,6 @@ void NGPPanel::add_longitudinal_toggles() {
       "",
       tr("Longitudinal Ctrl"),
       "",
-    },
-    {
-      "ngp_lon_dlon",
-      tr("Dynamic Longitudinal Profile (DLON)"),
-      tr("Automatically switches between comfortable highway cruising and "
-         "intelligent urban driving based on context."),
-    },
-    {
-      "ngp_lon_coasting",
-      tr("Adaptive Coasting Mode (ACM)"),
-      tr("Reduces braking to allow smoother coasting when appropriate."),
-    },
-    {
-      "ngp_lon_coasting_downhill",
-      QString::fromUtf8("　") + tr("Downhill Only"),
-      tr("Limited to downhill driving."),
     },
     {
       "ngp_lon_brsc",
@@ -103,12 +91,10 @@ void NGPPanel::add_longitudinal_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
-  // DLON Mode Selector
-  auto dlon_mode_control = new ButtonParamControl(
-      "ngp_lon_dlon_mode", QString::fromUtf8("　") + tr("Longitudinal Profile"),
-      tr("Chill - standard cruise. Experimental - E2E. Auto - context-based switch."),
-      "", {tr("Chill"), tr("Experimental"), tr("Auto")});
-  addItem(dlon_mode_control);
+  // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior of
+  // this branch -- automatic ACC/E2E switching, not a user-selectable mode.
+  // No master enable toggle and no panel control by design: users cannot
+  // force pure E2E (Experimental) or pure ACC directly.
 
   // If no toggles were added, hide the label
   if (!has_toggle && label) {
@@ -139,7 +125,6 @@ void NGPPanel::showEvent(QShowEvent *event) {
 void NGPPanel::updateStates() {
   // do fs_watch here
   fs_watch->addParam("ngp_lat_lca_speed");
-  fs_watch->addParam("ngp_lon_coasting");
 
   if (!isVisible()) {
     return;
@@ -147,7 +132,6 @@ void NGPPanel::updateStates() {
 
   // do state change logic here
   lca_sec_toggle->setVisible(std::atoi(params.get("ngp_lat_lca_speed").c_str()) > 0);
-  toggles["ngp_lon_coasting_downhill"]->setVisible(params.getBool("ngp_lon_coasting"));
 }
 
 void NGPPanel::expandToggleDescription(const QString &param) {

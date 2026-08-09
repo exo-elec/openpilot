@@ -4,16 +4,16 @@
 
 1. [`PROJECT_CONCEPT.md`](PROJECT_CONCEPT.md) — scope and design rules.
 2. [`NGP10_FEATURE_MATRIX.md`](NGP10_FEATURE_MATRIX.md) — implemented feature status.
-3. [`SPEED_AND_TJA_POLICY.md`](SPEED_AND_TJA_POLICY.md) — CRAWL/WALK/CITY/URBAN/HIGHWAY and traffic-jam behavior.
-4. [`NAMING_CONVENTIONS.md`](NAMING_CONVENTIONS.md) — `ngp_` settings and module naming.
+3. [`EOP10_PARITY_CANDIDATES.md`](EOP10_PARITY_CANDIDATES.md) — what EOP10 has that NGP10 doesn't yet, and why (portable vs. hardware-gated).
+4. [`SPEED_AND_TJA_POLICY.md`](SPEED_AND_TJA_POLICY.md) — CRAWL/WALK/CITY/URBAN/HIGHWAY and traffic-jam behavior.
+5. [`NAMING_CONVENTIONS.md`](NAMING_CONVENTIONS.md) — `ngp_` settings and module naming.
 
 Runtime code follows the same order:
 
 1. `nagaspilot/speed_zones.py` defines the shared 2/6/12/24/36 m/s contract.
 2. `nagaspilot/controls/ngp_tja.py` gates positive acceleration from lead state.
 3. `selfdrive/controls/lib/longitudinal_planner.py` is the small upstream hook
-   that composes `nagaspilot/controls/ngp_dlon.py`, `ngp_tja.py`, and
-   `ngp_coasting.py`.
+   that composes `nagaspilot/controls/ngp_dlon.py` and `ngp_tja.py`.
 4. `selfdrive/controls/controlsd.py` and car control produce commands.
 5. OpenDBC/Panda enforces vehicle-model steering safety.
 6. BrownPanda translates Tesla-format steering to learned BYD geometry.

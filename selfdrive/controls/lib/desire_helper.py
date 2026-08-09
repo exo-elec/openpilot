@@ -43,7 +43,8 @@ class DesireHelper:
     self.ngp_lca_auto_sec = max(0.0, float(ngp_lca_auto_sec))
     self.ngp_lca_auto_timer = 0.0
 
-  def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected=False, right_edge_detected=False):
+  def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected=False, right_edge_detected=False,
+             low_lane_confidence=False):
     v_ego = carstate.vEgo
     one_blinker = carstate.leftBlinker != carstate.rightBlinker
     below_lane_change_speed = self.ngp_lca_speed <= 0.0 or v_ego < self.ngp_lca_speed
@@ -55,6 +56,7 @@ class DesireHelper:
       # LaneChangeState.off
       if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker and not below_lane_change_speed:
         self.lane_change_state = LaneChangeState.preLaneChange
+        self.lane_change_direction = LaneChangeDirection.left if carstate.leftBlinker else LaneChangeDirection.right
         self.lane_change_ll_prob = 1.0
         self.ngp_lca_auto_timer = 0.0
 
@@ -71,7 +73,10 @@ class DesireHelper:
         blindspot_detected = (((carstate.leftBlindspot or left_edge_detected) and self.lane_change_direction == LaneChangeDirection.left) or
                               ((carstate.rightBlindspot or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
 
-        if blindspot_detected:
+        # DLAT lane-confidence gate: don't initiate (or accumulate toward a
+        # nudgeless auto-initiate) while lane-line confidence is too low to
+        # trust the geometry. Always on, no toggle -- see modeld.py caller.
+        if blindspot_detected or low_lane_confidence:
           self.ngp_lca_auto_timer = 0.0
         else:
           self.ngp_lca_auto_timer += DT_MDL
@@ -81,7 +86,7 @@ class DesireHelper:
         if not one_blinker or below_lane_change_speed:
           self.lane_change_state = LaneChangeState.off
           self.lane_change_direction = LaneChangeDirection.none
-        elif torque_applied and not blindspot_detected:
+        elif torque_applied and not blindspot_detected and not low_lane_confidence:
           self.lane_change_state = LaneChangeState.laneChangeStarting
 
       # LaneChangeState.laneChangeStarting

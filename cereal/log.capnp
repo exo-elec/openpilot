@@ -867,6 +867,11 @@ struct ControlsState @0x97ff69c53601abf1 {
   forceDecel @51 :Bool;
   ngpAlccActive @67 :Bool;
 
+  # DLAT: Dynamic Lateral Profile -- automatic Laneful/Laneless confidence
+  # arbitration. Always-on behavior of this branch; no user-selectable mode.
+  ngpDlatUseLaneless @68 :Bool;    # resolved laneless state actually in effect
+  ngpDlatLaneConfidence @69 :Float32;
+
   lateralControlState :union {
     pidState @53 :LateralPIDState;
     angleState @58 :LateralAngleState;
