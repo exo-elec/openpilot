@@ -38,10 +38,11 @@ dragonpilot/EOP-style toggle panel at all — only `DeveloperPanel`. Named `NGP`
 matching the `ngp_`-prefix convention already used for shared modules (see
 `nagaspilot/docs/NAMING_CONVENTIONS.md`).
 
-First pass exposed only the BRSC toggle; now completed with every other
-already-integrated, user-facing `ngp_*` param this branch has (all 15 keys in
-`common/params_keys.h`'s `ngp_*` block are now reachable from the UI — none
-left unexposed):
+First pass exposed only the BRSC toggle; then expanded to cover the rest of
+this branch's user-facing `ngp_*` params. As of the 2026-08-09 coasting
+retirement, `common/params_keys.h`'s `ngp_*` block has 15 keys: 7 are
+reachable from the UI, and 8 (DLON's per-trigger sub-toggles) are
+deliberately not — see below for why:
 
 - **Lateral Ctrl section** (`add_lateral_toggles()`): `ngp_lat_alcc` (Always-on
   Lane Centering Control), `ngp_lat_road_edge_detection` (Road Edge Detection),
