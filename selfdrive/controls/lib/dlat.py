@@ -67,21 +67,18 @@ class DLAT:
     self._load_params()
 
   def _load_params(self):
-    """Load DLAT parameters (call periodically, not every frame)."""
+    """Load DLAT parameters (call periodically, not every frame).
+
+    Mode is always `auto` (automatic Laneful/Laneless arbitration) -- a
+    default, standard behavior of this branch, not a user-selectable
+    choice. There is no param or panel control that forces a fixed
+    laneful or laneless mode, matching dev/NGP10's design.
+    """
     now = time.monotonic()
     if now - self._last_param_t < self.PARAM_REFRESH_S:
       return
     self._last_param_t = now
-    try:
-      mode_idx = int(self.params.get("EOPDLATMode") or 2)
-      if mode_idx == 0:
-        self.mode = DLATMode.laneful
-      elif mode_idx == 1:
-        self.mode = DLATMode.laneless
-      else:
-        self.mode = DLATMode.auto
-    except (ValueError, TypeError):
-      self.mode = DLATMode.auto
+    self.mode = DLATMode.auto
     try:
       self._curve_assist_enabled = self.params.get_bool("EOPDLPCurvesEnabled")
     except (ValueError, TypeError):

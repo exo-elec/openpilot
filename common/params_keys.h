@@ -161,16 +161,19 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPCurrentRegion", {PERSISTENT, STRING, ""}},
     {"EOPCurveSpeedDBPath", {PERSISTENT, STRING, "/data/shared/exopilot/curve.db"}},
     {"EOPCurveSpeedLearnEnabled", {PERSISTENT, BOOL, "1"}},
-    {"EOPDLATMode", {PERSISTENT, INT, "2"}},
+    // DLAT (Dynamic Lateral Profile, dlat.py) is a default, always-on
+    // automatic Laneful/Laneless arbitration -- no user-selectable mode
+    // param, matching dev/NGP10's design.
     {"EOPDLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
     // Couples DLAT's own Laneful/Laneless arbitration (dlat.py) into DLON's
-    // AUTO-mode switch: when DLAT has committed to Laneless, E2E's path-only
-    // prediction fits better than lane-line-anchored ACC. Only consulted in
-    // AUTO mode, same as the other per-trigger toggles above/below.
+    // automatic switch: when DLAT has committed to Laneless, E2E's path-only
+    // prediction fits better than lane-line-anchored ACC.
     {"EOPDLONLaneConfidenceEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
-    {"EOPDLONMode", {PERSISTENT, INT, "2"}},
+    // DLON (Dynamic Longitudinal Profile) is a default, always-on automatic
+    // ACC/E2E switch -- no mode param: users cannot force pure E2E
+    // (Experimental) or pure ACC directly, matching dev/NGP10's design.
     {"EOPDLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONSignalEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONSlowLeadEnabled", {PERSISTENT, BOOL, "1"}},

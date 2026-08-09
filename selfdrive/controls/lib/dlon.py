@@ -162,19 +162,17 @@ class DLON:
     self.override_force_stop_timer = 0.0
     
   def update_params(self):
-    """Update parameters periodically (every 1 second)."""
+    """Update parameters periodically (every 1 second).
+
+    Mode is always AUTO (automatic Chill/Experimental switching) -- a
+    default, standard behavior of this branch, not a user-selectable
+    choice. There is no param or panel control that forces a fixed CHILL
+    or EXPERIMENTAL mode; users cannot force pure E2E driving directly,
+    matching dev/NGP10's design.
+    """
     current_time = time.monotonic()
     if current_time - self.last_param_update >= 1.0:
-      try:
-        mode_idx = int(self.params.get("EOPDLONMode") or 2)
-        if mode_idx == 0:
-          self.mode = DLONMode.CHILL
-        elif mode_idx == 1:
-          self.mode = DLONMode.EXPERIMENTAL
-        else:
-          self.mode = DLONMode.AUTO
-      except (ValueError, TypeError):
-        self.mode = DLONMode.AUTO
+      self.mode = DLONMode.AUTO
       # Per-trigger toggles (CEM merge)
       self._trigger_enabled['curves'] = self.params.get_bool("EOPDLONCurvesEnabled")
       self._trigger_enabled['lane_confidence'] = self.params.get_bool("EOPDLONLaneConfidenceEnabled")

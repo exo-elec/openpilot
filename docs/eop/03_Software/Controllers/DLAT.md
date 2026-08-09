@@ -815,3 +815,33 @@ The identical LCA gate and DLON coupling were also implemented on
 `modeld.py`), which does not have `EOPDLATMode`/`EOPDLONMode` user-facing
 mode selectors at all — DLAT/DLON are unconditional automatic there by
 explicit design choice, unlike this branch which keeps the mode toggles.
+
+---
+
+## 12. 2026-08-10 Update — `EOPDLATMode`/`EOPDLONMode` removed, matches NGP10
+
+Per explicit instruction that both branches should use "the same design
+concept" — automatic only — this branch's `EOPDLATMode` (Laneful/Laneless/
+Dynamic `ButtonParamControl`) and `EOPDLONMode` (ACC/E2E/Dynamic
+`ButtonParamControl`) were removed from `eop_panel.cc`, and the
+corresponding `EOPDLATMode`/`EOPDLONMode` param keys removed from
+`common/params_keys.h`. `dlat.py::_load_params()` and
+`dlon.py::update_params()` now hardcode `self.mode = DLATMode.auto` /
+`DLONMode.AUTO` unconditionally instead of reading a param — this branch
+no longer differs from `dev/NGP10` on this point. §11's closing line above
+("unlike this branch which keeps the mode toggles") is now stale; left
+in place as history of the decision sequence rather than edited away.
+
+The `DLATMode`/`DLONMode` enums and their `laneful`/`laneless` /
+`CHILL`/`EXPERIMENTAL` branches in `dlat.py`/`dlon.py` were deliberately
+**not** deleted — `test_dlon.py` still directly assigns
+`self.dlon.mode = DLONMode.CHILL`/`EXPERIMENTAL` to exercise those code
+paths in isolation (same reason `dev/NGP10` kept its equivalent branches
+in `ngp_dlon.py`). They're unreachable via any param/UI path now, reachable
+only by a test setting `.mode` directly, same as NGP10.
+
+Verified: `.venv/bin/python -m pytest selfdrive/controls/tests/` —
+200/201 pass (same pre-existing, unrelated `test_nslc.py` failure noted in
+§11); `g++ -fsyntax-only -fPIC` on `eop_panel.cc` against system Qt5
+headers — zero errors, only the pre-existing `QButtonGroup::buttonClicked`
+deprecation warning already present before this change.

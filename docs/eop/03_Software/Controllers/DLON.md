@@ -809,3 +809,19 @@ The identical coupling was implemented on `dev/NGP10`'s `ngp_dlon.py`
 branch has no `EOPDLONMode`-equivalent mode selector at all — DLON is
 unconditional automatic there by explicit design choice. See DLAT.md §11
 for the companion LCA-initiation-gate change landed the same day.
+
+---
+
+## 11. 2026-08-10 Update — `EOPDLONMode` removed, matches NGP10
+
+`EOPDLONMode` (the ACC/E2E/Dynamic `ButtonParamControl` in `eop_panel.cc`)
+and its param key were removed — this branch's DLON is now unconditional
+AUTO, same as `dev/NGP10`, closing the divergence noted above and in
+§10's last paragraph ("that branch has no `EOPDLONMode`-equivalent mode
+selector at all" — now true of neither branch). `update_params()` hardcodes
+`self.mode = DLONMode.AUTO` instead of reading a param. Every reference to
+`EOPDLONMode` in §4.x's design pseudocode and the §8/9 parameter tables
+above predates this and reflects the original (never fully built) design
+proposal, not current behavior — see DLAT.md §12 for the equivalent DLAT
+change and full verification notes (same commit, same test run covers
+both files).

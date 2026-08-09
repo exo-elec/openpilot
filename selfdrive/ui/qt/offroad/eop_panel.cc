@@ -94,13 +94,9 @@ void EopPanel::add_lateral_toggles() {
          "\nPause - hold steering until the brake is released."
          "\nDisengage - fully release ALCC when braking."),
       "", {tr("Maintain"), tr("Pause"), tr("Disengage")});
-  auto dlat_mode_control = new ButtonParamControl(
-      "EOPDLATMode", QString::fromUtf8("　") + tr("Dynamic Lateral Profile"),
-      tr("Select which lane planner to run:"
-         "\nLaneful - always use lane lines."
-         "\nLaneless - always use end-to-end laneless planner."
-         "\nDynamic - switch automatically using DLat heuristics."),
-      "", {tr("Laneful"), tr("Laneless"), tr("Dynamic")});
+  // DLAT (Dynamic Lateral Profile) is a default, always-on automatic
+  // Laneful/Laneless arbitration -- no user-selectable mode, matching
+  // dev/NGP10's design. No panel control by design.
 
   // Auto Lane Change controls
   auto auto_lane_change_toggle = new ParamControl(
@@ -129,7 +125,6 @@ void EopPanel::add_lateral_toggles() {
       addItem(label);
       addItem(lca_speed_toggle);
       addItem(alcc_brake_mode);
-      addItem(dlat_mode_control);
       addItem(auto_lane_change_toggle);
       addItem(lane_change_delay_slider);
       addItem(minimum_lane_width_slider);
@@ -335,12 +330,10 @@ void EopPanel::add_longitudinal_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
-  // DLON Mode Selector
-  auto dlon_mode_control = new ButtonParamControl(
-      "EOPDLONMode", QString::fromUtf8("　") + tr("Longitudinal Profile"),
-      tr("ACC - standard cruise. E2E - experimental. Dynamic - auto-switch."),
-      "", {tr("ACC"), tr("E2E"), tr("Dynamic")});
-  addItem(dlon_mode_control);
+  // DLON (Dynamic Longitudinal Profile) is a default, always-on automatic
+  // ACC/E2E switch -- no user-selectable mode, matching dev/NGP10's design.
+  // No panel control by design: users cannot force pure E2E (Experimental)
+  // or pure ACC directly.
 
   tsc_lat_accel_toggle = new ParamDoubleSpinBoxControl(
       "EOPTSCTargetLatAccel",
@@ -729,7 +722,7 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // Register all watched params once in the constructor
   for (const char *p : {
-    "EOPLatLCASpeed", "EOPLonExtRadar", "EOPDLONMode", "EOPDLATMode",
+    "EOPLatLCASpeed", "EOPLonExtRadar",
     "EOPVTSCEnabled", "EOPMTSCEnabled", "EOPNavBleEnabled",
     "EOPLCAControllerEnabled",
     "EOPAutoLaneChange", "EOPLaneChangeDelay", "EOPMinimumLaneWidth", "EOPOneLaneChange",
