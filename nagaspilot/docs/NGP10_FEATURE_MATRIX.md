@@ -2,7 +2,8 @@
 
 | Area | Feature | Runtime path | Status |
 |---|---|---|---|
-| Longitudinal | DLON | `nagaspilot/controls/ngp_dlon.py` → longitudinal planner | Integrated |
+| Longitudinal | DLON | `nagaspilot/controls/ngp_dlon.py` → longitudinal planner | Integrated, always-on automatic (no user-selectable mode) |
+| Lateral | DLAT | `nagaspilot/controls/ngp_dlat.py` → `controlsd.py` | Integrated, advisory (non-controlling), always-on automatic |
 | Longitudinal | TJA gap/cut-in gate | `nagaspilot/controls/ngp_tja.py` → longitudinal planner | Integrated |
 | Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
 | Longitudinal | BRSC (Bumpy Road Speed Controller, vertical-IMU roughness) | `nagaspilot/controls/ngp_brsc.py` (pure policy, byte-identical across branches) → longitudinal planner | Integrated, default on (`ngp_lon_brsc`) |
@@ -18,7 +19,7 @@
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
 
-**Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`, `ngp_dlat.py`,
+**Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`,
 `ngp_collision.py`, `ngp_road_condition.py`, `ngp_traffic_control.py`,
 `ngp_speed_policy.py`, `ngp_radar.py`, `ngp_alcc.py`, `ngp_lca.py`,
 `selfdrive/adaptd/ngp_profile.py`) are deliberately not listed as
@@ -59,17 +60,29 @@ deliberately not — see below for why:
   Lane Change delay, only shown once LCA speed > 0) — same
   `ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` + show/hide pattern as
   `dp_panel.cc`.
-- **Longitudinal Ctrl section** (`add_longitudinal_toggles()`, extended):
-  `ngp_lon_dlon` (DLON master toggle) plus a `ButtonParamControl` mode selector
-  for `ngp_lon_dlon_mode` (Chill/Experimental/Auto, mirroring
-  `ngp_dlon.py::NGPDLONMode`), and the existing `ngp_lon_brsc` toggle.
-- **Deliberately still not exposed**: DLON's eight individual per-trigger
-  sub-toggles (`ngp_lon_dlon_curves`/`_slow_lead`/`_low_speed`/
-  `_stop_prediction`/`_navigation`/`_signal`/`_speed_limit`/`_force_stops`) —
-  `dev/EOP10`'s `eop_panel.cc` has the identical set of backing params
-  (`EOPDLON*Enabled`) and made the same choice to expose only the mode selector,
-  not each trigger individually. Matching that precedent rather than inventing
-  new UI surface not modeled on any sibling branch.
+- **Longitudinal Ctrl section** (`add_longitudinal_toggles()`): just the
+  `ngp_lon_brsc` toggle. DLON has no panel control by design (see below).
+- **DLAT/DLON mode selection removed, 2026-08-09**: both DLAT
+  (Laneful/Laneless) and DLON (ACC/E2E) are default, always-on automatic
+  behaviors of this branch — users cannot select or force a mode directly.
+  `ngp_lat_dlat_mode`, `ngp_lon_dlon` (DLON master toggle), and
+  `ngp_lon_dlon_mode` were removed from `params_keys.h` and the panel
+  entirely (there is no equivalent of EOP10's `EOPDLATMode`/`EOPDLONMode`
+  `ButtonParamControl`s on this branch, a deliberate divergence — see
+  `controlsd.py`'s DLAT block and `ngp_dlon.py::update_params()`'s
+  docstring). `controlsd.py` resolves `self.dlat_use_laneless` directly from
+  `NGPDLAT.update_model()`'s hysteresis-debounced suggestion every frame;
+  `ngp_dlon.py`'s `self.mode` is hardcoded to `NGPDLONMode.AUTO`.
+- **DLON's per-trigger sub-toggles remain, and gained a ninth
+  (2026-08-09)**: `ngp_lon_dlon_curves`/`_lane_confidence`/`_slow_lead`/
+  `_low_speed`/`_stop_prediction`/`_navigation`/`_signal`/`_speed_limit`/
+  `_force_stops` — none reachable from the panel, matching `dev/EOP10`'s
+  `eop_panel.cc` choice to leave its equivalent `EOPDLON*Enabled` set
+  off-panel too. `_lane_confidence` couples DLAT's resolved Laneless state
+  into DLON's automatic switch (see "DLAT→DLON confidence coupling" below);
+  it is a *tuning* toggle for which signals the automatic switch considers,
+  not a way to force a mode, so it doesn't conflict with the mode-selection
+  removal above.
   **`_speed_limit` history (2026-08-08):** an audit found this toggle read
   its param every second but was never consulted by any trigger-evaluation
   logic on either EOP10 or NGP10 — no `detect_speed_limit_*` trigger existed.
@@ -92,10 +105,15 @@ deliberately not — see below for why:
   any branch (always active, not user-toggleable), so it was never a panel
   candidate.
 
-**Live vs. next-drive toggles:** `ngp_lon_dlon_mode` is the only one of these
-params re-read while driving (`ngp_dlon.py::update_params()` polls it every
-1s). Every other toggle added here (`ngp_lat_alcc`, `ngp_lat_lca_speed`,
-`ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`, `ngp_lon_dlon`,
+  *(2026-08-09: the mode selector this paragraph originally documented was
+  removed — see "DLAT/DLON mode selection removed" above. Left as written
+  for its trigger-implementation narrative.)*
+
+**Live vs. next-drive toggles:** DLON's per-trigger toggles (including the new
+`ngp_lon_dlon_lane_confidence`) are re-read while driving
+(`ngp_dlon.py::update_params()` polls them every 1s) since there's no mode
+param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
+`ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
 `ngp_lon_brsc`) is read once
 at process start (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their
 `while True:` loop) — a change takes effect on the next onroad transition
@@ -162,3 +180,52 @@ above already carries the same "what's ported, what's the status" tracking
 in prose form, so removing the code duplicate loses no information — it was
 NGP10-invented scaffolding, not a pattern carried over from either sibling
 branch.
+
+**DLAT wired into `controlsd.py`, 2026-08-09:** `ngp_dlat.py`'s own docstring
+called it a "proving line" deliberately kept non-controlling — `controlsd.py`
+now calls `NGPDLAT.update_model(model_v2, v_ego=CS.vEgo)` every frame and
+publishes the resolved `dlat_use_laneless`/`lane_confidence` on
+`controlsState` (`ngpDlatUseLaneless @68`, `ngpDlatLaneConfidence @69`) purely
+as advisory telemetry — it does not feed any actuator, unlike EOP10's
+`dlat.py`, which gates a real curvature nudge via `red.py` (stereo+YOLO road
+edge fusion, no comma-3 hardware equivalent — see `EOP10_PARITY_CANDIDATES.md`
+for why full parity there isn't portable).
+
+**DLAT/DLON both made unconditional automatic, no user choice, 2026-08-09:**
+per explicit instruction, this branch does not let users select or force a
+lateral (Laneful/Laneless) or longitudinal (ACC/Experimental-E2E) mode
+directly — both are resolved automatically from model confidence every frame.
+This is a deliberate divergence from `dev/EOP10`, which still exposes
+`EOPDLATMode`/`EOPDLONMode` as user-facing `ButtonParamControl`s in
+`eop_panel.cc`; that choice was intentionally *not* ported here. Fixed a
+crash introduced mid-edit in this same change: `controlsd.py`'s per-frame
+block and its `controlsState` publish briefly referenced `self.dlat_mode`/
+`self._dlat_param_t` after they'd already been removed from `__init__`
+(`AttributeError` on every frame) — caught before commit via `py_compile` +
+direct-import test execution, not left in the shipped commit.
+
+**DLAT→DLON confidence coupling, 2026-08-09:** DLAT and DLON previously ran
+fully independently despite both being confidence-driven automatic switches
+over the same underlying signal. Per request, studied `~/pilot/dragonpilot`'s
+`aem.py`/`acm.py` for prior art first — both are non-commercial-only licensed
+(Copyright Rick Lan, 2025) and, on inspection, aren't actually about
+lane-confidence coupling anyway (`aem.py` uses throttle-intent probability,
+`acm.py` is lead-gated coast suppression, the concept already retired from
+this branch above) — so no code was copied; `ngp_dlon.py` gained an
+independently-written `detect_lane_confidence_trigger()` that reads
+`sm['controlsState'].ngpDlatUseLaneless` (cross-process: DLAT runs in
+controlsd, DLON in plannerd, which already subscribes `controlsState`) and
+adds it as the lowest-priority `_evaluate_auto_mode()` trigger, next to
+`curves` — both are perception-difficulty signals. Reuses DLAT's own
+hysteresis-resolved decision rather than re-deriving a second threshold, so
+there's one source of truth. A stale/missing `controlsState` resolves to
+no-trigger (neutral), matching DLAT's own default-to-laneful convention
+rather than misreading absence as low confidence. Gated by a new per-trigger
+toggle, `ngp_lon_dlon_lane_confidence` (default on) — see above. Verified via
+6 new tests in `selfdrive/controls/tests/test_ngp_dlon_lane_confidence.py`
+(direct-import execution, same technique as the rest of this doc's testing
+notes — `test_ngp_dlon_mtsc.py`'s own imports hit the pre-existing
+`RadarData.ErrorDEPRECATED` capnp/opendbc version-skew blocker in this
+dev-PC worktree). The identical coupling was also implemented on
+`dev/EOP10`'s `dlon.py`/`dlat.py` (that branch keeps its user-facing mode
+selectors — the coupling only applies while `EOPDLONMode` is `Auto`).

@@ -20,7 +20,9 @@ No action needed.
 
 | Feature | EOP10 | NGP10 |
 |---|---|---|
-| DLON (longitudinal profile) | `dlon.py`, `EOPDLONMode` | `ngp_dlon.py`, `ngp_lon_dlon_mode` |
+| DLON (longitudinal profile) | `dlon.py`, `EOPDLONMode` (user-selectable Chill/Experimental/Auto) | `ngp_dlon.py`, always-on `Auto` — no user-selectable mode on this branch (deliberate divergence, 2026-08-09) |
+| DLAT (lateral profile, advisory) | `dlat.py` — advisory telemetry on NGP10, but **controlling** on EOP10 via `red.py`'s curvature nudge (hardware-dependent, no comma-3 equivalent) | `ngp_dlat.py`, wired into `controlsd.py` (2026-08-09) — advisory only, no actuator authority, no user-selectable mode |
+| DLAT→DLON confidence coupling | `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless`, only while `EOPDLONMode == Auto` | `ngp_dlon.py::detect_lane_confidence_trigger()` reads `ngpDlatUseLaneless`, always consulted (2026-08-09, both branches) |
 | TJA (traffic-jam gap policy) | `tja.py` | `ngp_tja.py` |
 | BRSC (bumpy-road speed) | `ngp_brsc.py` | `ngp_brsc.py` (shared file) |
 | ALCC (always-on lane centering) | `EOPLatALCC` | `ngp_lat_alcc` (inline in `controlsd.py`) |
