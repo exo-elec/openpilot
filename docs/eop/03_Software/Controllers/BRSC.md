@@ -125,7 +125,7 @@ copy-portable to `dev/NGP10` and `dev/EDP10` without modification.
 | Branch | Module | Wiring |
 |---|---|---|
 | `dev/EOP10` | `nagaspilot/controls/ngp_brsc.py` | `selfdrive/controls/lib/longitudinal_planner.py` (above); toggle in `eop_panel.cc` |
-| `dev/NGP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` via `NGPFlags.BRSC` (same bitmask pattern as DLON/coasting/TJA); toggle in `ngp_panel.cc`. **Not** added to `nagaspilot/controls/ngp_suite.py` — that manifest is a standalone feature-port inventory, not runtime-wired on any branch |
+| `dev/NGP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` via `NGPFlags.BRSC` (same bitmask pattern as DLON/TJA); toggle in `ngp_panel.cc`. (`nagaspilot/controls/ngp_suite.py`, a standalone feature-port manifest never wired into any runtime path on any branch, was removed entirely from `dev/NGP10` on 2026-08-09 — no longer applicable here) |
 | `dev/EDP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` (dragonpilot-style wiring); toggle in `dp_panel.cc` |
 
 `dev/EDP10` and `dev/EOP10` have no common git merge base, so the module is copied
@@ -141,7 +141,7 @@ Each branch exposes `ngp_lon_brsc` through its own settings-panel convention:
 |---|---|---|
 | `dev/EOP10` | `EopPanel` (`eop_panel.cc`), under "ExoPilot" tab | Full EOP toggle panel, pre-existing |
 | `dev/EDP10` | `DPPanel` (`dp_panel.cc`), under "DP" tab | Pre-existing dragonpilot-style panel, `add_longitudinal_toggles()` |
-| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then completed the same day to expose every other already-integrated `ngp_*` param (ALCC, LCA, road-edge, coasting, DLON) alongside it — full detail in `nagaspilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
+| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then expanded to cover ALCC/LCA/road-edge/DLON. A EDP10-derived "Adaptive Coasting" toggle was added and then retired the same week (2026-08-09) once direct comparison showed `dev/EOP10` has no ACM-equivalent concept at all — full detail in `nagaspilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
 
 ---
 
