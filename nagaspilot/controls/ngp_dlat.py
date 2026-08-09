@@ -9,6 +9,12 @@ from dataclasses import dataclass
 from enum import Enum
 from statistics import fmean
 
+# Confidence below this is "unreliable lane lines" -- also reused as a
+# one-shot threshold outside the hysteresis arbiter (e.g. desire_helper.py's
+# LCA initiation gate), so it's a module constant rather than buried in
+# NGPDLAT.__init__'s default argument.
+DEFAULT_ENTER_THRESHOLD = 0.40
+
 
 class DLATSuggestion(Enum):
   LANEFUL = "laneful"
@@ -32,7 +38,7 @@ class DLATResult:
 class NGPDLAT:
   """Hysteretic lane confidence arbiter; output is non-controlling."""
 
-  def __init__(self, enter_threshold=0.40, exit_threshold=0.70,
+  def __init__(self, enter_threshold=DEFAULT_ENTER_THRESHOLD, exit_threshold=0.70,
                enter_frames=20, exit_frames=40):
     if not 0.0 <= enter_threshold < exit_threshold <= 1.0:
       raise ValueError("thresholds must satisfy 0 <= enter < exit <= 1")
