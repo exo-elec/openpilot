@@ -21,7 +21,7 @@ No action needed.
 | Feature | EOP10 | NGP10 |
 |---|---|---|
 | DLON (longitudinal profile) | `dlon.py`, `EOPDLONMode` (user-selectable Chill/Experimental/Auto) | `ngp_dlon.py`, always-on `Auto` — no user-selectable mode on this branch (deliberate divergence, 2026-08-09) |
-| DLAT (lateral profile, advisory) | `dlat.py` — advisory telemetry on NGP10, but **controlling** on EOP10 via `red.py`'s curvature nudge (hardware-dependent, no comma-3 equivalent) | `ngp_dlat.py`, wired into `controlsd.py` (2026-08-09) — advisory only, no actuator authority, no user-selectable mode |
+| DLAT (lateral profile) | `dlat.py` — RED curvature nudge (hardware-dependent, no comma-3 equivalent) + LCA initiation gate (2026-08-09) | `ngp_dlat.py`, wired into `controlsd.py` (2026-08-09) — no curvature authority (no RED equivalent), but a real LCA initiation gate as of 2026-08-09 (see feature matrix) — no longer advisory-only, no user-selectable mode |
 | DLAT→DLON confidence coupling | `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless`, only while `EOPDLONMode == Auto` | `ngp_dlon.py::detect_lane_confidence_trigger()` reads `ngpDlatUseLaneless`, always consulted (2026-08-09, both branches) |
 | TJA (traffic-jam gap policy) | `tja.py` | `ngp_tja.py` |
 | BRSC (bumpy-road speed) | `ngp_brsc.py` | `ngp_brsc.py` (shared file) |
@@ -52,7 +52,6 @@ end.
 
 | Feature | EOP10 module | NGP10 module (unwired) | What it'd need on NGP10 |
 |---|---|---|---|
-| **DLAT** (Laneful/Laneless/Dynamic lane planner select) | `dlon.py`-adjacent, `EOPDLATMode` | `ngp_dlat.py` — explicitly a "proving line," docstring says "deliberately has no controlsd or cereal integration" | Feed `modelV2` lane-line probs into `NGPDLAT.lane_confidence()`, wire the `DLATSuggestion` into whatever selects laneful vs. laneless on this branch. **Safety-relevant** — the module's own non-controlling status is a deliberate gate, not an oversight; don't flip it without validating the confidence thresholds against real driving data first. |
 | VTSC (Vision Turn Speed Control, 0-250m) | `vtsc.py`, `EOPVTSCEnabled` | `ngp_vtsc.py` | Feed `modelV2` curvature into it, apply result via the same `_apply_speed_limit`-style clamp DLON/BRSC already use in `longitudinal_planner.py` |
 | MTSC (Map Turn Speed Control, 250-500m) | `mtsc.py`, `EOPMTSCEnabled` | `ngp_mtsc.py` | Needs OSM curvature data — check whether `mapd`/`mapData` (already subscribed for DLON's speed-limit trigger) carries this, or whether EOP10's `mapd` does something NGP10's doesn't have |
 | Collision-risk advisory | (folded into AEB path) | `ngp_collision.py` — "Advisory collision-risk assessment using normalized radar tracks" | Feed it `radarState`/`liveTracks`; explicitly non-controlling (`control_authority=False`) by design — stock AEB stays the real safety net regardless |
@@ -107,7 +106,7 @@ assumed from the feature name:
 1. **Lane Change Lead Handoff** (Tier 3) — smallest, self-contained, no design questions, pure camera data already available.
 2. **VTSC** (Tier 2) — module exists, `modelV2` curvature is already flowing through `longitudinal_planner.py`, same wiring shape as BRSC.
 3. **Speed-limit enforcement via `ngp_speed_policy.py`** (Tier 2) — real functional gap (DLON's trigger vs. actual clamping), data source (`mapData`/`navInstruction`) already subscribed.
-4. **DLAT** (Tier 2) — highest value but explicitly safety-gated by its own author; needs real validation before flipping from advisory to controlling, budget more time here than the size of the module suggests.
+4. ~~DLAT~~ — done, 2026-08-09 (Tier 1 now): wired into `controlsd.py`, coupled into DLON's AUTO-mode switch, and given a real LCA-initiation-gate effect. See the feature matrix's "DLAT made a real default" note for what was and wasn't validated before shipping (thresholds reused from the module's own existing constants, not newly tuned; no on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note).
 5. Everything else in Tier 2/3, roughly in the order listed.
 
 Not recommending Tier 4 items be attempted at all on comma-3 — they're

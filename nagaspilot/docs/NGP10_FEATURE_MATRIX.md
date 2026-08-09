@@ -229,3 +229,49 @@ notes — `test_ngp_dlon_mtsc.py`'s own imports hit the pre-existing
 dev-PC worktree). The identical coupling was also implemented on
 `dev/EOP10`'s `dlon.py`/`dlat.py` (that branch keeps its user-facing mode
 selectors — the coupling only applies while `EOPDLONMode` is `Auto`).
+
+**DLAT made a real default (not just advisory), 2026-08-09:** DLAT had no
+actuator or downstream consumer on this branch — controlsd.py only
+published its resolved state as `controlsState` telemetry (until the
+coupling above), because this branch's lateral control is unified
+end-to-end (`model_v2.action.desiredCurvature`), with no separate
+laneful/laneless path planner left to switch between. Confirmed by
+checking `~/pilot/sunnypilot`'s own changelog: they removed their
+equivalent Dynamic Lane Profile outright — "upstream laneless model is now
+on by default" — for the same architectural reason. Per explicit request
+to make DLAT default rather than advisory, found the part of the laneless
+concept that still means something post-E2E, also from sunnypilot's
+changelog: "Permanent: Laneless during Auto Lane Change execution."
+
+Added an LCA (Auto Lane Change) initiation gate: `modeld.py` computes
+`NGPDLAT.lane_confidence(modelv2_send.modelV2.laneLineProbs)` at the same
+site `evaluate_road_edges()` already runs (in-process, no new cross-process
+subscription needed — `DesireHelper` already receives model_v2-derived data
+there), compares it against `NGPDLAT`'s own `DEFAULT_ENTER_THRESHOLD`
+(0.40, promoted from a constructor default to a module constant so it's
+referenceable without instantiating the stateful hysteresis arbiter — this
+is a one-shot check, not the Laneful/Laneless state machine), and passes
+the result as a new `low_lane_confidence` bool into `desire_helper.py`'s
+`DesireHelper.update()`. Blocks `preLaneChange → laneChangeStarting`
+initiation (and pauses the nudgeless auto-timer) exactly where the
+existing `blindspot_detected` check already blocks — same tier, same
+"initiation only, never abort mid-maneuver" semantics. Default on, no
+toggle, matching "implement as default."
+
+License note: `~/pilot/sunnypilot` is ALSO non-commercial/
+permission-required for commercial use (Copyright Haibin Wen, SUNNYPILOT
+LLC, 2024) — same category as dragonpilot's `aem.py`/`acm.py`. No
+sunnypilot Python source was read or copied (a grep of its current
+`selfdrive/` tree found zero "laneless" hits; the concept exists only in
+changelog prose, which is what informed this independent implementation).
+FrogPilot was not available locally (`~/pilot/FrogPilot` does not exist)
+and was not consulted.
+
+Verified: 4 new tests in
+`selfdrive/controls/tests/test_desire_helper_lane_confidence.py` pass via
+direct import (stubs `cereal.log` directly for the same pre-existing
+capnp-blocker reason noted throughout this doc); `test_ngp_dlat.py`'s 6
+tests still pass unchanged after promoting `DEFAULT_ENTER_THRESHOLD` to a
+module constant. The identical gate was implemented on `dev/EOP10`
+(`dlat.py`, `desire_helper.py`) the same day — see that branch's
+`docs/eop/03_Software/Controllers/DLAT.md` §11.
