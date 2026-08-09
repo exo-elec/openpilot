@@ -4,6 +4,7 @@ from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
+from openpilot.selfdrive.controls.lib.dlat import DLAT, LANEFUL_TO_LANELESS_THRESH
 from nagaspilot.speed_zones import URBAN_SPEED_MPS
 
 LaneChangeState = log.LaneChangeState
@@ -212,6 +213,20 @@ class DesireHelper:
     except (IndexError, AttributeError, TypeError, ValueError):
       return True
 
+  def _validate_lane_confidence(self, model_v2) -> bool:
+    """DLAT-based initiation safety gate: don't start an automatic/nudged lane
+    change while lane-line confidence is too low to trust the geometry.
+
+    Reuses DLAT's own calculate_lane_confidence() formula and its
+    LANEFUL_TO_LANELESS_THRESH -- the same threshold DLAT itself uses to
+    decide lane lines are unreliable -- rather than inventing a second
+    number. Missing/invalid model_v2 resolves to the neutral 0.5 confidence
+    built into calculate_lane_confidence(), so this never blocks on absent
+    data. Always on, no toggle: pairs with the blindspot check as core
+    initiation safety, not an opt-in feature.
+    """
+    return DLAT.calculate_lane_confidence(model_v2) >= LANEFUL_TO_LANELESS_THRESH
+
   def _blindspot_blocked(self, carstate, blind_spot_alert, direction) -> bool:
     """Check if a lane change is blocked for the given direction.
 
@@ -281,6 +296,10 @@ class DesireHelper:
             elapsed = time.monotonic() - self.lane_change_delay_start
             if elapsed >= self.lane_change_delay:
               should_start = True
+
+          # EOP: DLAT lane-confidence gate (always on, no toggle -- see docstring)
+          if should_start and not self._validate_lane_confidence(model_v2):
+            should_start = False
 
           # EOP: Gap evaluation (if enabled)
           if should_start and self.gap_eval_enabled:

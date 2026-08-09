@@ -87,23 +87,28 @@ class DLAT:
     except (ValueError, TypeError):
       self._curve_assist_enabled = True
       
-  def _calculate_lane_confidence(self, model_v2):
+  @staticmethod
+  def calculate_lane_confidence(model_v2):
     """
     Calculate lane line confidence from modelV2.
-    
-    Weights inner lines higher than outer lines.
+
+    Weights inner lines higher than outer lines. Static and dependency-free
+    so other modules (e.g. desire_helper.py's LCA initiation gate) can reuse
+    this exact formula without instantiating a full DLAT (which polls params
+    and carries hysteresis state meant for the Laneful/Laneless arbiter, not
+    a one-shot check).
     """
     if not model_v2 or not hasattr(model_v2, 'laneLineProbs'):
       return 0.5
-      
+
     lane_probs = model_v2.laneLineProbs
     if len(lane_probs) < 4:
       return 0.5
-      
+
     # Weight: [outer_left, inner_left, inner_right, outer_right]
     weights = [0.1, 0.4, 0.4, 0.1]
     confidence = sum(p * w for p, w in zip(lane_probs, weights))
-    
+
     return np.clip(confidence, 0.0, 1.0)
     
   def _calculate_model_confidence(self, model_v2):
@@ -111,7 +116,7 @@ class DLAT:
     Calculate overall model confidence for path prediction.
     """
     # Start with lane confidence as base
-    lane_conf = self._calculate_lane_confidence(model_v2)
+    lane_conf = self.calculate_lane_confidence(model_v2)
     
     # Path prediction confidence (inverse of std dev)
     path_confidence = 0.5
@@ -256,7 +261,7 @@ class DLAT:
     self._load_params()
     
     # Calculate confidence metrics
-    self.lane_confidence = self._calculate_lane_confidence(model_v2)
+    self.lane_confidence = self.calculate_lane_confidence(model_v2)
     self.model_confidence = self._calculate_model_confidence(model_v2)
     path_deviation = self._calculate_path_deviation(model_v2)
     
