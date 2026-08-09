@@ -105,6 +105,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // situational signals the automatic switch considers, not force a mode.
     {"ngp_lon_dlon_curves", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_force_stops", {PERSISTENT, BOOL, "1"}},
+    // Couples DLAT's own Laneful/Laneless arbitration (see ngp_lat above) into
+    // DLON's automatic switch: when DLAT has committed to Laneless, E2E's
+    // path-only prediction fits better than lane-line-anchored ACC.
+    {"ngp_lon_dlon_lane_confidence", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_low_speed", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_navigation", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_signal", {PERSISTENT, BOOL, "1"}},

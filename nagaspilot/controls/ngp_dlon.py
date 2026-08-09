@@ -168,6 +168,7 @@ class NGPDLON:
     # Per-trigger enable toggles (CEM merge)
     self._trigger_enabled = {
       'curves': True,
+      'lane_confidence': True,
       'slow_lead': True,
       'low_speed': True,
       'stop_prediction': True,
@@ -188,21 +189,19 @@ class NGPDLON:
     self.override_force_stop_timer = 0.0
 
   def update_params(self):
-    """Update parameters periodically (every 1 second)."""
+    """Update parameters periodically (every 1 second).
+
+    Mode is always AUTO (automatic Chill/Experimental switching) -- this is a
+    default, standard behavior of NGP10, not a user-selectable choice. There
+    is no param or panel control that forces a fixed CHILL or EXPERIMENTAL
+    mode; users cannot force pure E2E driving directly.
+    """
     current_time = time.monotonic()
     if current_time - self.last_param_update >= 1.0:
-      try:
-        mode_idx = int(self.params.get("ngp_lon_dlon_mode") or 2)
-        if mode_idx == 0:
-          self.mode = NGPDLONMode.CHILL
-        elif mode_idx == 1:
-          self.mode = NGPDLONMode.EXPERIMENTAL
-        else:
-          self.mode = NGPDLONMode.AUTO
-      except (ValueError, TypeError):
-        self.mode = NGPDLONMode.AUTO
+      self.mode = NGPDLONMode.AUTO
       # Per-trigger toggles (CEM merge)
       self._trigger_enabled['curves'] = self.params.get_bool("ngp_lon_dlon_curves")
+      self._trigger_enabled['lane_confidence'] = self.params.get_bool("ngp_lon_dlon_lane_confidence")
       self._trigger_enabled['slow_lead'] = self.params.get_bool("ngp_lon_dlon_slow_lead")
       self._trigger_enabled['low_speed'] = self.params.get_bool("ngp_lon_dlon_low_speed")
       self._trigger_enabled['stop_prediction'] = self.params.get_bool("ngp_lon_dlon_stop_prediction")
@@ -266,6 +265,26 @@ class NGPDLON:
       max_lat_acc = max(max_lat_acc, lat_acc)
 
     return max_lat_acc > self.CURVE_LAT_ACC_THRESHOLD
+
+  def detect_lane_confidence_trigger(self, sm) -> bool:
+    """Detect low DLAT lane confidence (controlsd, cross-process via controlsState).
+
+    DLAT already resolves a debounced Laneful/Laneless decision from lane-line
+    confidence (nagaspilot/controls/ngp_dlat.py); we read that decision instead
+    of re-deriving our own threshold/hysteresis on the raw confidence value, so
+    there is one source of truth and no duplicate debounce state. When DLAT has
+    committed to Laneless -- lane lines are unreliable -- E2E's path-only
+    prediction is a better fit than lane-line-anchored ACC, mirroring how a
+    human driver relies less on lane markings and more on the road/path shape
+    itself when markings are faded or absent.
+
+    A stale or not-yet-published controlsState resolves to no-trigger (False),
+    matching DLAT's own convention of defaulting to laneful/neutral rather than
+    laneless when its input is missing (see ngp_dlat.py's model_valid handling).
+    """
+    if 'controlsState' not in sm.valid or not sm.valid['controlsState']:
+      return False
+    return bool(sm['controlsState'].ngpDlatUseLaneless)
 
   def detect_stop_prediction(self, model_v2) -> bool:
     """Detect stop prediction from modelV2 action (CEM merge)."""
@@ -424,7 +443,8 @@ class NGPDLON:
         'turn_intent': self.detect_turn_intent(CS, v_ego),
         'sharp_curve': self._in_sharp_curve,
         'mpc_fcw': self._has_mpc_fcw,
-        'speed_limit': self._speed_limit_trigger
+        'speed_limit': self._speed_limit_trigger,
+        'low_lane_confidence': self.detect_lane_confidence_trigger(sm)
       },
       'confidences': {
         'lead': round(self.lead_filter.get_confidence(), 3),
@@ -468,8 +488,11 @@ class NGPDLON:
     if self._trigger_enabled['signal'] and self.detect_turn_intent(CS, v_ego):
       return True
 
-    # Lower priority: sharp curves
+    # Lower priority: perception-difficulty signals (curves, unreliable lane lines)
     if self._trigger_enabled['curves'] and self._in_sharp_curve:
+      return True
+
+    if self._trigger_enabled['lane_confidence'] and self.detect_lane_confidence_trigger(sm):
       return True
 
     return False
