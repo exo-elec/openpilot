@@ -87,6 +87,15 @@ its own follow-up node.
   `_fuse_radar2d_objects` reads instead of the class constant directly.
   Same fail-closed, all-or-nothing semantics as before — this only wires
   up what was already there, no change to the loader's own logic.
+- **UPDATE (2026-08-10): the move to `self._r2d_corner_pose` above broke
+  `test_fuse_radar2d.py`'s `_FuseHost`**, a lightweight test double that
+  mirrors `GridD`'s class-level constants to avoid constructing a full
+  `GridD` (heavy messaging/costmap setup in `__init__`) — it never gained
+  the new instance attribute, so every test using it hit `AttributeError`.
+  Fixed by adding `_r2d_corner_pose = GridD._R2D_CORNER_POSE` to
+  `_FuseHost`, the same placeholder-table fallback `GridD.__init__` itself
+  uses when the shared registry is absent. Caught by re-running
+  `selfdrive/gridd/tests/` after this node's fixes, not at review time.
 
 ### BLE central for ESP32 corner radars (`ble_central.py`, new, 812 lines) — spot-checked, not exhaustive
 

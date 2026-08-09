@@ -86,6 +86,18 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 
 ## Recent Bug Fixes
 
+**`_FuseHost` test double out of sync with `GridD` — gridd (2026-08-10):**
+- `fix(gridd): wire up load_corner_poses()` (c9b5df77f) moved
+  `_fuse_radar2d_objects`'s corner-pose lookup from the `_R2D_CORNER_POSE`
+  class constant to `self._r2d_corner_pose`, an instance attribute set in
+  `GridD.__init__()`. `test_fuse_radar2d.py`'s `_FuseHost` — a deliberate
+  lightweight stand-in that mirrors `GridD`'s class-level constants without
+  running its (heavy) `__init__` — was never updated, so every test using it
+  hit `AttributeError: '_FuseHost' object has no attribute
+  '_r2d_corner_pose'`. Fixed by adding `_r2d_corner_pose = GridD._R2D_CORNER_POSE`
+  to `_FuseHost`, matching the same placeholder-table fallback
+  `GridD.__init__` itself falls back to when the shared registry is absent.
+
 **Hailo-8 multi-process VDevice race — sided/reard (2026-08-10):**
 - `sided` (side_left/side_right) and `reard` (rear) run as separate concurrent
   processes but share one physical Hailo-8 over the same USB hub. Both used to

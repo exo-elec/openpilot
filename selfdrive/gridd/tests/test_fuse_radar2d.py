@@ -38,6 +38,10 @@ class _FuseHost:
     _R2D_ZONE_RADIUS = GridD._R2D_ZONE_RADIUS
     _R2D_PROB = GridD._R2D_PROB
     _R2D_CORNER_POSE = GridD._R2D_CORNER_POSE
+    # _fuse_radar2d_objects reads the instance attribute GridD.__init__ sets
+    # (registry pose when available, else this same placeholder table) — not
+    # the class constant directly. Mirror that fallback here.
+    _r2d_corner_pose = GridD._R2D_CORNER_POSE
     _R4D_SNR_REF_DB = GridD._R4D_SNR_REF_DB
     _R4D_CONFIDENCE_BOOST = GridD._R4D_CONFIDENCE_BOOST
     _active_costmap = None
