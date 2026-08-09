@@ -75,6 +75,18 @@ its own follow-up node.
   bad), which is the conservative choice — a partially-garbled registry
   falls back entirely to the placeholder table rather than mixing real and
   placeholder poses per corner.
+- **UPDATE (2026-08-08, later same day): `load_corner_poses()` was defined
+  but never called anywhere in `gridd.py` at review time above —
+  `_fuse_radar2d_objects` read `self._R2D_CORNER_POSE` (the class-level
+  placeholder) unconditionally, so the registry adapter existed but was
+  dangling, dead code from `gridd.py`'s perspective; the live/on-road-
+  calibrated corner poses `visionpilot` writes were never actually
+  reaching this fusion path.** Fixed: `GridD.__init__` now calls
+  `load_corner_poses()` once at startup and stores the result (or the
+  placeholder table, on `None`) as `self._r2d_corner_pose`, which
+  `_fuse_radar2d_objects` reads instead of the class constant directly.
+  Same fail-closed, all-or-nothing semantics as before — this only wires
+  up what was already there, no change to the loader's own logic.
 
 ### BLE central for ESP32 corner radars (`ble_central.py`, new, 812 lines) — spot-checked, not exhaustive
 

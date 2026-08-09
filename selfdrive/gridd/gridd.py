@@ -125,6 +125,29 @@ class GridD:
             self.radar_geometry = None
             cloudlog.warning(f"GridD: radar-stereo geometry unavailable: {e}")
 
+        # Corner-radar mounting poses: prefer the shared vehicle-frame
+        # registry (visionpilot WRITES it -- pairing seeds, on-road
+        # refines; see radar4d_geometry.load_corner_poses()'s docstring and
+        # ESP32_RADAR docs/pairing-and-calibration.md "Unified vehicle-frame
+        # extrinsics"), falling back to the class-level placeholder table
+        # (_R2D_CORNER_POSE) when the registry is absent or any corner
+        # entry is missing/garbled -- load_corner_poses() already returns
+        # None wholesale in that case rather than a partially-filled dict,
+        # so this is an all-or-nothing swap, never a silent per-corner mix
+        # of real and placeholder poses.
+        try:
+            from openpilot.selfdrive.controls.radar4d_geometry import load_corner_poses
+            registry_poses = load_corner_poses()
+        except Exception as e:
+            registry_poses = None
+            cloudlog.warning(f"GridD: corner-radar registry unavailable: {e}")
+        if registry_poses is not None:
+            self._r2d_corner_pose = registry_poses
+            cloudlog.info("GridD: corner-radar poses loaded from shared registry")
+        else:
+            self._r2d_corner_pose = self._R2D_CORNER_POSE
+            cloudlog.info("GridD: corner-radar registry absent/incomplete, using placeholder poses")
+
         # VisionIPC for road camera
         self.vipc_road = VisionIpcClient("v4l2d", VisionStreamType.VISION_STREAM_ROAD, True)
         
@@ -465,9 +488,12 @@ class GridD:
 
     # radar2d corner mounting poses in vehicle frame (x_m forward, y_m left, yaw_deg CCW).
     # Keys match ESP32_RADAR radar_corner_id_t: 0=FL, 1=FR, 2=RL, 3=RR.
-    # PLACEHOLDER values pending extrinsic calibration — same honesty convention
-    # as the ESP32_RADAR pins.h placeholders; on-node extrinsics params are all
-    # zeros today, so do not trust these to centimetre level.
+    # FALLBACK ONLY as of 2026-08-08 -- __init__ prefers the shared
+    # vehicle-frame registry (radar4d_geometry.load_corner_poses()) and
+    # falls back to this table only when that registry is absent or
+    # incomplete; see self._r2d_corner_pose, the actual attribute every
+    # consumer reads. PLACEHOLDER values pending extrinsic calibration —
+    # same honesty convention as the ESP32_RADAR pins.h placeholders.
     _R2D_CORNER_POSE = {
         0: ( 1.8,  0.8,   45.0),   # front-left
         1: ( 1.8, -0.8,  -45.0),   # front-right
@@ -982,17 +1008,19 @@ class GridD:
 
         Each corner node runs its own Kalman tracker (with occlusion coasting)
         and reports polar tracks in its own frame; we rotate them into the
-        vehicle frame with the per-corner mounting pose (_R2D_CORNER_POSE).
+        vehicle frame with the per-corner mounting pose (self._r2d_corner_pose
+        -- the shared registry when available, `_R2D_CORNER_POSE` placeholder
+        otherwise, see __init__).
         Coasted tracks (measured=false) are predict-only this frame: they stay
         in the objects list with halved confidence but must not stamp a hard
         obstacle into the costmap.
         """
         for obj_msg in radar2d.objects:
-            if obj_msg.corner not in self._R2D_CORNER_POSE:
+            if obj_msg.corner not in self._r2d_corner_pose:
                 # 0xFF = unresolved corner strap (ESP32_RADAR wire_format.h) —
                 # without a mounting pose we cannot place the track.
                 continue
-            px, py, yaw_deg = self._R2D_CORNER_POSE[obj_msg.corner]
+            px, py, yaw_deg = self._r2d_corner_pose[obj_msg.corner]
             az = math.radians(obj_msg.azimuthDeg)
             yaw = math.radians(yaw_deg)
             sx = obj_msg.rangM * math.cos(az)   # forward in sensor frame
