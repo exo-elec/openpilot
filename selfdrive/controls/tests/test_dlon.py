@@ -51,14 +51,22 @@ def _make_radar_state(has_lead=False):
 
 
 def _make_sm(v_ego=0.0, gas_pressed=False, has_lead=False,
-             should_stop=False, left_blinker=False, right_blinker=False):
+             should_stop=False, left_blinker=False, right_blinker=False,
+             dlat_laneless=None, dlat_confidence=0.5, controls_state_valid=True):
   sm = MagicMock()
   sm.valid = {'radarState': True, 'navInstruction': False}
-  sm.__getitem__ = lambda _self, key: {
+  values = {
     'carState': _make_car_state(v_ego, gas_pressed, left_blinker, right_blinker),
     'modelV2': _make_model_v2(should_stop),
     'radarState': _make_radar_state(has_lead),
-  }.get(key, MagicMock())
+  }
+  if dlat_laneless is not None:
+    cs = MagicMock()
+    cs.dlatUseLaneless = dlat_laneless
+    cs.dlatLaneConfidence = dlat_confidence
+    values['controlsState'] = cs
+    sm.valid['controlsState'] = controls_state_valid
+  sm.__getitem__ = lambda _self, key: values.get(key, MagicMock())
   return sm
 
 
@@ -140,6 +148,33 @@ class TestDLONForceStop:
     sm = _make_sm(v_ego=5.0)
     result = self.dlon.update(sm)
     assert result['e2e_enabled'] is True
+
+  def test_lane_confidence_missing_controls_state_is_neutral(self):
+    sm = _make_sm(v_ego=20.0)  # no controlsState published at all
+    assert self.dlon.detect_lane_confidence_trigger(sm) is False
+
+  def test_lane_confidence_stale_controls_state_is_neutral(self):
+    sm = _make_sm(v_ego=20.0, dlat_laneless=True, dlat_confidence=0.1, controls_state_valid=False)
+    assert self.dlon.detect_lane_confidence_trigger(sm) is False
+
+  def test_lane_confidence_dlat_laneless_favors_e2e(self):
+    sm = _make_sm(v_ego=20.0, dlat_laneless=True, dlat_confidence=0.2)
+    assert self.dlon.detect_lane_confidence_trigger(sm) is True
+
+  def test_lane_confidence_dlat_laneful_does_not_favor_e2e(self):
+    sm = _make_sm(v_ego=20.0, dlat_laneless=False, dlat_confidence=0.9)
+    assert self.dlon.detect_lane_confidence_trigger(sm) is False
+
+  def test_auto_mode_switches_to_e2e_on_low_lane_confidence_alone(self):
+    sm = _make_sm(v_ego=20.0, dlat_laneless=True, dlat_confidence=0.15)
+    use_e2e = self.dlon._evaluate_auto_mode(sm['carState'], sm['modelV2'], sm['radarState'], sm)
+    assert use_e2e is True
+
+  def test_lane_confidence_trigger_toggle_disables_coupling(self):
+    self.dlon._trigger_enabled['lane_confidence'] = False
+    sm = _make_sm(v_ego=20.0, dlat_laneless=True, dlat_confidence=0.15)
+    use_e2e = self.dlon._evaluate_auto_mode(sm['carState'], sm['modelV2'], sm['radarState'], sm)
+    assert use_e2e is False
 
 
 if __name__ == '__main__':

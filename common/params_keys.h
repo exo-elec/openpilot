@@ -164,6 +164,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPDLATMode", {PERSISTENT, INT, "2"}},
     {"EOPDLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
+    // Couples DLAT's own Laneful/Laneless arbitration (dlat.py) into DLON's
+    // AUTO-mode switch: when DLAT has committed to Laneless, E2E's path-only
+    // prediction fits better than lane-line-anchored ACC. Only consulted in
+    // AUTO mode, same as the other per-trigger toggles above/below.
+    {"EOPDLONLaneConfidenceEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPDLONMode", {PERSISTENT, INT, "2"}},
     {"EOPDLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
