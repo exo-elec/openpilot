@@ -12,6 +12,7 @@ from openpilot.common.swaglog import cloudlog
 from opendbc.car.car_helpers import interfaces
 from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
+from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
@@ -59,6 +60,13 @@ class Controls:
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
     self.alcc_active = False
+
+    # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling).
+    # Always automatic -- a default behavior of this branch, no user-selectable
+    # mode and no panel control.
+    self.dlat = NGPDLAT()
+    self.dlat_use_laneless = False
+    self.dlat_lane_confidence = 1.0
 
   def update(self):
     self.sm.update(15)
@@ -118,6 +126,12 @@ class Controls:
     # accel PID loop
     pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, CS.vEgo, CS.vCruise * CV.KPH_TO_MS)
     actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits))
+
+    # DLAT: automatic Laneful/Laneless confidence arbitration, a default
+    # always-on behavior of this branch -- no user-selectable mode.
+    dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo)
+    self.dlat_lane_confidence = dlat_result.lane_confidence
+    self.dlat_use_laneless = dlat_result.suggestion is DLATSuggestion.LANELESS
 
     # Steering PID loop and lateral MPC
     # Reset desired curvature to current to avoid violating the limits on engage
@@ -197,6 +211,8 @@ class Controls:
     cs.forceDecel = bool((self.sm['driverMonitoringState'].awarenessStatus < 0.) or
                          (self.sm['selfdriveState'].state == State.softDisabling))
     cs.ngpAlccActive = bool(self.alcc_active)
+    cs.ngpDlatUseLaneless = bool(self.dlat_use_laneless)
+    cs.ngpDlatLaneConfidence = float(self.dlat_lane_confidence)
 
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:

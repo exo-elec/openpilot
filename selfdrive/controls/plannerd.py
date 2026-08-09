@@ -24,9 +24,9 @@ def main():
                            poll='modelV2',
                            ignore_alive=['mapData', 'navInstruction', 'accelerometer'])
 
+  # DLON runs unconditionally -- a default, always-on behavior of this
+  # branch, not a user-selectable feature.
   ngp_flags = 0
-  if params.get_bool("ngp_lon_dlon"):
-    ngp_flags |= NGPFlags.DLON
   if params.get_bool("ngp_lon_brsc"):
     ngp_flags |= NGPFlags.BRSC
 

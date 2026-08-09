@@ -36,7 +36,6 @@ _A_TOTAL_MAX_BP = [20., 40.]
 
 
 class NGPFlags:
-  DLON = 1
   BRSC = 2 ** 3
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
@@ -125,12 +124,10 @@ class LongitudinalPlanner:
       az = sm['accelerometer'].acceleration.v[2]
       self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
 
-    mode = 'blended' if sm['selfdriveState'].experimentalMode else 'acc'
-    if ngp_flags & NGPFlags.DLON:
-      self.ngp_dlon_result = self.ngp_dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
-      mode = 'blended' if self.ngp_dlon_result['e2e_enabled'] else 'acc'
-    else:
-      self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': mode == 'blended', 'force_stop': False}
+    # DLON: always-on standard behavior of this branch, not user-selectable
+    # (automatic ACC/E2E switching only -- no forced-mode override exists).
+    self.ngp_dlon_result = self.ngp_dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
+    mode = 'blended' if self.ngp_dlon_result['e2e_enabled'] else 'acc'
 
     if len(sm['carControl'].orientationNED) == 3:
       accel_coast = get_coast_accel(sm['carControl'].orientationNED[1])

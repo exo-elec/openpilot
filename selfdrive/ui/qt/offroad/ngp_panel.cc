@@ -47,6 +47,10 @@ void NGPPanel::add_lateral_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
+  // DLAT (Dynamic Lateral Profile) is a default, always-on behavior of this
+  // branch -- automatic Laneful/Laneless confidence arbitration, not a
+  // user-selectable mode. No panel control by design.
+
   // If no toggles were added, hide the label
   if (!has_toggle && label) {
     label->hide();
@@ -59,12 +63,6 @@ void NGPPanel::add_longitudinal_toggles() {
       "",
       tr("Longitudinal Ctrl"),
       "",
-    },
-    {
-      "ngp_lon_dlon",
-      tr("Dynamic Longitudinal Profile (DLON)"),
-      tr("Automatically switches between comfortable highway cruising and "
-         "intelligent urban driving based on context."),
     },
     {
       "ngp_lon_brsc",
@@ -93,12 +91,10 @@ void NGPPanel::add_longitudinal_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
-  // DLON Mode Selector
-  auto dlon_mode_control = new ButtonParamControl(
-      "ngp_lon_dlon_mode", QString::fromUtf8("　") + tr("Longitudinal Profile"),
-      tr("Chill - standard cruise. Experimental - E2E. Auto - context-based switch."),
-      "", {tr("Chill"), tr("Experimental"), tr("Auto")});
-  addItem(dlon_mode_control);
+  // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior of
+  // this branch -- automatic ACC/E2E switching, not a user-selectable mode.
+  // No master enable toggle and no panel control by design: users cannot
+  // force pure E2E (Experimental) or pure ACC directly.
 
   // If no toggles were added, hide the label
   if (!has_toggle && label) {

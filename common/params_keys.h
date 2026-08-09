@@ -85,17 +85,27 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LongitudinalPersonality", {PERSISTENT, INT, std::to_string(static_cast<int>(cereal::LongitudinalPersonality::STANDARD))}},
     {"NetworkMetered", {PERSISTENT, BOOL}},
     {"ngp_lat_alcc", {PERSISTENT, BOOL, "0"}},
+    // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
+    // default, always-on behavior of this branch -- automatic Laneful/
+    // Laneless confidence arbitration only, no user-selectable mode param.
+    // Edge guard: vision-only curvature nudge away from a close, high-
+    // confidence road edge. NGP10-only -- not a port of EOP10's red.py
+    // (which fuses stereo+YOLO). Unvalidated on road; default off.
+    {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon", {PERSISTENT, BOOL, "0"}},
+    // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
+    // of this branch -- automatic ACC/E2E switching only. No master enable
+    // toggle and no mode param: users cannot force pure E2E (Experimental)
+    // or pure ACC directly. The per-trigger toggles below only tune which
+    // situational signals the automatic switch considers, not force a mode.
     {"ngp_lon_dlon_curves", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_force_stops", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_low_speed", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_mode", {PERSISTENT, INT, "2"}},
     {"ngp_lon_dlon_navigation", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_signal", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_slow_lead", {PERSISTENT, BOOL, "1"}},
