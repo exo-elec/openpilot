@@ -143,7 +143,6 @@ class NCPSession:
         # Protocol state (shared across transports — one logical session)
         self._is_paired: bool = False
         self._last_route_id: int | None = None
-        self._last_oauth_token: str = ''
 
         # ONE pm/sm for the whole process — msgq rejects multiple publishers
         if messaging:
@@ -429,31 +428,19 @@ class NCPSession:
             return protocol.make_error(f'Mission guidance failed: {e}')
 
     def _handle_auth_handshake(self, frame: protocol.Frame) -> protocol.Frame:
-        try:
-            data = frame.to_json()
-            token = data.get('token', '')
-            email = data.get('email', '')
-            if token and self.params:
-                self.params.put('NavPilotOAuthToken', token)
-                self.params.put('NavPilotOAuthEmail', email)
-                logger.info('%s: auth handshake for %s', self._name, email)
-            return protocol.make_ack(protocol.MessageType.CMD_AUTH_HANDSHAKE)
-        except Exception as e:
-            return protocol.make_error(f'Auth handshake failed: {e}')
+        # Retired: NavPilotOAuthToken/NavPilotOAuthEmail params were written
+        # here but never read anywhere in this repo (checked this session —
+        # no consumer). The phone-side sender (sendAuthHandshake) was also
+        # dead code (zero call sites) and has been removed from navpilot.
+        # Ack-only for wire compat with any older phone app still sending it.
+        return protocol.make_ack(protocol.MessageType.CMD_AUTH_HANDSHAKE)
 
     def _handle_oauth_token(self, frame: protocol.Frame) -> protocol.Frame:
-        try:
-            data = frame.to_json()
-            token = data.get('accessToken', '')
-            email = data.get('email', '')
-            if token and self.params:
-                self._last_oauth_token = token
-                self.params.put('NavPilotOAuthToken', token)
-                self.params.put('NavPilotOAuthEmail', email)
-                logger.info('%s: OAuth token stored for %s', self._name, email)
-            return protocol.make_ack(protocol.MessageType.CMD_OAUTH_TOKEN)
-        except Exception as e:
-            return protocol.make_error(f'OAuth token failed: {e}')
+        # Retired: device-direct-Gemini OAuth relay. The phone no longer
+        # sends this (see navpilot's frame_protocol.dart comment on
+        # cmdOAuthToken) — superseded by the account-linked device
+        # credential flow (CMD_DEVICE_CREDENTIAL). Ack-only for wire compat.
+        return protocol.make_ack(protocol.MessageType.CMD_OAUTH_TOKEN)
 
     def _handle_pair(self, frame: protocol.Frame) -> protocol.Frame:
         try:
