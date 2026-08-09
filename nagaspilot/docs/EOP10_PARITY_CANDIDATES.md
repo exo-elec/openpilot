@@ -20,9 +20,9 @@ No action needed.
 
 | Feature | EOP10 | NGP10 |
 |---|---|---|
-| DLON (longitudinal profile) | `dlon.py`, `EOPDLONMode` (user-selectable Chill/Experimental/Auto) | `ngp_dlon.py`, always-on `Auto` — no user-selectable mode on this branch (deliberate divergence, 2026-08-09) |
-| DLAT (lateral profile) | `dlat.py` — RED curvature nudge (hardware-dependent, no comma-3 equivalent) + LCA initiation gate (2026-08-09) | `ngp_dlat.py`, wired into `controlsd.py` (2026-08-09) — no curvature authority (no RED equivalent), but a real LCA initiation gate as of 2026-08-09 (see feature matrix) — no longer advisory-only, no user-selectable mode |
-| DLAT→DLON confidence coupling | `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless`, only while `EOPDLONMode == Auto` | `ngp_dlon.py::detect_lane_confidence_trigger()` reads `ngpDlatUseLaneless`, always consulted (2026-08-09, both branches) |
+| DLON (longitudinal profile) | `dlon.py`, always-on `Auto` — `EOPDLONMode` removed 2026-08-10, no longer user-selectable (matches NGP10) | `ngp_dlon.py`, always-on `Auto` — no user-selectable mode (2026-08-09) |
+| DLAT (lateral profile) | `dlat.py` — RED curvature nudge (hardware-dependent, no comma-3 equivalent) + LCA initiation gate (2026-08-09); `EOPDLATMode` removed 2026-08-10, no longer user-selectable (matches NGP10) | `ngp_dlat.py`, wired into `controlsd.py` (2026-08-09) — no curvature authority (no RED equivalent), real LCA initiation gate, no user-selectable mode |
+| DLAT→DLON confidence coupling | `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless`, always consulted since 2026-08-10 (no mode gate left) | `ngp_dlon.py::detect_lane_confidence_trigger()` reads `ngpDlatUseLaneless`, always consulted (2026-08-09, both branches) |
 | TJA (traffic-jam gap policy) | `tja.py` | `ngp_tja.py` |
 | BRSC (bumpy-road speed) | `ngp_brsc.py` | `ngp_brsc.py` (shared file) |
 | ALCC (always-on lane centering) | `EOPLatALCC` | `ngp_lat_alcc` (inline in `controlsd.py`) |

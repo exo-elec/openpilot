@@ -67,9 +67,9 @@ deliberately not — see below for why:
   behaviors of this branch — users cannot select or force a mode directly.
   `ngp_lat_dlat_mode`, `ngp_lon_dlon` (DLON master toggle), and
   `ngp_lon_dlon_mode` were removed from `params_keys.h` and the panel
-  entirely (there is no equivalent of EOP10's `EOPDLATMode`/`EOPDLONMode`
-  `ButtonParamControl`s on this branch, a deliberate divergence — see
-  `controlsd.py`'s DLAT block and `ngp_dlon.py::update_params()`'s
+  entirely (EOP10 kept its equivalent `EOPDLATMode`/`EOPDLONMode`
+  `ButtonParamControl`s until 2026-08-10, when they were removed too —
+  see `controlsd.py`'s DLAT block and `ngp_dlon.py::update_params()`'s
   docstring). `controlsd.py` resolves `self.dlat_use_laneless` directly from
   `NGPDLAT.update_model()`'s hysteresis-debounced suggestion every frame;
   `ngp_dlon.py`'s `self.mode` is hardcoded to `NGPDLONMode.AUTO`.
@@ -195,9 +195,11 @@ for why full parity there isn't portable).
 per explicit instruction, this branch does not let users select or force a
 lateral (Laneful/Laneless) or longitudinal (ACC/Experimental-E2E) mode
 directly — both are resolved automatically from model confidence every frame.
-This is a deliberate divergence from `dev/EOP10`, which still exposes
-`EOPDLATMode`/`EOPDLONMode` as user-facing `ButtonParamControl`s in
-`eop_panel.cc`; that choice was intentionally *not* ported here. Fixed a
+This was a deliberate divergence from `dev/EOP10` at the time — it still
+exposed `EOPDLATMode`/`EOPDLONMode` as user-facing `ButtonParamControl`s in
+`eop_panel.cc`, and that choice was intentionally *not* ported here — but
+EOP10 removed its own mode selectors the next day (2026-08-10), closing
+the divergence; both branches are now unconditional-automatic. Fixed a
 crash introduced mid-edit in this same change: `controlsd.py`'s per-frame
 block and its `controlsState` publish briefly referenced `self.dlat_mode`/
 `self._dlat_param_t` after they'd already been removed from `__init__`
@@ -227,8 +229,9 @@ toggle, `ngp_lon_dlon_lane_confidence` (default on) — see above. Verified via
 notes — `test_ngp_dlon_mtsc.py`'s own imports hit the pre-existing
 `RadarData.ErrorDEPRECATED` capnp/opendbc version-skew blocker in this
 dev-PC worktree). The identical coupling was also implemented on
-`dev/EOP10`'s `dlon.py`/`dlat.py` (that branch keeps its user-facing mode
-selectors — the coupling only applies while `EOPDLONMode` is `Auto`).
+`dev/EOP10`'s `dlon.py`/`dlat.py` (at the time, only applied while
+`EOPDLONMode` was `Auto`; since EOP10 removed `EOPDLONMode` entirely on
+2026-08-10, it's now always consulted there too, same as NGP10).
 
 **DLAT made a real default (not just advisory), 2026-08-09:** DLAT had no
 actuator or downstream consumer on this branch — controlsd.py only
