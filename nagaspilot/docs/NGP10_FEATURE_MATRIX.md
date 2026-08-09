@@ -6,8 +6,9 @@
 | Longitudinal | TJA gap/cut-in gate | `nagaspilot/controls/ngp_tja.py` → longitudinal planner | Integrated |
 | Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
 | Longitudinal | BRSC (Bumpy Road Speed Controller, vertical-IMU roughness) | `nagaspilot/controls/ngp_brsc.py` (pure policy, byte-identical across branches) → longitudinal planner | Integrated, default on (`ngp_lon_brsc`) |
-| Lateral | ALCC/always-on lateral | `controlsd.py`, car safety flag | Integrated, default off |
-| Lateral | LCA and road-edge gate | `ngp_lca.py`, `ngp_road_edge.py`, modeld | Integrated, default off |
+| Lateral | ALCC/always-on lateral | inline in `controlsd.py` (not `ngp_alcc.py` — that module has zero non-test importers) | Integrated, default off |
+| Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` (not `ngp_lca.py` — same as above, unwired) | Integrated, default off |
+| Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
@@ -16,6 +17,14 @@
 
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
+
+**Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`, `ngp_dlat.py`,
+`ngp_collision.py`, `ngp_road_condition.py`, `ngp_traffic_control.py`,
+`ngp_speed_policy.py`, `ngp_radar.py`, `ngp_alcc.py`, `ngp_lca.py`,
+`selfdrive/adaptd/ngp_profile.py`) are deliberately not listed as
+"Integrated" above — see `EOP10_PARITY_CANDIDATES.md` in this same directory
+for the full EOP10-vs-NGP10 comparison, portability assessment per feature,
+and a suggested wiring order.
 
 **BRSC note (2026-08-04):** the pure policy module was ported first (commit
 `822986441`), then this worktree's pre-existing uncommitted `ngp_*` →
