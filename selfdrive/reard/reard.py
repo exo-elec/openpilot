@@ -116,7 +116,7 @@ class HailoRearProcessor:
   """Hailo-8 YOLO processor for rear camera. Reuses HailoSideDetector."""
 
   def __init__(self):
-    self.detector = HailoSideDetector()
+    self.detector = HailoSideDetector(daemon_name="reard")
     self.tracker = SimpleTracker(max_age=5)
 
   @property

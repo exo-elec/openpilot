@@ -86,8 +86,13 @@ class InferenceClient:
         self.config = config or ClientConfig(daemon_name=daemon_name)
         self.use_ipc = use_ipc and _CEREAL_AVAILABLE
 
-        # Direct HAL (always available as fallback)
-        self._hal = get_hal()
+        # Direct HAL (fallback path) — lazily created on first actual use.
+        # Constructing InferenceClient must never eagerly touch hardware: several
+        # daemons on the same box each create one of these, and eager get_hal()
+        # here used to initialize every enabled backend (including exclusive-owner
+        # devices like Hailo-8's VDevice) in every one of those processes at
+        # startup, racing for single-owner hardware. See hailo() below.
+        self.__hal = None
 
         # IPC state (lazy-initialized)
         self._pm = None
@@ -105,6 +110,13 @@ class InferenceClient:
             cloudlog.info(f"InferenceClient initialized for {daemon_name} (IPC mode)")
         else:
             cloudlog.info(f"InferenceClient initialized for {daemon_name} (direct HAL)")
+
+    @property
+    def _hal(self):
+        """Local HAL singleton, created on first actual use (not at construction)."""
+        if self.__hal is None:
+            self.__hal = get_hal()
+        return self.__hal
 
     def _init_ipc(self) -> bool:
         """Initialize cereal PubMaster/SubMaster for IPC."""

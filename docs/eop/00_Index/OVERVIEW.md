@@ -71,7 +71,10 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
 
 **SIDED** — side camera perception (selfdrive/sided/, ExoPilot 01M & 02)
 - `sided.py`       Side camera daemon (20Hz, ignition-gated)
-- `hailo_side_detector.py` YOLOv8-nano on Hailo-8 @ 640×640
+- `hailo_side_detector.py` YOLOv8-nano on Hailo-8 @ 640×640, via `inferenced`
+  IPC (`InferenceClient(use_ipc=True)` → `submit_job`) — shared with `reard`
+  (rear camera), never a direct `client.hailo()`/`VDevice`, since the two
+  daemons run concurrently against one physical Hailo-8
 - `bev_reprojector.py` Ground-plane BEV reprojection (advisory only)
 - `simple_tracker.py` + `handover_manager.py` Cross-camera tracking
 - Publishes: `sideDetections` (BEV objects), `sideStatus` (health)

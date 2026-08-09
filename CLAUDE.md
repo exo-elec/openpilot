@@ -86,6 +86,27 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 
 ## Recent Bug Fixes
 
+**Hailo-8 multi-process VDevice race — sided/reard (2026-08-10):**
+- `sided` (side_left/side_right) and `reard` (rear) run as separate concurrent
+  processes but share one physical Hailo-8 over the same USB hub. Both used to
+  call `InferenceClient.hailo()` directly, each creating its own `VDevice()`;
+  HailoRT only grants one process exclusive ownership (no multi-process
+  scheduler service running), so whichever daemon started second failed
+  `initialize()` silently and its CPU fallback returned `[]` — only one of
+  side/rear ever actually got YOLO detections.
+- Fixed by routing `HailoSideDetector` (`selfdrive/sided/hailo_side_detector.py`,
+  shared by `sided.py`/`reard.py`) through `InferenceClient(daemon_name,
+  use_ipc=True).submit_job(BackendType.HAILO_8, ...)` so only `inferenced`
+  ever touches `Hailo8Backend`/`VDevice`; added `yolo_side` → `models/hef/
+  yolov8n.hef` to `inferenced.py`'s `MODEL_REGISTRY` (its path resolver
+  previously assumed every model was `{fmt}/{ext}` templated for rknn/onnx,
+  which doesn't apply to fixed-format `.hef` files). Also made
+  `InferenceClient._hal` lazy (`system/inferenced/client.py`) so constructing
+  a client no longer eagerly initializes every local backend — the
+  side-effect that caused the eager per-process `VDevice()` grab in the first
+  place. See `docs/INFERENCED_ARCHITECTURE.md` "Hailo Backend" for the
+  IPC-only rule.
+
 **BLE / Bluetooth stack (2026-05-31):**
 - `ncp_session.py`: multiple `PubMaster` instances for same service crashed msgq on boot — fixed with one shared session per process
 - `ncp_session.py`: `NCPSession.start()` not idempotent (spawned duplicate telem threads); fixed with guard

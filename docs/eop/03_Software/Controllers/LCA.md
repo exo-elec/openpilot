@@ -81,6 +81,14 @@ Controlled by `EOPLCABSMEnabled`.
 optional PCIe module on ExoPilot 01M (RK3588) — without it, side cameras still
 provide a visual overlay but no AI object detection.
 
+`reard` (rear camera RCTA) shares the same physical Hailo-8 chip and the same
+`HailoSideDetector` class. Both daemons run concurrently and reach the
+accelerator only through `inferenced`'s IPC job queue (`use_ipc=True`), never
+by opening a Hailo `VDevice` directly — the Hailo-8 only grants one process
+exclusive device ownership, so two daemons each opening their own `VDevice`
+would leave one of them silently undetecting. See "Hailo Backend" in
+`docs/INFERENCED_ARCHITECTURE.md`.
+
 | Hailo-8 | BSD Alert | Chime |
 |---------|-----------|-------|
 | ❌ Not present | Visual overlay only | ❌ No AI-detected blind-spot events to chime on |

@@ -64,6 +64,7 @@ class InferenceD:
     'driving_vision': ('models/{fmt}/driving_vision.{ext}', 'vision'),
     'driving_policy': ('models/{fmt}/driving_policy.{ext}', 'policy'),
     'yolo_640':       ('models/{fmt}/yolo_640.{ext}', 'detection'),
+    'yolo_side':      ('models/hef/yolov8n.hef', 'detection'),  # Hailo-8 HEF, sided+reard — fixed format, no rknn/onnx variant
     'sgm_stereo':     ('', 'sgm'),  # ACL operation — no model file
     'h264_encode':    ('', 'codec'),  # MPP operation — no model file
     'h264_decode':    ('', 'codec'),
@@ -128,6 +129,9 @@ class InferenceD:
     env_path = os.getenv(env_key)
     if env_path:
       return env_path
+    # Fixed-format entries (e.g. Hailo .hef) have no {fmt}/{ext} placeholders
+    if '{fmt}' not in path_template:
+      return path_template
     return path_template.format(fmt=self._model_fmt, ext=self._model_ext)
 
   def _load_model_for_job(self, job: InferenceJob, backend) -> bool:

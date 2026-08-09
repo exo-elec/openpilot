@@ -80,7 +80,7 @@ class HailoSideProcessor:
   """
 
   def __init__(self):
-    self._detector = HailoSideDetector()
+    self._detector = HailoSideDetector(daemon_name="sided")
 
   @property
   def is_available(self) -> bool:

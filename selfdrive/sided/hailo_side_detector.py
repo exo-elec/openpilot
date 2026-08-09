@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """
-Hailo-8 side camera object detector.
+Hailo-8 side/rear camera object detector.
 
-Runs YOLOv8-nano on side camera frames via the centralized inference HAL.
+Runs YOLOv8-nano via the centralized inferenced daemon over IPC.
 Produces SideObject detections for BSD/RCTA tracking.
+
+Shared by sided.py (side_left/side_right) and reard.py (rear) — both consume
+this class with their own daemon_name. The Hailo-8 is a single physical PCIe
+device: HailoRT gives one process exclusive VDevice ownership (there's no
+hailort multi-process scheduler service running on ExoPilot), so detection
+MUST go through inferenced's IPC job queue (which is the sole process that
+touches Hailo8Backend/VDevice) rather than each daemon creating its own
+VDevice directly — two daemons doing that concurrently means only one of them
+ever gets a working accelerator and the other silently gets zero detections.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import List
 
 import cv2
@@ -16,7 +24,7 @@ import numpy as np
 
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced.client import InferenceClient
-from openpilot.system.inferenced.compute import ModelConfig
+from openpilot.system.inferenced.compute import BackendType
 
 from openpilot.selfdrive.sided.simple_tracker import SideObject
 
@@ -43,59 +51,50 @@ CLASS_HEIGHT_PRIORS_M: dict[str, float] = {
 
 
 class HailoSideDetector:
-  """Hailo-8 YOLO detector for side cameras."""
+  """Hailo-8 YOLO detector for side/rear cameras.
 
-  DEFAULT_MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "hef" / "yolov8n.hef"
+  Submits jobs to the centralized inferenced daemon (IPC) instead of loading
+  the HEF and owning a VDevice locally — see module docstring.
+  """
+
+  MODEL_NAME = 'yolo_side'
   INPUT_SIZE = (640, 640)  # (width, height)
   CONF_THRESHOLD = 0.35
   NMS_THRESHOLD = 0.45
+  # Bounded so a stalled/absent inferenced daemon can't stall the 20Hz camera
+  # loop; a miss just yields zero detections for that frame and retries next.
+  POLL_TIMEOUT_MS = 120.0
 
-  def __init__(self, model_path: str | Path | None = None) -> None:
-    self.model_path = Path(model_path) if model_path else self.DEFAULT_MODEL_PATH
-    self._available = False
-    self._client: InferenceClient | None = None
-    self._hailo_backend = None
-    self._init()
-
-  def _init(self) -> None:
-    try:
-      if not self.model_path.exists():
-        cloudlog.warning(f"HailoSideDetector: model not found at {self.model_path}")
-        return
-
-      self._client = InferenceClient("sided")
-      try:
-        hailo_backend = self._client.hailo()
-      except RuntimeError:
-        cloudlog.warning("HailoSideDetector: Hailo hardware not available")
-        return
-
-      config = ModelConfig(name='yolo_side', path=str(self.model_path))
-      if not hailo_backend.load_model(config):
-        cloudlog.error("HailoSideDetector: failed to load HEF model")
-        return
-
-      self._hailo_backend = hailo_backend
-      self._available = True
-      cloudlog.info(f"HailoSideDetector: loaded {self.model_path.name}")
-
-    except Exception as e:
-      cloudlog.error(f"HailoSideDetector: init failed ({e})")
+  def __init__(self, daemon_name: str = "sided") -> None:
+    self._client = InferenceClient(daemon_name, use_ipc=True)
+    # Optimistic — the daemon that actually holds the Hailo-8 confirms/denies
+    # per job. Only latched False on a definitive "not available" response so
+    # a slow-starting inferenced daemon doesn't permanently disable detection.
+    self._available = True
 
   @property
   def is_available(self) -> bool:
     return self._available
 
   def detect(self, frame_bgr: np.ndarray | None) -> List[SideObject]:
-    """Run YOLO inference on a single BGR frame."""
-    if frame_bgr is None or not self._available or self._client is None:
+    """Run YOLO inference on a single BGR frame via the centralized daemon."""
+    if frame_bgr is None or not self._available:
       return []
 
     try:
       rgb = self._preprocess(frame_bgr)
-      result = self._hailo_backend.infer('yolo_side', {'input': rgb})
+      result = self._client.submit_job(
+        backend_type=BackendType.HAILO_8,
+        model_name=self.MODEL_NAME,
+        input_array=rgb,
+        poll_timeout_ms=self.POLL_TIMEOUT_MS,
+      )
       if not result.success:
-        cloudlog.debug(f"HailoSideDetector: inference failed: {result.error_message}")
+        if result.error_message and 'not available' in result.error_message:
+          self._available = False
+          cloudlog.warning(f"HailoSideDetector: {result.error_message} — disabling")
+        else:
+          cloudlog.debug(f"HailoSideDetector: inference failed: {result.error_message}")
         return []
 
       return self._postprocess(result.outputs, frame_bgr.shape[:2])

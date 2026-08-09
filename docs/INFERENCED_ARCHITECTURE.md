@@ -150,11 +150,25 @@ def _should_use_gpu(self, model_name: str, inputs: dict) -> bool:
 
 ### Hailo Backend
 
-Optional edge AI processor (Hailo-8) for alternative NPU inference.
+Optional edge AI processor (Hailo-8) for alternative NPU inference. Used by
+`sided` (side_left/side_right) and `reard` (rear) — see
+`selfdrive/sided/hailo_side_detector.py`, shared by both daemons.
 
 **Hardware Paths**:
 - **Edge**: Real HailoRT SDK
 - **Dev PC**: Graceful failure with error handling
+
+**Exclusive device — IPC only, never `client.hailo()`.** Unlike NPU/ACL/RGA/MPP,
+the Hailo-8 is a single physical PCIe device: HailoRT hands one process
+exclusive `VDevice` ownership, and this codebase does not run the HailoRT
+multi-process scheduler service. If two daemons each call `client.hailo()`
+(direct-HAL mode) they race to create their own `VDevice()`; the loser's
+`initialize()` fails silently and that daemon gets zero detections with no
+visible fault. Because `sided` and `reard` run as separate concurrent
+processes on the same USB hub / same physical Hailo-8, both **must** go
+through `InferenceClient(daemon_name, use_ipc=True).submit_job(BackendType.HAILO_8, ...)`
+so that `inferenced` is the only process that ever touches `Hailo8Backend`/`VDevice`.
+`client.hailo()` remains for the single-process dev-PC/test case only.
 
 ## Client API
 
@@ -170,7 +184,7 @@ npu = client.npu()          # RKNN inference
 acl = client.acl()          # Unified GPU/CPU compute
 rga = client.rga()          # 2D graphics ops
 mpp = client.mpp()          # Video codec
-hailo = client.hailo()      # Hailo NPU
+hailo = client.hailo()      # Hailo NPU — single-process/dev-PC only, see Hailo Backend section below
 
 # Or get best available backend
 backend = client.best_compute()  # Returns ACL (GPU/CPU)
