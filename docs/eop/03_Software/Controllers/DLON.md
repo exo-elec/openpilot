@@ -774,3 +774,38 @@ Output: desiredAcceleration, followingDistance
 - [EOP OVERVIEW](../../00_Index/OVERVIEW.md) - EOP Architecture Overview
 - [DLAT.md](./DLAT.md) - Dynamic Lateral Profile (complementary)
 - Sunnypilot dec.py - Primary reference
+
+---
+
+## 10. 2026-08-09 Update — DLAT confidence coupling
+
+DLAT and DLON previously ran fully independently in AUTO mode despite both
+being confidence-driven automatic switches over the same underlying signal
+(how much the model trusts what it sees). `dlon.py::_evaluate_auto_mode()`
+gained a new lowest-priority trigger,
+`detect_lane_confidence_trigger()`, which reads `sm['controlsState'].
+dlatUseLaneless` — DLAT's own hysteresis-resolved Laneful/Laneless decision,
+published from `controlsd.py` — rather than re-deriving a second threshold
+on the raw confidence value. Rationale: when DLAT has committed to Laneless
+because lane lines are unreliable, E2E's path-only prediction is a better
+fit than lane-line-anchored ACC — the same reason a human driver leans more
+on road/path shape and less on lane markings when the markings are faded or
+absent. A stale or missing `controlsState` resolves to no-trigger (neutral),
+matching DLAT's own convention of defaulting to laneful rather than laneless
+when its input is missing. Gated by a new per-trigger toggle,
+`EOPDLONLaneConfidenceEnabled` (default on), following the existing sibling
+pattern — only consulted while `EOPDLONMode` is `Auto`, same scope as the
+other per-trigger toggles.
+
+Design context: studied `~/pilot/dragonpilot`'s `aem.py`/`acm.py` for prior
+art on confidence-based automatic mode switching per request. Both are
+non-commercial-licensed (Copyright Rick Lan, 2025) and turned out not to be
+about lane-confidence coupling anyway (`aem.py` uses throttle-intent
+probability, `acm.py` is lead-gated coast suppression) — no code or
+structure was copied; this implementation is independent.
+
+The identical coupling was implemented on `dev/NGP10`'s `ngp_dlon.py`
+(`ngp_lon_dlon_lane_confidence`), where it's always consulted since that
+branch has no `EOPDLONMode`-equivalent mode selector at all — DLON is
+unconditional automatic there by explicit design choice. See DLAT.md §11
+for the companion LCA-initiation-gate change landed the same day.

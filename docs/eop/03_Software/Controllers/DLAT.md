@@ -757,3 +757,61 @@ Output: desiredCurvature, laneChange
 - [EOP OVERVIEW](../../00_Index/OVERVIEW.md) - EOP Architecture Overview
 - [DLON.md](./DLON.md) - Dynamic Longitudinal Profile (complementary feature)
 - Sunnypilot nnlc - Reference implementation
+
+---
+
+## 11. 2026-08-09 Update — actual shipped scope vs. this design doc
+
+This document predates the real implementation and describes a larger,
+partly aspirational design (a `get_desired_curvature()` that fully drives
+lateral control, a `predictedPath` field) that was never built that way.
+What's actually in `selfdrive/controls/lib/dlat.py` today, and its two real
+downstream effects, both landed 2026-08-09:
+
+**DLAT has no direct curvature-selection role.** The real `desiredCurvature`
+comes unconditionally from `model_v2.action.desiredCurvature` in
+`controlsd.py` — there is no separate laneful-path-MPC vs. laneless-path-MPC
+to switch between (openpilot's unified E2E model made that fork obsolete;
+confirmed by checking `~/pilot/sunnypilot`'s own changelog, which removed
+their equivalent Dynamic Lane Profile for exactly this reason: "upstream
+laneless model is now on by default"). `self.dlat_use_laneless` instead
+gates two things:
+
+1. **RED's curvature nudge** (pre-existing): `controlsd.py`'s
+   `if red_output['lateral_cost'] > 0 and self.dlat_use_laneless:` — real
+   actuation, but downstream of `red.py`'s stereo+YOLO fusion, which has no
+   comma-3/`dev/NGP10` equivalent (see `EOP10_PARITY_CANDIDATES.md` on that
+   branch).
+2. **Automatic Lane Change (LCA) initiation gate** (new): `desire_helper.py`'s
+   `_validate_lane_confidence()` calls the now-public, static
+   `DLAT.calculate_lane_confidence(model_v2)` directly (no full `DLAT`
+   instantiation — this is a one-shot check, not the stateful hysteresis
+   arbiter) and blocks `preLaneChange → laneChangeStarting` while confidence
+   is below `LANEFUL_TO_LANELESS_THRESH` (0.4, the same constant DLAT's own
+   state machine uses). Default on, no toggle. Gates initiation only — an
+   in-progress `laneChangeStarting` is never aborted by a later confidence
+   drop, matching the existing blindspot-abort behavior. Missing/invalid
+   `model_v2` resolves to the neutral 0.5 confidence already built into
+   `calculate_lane_confidence()`, so absent data never blocks a lane change.
+3. **DLON coupling** (new, see `DLON.md` §"2026-08-09 Update"):
+   `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless` off
+   `controlsState` as a new lowest-priority AUTO-mode trigger — when DLAT
+   has committed to Laneless, DLON now favors E2E over ACC.
+
+**Design context:** the LCA gate concept — using lane-line trust to gate
+automatic lane-change initiation rather than to select a path-planning mode
+— comes from `~/pilot/sunnypilot`'s changelog prose ("Permanent: Laneless
+during Auto Lane Change execution"), the one part of their laneless concept
+that survived their own DLP removal. No sunnypilot code was read or copied
+(a grep of its current `selfdrive/` tree found zero "laneless" hits — the
+concept exists only in changelog history); this implementation is
+independent. Also worth noting: sunnypilot's own license (Copyright Haibin
+Wen, SUNNYPILOT LLC, 2024) is non-commercial/permission-required for
+commercial use, same as dragonpilot's `aem.py`/`acm.py` referenced in
+`DLON.md` — a reason to keep consulting it for concepts only, not code.
+
+The identical LCA gate and DLON coupling were also implemented on
+`dev/NGP10` (`nagaspilot/controls/ngp_dlat.py`, `desire_helper.py`,
+`modeld.py`), which does not have `EOPDLATMode`/`EOPDLONMode` user-facing
+mode selectors at all — DLAT/DLON are unconditional automatic there by
+explicit design choice, unlike this branch which keeps the mode toggles.
