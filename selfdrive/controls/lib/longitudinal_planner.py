@@ -16,7 +16,6 @@ from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
-from nagaspilot.controls.ngp_coasting import CoastingInput, NGPCoasting
 from nagaspilot.controls.ngp_dlon import NGPDLON
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
 # EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
@@ -38,8 +37,6 @@ _A_TOTAL_MAX_BP = [20., 40.]
 
 class NGPFlags:
   DLON = 1
-  COASTING = 2 ** 1
-  COASTING_DOWNHILL = 2 ** 2
   BRSC = 2 ** 3
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
@@ -91,7 +88,6 @@ class LongitudinalPlanner:
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
     self.ngp_dlon = NGPDLON()
-    self.ngp_coasting = NGPCoasting()
     self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
@@ -200,22 +196,6 @@ class LongitudinalPlanner:
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
     self.j_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC[:-1], self.mpc.j_solution)
-
-    if mode == 'acc' and ngp_flags & NGPFlags.COASTING:
-      lead = sm['radarState'].leadOne
-      pitch = sm['carControl'].orientationNED[1] if len(sm['carControl'].orientationNED) == 3 else None
-      coast = self.ngp_coasting.evaluate(CoastingInput(
-        v_ego=v_ego,
-        v_cruise=v_cruise,
-        pitch_rad=pitch,
-        lead_distance=float(lead.dRel) if lead.status else None,
-        lead_v_rel=float(lead.vRel) if lead.status else None,
-        user_longitudinal_override=long_control_off,
-        downhill_only=bool(ngp_flags & NGPFlags.COASTING_DOWNHILL),
-      ))
-      if coast.coast_suggestion:
-        mild_braking = (self.a_desired_trajectory < 0.0) & (self.a_desired_trajectory >= coast.minimum_brake_mps2)
-        self.a_desired_trajectory[mild_braking] = 0.0
 
     # TODO counter is only needed because radar is glitchy, remove once radar is gone
     self.fcw = self.mpc.crash_cnt > 2 and not sm['carState'].standstill

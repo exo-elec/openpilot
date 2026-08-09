@@ -27,10 +27,6 @@ def main():
   ngp_flags = 0
   if params.get_bool("ngp_lon_dlon"):
     ngp_flags |= NGPFlags.DLON
-  if params.get_bool("ngp_lon_coasting"):
-    ngp_flags |= NGPFlags.COASTING
-    if params.get_bool("ngp_lon_coasting_downhill"):
-      ngp_flags |= NGPFlags.COASTING_DOWNHILL
   if params.get_bool("ngp_lon_brsc"):
     ngp_flags |= NGPFlags.BRSC
 

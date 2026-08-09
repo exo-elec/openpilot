@@ -67,16 +67,6 @@ void NGPPanel::add_longitudinal_toggles() {
          "intelligent urban driving based on context."),
     },
     {
-      "ngp_lon_coasting",
-      tr("Adaptive Coasting Mode (ACM)"),
-      tr("Reduces braking to allow smoother coasting when appropriate."),
-    },
-    {
-      "ngp_lon_coasting_downhill",
-      QString::fromUtf8("　") + tr("Downhill Only"),
-      tr("Limited to downhill driving."),
-    },
-    {
       "ngp_lon_brsc",
       tr("Bumpy Road Speed Controller (BRSC)"),
       tr("Reduce speed and acceleration on rough pavement, detected from "
@@ -139,7 +129,6 @@ void NGPPanel::showEvent(QShowEvent *event) {
 void NGPPanel::updateStates() {
   // do fs_watch here
   fs_watch->addParam("ngp_lat_lca_speed");
-  fs_watch->addParam("ngp_lon_coasting");
 
   if (!isVisible()) {
     return;
@@ -147,7 +136,6 @@ void NGPPanel::updateStates() {
 
   // do state change logic here
   lca_sec_toggle->setVisible(std::atoi(params.get("ngp_lat_lca_speed").c_str()) > 0);
-  toggles["ngp_lon_coasting_downhill"]->setVisible(params.getBool("ngp_lon_coasting"));
 }
 
 void NGPPanel::expandToggleDescription(const QString &param) {
