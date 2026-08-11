@@ -1,5 +1,18 @@
 # Node 9 — Full migration-chain audit: dragonpilot → EDP10 → NGP10 → EOP10
 
+**Update, 2026-08-12 — backported to EDP10 and NGP10.** Since several
+findings below originated at the EDP10 step (found by diffing dragonpilot
+against EDP10) and were confirmed still present in both EDP10's and NGP10's
+own current source, the applicable fixes were ported back to both branches
+(not just fixed on EOP10, the branch this audit was run from). See
+`dev/EDP10`'s `docs/upstream-audit/NODE_09_migration_chain_backport.md` and
+`dev/NGP10`'s `nagaspilot/docs/NODE_09_migration_chain_backport.md` for what
+changed on each branch specifically — this doc remains the canonical record
+of the full investigation. Not backported: `controls.h`/`hud.cc`/
+`get_friction()` (already correct on both other branches — that's where the
+EOP10 fixes were sourced from), `alcc.py`'s state-machine bug (EOP10-original
+code, no equivalent elsewhere).
+
 ## Scope and method
 
 Unlike nodes 2-8 (which audit each branch against its own `0.10.0` base tag),
