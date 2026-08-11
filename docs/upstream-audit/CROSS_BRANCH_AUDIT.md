@@ -62,6 +62,7 @@ no stash**, since EOP10 currently has uncommitted work in progress.
 | 6 | EDP10 net-new: BYD car port + `dp_tja` + planner hooks | EDP10 | 🟡 medium | ✅ done — 1 finding (TJA no toggle) |
 | 7 | NGP10 net-new: `ngp_suite` controllers + gridd/adaptd wiring | NGP10 | 🟡 medium | ✅ done — 2 findings (dead toggle, untoggleable trigger) |
 | 8 | EOP10 delta since `1d5f050ef` + working tree | EOP10 | 🟡 medium (bounded scope, see above) | ✅ done — 1 finding (orphaned tracking hash); partial coverage on working tree |
+| 9 | Migration-chain regression audit: `dragonpilot → EDP10 → NGP10 → EOP10 → visionpilot` | all | 🔴 highest — real regressions, one safety-relevant (dead ALCC state machine) | ✅ done — see `NODE_09_migration_chain_audit.md`: 13 findings, all fixed, 0 test regressions |
 
 **Legend:** ✅ done · 🔄 in progress · ⏳ pending · 🔴/🟠/🟡 priority (safety > structural/cross-branch > feature-local)
 
