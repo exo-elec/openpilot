@@ -61,6 +61,7 @@ class UIState:
     self.started_frame: int = 0
     self._engaged_prev: bool = False
     self._started_prev: bool = False
+    self._offroad_transition_callbacks: list[Callable[[], None]] = []
 
     # Core state variables
     self.is_metric: bool = self.params.get_bool("IsMetric")
@@ -81,6 +82,9 @@ class UIState:
 
   def is_offroad(self) -> bool:
     return not self.started
+
+  def add_offroad_transition_callback(self, callback: Callable[[], None]):
+    self._offroad_transition_callbacks.append(callback)
 
   def update(self) -> None:
     self.sm.update(0)
@@ -134,6 +138,9 @@ class UIState:
       if self.started:
         self.status = UIStatus.DISENGAGED
         self.started_frame = self.sm.frame
+
+      for callback in self._offroad_transition_callbacks:
+        callback()
 
       self._started_prev = self.started
 
