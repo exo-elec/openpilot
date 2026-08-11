@@ -208,9 +208,9 @@ class ProbabilisticLazyBEV:
         z = all_points[:, 2]
         x = all_points[:, 0]
         
-        row = np.clip((z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
-        col = np.clip((x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
-        
+        row = np.clip(np.floor(z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
+        col = np.clip(np.floor(x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
+
         # Update grid with weighted observations
         unique_cells = {}
         for r, c, w in zip(row, col, all_weights):
@@ -280,8 +280,8 @@ class ProbabilisticLazyBEV:
         x = x[valid]
 
         # ---- 4. Map to grid cells ----
-        row = np.clip((z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
-        col = np.clip((x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
+        row = np.clip(np.floor(z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
+        col = np.clip(np.floor(x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
 
         # ---- 5. Correction: Bayes filter update ----
         # For each occupied cell: increase log-odds
@@ -377,8 +377,8 @@ class ProbabilisticLazyBEV:
 
     def get_cell_probability(self, forward_m: float, lateral_m: float) -> float:
         """Get occupancy probability at specific world coordinates."""
-        row = int(forward_m / self.resolution_m)
-        col = int(lateral_m / self.resolution_m) + self.half_w
+        row = int(np.floor(forward_m / self.resolution_m))
+        col = int(np.floor(lateral_m / self.resolution_m)) + self.half_w
         
         if 0 <= row < self.grid_h and 0 <= col < self.grid_w:
             return float(log_odds_to_probability(self.log_odds[row, col]))
