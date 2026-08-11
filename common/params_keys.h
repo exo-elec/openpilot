@@ -38,6 +38,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DoUninstall", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverTooDistracted", {CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON, BOOL}},
     {"AlphaLongitudinalEnabled", {PERSISTENT | DEVELOPMENT_ONLY, BOOL}},
+    // ASM2464PD USB eGPU driving path (mirrors upstream UsbGpu*; named after
+    // the hardware, not comma's Chestnut model class -- we support both our
+    // own flashed firmware and comma's on the same physical chip).
+    {"EgpuDrivingEnabled", {PERSISTENT, BOOL}},
+    {"EgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"EgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ExperimentalMode", {PERSISTENT, BOOL}},
     {"ExperimentalModeConfirmed", {PERSISTENT, BOOL}},
     {"FirmwareQueryDone", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
@@ -115,6 +121,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_dlon_slow_lead", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_speed_limit", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_stop_prediction", {PERSISTENT, BOOL, "1"}},
+    // Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
+    // laneChangeStarting (nagaspilot/controls/ngp_lc_lead_handoff.py). No panel
+    // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
+    {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"Offroad_CarUnrecognized", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import time
 import numpy as np
 
 import cereal.messaging as messaging
@@ -22,6 +23,9 @@ from nagaspilot.controls.ngp_dlon import NGPDLON
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp.
 from nagaspilot.controls.ngp_brsc import NGPBRSC
+# Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
+# laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
+from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -37,6 +41,7 @@ _A_TOTAL_MAX_BP = [20., 40.]
 
 class NGPFlags:
   BRSC = 2 ** 3
+  LC_LEAD_HANDOFF = 2 ** 4
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -93,6 +98,9 @@ class LongitudinalPlanner:
     self.brsc = NGPBRSC()
     self.brsc_result = None
     self.brsc_v_target = None
+
+    # Lane Change Lead Handoff (pure camera)
+    self.lc_handoff = NGPLeadHandoff()
 
   @staticmethod
   def parse_model(model_msg):
@@ -188,7 +196,24 @@ class LongitudinalPlanner:
 
     self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
-    self.mpc.update(sm['radarState'], v_cruise, x, v, a, j, personality=sm['selfdriveState'].personality)
+
+    # Lane Change Lead Handoff — if laneChangeStarting, replace radarState.leadOne
+    # with the lead in the target lane so MPC tracks it instead of the old lane's lead.
+    lc_lead_handoff_enabled = bool(ngp_flags & NGPFlags.LC_LEAD_HANDOFF)
+    radar_state_for_mpc = sm['radarState']
+    if sm.valid.get('modelV2', False):
+      model_meta = sm['modelV2'].meta
+      radar_state_for_mpc = self.lc_handoff.update(
+        enabled=lc_lead_handoff_enabled,
+        model_v2=sm['modelV2'],
+        radar_state=sm['radarState'],
+        lc_state=model_meta.laneChangeState,
+        lc_dir=model_meta.laneChangeDirection,
+        v_ego=v_ego,
+        now=time.monotonic(),
+      )
+
+    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=sm['selfdriveState'].personality)
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)

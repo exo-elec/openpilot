@@ -11,6 +11,7 @@
 | Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` (not `ngp_lca.py` — same as above, unwired) | Integrated, default off |
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
+| Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
@@ -114,7 +115,7 @@ deliberately not — see below for why:
 (`ngp_dlon.py::update_params()` polls them every 1s) since there's no mode
 param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
 `ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
-`ngp_lon_brsc`) is read once
+`ngp_lon_brsc`) — plus the non-panel `ngp_lon_lc_lead_handoff` — is read once
 at process start (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their
 `while True:` loop) — a change takes effect on the next onroad transition
 (these are `only_onroad`/car-gated processes in `process_config.py`, so this
@@ -228,7 +229,12 @@ toggle, `ngp_lon_dlon_lane_confidence` (default on) — see above. Verified via
 (direct-import execution, same technique as the rest of this doc's testing
 notes — `test_ngp_dlon_mtsc.py`'s own imports hit the pre-existing
 `RadarData.ErrorDEPRECATED` capnp/opendbc version-skew blocker in this
-dev-PC worktree). The identical coupling was also implemented on
+dev-PC worktree; **fixed 2026-08-23** — `cereal/log.capnp` now references
+`Car.RadarData.Error`, matching the rename already present in this branch's
+own `opendbc_repo` pin and in `EXO-ELEC/opendbc`'s `master`; `import cereal`
+works normally again, the direct-import workaround is no longer required
+for new tests, see `EGPU_INTEGRATION.md`). The identical coupling was also
+implemented on
 `dev/EOP10`'s `dlon.py`/`dlat.py` (at the time, only applied while
 `EOPDLONMode` was `Auto`; since EOP10 removed `EOPDLONMode` entirely on
 2026-08-10, it's now always consulted there too, same as NGP10).

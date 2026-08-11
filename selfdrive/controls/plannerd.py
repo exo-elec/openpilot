@@ -29,6 +29,8 @@ def main():
   ngp_flags = 0
   if params.get_bool("ngp_lon_brsc"):
     ngp_flags |= NGPFlags.BRSC
+  if params.get_bool("ngp_lon_lc_lead_handoff"):
+    ngp_flags |= NGPFlags.LC_LEAD_HANDOFF
 
   while True:
     sm.update()
