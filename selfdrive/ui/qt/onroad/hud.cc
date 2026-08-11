@@ -26,7 +26,7 @@ void HudRenderer::updateState(const UIState &s) {
   const auto &car_state = sm["carState"].getCarState();
 
   // Handle older routes where vCruiseCluster is not set
-  set_speed = controls_state.getVCruiseDEPRECATED();
+  set_speed = car_state.getVCruiseCluster() == 0.0 ? controls_state.getVCruiseDEPRECATED() : car_state.getVCruiseCluster();
   is_cruise_set = set_speed > 0 && set_speed != SET_SPEED_NA;
   is_cruise_available = set_speed != -1;
 
