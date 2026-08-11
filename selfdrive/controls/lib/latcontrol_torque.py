@@ -6,6 +6,8 @@ from openpilot.common.swaglog import cloudlog
 from collections import deque
 
 from cereal import log
+from opendbc.car import get_friction
+from opendbc.car.interfaces import FRICTION_THRESHOLD
 from openpilot.common.constants import ACCELERATION_DUE_TO_GRAVITY
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.common.pid import PIDController
@@ -51,15 +53,6 @@ def _get_lookahead_value(future_values, current_value):
     if _sign(v) == current_sign and abs(v) > abs(current_value):
       return v
   return future_values[-1]
-
-
-def get_friction(lateral_accel_error: float, lateral_accel_deadzone: float, friction_tolerance: float) -> float:
-  # Reproduces opendbc.car.lateral.get_friction (unavailable; opendbc removed).
-  # Linear ramp from 0 at deadzone to friction_tolerance, sign-preserving.
-  FRICTION_THRESHOLD = 0.3  # m/s² — matches upstream opendbc constant
-  magnitude = float(np.interp(abs(lateral_accel_error) - lateral_accel_deadzone,
-                               [0.0, FRICTION_THRESHOLD], [0.0, friction_tolerance]))
-  return (1.0 if lateral_accel_error > 0 else -1.0 if lateral_accel_error < 0 else 0.0) * magnitude
 
 
 class LatControlTorque(LatControl):
@@ -189,7 +182,8 @@ class LatControlTorque(LatControl):
 
     pid_log.error = float(setpoint - measurement)
     ff = gravity_adjusted_lateral_accel
-    ff += get_friction(desired_lateral_accel - actual_lateral_accel, lateral_accel_deadzone, self.torque_params.friction)
+    ff += get_friction(desired_lateral_accel - actual_lateral_accel, lateral_accel_deadzone, FRICTION_THRESHOLD,
+                       self.torque_params, friction_compensation=True)
 
     if self.nn_model is not None:
       try:
