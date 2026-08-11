@@ -91,6 +91,7 @@ class SelfdriveD:
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
+    self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     car_recognized = self.CP.brand != 'mock'
@@ -119,7 +120,7 @@ class SelfdriveD:
     self.experimental_mode = False
     self.personality = self.params.get("LongitudinalPersonality", return_default=True)
     self.recalibrating_seen = False
-    self.state_machine = StateMachine()
+    self.state_machine = StateMachine(self.alcc_enabled)
     self.rk = Ratekeeper(100, print_delay_threshold=None)
 
     # some comma three with NVMe experience NVMe dropouts mid-drive that
