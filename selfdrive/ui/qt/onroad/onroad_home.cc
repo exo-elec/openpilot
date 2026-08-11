@@ -170,7 +170,7 @@ void OnroadWindow::updateState(const UIState &s) {
   updateOverlayVisibility(s);
   updatePairingOverlay();
 
-  QColor bgColor = bg_colors[s.status];
+  QColor bgColor = bg_colors[s.scene.alcc_active && s.status == STATUS_DISENGAGED ? STATUS_ALCC : s.status];
   if (bg != bgColor) {
     // repaint border
     bg = bgColor;

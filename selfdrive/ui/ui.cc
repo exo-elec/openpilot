@@ -96,6 +96,9 @@ static void update_state(UIState *s) {
   if (sm.valid("micStatus")) {
     scene.mic_level_db = sm["micStatus"].getMicStatus().getMicLevelDb();
   }
+  if (sm.valid("alccState")) {
+    scene.alcc_active = sm["alccState"].getAlccState().getActive();
+  }
 }
 
 void ui_update_params(UIState *s) {
@@ -138,7 +141,7 @@ UIState::UIState(QObject *parent) : QObject(parent) {
     "navInstruction", "navRoute", "liveLocationKalman", "mapData",
     "obdState", "voiceState", "ttsStatus", "micStatus",
     "driverStatus", "gpsLocation", "gpsLocationExternal",
-    "pandaState", "sensorEvents",
+    "pandaState", "sensorEvents", "alccState",
   });
   prime_state = new PrimeState(this);
   language = QString::fromStdString(Params().get("LanguageSetting"));

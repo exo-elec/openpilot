@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from cereal import car, log
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_CTRL
+from openpilot.selfdrive.selfdrived.events import ET
 
 EventName = log.OnroadEvent.EventName
 
@@ -40,8 +41,8 @@ NO_ACC_MAIN_BUTTON_BRANDS = ("rivian", "tesla")
 
 # Events that block ALCC but allow paused state instead of full disable
 PAUSE_ALLOWED_EVENTS = [
-  'wrongGear', 'reverseGear', 'brakeHold',
-  'doorOpen', 'seatbeltNotLatched', 'parkBrake'
+  EventName.wrongGear, EventName.reverseGear, EventName.brakeHold,
+  EventName.doorOpen, EventName.seatbeltNotLatched, EventName.parkBrake
 ]
 
 SOFT_DISABLE_TIME = 3.0  # seconds
@@ -112,10 +113,10 @@ class AlccController:
     except (ValueError, TypeError):
       self.steering_mode_on_brake = SteeringModeOnBrake.PAUSE
 
-  def _has_event(self, events, event_name: str) -> bool:
+  def _has_event(self, events, event_name: int) -> bool:
     return event_name in events.names
 
-  def _remove_event(self, events, event_name: str):
+  def _remove_event(self, events, event_name: int):
     if event_name in events.names:
       events.names.remove(event_name)
 
@@ -135,11 +136,11 @@ class AlccController:
     # When stock is not engaged but ALCC is on, replace disabling events with pause
     if not enabled and self.enabled:
       if CS.standstill:
-        for evt in ['doorOpen', 'seatbeltNotLatched']:
+        for evt in [EventName.doorOpen, EventName.seatbeltNotLatched]:
           if self._has_event(events, evt):
             self._remove_event(events, evt)
             self.state = AlccState.paused
-        for evt in ['wrongGear', 'reverseGear', 'brakeHold', 'parkBrake']:
+        for evt in [EventName.wrongGear, EventName.reverseGear, EventName.brakeHold, EventName.parkBrake]:
           if self._has_event(events, evt):
             self._remove_event(events, evt)
             self.state = AlccState.paused
@@ -147,7 +148,8 @@ class AlccController:
         if self.pedal_pressed_non_gas(CS, CS_prev, disengage_on_accelerator):
           self.state = AlccState.paused
       # Remove pre-enable events that block ALCC engagement
-      for evt in ['preEnableStandstill', 'belowEngageSpeed', 'speedTooLow', 'cruiseDisabled', 'manualRestart']:
+      for evt in [EventName.preEnableStandstill, EventName.belowEngageSpeed, EventName.speedTooLow,
+                  EventName.cruiseDisabled, EventName.manualRestart]:
         self._remove_event(events, evt)
 
     # Brake mode: disengage on non-gas pedal press
@@ -163,7 +165,7 @@ class AlccController:
           self.state = AlccState.enabled
 
     # Remove events that shouldn't affect lateral-only mode
-    for evt in ['pcmDisable', 'buttonCancel', 'pedalPressed', 'wrongCruiseMode']:
+    for evt in [EventName.pcmDisable, EventName.buttonCancel, EventName.pedalPressed, EventName.wrongCruiseMode]:
       self._remove_event(events, evt)
 
   def update_state_machine(self, events, steer_override: bool):
@@ -172,10 +174,10 @@ class AlccController:
       self.state = AlccState.disabled
       return
 
-    has_user_disable = 'userDisable' in events.names
-    has_imm_disable = 'immediateDisable' in events.names
-    has_soft_disable = 'softDisable' in events.names
-    has_enable = 'lkasEnable' in events.names or 'buttonEnable' in events.names
+    has_user_disable = events.contains(ET.USER_DISABLE)
+    has_imm_disable = events.contains(ET.IMMEDIATE_DISABLE)
+    has_soft_disable = events.contains(ET.SOFT_DISABLE)
+    has_enable = EventName.lkasEnable in events.names or EventName.buttonEnable in events.names
 
     # Decrement soft-disable timer
     self.soft_disable_timer = max(0.0, self.soft_disable_timer - DT_CTRL)
