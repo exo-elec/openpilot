@@ -6,16 +6,24 @@ from opendbc.car.byd.interface import CarInterface
 from opendbc.car.byd.values import CAR, FW_QUERY_CONFIG
 
 
-def test_platform_is_passive():
+def test_platform_is_lateral_active_longitudinal_passive():
+  # Flipped from noOutput/dashcamOnly (2026-08-12) - opendbc/safety/modes/byd.h's
+  # steering enforcement was already audited complete for 0x1E2/0x316. Longitudinal
+  # (0x32E) stays off: byd.h's BYD_TX_MSGS whitelist doesn't carry it yet, so
+  # openpilotLongitudinalControl would fail closed at panda's TX check regardless.
   cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
-  assert cp.dashcamOnly
-  assert cp.safetyConfigs[0].safetyModel == structs.CarParams.SafetyModel.noOutput
+  assert not cp.dashcamOnly
+  assert cp.safetyConfigs[0].safetyModel == structs.CarParams.SafetyModel.byd
   assert not cp.alphaLongitudinalAvailable
   assert not cp.openpilotLongitudinalControl
   assert cp.radarUnavailable
 
+  # disengaged CarControl still sends nothing - test_controller_disabled_sends_nothing
+  # covers this more thoroughly; this just checks the params flip didn't also
+  # start sending unconditionally.
   ci = CarInterface(cp)
-  _, sends = ci.apply(structs.CarControl().as_reader())
+  ci.update([])
+  _, sends = ci.apply(structs.CarControl().as_reader(), 0)
   assert sends == []
 
 
