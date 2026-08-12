@@ -244,3 +244,76 @@ fork change, and shouldn't be rushed into the same session that found it.
 Rest of the "Not done" list from the 2026-08-12 update is unchanged and
 still accurate (EOP10's pin, BrownPanda/TC275 firmware wiring,
 `car_helpers.get_car()` dispatch).
+
+## Update (2026-08-13, continued): the `torque_from_lateral_accel` blocker investigated further — an adapter is viable, GM needs one confirmed decision first
+
+Followed up on blocker (3) above to see whether it's actually fixable with a
+small, local change to `dev/EDP10`'s `latcontrol_torque.py` (an adapter
+calling the fork's old 2-arg API and reconstructing the 3-arg calling
+convention EDP10 expects) rather than a larger rearchitecture. **The swap
+itself was NOT performed — this was investigation and verification only,
+run via two separate Python subprocesses (see note below) with results
+diffed externally, no files changed in either `dev/EDP10` or the fork.**
+
+**The adapter mechanism is proven correct for every brand except one.**
+Checked which brands override the base `torque_from_lateral_accel()` in
+either tree: only `opendbc/car/gm/interface.py`, in both. Every other
+brand — the overwhelming majority of what `dev/EDP10` supports — inherits
+the same base-class linear implementation, and a direct equivalence check
+(same test inputs through EDP10's 3-arg native call and the proposed
+adapter wrapping the fork's 2-arg call) matched bit-for-bit across 6 input
+combinations x2 gravity-adjust states. So this audit is a full accounting
+of where drift *can* hide, not a sample.
+
+**GM's neural path (`CHEVROLET_BOLT_EUV`) also matched bit-for-bit** — no
+adapter needed there at all, since the fork's opt-in
+`torque_from_lateral_accel_neural_fn()` (added this session for the
+EOP10/NGP10 compatibility contract, see above) was built by porting
+EDP10's own GM neural code in the first place.
+
+**GM's non-linear ("siglin") path — `GMC_ACADIA`/`CHEVROLET_SILVERADO` —
+does NOT match, and the cause turned out to be interesting, not an
+adapter bug.** Same underlying tuning constants (`[4.78003305, 1.0,
+0.3122, 0.05591772]`) in both trees, but EDP10's formula silently drops
+the 4th constant (`d`, a constant torque offset) that the fork's formula
+still adds. Traced via `git log` on the fork (itself the current comma.ai
+upstream, bumped 2026-08-10) — this isn't tuning drift, it's an *orphaned
+upstream change*: comma.ai merged "Torque controller: refactor
+calculations to be in accel space" (`74bfaa2c`, Shane Smiskol,
+2025-08-15) — the exact `LatControlInputs`/`NanoFFModel`/dropped-`d`-term
+pattern `dev/EDP10` has — then **reverted it three days later**
+(`4e50498a`, Adeeb Shihadeh, 2025-08-18, pushed directly, no PR, no
+stated reason in the commit message). `dev/EDP10` appears to have pulled
+in `74bfaa2c` without the revert at some point in its history. The bare
+revert doesn't explain *why* — that's a real limit on what's known here,
+stated plainly rather than assumed — but a same-week revert by comma.ai's
+founder is a strong signal something was wrong with it, and it means the
+fork's current 2-arg-plus-`d`-term behavior is comma.ai's own considered,
+currently-supported design, not something `dev/EDP10` is "ahead" of.
+
+**What this means for the adapter approach:** it's sound, and adopting it
+would very likely be a *correction* for GM Acadia/Silverado, not a
+regression. But it does change those two cars' actual steering output
+(the `d` term is not derivable from what EDP10 has today — it re-appears
+in the calculation), and — unlike the Chery/BYD/MG work — GM support is a
+mainstream, potentially-deployed brand. **The remaining open question,
+which needs a direct answer before this proceeds, is whether `dev/EDP10`
+is currently driving real GM Acadia/Silverado vehicles.** If not, this is
+straightforward to schedule. If so, those two cars need an explicit,
+informed decision before their steering formula changes underneath them.
+
+**Also not yet done, now that the adapter's shape is known:** the adapter
+can't actually be written into `dev/EDP10`'s `latcontrol_torque.py` yet —
+it calls `CI.torque_from_lateral_accel_neural_fn()`, a method that only
+exists in the fork's `interfaces.py`, not in `dev/EDP10`'s currently
+vendored one. Writing the adapter and performing the submodule swap have
+to happen as one atomic change, not two independent ones; doing only the
+adapter first would leave `dev/EDP10` referencing a method that doesn't
+exist yet.
+
+**Tooling note for future verification like this:** `dev/EDP10`'s and this
+fork's `car.capnp` share an original capnp schema ID
+(`car.capnp:0: failed: Duplicate ID @0x8e2af1e708af8b8d`) — they cannot
+both be imported in the same Python process. Verification comparing the
+two trees needs two separate subprocess runs with results serialized
+(e.g. to JSON) and diffed externally, not a single script importing both.
