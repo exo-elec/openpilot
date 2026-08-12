@@ -311,6 +311,52 @@ to happen as one atomic change, not two independent ones; doing only the
 adapter first would leave `dev/EDP10` referencing a method that doesn't
 exist yet.
 
+## Update (2026-08-13, continued again): blockers (1) and (2) confirmed with exact locations — scope is bigger than the API surface alone
+
+The torque-adapter investigation above only addresses blocker (3). Checked
+blockers (1) and (2) directly against `dev/EDP10`'s `selfdrive/`/`system/`
+(not just `opendbc_repo`) to find out whether they're contained to the
+opendbc tree or reach further:
+
+- **(1) `dp_params` reaches well outside `opendbc_repo`.**
+  `selfdrive/car/card.py` builds a `dp_params` bitmask from **7 real,
+  user-facing flags** (`structs.DPFlags.LateralALKA`, `.ToyotaLockCtrl`,
+  `.ToyotaTSS1SnG`, `.ToyotaStockLon`, `.VagA0SnG`,
+  `.VAGPQSteeringPatch`, `.VagAvoidEPSLockout`) and passes it into every
+  brand's `_get_params()`/`get_params()` — this is a live, dragonpilot-
+  style params-driven car-behavior toggle system, not internal opendbc
+  plumbing. `selfdrive/car/tests/test_car_interfaces.py` and
+  `test_models.py` also call `get_params(..., dp_params=0, ...)` directly.
+  A naive submodule swap doesn't just change one function's arity — it
+  deletes the `DPFlags` schema type and the 7 flags it carries, and
+  `card.py`'s toggle-building logic has nowhere to route them.
+  (Incidentally: `.VAGPQSteeringPatch` is the *exact* feature already
+  ported to the fork as `VolkswagenFlags.PQSteeringPatch` — but wired
+  there as a plain settable `CarParams.flags` bit, not through a
+  `dp_params` toggle system the fork has no equivalent of. The two aren't
+  drop-in compatible as-is.)
+- **(2) `deprecated`-group fields are read directly in core longitudinal
+  control**, not just inside brand `interface.py` files:
+  `selfdrive/controls/lib/longcontrol.py` reads `CP.startingState` (lines
+  29, 35), `CP.stoppingDecelRate` (line 75), and `CP.startAccel` (line 79)
+  as top-level `CarParams` fields; `selfdrive/controls/lib/
+  longitudinal_planner.py` reads `CP.vEgoStopping` (line 259) the same
+  way. All four live under `.deprecated.` in the fork's schema. This is
+  exactly the class of `AttributeError` the Toyota DSU-disconnect port
+  hit and fixed this session (`ret.enableDsu` → `ret.deprecated.enableDsu`)
+  — except in core stopping/starting deceleration control, not one
+  brand's interface.
+
+**Net effect: #19 is not "swap the tree, fix the torque adapter, done."**
+It's the torque adapter (scoped and mostly verified above) *plus*
+reconciling a real params-driven toggle system in `card.py` *plus* four
+top-level-vs-`deprecated` field reads in core longitudinal control. None
+of the three is individually large, but they're independent pieces of
+`selfdrive/`-level work, not opendbc-fork-level work, and the full set
+needs to land together for the swap to be safe. Still gated on the same
+GM Acadia/Silverado deployment-status question from the update above
+before scheduling any of it.
+
 **Tooling note for future verification like this:** `dev/EDP10`'s and this
 fork's `car.capnp` share an original capnp schema ID
 (`car.capnp:0: failed: Duplicate ID @0x8e2af1e708af8b8d`) — they cannot
