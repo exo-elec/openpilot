@@ -157,3 +157,90 @@ dangerous for car identification.
 No fixes applied to EOP10 itself this pass — all changes are on the
 `exo-electronics/opendbc` fork's new branch, not merged to `master`, not
 pinned into either `dev/EOP10` or `dev/EDP10`.
+
+## Update (2026-08-13): MG added, EDP10's own patches ported, full regression clean — `dev/EDP10` submodule conversion still blocked
+
+Full detail lives in `exo-electronics/opendbc`'s own
+`docs/BYD_CHERY_JAECOO_PORT.md` (same branch,
+[PR #1](https://github.com/exo-electronics/opendbc/pull/1)); this is the
+cross-repo summary.
+
+**Added since the 2026-08-12 update:**
+- **MG (ZS EV + non-EV/ICE)** ported from dragonpilot's `opendbc_repo`.
+  License note: dragonpilot's own original contributions (separate from the
+  inherited comma.ai-derived base) carry a non-commercial `LICENSE.md`
+  restriction (Copyright (c) 2019, Rick Lan) — this port was authorized
+  directly by exo-electronics via a verbal arrangement with dragonpilot's
+  author, not a written grant. Worth formalizing given exo-electronics'
+  commercial context.
+- **Three of `dev/EDP10`'s own hand-authored patches**, identified via a
+  full 205-file audit of EDP10's `opendbc_repo` against its real parent
+  (`dragonpilot`, not this fork — the lineages diverged ~1.5 years ago, so
+  diffing directly against this fork is 1800+ files of noise): the VW PQ
+  `HCA_Status` configurability patch, Toyota's DSU-disconnect capability
+  (opt-in, gated purely by FW fingerprinting — inert for any Toyota that
+  still has a live DSU), and GM Bolt EUV's neural-network lateral
+  feedforward.
+- **Two items from that same audit deliberately NOT ported**: the generic
+  `radar_interface.py`/`u_radar.dbc` universal-radar-retrofit rewrite
+  (dragonpilot-licensed, and out of scope — serves Toyota/GM/Chrysler/
+  Rivian/Ford/Hyundai/Honda, unrelated to the Chinese-EV brands this port
+  targets) and Toyota's ALKA/`zss.py` alternate steering-angle-source path
+  (zero footprint anywhere in this fork or in `dev/EOP10`/`dev/NGP10`,
+  dragonpilot itself keeps it present-but-disabled upstream for an
+  unconfirmed reason — reintroducing it would be new safety-relevant
+  complexity with no current consumer).
+
+**A real cross-branch compatibility hazard, caught before merging:** GM's
+neural feedforward needed a richer calling convention than this fork's
+`torque_from_lateral_accel()` API provides. The first attempt changed that
+API's base signature and removed `lateral_accel_from_torque()` entirely,
+matching what `dev/EDP10`'s own (already-rewritten) `latcontrol_torque.py`
+needs — but `dev/EOP10` and `dev/NGP10`'s `latcontrol_torque.py` still call
+the *old* 2-arg convention and still use `lateral_accel_from_torque()` for
+`pid.set_limits()`. Shipping that first attempt would have broken both
+branches the next time either bumped its `opendbc_repo` submodule pin.
+Redone as a strictly additive opt-in accessor
+(`torque_from_lateral_accel_neural_fn()`, defaults to `None`) instead — see
+the fork's own doc for the full contract. **This means the base API this
+fork now exposes satisfies EOP10/NGP10's calling convention, but does
+*not* satisfy EDP10's** — EDP10's own controller calls
+`torque_from_lateral_accel()` and then invokes the result with the new
+3-arg `LatControlInputs` signature directly, not through the opt-in path.
+
+**Full regression, done properly this time:** earlier verification in this
+port used `pytest`, which on this sandbox silently resolves to a mismatched
+system Python 3.10 install for parts of the suite (masking failures in
+anything importing `opendbc.car.rivian.values`, which needs `enum.StrEnum`,
+Python 3.11+). This fork's actual CI runner is `unittest-parallel -j4`
+(`lefthook.yml`/`test.sh`). Running it for real surfaced 3 genuine
+failures, all fixed: the `CHERY_TIGGO_8_PRO`/`CHERY_JAECOO_J7_PHEV`
+fingerprint collision noted above (Tiggo 8 Pro removed from CAN-fingerprint
+auto-detection — confirmed via web search these are distinct vehicles, not
+a rebadge, so merging their `PlatformConfig`s wasn't valid either; forced
+selection only now, matching MG's existing pattern) and an MG_ZS ISO
+11270 jerk-limit violation (`STEER_DELTA_UP=10`, dragonpilot's own value
+ported verbatim, exceeds the jerk bound given MG_ZS's real measured
+`MAX_LAT_ACCEL_MEASURED`; dragonpilot's own test suite has the identical
+formula so this was a latent bug in the source, not introduced by porting —
+reduced to 7). Current state: 4158 tests, 0 failures, 725 skipped.
+
+**`dev/EDP10`'s own submodule conversion is a confirmed blocker, not just
+"not yet done."** Checked directly by pointing EDP10's imports at this
+fork's tree: at minimum, (1) every `dev/EDP10` brand's `interface.py` uses
+the 8-arg `_get_params()` (`dp_params`); this fork uses 7 — every brand
+breaks on the swap. (2) `dev/EDP10`'s `car.capnp` has no `deprecated`
+group at all — fields this fork nests there (`.brake`, `.startingState`,
+`.enableDsu`, etc.) stay top-level on EDP10, the mirror image of the
+`AttributeError` hazard the Toyota DSU-disconnect port itself hit and fixed
+this pass. (3) `dev/EDP10`'s `latcontrol_torque.py` calls
+`torque_from_lateral_accel()` with the new 3-arg signature directly (see
+above) — this fork's version of that method still returns the old 2-arg
+callable, so EDP10's controller would raise `TypeError` on the first
+steering-torque calculation for any car. None of this was attempted this
+pass — it's real, scoped EDP10-side controller/schema work, not an opendbc
+fork change, and shouldn't be rushed into the same session that found it.
+
+Rest of the "Not done" list from the 2026-08-12 update is unchanged and
+still accurate (EOP10's pin, BrownPanda/TC275 firmware wiring,
+`car_helpers.get_car()` dispatch).
