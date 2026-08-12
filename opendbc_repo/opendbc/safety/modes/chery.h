@@ -58,6 +58,22 @@ static const AngleSteeringLimits CHERY_STEERING_LIMITS = {
   .frequency = 50U,
 };
 
+// Speed-dependent max-angle backstop (CHERY_STEERING_LIMITS.max_angle above
+// is flat at 120 deg, matching kommuai's own values.py - Chery has no
+// analogous taper to BYD's zone table at all in the source). Added here for
+// the same defense-in-depth reasoning byd.h's zone table documents: ISO
+// lateral accel (~1.3g, same margin) via the standard bicycle-model
+// kinematic relationship (max_angle = accel * wheelbase * steerRatio / v^2,
+// no slip-factor correction term - Chery has no measured slip_factor to
+// use, unlike BYD's VM path), using Omoda 5's wheelbase (2.63 m, the
+// smallest of the 4 Chery platforms this port covers) for a uniformly
+// conservative bound across all of them; steerRatio=16.0 is shared.
+// Crossover speed where this equals the flat 120 deg cap is ~16 m/s
+// (57.6 kph) - below that this table intentionally holds flat rather than
+// needlessly restricting low/mid-speed maneuvering the flat cap already
+// bounds safely.
+static const struct lookup_t CHERY_ZONE_ANGLE_DEG = {{0., 16., 36.}, {120., 120., 23.7}};
+
 static void chery_rx_hook(const CANPacket_t *msg) {
   if ((msg->addr == CHERY_HUD) && (GET_LEN(msg) >= 5U)) {
     const bool hud_bus_ok = (msg->bus == 2U) || (chery_omoda_safety && (msg->bus == 0U));
@@ -159,6 +175,11 @@ static bool chery_tx_hook(const CANPacket_t *msg) {
     const int desired_angle = raw - 7801;
     const bool steer_req = GET_BIT(msg, 9U);
     violation |= steer_angle_cmd_checks(desired_angle, steer_req, CHERY_STEERING_LIMITS);
+
+    // Speed-dependent max-angle backstop (see CHERY_ZONE_ANGLE_DEG comment).
+    const float speed_ms = vehicle_speed.values[0] / VEHICLE_SPEED_FACTOR;
+    const int zone_max_angle_can = (int)(interpolate(CHERY_ZONE_ANGLE_DEG, speed_ms) * (float)CHERY_STEERING_LIMITS.angle_deg_to_can);
+    violation |= max_limit_check(desired_angle, zone_max_angle_can, -zone_max_angle_can);
   }
 
   return !violation;
