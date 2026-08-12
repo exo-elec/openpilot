@@ -155,6 +155,21 @@ written before the swap either way — it calls
 `interfaces.py`, not in this branch's currently vendored one — so the
 adapter and the swap have to land as one atomic change.
 
+**The conversion also isn't contained to `opendbc_repo`.** Checked
+`selfdrive/`/`system/` directly (not just `opendbc_repo`) for the other
+two blockers: `selfdrive/car/card.py` builds a live, user-facing
+`dp_params` bitmask from 7 real `DPFlags` (`LateralALKA`,
+`ToyotaLockCtrl`, `ToyotaTSS1SnG`, `ToyotaStockLon`, `VagA0SnG`,
+`VAGPQSteeringPatch`, `VagAvoidEPSLockout`) passed into every brand's
+`get_params()` — not internal opendbc plumbing, nowhere to route on a
+naive swap. `selfdrive/controls/lib/longcontrol.py` reads
+`CP.startingState`/`.stoppingDecelRate`/`.startAccel` and
+`longitudinal_planner.py` reads `CP.vEgoStopping` directly as top-level
+fields — all four live under `.deprecated.` in the fork's schema, same
+`AttributeError` class the Toyota DSU-disconnect port already hit once
+this session, but in core longitudinal control this time. Full detail in
+`dev/EOP10`'s `docs/upstream-audit/NODE_03_opendbc_submodule_vendoring.md`.
+
 ## Validation
 
 `opendbc/safety/tests/test_chery.py` and BYD's angle/zone-interp tests
