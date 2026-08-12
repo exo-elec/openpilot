@@ -114,6 +114,47 @@ fork-side detail, and `dev/EOP10`'s
 `docs/upstream-audit/NODE_03_opendbc_submodule_vendoring.md` for the
 cross-branch summary.
 
+### Follow-up (2026-08-13): the adapter is provably viable, except for one open question on GM
+
+Investigated (not implemented) whether blocker 3 above can be closed with
+a small local adapter in this branch's `latcontrol_torque.py`, wrapping
+the fork's 2-arg API to reconstruct the 3-arg calling convention this
+branch's controller expects. Verified empirically, in two separate Python
+subprocesses with results diffed externally (this branch's and the fork's
+`car.capnp` share a capnp schema ID and cannot both be imported in one
+process — `car.capnp:0: failed: Duplicate ID @0x8e2af1e708af8b8d`):
+
+- Every brand except GM inherits the identical base-class linear
+  implementation in both trees — bit-for-bit match, 12/12 test cases. GM
+  is the *only* brand overriding `torque_from_lateral_accel` in either
+  tree, so this is a complete accounting of where drift can hide, not a
+  sample.
+- GM's neural path (`CHEVROLET_BOLT_EUV`) also matches exactly — no
+  adapter needed, since the fork's opt-in accessor was built by porting
+  this branch's own GM neural code.
+- GM's non-linear ("siglin") path — `GMC_ACADIA`/`CHEVROLET_SILVERADO` —
+  does **not** match: this branch's formula silently drops a constant
+  offset term (`d`) that the fork's formula still adds, using identical
+  underlying tuning data. Traced to comma.ai's own history: this branch
+  carries PR #2528 ("Torque controller: refactor calculations to be in
+  accel space", `74bfaa2c`, 2025-08-15) — the exact
+  `LatControlInputs`/dropped-`d`-term pattern this branch has — **without
+  its revert three days later** (`4e50498a`, 2025-08-18, pushed directly,
+  no stated reason). The fork's current behavior is comma.ai's own
+  considered, currently-supported design; adopting it for Acadia/Silverado
+  would be a correction, not a regression — but it's still an unverified
+  reason for a bare revert, and it does change those two cars' actual
+  steering output.
+
+**Not resolved: whether this branch currently drives real GM Acadia or
+Silverado vehicles.** If not, the adapter + submodule swap can proceed
+once scheduled. If so, those two cars need an explicit, informed decision
+before their steering formula changes. The adapter itself can't be
+written before the swap either way — it calls
+`torque_from_lateral_accel_neural_fn()`, which only exists in the fork's
+`interfaces.py`, not in this branch's currently vendored one — so the
+adapter and the swap have to land as one atomic change.
+
 ## Validation
 
 `opendbc/safety/tests/test_chery.py` and BYD's angle/zone-interp tests
