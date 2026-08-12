@@ -19,7 +19,7 @@
 
 | Platform | SoC | NPU | Status |
 |----------|-----|-----|--------|
-| **ExoPilot 01M** | RK3588 | 6 TOPS (3×2) | ✅ Production — the only platform openpilot supports |
+| **ExoPilot 01M** | RK3588 | 6 TOPS (3×2) | 🧪 Design target, not yet hardware-validated — see [RK3588_HARDWARE_VALIDATION_CHECKLIST.md](RK3588_HARDWARE_VALIDATION_CHECKLIST.md) |
 | ExoPilot 02M | RK3576 | 6 TOPS (2×3) | ✗ Not supported by openpilot — VisionPilot only |
 
 ---

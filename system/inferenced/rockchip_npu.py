@@ -14,6 +14,16 @@ from openpilot.system.inferenced.compute import HardwareBackend, BackendType, In
 
 logger = logging.getLogger(__name__)
 
+# Below this, KA2 (Kommu's production RK3588 device) has observed NPU driver
+# bugs around fp16 inference; warn loudly rather than silently producing bad output.
+MIN_RKNPU_DRIVER_VERSION = "0.9.6"
+
+# Models whose exported RKNN graph expects float16 inputs despite the ONNX
+# metadata declaring uint8 — confirmed against KA2's production runner. Scoped
+# deliberately: other models on this backend (sceneseg, ppliteseg, ...) have
+# unverified quantization and must keep RKNNLite's uint8 default.
+_FP16_MODELS = frozenset({"driving_vision", "driving_policy"})
+
 
 class RKNNBackend(HardwareBackend):
   """Rockchip RKNN Lite backend for NPU inference."""
@@ -24,6 +34,15 @@ class RKNNBackend(HardwareBackend):
     self._use_mock = False
     self._loaded_models: dict[str, Any] = {}
 
+  def _check_driver_version(self) -> None:
+    try:
+      version = self._rknn.get_sdk_version()
+      logger.info(f"rknpu driver version: {version}")
+      if version and str(version) < MIN_RKNPU_DRIVER_VERSION:
+        logger.warning(f"rknpu driver {version} is older than the minimum tested version {MIN_RKNPU_DRIVER_VERSION} — fp16 inference may be unreliable")
+    except Exception:
+      logger.exception("Could not query RKNN driver version")
+
   def initialize(self) -> bool:
     """Initialize RKNN backend."""
     try:
@@ -33,6 +52,7 @@ class RKNNBackend(HardwareBackend):
         self._rknn = RKNNLite(verbose=False)
         self._use_mock = False
         self._initialized = True
+        self._check_driver_version()
         logger.info("RKNN backend initialized (RKNNLite, real hardware)")
         return True
       except ImportError:
@@ -42,8 +62,8 @@ class RKNNBackend(HardwareBackend):
         self._initialized = True
         return True
 
-    except Exception as e:
-      logger.error(f"RKNN initialization failed: {e}")
+    except Exception:
+      logger.exception("RKNN initialization failed")
       return False
 
   def release(self) -> None:
@@ -53,15 +73,15 @@ class RKNNBackend(HardwareBackend):
         for rknn in self._loaded_models.values():
           try:
             rknn.release()
-          except Exception as e:
-            logger.error(f"Error releasing model: {e}")
+          except Exception:
+            logger.exception("Error releasing model")
         try:
           self._rknn.release()
-        except Exception as e:
-          logger.error(f"Error releasing shared RKNN instance: {e}")
+        except Exception:
+          logger.exception("Error releasing shared RKNN instance")
       self._loaded_models.clear()
-    except Exception as e:
-      logger.error(f"Error releasing RKNN: {e}")
+    except Exception:
+      logger.exception("Error releasing RKNN")
     self._initialized = False
     self._rknn = None
 
@@ -102,8 +122,8 @@ class RKNNBackend(HardwareBackend):
       logger.info(f"Loaded RKNN model: {config.name} (cores: {core_mask:#x})")
       return True
 
-    except Exception as e:
-      logger.error(f"Error loading RKNN model: {e}")
+    except Exception:
+      logger.exception("Error loading RKNN model")
       return False
 
   def infer(self, model_name: str, inputs: dict[str, Any]) -> InferenceResult:
@@ -130,6 +150,7 @@ class RKNNBackend(HardwareBackend):
 
       start_time = time.monotonic()
 
+      output_dict: dict[str, Any]
       if self._use_mock:
         # Dev PC: return mock outputs matching typical model output shapes
         output_dict = {}
@@ -156,7 +177,11 @@ class RKNNBackend(HardwareBackend):
           rknn_inputs.append(val)
 
         # Run inference on NPU
-        outputs = rknn.inference(rknn_inputs)
+        if model_name in _FP16_MODELS:
+          rknn_inputs = [arr.astype(np.float16) for arr in rknn_inputs]
+          outputs = rknn.inference(rknn_inputs, data_type="float16")
+        else:
+          outputs = rknn.inference(rknn_inputs)
 
         # Convert outputs to dict; use 'outputs' (list) for multi-output, 'output' for single
         output_dict = {}
@@ -178,7 +203,7 @@ class RKNNBackend(HardwareBackend):
       )
 
     except Exception as e:
-      logger.error(f"RKNN inference error: {e}")
+      logger.exception("RKNN inference error")
       self._stats.tasks_failed += 1
       return InferenceResult(
           backend_type=self.backend_type,

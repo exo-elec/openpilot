@@ -20,6 +20,12 @@ from openpilot.common.watchdog import WATCHDOG_FN
 
 ENABLE_WATCHDOG = os.getenv("NO_WATCHDOG") is None
 
+# Camera producers (v4l2d/uvcd) hold VisionIPC buffers that downstream consumers
+# (modeld/gridd/stereod/monod/sided) may still be reading from; give them longer
+# to shut down cleanly than the default 5s grace before SIGKILL escalation.
+CAMERA_PRODUCER_STOP_TIMEOUT_S = 15.
+CAMERA_PRODUCERS = frozenset({"v4l2d", "uvcd"})
+
 
 def launcher(proc: str, name: str) -> None:
   try:
@@ -123,13 +129,16 @@ class ManagerProcess(ABC):
         if not block:
           return None
 
-      join_process(self.proc, 5)
+      stop_timeout = CAMERA_PRODUCER_STOP_TIMEOUT_S if self.name in CAMERA_PRODUCERS else 5
+      join_process(self.proc, stop_timeout)
 
       # If process failed to die send SIGKILL
       if self.proc.exitcode is None and retry:
         cloudlog.info(f"killing {self.name} with SIGKILL")
         self.signal(signal.SIGKILL)
-        self.proc.join()
+        join_process(self.proc, 5)
+        if self.proc.exitcode is None:
+          cloudlog.error(f"{self.name} did not exit after SIGKILL; leaving proc stale")
 
     ret = self.proc.exitcode
     cloudlog.info(f"{self.name} is dead with {ret}")
@@ -186,7 +195,11 @@ class NativeProcess(ManagerProcess):
       self.stop()
 
     if self.proc is not None:
-      return
+      # If a previous process is somehow still alive, do not start a second one.
+      if self.proc.is_alive():
+        cloudlog.warning(f"{self.name} still running, skipping start")
+        return
+      self.proc = None
 
     cwd = os.path.join(BASEDIR, self.cwd)
     cloudlog.info(f"starting process {self.name}")
@@ -218,7 +231,11 @@ class PythonProcess(ManagerProcess):
       self.stop()
 
     if self.proc is not None:
-      return
+      # If a previous process is somehow still alive, do not start a second one.
+      if self.proc.is_alive():
+        cloudlog.warning(f"{self.name} still running, skipping start")
+        return
+      self.proc = None
 
     # TODO: this is just a workaround for this tinygrad check:
     # https://github.com/tinygrad/tinygrad/blob/ac9c96dae1656dc220ee4acc39cef4dd449aa850/tinygrad/device.py#L26
@@ -264,13 +281,17 @@ class DaemonProcess(ManagerProcess):
         pass
 
     cloudlog.info(f"starting daemon {self.name}")
-    proc = subprocess.Popen(['python', '-m', self.module],
-                               stdin=open('/dev/null'),
-                               stdout=open('/dev/null', 'w'),
-                               stderr=open('/dev/null', 'w'),
-                               preexec_fn=os.setpgrp)
+    try:
+      proc = subprocess.Popen(['python3', '-m', self.module],
+                              stdin=subprocess.DEVNULL,
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL,
+                              start_new_session=True)
+    except OSError as e:
+      cloudlog.error(f"failed to start daemon {self.name}: {e}")
+      return
 
-    self.params.put(self.param_name, proc.pid)
+    self.params.put(self.param_name, str(proc.pid))
 
   def stop(self, retry=True, block=True, sig=None) -> None:
     pass

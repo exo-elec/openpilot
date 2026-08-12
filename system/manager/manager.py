@@ -6,7 +6,6 @@ import sys
 import time
 import traceback
 
-from cereal import log
 import cereal.messaging as messaging
 import openpilot.system.sentry as sentry
 from openpilot.common.params import Params, ParamKeyFlag
@@ -86,8 +85,7 @@ def manager_init() -> None:
     cloudlog.info(f"manager: Auto-configured EOPMonoDEnabled={has_npu} based on hardware")
 
   # Log hardware capabilities for debugging
-  cloudlog.info(f"manager: Hardware - speaker={HAS_SPEAKER}, voice={HAS_VOICE_INPUT}, "
-                f"side_cameras={HAS_SIDE_CAMERAS}, rear_camera={HAS_REAR_CAMERA}")
+  cloudlog.info(f"manager: Hardware - speaker={HAS_SPEAKER}, voice={HAS_VOICE_INPUT}, side_cameras={HAS_SIDE_CAMERAS}, rear_camera={HAS_REAR_CAMERA}")
 
   # set dongle id (offline mode - use eMMC CID)
   dongle_id = HARDWARE.get_dongle_id()
@@ -164,14 +162,24 @@ def manager_thread() -> None:
     if ignition and not ignition_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
 
-    # update onroad params, which drives socketd's safety configuration
-    if started != started_prev:
+    # onroad/offroad params drive socketd's safety configuration; ordering matters:
+    # IsOnroad must publish *before* onroad processes start (so consumers never race
+    # a process that isn't up yet), while IsOffroad must publish *after* processes
+    # are signaled to stop (so consumers don't observe offroad while vision is still
+    # tearing down).
+    onroad_transition = started and not started_prev
+    offroad_transition = not started and started_prev
+
+    if onroad_transition:
       write_onroad_params(started, params)
 
     started_prev = started
     ignition_prev = ignition
 
     ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore)
+
+    if offroad_transition:
+      write_onroad_params(started, params)
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
                        for p in managed_processes.values() if p.proc)

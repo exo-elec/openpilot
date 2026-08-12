@@ -29,6 +29,8 @@ INPUT_INVALID_LIMIT = 2.0 # 1 (camodo) / 9 (sensor) bad input[s] ignored
 INPUT_INVALID_RECOVERY = 10.0 # ~10 secs to resume after exceeding allowed bad inputs by one
 POSENET_STD_INITIAL_VALUE = 10.0
 POSENET_STD_HIST_HALF = 20
+EARTH_G = 9.81  # m/s^2
+FALL_ACCEL_THRESHOLD = 40.0  # m/s^2 delta from gravity; upstream's validated threshold (490ee5268)
 
 
 def calculate_invalid_input_decay(invalid_limit, recovery_time, frequency):
@@ -56,6 +58,7 @@ class LocationEstimator:
     self.debug = debug
 
     self.posenet_stds = np.array([POSENET_STD_INITIAL_VALUE] * (POSENET_STD_HIST_HALF * 2))
+    self.device_fell = False
     self.car_speed = 0.0
     self.camodo_yawrate_distribution = np.array([0.0, 10.0])  # mean, std
     self.device_from_calib = np.eye(3)
@@ -108,6 +111,9 @@ class LocationEstimator:
 
       v = msg.acceleration.v
       meas = np.array([-v[2], -v[1], -v[0]])
+      # Orientation-independent fall detector (vector magnitude, not upstream's single-axis
+      # check — this fork's meas axes are reordered/negated for its own Kalman convention).
+      self.device_fell = abs(np.linalg.norm(meas) - EARTH_G) > FALL_ACCEL_THRESHOLD
       if np.linalg.norm(meas) >= ACCEL_SANITY_CHECK:
         return HandleLogResult.INPUT_INVALID
 
@@ -235,6 +241,7 @@ class LocationEstimator:
     livePose.inputsOK = inputs_valid
     livePose.posenetOK = not std_spike or self.car_speed <= 5.0
     livePose.sensorsOK = sensors_valid
+    livePose.deviceStable = not self.device_fell
 
     return msg
 
