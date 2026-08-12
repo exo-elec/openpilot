@@ -636,6 +636,7 @@ struct CarParams {
     rivian @33;
     volkswagenMeb @34;
     byd @35;
+    chery @36;  # matches exo-electronics/opendbc's dev/EOP10-side numbering
   }
 
   enum SteerControlType {

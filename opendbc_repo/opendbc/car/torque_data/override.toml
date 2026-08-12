@@ -2,6 +2,12 @@ legend = ["LAT_ACCEL_FACTOR", "MAX_LAT_ACCEL_MEASURED", "FRICTION"]
 
 # Angle-control platform; only MAX_LAT_ACCEL_MEASURED is consumed.
 "BYD_ATTO_3" = [nan, 2.5, nan]
+# Chery/Omoda/iCaur/JAECOO - angle-control, community-reverse-engineered,
+# no measured MAX_LAT_ACCEL_MEASURED yet.
+"CHERY_JAECOO_J7_PHEV" = [nan, 2.5, nan]
+"CHERY_TIGGO_8_PRO" = [nan, 2.5, nan]
+"CHERY_OMODA_5" = [nan, 2.5, nan]
+"CHERY_ICAUR_03" = [nan, 2.5, nan]
 ### angle control
 # Nissan appears to have torque
 "NISSAN_XTRAIL" = [nan, 1.5, nan]
