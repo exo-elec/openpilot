@@ -81,6 +81,15 @@ static float byd_zone_interp(float speed_ms, const float *bp, const float *vals)
   if (speed < bp[0]) {
     speed = bp[0];
   }
+  // Clamp above the table too (was missing): both BP tables are 8 points
+  // ending at 36 m/s (~130 km/h). Without this, speeds above that linearly
+  // *extrapolate* the decreasing angle/rate trend past the table - at
+  // highway+ speeds this drives the "max angle" backstop negative, which
+  // inverts max_limit_check's bounds and blocks every command, including a
+  // 0-degree reset (caught by test_angle_violation at speed=50 m/s).
+  if (speed > bp[7]) {
+    speed = bp[7];
+  }
   int i = 0;
   while ((i < 6) && (speed > bp[i + 1])) {
     i += 1;
