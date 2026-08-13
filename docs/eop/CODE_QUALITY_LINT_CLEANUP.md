@@ -61,7 +61,7 @@ Bring the EOP10 openpilot fork closer to upstream lint discipline so that:
 
 ### 5. RK3588/Rockchip/NPU hardening
 
-- Ported KA2-proven RKNN/manager fixes.
+- Ported proven-stack RKNN/manager fixes.
 - Restored device-falling detection (see `docs/eop/DEVICE_FALLING_DETECTION.md`).
 - Removed tici dead code no longer reachable on RK3588 builds.
 

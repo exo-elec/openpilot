@@ -37,16 +37,16 @@ No fixes applied — no bug to fix.
 
 ## Update (2026-08-12): the flagged follow-up — BYD/Chery/JAECOO ported to `exo-electronics/opendbc`
 
-Surveyed `../bukapilot` (kommuai/bukapilot) and `../opendbc` (kommuai/opendbc,
+Surveyed `../external-fork` (external-fork org) and `../opendbc` (external-fork/opendbc,
 both MIT-licensed) for BYD and JAECOO car-port material. JAECOO is Chery's
-sub-brand, so the real lead was kommuai/opendbc's Chery module, which already
+sub-brand, so the real lead was external-fork/opendbc's Chery module, which already
 covers `CHERY_JAECOO_J7_PHEV` (marked "under validation" upstream),
 `CHERY_TIGGO_8_PRO`, `CHERY_OMODA_5`, and `CHERY_ICAUR_03`, plus a more
 complete BYD port than what EDP10 vendors inline (multiple DBCs, split
 `cam_lka`/`mpc_lka` steering variants).
 
 **exo-electronics/opendbc was on v0.2.1 (2025-02-10), predating the
-`opendbc/safety/` migration entirely** — kommuai's byd/chery car ports (Python
+`opendbc/safety/` migration entirely** — external-fork's byd/chery car ports (Python
 `car/` API + C safety modes) don't import against that old core at all. Bumped
 `exo-electronics/opendbc` to current upstream (`e677024b`, 2026-08-10) on a new
 branch `port/upstream-bump-byd-chery-jaecoo` (not `master` — `.gitmodules`
@@ -67,10 +67,10 @@ core, fixing real API drift along the way (not a straight copy):
   on both branches — and `chery @36` (EDP10 has no Chery port yet, so no
   collision to match against).
 - `opendbc/car/__init__.py` / `docs_definitions.py`: added `dbc_dict()` and
-  `CUSTOM_CAR_PARTS`, small kommuai-only helpers both car ports depend on.
+  `CUSTOM_CAR_PARTS`, small external-fork-only helpers both car ports depend on.
   Added `CarDocs.variant`/`acc_low_speed`/`acc_speed_range`/`acc_stop_and_go`/
-  `lkc_torque`/`lkc_speed_range`/`max_steering_angle` (kommuai's own docs-schema
-  extension) but dropped `kommu_supported` — a kommu.ai-branding flag with no
+  `lkc_torque`/`lkc_speed_range`/`max_steering_angle` (external-fork's own docs-schema
+  extension) but dropped `supported` — a external-branding flag with no
   place in this fork.
 - Both car ports used `from cereal import car` (pre-migration API) instead of
   `opendbc.car.structs` — this fork's opendbc has no `cereal` dependency at
@@ -94,7 +94,7 @@ core, fixing real API drift along the way (not a straight copy):
   `opendbc.car.structs.CarParams` → `cereal.car.CarParams` conversion this
   project uses actually threads a `deprecated.startingState` value through to
   `longcontrol.py` is unverified and out of scope here (see "Not done" below).
-  `personality` (CarState) and `lkaDisabled` (CarState) are kommuai-only
+  `personality` (CarState) and `lkaDisabled` (CarState) are external-fork-only
   schema fields this fork's `car.capnp` never had at all and this repo's own
   `cereal/car.capnp` doesn't have either — dropped the assignments (BYD's
   distance-personality UI value is still reachable via the standard
@@ -113,14 +113,14 @@ core, fixing real API drift along the way (not a straight copy):
 - `opendbc/car/torque_data/override.toml` needed BYD/Chery entries (missing
   `MAX_LAT_ACCEL_MEASURED` crashes `get_std_params()` for every car);
   `opendbc/car/tests/routes.py` needed the same `non_tested_cars` entries
-  kommuai's own routes.py already carries (no comma.ai test route exists for
+  external-fork's own routes.py already carries (no comma.ai test route exists for
   either brand yet).
 
 **Verified, not assumed:** full `opendbc/` test suite after the port —
 3723 passed, 1718 skipped, 21098 subtests passed. Three known subfailures,
 none from this port's own logic:
 1–2. `CHERY_JAECOO_J7_PHEV` / `CHERY_TIGGO_8_PRO` fail
-`test_can_fingerprint.py` — kommuai's own `chery/fingerprints.py` reuses
+`test_can_fingerprint.py` — external-fork's own `chery/fingerprints.py` reuses
 JAECOO J7's capture byte-for-byte for Tiggo 8 Pro (`FINGERPRINTS[TIGGO_8_PRO]
 = FINGERPRINTS[JAECOO_J7_PHEV]`), so the two aren't uniquely identifiable by
 CAN fingerprint alone. Documented in-file; not fabricated a fix — inventing

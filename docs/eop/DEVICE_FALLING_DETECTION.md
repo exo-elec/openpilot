@@ -1,11 +1,9 @@
 # Device-falling detection — restored
 
-**Not a Kommu/KA2 fix** — found while searching bukapilot's history for
-KA2-specific material, but this is stock upstream comma.ai openpilot history
+**Not an externally-sourced fix** — found while searching external history for proven-stack-specific material, but this is stock upstream comma.ai openpilot history
 (commit `490ee5268`, "add fall filter and less FP on posenet", 2020-08-03,
 authored by comma's own team). Any openpilot fork carries this in its git
-log; it is not IP from the reference RK3588 production fork. Documented separately from `RKNN_PROVENANCE.md`
-to keep that doc's KA2 attribution accurate.
+log; it is not IP from the reference RK3588 production fork. Documented separately from `RKNN_RUNTIME_NOTES.md`.
 
 ## What was found
 

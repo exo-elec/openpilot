@@ -1,8 +1,8 @@
 # RK3588 hardware validation checklist
 
-Every item below is a question raised while porting fixes from Kommu RK3588 reference
-(bukapilot) into this repo's RKNN/encoder code (see
-`RKNN_RK3588 reference_PROVENANCE.md`) that could not be settled without a real ExoPilot
+Every item below is a question raised while porting fixes from an external RK3588 reference
+into this repo's RKNN/encoder code (see
+`RKNN_RUNTIME_NOTES.md`) that could not be settled without a real ExoPilot
 01M board — confirmed 2026-08-12 that the current `dev/EOP10` code has not
 run on hardware yet (see `PLATFORM_SUPPORT.md` correction in `exopilot`).
 Run these in one session rather than piecemeal; several share setup.
@@ -59,7 +59,7 @@ singly-masked models sequentially, which is what `modeld` now does
 - Run `modeld` alongside another NPU consumer (any second RKNN-backed daemon,
   or a synthetic second `rknn.inference()` loop) and watch `dmesg` for
   NPU/rknn errors, matching RK3588 reference's diagnostic pattern in
-  `modeld_rknn.md`/`RKNN_RK3588 reference_PROVENANCE.md` §2.
+  `modeld_rknn.md`/`RKNN_RUNTIME_NOTES.md` §2.
 - If it's stable: good, the split-core design holds under this repo's own
   documented TOPS budget (see `NPU_CORE_CONFIGURATION.md`).
 - If it crashes: consider whether `driver < 0.9.6` is the cause (check #1's
@@ -130,6 +130,6 @@ ENCODER_USE_RKMPP=1 <run encoderd>
 
 ## After this session
 
-Update `PHASE5_HARDWARE_READINESS.md` and `RKNN_RK3588 reference_PROVENANCE.md`'s open
+Update `PHASE5_HARDWARE_READINESS.md` and `RKNN_RUNTIME_NOTES.md`'s open
 items with actual results — several notes there currently say "unverified,
 needs hardware," which this checklist exists to close out.

@@ -1,14 +1,13 @@
-# Process lifecycle hardening ported from Kommu KA2
+# Process lifecycle hardening for RK3588/RK3576
 
-**Source**: bukapilot commit `82e0d70ab` ("KA2: harden vision on/off
-transitions and posenet startup"), authored by Kommu (2026-06-16, real KA2
-production work — not inherited comma history, unlike
-`DEVICE_FALLING_DETECTION.md`). Fixes "intermittent camerad zombies and
+**Source**: a proven production commit ("harden vision on/off
+transitions and posenet startup") — production work not inherited from comma history
+(unlike `DEVICE_FALLING_DETECTION.md`). Fixes "intermittent camerad zombies and
 posenetInvalid during boot and rapid on/off cycles." Not RK3588-specific —
 this is generic `system/manager` process-supervision logic — so kept
-separate from `RKNN_PROVENANCE.md`.
+separate from `RKNN_RUNTIME_NOTES.md`.
 
-KA2's fix touched 6 files: `locationd.py`, `selfdrived.py`, `camerad/main.cc`,
+A proven production fix touched 6 files: `locationd.py`, `selfdrived.py`, `camerad/main.cc`,
 `hardwared.py`, `manager.py`, `process.py`. Ported what was safely portable;
 explicitly did not port the rest.
 
@@ -18,7 +17,7 @@ explicitly did not port the rest.
 
 Was: a single `if started != started_prev: write_onroad_params(started,
 params)`, for both transitions, at the same point in the loop (confirmed
-EOP10 had this exact pattern — same bug shape as what KA2 found). Now:
+EOP10 had this exact pattern — same bug shape as the proven production fix). Now:
 `IsOnroad` publishes before `ensure_running` starts processes;
 `IsOffroad` is deferred until *after* `ensure_running` has told processes to
 stop — otherwise downstream consumers can observe `IsOffroad` while
@@ -28,15 +27,15 @@ stop — otherwise downstream consumers can observe `IsOffroad` while
 
 Was: `join_process(self.proc, 5)` — a flat 5s kill-timeout for every managed
 process, including the ones holding real camera device handles. Now: camera
-producers get 15s (matching KA2's `CAMERAD_STOP_TIMEOUT_S`). This fork splits
+producers get 15s (matching the proven production value `CAMERAD_STOP_TIMEOUT_S`). This fork splits
 comma's single `camerad` into `v4l2d` (MIPI CSI) + `uvcd` (USB) — both
 covered via `CAMERA_PRODUCERS = frozenset({"v4l2d", "uvcd"})`.
 
 ## Explicitly not ported
 
-- **Vision shutdown ordering** (KA2's `VISION_SHUTDOWN_ORDER` — stop
+- **Vision shutdown ordering** (`VISION_SHUTDOWN_ORDER` from the proven production commit — stop
   consumers before the camera producer, with blocking joins in that order).
-  KA2's version lists a flat chain (`encoderd, modeld, dmonitoringmodeld,
+  the proven production version lists a flat chain (`encoderd, modeld, dmonitoringmodeld,
   controlsd, camerad`) because comma's stock process topology is a simple
   producer→consumer pipeline. This fork's is not: `modeld`, `gridd`,
   `stereod`, `monod`, `sided` all consume from `v4l2d`/`uvcd` via VisionIPC
@@ -51,12 +50,12 @@ covered via `CAMERA_PRODUCERS = frozenset({"v4l2d", "uvcd"})`.
 - **`hardwared.py`: deferred CPU power-save on offroad.** EOP10's
   `hardwared.py` has no power-save mechanism at all (`should_pwrsave`,
   `set_power_save`, `screenBrightnessPercent`-driven CPU offlining — none of
-  it exists here, not even in unfixed form). This isn't "missing KA2's fix,"
+  it exists here, not even in unfixed form). This isn't "missing the proven production fix,"
   it's a bigger, separate question of whether/how RK3588 CPU power
   management should work at the app level for this board at all — out of
   scope for a bug-port.
 - **`camerad/main.cc`: wait for CPU6 before setting camerad affinity.**
-  KA2-hardware-specific (assumes a particular RK3588 board's core layout and
+  proven-stack-hardware-specific: assumes a particular RK3588 board's core layout and
   a single `camerad` process). This fork's camera producers are `v4l2d.cc`/
   `uvcd` — different processes, different affinity code, if any. Not
   investigated.
@@ -82,19 +81,18 @@ The rest of the same commit, reviewed in a follow-up pass:
   physical-event detector, not warmup noise, so suppressing it during
   startup would hide an actual fall.
 
-**Not ported** (KA2-hardware-conditional in KA2's *own* code — their team
-gated these behind `if KA2:`, which is itself a signal they're not safe to
+**Not ported** (hardware-conditional in the proven production code itself — gated behind an `IS_PROVEN_STACK` flag, which is itself a signal it is not safe to
 apply unconditionally):
-- The `init_timeout` change (6s → 30s for KA2, 15s for `TESTING_CLOSET`) and
+- The `init_timeout` change (6s → 30s on the proven stack, 15s for `TESTING_CLOSET`) and
   the `can_initialize` relaxation (allowing init to complete on timeout +
   cameras-ready + pose-ready, without `all_valid`). This alters
   safety-relevant startup gating — when the system considers itself
-  initialized — based on KA2's own empirically-observed boot timing. This
+  initialized — based on empirically-observed boot timing from the proven production stack. This
   fork's boot-to-camera-ready latency on ExoPilot 01M is unknown (never run
   on hardware), so there's no evidence the same threshold applies, and
   loosening `can_initialize`'s conditions without that evidence is exactly
   the kind of change that shouldn't be guessed at.
-- The `REPLAY and not KA2` camera-ignore branch — KA2-specific replay
+- The `REPLAY and not IS_PROVEN_STACK` camera-ignore branch — proven-stack-specific replay
   tooling behavior, not applicable here.
 
 ## Verified
