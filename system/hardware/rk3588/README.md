@@ -40,25 +40,26 @@ system/hardware/rk3588/
 ├── hardware.py              # RK3588Hardware class (detect, capabilities, backends)
 ├── camera_config.py         # USB camera configurations (side_left, side_right, rear_camera)
 ├── config/
-│   ├── 88-rockchip-camera.rules    # udev rules for /dev/video-cameraN + USB cameras
-│   ├── 99-rockchip-rk3588-env.sh   # Environment variables (LD_LIBRARY_PATH, etc.)
-│   ├── npu_powerctrl.sh           # NPU power domain control
-│   ├── openpilot.service          # systemd service definition
-│   ├── install_target.sh          # One-shot target install script
-│   └── dt-overlays/               # RTS5411S onboard USB hub overlay + kernel config fragment
+│   ├── openpilot.service    # systemd service definition
+│   ├── install_openpilot.sh # openpilot-specific target install (thin wrapper)
+│   └── dt-overlays/         # README only; canonical overlays live in ExoPilot
 ├── tests.py                 # Host-side config validation (no hardware needed)
 ```
 
 ## Quick Start (on target device)
 
 ```bash
-# 1. Install dependencies and configs
-sudo bash system/hardware/rk3588/config/install_target.sh /data/openpilot
+# 1. Install ExoPilot HAL (BSP, udev rules, env, NPU powerctrl, overlays)
+sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh
+sudo reboot
 
-# 2. Start openpilot
+# 2. Install openpilot
+sudo bash /data/openpilot/system/hardware/rk3588/config/install_openpilot.sh /data/openpilot
+
+# 3. Start openpilot
 sudo systemctl start openpilot
 
-# 3. Check logs
+# 4. Check logs
 sudo journalctl -u openpilot -f
 ```
 

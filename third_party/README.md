@@ -183,9 +183,9 @@ installed on the target system via vendor `.deb` packages:
 | `librockchip_mpp.so` | `librockchip-mpp1_1.5.0-1_arm64.deb` | `/usr/lib/aarch64-linux-gnu/librockchip_mpp.so` |
 | `librga.so` | `librga2_2.2.0-1_arm64.deb` | `/usr/lib/aarch64-linux-gnu/librga.so` |
 
-Use the dependency checker to validate/install:
+Use the dependency checker to validate/install (private ExoPilot tooling):
 ```bash
-sudo ./scripts/install_rockchip_deps.sh
+sudo ~/pilot/exopilot/scripts/install/install_rockchip_deps.sh
 ```
 
 ## See Also
