@@ -288,11 +288,7 @@ Verification:
 
 Known remaining work:
 
-- [ ] **EC25/GPS driver boundary**: `openpilot/system/hardware/rk3588/modem.py`
-  and `openpilot/system/ubloxd/pigeond.py` are low-level hardware drivers that
-  should move into `exopilot/hal/hal/drivers/cellular/` and
-  `exopilot/hal/hal/drivers/gps/`. EOP10 should consume only the higher-level
-  messages (`DeviceState.NetworkType`, cellular params, `gpsLocationExternal`).
+- [x] **EC25/GPS driver boundary**: DONE — see next session below.
 - [ ] **RKNN model local-placement audit**: confirm `inference_registry.yaml`,
   `convert_models_to_rknn.py`, and download placeholders use only locally-built
   artifacts with no external branding. Add a CI check if useful.
@@ -304,3 +300,51 @@ Known remaining work:
   additional fixes (thermal, watchdog, process supervision) worth pulling in.
 - [ ] **EOP CPU budgets in test_onroad.py**: measure and add budgets for EOP
   daemons when on RK hardware (carried forward from earlier sessions).
+
+## Follow-up session (EC25/GPS driver boundary move to ExoPilot HAL, 2026-08-12)
+
+Goal: move low-level EC25 modem and u-blox GPS control from EOP10 into ExoPilot
+HAL, leaving EOP10 with thin application-layer adapters only.
+
+Completed:
+
+- [x] **ExoPilot HAL cellular driver**: added `hal/hal/drivers/cellular/ec25.py`
+  with `EC25Modem`, mmcli/nmcli/ip helpers, APN lookup, QMI bearer bring-up,
+  network state, and temperature queries. Exports `NetworkType`/`NetworkStrength`
+  enums and dataclasses (`SIMInfo`, `BearerInfo`, `NetworkInfo`,
+  `ModemTemperatures`).
+- [x] **ExoPilot HAL GPS driver**: added `hal/hal/drivers/gps/ublox.py` with
+  GPIO power/reset control (via `rk3588_pins`), `TTYPigeon` serial wrapper, UBX
+  configuration, AssistNow Online fetch, and almanac backup/restore.
+- [x] **EOP10 adapter refactor**:
+  - `system/hardware/rk3588/modem.py` is now a thin wrapper that imports from
+    `hal.drivers.cellular`, reads `Params("GsmApn")`, maps HAL enums to cereal
+    `DeviceState.NetworkType`/`NetworkStrength`, and provides dev-PC fallback.
+  - `system/ubloxd/pigeond.py` is now a daemon wrapper that imports from
+    `hal.drivers.gps`, reads AssistNow/last-GPS params, runs `PubMaster('ubloxRaw')`,
+    and handles daemon lifecycle.
+- [x] **HAL exports**: `hal/hal/drivers/__init__.py` now exposes `cellular` and
+  `gps` submodules.
+- [x] Commits and pushes:
+  - `exopilot@main`: `87027ca feat(hal): add EC25 cellular and u-blox GPS drivers to HAL`
+  - `openpilot@dev/EOP10`: `bf4bf225d refactor(hardware): delegate EC25 modem and u-blox GPS to ExoPilot HAL`
+
+Verification:
+
+- `python3 -m py_compile` passes on all new and modified Python files in both
+  `exopilot` and `openpilot`.
+- `hal.drivers.cellular` and `hal.drivers.gps` import cleanly when ExoPilot HAL
+  is on `PYTHONPATH`.
+- EOP10 adapters remain importable (dev-PC fallback disables HAL calls when
+  `hal` is unavailable).
+
+Known remaining work:
+
+- [ ] **RKNN model local-placement audit**: confirm `inference_registry.yaml`,
+  `convert_models_to_rknn.py`, and download placeholders use only locally-built
+  artifacts with no external branding. Add a CI check if useful.
+- [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
+  exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
+  consume calibrated camera metadata via HAL.
+- [ ] **Full delta review of external RK3588 changes vs stock openpilot**.
+- [ ] **EOP CPU budgets in test_onroad.py**.
