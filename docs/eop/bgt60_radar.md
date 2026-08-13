@@ -5,7 +5,7 @@
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | car OEM CAN radar (TC375 BrownPanda) | 15–200m | `radard.py` → `radarState` | ACC, lead car tracking |
-| `radar4d` | BGT60TR13C (radar4d.py, SPI0) | 0–15m | `gridd.py` → `stereoObjects` | close-range maneuvering |
+| `radar4d` | BGT60TR13C (radar4d.py, SPI bus from HAL) | 0–15m | `gridd.py` → `stereoObjects` | close-range maneuvering |
 | `radar2d` | *(reserved)* corner/blind-spot | — | — | future |
 
 `radar3d` and `radar4d` are **fully independent pipelines**. `radard.py` is not touched.
@@ -21,7 +21,7 @@ calibration tools:
 ```
 ../exopilot/hal/hal/drivers/radar/bgt60tr13c.py   ← SPI/GPIO acquisition, register I/O
 ../exopilot/hal/hal/drivers/radar/dsp.py          ← range-Doppler FFT, 2-D CA-CFAR, dual-baseline AoA
-../exopilot/hal/hal/platform/rk3588_pins.py        ← SPI bus + BGT60_IRQ/BGT60_RST GPIO map
+../exopilot/hal/hal/platform/rk3588_pins.py        ← SPI bus + radar IRQ/RST GPIO map
 
 selfdrive/controls/radar4d.py           ← cereal daemon (Radar4DD, process name "radar4d")
 selfdrive/controls/radar4d_tracker.py   ← KalmanTrackManager (EKF + occlusion coasting)
@@ -33,7 +33,7 @@ selfdrive/controls/radar4d_calibrate.py ← intrinsic calibration wizard
 Requires `hal` installed: on-device, `exopilot/scripts/install/setup_rk3588.sh`
 does this during first-boot BSP setup; on a dev PC, `pip3 install -e ../exopilot/hal`.
 `radar4d.py` degrades to an idle no-op (logged once, not a crash) if `hal`
-isn't importable, or if `hal.platform.rk3588_pins.GPIO["BGT60_IRQ"/"BGT60_RST"]`
+isn't importable, or if the radar IRQ/RST GPIO entries in `hal.platform.rk3588_pins`
 aren't yet `confirmed: True` — refusing to drive unconfirmed GPIO lines on
 real hardware, same behavior as VisionPilot's `radar4d_node.py` (which
 hard-fails identically unless run with `use_mock:=true`).
@@ -47,7 +47,7 @@ from hal.platform.rk3588_pins import GPIO, SPI
 ## Data flow
 
 ```
-BGT60TR13C (SPI0, /dev/spidev0.0)
+BGT60TR13C (SPI bus / device node from hal.platform.rk3588_pins.SPI)
     ↓
 hal.drivers.radar.bgt60tr13c   (acquisition + DSP: range-Doppler FFT, CA-CFAR, dual-baseline AoA)
     ↓  list[RadarDetection(range_m, vel_mps, azimuth_deg, elevation_deg, snr_db)]
@@ -254,7 +254,7 @@ downstream consumers already resolve `radar4d_link` through the TF tree.
 | `system/radar4d/` | **REMOVED** — was a duplicate of the driver now canonically in `hal.drivers.radar` |
 | `../exopilot/hal/hal/drivers/radar/bgt60tr13c.py` | Rewritten against Infineon's official `sensor-xensiv-bgt60trxx` C driver; real CA-CFAR + dual-baseline AoA |
 | `../exopilot/hal/hal/drivers/radar/dsp.py` | **NEW** — range-Doppler FFT, CA-CFAR, AoA |
-| `../exopilot/hal/hal/platform/rk3588_pins.py` | Add `SPI["RADAR4D"]`, `GPIO["BGT60_IRQ"/"BGT60_RST"]` (unconfirmed placeholders) |
+| `../exopilot/hal/hal/platform/rk3588_pins.py` | Add `SPI["RADAR4D"]` and radar IRQ/RST GPIO entries (unconfirmed placeholders) |
 | `../exopilot/hal/hal/platform/rk3576_pins.py` | **NEW** — same shape, for VisionPilot's SPI2/gpio2 |
 | `../exopilot/hal/tests/test_radar_dsp.py` | **NEW** |
 
@@ -314,12 +314,9 @@ for obj_msg in radar4d.objects:
 
 ## SPI hardware
 
-- Bus: `/dev/spidev0.0` (SPI0, freed from MCP2518FD via DT overlay) — see
-  `hal.platform.rk3588_pins.SPI["RADAR4D"]`
-- IRQ + DIO3/RST GPIO: `hal.platform.rk3588_pins.GPIO["BGT60_IRQ"/"BGT60_RST"]`
-  — currently the DTS overlay's PLACEHOLDER pin numbers (gpio3 PB0/PB1),
-  `confirmed: False`. Still pending the LubanCat5 schematic (NAS).
-- Level shifter: TXS0108E required (BGT60 is 1.8V, RK3588 GPIO is 3.3V)
+- Bus / IRQ / RST: `hal.platform.rk3588_pins.SPI` and `GPIO` — owned by the
+  closed ExoPilot HAL; pin numbers are unconfirmed placeholders pending the
+  carrier-board schematic.
 - Linux `spidev` kernel module `bufsiz` must be raised above its 4096-byte
   default for this driver's burst FIFO reads (~9.2KB at the default
   `n_samples=2048`) — `hal`'s driver logs a clear warning/error via
@@ -377,8 +374,8 @@ recovery), `selfdrive/controls/tests/test_radar4d_tracker.py` (EKF + occlusion),
 
 ## Open items
 
-- [ ] Confirm `BGT60_IRQ`/`BGT60_RST` GPIO pin numbers against the LubanCat5
-      schematic (NAS) and flip `hal.platform.rk3588_pins.GPIO[...]["confirmed"]` to `True`
+- [ ] Confirm radar IRQ/RST GPIO pin numbers against the carrier-board
+      schematic and flip `hal.platform.rk3588_pins.GPIO[...]["confirmed"]` to `True`
 - [ ] Confirm the RX-channel-to-antenna mapping with a known-angle target
       before trusting azimuth/elevation sign on real hardware — which
       physical FIFO channel is Rx1/Rx2/Rx3 depends on RX-enable bit order in

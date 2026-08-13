@@ -265,14 +265,14 @@ enum Status:
 # 1. Print ChArUco pattern
 python tools/calibration/camera_calibrator.py --generate-pattern
 
-# 2. Calibrate each camera
-python tools/calibration/camera_calibrator.py --device /dev/video0 --camera road
-python tools/calibration/camera_calibrator.py --device /dev/video1 --camera wide_road
+# 2. Calibrate each camera (use the actual /dev/videoN nodes on your target)
+python tools/calibration/camera_calibrator.py --device /dev/video-road --camera road
+python tools/calibration/camera_calibrator.py --device /dev/video-wide --camera wide_road
 
 # 3. Batch calibrate all cameras (ExoPilot 01M)
 python tools/calibration/camera_calibrator.py --batch --platform rk3588 \
-    --road /dev/video0 --wide_road /dev/video1 \
-    --stereo_left /dev/video22 --stereo_right /dev/video31
+    --road /dev/video-road --wide_road /dev/video-wide \
+    --stereo_left /dev/video-stereo-left --stereo_right /dev/video-stereo-right
 
 # 4. Import to system
 python -c "
