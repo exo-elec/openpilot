@@ -72,7 +72,7 @@ Athena was a **persistent WebSocket client** to `wss://athena.comma.ai`. It prov
 | Access method | Web browser → `connect.comma.ai` | **Native app** — faster, offline maps |
 | Real-time telemetry | Delayed (cloud round-trip) | **Sub-100ms** — direct BLE SPP |
 | Navigation | No native nav | **Built-in OSM + Valhalla** |
-| Voice AI | None | **Hailo wake word + Piper TTS** (RK3576) |
+| Voice AI | None | **Azure voice server** (STT/TTS/intent; local tones only) |
 | Platform lock-in | iOS/Android browser only | **Native iOS + Android** |
 
 **Verdict**: NavPilot is a richer mobile experience than comma connect.

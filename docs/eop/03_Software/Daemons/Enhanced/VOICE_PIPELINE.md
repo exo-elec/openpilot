@@ -13,22 +13,25 @@
 
 ## Overview
 
-> **Applicability:** Full voice interaction (wake word + STT + intent) requires
-> ExoPilot 02M-class hardware (mic array + Hailo-8), which is VisionPilot's
-> platform. openpilot supports ExoPilot 01M (RK3588) only, where voice hardware
-> detection permanently resolves false and the voice daemons stay in silent
-> standby — see Hardware Requirements below.
+> **Applicability:** Full voice interaction requires ExoPilot 02M-class hardware
+> (mic array). openpilot supports ExoPilot 01M (RK3588) only, where voice
+> hardware detection permanently resolves false and the voice daemons stay in
+> silent standby — see Hardware Requirements below.
 
-The Voice Pipeline provides hands-free voice interaction for EOP, enabling drivers to control navigation, adjust settings, and query information using natural language commands.
+The Voice Pipeline provides hands-free voice interaction for EOP, enabling
+drivers to control navigation, adjust settings, and query information using
+natural language commands.
 
-**Architecture:** 1-tier deterministic pipeline. No cloud AI. No LLM.
-- Tier 1: Dictionary/regex matching (CPU, deterministic, <1ms)
+**Architecture:** Cloud-assisted, minimal local footprint.
+- Local: microphone capture (`micd`), alert-tone playback (`soundd`).
+- Cloud: wake-word detection, STT, intent resolution, and language TTS are
+  handled by the Azure voice server. EOP sends compressed audio upstream and
+  receives intents / pre-rendered voice audio downstream.
 
-**Safety-critical design:** EOP uses deterministic pattern matching ONLY.
-No probabilistic LLM inference in ADAS voice command paths.
-Predictable, testable, auditable behavior for every command.
-
-**Hardware note:** Hailo-8 supports Whisper STT (HEF models) but NOT LLMs (no external DRAM).
+**Safety-critical design:** EOP does **not** run local STT/TTS models for
+language commands. Deterministic, auditable command handling remains the goal;
+the heavy perception models live in the cloud where they can be updated and
+monitored centrally. Only non-language alert tones are synthesized locally.
 
 ---
 
@@ -39,17 +42,13 @@ Predictable, testable, auditable behavior for every command.
 │                           VOICE PIPELINE                                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐                              │
-│  │  waked   │───▶│  voiced  │───▶│ intentd  │                              │
-│  │(Wake Word│    │ (STT/    │    │(Intent    │                              │
-│  │ Detection│    │ Pipeline)│    │ Processing│                             │
-│  └──────────┘    └──────────┘    └──────────┘                              │
-│       │               │               │                                      │
-│       ▼               ▼               ▼                                      │
-│  ┌──────────────────────────────────────────────────────────┐              │
-│  │                    system/micd                            │              │
-│  │         (Microphone capture + beamforming)                │              │
-│  └──────────────────────────────────────────────────────────┘              │
+│  ┌──────────┐    ┌─────────────────────┐    ┌──────────┐                  │
+│  │  micd    │───▶│  Azure Voice Server │───▶│  soundd  │                  │
+│  │(capture +│    │ (STT/TTS/intent)    │    │(tones +  │                  │
+│  │ compress)│    │                     │    │ play)    │                  │
+│  └──────────┘    └─────────────────────┘    └──────────┘                  │
+│       ▲                                              │                       │
+│       └────────────── intent / UI cmd ───────────────┘                       │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -58,50 +57,40 @@ Predictable, testable, auditable behavior for every command.
 
 ## Components
 
-### 1. waked (Wake Word Detection)
-
-**Location:** `selfdrive/waked/waked.py` *(not implemented)*
-
-- **Purpose:** Detects wake word using openWakeWord on CPU
-- **Input:** Audio stream from micd
-- **Output:** `VoiceWake` event to voiced
-- **Hardware:** CPU (A55 cores)
-
-### 2. voiced (Speech-to-Text Pipeline)
-
-**Location:** `selfdrive/voiced/voiced.py` *(not implemented)*
-
-- **Purpose:** Converts speech to text using Whisper on Hailo-8
-- **Components:**
-  - `hailo_whisper.py` - Whisper HEF model on Hailo-8
-  - `stt_engine.py` - STT processing
-  - `mic_beamformer.py` - Audio beamforming
-  - `intent_pipeline.py` - 1-tier deterministic intent resolution
-- **Input:** Audio from micd, wake events from waked
-- **Output:** `voiceIntent` to intentd
-
-### 3. intentd (Intent Processing)
-
-**Location:** `selfdrive/intentd/intentd.py` *(not implemented)*
-
-- **Purpose:** Receives resolved intents from voiced, executes commands
-- **Components:**
-  - `handlers/` - Intent handlers for different command types
-  - `pipeline.py` - 1-tier deterministic pipeline
-  - `poi_cache.py` - Point-of-interest caching
-- **Input:** `voiceIntent` from voiced
-- **Output:** TTS requests, UI commands, vehicle commands
-
-### 4. micd (Microphone Daemon)
+### 1. micd (Microphone Daemon)
 
 **Location:** `system/micd/micd.py`
 
-- **Purpose:** Captures audio from microphone array
+- **Purpose:** Captures audio from microphone array, compresses it, and streams
+  it to the Azure voice server.
 - **Features:**
   - 2× INMP441 microphones (160-200mm spacing)
   - Beamforming (180° coverage)
   - AEC (Acoustic Echo Cancellation)
-- **Output:** Raw audio to voice pipeline
+  - Opus/PCM compression for upstream transmission
+- **Output:** Compressed audio to Azure; local `MicrophoneState` for UI.
+
+### 2. Azure Voice Server
+
+- **Purpose:** Wake-word detection, Whisper-based STT, deterministic intent
+  resolution, and language TTS.
+- **Input:** Compressed audio stream from `micd`.
+- **Output:**
+  - `voiceIntent` (action, params, reply text)
+  - Pre-rendered voice audio for `soundd`
+  - Optional `uiCommand` for UI control
+
+### 3. soundd (Audio Output)
+
+**Location:** `selfdrive/soundd/soundd.py`
+
+- **Purpose:** Plays **local alert tones only**. Language/voice audio is played
+  from the Azure server's downstream stream; EOP does **not** run local Piper
+  TTS or Whisper STT.
+- **Outputs:**
+  - Local alert tones (engagement, warnings, etc.)
+  - Azure voice audio passthrough
+  - Quiet-mode amplitude scaling (see `QuietMode` param)
 
 ---
 
@@ -111,22 +100,16 @@ Predictable, testable, auditable behavior for every command.
 1. User says "Hi EXO, navigate to nearest gas station"
            │
            ▼
-2. waked detects wake word ──▶ wakes voiced
+2. micd captures + compresses audio ──▶ Azure voice server
            │
            ▼
-3. voiced captures audio ──▶ Whisper STT on Hailo-8
+3. Azure: wake word + Whisper STT + deterministic intent
            │
            ▼
-4. "navigate to nearest gas station" ──▶ Tier 1 dictionary match
+4. Intent: NAVIGATE, POI: gas_station ──▶ intent handler
            │
            ▼
-5. Intent: NAVIGATE, POI: gas_station ──▶ intentd
-           │
-           ▼
-6. intentd executes ──▶ TTS: "Navigating to gas station"
-           │
-           ▼
-7. Response played via soundd
+5. Azure TTS: "Navigating to gas station" ──▶ soundd playback
 ```
 
 ---
@@ -145,11 +128,12 @@ Predictable, testable, auditable behavior for every command.
 ## Hardware Requirements
 
 - **Platform:** RK3588 (ExoPilot 01M) — the only platform openpilot supports
-- **Hailo-8:** Required for Whisper STT (vision/audio HEF models)
 - **Microphones:** 2× INMP441 (I2S1) — ExoPilot 02M only (VisionPilot); not present on 01M
 - **Speaker:** MAX98357A 3.2W amplifier — ExoPilot 02M only (VisionPilot); not present on 01M
+- **Network:** Active cellular/Wi-Fi link required for Azure voice server.
 
-**Note:** ExoPilot 01M (RK3588) has no microphone/Hailo hardware. Voice daemons run but stay silent.
+**Note:** ExoPilot 01M (RK3588) has no microphone/speaker hardware. Voice
+daemons run but stay silent; alert tones are not available on 01M.
 
 ---
 
@@ -158,8 +142,9 @@ Predictable, testable, auditable behavior for every command.
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `EOPVoiceEnabled` | 0 | Enable voice pipeline |
-| `EOPWakeWordSensitivity` | 0.7 | Wake word detection threshold |
+| `EOPWakeWordSensitivity` | 0.7 | Wake word detection threshold (server-side) |
 | `EOPVoiceLanguage` | "en" | STT/TTS language |
+| `QuietMode` | 0 | Reduce local alert-tone volume |
 
 ---
 
@@ -168,7 +153,7 @@ Predictable, testable, auditable behavior for every command.
 - `MicrophoneState` - Audio levels, beamforming status
 - `voiceState` - Voice assistant state (idle/listening/processing)
 - `voiceIntent` - Resolved intent with action, params, reply
-- `ttsRequest` - TTS playback request
+- `ttsRequest` - TTS playback request (from control paths, not from local STT)
 - `ttsStatus` - TTS playback status
 - `bargeIn` - User interruption event
 - `uiCommand` - UI control commands
@@ -177,16 +162,20 @@ Predictable, testable, auditable behavior for every command.
 
 ## Safety Design
 
-**Deterministic-only:** EOP uses dictionary/regex matching for ALL voice commands.
-No probabilistic LLM, no neural network inference in command paths.
-Every command maps to a predictable, testable action.
+**No local language models:** EOP does not store Whisper or Piper weights. All
+language STT/TTS runs in the Azure voice service. This removes a large attack
+surface, keeps the on-device image small, and allows centralized model updates.
 
-**Why no LLM:**
-- Deterministic behavior is auditable and certifiable
-- No model weights to store (~300MB+ saved)
-- No inference latency variability (<1ms vs 50-200ms)
-- No risk of hallucinated commands in safety-critical context
+**Deterministic command handling:** The cloud intent resolver uses
+dictionary/regex matching for safety-critical commands. No probabilistic LLM in
+the ADAS command path.
+
+**Why no local STT/TTS:**
+- Smaller on-device image and faster OTA updates
+- No NPU/GPU contention with driving models
+- Centralized model updates and monitoring
+- Consistent behavior across the fleet
 
 ---
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-08-14

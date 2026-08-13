@@ -94,12 +94,14 @@ core, fixing real API drift along the way (not a straight copy):
   `opendbc.car.structs.CarParams` → `cereal.car.CarParams` conversion this
   project uses actually threads a `deprecated.startingState` value through to
   `longcontrol.py` is unverified and out of scope here (see "Not done" below).
-  `personality` (CarState) and `lkaDisabled` (CarState) are external-fork-only
-  schema fields this fork's `car.capnp` never had at all and this repo's own
-  `cereal/car.capnp` doesn't have either — dropped the assignments (BYD's
-  distance-personality UI value is still reachable via the standard
-  `buttonEvents`-based path; Chery's isn't, since it had no such fallback —
-  purely cosmetic, not wired to any consumer in this project either way).
+  `personality` (CarState) is an external-fork-only schema field this fork's
+  `car.capnp` never had and this repo's own `cereal/car.capnp` doesn't have
+  either — dropped the assignment (BYD's distance-personality UI value is still
+  reachable via the standard `buttonEvents`-based path; Chery's isn't, since it
+  had no such fallback — purely cosmetic, not wired to any consumer in this
+  project either way).  `lkaDisabled` (CarState) has since been added to EOP10's
+  own `cereal/car.capnp` and is consumed by `controlsd` / vehicle events, so
+  future ports can populate it directly.
 - `chery/values.py`'s `CarControllerParams` didn't dispatch to
   `MpcLkaCarControllerParams` for BYD's MPC_LKA platform the way
   `test_lateral_limits.py`'s generic `brand.values.CarControllerParams`

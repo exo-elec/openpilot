@@ -322,9 +322,9 @@ Quick reference:
 | `EOPTJAMaxHoldMinutes` | 10 | TJA max hold at standstill |
 | `EOPMapdEnabled` | 0 | Background MAPD service |
 | `EOPNavEnabled` | 0 | On-device Valhalla routing daemon |
-| `EOPNavVoiceEnabled` | 1 | Navigation TTS announcements |
-| `EOPTTSAlertsEnabled` | 1 | Alert TTS (critical/userPrompt) |
-| `EOPTTSVoice` | "en_US-amy-medium" | Piper TTS voice model |
+| `EOPNavVoiceEnabled` | 1 | Navigation voice announcements (Azure) |
+| `EOPTTSAlertsEnabled` | 1 | Alert voice announcements (Azure) |
+| `EOPTTSVoice` | "en_US-amy-medium" | Azure voice model (no local Piper) |
 | `EOPNavBleEnabled` | 0 | Enable NavPilot BLE SPP navigation |
 
 | `EOPBluetoothCANInterface` | canmpc | SocketCAN for BLE/OBD2 (semantic name; HAL resolves to can0/can1 at runtime) |

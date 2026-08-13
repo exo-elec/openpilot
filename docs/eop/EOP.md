@@ -36,7 +36,7 @@
 | System Switching | ✅ Switch to VisionPilot via Settings → Device |
 | Side Camera Video | ✅ USB UVC streams |
 | Side Camera AI BSD | ✅ Hailo-8 (no fallback policy without it) |
-| Voice Pipeline | ⚠️ Piper TTS + alert tones only — no on-board mic, no STT/wake word |
+| Voice Pipeline | ⚠️ Azure voice server — local alert tones only; no on-board mic/STT/TTS |
 | Two-Layer Safety | ✅ SocketD (software) + TC275 (hardware) |
 | MCAP Recording | ✅ Parallel logging for Foxglove Studio |
 

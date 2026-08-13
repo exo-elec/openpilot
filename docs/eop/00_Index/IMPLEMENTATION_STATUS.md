@@ -107,9 +107,9 @@ New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_A
 | AEB Control Loop | Safety | ✅ Complete | — | EOP10 |
 | RCD | Safety | ✅ Complete | — | EOP10 |
 | BSD Standalone | Safety | ✅ Complete | None | EOP10 |
-| Whisper STT | Voice | ✅ Complete | — | — |
-| NLU / Intent | Voice | ✅ 2-tier local | Tier 3 cloud AI removed by design | — |
-| Piper TTS | Voice | ✅ Complete | — | — |
+| Azure Voice Server | Voice | ✅ Complete | STT/TTS/intent in cloud | — |
+| Local STT/TTS | Voice | ❌ Removed | Cloud voice server; no local Whisper/Piper | — |
+| Local Alert Tones | Voice | ✅ Complete | soundd plays tones only | — |
 | Native CAN | Hardware | ✅ Complete | SocketCAN native used directly; SPI-CAN adapter removed | — |
 
 | NDT Localization | Localization | N/A | LiDAR removed from pilot — exorobot only | — |
@@ -212,7 +212,7 @@ New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_A
 | `selfdrive/navd/navd.py` | ~250 | Navigation daemon |
 | `selfdrive/tripd/tripd.py` | ~200 | Trip statistics |
 | `system/micd/micd.py` | ~179 | Microphone capture + SPL (adaptive loudness) | Both |
-| `selfdrive/soundd/soundd.py` | ~164 | Piper TTS (nav alerts) + alert tones | Both |
+| `selfdrive/soundd/soundd.py` | ~164 | Alert tones + Azure voice audio passthrough | Both |
 | `system/spkd/spkd.py` | ~182 | I2S speaker output (PCM5102A / MAX98357A) | Both |
 
 ### Audio System (Adaptive Loudness — both platforms)
@@ -220,7 +220,7 @@ New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_A
 | Path | Lines | Feature | Notes |
 |------|-------|---------|-------|
 | `system/micd/micd.py` | ~179 | SPL metering via I2S mic | Feeds soundd for loudness adapt |
-| `selfdrive/soundd/soundd.py` | ~164 | Piper TTS + alert tone generation | Nav alerts only |
+| `selfdrive/soundd/soundd.py` | ~164 | Alert tone generation + Azure voice passthrough | Nav alerts only |
 | `system/spkd/spkd.py` | ~182 | I2S speaker output | Both platforms |
 
 ### Enhanced Daemons
@@ -406,7 +406,7 @@ Phase 1/2/3 of REFACTOR_SURFACE.md complete:
 | Task | File | Status |
 |------|------|--------|
 | **micd** — SPL metering (adaptive loudness) | `system/micd/micd.py` | ✅ Implemented |
-| **soundd** — Piper TTS nav alerts + alert tones | `selfdrive/soundd/soundd.py` | ✅ Implemented |
+| **soundd** — Azure voice passthrough + local alert tones | `selfdrive/soundd/soundd.py` | ✅ Implemented |
 | **spkd** — I2S speaker output | `system/spkd/spkd.py` | ✅ Implemented |
 | **I2S1 Pin Assignment** | GPIO3_B4-C0 | ⏳ Pending RPDZKJ schematic verification |
 

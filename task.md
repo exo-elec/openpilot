@@ -396,12 +396,12 @@ Recommended porting plan (highest value first):
    alert-tone amplitude to ~25% and suppresses engage/disengage tones in quiet
    mode. Also removed local Piper TTS from `soundd` because language/voice audio
    is handled by the Azure server. Application layer. Commit: `d75d576b0`.
-3. [ ] **Update backend lifecycle**: add `UpdateStatus` string param and a
+3. [x] **Update backend lifecycle**: add `UpdateStatus` string param and a
    dirty-repo guard in the update flow. Application layer (EOP10 already has the
    pyray updater UI).
-4. [ ] **ALC / lane-change behavior**: road-edge blinker guard, below-ALC-speed
+4. [x] **ALC / lane-change behavior**: road-edge blinker guard, below-ALC-speed
    event, and post-LKA-resume steer ramp. Application layer.
-5. [ ] **Generic schema extensions**: `stockAdas`, `cruiseState.setDistance`,
+5. [x] **Generic schema extensions**: `stockAdas`, `cruiseState.setDistance`,
    `speedControlled`, `belowLaneChangeSpeed` event. Car-schema/application layer.
 6. [ ] **Car ports**: BYD, Proton, Perodua, Honda City Bosch only if those
    vehicles are in EOP10 scope. Most are application/opendbc layer; actuator
@@ -418,6 +418,57 @@ Recommended porting plan (highest value first):
    `/dev/videoN` nodes, IQ tuning filenames, SPI bus details, and carrier-board
    names from public docs.
    Commits: `exopilot@main 81c4135..d3b4219`, `openpilot@dev/EOP10 63fb681d1..a09268c33`.
+
+## Follow-up session (update lifecycle + ALC guards + generic schema, 2026-08-14)
+
+Goal: complete the remaining application-layer porting items identified in the
+previous session.
+
+Completed:
+
+- [x] **Update backend lifecycle**:
+  - Added `UpdateStatus` string param to `common/params_keys.h`.
+  - Created `system/updated.py`, an OS-agnostic Git + OverlayFS safe-update
+    daemon (no AGNOS/NEOS image flashing). It writes the full lifecycle through
+    `UpdateStatus` (`checking`, `prepareDownload`, `installing`, `success`,
+    `latest`, `noInternet`, `fetchFailed`, `unsavedChanges`, `waiting`) and
+    blocks updates when the repo has local/unpushed changes.
+  - Registered `updated` in `system/manager/process_config.py`.
+  - Updated `system/ui/updater.py` to display `UpdateStatus` and offer a reboot
+    when `UpdateAvailable` is true; legacy CLI args are accepted but ignored.
+- [x] **ALC / lane-change behavior**:
+  - `selfdrive/controls/lib/desire_helper.py`: added road-edge blinker guard
+    (`is_road_edge_blinker`), ALC cancel-delay guard (`ALC_CANCEL_DELAY`), and
+    below-lane-change-speed tracking. Wired `model_v2` into `modeld.py` so the
+    road-edge check receives model data.
+  - `system/socketd/vehicle/car/events.py`: emit `belowLaneChangeSpeed` event
+    when the blinker is active under ALC minimum speed, lateral is inactive,
+    and LCA is enabled.
+  - `selfdrive/controls/controlsd.py`: added `lkaDisabled` to the `latActive`
+    gate and implemented post-lateral-resume steering ramp (`reduce_steer`)
+    over 1.75 s to avoid jerk when LKA/steering re-engages.
+- [x] **Generic schema extensions**:
+  - `cereal/car.capnp`: added `CarState.lkaDisabled`, `CarState.stockAdas`
+    (with `laneDepartureHUD`, `frontDepartureHUD`, `ldpSteerV`, `aebV`),
+    `CruiseState.setDistance` enum, and `CarParams.speedControlled`.
+  - `cereal/log.capnp`: added `OnroadEvent.EventName.belowLaneChangeSpeed`.
+  - `selfdrive/selfdrived/events.py`: added alert definition for
+    `belowLaneChangeSpeed`.
+  - Updated `docs/upstream-audit/NODE_03_opendbc_submodule_vendoring.md` to
+    reflect that `lkaDisabled` is now a live EOP10 field.
+- [x] **ExoPilot / VisionPilot boundary**: no new HAL-relevant changes required;
+  the new items are application-layer only. Existing camera geometry, EC25/GPS,
+  and RK3588 board-bring-up boundaries remain correct.
+- [x] **Build verification**: `scons -j$(nproc) cereal/` succeeds with the new
+  schema; `python3 -m py_compile` passes for all modified Python files.
+
+Known remaining work:
+
+- [ ] **EOP CPU budgets in test_onroad.py**: measure and add budgets for EOP
+  daemons when on RK hardware (carried forward from earlier sessions).
+- [ ] **On-road validation**: the ALC road-edge guard, below-ALC-speed event,
+  and post-resume steer ramp should be validated on hardware before relying on
+  them in production.
 
 Do-not-adopt list:
 
