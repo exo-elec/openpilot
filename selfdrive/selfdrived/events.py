@@ -585,6 +585,14 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       Priority.LOW, VisualAlert.none, AudibleAlert.prompt, .1),
   },
 
+  EventName.belowLaneChangeSpeed: {
+    ET.WARNING: Alert(
+      "Lane Change Unavailable",
+      "Speed Too Low",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, .1),
+  },
+
   EventName.laneChange: {
     ET.WARNING: Alert(
       "Changing Lanes",

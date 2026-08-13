@@ -175,6 +175,7 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     # glass, spray wall) — lane-structure collapse corroborated by radar4d
     # weather severity / visionBlocked → IMMEDIATE_DISABLE + NO_ENTRY
     lowVisibility @123;
+    belowLaneChangeSpeed @124;  # blinker active while under ALC minimum speed
 
     soundsUnavailableDEPRECATED @47;
   }

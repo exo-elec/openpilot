@@ -122,6 +122,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     paramsdTemporaryError @50;
     paramsdPermanentError @119;
     actuatorsApiUnavailable @120;
+    belowLaneChangeSpeed @122;
 
     radarCanErrorDEPRECATED @15;
     communityFeatureDisallowedDEPRECATED @62;
@@ -246,6 +247,17 @@ struct CarState {
   # EOP: Dashboard-reported speed limit (m/s), 0 if unavailable
   speedLimit @61 :Float32;
 
+  # stock ADAS state mirrors (for HUD passthrough and disengage arbitration)
+  lkaDisabled @62 :Bool;
+  stockAdas @63 :StockADAS;
+
+  struct StockADAS {
+    laneDepartureHUD @0 :Bool;
+    frontDepartureHUD @1 :Bool;
+    ldpSteerV @2 :Float32;
+    aebV @3 :Float32;
+  }
+
   struct WheelSpeeds {
     # optional wheel speeds
     fl @0 :Float32;
@@ -262,6 +274,16 @@ struct CarState {
     speedOffset @3 :Float32;
     standstill @4 :Bool;
     nonAdaptive @5 :Bool;
+    setDistance @7 :SetDistance;
+
+    enum SetDistance {
+      unknown @0;
+      chill @1;
+      normal @2;
+      aggresive @3;
+      experimental @4;
+      auto @5;
+    }
   }
 
   enum GearShifter {
@@ -535,6 +557,7 @@ struct CarParams {
 
   secOcRequired @74 :Bool;  # Car requires SecOC message authentication to operate
   secOcKeyAvailable @75 :Bool;  # Stored SecOC key loaded from params
+  speedControlled @76 :Bool;  # car is speed controlled but accel controlled brakes
 
   struct SafetyConfig {
     safetyModel @0 :SafetyModel;
