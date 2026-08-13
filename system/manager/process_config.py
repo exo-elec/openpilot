@@ -141,6 +141,8 @@ procs = [
   NativeProcess("loggerd", "system/loggerd", ["./loggerd"], logging),
   PythonProcess("mcapd", "system.mcapd.mcapd", logging),  # EOP: Parallel MCAP logging for Foxglove
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
+  # EOP: background Git update daemon (overlay-staged; no AGNOS/NEOS flashing).
+  PythonProcess("updated", "system.updated", always_run),
   # EOP: No cloud uploader. Logs stay local only.
   # PythonProcess("uploader", "system.loggerd.uploader", always_run),
 

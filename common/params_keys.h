@@ -114,6 +114,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"UbloxAvailable", {PERSISTENT, BOOL}},
     {"UpdateAvailable", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"UpdateFailedCount", {CLEAR_ON_MANAGER_START, INT}},
+    {"UpdateStatus", {CLEAR_ON_MANAGER_START, STRING}},
     {"UpdaterAvailableBranches", {PERSISTENT, STRING}},
     {"UpdaterCurrentDescription", {CLEAR_ON_MANAGER_START, STRING}},
     {"UpdaterCurrentReleaseNotes", {CLEAR_ON_MANAGER_START, BYTES}},
