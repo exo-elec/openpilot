@@ -14,14 +14,16 @@ from openpilot.system.inferenced.compute import HardwareBackend, BackendType, In
 
 logger = logging.getLogger(__name__)
 
-# Below this, KA2 (Kommu's production RK3588 device) has observed NPU driver
-# bugs around fp16 inference; warn loudly rather than silently producing bad output.
+# Minimum rknpu driver version. Below this, fp16 inference on RK3588/RK3576 has
+# observed driver bugs; warn loudly rather than silently producing bad output.
 MIN_RKNPU_DRIVER_VERSION = "0.9.6"
 
 # Models whose exported RKNN graph expects float16 inputs despite the ONNX
-# metadata declaring uint8 — confirmed against KA2's production runner. Scoped
-# deliberately: other models on this backend (sceneseg, ppliteseg, ...) have
-# unverified quantization and must keep RKNNLite's uint8 default.
+# metadata declaring uint8. Scoped deliberately: other models on this backend
+# (sceneseg, ppliteseg, ...) have unverified quantization and must keep
+# RKNNLite's uint8 default.
+# NOTE: This set is deployment-specific and must be kept in sync with the
+# locally-converted RKNN models; do not copy generic defaults from other forks.
 _FP16_MODELS = frozenset({"driving_vision", "driving_policy"})
 
 

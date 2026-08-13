@@ -1,0 +1,69 @@
+name: EOP10 Lint
+
+# Lint gate for the EOP10 branch.
+# - Focused gate (./test.sh) is required to pass.
+# - Full upstream lint gate (./test.sh --full) runs as an informational job
+#   while mypy debt is still being cleared.
+
+on:
+  push:
+    branches:
+      - dev/EOP10
+  pull_request:
+    branches:
+      - dev/EOP10
+  workflow_dispatch:
+
+concurrency:
+  group: eop10-lint-${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  focused:
+    name: Focused dev gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: '0.11.20'
+
+      - name: Install project + dev dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run focused gate
+        run: uv run ./test.sh
+
+  full:
+    name: Full upstream lint gate
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: '0.11.20'
+
+      - name: Install project + dev dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run full lint gate
+        run: uv run ./test.sh --full

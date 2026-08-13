@@ -99,9 +99,15 @@ On the RK3588 we do not have the upstream comma three toolchain or the same pre-
 2. **Fix `SideObject` / `sided.py` / `reard.py`** — Align cereal schema with usage, or update the daemons to match the generated structs.
 3. **Hardware abstraction** — Add `set_display_power` to `HardwareBase` or guard the call with `hasattr` / platform check.
 4. **Per-daemon mypy pass** — Tackle `monod.py`, `pathd/long_horizon_planner.py`, `obd2d.py`, `navd/navd.py` next.
-5. **Add CI** — Once the full gate is green, wire `./test.sh --full` into a GitHub Actions workflow so regressions are blocked at PR time.
+5. **Add CI** — `.github/workflows/eop10_lint.yaml` now runs `./test.sh` (required) and `./test.sh --full` (informational / allowed to fail) on every push and PR to `dev/EOP10`. Once mypy debt is cleared, make the full gate required too.
 
 ---
+
+## CI
+
+| Workflow | File | Trigger | Required |
+|----------|------|---------|----------|
+| EOP10 Lint | `.github/workflows/eop10_lint.yaml` | push/PR to `dev/EOP10` | Focused gate: yes; Full gate: informational until mypy is clean |
 
 ## Files Changed (Summary)
 
