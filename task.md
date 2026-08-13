@@ -295,9 +295,11 @@ Known remaining work:
   model references remain. Added `.github/scripts/check_rknn_local.py` and wired
   it into `.github/workflows/eop10_lint.yaml`.
   Commit: `931783258` "ci: add RKNN local-placement check for EOP10 model references".
-- [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
-  exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
-  consume calibrated camera metadata via HAL.
+- [x] **Camera exposure / 3A / IQ tuning boundary**: sensor register maps
+  (`hal/hal/drivers/camera/sensor_registers.py`), camera path wiring, thermal
+  tuning, and ISP/IQ JSON constants are now in the closed ExoPilot `hal` package.
+  EOP10 consumes geometry and tuning via `hal.platform` imports with safe
+  fallbacks. Commit: `exopilot@main 81c4135`.
 - [ ] **Full delta review of external RK3588 changes vs stock openpilot**: the
   anonymized audit docs still describe the port; a systematic pass could find
   additional fixes (thermal, watchdog, process supervision) worth pulling in.
@@ -349,9 +351,11 @@ Known remaining work:
   model references remain. Added `.github/scripts/check_rknn_local.py` and wired
   it into `.github/workflows/eop10_lint.yaml`.
   Commit: `931783258` "ci: add RKNN local-placement check for EOP10 model references".
-- [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
-  exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
-  consume calibrated camera metadata via HAL.
+- [x] **Camera exposure / 3A / IQ tuning boundary**: sensor register maps
+  (`hal/hal/drivers/camera/sensor_registers.py`), camera path wiring, thermal
+  tuning, and ISP/IQ JSON constants are now in the closed ExoPilot `hal` package.
+  EOP10 consumes geometry and tuning via `hal.platform` imports with safe
+  fallbacks. Commit: `exopilot@main 81c4135`.
 - [x] **Full delta review of the proven v0.8.13 fork vs stock openpilot**:
   completed in this session (see new section below).
 - [ ] **EOP CPU budgets in test_onroad.py**.
@@ -402,9 +406,13 @@ Recommended porting plan (highest value first):
 6. [ ] **Car ports**: BYD, Proton, Perodua, Honda City Bosch only if those
    vehicles are in EOP10 scope. Most are application/opendbc layer; actuator
    hardware glue stays in ExoPilot.
-7. [ ] **RK3588 public-repo boundary hardening**: move `install_target.sh`,
-   `npu_powerctrl.sh`, and any remaining vendor-deb/pinout details out of public
-   EOP10 into ExoPilot; keep only thin application wrappers.
+7. [x] **RK3588 public-repo boundary hardening**: moved `install_target.sh`,
+   `npu_powerctrl.sh`, `88-rockchip-camera.rules`, `99-rockchip-rk3588-env.sh`,
+   `install_rockchip_deps.sh`, and `tune_udev_usb_cameras.py` out of public EOP10
+   into ExoPilot. EOP10 now has only `install_openpilot.sh`, `openpilot.service`,
+   and READMEs. Low-level sensor register maps, camera paths, thermal tuning, and
+   ISP tuning constants live in the closed `hal` package.
+   Commits: `exopilot@main 81c4135`, `openpilot@dev/EOP10 63fb681d1`.
 
 Do-not-adopt list:
 
