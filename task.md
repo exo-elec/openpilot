@@ -413,7 +413,10 @@ Recommended porting plan (highest value first):
    `install_openpilot.sh`, `openpilot.service`, and READMEs. Low-level sensor
    register maps, camera paths, thermal tuning, ISP tuning constants, and pinout
    details live in the closed `hal` package / ExoPilot docs.
-   Commits: `exopilot@main 81c4135..d3b4219`, `openpilot@dev/EOP10 63fb681d1..711bd87ec`.
+   Also sanitized `system/v4l2d/README.md` to remove default `/dev/videoN` nodes
+   and IQ tuning filenames, and removed CSI/I2C specifics from camera driver
+   docstrings.
+   Commits: `exopilot@main 81c4135..d3b4219`, `openpilot@dev/EOP10 63fb681d1..9032da077`.
 
 Do-not-adopt list:
 
