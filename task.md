@@ -384,11 +384,14 @@ Key findings (no `KA2`/`kommu` references per policy):
 
 Recommended porting plan (highest value first):
 
-1. [ ] **Power monitoring + auto-shutdown**: add `PowerSaverEntryDuration` param
-   and an offroad timer that sets `DoShutdown`. Port from the fork's simplified
-   `power_monitoring.py` logic. Application layer.
-2. [ ] **Quiet mode + volume limits**: add `QuietMode` param; scale alert tone
-   volume and filter non-critical sounds in `soundd`. Application layer.
+1. [x] **Power monitoring + auto-shutdown**: added `PowerSaverEntryDuration` param
+   and `system/hardware/power_monitoring.py`, integrated into `manager_thread()`.
+   Offroad auto-shutdown sets `DoShutdown`; guarded by `DisablePowerDown` and
+   `ForcePowerDown`. Application layer. Commit: `d75d576b0`.
+2. [x] **Quiet mode + volume limits**: added `QuietMode` param; `soundd` now scales
+   alert-tone amplitude to ~25% and suppresses engage/disengage tones in quiet
+   mode. Also removed local Piper TTS from `soundd` because language/voice audio
+   is handled by the Azure server. Application layer. Commit: `d75d576b0`.
 3. [ ] **Update backend lifecycle**: add `UpdateStatus` string param and a
    dirty-repo guard in the update flow. Application layer (EOP10 already has the
    pyray updater UI).
