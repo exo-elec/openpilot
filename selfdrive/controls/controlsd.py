@@ -34,6 +34,23 @@ LaneChangeDirection = log.LaneChangeDirection
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
 
 
+def reduce_steer(steer: float, steering_angle_deg: float, cs_angle_deg: float, resume_diff: float) -> tuple[float, float]:
+  """Ramp steering authority back in after a lateral-control resume.
+
+  Non-linear easing over 1.75 s: the first moments are heavily attenuated to
+  avoid a sharp torque step when LKA/steering re-engages, then authority
+  returns to 100%.
+  """
+  end_time = 1.75
+  if resume_diff >= end_time:
+    return steer, steering_angle_deg
+
+  # Higher rate means steeper curve; 0 is linear.
+  rate = 0.003
+  mul = min(1.0, (resume_diff / end_time) ** (1.0 - rate))
+  return steer * mul, (steering_angle_deg - cs_angle_deg) * mul + cs_angle_deg
+
+
 class Controls:
   def __init__(self) -> None:
     self.params = Params()
@@ -97,6 +114,11 @@ class Controls:
 
     # EOP: TJA resume alert debounce
     self._tja_resume_alerted = False
+
+    # EOP: post-lateral-resume steering ramp (avoids jerk when LKA/steering re-engages)
+    self._lat_active_prev = False
+    self._steer_resumed = False
+    self._last_steer_resume_t = 0.0
 
     # EOP-CLEANUP: Cached params — refreshed once per second, not every frame
     self._param_refresh_s = 1.0
@@ -252,6 +274,7 @@ class Controls:
     # Standard active or ALCC
     CC.latActive = (self.sm['selfdriveState'].active or alcc_status.active) and \
                    not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+                   not CS.lkaDisabled and \
                    (not standstill or self.CP.steerAtStandstill or alcc_status.hold_at_standstill)
 
     # Inhibit ALCC if user is actively steering (soft override)
@@ -351,6 +374,27 @@ class Controls:
                                                        curvature_limited)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
+
+    # EOP: post-lateral-resume steering ramp. When lateral control transitions
+    # from inactive → active, ramp torque/angle authority over 1.75 s to avoid
+    # a sharp step. This covers LKA-disable → LKA-enable transitions and any
+    # other latActive resume edge.
+    if not CC.latActive:
+      self._steer_resumed = False
+    elif not self._lat_active_prev:
+      self._steer_resumed = True
+      self._last_steer_resume_t = time.monotonic()
+
+    if self._steer_resumed:
+      resume_diff = time.monotonic() - self._last_steer_resume_t
+      if resume_diff < 2.0:
+        actuators.torque, actuators.steeringAngleDeg = reduce_steer(
+          actuators.torque, actuators.steeringAngleDeg, CS.steeringAngleDeg, resume_diff)
+      else:
+        self._steer_resumed = False
+
+    self._lat_active_prev = CC.latActive
+
     # Ensure no NaNs/Infs
     for field_name in ACTUATOR_FIELDS:
       attr = getattr(actuators, field_name)

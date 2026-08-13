@@ -4,6 +4,7 @@
 Replaces car_specific.py with Tesla-format protocol event handling.
 """
 from cereal import car, log
+from openpilot.common.params import Params
 from openpilot.selfdrive.selfdrived.events import Events
 
 EventName = log.OnroadEvent.EventName
@@ -13,6 +14,7 @@ GearShifter = car.CarState.GearShifter
 # Constants
 DT_CTRL = 0.01  # 100Hz control loop
 MAX_CTRL_SPEED = 135.0  # m/s (~486 km/h)
+LANE_CHANGE_SPEED_MIN = 13.4  # ~30 mph / 48 km/h, matches desire_helper minimum
 
 
 class VehicleEvents:
@@ -25,6 +27,9 @@ class VehicleEvents:
     self.low_speed_alert = False
     self.no_steer_warning = False
     self.silent_steer_warning = True
+
+    # EOP: ALC toggle (same param used by desire_helper)
+    self.lca_enabled = Params().get_bool("EOPLCAControllerEnabled")
 
   def update(self, CS: car.CarState, CS_prev: car.CarState, CC: car.CarControl):
     """Update and return vehicle events."""
@@ -40,6 +45,13 @@ class VehicleEvents:
           events.add(EventName.speedTooLow)
       if CS.vEgo < 0.001:
         events.add(EventName.manualRestart)
+
+    # EOP: alert when blinker is active below ALC speed and lateral is inactive
+    one_blinker = CS.leftBlinker != CS.rightBlinker
+    below_lane_change_speed = CS.vEgo < LANE_CHANGE_SPEED_MIN
+    if (one_blinker and below_lane_change_speed and self.lca_enabled and
+        not CC.latActive and not CS.standstill and not CS.lkaDisabled):
+      events.add(EventName.belowLaneChangeSpeed)
 
     return events
 
