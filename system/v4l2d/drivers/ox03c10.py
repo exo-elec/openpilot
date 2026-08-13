@@ -18,9 +18,8 @@ IMPORTANT — common mistake:
   that stream separate exposures (e.g. IMX415). Using ISP HDR on OX03C10
   causes washed-out / double-exposed images.
 
-Hardware target: ExoPilot 01M (RK3588)
-  - road:      CSI0, 1920×1280 @ 20fps, HDR4
-  - wide_road: CSI1, 1920×1280 @ 20fps, HDR4
+Hardware target: ExoPilot 01M (RK3588).  CSI wiring and V4L2 private
+control IDs are imported from the closed HAL package.
 """
 
 from __future__ import annotations

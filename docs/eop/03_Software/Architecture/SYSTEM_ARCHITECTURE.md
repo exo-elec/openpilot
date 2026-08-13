@@ -194,4 +194,4 @@ wifi_interface = HARDWARE.WIFI_INTERFACE  # "wlan0"
 
 - HAL.md - Hardware Abstraction Layer details
 - [DAEMON_CONNECTIONS.md](DAEMON_CONNECTIONS.md) - Message flow diagrams
-- [RK3588_PINS](../../02_Hardware/Platform/RK3588_PINS.md) - Hardware pinout
+- RK3588 pinout — private ExoPilot HAL documentation (`exopilot/docs/02-HARDWARE/RK3588_PINS.md`)

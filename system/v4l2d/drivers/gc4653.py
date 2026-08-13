@@ -10,8 +10,8 @@ Critical design constraints:
 - Exposure MUST be synchronized between left (master) and right (slave)
 - Black level calibration (BLC) matched via OTP for accurate disparity
 
-Hardware target:
-  ExoPilot 01M (RK3588):  CSI3 stereo_left (I2C5 @ 0x52), CSI4 stereo_right (I2C6 @ 0x53)
+Hardware target: ExoPilot 01M (RK3588).  CSI wiring and I2C addresses are
+imported from the closed HAL package.
 """
 
 from __future__ import annotations
