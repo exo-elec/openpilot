@@ -408,11 +408,12 @@ Recommended porting plan (highest value first):
    hardware glue stays in ExoPilot.
 7. [x] **RK3588 public-repo boundary hardening**: moved `install_target.sh`,
    `npu_powerctrl.sh`, `88-rockchip-camera.rules`, `99-rockchip-rk3588-env.sh`,
-   `install_rockchip_deps.sh`, and `tune_udev_usb_cameras.py` out of public EOP10
-   into ExoPilot. EOP10 now has only `install_openpilot.sh`, `openpilot.service`,
-   and READMEs. Low-level sensor register maps, camera paths, thermal tuning, and
-   ISP tuning constants live in the closed `hal` package.
-   Commits: `exopilot@main 81c4135`, `openpilot@dev/EOP10 63fb681d1`.
+   `install_rockchip_deps.sh`, `tune_udev_usb_cameras.py`, and the RK3588 pinout
+   doc out of public EOP10 into ExoPilot. EOP10 now has only
+   `install_openpilot.sh`, `openpilot.service`, and READMEs. Low-level sensor
+   register maps, camera paths, thermal tuning, ISP tuning constants, and pinout
+   details live in the closed `hal` package / ExoPilot docs.
+   Commits: `exopilot@main 81c4135..d3b4219`, `openpilot@dev/EOP10 63fb681d1..711bd87ec`.
 
 Do-not-adopt list:
 
