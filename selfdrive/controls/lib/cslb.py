@@ -16,12 +16,12 @@ Database location (shared format):
 """
 from __future__ import annotations
 
-import os
 import time
 import logging
 import sqlite3
 import math
 from pathlib import Path
+from typing import cast
 
 from openpilot.selfdrive.controls.lib.eop_utils import detect_exopilot_platform
 
@@ -47,7 +47,7 @@ GRAVITY = 9.81  # m/s^2
 
 class CurveSpeedEntry:
     """Represents a curve speed database entry."""
-    
+
     def __init__(self, lat: float, lon: float, radius: float, speed_mps: float,
                  grade: float = 0.0, heading: float = 0.0, sample_count: int = 1,
                  confidence: float = 0.0):
@@ -63,22 +63,22 @@ class CurveSpeedEntry:
 
 class CurveDatabase:
     """SQLite database for crowd-sourced curve safe speeds.
-    
+
     The database stores safe speeds for curves based on:
     - Curvature (radius)
     - Slope/grade (uphill/downhill matters!)
     - Surface conditions (future: from SQSC integration)
-    
+
     Safe speed is crowd-sourced from all vehicles, not personalized.
     """
-    
+
     def __init__(self, db_path: Path | None = None):
         self.db_path = db_path or DEFAULT_DB_PATH
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.platform = self._detect_platform()
         self._conn: sqlite3.Connection | None = None
         self._init_schema()
-    
+
     def _get_conn(self) -> sqlite3.Connection:
         """Get or create persistent SQLite connection."""
         if self._conn is None:
@@ -138,11 +138,11 @@ class CurveDatabase:
 
         conn.commit()
         logger.info(f"Curve DB initialized (v{SCHEMA_VERSION}): {self.db_path}")
-    
+
     def _detect_platform(self) -> str:
         """Detect ExoPilot platform (delegated to shared utility)."""
         return detect_exopilot_platform()
-    
+
     def _haversine(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         """Calculate distance between two GPS coordinates (meters)."""
         R = 6371000
@@ -150,26 +150,26 @@ class CurveDatabase:
         lat2_rad = math.radians(lat2)
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
-        
-        a = (math.sin(dlat/2) ** 2 + 
+
+        a = (math.sin(dlat/2) ** 2 +
              math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2) ** 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-        
+
         return R * c
-    
+
     @staticmethod
     def calculate_theoretical_speed(radius: float, grade: float = 0.0,
                                     max_lat_accel: float = MAX_LATERAL_ACCEL) -> float:
         """Calculate theoretical safe speed for a curve with slope.
-        
+
         Physics: v = sqrt(r * g * (μ + tan(θ)) / (1 - μ*tan(θ)))
         Simplified: v = sqrt(r * (a_max + g*sin(θ)))
-        
+
         Args:
             radius: Curve radius in meters
             grade: Road grade (-1.0 to +1.0, negative = downhill)
             max_lat_accel: Maximum comfortable lateral acceleration
-            
+
         Returns:
             Theoretical safe speed in m/s
         """
@@ -177,18 +177,18 @@ class CurveDatabase:
         # Uphill: more normal force, better traction
         # Downhill: less normal force, worse traction
         grade_effect = GRAVITY * grade * 0.3  # Simplified grade effect
-        
+
         effective_accel = max_lat_accel + grade_effect
         effective_accel = max(1.0, effective_accel)  # Minimum 1 m/s^2
-        
+
         return math.sqrt(radius * effective_accel)
-    
+
     def get_speed(self, lat: float, lon: float, radius: float,
                   grade: float = 0.0, heading: float = 0.0,
                   gps_tolerance_m: float = 30.0,
                   use_crowd: bool = True) -> float | None:
         """Get safe speed for curve with GPS tolerance and grade consideration.
-        
+
         Args:
             lat, lon: GPS coordinates
             radius: Curve radius in meters
@@ -196,18 +196,18 @@ class CurveDatabase:
             heading: Approach heading for direction-aware curves
             gps_tolerance_m: How far off GPS can be (default 30m)
             use_crowd: If True, query database; if False, use theoretical only
-            
+
         Returns:
             Safe speed in kph or None if not found
         """
         curvature = 1.0 / radius if radius > 0 else 0
-        
+
         # Calculate theoretical speed as baseline
         theoretical_speed = self.calculate_theoretical_speed(radius, grade)
-        
+
         if not use_crowd or not self.db_path.exists():
             return theoretical_speed * 3.6  # Convert to kph
-        
+
         conn = self._get_conn()
         cursor = conn.cursor()
 
@@ -222,49 +222,49 @@ class CurveDatabase:
         ''', (curvature, grade, lat, lon))
 
         results = cursor.fetchall()
-        
+
         if not results:
             # No crowd data, use theoretical
             return theoretical_speed * 3.6
-        
+
         # Find best match within GPS tolerance
         best_match = None
         best_confidence = 0.0
-        
-        for row_lat, row_lon, row_radius, row_grade, speed_mps, count, conf in results:
+
+        for row_lat, row_lon, _row_radius, _row_grade, speed_mps, _count, conf in results:
             distance_m = self._haversine(lat, lon, row_lat, row_lon)
-            
+
             if distance_m > gps_tolerance_m:
                 continue
-            
+
             # Prefer higher confidence (more samples) and closer matches
             combined_score = conf * 0.7 + (1 - distance_m / gps_tolerance_m) * 0.3
-            
+
             if combined_score > best_confidence:
                 best_confidence = combined_score
                 best_match = speed_mps
-        
+
         if best_match and best_confidence > 0.3:
             # Blend crowd data with theoretical (crowd gets more weight with more samples)
             crowd_weight = min(0.8, best_confidence)
             blended_speed = crowd_weight * best_match + (1 - crowd_weight) * theoretical_speed
-            return blended_speed * 3.6
-        
+            return cast(float | None, blended_speed * 3.6)
+
         return theoretical_speed * 3.6
-    
+
     def get_speeds_in_range(self, lat: float, lon: float,
                            radius_range: tuple[float, float] = (30.0, 1000.0),
                            max_distance_m: float = 2000.0) -> list[tuple[float, float, float, float]]:
         """Get learned safe speeds for curves in range (predictive lookup).
-        
+
         Used by MTSC for predictive speed control - look ahead 1-2km
         and adjust speed BEFORE reaching the curve.
-        
+
         Args:
             lat, lon: Current GPS coordinates
             radius_range: (min_radius, max_radius) to query
             max_distance_m: Maximum distance to search (default 2km)
-            
+
         Returns:
             List of (distance_m, radius_m, grade, speed_kph) tuples
                      sorted by distance from current position
@@ -298,15 +298,15 @@ class CurveDatabase:
                 results.append((distance_m, radius, grade, speed_mps * 3.6))
 
         return sorted(results, key=lambda x: x[0])  # Sort by distance
-    
+
     def update_speed(self, lat: float, lon: float, radius: float, speed_kph: float,
                      grade: float = 0.0, heading: float = 0.0, source: str = None):
         """Update or insert curve safe speed (crowd-sourced).
-        
+
         This is NOT personalized - it updates the shared safe speed database
         that all vehicles use. The speed should be what the vehicle actually
         drove through the curve safely, not driver preference.
-        
+
         Args:
             lat, lon: GPS coordinates
             radius: Curve radius in meters
@@ -317,23 +317,23 @@ class CurveDatabase:
         """
         if source is None:
             source = self.platform
-        
+
         if not (MIN_SPEED <= speed_kph <= MAX_SPEED):
             return
         if not (MIN_CURVE_RADIUS <= radius <= MAX_CURVE_RADIUS):
             return
-        
+
         curvature = 1.0 / radius if radius > 0 else 0
         speed_mps = speed_kph / 3.6
-        
+
         # Validate speed is reasonable for curve (with grade)
         theoretical = self.calculate_theoretical_speed(radius, grade)
         if speed_mps > theoretical * 1.5:
             # Speed is too fast for physics, probably not a safe baseline
-            logger.warning(f"Curve speed {speed_kph:.1f} kph exceeds theoretical limit "
+            logger.warning(f"Curve speed {speed_kph:.1f} kph exceeds theoretical limit " +
                           f"{theoretical*3.6:.1f} kph for r={radius}m, grade={grade:.2%}")
             return
-        
+
         conn = self._get_conn()
         cursor = conn.cursor()
 

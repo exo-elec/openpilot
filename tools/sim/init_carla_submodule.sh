@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Initialize CARLA submodule (shallow, on-demand).
 #
 # CARLA's repo is large; we only fetch it when sim tests are needed.

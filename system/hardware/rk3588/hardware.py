@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-from typing import Any
 
 from openpilot.system.hardware.base import HardwareBase, HardwareCapability
 from openpilot.system.hardware.rk_device_id import get_emmc_cid, get_rk_otp_chip_id
@@ -55,17 +54,15 @@ class RK3588Hardware(HardwareBase):
     def get_cellular_interface() -> str:
         """Return active cellular modem interface for EC25.
 
-        EC25 on RK3588 uses USB-over-Mini-PCIe / M.2 USB pins.
-        Priority:
-        1. USB ECM/RNDIS (usb0) — EC25
-        2. USB QMI (wwan0) — EC25 QMI mode
+        EC25 on ExoPilot 01M is wired through a USB-to-Mini-PCIe mux and runs
+        in QMI mode, so the kernel exposes cdc-wdm + wwan0. The legacy ECM/RNDIS
+        usb0 interface is only used when the modem is forced into that mode.
         """
-        import os
-        if os.path.exists("/sys/class/net/usb0"):
-            return "usb0"
         if os.path.exists("/sys/class/net/wwan0"):
             return "wwan0"
-        return "usb0"  # Default for EC25
+        if os.path.exists("/sys/class/net/usb0"):
+            return "usb0"
+        return "wwan0"  # Default for ExoPilot 01M QMI mode
 
     @staticmethod
     def get_modem_type() -> str:
@@ -144,7 +141,7 @@ class RK3588Hardware(HardwareBase):
         SHM_PATH = "/dev/shm"
         DATA_PATH = "/data/media/0"
         PARAMS_PATH = "/data/params"
-    
+
     @staticmethod
     def detect() -> bool:
         """Detect RK3588 hardware."""
@@ -156,22 +153,22 @@ class RK3588Hardware(HardwareBase):
 
     def get_device_type(self) -> str:
         return "rk3588"
-    
+
     def get_platform(self) -> str:
         return "ExoPilot 01M"
-    
+
     def reboot(self, reason=None):
         subprocess.run(["reboot"], check=False)
-    
+
     def uninstall(self):
         pass
-    
+
     def get_os_version(self):
         return "ubuntu"
-    
+
     def get_imei(self, slot) -> str:
         return ""
-    
+
     def get_serial(self):
         """Return Rockchip OTP chip ID (SoC-bound factory serial)."""
         rk_otp = get_rk_otp_chip_id()
@@ -195,52 +192,52 @@ class RK3588Hardware(HardwareBase):
                 return f.read().strip('\x00')
         except OSError:
             return "unknown"
-    
+
     def get_network_info(self):
         return {}
-    
+
     def get_network_type(self):
         return "wifi"
-    
+
     def get_sim_info(self):
         return {}
-    
+
     def get_sim_lpa(self):
         raise NotImplementedError
-    
+
     def get_network_strength(self, network_type):
         return 0
-    
+
     def get_current_power_draw(self):
         return 0
-    
+
     def get_som_power_draw(self):
         return 0
-    
+
     def shutdown(self):
         subprocess.run(["poweroff"], check=False)
-    
+
     def set_screen_brightness(self, percentage):
         pass
-    
+
     def get_screen_brightness(self):
         return 100
-    
+
     def set_power_save(self, powersave_enabled):
         pass
-    
+
     def get_gpu_usage_percent(self):
         return 0
-    
+
     def get_modem_temperatures(self):
         return []
-    
+
     def initialize_hardware(self):
         pass
-    
+
     def get_networks(self):
         return []
-    
+
     def get_camera_array_config(self) -> dict:
         """ExoPilot 01M: 4 MIPI cameras + up to 3 USB cameras via hub.
 
@@ -282,11 +279,11 @@ class RK3588Hardware(HardwareBase):
             "has_tele_road": False,
             "cameras": mipi_cams + usb_cams,
         }
-    
+
     def get_stereo_baseline_mm(self) -> float:
         cam_geo = RK3588Hardware._cam_geo
         return cam_geo.STEREO_BASELINE_M * 1000.0 if cam_geo is not None else 0.0
-    
+
     def get_capabilities(self) -> set:
         return {
             HardwareCapability.GPIO,
@@ -306,7 +303,7 @@ class RK3588Hardware(HardwareBase):
     def has_voice_input(self) -> bool:
         """ExoPilot 01M has no on-board mic — voice input not supported."""
         return False
-    
+
     @staticmethod
     def _detect_uvc_device(device_path: str) -> bool:
         """Check if a V4L2 UVC device is present and responds to queries."""

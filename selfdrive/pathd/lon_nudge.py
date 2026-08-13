@@ -23,6 +23,8 @@ Safety limits (design §3.5):
 """
 from __future__ import annotations
 
+from typing import cast
+
 # Thresholds
 DRIVABLE_WARN_DIST  = 40.0   # m — start reducing speed below this
 DRIVABLE_STOP_DIST  =  8.0   # m — near-emergency, strong reduction
@@ -87,7 +89,7 @@ class LonNudge:
       self._smoothed_delta = 0.0
 
     self._update_state(drivable_limit_m)
-    return self._smoothed_delta
+    return cast(float, self._smoothed_delta)
 
   # =========================================================================
   # Core computation

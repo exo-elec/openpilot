@@ -53,7 +53,7 @@ class _SounddeviceAudio:
     def write_samples(self, audio: np.ndarray):
         if self._play_stream is None:
             return
-        if audio.dtype != np.int16:
+        if audio.dtype != np.int16:  # type: ignore[unreachable]
             audio = audio.astype(np.int16)
         try:
             self._play_stream.write(audio)
@@ -118,5 +118,5 @@ def get_i2s_hal():
     try:
         import sounddevice  # noqa: F401
         return _SounddeviceAudio()
-    except ImportError:
-        raise ImportError("sounddevice not available — install: pip install sounddevice")
+    except ImportError as e:
+        raise ImportError("sounddevice not available — install: pip install sounddevice") from e

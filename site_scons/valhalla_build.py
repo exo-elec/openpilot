@@ -5,12 +5,11 @@ Following the same pattern as other third_party dependencies
 
 import os
 import subprocess
-import SCons
 
 
-VALHALLA_SRC_DIR = Dir("#third_party/valhalla/src").abspath
-BUILD_DIR = Dir("#third_party/valhalla/build").abspath
-INSTALL_DIR = Dir("#third_party/valhalla/bin").abspath
+VALHALLA_SRC_DIR = Dir("#third_party/valhalla/src").abspath  # noqa: F821
+BUILD_DIR = Dir("#third_party/valhalla/build").abspath  # noqa: F821
+INSTALL_DIR = Dir("#third_party/valhalla/bin").abspath  # noqa: F821
 
 
 def build_valhalla(env):
@@ -19,24 +18,24 @@ def build_valhalla(env):
     Binaries installed to third_party/valhalla/bin/
     """
     valhalla_service = os.path.join(INSTALL_DIR, "valhalla_service")
-    
+
     # Check if already built
     if os.path.exists(valhalla_service):
         print(f"Valhalla already built: {valhalla_service}")
         return INSTALL_DIR
-    
+
     # Check if submodule exists
     if not os.path.exists(os.path.join(VALHALLA_SRC_DIR, "CMakeLists.txt")):
         print("ERROR: valhalla_repo submodule not initialized!")
         print("Run: git submodule update --init --recursive")
         return None
-    
+
     print("Building Valhalla for ARM64 (this may take a while)...")
-    
+
     # Create directories
     os.makedirs(BUILD_DIR, exist_ok=True)
     os.makedirs(INSTALL_DIR, exist_ok=True)
-    
+
     # CMake configuration optimized for embedded ARM64
     cmake_args = [
         "cmake",
@@ -56,14 +55,14 @@ def build_valhalla(env):
         "-DENABLE_HTTP=ON",
         "-DENABLE_CCACHE=OFF",
     ]
-    
+
     # Run CMake configure
     print("Configuring Valhalla with CMake...")
     result = subprocess.run(cmake_args, cwd=VALHALLA_SRC_DIR, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"CMake configure failed:\n{result.stderr}")
         return None
-    
+
     # Build with limited parallelism (conserve RAM on embedded)
     print("Building Valhalla (this may take 10-30 minutes)...")
     build_args = ["cmake", "--build", BUILD_DIR, "--parallel", "2"]
@@ -71,7 +70,7 @@ def build_valhalla(env):
     if result.returncode != 0:
         print(f"Valhalla build failed:\n{result.stderr}")
         return None
-    
+
     # Copy binaries to install directory
     binaries = [
         "valhalla_service",
@@ -80,7 +79,7 @@ def build_valhalla(env):
         "valhalla_build_admins",
         "valhalla_build_timezones",
     ]
-    
+
     for binary in binaries:
         src = os.path.join(BUILD_DIR, binary)
         if os.path.exists(src):
@@ -88,7 +87,7 @@ def build_valhalla(env):
             print(f"Installing {binary}...")
             subprocess.run(["cp", src, dst], check=True)
             subprocess.run(["chmod", "+x", dst], check=True)
-    
+
     print(f"Valhalla build complete: {INSTALL_DIR}")
     return INSTALL_DIR
 
@@ -99,4 +98,4 @@ def valhalla_installed(env):
     return os.path.exists(valhalla_service)
 
 
-Export('build_valhalla', 'valhalla_installed')
+Export('build_valhalla', 'valhalla_installed')  # noqa: F821

@@ -408,8 +408,8 @@ class SteamD:
         self.udp_streamer.set_pip_source("wide")
         logger.info("UDP streamer: no tele camera — default PiP = wide")
       self.udp_streamer.run_in_thread(self._udp_camera_client, corrector)
-    except Exception as e:
-      logger.error(f"Failed to start UDP streamer: {e}")
+    except Exception:
+      logger.exception("Failed to start UDP streamer")
 
   async def shutdown(self):
     logger.info("Shutting down SteamD...")

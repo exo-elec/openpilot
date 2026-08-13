@@ -133,7 +133,10 @@ print("=" * 60)
 def _mk_so(*objs):
     class _O:
         def __init__(self, d, y, v, p):
-            self.dRel = d; self.yRel = y; self.vRel = v; self.prob = p
+            self.dRel = d
+            self.yRel = y
+            self.vRel = v
+            self.prob = p
     class _M:
         def __init__(self, items):
             self.objects = [_O(*o) for o in items]
@@ -161,7 +164,9 @@ assert_true(right.alert_level == ZoneAlertLevel.OFF,     "right zone OFF")
 # test camera-only fallback CAUTION
 class FakeDet:
     def __init__(self, x, y, conf):
-        self.x = x; self.y = y; self.confidence = conf
+        self.x = x
+        self.y = y
+        self.confidence = conf
 
 class FakeSideDets:
     def __init__(self, dets):

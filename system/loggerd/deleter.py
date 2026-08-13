@@ -4,8 +4,6 @@
 Manages log storage by enforcing size limits, free space requirements,
 and age-based cleanup policies.
 """
-import os
-import shutil
 import threading
 from pathlib import Path
 
@@ -35,7 +33,7 @@ STORAGE_CONFIG = StorageLimits(
 
 def deleter_thread(exit_event: threading.Event):
     """Main deletion thread using storage policy.
-    
+
     Uses StoragePolicy for intelligent cleanup while maintaining
     backward compatibility with existing limit checks.
     """
@@ -45,9 +43,14 @@ def deleter_thread(exit_event: threading.Event):
         limits=STORAGE_CONFIG,
         on_cleanup=lambda deleted: cloudlog.info(f"deleter: Cleaned up {len(deleted)} segments")
     )
-    
+
     cloudlog.info("deleter: Started with storage policy")
-    
+
+    # Backoff state: when cleanup cannot make progress (e.g. every segment is
+    # locked or preserved), increase sleep time to avoid a tight spin loop.
+    no_progress_backoff = 0.1
+    last_progress = True
+
     while not exit_event.is_set():
       try:
         # Check legacy limits for compatibility
@@ -56,29 +59,41 @@ def deleter_thread(exit_event: threading.Event):
 
         # Also check storage policy limits
         low_free_space = not policy.check_free_space()
-        
+
         if out_of_percent or out_of_bytes or low_free_space:
             # Use storage policy for cleanup; force guarantees progress even
             # when the legacy statvfs signal and the policy's shutil metrics
             # disagree (otherwise this loop would spin without freeing space)
             deleted = policy.enforce_limits(force=out_of_percent or out_of_bytes)
-            
+
             if deleted:
                 cloudlog.info(f"deleter: Deleted {len(deleted)} segments to free space")
-            
+                no_progress_backoff = 0.1
+                last_progress = True
+            else:
+                last_progress = False
+
             # Log current stats
             stats = policy.get_stats()
-            cloudlog.debug(f"deleter: {stats['segment_count']} segments, "
-                          f"{stats['total_size_gb']}GB used, "
+            cloudlog.debug(f"deleter: {stats['segment_count']} segments, " +
+                          f"{stats['total_size_gb']}GB used, " +
                           f"{stats['free_space_gb']}GB free")
-            
-            exit_event.wait(0.1)
+
+            # If no progress was made, back off to avoid hammering a full disk
+            # where every remaining segment is locked/preserved.
+            if not last_progress:
+                no_progress_backoff = min(no_progress_backoff * 2, 30.0)
+                cloudlog.warning(f"deleter: cleanup made no progress, backing off {no_progress_backoff:.1f}s")
+                exit_event.wait(no_progress_backoff)
+            else:
+                exit_event.wait(0.1)
         else:
+            no_progress_backoff = 0.1
             # Periodic stats logging (every 30 cycles ~ 15 minutes)
             if not hasattr(deleter_thread, '_stats_counter'):
                 deleter_thread._stats_counter = 0
             deleter_thread._stats_counter += 1
-            
+
             if deleter_thread._stats_counter >= 30:
                 stats = policy.get_stats()
                 cloudlog.info(f"deleter: Stats - {stats}")

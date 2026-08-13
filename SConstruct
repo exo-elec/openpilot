@@ -110,8 +110,18 @@ else:
   ]
 
   if arch == "aarch64":
-    cflags += ["-DROCKCHIP"]
-    cxxflags += ["-DROCKCHIP"]
+    cflags += ["-DROCKCHIP", "-DRK3588"]
+    cxxflags += ["-DROCKCHIP", "-DRK3588"]
+    cpppath += [
+      "/usr/include/rockchip",
+      "/usr/include/rga",
+      "/usr/local/include/rockchip",
+      "/usr/local/include/rga",
+    ]
+    libpath += [
+      "/usr/lib/aarch64-linux-gnu",
+      "/usr/local/lib/aarch64-linux-gnu",
+    ]
 
 if GetOption('asan'):
   ccflags = ["-fsanitize=address", "-fno-omit-frame-pointer"]
@@ -295,7 +305,7 @@ if GetOption("clazy"):
   qt_env['ENV']['CLAZY_IGNORE_DIRS'] = qt_dirs[0]
   qt_env['ENV']['CLAZY_CHECKS'] = ','.join(checks)
 
-Export('env', 'qt_env', 'arch', 'real_arch')
+Export('env', 'qt_env', 'arch', 'real_arch', 'soc')
 
 # Build common module
 SConscript(['common/SConscript'])

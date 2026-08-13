@@ -1,17 +1,14 @@
 """Install exception handler for process crash."""
 import sentry_sdk
 from enum import Enum
-from sentry_sdk.integrations.threading import ThreadingIntegration
 
-from openpilot.system.hardware import HARDWARE, PC
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.version import get_build_metadata, get_version
 
 
 class SentryProject(Enum):
   # EOP: Sentry disabled — no crash reporting to external services
   SELFDRIVE = ""
-  SELFDRIVE_NATIVE = ""
+  SELFDRIVE_NATIVE = ""  # noqa: PIE796
 
 
 def report_tombstone(fn: str, message: str, contents: str) -> None:

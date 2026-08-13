@@ -2,6 +2,7 @@ import time
 import pyray as rl
 from dataclasses import dataclass
 from cereal import messaging, log
+from typing import cast
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.hardware import TICI
 
@@ -159,7 +160,7 @@ class AlertRenderer(Widget):
       vertical_align = rl.GuiTextAlignmentVertical.TEXT_ALIGN_MIDDLE
       text_rect = rl.Rectangle(rect.x, rect.y, rect.width, rect.height // 2)
 
-      gui_text_box(text_rect, alert.text1, font_size1, alignment=align_ment, alignment_vertical=vertical_align, font_weight=FontWeight.BOLD)
+      gui_text_box(text_rect, alert.text1, font_size1, alignment=align_ment, alignment_vertical=vertical_align, font_weight=cast(FontWeight, FontWeight.BOLD))
       text_rect.y = rect.y + rect.height // 2
       gui_text_box(text_rect, alert.text2, ALERT_FONT_BIG, alignment=align_ment)
 

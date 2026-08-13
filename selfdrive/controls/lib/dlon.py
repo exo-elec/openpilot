@@ -31,7 +31,7 @@ class DriveMode(Enum):
 
 class ModeTransitionManager:
   """Manages smooth transitions between driving modes with hysteresis."""
-  
+
   def __init__(self):
     self.current_mode = DriveMode.ACC
     self.mode_confidence = {DriveMode.ACC: 1.0, DriveMode.E2E: 0.0}
@@ -39,7 +39,7 @@ class ModeTransitionManager:
     self.mode_duration = 0
     self.emergency_override = False
     self.min_mode_duration = 10  # frames (~0.5s at 20Hz)
-    
+
   def request_mode(self, mode: DriveMode, confidence: float = 1.0, emergency: bool = False):
     """Request mode transition with confidence and emergency override."""
     if emergency:
@@ -48,42 +48,42 @@ class ModeTransitionManager:
       self.transition_timeout = 15
       self.mode_duration = 0
       return
-      
+
     # Update confidence for requested mode
     self.mode_confidence[mode] = min(1.0, self.mode_confidence[mode] + 0.1 * confidence)
-    
+
     # Decay confidence for other modes
     for m in self.mode_confidence:
       if m != mode:
         self.mode_confidence[m] = max(0.0, self.mode_confidence[m] - 0.05)
-        
+
     # Check minimum duration (prevent rapid switching)
     if self.mode_duration < self.min_mode_duration and not self.emergency_override:
       return
-      
+
     # Hysteresis: higher threshold for mode changes, lower to maintain
     threshold = 0.6 if mode != self.current_mode else 0.3
-    
+
     if self.mode_confidence[mode] > threshold:
       if mode != self.current_mode and self.transition_timeout == 0:
         self.transition_timeout = 15  # frames cooldown
         self.current_mode = mode
         self.mode_duration = 0
-        
+
   def update(self):
     """Call every frame to update timing."""
     if self.transition_timeout > 0:
       self.transition_timeout -= 1
     self.mode_duration += 1
-    
+
     # Clear emergency after duration
     if self.emergency_override and self.mode_duration > 20:
       self.emergency_override = False
-        
+
     # Gradual confidence decay
     for mode in self.mode_confidence:
       self.mode_confidence[mode] *= 0.98
-      
+
   def get_mode(self) -> DriveMode:
     return self.current_mode
 
@@ -91,11 +91,11 @@ class ModeTransitionManager:
 class DLON:
   """
   Dynamic Longitudinal Profile Controller
-  
+
   Dynamically switches between Chill (ACC) and Experimental (E2E) modes
   based on environmental triggers.
   """
-  
+
   # Trigger thresholds
   LEAD_SLOW_VELOCITY_THRESHOLD = -5.0  # m/s (~18 km/h slower)
   LOW_SPEED_THRESHOLD = URBAN_SPEED_MPS
@@ -110,7 +110,7 @@ class DLON:
   # at the boundary (map/nav speed-limit values are step functions, not
   # continuous, so a small margin avoids chatter at the zone edge).
   SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
-  
+
   def __init__(self):
     self.params = Params()
     self.mode = DLONMode.AUTO
@@ -160,7 +160,7 @@ class DLON:
     self.force_stop_timer = 0.0
     self.override_force_stop = False
     self.override_force_stop_timer = 0.0
-    
+
   def update_params(self):
     """Update parameters periodically (every 1 second).
 
@@ -184,7 +184,7 @@ class DLON:
       self._trigger_enabled['speed_limit'] = self.params.get_bool("EOPDLONSpeedLimitEnabled")
       self.force_stops_enabled = self.params.get_bool("EOPDLONForceStopsEnabled")
       self.last_param_update = current_time
-          
+
   def detect_traffic_control(self, model_v2, radar_state, v_ego) -> bool:
     """Detect traffic lights and stop signs from modelV2.
 
@@ -202,26 +202,26 @@ class DLON:
     # Heuristic: traffic control likely when model wants to stop,
     # no lead is present, and we're at low speed (intersection/standstill)
     return should_stop and not has_lead and v_ego < self.LOW_SPEED_THRESHOLD
-      
+
   def detect_slower_lead(self, radar_state, v_ego) -> bool:
     """Detect significantly slower lead vehicle."""
     if not radar_state or not radar_state.leadOne.status:
       return False
-        
+
     delta_v = radar_state.leadOne.vLead - v_ego
     return delta_v < self.LEAD_SLOW_VELOCITY_THRESHOLD
-      
+
   def detect_low_speed_scenario(self, v_ego, has_lead) -> bool:
     """Detect low-speed navigation scenario (empty intersection)."""
     return v_ego < self.LOW_SPEED_THRESHOLD and not has_lead
-      
+
   def detect_turn_intent(self, car_state, v_ego) -> bool:
     """Detect turn signal at non-highway speeds."""
     if v_ego >= self.HIGHWAY_SPEED_THRESHOLD:
       return False
-        
+
     return car_state.leftBlinker or car_state.rightBlinker
-    
+
   def detect_sharp_curve(self, model_v2, v_ego) -> bool:
     """Detect sharp curve ahead using lateral acceleration prediction."""
     if not model_v2 or not hasattr(model_v2, 'orientationRate'):
@@ -298,20 +298,20 @@ class DLON:
   def update(self, sm, mpc_crash_cnt: int = 0) -> dict:
     """
     Main update method.
-    
+
     Args:
       sm: SubMaster with carState, modelV2, radarState
       mpc_crash_cnt: MPC FCW crash counter
-        
+
     Returns:
       Dict with mode, e2e_enabled, triggers
     """
     self.update_params()
-    
+
     CS = sm['carState']
     model_v2 = sm['modelV2']
     radar_state = sm['radarState'] if 'radarState' in sm.valid else None
-    
+
     v_ego = CS.vEgo
 
     # Update filters
@@ -399,12 +399,12 @@ class DLON:
 
     self.mode_manager.request_mode(requested_mode, confidence, emergency)
     self.mode_manager.update()
-    
+
     final_mode = self.mode_manager.get_mode()
     is_e2e = final_mode == DriveMode.E2E
-    
+
     self.frame += 1
-    
+
     return {
       'mode': self.mode.value,
       'e2e_enabled': is_e2e,
@@ -470,11 +470,11 @@ class DLON:
       return True
 
     return False
-        
+
   def _calculate_confidence(self) -> float:
     """Calculate overall confidence for mode decision."""
     confidences = []
-    
+
     if self._has_traffic_control:
       confidences.append(self.traffic_filter.get_confidence())
     if self._has_mpc_fcw:
@@ -487,7 +487,7 @@ class DLON:
     # Lead confidence is always relevant if present
     if self._has_lead_filtered:
       confidences.append(self.lead_filter.get_confidence())
-      
+
     return max(confidences) if confidences else 0.5
-    
+
   # EOP-CLEANUP: Removed get_debug_dict() — no caller consumed it.

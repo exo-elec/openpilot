@@ -342,8 +342,8 @@ class UdpInput(ControlInput):
       self._thread = threading.Thread(target=self._receive_loop, daemon=True)
       self._thread.start()
       logger.info(f"UdpInput: listener on {self._listen_addr}:{self._listen_port}")
-    except Exception as e:
-      logger.error(f"UdpInput: failed to bind: {e}")
+    except Exception:
+      logger.exception("UdpInput: failed to bind")
 
   def _receive_loop(self):
     while self._running:
@@ -351,7 +351,7 @@ class UdpInput(ControlInput):
         data, _ = self._sock.recvfrom(512)
         self._parse(data)
         self._last_recv_time = time.monotonic()
-      except socket.timeout:
+      except TimeoutError:
         continue
       except Exception as e:
         logger.debug(f"UdpInput receive error: {e}")
@@ -573,7 +573,9 @@ class UdpInput(ControlInput):
     yaw = np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
     return roll, pitch, yaw
 
-  def _compute_steer(self, left: UdpControllerState, right: UdpControllerState, steer_source: str = "position", max_roll_deg: float = 45.0, max_yaw_deg: float = 60.0) -> float:
+  def _compute_steer(self, left: UdpControllerState, right: UdpControllerState,
+                     steer_source: str = "position", max_roll_deg: float = 45.0,
+                     max_yaw_deg: float = 60.0) -> float:
     """Compute steering from thumbstick, hand-pose lateral offset, or quaternion orientation."""
     # 1. Thumbstick has priority (legacy clients)
     if abs(left.thumbstick[0]) > 0.01:

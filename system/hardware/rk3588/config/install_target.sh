@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install openpilot on RK3588 Ubuntu 22.04 target device
 # Run as root on the RK3588 device after flashing the vendor Ubuntu image
 #

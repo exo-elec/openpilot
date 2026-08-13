@@ -11,7 +11,7 @@ from openpilot.system.inferenced import (
     # Client API
     InferenceClient,
     ClientConfig,
-    
+
     # Core HAL
     BackendType,
     TaskPriority,
@@ -24,7 +24,7 @@ from openpilot.system.inferenced import (
     HAL,
     HALConfig,
     get_hal,
-    
+
     # Backend selector
     BackendSelector,
     select_for_sgm,
@@ -43,10 +43,10 @@ class TaskPriority:
 
 class InferenceScheduler:
     """Deprecated - use InferenceClient from openpilot.system.inferenced."""
-    
+
     def __init__(self):
         raise DeprecationWarning(
-            "InferenceScheduler is deprecated. "
+            "InferenceScheduler is deprecated. " +
             "Use InferenceClient from openpilot.system.inferenced"
         )
 

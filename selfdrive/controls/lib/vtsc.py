@@ -82,15 +82,15 @@ CAL_WRITE_EVERY_S   = 30.0    # write to Params at most every 30 s
 class VTSC:
   """
   Vision Turn Speed Control.
-  
+
   Predicts curve entry and proactively reduces speed for comfortable
   lateral acceleration.
-  
+
   Priority:
     1. Learned driver speeds from curved database (if available at current location)
     2. Vision-based curvature calculation (fallback)
   """
-  
+
   def __init__(self):
     self.params = Params()
     self.state = VTSCState.disabled
@@ -121,7 +121,7 @@ class VTSC:
     self._cached_curve_learn = False
     self._last_param_update = 0.0
     self._param_interval = 1.0
-    
+
   def _get_cached_params(self):
     """Cache params — file I/O no more than once per second."""
     now = time.monotonic()
@@ -131,21 +131,21 @@ class VTSC:
     self._cached_enabled = self.params.get_bool("EOPVTSCEnabled")
     self._cached_curve_learn = self.params.get_bool("EOPCurveSpeedLearnEnabled")
     return self._cached_enabled, self._cached_curve_learn
-    
+
   def _calculate_lateral_acceleration(self, v_ego, model_v2):
     """
     Calculate current and predicted lateral acceleration.
-    
+
     Args:
       v_ego: Current ego velocity (m/s)
       model_v2: modelV2 cereal message
-      
+
     Returns:
       (current_lat_acc, max_pred_lat_acc)
     """
     if not model_v2 or not hasattr(model_v2, 'orientationRate'):
       return 0.0, 0.0
-    
+
     # Current lateral acceleration from steering
     # a_lat = v² * curvature (approximation)
     # Use orientation rate z as proxy for curvature
@@ -154,17 +154,17 @@ class VTSC:
       self.current_lat_acc = v_ego * current_rate
     else:
       self.current_lat_acc = 0.0
-    
+
     # Predicted lateral acceleration from path
     # Look ahead in the path for upcoming curves
-    if (len(model_v2.orientationRate.z) >= 10 and 
+    if (len(model_v2.orientationRate.z) >= 10 and
         len(model_v2.velocity.x) >= 10):
-      
+
       # Calculate predicted lateral accel along path
       # a_lat = v * yaw_rate (since yaw_rate = v * curvature)
       rates = np.abs(model_v2.orientationRate.z[:10])  # rad/s
       velocities = model_v2.velocity.x[:10]  # m/s
-      
+
       # Filter valid predictions
       valid_mask = velocities > 1.0  # Need some velocity
       if np.any(valid_mask):
@@ -175,13 +175,13 @@ class VTSC:
         self.max_pred_lat_acc = 0.0
     else:
       self.max_pred_lat_acc = 0.0
-    
+
     return self.current_lat_acc, self.max_pred_lat_acc
-  
+
   def _update_state_machine(self, enabled, v_ego):
     """
     Update VTSC state machine based on current conditions.
-    
+
     Args:
       enabled: Whether VTSC is enabled via parameter
       v_ego: Current ego velocity (m/s)
@@ -189,17 +189,17 @@ class VTSC:
     if not enabled or v_ego < MIN_VELOCITY:
       self.state = VTSCState.disabled
       return
-    
+
     # State transitions
     if self.state == VTSCState.disabled:
       if enabled and v_ego >= MIN_VELOCITY:
         self.state = VTSCState.enabled
-    
+
     elif self.state == VTSCState.enabled:
       # Check if approaching a curve
       if self.max_pred_lat_acc >= ENTERING_PRED_LAT_ACC_TH:
         self.state = VTSCState.entering
-    
+
     elif self.state == VTSCState.entering:
       # Check if we're now in the curve
       if self.current_lat_acc >= TURNING_LAT_ACC_TH:
@@ -207,17 +207,17 @@ class VTSC:
       # Or if curve passed without entering
       elif self.max_pred_lat_acc < ENTERING_PRED_LAT_ACC_TH:
         self.state = VTSCState.enabled
-    
+
     elif self.state == VTSCState.turning:
       # Check if exiting the curve
       if self.current_lat_acc <= LEAVING_LAT_ACC_TH:
         self.state = VTSCState.leaving
-    
+
     elif self.state == VTSCState.leaving:
       # Return to enabled when lateral accel drops enough
       if self.current_lat_acc < ENABLED_LAT_ACC_TH:
         self.state = VTSCState.enabled
-  
+
   def _get_bucket_a_comfort(self, kappa: float) -> float:
     """Look up comfortable lateral acceleration for the given curvature bucket."""
     bucket = _bucket_for_kappa(kappa)
@@ -272,7 +272,7 @@ class VTSC:
     v_target = np.sqrt(a_comfort / kappa)
 
     return v_target
-  
+
   def _load_cal_seed(self, bucket: CurvatureBucket) -> float:
     """Read the last saved target lat accel for a curvature bucket from Params."""
     # Try bucket-specific param first
@@ -332,10 +332,10 @@ class VTSC:
     """
     # Check if VTSC is enabled (refresh params at most once per second)
     enabled, curve_learn_enabled = self._get_cached_params()
-    
+
     self.using_learned_speed = False
     self.learned_speed_kph = 0.0
-    
+
     # Calculate lateral accelerations
     self._calculate_lateral_acceleration(v_ego, model_v2)
 

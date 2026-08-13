@@ -12,12 +12,12 @@ Official 3rd party submodules:
 
 Usage:
     from openpilot.system.inferenced import InferenceClient
-    
+
     client = InferenceClient("modeld")
-    
+
     # Run inference
     result = client.npu().infer('vision_model', {'input': data})
-    
+
     # Or get specific backend
     gpu = client.acl()
     result = gpu.infer('sgm', {'left': left_img, 'right': right_img})

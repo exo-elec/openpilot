@@ -11,7 +11,7 @@ Works with native CAN (RK3588 SocketCAN) and other SocketCAN interfaces.
 SAFETY ARCHITECTURE:
     Layer 1 (Software): socketd vehicle safety - tighter limits
     Layer 2 (Hardware): BrownPanda Gateway - hardware enforcement
-    
+
 This module (socketd) has NO safety - it just bridges CAN traffic.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ from collections.abc import Iterable, Sequence
 import cereal.messaging as messaging
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware import HARDWARE
-from .can_capnp import encode_can_id, sanitize_can_id
+from openpilot.system.socketd.can_capnp.can_capnp import encode_can_id, sanitize_can_id
 
 # Typing alias used for CAN tuples (address, data, bus)
 CANMsg = tuple[int, bytes, int]
@@ -43,33 +43,33 @@ DEFAULT_BITRATE = int(os.getenv("SOCKETCAN_BITRATE", str(HARDWARE.get_can_bitrat
 
 def create_raw_socket(interface: str, recv_buffer_size: int, fd: bool) -> socket.socket:
   """Create a raw SocketCAN socket following BSP proven patterns.
-  
+
   Implementation follows LubanCat BSP quick_start/can/can_send.c:
   - Sets receive buffer size
-  - Enables CAN-FD frames if requested  
+  - Enables CAN-FD frames if requested
   - Sets CAN_RAW_FILTER to receive all frames (NULL filter)
   - Binds to specified interface
   """
   sock = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
   if fd:
     sock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FD_FRAMES, 1)
-  
+
   # Set receive buffer size (BSP pattern)
   sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, recv_buffer_size)
-  
+
   # Enable overflow reporting (optional, for debugging)
   try:
     sock.setsockopt(socket.SOL_SOCKET, SO_RXQ_OVFL, 1)
   except OSError:
     pass
-  
+
   # BSP Pattern: Set CAN filter to receive all frames
   # Empty filter list = receive all frames
   try:
     sock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FILTER, b'')
   except OSError:
     pass
-  
+
   # Bind to interface - Python internally converts name to ifindex
   sock.bind((interface,))
   return sock
@@ -77,7 +77,7 @@ def create_raw_socket(interface: str, recv_buffer_size: int, fd: bool) -> socket
 
 class candevice:
   """Simple wrapper around a raw CAN socket (used by socketd).
-  
+
   Thread-safe for send operations. Uses BSP-proven SocketCAN patterns.
   """
 
@@ -96,16 +96,16 @@ class candevice:
     """Send a CAN frame. Thread-safe."""
     if self._closed:
       raise RuntimeError(f"CAN device {self.interface} is closed")
-    
+
     msg_len = len(data)
     if msg_len > self.data_len:
       raise ValueError(f"CAN payload too large for bus {self.bus}: {msg_len} bytes")
-    
+
     can_id = encode_can_id(address)
     # For non-FD CAN, always use 8-byte padding (CAN frame structure)
     pad_len = CANFD_MAX_DLEN if self.fd else CAN_MAX_DLEN
     frame = struct.pack(CAN_HEADER_FMT, can_id, msg_len, self.flags) + data.ljust(pad_len, b'\x00')
-    
+
     with self._send_lock:
       if self._closed:
         raise RuntimeError(f"CAN device {self.interface} is closed")
@@ -113,38 +113,38 @@ class candevice:
 
   def recv(self) -> list[CANMsg]:
     """Receive all available CAN frames (non-blocking).
-    
+
     Returns list of (address, data, bus) tuples.
     """
     if self._closed:
       return []
-    
+
     msgs: list[CANMsg] = []
     max_frames_per_call = 100  # Prevent starvation
-    
+
     for _ in range(max_frames_per_call):
       try:
         payload = self.socket.recv(self.recv_buffer_size, socket.MSG_DONTWAIT)
         if not payload:
           break
-        
+
         if len(payload) < CAN_HEADER_LEN:
           continue
-          
+
         can_id, msg_len, flags = struct.unpack(CAN_HEADER_FMT, payload[:CAN_HEADER_LEN])
         data = payload[CAN_HEADER_LEN:CAN_HEADER_LEN + msg_len]
-        
+
         address = sanitize_can_id(can_id)
         if address is None:
           continue
         msgs.append((address, data, self.bus))
-        
+
       except BlockingIOError:
         break
       except OSError as e:
         cloudlog.warning(f"CAN recv error on {self.interface}: {e}")
         break
-        
+
     return msgs
 
   def close(self) -> None:
@@ -201,7 +201,7 @@ class cansend:
 
 class canbridge:
   """PLAIN CAN BRIDGE - No safety checks.
-  
+
   Bridges SocketCAN messages to/from the messaging system.
   Safety is handled by socketd (Layer 1) and BrownPanda (Layer 2).
   """
@@ -214,7 +214,7 @@ class canbridge:
     self.pm = messaging.PubMaster(['can'])
     self.sm = messaging.SubMaster(['sendcan'])
     self.threads: list[threading.Thread] = []
-    
+
     # Stats for monitoring
     self._recv_count = 0
     self._send_count = 0
@@ -227,9 +227,9 @@ class canbridge:
 
     for device in self.devices:
       thread = threading.Thread(
-        target=self._can_recv_loop, 
-        args=(device,), 
-        name=f"CAN-Recv-{device.interface}", 
+        target=self._can_recv_loop,
+        args=(device,),
+        name=f"CAN-Recv-{device.interface}",
         daemon=True
       )
       thread.start()
@@ -237,8 +237,8 @@ class canbridge:
 
     if self.enable_send:
       send_thread = threading.Thread(
-        target=self._can_send_loop, 
-        name="CAN-Send", 
+        target=self._can_send_loop,
+        name="CAN-Send",
         daemon=True
       )
       send_thread.start()
@@ -258,7 +258,7 @@ class canbridge:
     cloudlog.info(f"CAN receive loop started for {device.interface}")
     consecutive_errors = 0
     max_consecutive_errors = 10
-    
+
     while self.running:
       try:
         messages = device.recv()
@@ -287,11 +287,11 @@ class canbridge:
     cloudlog.info("CAN send loop started (socketd safety + BrownPanda)")
     consecutive_errors = 0
     max_consecutive_errors = 10
-    
+
     while self.running:
       try:
         self.sm.update(0)
-        
+
         if self.sm.updated['sendcan']:
           sendcan_msg = self.sm['sendcan']
           for can_msg in sendcan_msg.can:
@@ -324,7 +324,7 @@ class SocketD:
     # CAN bridge runs on A76 big cores
     from openpilot.common.core_config import set_daemon_affinity
     set_daemon_affinity("socketd")
-    
+
     self.devices: list[candevice] = []
     self.running = False
     self.message_bridge: canbridge | None = None
@@ -359,7 +359,7 @@ class SocketD:
 
     enable_bridge_send = not self.disable_bridge_tx
     self.message_bridge = canbridge(self.devices, enable_send=enable_bridge_send)
-    
+
     if enable_bridge_send:
       cloudlog.info("CAN bridge initialized (vehicle adapter + BrownPanda safety)")
     else:

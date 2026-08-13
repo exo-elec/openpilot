@@ -72,7 +72,7 @@ class AlccController:
     # Steering mode on brake
     try:
       self.steering_mode_on_brake = SteeringModeOnBrake(
-        int(self.params.get("EOPALCCSteeringModeOnBrake", return_default=True) or 1)
+        int(self.params.get("EOPALCCSteeringModeOnBrake") or 1)
       )
     except (ValueError, TypeError):
       self.steering_mode_on_brake = SteeringModeOnBrake.PAUSE
@@ -108,7 +108,7 @@ class AlccController:
     self.unified_engagement = self.params.get_bool("EOPALCCUnifiedEngagement")
     try:
       self.steering_mode_on_brake = SteeringModeOnBrake(
-        int(self.params.get("EOPALCCSteeringModeOnBrake", return_default=True) or 1)
+        int(self.params.get("EOPALCCSteeringModeOnBrake") or 1)
       )
     except (ValueError, TypeError):
       self.steering_mode_on_brake = SteeringModeOnBrake.PAUSE

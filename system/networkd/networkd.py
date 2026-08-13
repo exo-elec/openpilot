@@ -25,14 +25,14 @@ from dataclasses import dataclass
 from enum import IntEnum
 
 try:
-    from dbus_next.aio import MessageBus
-    from dbus_next import BusType, Variant
-    from dbus_next.errors import DBusError
+    from dbus_next.aio import MessageBus  # noqa: F401
+    from dbus_next import BusType, Variant  # noqa: F401
+    from dbus_next.errors import DBusError  # noqa: F401
     DBUS_AVAILABLE = True
 except ImportError:
     DBUS_AVAILABLE = False
 
-from cereal import messaging, log
+from cereal import messaging
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.core_config import set_daemon_affinity
@@ -105,7 +105,7 @@ class NetworkHAL:
 
 class NetworkD:
     """Network HAL daemon."""
-    
+
     # D-Bus constants for NetworkManager
     NM_BUS = "org.freedesktop.NetworkManager"
     NM_PATH = "/org/freedesktop/NetworkManager"
@@ -113,25 +113,37 @@ class NetworkD:
     NM_DEVICE_IFACE = "org.freedesktop.NetworkManager.Device"
     NM_WIRELESS_IFACE = "org.freedesktop.NetworkManager.Device.Wireless"
     NM_PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
-    
+
     def __init__(self):
         set_daemon_affinity("networkd")
-        
+
         self.params = Params()
         self.pm = messaging.PubMaster(['networkState'])
-        
+
         # HAL abstraction
         self.hal = NetworkHAL()
-        
+
         # Network state
         self.wifi = WiFiInfo(interface=self.hal.wifi_interface)
         self.cellular = CellularInfo()
         self.primary_type = NetworkType.NONE
-        
+
+        # Cellular retry/backoff state to avoid hammering the modem when
+        # registration is taking time or the network is temporarily unavailable.
+        self._cellular_retry_backoff = 5.0
+        self._last_cellular_retry = 0.0
+        self._cellular_retry_streak = 0
+        self._CELLULAR_RETRY_THRESHOLD = 3
+        self._MAX_CELLULAR_RETRY_BACKOFF = 300.0
+
+        # DNS/routing reachability cache
+        self._last_internet_check = 0.0
+        self._last_internet_result = False
+
         # D-Bus
         self.nm_bus = None
         self.mm_bus = None
-        
+
         if DBUS_AVAILABLE:
             try:
                 # Note: Full async D-Bus would require asyncio loop
@@ -139,12 +151,112 @@ class NetworkD:
                 pass
             except Exception as e:
                 cloudlog.warning(f"networkd: D-Bus init failed: {e}")
-        
+
         cloudlog.info("networkd: Initialized")
-    
+
+    @staticmethod
+    def _at_command(port: str, cmd: str, read_size: int = 256, timeout: float = 0.5,
+                    retries: int = 3) -> str:
+        """Send an AT command and return the response, with retries.
+
+        The EC25 AT port is shared with ModemManager and other system tools;
+        retries absorb transient bus contention without spamming the logs.
+        """
+        last_exc = None
+        for _ in range(retries):
+            try:
+                with open(port, 'w') as f:
+                    f.write(f"{cmd}\r\n")
+                time.sleep(0.1)
+                with open(port) as f:
+                    resp = f.read(read_size)
+                if cmd.strip() in resp or ':' in resp or 'OK' in resp or 'ERROR' in resp:
+                    return resp
+            except OSError as e:
+                last_exc = e
+                time.sleep(0.05)
+        if last_exc is not None:
+            cloudlog.debug(f"networkd: AT command {cmd!r} failed: {last_exc}")
+        return ""
+
+    def _check_internet(self, timeout: float = 2.0) -> bool:
+        """Check Layer-3/4 reachability without relying on DNS alone.
+
+        Tries a TCP connect to a well-known anycast resolver first, then falls
+        back to DNS resolution of a stable host. Caches the result for one
+        update cycle to avoid probing on every 1Hz tick.
+        """
+        now = time.monotonic()
+        if now - self._last_internet_check < 0.9 and self._last_internet_check > 0:
+            return self._last_internet_result
+        self._last_internet_check = now
+
+        for host in [('1.1.1.1', 53), ('8.8.8.8', 53)]:
+            try:
+                with socket.create_connection(host, timeout=timeout):
+                    self._last_internet_result = True
+                    return True
+            except (OSError, TimeoutError):
+                continue
+
+        try:
+            socket.getaddrinfo('cloudflare.com', None, proto=socket.IPPROTO_TCP)
+            self._last_internet_result = True
+            return True
+        except (OSError, TimeoutError):
+            pass
+
+        self._last_internet_result = False
+        return False
+
+    def _bring_up_cellular(self, iface: str) -> None:
+        """Attempt to bring up a stalled cellular data connection.
+
+        Uses NetworkManager when available, otherwise falls back to bringing the
+        interface administratively up. Backoff increases exponentially up to a
+        cap so a persistent modem/network fault does not flood the system.
+        """
+        now = time.monotonic()
+        if now - self._last_cellular_retry < self._cellular_retry_backoff:
+            return
+        self._last_cellular_retry = now
+
+        cloudlog.info(f"networkd: Attempting cellular reconnect (backoff={self._cellular_retry_backoff:.0f}s)")
+        try:
+            # Try to activate the first NM connection tied to this interface.
+            result = subprocess.run(
+                ['nmcli', '-t', '-f', 'NAME,DEVICE,TYPE', 'connection', 'show'],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().split('\n'):
+                    parts = line.split(':')
+                    if len(parts) >= 3 and iface.startswith(parts[1]) and 'gsm' in parts[2].lower():
+                        subprocess.run(
+                            ['nmcli', 'connection', 'up', parts[0]],
+                            capture_output=True, timeout=10
+                        )
+                        break
+        except (subprocess.TimeoutExpired, OSError) as e:
+            cloudlog.debug(f"networkd: nmcli reconnect failed: {e}")
+
+        # NetworkManager-less fallback: make sure the interface is up.
+        try:
+            subprocess.run(
+                ['ip', 'link', 'set', iface, 'up'],
+                capture_output=True, timeout=5
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+        self._cellular_retry_backoff = min(
+            self._cellular_retry_backoff * 2,
+            self._MAX_CELLULAR_RETRY_BACKOFF
+        )
+
     def _get_wifi_info_nmcli(self) -> tuple[bool, str, int, str]:
         """Get WiFi info using nmcli (works without D-Bus async).
-        
+
         Returns: (connected, ssid, strength, ip)
         """
         try:
@@ -153,11 +265,11 @@ class NetworkD:
                 ['nmcli', '-t', '-f', 'NAME,DEVICE,TYPE', 'connection', 'show', '--active'],
                 capture_output=True, text=True, timeout=5
             )
-            
+
             connected = False
             ssid = ""
             ip = ""
-            
+
             if result.returncode == 0:
                 for line in result.stdout.strip().split('\n'):
                     if ':' in line and 'wireless' in line.lower():
@@ -166,7 +278,7 @@ class NetworkD:
                             ssid = parts[0]
                             connected = True
                             break
-            
+
             # Get signal strength
             strength = 0
             if connected:
@@ -182,7 +294,7 @@ class NetworkD:
                             except (ValueError, IndexError):
                                 pass
                             break
-            
+
             # Get IP
             if connected:
                 result = subprocess.run(
@@ -196,14 +308,14 @@ class NetworkD:
                         if not addr.startswith('127.'):
                             ip = addr
                             break
-            
+
             return connected, ssid, strength, ip
-            
+
         except (subprocess.TimeoutExpired, OSError) as e:
             cloudlog.debug(f"networkd: WiFi info error: {e}")
 
         return False, "", 0, ""
-    
+
     def _get_cellular_info_direct(self) -> tuple[bool, str, int, str, str]:
         """Get EC25 cellular info directly without ModemManager.
 
@@ -235,56 +347,35 @@ class NetworkD:
 
         at_port = "/dev/ttyUSB2"
         if os.path.exists(at_port):
-            try:
-                with open(at_port, 'w') as f:
-                    f.write("AT+COPS?\r\n")
-                time.sleep(0.3)
-                with open(at_port, 'r') as f:
-                    resp = f.read(256)
-                for line in resp.split('\n'):
-                    if '+COPS:' in line:
-                        parts = line.split('"')
-                        if len(parts) >= 2:
-                            operator = parts[1]
-                        break
-            except OSError:
-                pass
+            resp = self._at_command(at_port, "AT+COPS?")
+            for line in resp.split('\n'):
+                if '+COPS:' in line:
+                    parts = line.split('"')
+                    if len(parts) >= 2:
+                        operator = parts[1]
+                    break
 
-            try:
-                with open(at_port, 'w') as f:
-                    f.write("AT+CSQ\r\n")
-                time.sleep(0.3)
-                with open(at_port, 'r') as f:
-                    resp = f.read(256)
-                for line in resp.split('\n'):
-                    if '+CSQ:' in line:
-                        try:
-                            rssi = int(line.split(':')[1].split(',')[0].strip())
-                            if 0 <= rssi <= 31:
-                                signal = int((rssi / 31.0) * 100)
-                        except (ValueError, IndexError):
-                            pass
-                        break
-            except OSError:
-                pass
+            resp = self._at_command(at_port, "AT+CSQ")
+            for line in resp.split('\n'):
+                if '+CSQ:' in line:
+                    try:
+                        rssi = int(line.split(':')[1].split(',')[0].strip())
+                        if 0 <= rssi <= 31:
+                            signal = int((rssi / 31.0) * 100)
+                    except (ValueError, IndexError):
+                        pass
+                    break
 
-            try:
-                with open(at_port, 'w') as f:
-                    f.write("AT+QNWINFO\r\n")
-                time.sleep(0.3)
-                with open(at_port, 'r') as f:
-                    resp = f.read(256)
-                for line in resp.split('\n'):
-                    if '+QNWINFO:' in line:
-                        if 'LTE' in line:
-                            tech = "LTE"
-                        elif 'WCDMA' in line or 'UMTS' in line:
-                            tech = "3G"
-                        elif 'GSM' in line:
-                            tech = "2G"
-                        break
-            except OSError:
-                pass
+            resp = self._at_command(at_port, "AT+QNWINFO")
+            for line in resp.split('\n'):
+                if '+QNWINFO:' in line:
+                    if 'LTE' in line:
+                        tech = "LTE"
+                    elif 'WCDMA' in line or 'UMTS' in line:
+                        tech = "3G"
+                    elif 'GSM' in line:
+                        tech = "2G"
+                    break
 
         return connected, operator, signal, ip, tech
 
@@ -369,7 +460,7 @@ class NetworkD:
             cloudlog.debug(f"networkd: Cellular info error: {e}")
 
         return False, "", 0, "", ""
-    
+
     def _check_wifi_enabled(self) -> bool:
         """Check if WiFi is enabled."""
         try:
@@ -380,14 +471,15 @@ class NetworkD:
             return result.returncode == 0 and 'enabled' in result.stdout.lower()
         except (subprocess.TimeoutExpired, OSError):
             return False
-    
+
     def _check_cellular_enabled(self) -> bool:
         """Check if cellular modem is available.
 
         First checks for EC25 usb0/wwan0 interface directly (no ModemManager needed),
         then falls back to mmcli if available.
         """
-        for iface in ['usb0', 'wwan0']:
+        primary_iface = getattr(self.hal, 'cellular_interface', 'wwan0')
+        for iface in (primary_iface, 'wwan0', 'usb0'):
             if os.path.exists(f"/sys/class/net/{iface}"):
                 return True
         try:
@@ -406,7 +498,7 @@ class NetworkD:
             return result.returncode == 0 and 'Modem' in result.stdout
         except (subprocess.TimeoutExpired, OSError):
             return False
-    
+
     def update(self):
         """Main update loop."""
         # Get WiFi info
@@ -414,7 +506,7 @@ class NetworkD:
         if self.wifi.enabled:
             self.wifi.connected, self.wifi.ssid, self.wifi.strength, self.wifi.ip = \
                 self._get_wifi_info_nmcli()
-        
+
         # Get cellular info
         self.cellular.enabled = self._check_cellular_enabled()
         if self.cellular.enabled:
@@ -427,7 +519,16 @@ class NetworkD:
                 if mmcli_result[0] or mmcli_result[3]:  # connected or has IP
                     self.cellular.connected, self.cellular.operator, self.cellular.signal, \
                         self.cellular.ip, self.cellular.technology = mmcli_result
-        
+
+            # Retry/backoff for enabled-but-disconnected cellular.
+            if self.cellular.enabled and not self.cellular.connected:
+                self._cellular_retry_streak += 1
+                if self._cellular_retry_streak >= self._CELLULAR_RETRY_THRESHOLD:
+                    self._bring_up_cellular(self.hal.cellular_interface)
+            else:
+                self._cellular_retry_streak = 0
+                self._cellular_retry_backoff = 5.0
+
         # Determine primary connection
         if self.wifi.connected:
             self.primary_type = NetworkType.WIFI
@@ -435,18 +536,18 @@ class NetworkD:
             self.primary_type = NetworkType.CELLULAR
         else:
             self.primary_type = NetworkType.NONE
-        
+
         # Publish network state
         msg = messaging.new_message('networkState', valid=True)
         ns = msg.networkState
-        
+
         # WiFi state
         ns.wifiEnabled = self.wifi.enabled
         ns.wifiConnected = self.wifi.connected
         ns.wifiSsid = self.wifi.ssid
         ns.wifiStrength = self.wifi.strength
         ns.wifiIp = self.wifi.ip
-        
+
         # Cellular state
         ns.cellularEnabled = self.cellular.enabled
         ns.cellularConnected = self.cellular.connected
@@ -454,18 +555,18 @@ class NetworkD:
         ns.cellularSignal = self.cellular.signal
         ns.cellularIp = self.cellular.ip
         ns.cellularTechnology = self.cellular.technology
-        
+
         # Primary connection
-        ns.networkType = self.primary_type
-        ns.hasInternet = self.wifi.connected or self.cellular.connected
-        
+        ns.networkType = self.primary_type.name.lower()
+        ns.hasInternet = (self.wifi.connected or self.cellular.connected) and self._check_internet()
+
         self.pm.send('networkState', msg)
-    
+
     def run(self):
         """Main daemon loop."""
         rk = Ratekeeper(1)  # 1Hz
         cloudlog.info("networkd: Running")
-        
+
         while True:
             self.update()
             rk.keep_time()

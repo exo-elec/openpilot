@@ -30,20 +30,20 @@ def generate_tone(
     """Generate a sine wave tone with envelope shaping."""
     num_samples = int(duration * sample_rate)
     t = np.linspace(0, duration, num_samples, endpoint=False)
-    
+
     # Sine wave
     audio = np.sin(2 * np.pi * frequency * t)
-    
+
     # Envelope (fade in/out to avoid clicks)
     envelope = np.ones(num_samples)
     fade_in_samples = int(fade_in * sample_rate)
     fade_out_samples = int(fade_out * sample_rate)
-    
+
     if fade_in_samples > 0:
         envelope[:fade_in_samples] = np.linspace(0, 1, fade_in_samples)
     if fade_out_samples > 0:
         envelope[-fade_out_samples:] = np.linspace(1, 0, fade_out_samples)
-    
+
     audio = audio * envelope * volume
     return audio.astype(np.float32)
 
@@ -60,13 +60,13 @@ def generate_ascending_tone(
     freqs = np.linspace(start_freq, end_freq, num_samples)
     phase = np.cumsum(2 * np.pi * freqs / sample_rate)
     audio = np.sin(phase)
-    
+
     # Envelope
     envelope = np.ones(num_samples)
     fade_samples = int(0.02 * sample_rate)
     envelope[:fade_samples] = np.linspace(0, 1, fade_samples)
     envelope[-fade_samples:] = np.linspace(1, 0, fade_samples)
-    
+
     audio = audio * envelope * volume
     return audio.astype(np.float32)
 
@@ -112,15 +112,15 @@ ALERT_TONES: dict[int, tuple] = {
 def get_alert_tone(audible_alert: AudibleAlert) -> np.ndarray | None:
     """
     Generate audio for an AudibleAlert value.
-    
+
     Returns int16 PCM audio array or None if no tone for this alert.
     """
     tone_def = ALERT_TONES.get(audible_alert)
     if tone_def is None or tone_def[0] is None:
         return None
-    
+
     tone_type = tone_def[0]
-    
+
     if tone_type == "tone":
         freq, duration, volume = tone_def[1], tone_def[2], tone_def[3]
         audio = generate_tone(freq, duration, volume)
@@ -135,7 +135,7 @@ def get_alert_tone(audible_alert: AudibleAlert) -> np.ndarray | None:
         audio = generate_double_beep(freq, duration, gap, volume)
     else:
         return None
-    
+
     # Convert to int16
     return (audio * 32767).astype(np.int16)
 

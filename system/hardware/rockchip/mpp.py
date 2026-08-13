@@ -66,9 +66,10 @@ class _MppApi(ctypes.Structure):
 
 class _MPPLib:
   def __init__(self) -> None:
-    self._lib = try_load("rockchip_mpp")
-    if self._lib is None:
+    lib = try_load("rockchip_mpp")
+    if lib is None:
       raise OSError("librockchip_mpp.so not found")
+    self._lib: ctypes.CDLL = lib
     self._setup()
 
   def _setup(self) -> None:

@@ -439,7 +439,7 @@ class OBD2D:
             if result:
                 # Convert to OBDResponse format
                 # Mode 22 response is 0x62 (Mode 22 + 0x40)
-                return OBDResponse(0x22, int(pid_hex, 16), 
+                return OBDResponse(0x22, int(pid_hex, 16),
                                    struct.pack('>f', result['value']))
         except Exception as e:
             cloudlog.debug(f"UDS Mode 22 query failed: {e}")
@@ -508,7 +508,7 @@ class OBD2D:
             return
 
         try:
-            vt = VehicleType(self.vehicle_type)
+            VehicleType(self.vehicle_type)
         except ValueError:
             return
 
@@ -516,7 +516,7 @@ class OBD2D:
         from openpilot.selfdrive.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter
         vehicle_dids = UDSVehicleAdapter.MODE22_DIDS.get(self.vehicle_type, {})
 
-        for did_id, (name, codec) in vehicle_dids.items():
+        for did_id, (name, _codec) in vehicle_dids.items():
             try:
                 pid_hex = f"{did_id:06X}"
                 result = self.uds.read_mode22_pid(pid_hex)

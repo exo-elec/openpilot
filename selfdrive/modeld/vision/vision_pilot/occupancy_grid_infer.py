@@ -20,7 +20,7 @@ class OccupancyGrid:
     self.safe_width = 2.2 # Meters
 
   def build_grid(
-    self, 
+    self,
     xyz_map: np.ndarray,
     road_mask: np.ndarray,
     object_mask: np.ndarray
@@ -40,21 +40,21 @@ class OccupancyGrid:
     # 1. 3D Coordinate Mapping (Geometric Truth)
     z = xyz_map[:, :, 2] # Forward
     x = xyz_map[:, :, 0] # Lateral
-    
+
     # 2. Safety Corridor Filtering
     # Only process points within our driving path
     in_path = (np.abs(x) < (self.safe_width / 2.0)) & (z > 0.5) & (z < self.range_m)
-    
+
     # 3. Collision Probability Calculation
     # Find 'object' pixels that are physically in our path
     hazards_in_path = object_mask & in_path
-    
+
     if np.any(hazards_in_path):
       # Physical distance from Stereo (Accuracy Deduction)
       dist = float(np.min(z[hazards_in_path]))
       results["drivable_limit_m"] = dist
       results["occupancy_detected"] = True
-      
+
       # 4. Aggressive Cut-in Logic
       # If hazard is entering the 'road' boundary within the safety zone
       if np.any(hazards_in_path & road_mask):

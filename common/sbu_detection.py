@@ -20,16 +20,14 @@ import os
 import subprocess
 import time
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
 
 
 class SBUSource(ABC):
     """Abstract SBU voltage reader."""
 
     @abstractmethod
-    def read(self) -> Tuple[Optional[int], Optional[int]]:
+    def read(self) -> tuple[int | None, int | None]:
         """Return (sbu1_voltage_mV, sbu2_voltage_mV) or (None, None) on error."""
-        pass
 
 
 class ADCSource(SBUSource):
@@ -40,15 +38,15 @@ class ADCSource(SBUSource):
         self._sbu2_path = sbu2_path
         self._scale = scale
 
-    def _read_channel(self, path: str) -> Optional[int]:
+    def _read_channel(self, path: str) -> int | None:
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 raw = int(f.read().strip())
             return int(raw * self._scale)
         except (OSError, ValueError):
             return None
 
-    def read(self) -> Tuple[Optional[int], Optional[int]]:
+    def read(self) -> tuple[int | None, int | None]:
         return self._read_channel(self._sbu1_path), self._read_channel(self._sbu2_path)
 
 
@@ -60,15 +58,15 @@ class GPIOSource(SBUSource):
         self._sbu2_path = f"/sys/class/gpio/gpio{sbu2_gpio}/value"
         self._vdd_mv = vdd_mv
 
-    def _read_pin(self, path: str) -> Optional[int]:
+    def _read_pin(self, path: str) -> int | None:
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 val = int(f.read().strip())
             return self._vdd_mv if val else 0
         except (OSError, ValueError):
             return None
 
-    def read(self) -> Tuple[Optional[int], Optional[int]]:
+    def read(self) -> tuple[int | None, int | None]:
         return self._read_pin(self._sbu1_path), self._read_pin(self._sbu2_path)
 
 
@@ -79,7 +77,7 @@ class ShellCmdSource(SBUSource):
         self._command = command
         self._timeout = timeout_sec
 
-    def read(self) -> Tuple[Optional[int], Optional[int]]:
+    def read(self) -> tuple[int | None, int | None]:
         try:
             result = subprocess.run(
                 self._command,
@@ -101,7 +99,7 @@ class MockSource(SBUSource):
         self._sbu1 = sbu1_mv
         self._sbu2 = sbu2_mv
 
-    def read(self) -> Tuple[Optional[int], Optional[int]]:
+    def read(self) -> tuple[int | None, int | None]:
         return self._sbu1, self._sbu2
 
 
@@ -152,7 +150,7 @@ class SBUDetector:
         self.sbu2_mv = 0
         self.status = self.STATUS_NC
 
-    def tick(self) -> Tuple[str, int, int]:
+    def tick(self) -> tuple[str, int, int]:
         """Detect orientation. Returns (status, sbu1_mV, sbu2_mV)."""
         sbu1, sbu2 = self.source.read()
         if sbu1 is None or sbu2 is None:
@@ -172,7 +170,7 @@ class SBUDetector:
         return self.STATUS_NORMAL
 
 
-def create_source_from_env() -> Optional[SBUSource]:
+def create_source_from_env() -> SBUSource | None:
     """Create SBU source from environment variables (convenience)."""
     source_type = os.environ.get("SBU_SOURCE", "mock")
     if source_type == "adc":

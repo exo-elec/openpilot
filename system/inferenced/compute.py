@@ -19,21 +19,16 @@ Single file containing: base classes + HAL + scheduler + selector
 
 from __future__ import annotations
 
-import threading
-import queue
 import time
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
 from enum import IntEnum, Enum
-from typing import Any, Optional
-from collections.abc import Callable
+from typing import Any
 
-import numpy as np
 from openpilot.system.inferenced.compute_recovery import (
-    ErrorRecoveryManager, BackendHealthMonitor, FallbackStrategy,
-    ErrorCategory, ErrorInfo, create_error_from_exception
+    ErrorRecoveryManager, BackendHealthMonitor, ErrorCategory, ErrorInfo, create_error_from_exception
 )
 from openpilot.system.inferenced.monitoring import (
     PerformanceMonitor, HealthChecker, AlertThresholds, DiagnosticReport,
@@ -93,7 +88,7 @@ class BackendStats:
     tasks_completed: int = 0
     tasks_failed: int = 0
     total_exec_time_ms: float = 0.0
-    
+
     @property
     def average_latency_ms(self) -> float:
         if self.tasks_completed > 0:
@@ -134,50 +129,47 @@ class ModelConfig:
 
 class HardwareBackend(ABC):
     """Base class for all hardware backends."""
-    
+
     def __init__(self, backend_type: BackendType):
         self.backend_type = backend_type
         self._initialized = False
         self._stats = BackendStats()
-    
+
     @abstractmethod
     def initialize(self) -> bool:
         """Initialize the backend. Returns True on success."""
-        pass
-    
+
     @abstractmethod
     def release(self) -> None:
         """Release all resources."""
-        pass
-    
+
     def is_available(self) -> bool:
         """Check if backend is available and initialized."""
         return self._initialized
-    
+
     @abstractmethod
     def infer(self, model_name: str, inputs: dict[str, Any]) -> InferenceResult:
         """Execute inference/computation."""
-        pass
-    
+
     def load_model(self, config: ModelConfig) -> bool:
         """Load a model (optional - for NPU/GPU backends)."""
         return True
-    
+
     def unload_model(self, name: str) -> bool:
         """Unload a model."""
         return True
-    
+
     def get_stats(self) -> BackendStats:
         """Get backend statistics."""
         return self._stats
-    
+
     def get_device_info(self) -> dict[str, Any]:
         """Get device information."""
         return {
             'backend_type': self.backend_type.name,
             'available': self.is_available(),
         }
-    
+
     def reset_stats(self) -> None:
         """Reset statistics."""
         self._stats = BackendStats()
@@ -212,15 +204,15 @@ class HAL:
     Hardware Abstraction Layer - unified access to all compute accelerators.
     Singleton pattern - only one instance exists.
     """
-    
-    _instance: Optional['HAL'] = None
-    
+
+    _instance: HAL | None = None
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self, config: HALConfig | None = None):
         if self._initialized or hasattr(self, '_executor'):
             return
@@ -235,7 +227,7 @@ class HAL:
         self._health_checker = HealthChecker()  # Health check management
         self._alert_thresholds = AlertThresholds()  # Alert thresholds for degradation
         self._diagnostic_report = None  # Will be initialized after all components ready
-    
+
     def initialize(self) -> bool:
         """Initialize all enabled backends and preload configured models."""
         if self._initialized:
@@ -283,7 +275,7 @@ class HAL:
         self._initialized = True
         logger.info(f"HAL initialized with {len(self._backends)} backends")
         return True
-    
+
     def _init_backend(self, backend_type: BackendType, module_path: str, class_name: str):
         """Initialize a single backend."""
         try:
@@ -304,7 +296,7 @@ class HAL:
     def _setup_recovery(self):
         """Setup error recovery strategies and health monitors."""
         # Register health monitors for all backends
-        for backend_type, backend in self._backends.items():
+        for backend_type, _backend in self._backends.items():
             monitor = BackendHealthMonitor(backend_type.name, max_failures=3)
             self._recovery_manager.register_backend_monitor(monitor)
 
@@ -372,23 +364,23 @@ class HAL:
                     preloaded += 1
                 else:
                     logger.warning(f"  ✗ Failed to preload {model_config.name}")
-            except Exception as e:
-                logger.error(f"  ✗ Error preloading {model_config.name}: {e}")
+            except Exception:
+                logger.exception(f"  ✗ Error preloading {model_config.name}")
 
         logger.info(f"Preloaded {preloaded}/{len(self.config.models_to_preload)} models")
 
     def get_backend(self, backend_type: BackendType) -> HardwareBackend | None:
         """Get a specific backend."""
         return self._backends.get(backend_type)
-    
+
     def get_available_backends(self) -> list[BackendType]:
         """Get list of available backends."""
         return list(self._backends.keys())
-    
+
     def is_backend_available(self, backend_type: BackendType) -> bool:
         """Check if a backend is available."""
         return backend_type in self._backends
-    
+
     def infer(self, backend_type: BackendType, model_name: str,
               inputs: dict, priority: TaskPriority = TaskPriority.NORMAL,
               timeout_ms: float | None = None) -> InferenceResult:
@@ -512,7 +504,7 @@ class HAL:
                 success=False,
                 error_message=str(e)
             )
-    
+
     def get_error_summary(self) -> dict[str, Any]:
         """Get summary of recent errors."""
         return self._recovery_manager.get_error_summary()
@@ -608,13 +600,13 @@ class OperationConfig:
 
 class BackendSelector:
     """Intelligent backend selection based on operation characteristics."""
-    
+
     GEMM_GPU_THRESHOLD = 256
     SGM_GPU_THRESHOLD = 640
-    
+
     def __init__(self, hal: HAL):
         self.hal = hal
-    
+
     def select_for_sgm(self, width: int, height: int) -> HardwareBackend | None:
         """Select backend for SGM stereo depth."""
         # SGM is ASSIGNED to ACL. Prefers GPU, falls back to CPU.
@@ -624,7 +616,7 @@ class BackendSelector:
         """Select backend for matrix multiply."""
         # GEMM is ASSIGNED to ACL. Prefers GPU, falls back to CPU.
         return self.hal.get_backend(BackendType.ACL)
-    
+
     def select_for_resize(self) -> HardwareBackend | None:
         """Select backend for image resize."""
         # Always prefer RGA

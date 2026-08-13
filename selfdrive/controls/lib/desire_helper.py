@@ -1,7 +1,6 @@
 import time
 import numpy as np
 from cereal import log
-from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.dlat import DLAT, LANEFUL_TO_LANELESS_THRESH

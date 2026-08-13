@@ -1,10 +1,8 @@
-import operator
-import os
 import time
 
 from cereal import car
 from openpilot.common.params import Params
-from openpilot.system.manager.process import PythonProcess, NativeProcess, DaemonProcess
+from openpilot.system.manager.process import PythonProcess, NativeProcess
 
 
 # EOP-CLEANUP: TTL-cached param wrapper for process conditions.
@@ -100,7 +98,7 @@ procs = [
   PythonProcess("bluetoothd", "system.bluetoothd.bluetoothd", always_run),
   PythonProcess("obd2d", "selfdrive.obd2d.obd2d", always_run),
   PythonProcess("adaptd", "selfdrive.adaptd.adaptd", always_run),
-  
+
   # Audio output (Piper TTS navigation + alerts) - runs on all platforms
   PythonProcess("soundd", "selfdrive.soundd.soundd", only_onroad),
 
@@ -150,17 +148,17 @@ procs = [
   PythonProcess("stereod", "selfdrive.stereod.stereod", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPStereoEnabled")),
-  
+
   # Surface Perception
   PythonProcess("surfaced", "selfdrive.surfaced.surfaced", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPSurfaceEnabled")),
-  
+
   # Coordination (sensor fusion: odometry + GPS + OSM/SGM constraints)
   PythonProcess("coordinationd", "selfdrive.coordinationd.coordinationd", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPGlobaldEnabled")),
-  
+
   # Point cloud recording
   PythonProcess("pointcloudd", "selfdrive.pointcloudd.pointcloudd", ignition_on,
                 enabled_callback=lambda started, params, CP:

@@ -279,8 +279,8 @@ class SPPD:
                         return resp.response
                 time.sleep(0.01)
             return 'NO DATA'
-        except Exception as e:
-            logger.error('ELM327 raw error: %s', e)
+        except Exception:
+            logger.exception('ELM327 raw error')
             return 'ERROR'
 
     # ── Server loop ───────────────────────────────────────────────────────────
@@ -291,8 +291,8 @@ class SPPD:
             self.server.bind(('', RFCOMM_CHANNEL))
             self.server.listen(1)
             logger.info('SPP listening on channel %d', RFCOMM_CHANNEL)
-        except Exception as e:
-            logger.error('Failed to start SPP server: %s', e)
+        except Exception:
+            logger.exception('Failed to start SPP server')
             return
 
         while self.running:
@@ -302,7 +302,7 @@ class SPPD:
                 self.server.settimeout(1.0)
                 try:
                     sock, addr = self.server.accept()
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 addr_str = addr[0]
                 if not self._is_mobile(addr_str):
@@ -314,9 +314,9 @@ class SPPD:
                         self.params.put('EOPSPPPairedDevice', addr_str)
                 self._on_connect(sock, addr_str)
                 logger.info('SPP client connected: %s', addr_str)
-            except Exception as e:
+            except Exception:
                 if self.running:
-                    logger.error('Accept error: %s', e)
+                    logger.exception('Accept error')
                     time.sleep(1)
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────

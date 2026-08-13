@@ -10,7 +10,7 @@ Storage Formats:
 1. Runtime (OpenPilot native): Binary Cap'n Proto in params
    - Key: "CalibrationParams" / "CameraCalibrationParams"
    - Fast, efficient, cereal-native
-   
+
 2. Factory/External: YAML for human-readable calibration
    - Path: /data/params/calibration/camera_calibration.yaml
    - Compatible with VisionPilot format
@@ -22,13 +22,13 @@ Storage Formats:
 
 Usage:
     from calibration_storage import CalibrationStorage
-    
+
     # Load from params (runtime)
     calib = CalibrationStorage.load_from_params()
-    
+
     # Import from YAML (factory calibration)
     calib = CalibrationStorage.load_from_yaml('/data/calibration/factory.yaml')
-    
+
     # Save to both formats
     calib.save_to_params()  # Binary for runtime
     calib.save_to_yaml()    # YAML for backup/sharing
@@ -45,20 +45,19 @@ import yaml
 import numpy as np
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Union
 
 from cereal import log
 import cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry, CameraIntrinsics, CameraExtrinsics
+from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry, CameraIntrinsics
 
 @dataclass
 class SingleCameraCalibration:
     """Calibration data for a single camera."""
     camera_id: str
-    
+
     # Intrinsics
     focal_x: float = 800.0
     focal_y: float = 800.0
@@ -66,14 +65,14 @@ class SingleCameraCalibration:
     center_y: float = 540.0
     image_width: int = 1920
     image_height: int = 1080
-    
+
     # Distortion
     k1: float = 0.0
     k2: float = 0.0
     p1: float = 0.0
     p2: float = 0.0
     k3: float = 0.0
-    
+
     # Extrinsics (camera to vehicle)
     rpy: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0]))
     height: float = 1.22
@@ -87,7 +86,7 @@ class SingleCameraCalibration:
     # Populated by calibrationd from live history; static/factory loads leave at 0.
     rpy_spread: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0]))
     height_spread: float = 0.0
-    
+
     def to_intrinsics(self) -> CameraIntrinsics:
         """Convert to CameraIntrinsics object."""
         return CameraIntrinsics(
@@ -101,7 +100,7 @@ class SingleCameraCalibration:
             p2=self.p2,
             k3=self.k3
         )
-    
+
     def to_matrix(self) -> np.ndarray:
         """Get 3x3 camera matrix."""
         return np.array([
@@ -109,59 +108,59 @@ class SingleCameraCalibration:
             [0, self.focal_y, self.center_y],
             [0, 0, 1]
         ])
-    
+
     def to_dist_coeffs(self) -> np.ndarray:
         """Get distortion coefficients."""
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
 
 
-@dataclass 
+@dataclass
 class MultiCameraCalibration:
     """Complete calibration for all cameras."""
     platform: str = "rk3588"
     reference_camera: str = "road"
     calibration_date: str = ""
     cameras: dict[str, SingleCameraCalibration] = field(default_factory=dict)
-    
+
     # Stereo configuration
     stereo_baseline_mm: float = 80.0
-    
+
     def get_camera(self, camera_id: str) -> SingleCameraCalibration | None:
         """Get calibration for a specific camera."""
         return self.cameras.get(camera_id)
-    
+
     def to_geometry(self) -> CameraArrayGeometry:
         """Convert to CameraArrayGeometry."""
         geometry = CameraArrayGeometry.for_platform(self.platform)
-        
+
         # Update with calibrated intrinsics
         for cam_id, calib in self.cameras.items():
             if cam_id in geometry.cameras:
                 geometry.cameras[cam_id].intrinsics = calib.to_intrinsics()
-        
+
         return geometry
 
 
 class CalibrationStorage:
     """Unified calibration storage supporting multiple formats."""
-    
+
     # Default paths
     YAML_PATH = Path("/data/params/calibration/camera_calibration.yaml")
     LEGACY_CALIBRATION_PARAMS = "CalibrationParams"
     MULTI_CAMERA_CALIBRATION_PARAMS = "CameraCalibrationParams"
-    
+
     @classmethod
     def load_from_params(cls, multi_camera: bool = False) -> MultiCameraCalibration | None:
         """Load calibration from OpenPilot params (binary format).
-        
+
         Args:
             multi_camera: If True, try CameraCalibrationParams first
-        
+
         Returns:
             MultiCameraCalibration or None if not found
         """
         params = Params()
-        
+
         # Try multi-camera format first if requested
         if multi_camera:
             data = params.get(cls.MULTI_CAMERA_CALIBRATION_PARAMS)
@@ -170,31 +169,31 @@ class CalibrationStorage:
                     return cls._parse_multi_camera_binary(data)
                 except Exception as e:
                     cloudlog.warning(f"Failed to parse multi-camera params: {e}")
-        
+
         # Fall back to legacy format
         data = params.get(cls.LEGACY_CALIBRATION_PARAMS)
         if not data:
             cloudlog.info("No calibration found in params")
             return None
-        
+
         try:
             return cls._parse_legacy_binary(data)
         except Exception as e:
             cloudlog.error(f"Failed to parse legacy calibration: {e}")
             return None
-    
+
     @classmethod
     def _parse_legacy_binary(cls, data: bytes) -> MultiCameraCalibration:
         """Parse legacy OpenPilot calibration format."""
         with log.Event.from_bytes(data) as msg:
             live_cal = msg.liveCalibration
-            
+
             calib = MultiCameraCalibration(
                 platform="rk3588",  # Default
                 reference_camera="road",
                 calibration_date=""
             )
-            
+
             # Road camera calibration
             if live_cal.rpyCalib:
                 rpy = np.array(live_cal.rpyCalib)
@@ -204,7 +203,7 @@ class CalibrationStorage:
                     height=live_cal.height[0] if live_cal.height else 1.22
                 )
                 calib.cameras["road"] = road_calib
-            
+
             # Wide camera calibration
             if live_cal.wideFromDeviceEuler:
                 wide_rpy = np.array(live_cal.wideFromDeviceEuler)
@@ -213,88 +212,88 @@ class CalibrationStorage:
                     rpy=wide_rpy
                 )
                 calib.cameras["wide_road"] = wide_calib
-            
+
             return calib
-    
+
     @classmethod
     def _parse_multi_camera_binary(cls, data: bytes) -> MultiCameraCalibration:
         """Parse multi-camera binary format (EOP extension)."""
         # This would parse a custom cereal message format
         # For now, fall back to legacy
         return cls._parse_legacy_binary(data)
-    
+
     @classmethod
-    def save_to_params(cls, calib: MultiCameraCalibration, 
+    def save_to_params(cls, calib: MultiCameraCalibration,
                        param_put: bool = True) -> bytes:
         """Save calibration to OpenPilot params (binary format).
-        
+
         Args:
             calib: Calibration to save
             param_put: If True, also write to params
-        
+
         Returns:
             Binary serialized data
         """
         # Create LiveCalibrationData message
         msg = messaging.new_message('liveCalibration')
         live_cal = msg.liveCalibration
-        
+
         # Get road camera (primary)
         road_calib = calib.cameras.get("road")
         if road_calib:
             live_cal.rpyCalib = road_calib.rpy.tolist()
             live_cal.rpyCalibSpread = np.asarray(road_calib.rpy_spread, dtype=float).tolist()
             live_cal.height = [road_calib.height]
-        
+
         # Get wide camera
         wide_calib = calib.cameras.get("wide_road")
         if wide_calib:
             live_cal.wideFromDeviceEuler = wide_calib.rpy.tolist()
-        
+
         # Status
         live_cal.calStatus = log.LiveCalibrationData.Status.calibrated
         live_cal.validBlocks = 50  # Assume fully calibrated
         live_cal.calPerc = 100
-        
+
         # Serialize
         data = msg.to_bytes()
-        
+
         if param_put:
             params = Params()
             params.put(cls.LEGACY_CALIBRATION_PARAMS, data)
-            
+
             # Also save multi-camera format
             if len(calib.cameras) > 2:
                 multi_data = cls._serialize_multi_camera(calib)
                 params.put(cls.MULTI_CAMERA_CALIBRATION_PARAMS, multi_data)
-        
+
         return data
-    
+
     @classmethod
     def _serialize_multi_camera(cls, calib: MultiCameraCalibration) -> bytes:
         """Serialize multi-camera calibration to binary.
-        
+
         Uses YAML as intermediate for now (since we need custom schema).
         In production, this would use a proper capnp schema.
         """
         yaml_data = cls._to_yaml_dict(calib)
         return yaml.dump(yaml_data).encode('utf-8')
-    
+
     @classmethod
-    def load_from_yaml(cls, filepath: Union[str, Path]) -> MultiCameraCalibration | None:
+    def load_from_yaml(cls, filepath: str | Path) -> MultiCameraCalibration | None:
         """Load calibration from YAML file.
-        
+
         Supports both VisionPilot and EOP formats.
         """
         filepath = Path(filepath)
         if not filepath.exists():
             cloudlog.warning(f"Calibration file not found: {filepath}")
             return None
-        
+
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath) as f:
                 data = yaml.safe_load(f)
-            
+
             # Check format
             if 'camera_array' in data:
                 return cls._parse_eop_yaml(data)
@@ -303,30 +302,30 @@ class CalibrationStorage:
             else:
                 cloudlog.error(f"Unknown YAML format in {filepath}")
                 return None
-                
+
         except Exception as e:
             cloudlog.error(f"Failed to load YAML calibration: {e}")
             return None
-    
+
     @classmethod
     def _parse_eop_yaml(cls, data: dict) -> MultiCameraCalibration:
         """Parse EOP YAML format."""
         array_data = data['camera_array']
-        
+
         calib = MultiCameraCalibration(
             platform=array_data.get('platform', 'rk3588'),
             reference_camera=array_data.get('reference_camera', 'road'),
             calibration_date=array_data.get('calibration_date', ''),
             stereo_baseline_mm=array_data.get('stereo_baseline_mm', 80.0)
         )
-        
+
         # Parse each camera
         cameras_data = array_data.get('cameras', {})
         for cam_id, cam_data in cameras_data.items():
             calib.cameras[cam_id] = cls._parse_camera_yaml(cam_id, cam_data)
-        
+
         return calib
-    
+
     @classmethod
     def _parse_visionpilot_yaml(cls, data: dict) -> MultiCameraCalibration:
         """Parse VisionPilot YAML format."""
@@ -334,21 +333,21 @@ class CalibrationStorage:
             platform='rk3576',
             calibration_date=data.get('calibration', {}).get('date', '')
         )
-        
+
         # VisionPilot uses different structure
         if 'cameras' in data:
             for cam_id, cam_data in data['cameras'].items():
                 calib.cameras[cam_id] = cls._parse_camera_yaml(cam_id, cam_data)
-        
+
         return calib
-    
+
     @classmethod
     def _parse_camera_yaml(cls, cam_id: str, data: dict) -> SingleCameraCalibration:
         """Parse single camera from YAML."""
         intrinsics = data.get('intrinsics', {})
         extrinsics = data.get('extrinsics', {})
         calibration = data.get('calibration', {})
-        
+
         # Parse RPY from rotation matrix if available
         rpy = np.array([0.0, 0.0, 0.0])
         if 'rotation' in extrinsics:
@@ -357,13 +356,13 @@ class CalibrationStorage:
             # Assume small angles, approximate
             rpy[1] = np.arctan2(-R[2, 0], np.sqrt(R[0, 0]**2 + R[1, 0]**2))  # pitch
             rpy[2] = np.arctan2(R[1, 0], R[0, 0])  # yaw
-        
+
         # Parse translation for height
         height = 1.22
         if 'translation' in extrinsics:
             t = extrinsics['translation']
             height = -t[2] if len(t) > 2 else 1.22
-        
+
         return SingleCameraCalibration(
             camera_id=cam_id,
             focal_x=intrinsics.get('fx', 800.0),
@@ -383,25 +382,25 @@ class CalibrationStorage:
             num_images=calibration.get('num_images', 0),
             calibration_date=calibration.get('date', '')
         )
-    
+
     @classmethod
-    def save_to_yaml(cls, calib: MultiCameraCalibration, 
-                     filepath: Union[str, Path | None] = None) -> Path:
+    def save_to_yaml(cls, calib: MultiCameraCalibration,
+                     filepath: str | (Path | None) = None) -> Path:
         """Save calibration to YAML file."""
         if filepath is None:
             filepath = cls.YAML_PATH
-        
+
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
+
         data = cls._to_yaml_dict(calib)
-        
+
         with open(filepath, 'w') as f:
             yaml.dump(data, f, default_flow_style=False)
-        
+
         cloudlog.info(f"Saved calibration to {filepath}")
         return filepath
-    
+
     @classmethod
     def _to_yaml_dict(cls, calib: MultiCameraCalibration) -> dict:
         """Convert calibration to YAML dictionary."""
@@ -433,7 +432,7 @@ class CalibrationStorage:
                     'num_images': cam.num_images
                 }
             }
-        
+
         return {
             'camera_array': {
                 'platform': calib.platform,
@@ -443,7 +442,7 @@ class CalibrationStorage:
                 'cameras': cameras
             }
         }
-    
+
     @classmethod
     def _rpy_to_rotation_matrix(cls, rpy: np.ndarray) -> np.ndarray:
         """Convert roll-pitch-yaw to rotation matrix."""
@@ -454,11 +453,11 @@ class CalibrationStorage:
         R[1, 2] = -np.sin(rpy[0])
         R[2, 1] = np.sin(rpy[0])
         return R
-    
+
     FACTORY_CALIBRATION_PARAMS = "FactoryCalibrationParams"
 
     @classmethod
-    def import_from_factory(cls, factory_yaml: Union[str, Path],
+    def import_from_factory(cls, factory_yaml: str | Path,
                            save_to_params: bool = True) -> MultiCameraCalibration:
         """Import factory calibration and optionally save to params.
 
@@ -480,7 +479,7 @@ class CalibrationStorage:
 
             # Also save as runtime params (extrinsics can be refined onroad)
             cls.save_to_params(calib)
-            cloudlog.info(f"Imported factory calibration to params (intrinsics protected)")
+            cloudlog.info("Imported factory calibration to params (intrinsics protected)")
 
         return calib
 
@@ -580,19 +579,19 @@ class CalibrationStorage:
             merged.cameras[cam_id] = merged_cam
 
         return merged
-    
+
     @classmethod
-    def export_for_sharing(cls, output_path: Union[str, Path],
+    def export_for_sharing(cls, output_path: str | Path,
                           include_intrinsics: bool = True,
                           include_extrinsics: bool = True) -> Path:
         """Export current calibration to YAML for sharing/backup.
-        
+
         Loads from params and exports to YAML format.
         """
         calib = cls.load_from_params(multi_camera=True)
         if calib is None:
             raise ValueError("No calibration found in params")
-        
+
         return cls.save_to_yaml(calib, output_path)
 
 
@@ -600,7 +599,7 @@ def test_calibration_storage():
     """Test calibration storage system."""
     print("Testing Calibration Storage")
     print("=" * 60)
-    
+
     # Create sample calibration
     calib = MultiCameraCalibration(
         platform="rk3588",
@@ -608,7 +607,7 @@ def test_calibration_storage():
         calibration_date="2026-03-24T12:00:00",
         stereo_baseline_mm=80.0
     )
-    
+
     # Add road camera
     calib.cameras["road"] = SingleCameraCalibration(
         camera_id="road",
@@ -623,7 +622,7 @@ def test_calibration_storage():
         reprojection_error=0.5,
         num_images=25
     )
-    
+
     # Add wide camera
     calib.cameras["wide_road"] = SingleCameraCalibration(
         camera_id="wide_road",
@@ -631,28 +630,28 @@ def test_calibration_storage():
         focal_y=350.0,
         rpy=np.array([0.0, 0.0, 0.0])
     )
-    
+
     # Save to YAML
     import tempfile
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
         temp_path = f.name
-    
+
     print(f"\n1. Saving to YAML: {temp_path}")
     CalibrationStorage.save_to_yaml(calib, temp_path)
-    
+
     # Load back from YAML
     print("2. Loading from YAML")
     loaded = CalibrationStorage.load_from_yaml(temp_path)
     print(f"   Platform: {loaded.platform}")
     print(f"   Cameras: {list(loaded.cameras.keys())}")
-    
+
     road = loaded.cameras.get("road")
     if road:
         print(f"   Road fx: {road.focal_x:.1f}")
-    
+
     # Clean up
     os.unlink(temp_path)
-    
+
     print("\n✓ Calibration storage test passed!")
 
 

@@ -18,7 +18,6 @@ spatial proximity in the vehicle frame for cross-camera matching.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from openpilot.selfdrive.sided.simple_tracker import SideObject
 
@@ -67,12 +66,12 @@ class HandoverManager:
     self.match_radius_m = match_radius_m
     self.coast_max_age = coast_max_age
     self._next_uid = 1
-    self._tracks: Dict[int, _GlobalTrack] = {}
+    self._tracks: dict[int, _GlobalTrack] = {}
 
   def update(
     self,
-    camera_tracks: Dict[str, List[SideObject]],
-  ) -> List[SideObject]:
+    camera_tracks: dict[str, list[SideObject]],
+  ) -> list[SideObject]:
     """Merge per-camera tracks into a globally-consistent track list.
 
     Args:
@@ -95,7 +94,7 @@ class HandoverManager:
         if obj.confidence < _MIN_CONFIDENCE:
           continue
 
-        best_uid: Optional[int] = None
+        best_uid: int | None = None
         best_dist = float('inf')
 
         for uid, gt in self._tracks.items():
@@ -129,7 +128,7 @@ class HandoverManager:
       del self._tracks[uid]
 
     # 4. Return all active tracks with global UIDs
-    result: List[SideObject] = []
+    result: list[SideObject] = []
     for uid, gt in self._tracks.items():
       obj = SideObject(
         uid=uid,

@@ -4,6 +4,7 @@ import pyray as rl
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 from openpilot.common.params import Params
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.ui.lib.application import gui_app, FontWeight
@@ -138,7 +139,7 @@ class AbstractAlert(Widget, ABC):
 
   def _render_footer(self, rect: rl.Rectangle):
     footer_y = rect.y + rect.height - AlertConstants.MARGIN - AlertConstants.BUTTON_SIZE[1]
-    font = gui_app.font(FontWeight.MEDIUM)
+    font = gui_app.font(cast(FontWeight, FontWeight.MEDIUM))
 
     self.dismiss_btn_rect.x = rect.x + AlertConstants.MARGIN
     self.dismiss_btn_rect.y = footer_y
@@ -220,7 +221,7 @@ class OffroadAlert(AbstractAlert):
       return 0
 
     total_height = 20
-    font = gui_app.font(FontWeight.NORMAL)
+    font = gui_app.font(cast(FontWeight, FontWeight.NORMAL))
 
     for alert_data in self.sorted_alerts:
       if not alert_data.visible:
@@ -252,7 +253,7 @@ class OffroadAlert(AbstractAlert):
 
   def _render_content(self, content_rect: rl.Rectangle):
     y_offset = 20
-    font = gui_app.font(FontWeight.NORMAL)
+    font = gui_app.font(cast(FontWeight, FontWeight.NORMAL))
 
     for alert_data in self.sorted_alerts:
       if not alert_data.visible:
@@ -311,7 +312,7 @@ class UpdateAlert(AbstractAlert):
 
     if self._cached_content_height == 0:
       self._wrapped_release_notes = self.release_notes
-      size = measure_text_cached(gui_app.font(FontWeight.NORMAL), self._wrapped_release_notes, AlertConstants.FONT_SIZE)
+      size = measure_text_cached(gui_app.font(cast(FontWeight, FontWeight.NORMAL)), self._wrapped_release_notes, AlertConstants.FONT_SIZE)
       self._cached_content_height = max(size.y + 60, 100)
 
     return self._cached_content_height
@@ -319,7 +320,7 @@ class UpdateAlert(AbstractAlert):
   def _render_content(self, content_rect: rl.Rectangle):
     if self.release_notes:
       rl.draw_text_ex(
-        gui_app.font(FontWeight.NORMAL),
+        gui_app.font(cast(FontWeight, FontWeight.NORMAL)),
         self._wrapped_release_notes,
         rl.Vector2(content_rect.x + 30, content_rect.y + 30),
         AlertConstants.FONT_SIZE,

@@ -32,15 +32,19 @@ v4l2d integrates with the Rockchip ISP for hardware-accelerated:
 | Lens Shading | ✅ | Vignette correction |
 
 ### IQ Tuning Files
-Located in `common/hardware/iq_tuning/`:
-- `ox03c10_default.json` - Road/Wide road tuning
-- `gc4653_default.json` - Stereo pair tuning
 
-To load custom tuning:
-```python
-isp = HARDWARE.get_isp_hal("road", "/dev/video0")
-isp.load_iq_tuning("/data/iq/custom.iq")
-```
+IQ tuning files ship from the closed `exopilot` HAL package and are installed
+to `/etc/iqfiles` by `exopilot/scripts/install/setup_rk3588.sh`:
+
+- `ox03c10_default_default.json` — Road/Wide road tuning
+- `gc4653_CMK-OT2117-PC1_30IRC-F16.json` — Stereo pair tuning (CMK module)
+- `gc4653_YT10120_30IRC-4M-F20.json` — Stereo pair tuning (YT module)
+
+Source files live in `../exopilot/hal/hal/tuning/isp/`. They are **not**
+copied into the public EOP10 repo; the BSP setup script installs them on-device.
+
+RKIAQ loads the correct file automatically by sensor name from `/etc/iqfiles`.
+Custom per-unit tuning can be placed there and will override the factory files.
 
 ## Architecture
 
@@ -103,10 +107,10 @@ v4l2d uses **dynamic sensor-aware discovery** to handle non-deterministic `/dev/
 
 | Camera | Sensor | Default Node(s) | Discovery String | Y Offset |
 |--------|--------|-----------------|------------------|----------|
-| Road | OX03C10 | `/dev/video0` | `ox03c10` + `mainpath` | −40 mm |
-| Wide road | OX03C10 | `/dev/video1` | `ox03c10` + `mainpath` | +40 mm |
-| Stereo Left | GC4653 | `/dev/video22` | `gc4653` + `mainpath` | −40 mm |
-| Stereo Right | GC4653 | `/dev/video31` | `gc4653` + `mainpath` | +40 mm |
+| Road | OX03C10 | `/dev/video0` | `ox03c10` + `mainpath` | 0 mm |
+| Wide road | OX03C10 | `/dev/video1` | `ox03c10` + `mainpath` | +80 mm |
+| Stereo Left | GC4653 | `/dev/video22` | `gc4653` + `mainpath` | +80 mm |
+| Stereo Right | GC4653 | `/dev/video31` | `gc4653` + `mainpath` | 0 mm |
 
 ### Side Cameras (UVC)
 

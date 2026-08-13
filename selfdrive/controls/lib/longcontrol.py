@@ -61,7 +61,7 @@ class LongControl:
                              (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
                              k_f=CP.longitudinalTuning.kf, rate=1 / DT_CTRL)
     self.last_output_accel = 0.0
-    
+
     # EOP: TJA (Traffic Jam Assist) state
     self.params = Params()
     self.tja_start_time = 0.0
@@ -109,27 +109,27 @@ class LongControl:
       self.tja_resume_required = False
       self.tja_standstill_start_time = 0.0
       return False
-    
+
     if not standstill:
       # Reset when moving
       self.tja_standstill_start_time = 0.0
       self.tja_resume_required = False
       return False
-    
+
     # Standstill - track duration
     if self.tja_standstill_start_time == 0.0:
       self.tja_standstill_start_time = time.monotonic()
       self.tja_resume_required = False
       return False
-    
+
     # Check timeout
     hold_duration = time.monotonic() - self.tja_standstill_start_time
     max_hold_s = self._get_tja_max_hold_s()
-    
+
     if hold_duration > max_hold_s:
       self.tja_resume_required = True
       return True
-    
+
     return False
 
   def reset(self):
@@ -138,42 +138,42 @@ class LongControl:
   def _apply_tja_ramp(self, a_target, v_ego, long_control_state):
     """
     Apply Traffic Jam Assist smooth acceleration ramp.
-    
+
     TJA provides smooth acceleration from standstill in stop-and-go traffic
     by limiting acceleration to a progressive ramp (0.25→1.2 m/s² over 2s).
-    
+
     Args:
       a_target: Target acceleration from planner
       v_ego: Current ego velocity (m/s)
       long_control_state: Current longitudinal control state
-      
+
     Returns:
       Acceleration with TJA ramp applied (if enabled and conditions met)
     """
     # When TJA is disabled, fall back to the upstream fixed startAccel from CarParams.
     if not self._tja_enabled:
       return self.CP.startAccel
-    
+
     # Only apply in starting state and below velocity threshold
     if long_control_state != LongCtrlState.starting or v_ego >= TJA_VELOCITY_THRESHOLD:
       self.tja_start_time = 0.0
       return a_target
-    
+
     # Initialize start time when entering starting state
     if self.tja_start_time == 0.0:
       self.tja_start_time = time.monotonic()
-    
+
     # Bypass TJA for braking (safety)
     if a_target < 0:
       return a_target
-    
+
     # Calculate ramp progress
     t_since_start = time.monotonic() - self.tja_start_time
     ramp_progress = min(1.0, t_since_start / TJA_RAMP_DURATION)
-    
+
     # Apply linear ramp: 0.25 → 1.2 m/s² over 2 seconds
     a_cap = TJA_MIN_ACCEL + (TJA_MAX_ACCEL - TJA_MIN_ACCEL) * ramp_progress
-    
+
     return min(a_target, a_cap)
 
   def update(self, active, CS, a_target, should_stop, accel_limits):
@@ -184,7 +184,7 @@ class LongControl:
 
     # EOP: TJA hold timeout check
     tja_hold_timeout = self._check_tja_hold_timeout(CS.cruiseState.standstill)
-    
+
     # If TJA hold timed out, prevent auto-starting (require driver resume)
     if tja_hold_timeout and self.long_control_state == LongCtrlState.stopping:
       # Force staying in stopping state - require manual resume

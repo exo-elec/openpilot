@@ -83,8 +83,8 @@ class Hailo8Backend(HardwareBackend):
     except ImportError:
       logger.warning("hailo_platform not available — Hailo backend unavailable")
       return False
-    except Exception as e:
-      logger.error(f"Hailo initialization failed: {e}")
+    except Exception:
+      logger.exception("Hailo initialization failed")
       return False
 
   def release(self) -> None:
@@ -127,8 +127,8 @@ class Hailo8Backend(HardwareBackend):
       logger.info(f"Hailo model loaded: {config.name} from {config.path}")
       return True
 
-    except Exception as e:
-      logger.error(f"Error loading Hailo model {config.name}: {e}")
+    except Exception:
+      logger.exception(f"Error loading Hailo model {config.name}")
       return False
 
   def unload_model(self, name: str) -> bool:
@@ -199,7 +199,7 @@ class Hailo8Backend(HardwareBackend):
       )
 
     except Exception as e:
-      logger.error(f"Hailo inference error on {model_name}: {e}")
+      logger.exception(f"Hailo inference error on {model_name}")
       self._stats.tasks_failed += 1
       return InferenceResult(
           backend_type=self.backend_type,

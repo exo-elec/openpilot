@@ -21,13 +21,12 @@ try:
     import udsoncan
     from udsoncan.client import Client
     from udsoncan.connections import IsoTPSocketConnection
-    from udsoncan.services import DiagnosticSessionControl, ReadDTCInformation
-    from udsoncan.exceptions import NegativeResponseException, InvalidResponseException
+    from udsoncan.services import DiagnosticSessionControl, ReadDTCInformation  # noqa: F401
+    from udsoncan.exceptions import NegativeResponseException, InvalidResponseException  # noqa: F401
     import isotp
 except ImportError as e:
-    raise ImportError(f"UDS libraries not found. Ensure submodules are initialized: {e}")
+    raise ImportError(f"UDS libraries not found. Ensure submodules are initialized: {e}") from e
 
-from openpilot.selfdrive.obd2d.vehicle_db import VehicleType, VEHICLE_PIDS
 
 
 @dataclass
@@ -42,17 +41,17 @@ class UDSConfig:
 
 class BatterySOHCodec(udsoncan.DidCodec):
     """Codec for battery State of Health (SOH) decoding."""
-    
+
     def __init__(self, scale: float = 0.01, offset: float = 0.0):
         self.scale = scale
         self.offset = offset
-    
+
     def decode(self, data: bytes) -> float:
         if len(data) < 1:
             return 0.0
         raw = int.from_bytes(data[:2], 'big') if len(data) >= 2 else data[0]
         return raw * self.scale + self.offset
-    
+
     def encode(self, value: float) -> bytes:
         raw = int((value - self.offset) / self.scale)
         return raw.to_bytes(2, 'big')
@@ -60,16 +59,16 @@ class BatterySOHCodec(udsoncan.DidCodec):
 
 class BatteryVoltageCodec(udsoncan.DidCodec):
     """Codec for battery voltage decoding."""
-    
+
     def __init__(self, scale: float = 0.1):
         self.scale = scale
-    
+
     def decode(self, data: bytes) -> float:
         if len(data) < 1:
             return 0.0
         raw = int.from_bytes(data[:2], 'big') if len(data) >= 2 else data[0]
         return raw * self.scale
-    
+
     def encode(self, value: float) -> bytes:
         raw = int(value / self.scale)
         return raw.to_bytes(2, 'big')
@@ -77,16 +76,16 @@ class BatteryVoltageCodec(udsoncan.DidCodec):
 
 class BatteryCurrentCodec(udsoncan.DidCodec):
     """Codec for battery current decoding (signed)."""
-    
+
     def __init__(self, scale: float = 0.1):
         self.scale = scale
-    
+
     def decode(self, data: bytes) -> float:
         if len(data) < 2:
             return 0.0
         raw = int.from_bytes(data[:2], 'big', signed=True)
         return raw * self.scale
-    
+
     def encode(self, value: float) -> bytes:
         raw = int(value / self.scale)
         return raw.to_bytes(2, 'big', signed=True)
@@ -108,17 +107,17 @@ class IntCodec(udsoncan.DidCodec):
 
 class TemperatureCodec(udsoncan.DidCodec):
     """Codec for temperature decoding with offset."""
-    
+
     def __init__(self, scale: float = 1.0, offset: float = -40.0):
         self.scale = scale
         self.offset = offset
-    
+
     def decode(self, data: bytes) -> float:
         if len(data) < 1:
             return 0.0
         raw = data[0]
         return raw * self.scale + self.offset
-    
+
     def encode(self, value: float) -> bytes:
         raw = int((value - self.offset) / self.scale)
         return bytes([raw & 0xFF])
@@ -127,14 +126,14 @@ class TemperatureCodec(udsoncan.DidCodec):
 class UDSVehicleAdapter:
     """
     UDS adapter for vehicle communication.
-    
+
     Supports:
     - Standard OBD2 PIDs (Mode 01/09)
     - Mode 22 Manufacturer Specific (Chinese EVs: BYD, MG, GAC, etc.)
     - DTC reading/clearing
     - VIN reading
     """
-    
+
     # Mode 22 PID to Data Identifier mapping for Chinese EVs
     MODE22_DIDS = {
         'byd': {
@@ -231,13 +230,13 @@ class UDSVehicleAdapter:
             0x22F00B: ('inverterTemp', TemperatureCodec(1.0, -40)),
         },
     }
-    
+
     def __init__(self, config: UDSConfig | None = None):
         self.config = config or UDSConfig()
         self.client: Client | None = None
         self._connected = False
         self._vehicle_type: str | None = None
-    
+
     def connect(self) -> bool:
         """Initialize UDS connection."""
         try:
@@ -247,116 +246,116 @@ class UDSVehicleAdapter:
                 txid=self.config.tx_addr,
                 rxid=self.config.rx_addr
             )
-            
+
             # Create ISO-TP connection
             conn = IsoTPSocketConnection(
                 self.config.can_interface,
                 tp_addr
             )
-            
+
             # UDS client configuration
             uds_config = {
                 'p2_timeout': self.config.p2_timeout,
                 'request_timeout': self.config.timeout,
                 'data_identifiers': self._build_data_identifiers()
             }
-            
+
             self.client = Client(conn, config=uds_config)
             self.client.open()
             self._connected = True
             return True
-            
+
         except Exception as e:
             print(f"UDS connection failed: {e}")
             self._connected = False
             return False
-    
+
     def _build_data_identifiers(self) -> dict[int, Any]:
         """Build data identifier configuration for all vehicle types."""
         dids = {}
-        
+
         # Add Mode 22 DIDs for all Chinese EVs
-        for vehicle_type, vehicle_dids in self.MODE22_DIDS.items():
+        for _vehicle_type, vehicle_dids in self.MODE22_DIDS.items():
             for did_id, (name, codec) in vehicle_dids.items():
                 dids[did_id] = udsoncan.DataIdentifier(did_id, name, codec=codec)
-        
+
         return dids
-    
+
     def set_vehicle_type(self, vehicle_type: str):
         """Set vehicle type for Mode 22 PID mapping."""
         self._vehicle_type = vehicle_type.lower()
-    
+
     def read_vin(self) -> str | None:
         """Read VIN using standard UDS service."""
         if not self._connected or not self.client:
             return None
-        
+
         try:
             response = self.client.read_data_by_identifier(udsoncan.DataIdentifier.VIN)
             return response.service_data.values.get(udsoncan.DataIdentifier.VIN)
         except Exception as e:
             print(f"VIN read failed: {e}")
             return None
-    
+
     def read_mode22_pid(self, pid_hex: str) -> dict[str, Any | None]:
         """
         Read Mode 22 manufacturer specific PID.
-        
+
         Args:
             pid_hex: Hex string of PID (e.g., '221FFC')
-            
+
         Returns:
             Dict with 'name' and 'value' or None
         """
         if not self._connected or not self.client:
             return None
-        
+
         if not self._vehicle_type:
             print("Vehicle type not set")
             return None
-        
+
         try:
             did_id = int(pid_hex, 16)
-            
+
             # Check if this PID is supported for this vehicle
             vehicle_dids = self.MODE22_DIDS.get(self._vehicle_type, {})
             if did_id not in vehicle_dids:
                 print(f"PID {pid_hex} not supported for {self._vehicle_type}")
                 return None
-            
+
             name, _ = vehicle_dids[did_id]
-            
+
             # Read via UDS
             response = self.client.read_data_by_identifier(did_id)
             value = response.service_data.values.get(did_id)
-            
+
             return {'name': name, 'value': value, 'pid': pid_hex}
-            
+
         except Exception as e:
             print(f"Mode 22 read failed: {e}")
             return None
-    
+
     def read_mode01_pid(self, pid: int) -> bytes | None:
         """
         Read Mode 01 current data PID.
-        
+
         Note: Mode 01 is typically broadcast, not UDS. This uses standard OBD2.
         For UDS-based vehicles, this may need adjustment.
         """
         # Mode 01 is usually broadcast CAN, not UDS
         # This is handled separately in obd2d using raw CAN
         return None
-    
+
     def read_dtcs(self) -> list[dict[str, Any]]:
         """Read diagnostic trouble codes."""
         if not self._connected or not self.client:
             return []
-        
+
         try:
             response = self.client.read_dtc_information(
                 ReadDTCInformation.ReportType.DTC_BY_STATUS_MASK
             )
-            
+
             dtcs = []
             for dtc in response.service_data.dtcs:
                 dtcs.append({
@@ -364,41 +363,41 @@ class UDSVehicleAdapter:
                     'status': dtc.status,
                     'severity': getattr(dtc, 'severity', 0)
                 })
-            
+
             return dtcs
-            
+
         except Exception as e:
             print(f"DTC read failed: {e}")
             return []
-    
+
     def clear_dtcs(self) -> bool:
         """Clear diagnostic trouble codes."""
         if not self._connected or not self.client:
             return False
-        
+
         try:
             self.client.clear_diagnostic_information()
             return True
         except Exception as e:
             print(f"DTC clear failed: {e}")
             return False
-    
+
     def change_session(self, session_type: int) -> bool:
         """Change diagnostic session."""
         if not self._connected or not self.client:
             return False
-        
+
         try:
             self.client.change_session(session_type)
             return True
         except Exception as e:
             print(f"Session change failed: {e}")
             return False
-    
+
     def is_connected(self) -> bool:
         """Check if UDS connection is active."""
         return self._connected and self.client is not None
-    
+
     def close(self):
         """Close UDS connection."""
         if self.client:

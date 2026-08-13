@@ -25,7 +25,6 @@ from openpilot.system.v4l2d.isp.rkaiq_ctypes import (
     RkAiqExpInfo,
     RkAiqCctInfo,
     RkAiqWbGain,
-    RkAiqHdrExpRatio,
     RK_AIQ_WORKING_MODE_NORMAL,
     RK_AIQ_WORKING_MODE_ISP_HDR2,
     RK_AIQ_WORKING_MODE_ISP_HDR3,
@@ -114,8 +113,8 @@ class RKIAQWrapper:
         """
         if not self._rkaiq.is_available:
             cloudlog.error(
-                "RKIAQ: librkaiq.so not found — ISP 3A is unavailable. "
-                "Camera image quality will be poor. "
+                "RKIAQ: librkaiq.so not found — ISP 3A is unavailable. " +
+                "Camera image quality will be poor. " +
                 "Install Rockchip BSP with librkaiq.so to enable AE/AWB."
             )
             # Do NOT enable stub mode — this is a safety-critical component.
@@ -137,7 +136,7 @@ class RKIAQWrapper:
 
             self._initialized = True
             cloudlog.info(
-                f"RKIAQ initialized: {self.sensor_name} @ {self.device_path} "
+                f"RKIAQ initialized: {self.sensor_name} @ {self.device_path} " +
                 f"(IQ: {self.iq_file_dir})"
             )
             return True
@@ -321,8 +320,8 @@ class RKIAQWrapper:
         # Safety check for OX03C10
         if self.sensor_name.upper() == "OX03C10" and rk_mode != RK_AIQ_WORKING_MODE_NORMAL:
             cloudlog.error(
-                f"REFUSING to set ISP HDR mode for OX03C10. "
-                f"Sensor does HDR on-chip. Use 'normal' mode."
+                "REFUSING to set ISP HDR mode for OX03C10. " +
+                "Sensor does HDR on-chip. Use 'normal' mode."
             )
             return False
 

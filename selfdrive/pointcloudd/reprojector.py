@@ -7,19 +7,18 @@ Point cloud reprojection using ACL backend.
 
 import numpy as np
 
-from openpilot.common.swaglog import cloudlog
 
-from openpilot.system.inferenced import InferenceClient, BackendType
+from openpilot.system.inferenced import InferenceClient
 
 
 class PointReprojector:
   """Reprojects depth maps to 3D point clouds using GPU OpenCL."""
 
-  def __init__(self, width: int = 1920, height: int = 1080, 
+  def __init__(self, width: int = 1920, height: int = 1080,
                fx: float = 1000.0, fy: float = 1000.0,
                cx: float = 960.0, cy: float = 540.0):
     """Initialize reprojector via HAL.
-    
+
     Args:
         width: Image width
         height: Image height
@@ -32,13 +31,13 @@ class PointReprojector:
     self.fy = fy
     self.cx = cx
     self.cy = cy
-    
+
     # Create HAL client - ONLY way to access GPU
     self.client = InferenceClient("pointcloudd")
-    
+
     # 3D reprojection is ASSIGNED to GPU. No CPU fallback.
     self.gpu = self.client.acl()
-    
+
     # Precompute pixel coordinates
     self._init_coordinates()
 
@@ -47,28 +46,28 @@ class PointReprojector:
     u = np.arange(self.width, dtype=np.float32)
     v = np.arange(self.height, dtype=np.float32)
     self.u_grid, self.v_grid = np.meshgrid(u, v)
-    
+
     # Precompute normalized coordinates
     self.x_norm = (self.u_grid - self.cx) / self.fx
     self.y_norm = (self.v_grid - self.cy) / self.fy
 
-  def reproject(self, depth_map: np.ndarray, 
+  def reproject(self, depth_map: np.ndarray,
                 mask: np.ndarray | None = None) -> np.ndarray:
     """Reproject depth map to 3D point cloud.
-    
+
     Args:
         depth_map: HxW depth values in meters
         mask: Optional HxW mask of valid pixels
-        
+
     Returns:
         Nx3 array of 3D points
     """
     if depth_map.shape != (self.height, self.width):
       raise ValueError(f"Depth map shape {depth_map.shape} doesn't match expected ({self.height}, {self.width})")
-    
+
     # Ensure float32
     depth = depth_map.astype(np.float32)
-    
+
     # Use GPU via HAL
     result = self.gpu.infer(
       model_name='reproject',
@@ -83,14 +82,14 @@ class PointReprojector:
       raise RuntimeError(f"GPU reprojection failed: {result.error_message}")
 
     xyz = result.outputs['xyz']
-    
+
     # Filter invalid (zero) points from GPU output
     valid = xyz[:, :, 2] > 0.1
-    
+
     # Apply mask if provided
     if mask is not None:
       valid = valid & mask
-    
+
     points = xyz[valid].reshape(-1, 3)
     return points
 
@@ -98,39 +97,39 @@ class PointReprojector:
                            image: np.ndarray,
                            mask: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Reproject with RGB colors.
-    
+
     Args:
         depth_map: HxW depth values
         image: HxWx3 RGB image
         mask: Optional mask
-        
+
     Returns:
         (Nx3 points, Nx3 colors)
     """
     points = self.reproject(depth_map, mask)
-    
+
     # Sample colors at valid pixel locations
     if mask is not None:
       valid_indices = np.where(mask.flatten())[0]
     else:
       valid_indices = np.where(depth_map.flatten() > 0.1)[0]
-    
+
     # Convert flat indices to 2D
     v_coords = valid_indices // self.width
     u_coords = valid_indices % self.width
-    
+
     colors = image[v_coords, u_coords].astype(np.float32) / 255.0
-    
+
     return points, colors
 
-  def transform_points(self, points: np.ndarray, 
+  def transform_points(self, points: np.ndarray,
                        transform: np.ndarray) -> np.ndarray:
     """Apply 4x4 transformation matrix to points.
-    
+
     Args:
         points: Nx3 array
         transform: 4x4 transformation matrix
-        
+
     Returns:
         Nx3 transformed points
     """
@@ -150,7 +149,7 @@ class PointReprojector:
     mask = (distances >= min_dist) & (distances <= max_dist)
     return points[mask]
 
-  def downsample(self, points: np.ndarray, 
+  def downsample(self, points: np.ndarray,
                  voxel_size: float = 0.1) -> np.ndarray:
     """Voxel grid downsampling."""
     voxel_indices = np.floor(points / voxel_size).astype(np.int32)

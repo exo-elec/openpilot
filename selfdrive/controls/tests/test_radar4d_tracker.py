@@ -74,7 +74,7 @@ class _TrackerSuite:
     def test_existence_prob_scales_with_hit_streak(self):
         mgr = self._mgr()
         confirmed: list = []
-        for i in range(CONFIRM_HITS + 2):
+        for _i in range(CONFIRM_HITS + 2):
             confirmed = mgr.update([_det()])
         # ABG steps to a flat 100; the Kalman Bayes update converges to 99.9.
         assert confirmed[0].existence_prob >= 99.0

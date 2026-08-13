@@ -6,17 +6,24 @@ Discovers and creates RGA, MPP, RKNN backends in priority order.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from openpilot.system.hardware.rockchip.rga import RGABackend
 from openpilot.system.hardware.rockchip.mpp import MPPBackend
 from openpilot.system.hardware.rockchip.rknn import RKNNBackend
 
 
+class _Backend(Protocol):
+  """Minimal protocol for factory-created Rockchip backends."""
+
+  def initialize(self) -> bool: ...
+  def release(self) -> None: ...
+
+
 class RockchipBackendFactory:
   """Factory for RK3588 hardware backends."""
 
-  _backends = {
+  _backends: dict[str, type[_Backend]] = {
     "rknn": RKNNBackend,
     "rga": RGABackend,
     "mpp": MPPBackend,

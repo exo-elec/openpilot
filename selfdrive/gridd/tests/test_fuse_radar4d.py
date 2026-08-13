@@ -1,4 +1,8 @@
+from typing import Callable
+
 import cereal.messaging as messaging
+from openpilot.selfdrive.controls.radar4d_geometry import RadarStereoGeometry
+from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmapGenerator
 from openpilot.selfdrive.gridd.gridd import GridD
 
 
@@ -57,9 +61,9 @@ class _FuseHost:
     _R4D_BOX_WIDTH_M = GridD._R4D_BOX_WIDTH_M
     _R4D_BOX_HEIGHT_M = GridD._R4D_BOX_HEIGHT_M
     _EGO_LANE_FALLBACK_M = GridD._EGO_LANE_FALLBACK_M
-    _active_costmap = None
+    _active_costmap: FusionCostmapGenerator | None = None
     _lane_cache = {'valid': False}
-    radar_geometry = None  # FOV gate disabled in unit tests
+    radar_geometry: RadarStereoGeometry | None = None  # FOV gate disabled in unit tests
 
     _fuse_radar4d = GridD._fuse_radar4d
     _fuse_radar4d_objects = GridD._fuse_radar4d_objects
@@ -68,9 +72,9 @@ class _FuseHost:
     _object_box_m = staticmethod(GridD._object_box_m)
     # GridD._estimate_box_kinematics is itself a classmethod, so accessing it
     # through the class already returns a bound method (cls=GridD baked in).
-    # Re-wrapping that bound method in classmethod(...) would bind a second
-    # cls on top, corrupting the call signature — unwrap with __func__ first.
-    _estimate_box_kinematics = classmethod(GridD._estimate_box_kinematics.__func__)
+    # Reference the bound classmethod directly; cls=GridD is fine because _FuseHost
+    # mirrors all constants the implementation reads.
+    _estimate_box_kinematics: Callable[[dict, list], tuple[float | None, float | None]] = GridD._estimate_box_kinematics
     _radar4d_in_camera_fov = GridD._radar4d_in_camera_fov
     _ego_lane_bounds = GridD._ego_lane_bounds
 

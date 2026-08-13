@@ -1,5 +1,5 @@
 # stereod - Stereo Depth Daemon
-from openpilot.selfdrive.stereod.stereod import StereoD, main  # noqa: F401
+from openpilot.selfdrive.stereod.stereod import StereoD, main
 
 # SGM implementation (unified ACL-based)
 from openpilot.selfdrive.stereod.sgm import (

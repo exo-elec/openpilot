@@ -1,4 +1,4 @@
-Import('env', 'arch', 'messaging', 'common', 'visionipc')
+Import('env', 'arch', 'soc', 'messaging', 'common', 'visionipc')
 
 libs = [common, messaging, visionipc,
         'avformat', 'avcodec', 'avutil',
@@ -6,8 +6,12 @@ libs = [common, messaging, visionipc,
 
 # v4l_encoder.cc is Qualcomm-specific (V4L2_QCOM_*/VIDC controls from the
 # deleted vendored headers) and is not built — EOP encodes via Rockchip MPP
-# (see encoderd.cc header note). Source kept for the MPP port reference.
+# on RK3588 hardware (see encoderd.cc). Source kept for reference.
 src = ['logger.cc', 'zstd_writer.cc', 'video_writer.cc', 'encoder/encoder.cc', 'encoder/jpeg_encoder.cc', 'encoder/ffmpeg_encoder.cc']
+
+if arch == "aarch64" and soc == "rk3588":
+  src += ['encoder/mpp_encoder.cc']
+  libs += ['rockchip_mpp', 'rga']
 
 if arch == "Darwin":
   # fix OpenCL

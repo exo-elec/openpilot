@@ -9,7 +9,7 @@ No internet required - runs entirely on-device.
 Requirements:
     - Valhalla service running locally on port 8002
     - Offline tiles at /data/valhalla/tiles/
-    
+
 Destination is written to the NavDestination param by bluetoothd/spp.py
 (NCP 0x0302) or by set_destination.py.
 
@@ -97,25 +97,25 @@ class NavD:
         url = self.params.get("EOPValhallaUrl")
         if url:
             return url.strip()
-        
+
         # OpenPilot requires local Valhalla - no online fallback
         if not self._is_local_valhalla_available():
             cloudlog.error(
-                "NavD: Local Valhalla not available. "
-                "Install tiles: python selfdrive/navd/tile_manager.py ensure <region>\n"
+                "NavD: Local Valhalla not available. " +
+                "Install tiles: python selfdrive/navd/tile_manager.py ensure <region>\n" +
                 "For online/cloud routing, use VisionPilot (successor)"
             )
-        
+
         return LOCAL_VALHALLA_URL
-    
+
     def _is_local_valhalla_available(self) -> bool:
         """Check if local Valhalla service is running and tiles are available."""
         import socket
-        
+
         # Check if tiles exist
         if not os.path.exists(LOCAL_VALHALLA_TILES):
             return False
-        
+
         # Check if service is listening on port 8002
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -125,17 +125,17 @@ class NavD:
             return result == 0
         except Exception:
             return False
-    
+
     def _check_tile_status(self) -> dict:
         """Check status of local Valhalla tiles."""
         import os
         tiles_exist = os.path.exists(LOCAL_VALHALLA_TILES)
         config_exist = os.path.exists(LOCAL_VALHALLA_CONFIG)
-        
+
         tiles_size_mb = 0
         if tiles_exist:
             tiles_size_mb = os.path.getsize(LOCAL_VALHALLA_TILES) / (1024 * 1024)
-        
+
         return {
             'tiles_exist': tiles_exist,
             'tiles_size_mb': round(tiles_size_mb, 1),
@@ -301,19 +301,19 @@ class NavD:
             if had_previous_route:
                 self._publish_tts("Recalculating route.", priority=1)
 
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             # Local Valhalla not running - offline only, no fallback
             tile_status = self._check_tile_status()
             if not tile_status['tiles_exist']:
                 cloudlog.error(
-                    f"NavD: Offline tiles not found. "
-                    f"Install: python selfdrive/navd/tile_manager.py ensure <region>"
+                    "NavD: Offline tiles not found. " +
+                    "Install: python selfdrive/navd/tile_manager.py ensure <region>"
                 )
             else:
                 cloudlog.error(
-                    f"NavD: Local Valhalla service not running. "
-                    f"Tiles: {tile_status['tiles_size_mb']} MB installed. "
-                    f"Ensure valhalla_service process is running."
+                    "NavD: Local Valhalla service not running. " +
+                    f"Tiles: {tile_status['tiles_size_mb']} MB installed. " +
+                    "Ensure valhalla_service process is running."
                 )
             self.recompute_backoff = min(MAX_RECOMPUTE_BACKOFF, self.recompute_backoff + 1)
         except requests.exceptions.RequestException as e:

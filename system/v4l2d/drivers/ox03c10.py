@@ -28,22 +28,31 @@ from __future__ import annotations
 import subprocess
 from enum import IntEnum
 
-from openpilot.system.v4l2d.drivers.base import BaseCameraDriver, CameraFrame, V4L2_CID_PRIVATE_BASE
+from openpilot.system.v4l2d.drivers.base import BaseCameraDriver
 from openpilot.common.swaglog import cloudlog
 
+try:
+  from hal.drivers.camera.sensor_registers import OX03C10 as _OX03C10
+except ImportError:
+  _OX03C10 = {}  # type: ignore[assignment]
 
-# OX03C10 V4L2 private controls (Rockchip BSP kernel, drivers/media/i2c/ox03c10.c)
-# Offsets verified against Rockchip BSP 5.10 kernel driver
-V4L2_CID_OX03C10_HDR_MODE = V4L2_CID_PRIVATE_BASE + 1
-V4L2_CID_OX03C10_LFM      = V4L2_CID_PRIVATE_BASE + 2  # LED Flicker Mitigation
+
+# OX03C10 V4L2 private controls are imported from the closed HAL package.
+V4L2_CID_OX03C10_HDR_MODE = _OX03C10.get("V4L2_CID_HDR_MODE", 0)
+V4L2_CID_OX03C10_LFM = _OX03C10.get("V4L2_CID_LFM", 0)
 
 
 class OX03C10HDRMode(IntEnum):
-    """OX03C10 on-chip HDR modes — sensor-level, ISP always in linear mode."""
-    LINEAR = 0  # ~60dB
-    HDR2   = 1  # ~80dB
-    HDR3   = 2  # ~120dB
-    HDR4   = 3  # ~140dB — default for ADAS
+    """OX03C10 on-chip HDR modes — sensor-level, ISP always in linear mode.
+
+    Values are populated from the closed HAL package.  When the HAL is not
+    installed they default to 0, so the module imports cleanly for PC testing
+    but cannot configure a real sensor.
+    """
+    LINEAR = _OX03C10.get("HDR_MODE_LINEAR", 0)
+    HDR2 = _OX03C10.get("HDR_MODE_HDR2", 0)
+    HDR3 = _OX03C10.get("HDR_MODE_HDR3", 0)
+    HDR4 = _OX03C10.get("HDR_MODE_HDR4", 0)
 
 
 class OX03C10Driver(BaseCameraDriver):
@@ -56,12 +65,15 @@ class OX03C10Driver(BaseCameraDriver):
 
     Architecture:
         Scene → OX03C10 [HDR4 on-chip merge] → PWL16 → RKISP [linear mode] → NV12
+
+    Register map, private controls and default resolution are imported from the
+    closed HAL package.
     """
 
-    SENSOR_NAME = "ox03c10"
-    DEFAULT_WIDTH  = 1920
-    DEFAULT_HEIGHT = 1280  # native sensor height; 2-lane MIPI @ 800MHz supports this at 20fps
-    DEFAULT_FPS    = 20    # 2-lane MIPI bandwidth limit with HDR4 PWL output
+    SENSOR_NAME = _OX03C10.get("SENSOR_NAME", "ox03c10")
+    DEFAULT_WIDTH = _OX03C10.get("DEFAULT_WIDTH", 1920)
+    DEFAULT_HEIGHT = _OX03C10.get("DEFAULT_HEIGHT", 1280)
+    DEFAULT_FPS = _OX03C10.get("DEFAULT_FPS", 20)
 
     def __init__(self, device_path: str, width: int = 0, height: int = 0,
                  fps: int = 0, hdr_mode: OX03C10HDRMode = OX03C10HDRMode.HDR4,
@@ -91,13 +103,13 @@ class OX03C10Driver(BaseCameraDriver):
         if self._set_hdr_mode(self._hdr_mode):
             self._hdr_applied = True
             cloudlog.info(
-                f"OX03C10 ({self.device_path}): HDR mode = {self._hdr_mode.name} "
+                f"OX03C10 ({self.device_path}): HDR mode = {self._hdr_mode.name} " +
                 f"({self._get_dynamic_range_db()}dB), ISP = linear"
             )
         else:
             cloudlog.warning(
-                f"OX03C10 ({self.device_path}): HDR mode set failed — "
-                f"continuing in sensor default mode"
+                f"OX03C10 ({self.device_path}): HDR mode set failed — " +
+                "continuing in sensor default mode"
             )
 
         # Set LED Flicker Mitigation
@@ -172,12 +184,8 @@ class OX03C10Driver(BaseCameraDriver):
 
     def _get_dynamic_range_db(self) -> str:
         """Get dynamic range string for current HDR mode."""
-        return {
-            OX03C10HDRMode.LINEAR: "~60",
-            OX03C10HDRMode.HDR2: "~80",
-            OX03C10HDRMode.HDR3: "~120",
-            OX03C10HDRMode.HDR4: "~140",
-        }.get(self._hdr_mode, "Unknown")
+        dr = _OX03C10.get("DYNAMIC_RANGE_DB", {})
+        return dr.get(self._hdr_mode, "Unknown")
 
     # ------------------------------------------------------------------
     # LED Flicker Mitigation

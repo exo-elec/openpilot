@@ -20,7 +20,7 @@ import random
 import threading
 import time
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 try:
     import dbus
@@ -195,8 +195,8 @@ def register_agent() -> PairingAgent | None:
         manager.RequestDefaultAgent(AGENT_PATH)
         logger.info(f'Pairing agent registered at {AGENT_PATH}')
         return agent
-    except Exception as e:
-        logger.error(f'Failed to register pairing agent: {e}')
+    except Exception:
+        logger.exception('Failed to register pairing agent')
         return None
 
 

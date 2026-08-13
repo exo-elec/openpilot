@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Install pygnssutils for NTRIP RTK support
 
 set -e

@@ -5,8 +5,8 @@ Validates point-in-polygon logic and edge cases.
 """
 
 import sys
-import unittest
-from unittest.mock import MagicMock
+import unittest  # noqa: TID251
+from unittest.mock import MagicMock  # noqa: TID251
 
 # Mock compiled dependencies before importing
 sys.modules['msgq'] = MagicMock()

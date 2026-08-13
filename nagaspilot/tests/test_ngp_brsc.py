@@ -76,7 +76,7 @@ def test_release_ramps_back_after_hold_expires_not_a_step():
     r = ctrl.update(GRAVITY, DT)
     factors.append(r.speed_factor)
   assert factors[0] < 1.0  # still recovering just after roughness stops
-  assert all(b >= a - 1e-9 for a, b in zip(factors, factors[1:]))  # monotonically non-decreasing
+  assert all(b >= a - 1e-9 for a, b in zip(factors, factors[1:], strict=False))  # monotonically non-decreasing
   assert factors[-1] == 1.0  # fully recovered eventually
   assert not feed(ctrl, [GRAVITY] * 5).active
 

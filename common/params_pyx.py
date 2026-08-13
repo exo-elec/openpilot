@@ -64,5 +64,11 @@ class Params:
   def put_nonblocking(self, key: str, val: str | bytes) -> None:
     self.put(key, val)
 
+  def put_bool_nonblocking(self, key: str, val: bool) -> None:
+    self.put_bool(key, val)
+
   def remove(self, key: str) -> None:
     self._data.pop(key, None)
+
+  def cpp2python(self, key: str, value: bytes | str) -> Any:
+    return value.decode() if isinstance(value, bytes) else value

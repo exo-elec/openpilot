@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import logging
-import numpy as np
 from openpilot.system.inferenced import get_hal, BackendType
 from openpilot.system.inferenced.compute_recovery import (
     ErrorRecoveryManager, BackendHealthMonitor, FallbackStrategy,
@@ -55,7 +54,7 @@ class TestErrorRecovery:
       return False
 
     # Record failures
-    for i in range(2):
+    for _i in range(2):
       monitor.record_failure()
       if not monitor.is_healthy:
         logger.warning("✗ Should still be healthy after 2 failures")
@@ -217,8 +216,8 @@ class TestErrorRecovery:
     logger.info("Error Recovery Test Results")
     logger.info("="*60)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    sum(1 for v in results.values() if v)
+    len(results)
 
     for test_name, result in results.items():
       status = "✓ PASS" if result else "✗ FAIL"

@@ -33,7 +33,7 @@ CRUISE_INTERVAL_SIGN = {
 
 class VCruiseHelper:
   """Helper for managing cruise speed setpoints."""
-  
+
   def __init__(self, CP):
     self.CP = CP
     self.v_cruise_kph = V_CRUISE_UNSET

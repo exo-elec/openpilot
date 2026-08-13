@@ -1,6 +1,6 @@
 """Tests for EOP DesireHelper's DLAT lane-confidence LCA initiation gate."""
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock  # noqa: TID251
 
 _fake_params_pyx = MagicMock()
 _fake_params_pyx.Params = MagicMock
@@ -22,7 +22,6 @@ _fake_msgq.async_wait_for_one_event = MagicMock()
 _fake_msgq.MAX_FDS = 64
 sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
-from cereal import log
 
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LaneChangeState
 from openpilot.selfdrive.controls.lib.dlat import LANEFUL_TO_LANELESS_THRESH

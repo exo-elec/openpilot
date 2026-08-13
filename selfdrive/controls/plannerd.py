@@ -16,7 +16,9 @@ def main() -> int:
 
     cloudlog.info("plannerd is waiting for CarParams")
     params = Params()
-    CP = messaging.log_from_bytes(params.get("CarParams", block=True), car.CarParams)
+    _car_params = params.get("CarParams")
+    assert _car_params is not None, "CarParams not available"
+    CP = messaging.log_from_bytes(_car_params, car.CarParams)
     cloudlog.info("plannerd got CarParams: %s", CP.brand)
 
     ldw = LaneDepartureWarning()
@@ -45,7 +47,6 @@ def main() -> int:
   except Exception as e:
     cloudlog.exception(f"PlannerId fatal error: {e}")
     raise
-  return 0
 
 
 if __name__ == "__main__":

@@ -286,8 +286,6 @@ class UVCD:
       return None
     try:
       frame = next(state.generator)
-      if frame is None or frame.data is None:
-        return None
       self._set_health(state, True)
       return frame.data
     except StopIteration:

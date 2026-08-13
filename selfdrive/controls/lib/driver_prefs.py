@@ -12,6 +12,7 @@ No NPU impact - pure parameter/logic enhancements.
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import cereal.messaging as messaging
 import time
@@ -24,22 +25,22 @@ logger = logging.getLogger(__name__)
 class DriverPrefs:
     """
     Driver preference settings controller.
-    
+
     Integrates with longitudinal planner to provide:
     - Speed limit offsets
     - Following distance profiles
-    
+
     Note: Surface obstacle speed limits are handled by SQSC controller
     (see selfdrive/controls/lib/sqsc.py)
     """
-    
+
     def __init__(self):
         self.params = Params()
-        
+
         # Cached parameters
         self.speed_offset_kph = 0
         self.following_distance = "normal"
-        
+
         self._last_param_t = 0.0
         self.PARAM_REFRESH_S = 2.0
 
@@ -72,11 +73,11 @@ class DriverPrefs:
     def update(self, sm: messaging.SubMaster):
         """Update state from messages."""
         self._read_params()
-    
+
     def get_speed_with_offset(self, speed_limit_kph: float) -> float:
         """Apply user offset to speed limit."""
-        return speed_limit_kph + self.speed_offset_kph
-    
+        return cast(float, speed_limit_kph + self.speed_offset_kph)
+
     def get_time_gap(self) -> float:
         """Get desired following distance time gap."""
         return TIME_GAPS.get(self.following_distance, 1.5)

@@ -27,7 +27,7 @@ CORE_LITTLE = "little" # Use little cores (A55)
 
 def set_core_type(core_type: str) -> None:
   """Set CPU affinity to big or little cores.
-  
+
   Args:
     core_type: Either CORE_BIG ("big") or CORE_LITTLE ("little")
   """

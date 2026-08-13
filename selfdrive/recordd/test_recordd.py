@@ -9,17 +9,17 @@ Tests cover:
 - Pre-impact buffer
 - Settings management
 """
-import unittest
+import unittest  # noqa: TID251
 import time
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch  # noqa: TID251
 import numpy as np
 
 # Import recordd components
 from openpilot.selfdrive.recordd.recordd import (
-    RecordingMode, ClipType, ClipInfo, StorageInfo, RecordingSettings,
+    RecordingMode, ClipInfo, StorageInfo, RecordingSettings,
     ImpactEvent, IMUSample, Snapshot, PreImpactBuffer, ImpactDetector,
     VideoEncoder, RecordD, SENSITIVITY_THRESHOLDS
 )
@@ -27,7 +27,7 @@ from openpilot.selfdrive.recordd.recordd import (
 
 class TestRecordingMode(unittest.TestCase):
     """Test recording mode enum."""
-    
+
     def test_mode_values(self):
         """Test mode enum values."""
         self.assertEqual(RecordingMode.OFF.value, "off")
@@ -39,7 +39,7 @@ class TestRecordingMode(unittest.TestCase):
 
 class TestClipInfo(unittest.TestCase):
     """Test ClipInfo dataclass."""
-    
+
     def test_to_dict(self):
         """Test ClipInfo serialization."""
         clip = ClipInfo(
@@ -53,7 +53,7 @@ class TestClipInfo(unittest.TestCase):
             event_reason="crash",
             impact_level=0.85
         )
-        
+
         data = clip.to_dict()
         self.assertEqual(data['filename'], "test.mp4")
         self.assertEqual(data['timestamp'], "20240101_120000")
@@ -67,7 +67,7 @@ class TestClipInfo(unittest.TestCase):
 
 class TestStorageInfo(unittest.TestCase):
     """Test StorageInfo dataclass."""
-    
+
     def test_to_dict(self):
         """Test StorageInfo serialization."""
         info = StorageInfo(
@@ -81,7 +81,7 @@ class TestStorageInfo(unittest.TestCase):
             recording_mode="normal",
             impact_sensitivity=75
         )
-        
+
         data = info.to_dict()
         self.assertEqual(data['total_gb'], 100.0)
         self.assertEqual(data['used_gb'], 45.0)
@@ -97,7 +97,7 @@ class TestStorageInfo(unittest.TestCase):
 
 class TestRecordingSettings(unittest.TestCase):
     """Test RecordingSettings dataclass."""
-    
+
     def test_default_values(self):
         """Test default settings."""
         settings = RecordingSettings()
@@ -113,7 +113,7 @@ class TestRecordingSettings(unittest.TestCase):
 
 class TestImpactEvent(unittest.TestCase):
     """Test ImpactEvent dataclass."""
-    
+
     def test_to_dict(self):
         """Test ImpactEvent serialization."""
         event = ImpactEvent(
@@ -124,7 +124,7 @@ class TestImpactEvent(unittest.TestCase):
             triggered_by='imu',
             accel=(10.0, 5.0, 20.0)
         )
-        
+
         data = event.to_dict()
         self.assertEqual(data['timestamp'], 1234567890.5)
         self.assertEqual(data['level'], 0.75)
@@ -137,7 +137,7 @@ class TestImpactEvent(unittest.TestCase):
 
 class TestIMUSample(unittest.TestCase):
     """Test IMUSample dataclass."""
-    
+
     def test_to_dict(self):
         """Test IMUSample serialization."""
         sample = IMUSample(
@@ -145,7 +145,7 @@ class TestIMUSample(unittest.TestCase):
             accel=np.array([1.0, 2.0, 9.8]),
             gyro=np.array([0.1, 0.2, 0.3])
         )
-        
+
         data = sample.to_dict()
         self.assertEqual(data['timestamp_ns'], 1234567890123456789)
         self.assertEqual(data['accel']['x'], 1.0)
@@ -158,7 +158,7 @@ class TestIMUSample(unittest.TestCase):
 
 class TestSnapshot(unittest.TestCase):
     """Test Snapshot dataclass."""
-    
+
     def test_compute_imu_stats(self):
         """Test IMU statistics computation."""
         imu_samples = [
@@ -166,14 +166,14 @@ class TestSnapshot(unittest.TestCase):
             IMUSample(timestamp_ns=2, accel=np.array([0, 0, 19.6]), gyro=np.array([0, 0, 0])),
             IMUSample(timestamp_ns=3, accel=np.array([0, 0, 29.4]), gyro=np.array([0, 0, 0])),
         ]
-        
+
         snap = Snapshot(
             timestamp_ns=1234567890,
             image=np.zeros((100, 100, 3), dtype=np.uint8),
             imu_samples=imu_samples,
             metadata={}
         )
-        
+
         stats = snap.compute_imu_stats()
         self.assertEqual(stats['max_g'], 3.0)  # 29.4 / 9.81 ≈ 3
         self.assertEqual(stats['min_g'], 1.0)  # 9.8 / 9.81 ≈ 1
@@ -182,34 +182,34 @@ class TestSnapshot(unittest.TestCase):
 
 class TestPreImpactBuffer(unittest.TestCase):
     """Test PreImpactBuffer class."""
-    
+
     def setUp(self):
         self.buffer = PreImpactBuffer(max_frames=10)
-    
+
     def test_add_frame(self):
         """Test adding frames to buffer."""
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         self.buffer.add_frame(frame, time.monotonic())
         self.assertEqual(len(self.buffer._buffer), 1)
-    
+
     def test_maxlen(self):
         """Test buffer respects max length."""
         for i in range(20):
             frame = np.ones((100, 100, 3), dtype=np.uint8) * i
             self.buffer.add_frame(frame, time.monotonic())
-        
+
         self.assertEqual(len(self.buffer._buffer), 10)
-    
+
     def test_get_frames(self):
         """Test getting recent frames."""
         now = time.monotonic()
         for i in range(5):
             frame = np.ones((100, 100, 3), dtype=np.uint8) * i
             self.buffer.add_frame(frame, now - (4-i) * 0.1)  # 100ms apart
-        
+
         frames = self.buffer.get_frames(0.25)  # Last 250ms
         self.assertEqual(len(frames), 3)  # Should get last 3 frames
-    
+
     def test_clear(self):
         """Test clearing buffer."""
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -220,58 +220,58 @@ class TestPreImpactBuffer(unittest.TestCase):
 
 class TestImpactDetector(unittest.TestCase):
     """Test ImpactDetector class."""
-    
+
     def setUp(self):
         self.detector = ImpactDetector(sensitivity=50)
-    
+
     def test_sensitivity_thresholds(self):
         """Test sensitivity to threshold mapping."""
         # Test known values
         self.assertEqual(SENSITIVITY_THRESHOLDS[0], 4.0)
         self.assertEqual(SENSITIVITY_THRESHOLDS[50], 2.0)
         self.assertEqual(SENSITIVITY_THRESHOLDS[100], 1.0)
-    
+
     def test_set_sensitivity(self):
         """Test setting sensitivity."""
         self.detector.set_sensitivity(75)
         self.assertEqual(self.detector._sensitivity, 75)
-    
+
     def test_set_enabled(self):
         """Test enabling/disabling detection."""
         self.detector.set_enabled(False)
         self.assertFalse(self.detector._enabled)
-        
+
         self.detector.set_enabled(True)
         self.assertTrue(self.detector._enabled)
-    
+
     def test_no_trigger_normal_driving(self):
         """Test no false triggers during normal driving."""
         # Normal driving ~1G
         accel = np.array([0.5, 0.2, 9.5])  # ~1G total
         result = self.detector.process_imu(accel, np.zeros(3))
         self.assertIsNone(result)
-    
+
     def test_trigger_on_impact(self):
         """Test impact detection."""
         callback_mock = Mock()
         self.detector.register_callback(callback_mock)
-        
+
         # High G impact (3G > 2G threshold at sensitivity 50)
         accel = np.array([15.0, 5.0, 25.0])  # ~3G total
-        
+
         # First call starts impact
         result = self.detector.process_imu(accel, np.zeros(3), timestamp=time.monotonic())
         self.assertIsNone(result)  # Impact not finished yet
-        
+
         # Second call ends impact
         time.sleep(0.06)  # 60ms > 50ms min duration
         result = self.detector.process_imu(np.array([0.5, 0.2, 9.5]), np.zeros(3), timestamp=time.monotonic())
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result.triggered_by, 'imu')
         self.assertGreater(result.g_force, 2.0)
         callback_mock.assert_called_once()
-    
+
     def test_cooldown(self):
         """Test cooldown prevents multiple triggers."""
         # First impact
@@ -279,25 +279,25 @@ class TestImpactDetector(unittest.TestCase):
         self.detector.process_imu(accel, np.zeros(3), timestamp=time.monotonic())
         time.sleep(0.06)
         self.detector.process_imu(np.array([0.5, 0.2, 9.5]), np.zeros(3), timestamp=time.monotonic())
-        
+
         # Second impact during cooldown
         accel2 = np.array([20.0, 10.0, 30.0])
         result = self.detector.process_imu(accel2, np.zeros(3), timestamp=time.monotonic())
-        
+
         # Should be None due to cooldown
         self.assertIsNone(result)
-    
+
     def test_manual_impact(self):
         """Test manual impact marking."""
         callback_mock = Mock()
         self.detector.register_callback(callback_mock)
-        
+
         event = self.detector.mark_manual_impact()
-        
+
         self.assertEqual(event.triggered_by, 'manual')
         self.assertEqual(event.level, 1.0)
         callback_mock.assert_called_once()
-    
+
     def test_get_status(self):
         """Test getting detector status."""
         status = self.detector.get_status()
@@ -309,32 +309,32 @@ class TestImpactDetector(unittest.TestCase):
 
 class TestVideoEncoder(unittest.TestCase):
     """Test VideoEncoder class."""
-    
+
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.output_path = Path(self.temp_dir) / "test.mp4"
-    
+
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+
     @patch('openpilot.selfdrive.recordd.recordd.HAS_INFERENCED', False)
     def test_ffmpeg_fallback(self):
         """Test FFmpeg fallback when inferenced not available."""
         encoder = VideoEncoder()
         self.assertFalse(encoder._use_inferenced)
         self.assertTrue(encoder._use_ffmpeg)
-    
+
     def test_start_stop(self):
         """Test encoder start/stop lifecycle."""
         encoder = VideoEncoder()
-        
+
         quality_preset = {
             'width': 1920,
             'height': 1080,
             'fps': 20,
             'bitrate': 4000
         }
-        
+
         # Should use FFmpeg fallback in test environment
         with patch.object(encoder, '_start_ffmpeg') as mock_start:
             encoder.start(self.output_path, quality_preset)
@@ -343,7 +343,7 @@ class TestVideoEncoder(unittest.TestCase):
 
 class TestRecordDSettings(unittest.TestCase):
     """Test RecordD settings management."""
-    
+
     @patch('openpilot.selfdrive.recordd.recordd.Params')
     def test_load_settings(self, mock_params_class):
         """Test loading settings from params."""
@@ -351,20 +351,20 @@ class TestRecordDSettings(unittest.TestCase):
         mock_params.get.return_value = "75"
         mock_params.get_bool.return_value = True
         mock_params_class.return_value = mock_params
-        
+
         # Create minimal RecordD for testing
         with patch('openpilot.selfdrive.recordd.recordd.set_daemon_affinity'):
             with patch('openpilot.selfdrive.recordd.recordd.messaging.SubMaster'):
                 with patch('openpilot.selfdrive.recordd.recordd.messaging.PubMaster'):
                     recordd = RecordD()
                     recordd._load_settings()
-                    
+
                     self.assertEqual(recordd.settings.impact_sensitivity, 75)
 
 
 class TestIntegration(unittest.TestCase):
     """Integration tests for recordd components."""
-    
+
     def test_impact_to_clip_info(self):
         """Test impact event creates proper clip info."""
         impact = ImpactEvent(
@@ -375,7 +375,7 @@ class TestIntegration(unittest.TestCase):
             triggered_by='imu',
             accel=(20.0, 10.0, 25.0)
         )
-        
+
         clip = ClipInfo(
             filename="impact_20240101_120000.mp4",
             timestamp="20240101_120000",
@@ -387,7 +387,7 @@ class TestIntegration(unittest.TestCase):
             event_reason=f"impact_{impact.triggered_by}",
             impact_level=impact.level
         )
-        
+
         data = clip.to_dict()
         self.assertEqual(data['type'], "impact")
         self.assertTrue(data['preserved'])

@@ -12,7 +12,6 @@ import logging
 import numpy as np
 from typing import Any
 
-from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced import InferenceClient
 
 logging.basicConfig(level=logging.INFO)
@@ -50,7 +49,7 @@ class TestStereod:
       latency_ms = (time.monotonic() - start) * 1000
 
       if result.success:
-        logger.info(f"✓ SGM stereo VGA success")
+        logger.info("✓ SGM stereo VGA success")
         logger.info(f"  Latency: {latency_ms:.2f}ms")
         logger.info(f"  Disparity shape: {result.outputs['output'].shape}")
         return True
@@ -58,8 +57,8 @@ class TestStereod:
         logger.error(f"✗ SGM stereo failed: {result.error_message}")
         return False
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_sgm_stereo_hd(self) -> bool:
@@ -80,7 +79,7 @@ class TestStereod:
       latency_ms = (time.monotonic() - start) * 1000
 
       if result.success:
-        logger.info(f"✓ SGM stereo HD success")
+        logger.info("✓ SGM stereo HD success")
         logger.info(f"  Latency: {latency_ms:.2f}ms")
         logger.info(f"  Disparity shape: {result.outputs['output'].shape}")
         return True
@@ -88,8 +87,8 @@ class TestStereod:
         logger.error(f"✗ SGM stereo failed: {result.error_message}")
         return False
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_gemm_small(self) -> bool:
@@ -110,7 +109,7 @@ class TestStereod:
       latency_ms = (time.monotonic() - start) * 1000
 
       if result.success:
-        logger.info(f"✓ GEMM small success")
+        logger.info("✓ GEMM small success")
         logger.info(f"  Latency: {latency_ms:.2f}ms")
         logger.info(f"  Result shape: {result.outputs['output'].shape}")
         return True
@@ -118,8 +117,8 @@ class TestStereod:
         logger.error(f"✗ GEMM failed: {result.error_message}")
         return False
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_gpu_cpu_dispatch(self) -> bool:
@@ -136,7 +135,7 @@ class TestStereod:
       result_small = self.acl.infer('generic_op', {'input': small_input})
 
       if not result_small.success:
-        logger.error(f"Small input inference failed")
+        logger.error("Small input inference failed")
         return False
 
       # Large input - should prefer GPU if available
@@ -144,16 +143,16 @@ class TestStereod:
       result_large = self.acl.infer('generic_op', {'input': large_input})
 
       if not result_large.success:
-        logger.error(f"Large input inference failed")
+        logger.error("Large input inference failed")
         return False
 
-      logger.info(f"✓ Smart dispatch test passed")
+      logger.info("✓ Smart dispatch test passed")
       logger.info(f"  Small input (100 elements): {result_small.inference_time_ms:.2f}ms")
       logger.info(f"  Large input (2000 elements): {result_large.inference_time_ms:.2f}ms")
       return True
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_stereo_loop(self, num_frames: int = 5) -> dict[str, Any]:
@@ -185,7 +184,7 @@ class TestStereod:
       success_rate = (num_frames - errors) / num_frames * 100
       avg_latency = np.mean(latencies) if latencies else 0
 
-      logger.info(f"✓ Loop complete")
+      logger.info("✓ Loop complete")
       logger.info(f"  Success rate: {success_rate:.1f}%")
       logger.info(f"  Avg latency: {avg_latency:.2f}ms")
 
@@ -194,8 +193,8 @@ class TestStereod:
           'avg_latency_ms': avg_latency,
       }
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return {}
 
   def run_all_tests(self) -> dict[str, bool]:
@@ -219,15 +218,15 @@ class TestStereod:
     logger.info("Test Results Summary")
     logger.info("="*60)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    sum(1 for v in results.values() if v)
+    len(results)
 
     for test_name, result in results.items():
       status = "✓ PASS" if result else "✗ FAIL"
       logger.info(f"  {test_name:25} {status}")
 
     if loop_results:
-      logger.info(f"\nStereo Loop Performance:")
+      logger.info("\nStereo Loop Performance:")
       logger.info(f"  Success Rate: {loop_results['success_rate']:.1f}%")
       logger.info(f"  Avg Latency: {loop_results['avg_latency_ms']:.2f}ms")
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # RK3588 NPU Power Management
 # Call during suspend/resume to power-gate NPU and save ~500mW.
 #

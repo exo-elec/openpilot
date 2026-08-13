@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Unit tests for side-camera tracking stack."""
 
-import numpy as np
 import pytest
 
 from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject, _iou
 from openpilot.selfdrive.sided.bev_reprojector import (
-  SideCameraGeometry, make_default_geometry, reproject_side_camera,
+  make_default_geometry, reproject_side_camera,
 )
 from openpilot.selfdrive.sided.handover_manager import HandoverManager
 

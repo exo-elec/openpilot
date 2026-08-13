@@ -86,8 +86,8 @@ class DeepXBackend(HardwareBackend):
     except ImportError:
       logger.warning("dx_engine not installed — DEEPX backend unavailable")
       return False
-    except Exception as e:
-      logger.error(f"DEEPX initialization error: {e}")
+    except Exception:
+      logger.exception("DEEPX initialization error")
       return False
 
   def release(self) -> None:
@@ -117,8 +117,8 @@ class DeepXBackend(HardwareBackend):
       config.loaded = True
       logger.info(f"Loaded DEEPX model: {config.name} from {config.path}")
       return True
-    except Exception as e:
-      logger.error(f"Failed to load DEEPX model {config.name}: {e}")
+    except Exception:
+      logger.exception(f"Failed to load DEEPX model {config.name}")
       return False
 
   def unload_model(self, name: str) -> bool:
@@ -180,7 +180,7 @@ class DeepXBackend(HardwareBackend):
         success=True
       )
     except Exception as e:
-      logger.error(f"DEEPX inference error on {model_name}: {e}")
+      logger.exception(f"DEEPX inference error on {model_name}")
       self._stats.tasks_failed += 1
       return InferenceResult(
         backend_type=BackendType.DX_M1, model_name=model_name,

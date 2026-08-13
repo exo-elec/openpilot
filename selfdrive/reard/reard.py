@@ -11,7 +11,6 @@ No radar dependency. No cross-camera handover (single camera).
 
 import logging
 import time
-from typing import List, Optional
 
 import numpy as np
 
@@ -57,7 +56,7 @@ class SideObjectFromDetection:
     self.track_id = -1
 
 
-def _to_tracker_objects(detections) -> List[SideObject]:
+def _to_tracker_objects(detections) -> list[SideObject]:
   """Convert detector output to SideObject list for SimpleTracker."""
   objs = []
   for det in detections:
@@ -95,7 +94,7 @@ class RearProcessor:
   def __init__(self):
     self.tracker = SimpleTracker(max_age=5)
 
-  def detect(self, frame_bgr: np.ndarray | None) -> List[SideObject]:
+  def detect(self, frame_bgr: np.ndarray | None) -> list[SideObject]:
     if frame_bgr is None:
       return []
     # CPU fallback: no neural network, use simple motion detection / blob
@@ -123,7 +122,7 @@ class HailoRearProcessor:
   def is_available(self) -> bool:
     return self.detector.is_available
 
-  def detect(self, frame_bgr: np.ndarray | None) -> List[SideObject]:
+  def detect(self, frame_bgr: np.ndarray | None) -> list[SideObject]:
     if frame_bgr is None or not self.is_available:
       return []
     dets = self.detector.detect(frame_bgr)
@@ -199,7 +198,7 @@ class RearD:
       cloudlog.debug("RearD: VisionIPC frame retrieval failed: %s", e)
       return None
 
-  def _publish(self, tracks: List[SideObject], quality: dict | None,
+  def _publish(self, tracks: list[SideObject], quality: dict | None,
                ts: int, proc_time_ms: float) -> None:
     # rearDetections
     msg = messaging.new_message('rearDetections', valid=True)
@@ -261,7 +260,7 @@ class RearD:
 
         self.frame_id = (self.frame_id + 1) & 0xFFFFFF
         self.rk.keep_time()
-    except Exception:
+    except Exception:  # noqa: TRY203
       raise
 
 

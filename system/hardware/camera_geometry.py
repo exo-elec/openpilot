@@ -22,12 +22,12 @@ class CameraGeometry:
     width: int
     height: int
     focal_length: float
-    
+
     # Mounting position relative to vehicle center (meters)
     x_offset: float = 0.0  # Forward
     y_offset: float = 0.0  # Left
     z_offset: float = 0.0  # Up
-    
+
     # Orientation (radians)
     pitch: float = 0.0
     yaw: float = 0.0

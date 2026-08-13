@@ -52,7 +52,7 @@ class RoadEdge:
     """
     weights = [0.5, 0.3, 0.2]
     confs = [self.vision_confidence, self.yolo_confidence, self.stereo_confidence]
-    return sum(w * c for w, c in zip(weights, confs))
+    return sum(w * c for w, c in zip(weights, confs, strict=False))
 
 
 # Distance thresholds (meters)
@@ -134,7 +134,7 @@ class RED:
 
       # Extract edge points
       if hasattr(edge, 'x') and hasattr(edge, 'y'):
-        points = list(zip(edge.x, edge.y))
+        points = list(zip(edge.x, edge.y, strict=False))
       else:
         continue
 

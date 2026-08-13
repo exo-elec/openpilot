@@ -25,9 +25,7 @@ We optimize T_side (6-DOF) to minimize this error over many frames.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
@@ -53,6 +51,17 @@ DEFAULT_FX = 640.0
 DEFAULT_FY = 640.0
 DEFAULT_CX = 640.0
 DEFAULT_CY = 360.0
+
+
+def _load_side_intrinsics(camera_name: str) -> tuple[float, float, float, float]:
+  """Load side camera intrinsics from exopilot HAL; fall back to defaults."""
+  try:
+    from hal.platform.rk3588_camera_geometry import FOCAL_PX, IMAGE_SIZE_PX
+    w, h = IMAGE_SIZE_PX[camera_name]
+    fx, fy = FOCAL_PX[camera_name]
+    return fx, fy, w / 2.0, h / 2.0
+  except Exception:
+    return DEFAULT_FX, DEFAULT_FY, DEFAULT_CX, DEFAULT_CY
 
 
 @dataclass
@@ -90,16 +99,21 @@ class SideCameraCalibrator:
   def __init__(
     self,
     camera_name: str,
-    fx: float = DEFAULT_FX,
-    fy: float = DEFAULT_FY,
-    cx: float = DEFAULT_CX,
-    cy: float = DEFAULT_CY,
+    fx: float | None = None,
+    fy: float | None = None,
+    cx: float | None = None,
+    cy: float | None = None,
     init_yaw: float = np.pi - np.pi / 6.0,   # 150° left default
     init_pitch: float = 0.0,
     init_roll: float = 0.0,
     init_t: tuple[float, float, float] = (0.7, 0.85, 0.75),
   ) -> None:
     self.camera_name = camera_name
+    hal_fx, hal_fy, hal_cx, hal_cy = _load_side_intrinsics(camera_name)
+    fx = fx if fx is not None else hal_fx
+    fy = fy if fy is not None else hal_fy
+    cx = cx if cx is not None else hal_cx
+    cy = cy if cy is not None else hal_cy
     self.K = np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
     self.K_inv = np.linalg.inv(self.K)
 
@@ -250,7 +264,7 @@ class SideCameraCalibrator:
       F = self.K_inv.T @ E @ self.K_inv  # Fundamental-like matrix
 
       # Error = p_j^T · F · p_i  (Sampson distance approx = algebraic error / denom)
-      for pi, pj in zip(pts_i, pts_j):
+      for pi, pj in zip(pts_i, pts_j, strict=False):
         pi_h = np.array([pi[0], pi[1], 1.0])
         pj_h = np.array([pj[0], pj[1], 1.0])
         num = abs(pj_h @ F @ pi_h)
@@ -319,7 +333,7 @@ class SideCameraCalibrator:
 
     # Coordinate descent with shrinking step size
     step_sizes = np.array([0.02, 0.02, 0.02, 0.05, 0.05, 0.05])  # rpy, xyz
-    for iteration in range(OPT_ITERATIONS):
+    for _iteration in range(OPT_ITERATIONS):
       improved = False
       for dim in range(6):
         for sign in (-1, 1):
@@ -352,7 +366,7 @@ class SideCameraCalibrator:
     )
 
     cloudlog.debug(
-      f"SideCal({self.camera_name}): rmse={rmse:.3f}px pairs={len(self.pairs)} "
-      f"rpy=({np.degrees(best_params[:3]).round(2)}) "
+      f"SideCal({self.camera_name}): rmse={rmse:.3f}px pairs={len(self.pairs)} " +
+      f"rpy=({np.degrees(best_params[:3]).round(2)}) " +
       f"t=({best_params[3:6].round(3)})"
     )

@@ -1,7 +1,6 @@
 """Tests for radar4d calibration wizard LUT building."""
 
 import json
-import math
 import os
 import tempfile
 
@@ -9,7 +8,6 @@ import pytest
 
 from openpilot.selfdrive.controls.radar4d_calibrate import (
     CapturePoint,
-    IntrinsicLUT,
     RadarCalibrator,
     RANGE_BAND_EDGES_M,
     NUM_RANGE_BANDS,
@@ -112,4 +110,4 @@ class TestRadarCalibrator:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    pytest.main([__file__, "-v"])  # noqa: TID251

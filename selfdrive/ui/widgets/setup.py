@@ -1,5 +1,6 @@
+from typing import cast
+
 import pyray as rl
-from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.wrap_text import wrap_text
 from openpilot.system.ui.widgets import Widget
@@ -29,13 +30,13 @@ class SetupWidget(Widget):
     w = rect.width - 128
 
     # Title
-    font = gui_app.font(FontWeight.BOLD)
+    font = gui_app.font(cast(FontWeight, FontWeight.BOLD))
     rl.draw_text_ex(font, "EOP Setup", rl.Vector2(x, y), 75, 0, rl.WHITE)
     y += 113  # 75 + 38 spacing
 
     # Description
     desc = "EnhancedOpenPilot (EOP) is ready to use. No cloud account required."
-    light_font = gui_app.font(FontWeight.LIGHT)
+    light_font = gui_app.font(cast(FontWeight, FontWeight.LIGHT))
     wrapped = wrap_text(light_font, desc, 50, int(w))
     for line in wrapped:
       rl.draw_text_ex(light_font, line, rl.Vector2(x, y), 50, 0, rl.WHITE)

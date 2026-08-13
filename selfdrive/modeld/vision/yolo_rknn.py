@@ -10,13 +10,14 @@ All NPU access goes through InferenceClient.
 
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
+from typing import cast
 
 import cv2
 import numpy as np
 
 # Centralized HAL - ONLY way to access NPU
-from openpilot.system.inferenced import InferenceClient, BackendType
+from openpilot.system.inferenced import InferenceClient, HardwareBackend
 
 
 COCO_CLASSES = (
@@ -78,7 +79,7 @@ def _nms(boxes: np.ndarray, scores: np.ndarray, threshold: float) -> list[int]:
 
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
-  return 1.0 / (1.0 + np.exp(-x))
+  return cast(np.ndarray, 1.0 / (1.0 + np.exp(-x)))
 
 
 class YoloRKNNDetector:
@@ -95,7 +96,7 @@ class YoloRKNNDetector:
     use_npu_cores: str = "all",
   ) -> None:
     """Initialize YOLO detector via HAL.
-    
+
     Args:
         model_path: Path to .rknn model file
         model_format: 'yolov5' or 'yolov8'
@@ -107,16 +108,16 @@ class YoloRKNNDetector:
     """
     # Create HAL client - ONLY way to access NPU and RGA
     self.client = InferenceClient("yolo_detector")
-    
+
     # Get NPU backend
     try:
-      self.npu = self.client.npu()
+      self.npu: HardwareBackend = self.client.npu()
     except RuntimeError as e:
-      raise RuntimeError(f"NPU not available via HAL: {e}")
-    
+      raise RuntimeError(f"NPU not available via HAL: {e}") from e
+
     # Get RGA backend for hardware-accelerated preprocessing
     try:
-      self.rga = self.client.rga()
+      self.rga: HardwareBackend | None = self.client.rga()
     except RuntimeError:
       self.rga = None  # RGA optional - will use cv2 fallback
 
@@ -165,15 +166,15 @@ class YoloRKNNDetector:
   def _load_model(self, use_npu_cores: str):
     """Load model through HAL."""
     from openpilot.system.inferenced.compute import ModelConfig
-    
+
     core_mask = self._parse_core_mask(use_npu_cores)
-    
+
     config = ModelConfig(
       name='yolo',
       path=str(self.model_path),
       npu_cores=core_mask
     )
-    
+
     if not self.npu.load_model(config):
       raise RuntimeError(f"Failed to load model via HAL: {self.model_path}")
 
@@ -187,16 +188,16 @@ class YoloRKNNDetector:
   def infer(self, frame_bgr: np.ndarray) -> list[Detection]:
     """Run detection on a BGR frame."""
     rgb, ratio, dwdh = self._letterbox(frame_bgr)
-    
+
     # Run inference through HAL
     result = self.npu.infer('yolo', {'input': rgb})
-    
+
     if not result.success:
       print(f"YOLO inference failed: {result.error_message}")
       return []
-    
+
     outputs = result.outputs.get('outputs', [])
-    
+
     # Detect segmentation model
     is_segmentation = len(outputs) == 13 and self.model_format == "yolov8"
 
@@ -211,7 +212,7 @@ class YoloRKNNDetector:
       x1, y1, x2, y2 = boxes[i]
       # Remove padding
       x1, y1, x2, y2 = (x1 - dwdh[0]) / ratio, (y1 - dwdh[1]) / ratio, (x2 - dwdh[0]) / ratio, (y2 - dwdh[1]) / ratio
-      
+
       detections.append(Detection(
         class_id=int(classes[i]),
         class_name=self.classes[int(classes[i])],
@@ -236,9 +237,8 @@ class YoloRKNNDetector:
     new_unpad = (int(round(shape[1] * r)), int(round(shape[0] * r)))
 
     # Compute padding
-    dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]
-    dw /= 2
-    dh /= 2
+    dw = float(new_shape[1] - new_unpad[0]) / 2.0
+    dh = float(new_shape[0] - new_unpad[1]) / 2.0
 
     # Resize using RGA hardware accelerator if available, else cv2 fallback
     if shape[::-1] != new_unpad:
@@ -289,44 +289,43 @@ class YoloRKNNDetector:
     """Post-process YOLOv5 outputs."""
     # YOLOv5 output format: [batch, num_anchors, grid_h, grid_w, 5 + num_classes]
     # or for segmentation: [batch, num_anchors, grid_h, grid_w, 5 + num_classes + mask_coeffs]
-    
+
     all_boxes = []
     all_scores = []
     all_classes = []
-    all_masks = []
 
-    for i, output in enumerate(outputs):
+    for _i, output in enumerate(outputs):
       if output.ndim == 4:
         output = output.reshape(output.shape[0], -1, output.shape[-1])
-      
+
       # Extract predictions
       batch_size, num_preds, num_attrs = output.shape
-      
+
       # For each anchor
       for b in range(batch_size):
         for p in range(num_preds):
           pred = output[b, p]
-          
+
           # YOLOv5: [x, y, w, h, obj_conf, class_probs...]
           obj_conf = pred[4]
           if obj_conf < self.obj_threshold:
             continue
-          
+
           class_probs = pred[5:]
           class_id = np.argmax(class_probs)
           class_conf = class_probs[class_id]
-          
+
           confidence = obj_conf * class_conf
           if confidence < self.obj_threshold:
             continue
-          
+
           # Convert to x1, y1, x2, y2
           x, y, w, h = pred[0:4]
           x1 = x - w / 2
           y1 = y - h / 2
           x2 = x + w / 2
           y2 = y + h / 2
-          
+
           all_boxes.append([x1, y1, x2, y2])
           all_scores.append(confidence)
           all_classes.append(class_id)
@@ -334,14 +333,14 @@ class YoloRKNNDetector:
     if not all_boxes:
       return np.array([]), np.array([]), np.array([]), None
 
-    all_boxes = np.array(all_boxes)
-    all_scores = np.array(all_scores)
-    all_classes = np.array(all_classes)
+    boxes_arr = np.array(all_boxes)
+    scores_arr = np.array(all_scores)
+    classes_arr = np.array(all_classes)
 
     # NMS
-    keep = _nms(all_boxes, all_scores, self.nms_threshold)
+    keep = _nms(boxes_arr, scores_arr, self.nms_threshold)
 
-    return all_boxes[keep], all_scores[keep], all_classes[keep], None
+    return boxes_arr[keep], scores_arr[keep], classes_arr[keep], None
 
   def _postprocess_v8(
     self,
@@ -351,16 +350,16 @@ class YoloRKNNDetector:
     """Post-process YOLOv8 outputs."""
     # YOLOv8 output format is different from YOLOv5
     # Typically: [batch, 4 + num_classes + mask_coeffs, num_predictions]
-    
+
     if not outputs:
       return np.array([]), np.array([]), np.array([]), None
 
     # YOLOv8 typically has outputs[0] as the main detection output
     predictions = outputs[0]
-    
+
     if predictions.ndim == 3:
       predictions = predictions[0]  # Remove batch dimension
-    
+
     # Transpose if needed: [num_predictions, attrs] -> expected format
     if predictions.shape[0] < predictions.shape[1]:
       predictions = predictions.T
@@ -370,26 +369,26 @@ class YoloRKNNDetector:
     all_classes = []
 
     num_classes = len(self.classes)
-    
+
     for pred in predictions:
       # YOLOv8: [x_center, y_center, w, h, class_probs...]
       if len(pred) < 4 + num_classes:
         continue
-      
+
       class_probs = pred[4:4 + num_classes]
       class_id = np.argmax(class_probs)
       confidence = class_probs[class_id]
-      
+
       if confidence < self.obj_threshold:
         continue
-      
+
       # Convert center format to corner format
       x_center, y_center, w, h = pred[0:4]
       x1 = x_center - w / 2
       y1 = y_center - h / 2
       x2 = x_center + w / 2
       y2 = y_center + h / 2
-      
+
       all_boxes.append([x1, y1, x2, y2])
       all_scores.append(confidence)
       all_classes.append(class_id)
@@ -397,11 +396,11 @@ class YoloRKNNDetector:
     if not all_boxes:
       return np.array([]), np.array([]), np.array([]), None
 
-    all_boxes = np.array(all_boxes)
-    all_scores = np.array(all_scores)
-    all_classes = np.array(all_classes)
+    boxes_arr = np.array(all_boxes)
+    scores_arr = np.array(all_scores)
+    classes_arr = np.array(all_classes)
 
     # NMS
-    keep = _nms(all_boxes, all_scores, self.nms_threshold)
+    keep = _nms(boxes_arr, scores_arr, self.nms_threshold)
 
-    return all_boxes[keep], all_scores[keep], all_classes[keep], None
+    return boxes_arr[keep], scores_arr[keep], classes_arr[keep], None

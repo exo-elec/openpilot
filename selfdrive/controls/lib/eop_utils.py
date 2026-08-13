@@ -10,9 +10,8 @@ Convention for params I/O:
 """
 from __future__ import annotations
 
-import math
+from typing import cast
 
-import numpy as np
 
 from openpilot.common.params import Params
 
@@ -119,7 +118,7 @@ def calculate_speed_for_curvature(curvature: float, a_comfort: float, min_curvat
   """
   if curvature < min_curvature:
     return float('inf')
-  return (a_comfort / curvature) ** 0.5
+  return cast(float, (a_comfort / curvature) ** 0.5)
 
 
 class SpeedLimitOffset:
@@ -241,7 +240,7 @@ def detect_exopilot_platform() -> str:
   nearly identical copies of this function.
   """
   try:
-    with open('/proc/device-tree/compatible', 'r') as f:
+    with open('/proc/device-tree/compatible') as f:
       compatible = f.read()
       if 'rk3588' in compatible:
         return 'exopilot01m'

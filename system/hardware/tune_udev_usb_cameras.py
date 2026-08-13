@@ -23,20 +23,19 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
 class UvcDevice:
     name: str
-    video_nodes: List[str]
-    id_path: Optional[str] = None
-    usb_port_path: Optional[str] = None
-    vendor_id: Optional[str] = None
-    product_id: Optional[str] = None
+    video_nodes: list[str]
+    id_path: str | None = None
+    usb_port_path: str | None = None
+    vendor_id: str | None = None
+    product_id: str | None = None
 
 
-def run(cmd: List[str]) -> str:
+def run(cmd: list[str]) -> str:
     """Run a command and return stdout."""
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -51,18 +50,18 @@ def get_usb_topology() -> str:
     return run(["lsusb", "-t"])
 
 
-def get_v4l2_devices() -> List[UvcDevice]:
+def get_v4l2_devices() -> list[UvcDevice]:
     """Parse v4l2-ctl --list-devices output to find UVC cameras."""
     output = run(["v4l2-ctl", "--list-devices"])
-    devices: List[UvcDevice] = []
+    devices: list[UvcDevice] = []
     current_name = None
-    current_nodes: List[str] = []
+    current_nodes: list[str] = []
 
     for line in output.splitlines():
         line = line.rstrip()
         if not line:
             continue
-        if line.startswith("\t") or line.startswith(" "):
+        if line.startswith(("\t", " ")):
             # This is a video node line
             node_match = re.search(r'(/dev/video\d+)', line)
             if node_match:
@@ -81,7 +80,7 @@ def get_v4l2_devices() -> List[UvcDevice]:
     return devices
 
 
-def get_udev_id_path(video_node: str) -> Optional[str]:
+def get_udev_id_path(video_node: str) -> str | None:
     """Get ID_PATH for a video device from udevadm."""
     output = run(["udevadm", "info", "--query=all", f"--name={video_node}"])
     for line in output.splitlines():
@@ -103,7 +102,7 @@ def get_usb_ids(video_node: str) -> tuple:
     return vid, pid
 
 
-def generate_udev_rule(device: UvcDevice, symlink_name: str) -> Optional[str]:
+def generate_udev_rule(device: UvcDevice, symlink_name: str) -> str | None:
     """Generate a single udev rule line for a UVC camera."""
     if not device.id_path:
         return None
@@ -120,17 +119,17 @@ def generate_udev_rule(device: UvcDevice, symlink_name: str) -> Optional[str]:
         id_path_pattern = base + "*"
 
     return (
-        f'# {device.name}\n'
-        f'ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", '
-        f'ATTR{{name}}=="*UVC*", ENV{{ID_PATH}}=="*{id_path_pattern}*", '
+        f'# {device.name}\n' +
+        'ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="video*", ' +
+        f'ATTR{{name}}=="*UVC*", ENV{{ID_PATH}}=="*{id_path_pattern}*", ' +
         f'SYMLINK+="{symlink_name}", TAG+="systemd"'
     )
 
 
-def identify_camera(device: UvcDevice) -> Optional[str]:
+def identify_camera(device: UvcDevice) -> str | None:
     """Try to identify which logical camera this is based on heuristics."""
     name_lower = device.name.lower()
-    nodes_str = " ".join(device.video_nodes).lower()
+    " ".join(device.video_nodes).lower()
 
     # Check for known camera names
     if "side" in name_lower and "left" in name_lower:
@@ -147,7 +146,7 @@ def identify_camera(device: UvcDevice) -> Optional[str]:
     return None
 
 
-def generate_rules(devices: List[UvcDevice]) -> List[str]:
+def generate_rules(devices: list[UvcDevice]) -> list[str]:
     """Generate udev rules for all detected UVC cameras."""
     rules = []
     rules.append("# Auto-generated USB UVC camera rules")
@@ -156,7 +155,7 @@ def generate_rules(devices: List[UvcDevice]) -> List[str]:
 
     # Identify and generate rules
     assigned_names = set()
-    unassigned: List[UvcDevice] = []
+    unassigned: list[UvcDevice] = []
 
     for dev in devices:
         name = identify_camera(dev)

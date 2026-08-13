@@ -6,13 +6,10 @@ Run this to test complete inference pipeline on dev PC.
 
 from __future__ import annotations
 
-import time
 import logging
 import numpy as np
-from pathlib import Path
 
-from openpilot.common.swaglog import cloudlog
-from openpilot.system.inferenced import InferenceClient, BackendType
+from openpilot.system.inferenced import InferenceClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,7 +62,7 @@ class TestDaemon:
         logger.info(f"✓ ACL inference success: small={result_small.inference_time_ms:.2f}ms, large={result_large.inference_time_ms:.2f}ms")
         return True
       else:
-        logger.error(f"✗ ACL inference failed")
+        logger.error("✗ ACL inference failed")
         return False
 
     except RuntimeError as e:
@@ -170,8 +167,8 @@ class TestDaemon:
         logger.error(f"✗ best_compute() failed: {result.error_message}")
         return False
 
-    except RuntimeError as e:
-      logger.error(f"✗ No compute backends available: {e}")
+    except RuntimeError:
+      logger.exception("✗ No compute backends available")
       return False
 
   def test_backend_stats(self) -> bool:
@@ -187,21 +184,20 @@ class TestDaemon:
         logger.warning("No backends available for stats testing")
         return False
 
-      all_valid = True
       for backend_type in backends:
         backend = hal.get_backend(backend_type)
         if backend is None:
           continue
 
         stats = backend.get_stats()
-        logger.info(f"  {backend_type.name}: completed={stats.tasks_completed}, "
-                   f"failed={stats.tasks_failed}, "
+        logger.info(f"  {backend_type.name}: completed={stats.tasks_completed}, " +
+                   f"failed={stats.tasks_failed}, " +
                    f"avg_time={stats.average_latency_ms:.2f}ms")
 
       return True
 
-    except Exception as e:
-      logger.error(f"✗ Stats test failed: {e}")
+    except Exception:
+      logger.exception("✗ Stats test failed")
       return False
 
   def run_all_tests(self) -> dict[str, bool]:

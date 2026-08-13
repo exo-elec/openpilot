@@ -31,12 +31,9 @@ Usage
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import os
-import struct
-import tempfile
 import threading
 import time
 from collections.abc import Callable
@@ -92,7 +89,7 @@ class UploadItem:
   path: str = field(compare=False)
   url: str = field(compare=False)
   headers: dict = field(compare=False, default_factory=dict)
-  created_at: float = field(compare=False, default_factory=time.time)
+  created_at: float = field(compare=False, default_factory=time.time)  # noqa: TID251
   id: str | None = field(compare=False, default=None)
   retry_count: int = field(compare=False, default=0)
   current: bool = field(compare=False, default=False)
@@ -472,7 +469,7 @@ class SubscribedD:
       url=url,
       headers=headers or {},
       allow_cellular=allow_cellular,
-      id=hashlib.sha256(f"{path}:{time.time()}".encode()).hexdigest()[:16],
+      id=hashlib.sha256(f"{path}:{time.time()}".encode()).hexdigest()[:16],  # noqa: TID251
     )
 
     try:

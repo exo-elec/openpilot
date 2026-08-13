@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -58,7 +57,7 @@ class StereoCorrection:
     """
 
     # Default calibration search paths (canonical HAL store first, then legacy)
-    DEFAULT_CALIB_PATHS: Tuple[str, ...] = (
+    DEFAULT_CALIB_PATHS: tuple[str, ...] = (
         os.path.join(Paths.eop_data_root(), "calibration", "stereo_intrinsics.npz"),
         os.path.join(Paths.eop_data_root(), "calibration", "stereo_calibration.npz"),
         "/data/params/d/calibration/stereo_calibration.npz",
@@ -67,10 +66,10 @@ class StereoCorrection:
 
     def __init__(
         self,
-        calib_path: Optional[str] = None,
+        calib_path: str | None = None,
         target_ipd_mm: float = 63.0,
-        actual_baseline_mm: Optional[float] = None,
-        image_size: Optional[Tuple[int, int]] = None,
+        actual_baseline_mm: float | None = None,
+        image_size: tuple[int, int] | None = None,
     ):
         self.target_ipd_mm = float(target_ipd_mm)
 
@@ -83,18 +82,18 @@ class StereoCorrection:
         self._scale = self.target_ipd_mm / self.actual_baseline_mm
 
         cloudlog.info(
-            f"StereoCorrection: target_ipd={self.target_ipd_mm}mm, "
+            f"StereoCorrection: target_ipd={self.target_ipd_mm}mm, " +
             f"actual_baseline={self.actual_baseline_mm}mm, scale={self._scale:.3f}"
         )
 
         # Calibration data
         self._has_full_calib = False
-        self._left_map1: Optional[np.ndarray] = None
-        self._left_map2: Optional[np.ndarray] = None
-        self._right_map1: Optional[np.ndarray] = None
-        self._right_map2: Optional[np.ndarray] = None
-        self._roi_left: Optional[Tuple[int, int, int, int]] = None
-        self._roi_right: Optional[Tuple[int, int, int, int]] = None
+        self._left_map1: np.ndarray | None = None
+        self._left_map2: np.ndarray | None = None
+        self._right_map1: np.ndarray | None = None
+        self._right_map2: np.ndarray | None = None
+        self._roi_left: tuple[int, int, int, int] | None = None
+        self._roi_right: tuple[int, int, int, int] | None = None
 
         # Fallback data
         self._fallback_shift_px = 0
@@ -119,14 +118,14 @@ class StereoCorrection:
     # Calibration loading
     # ------------------------------------------------------------------
 
-    def _load_calibration(self, calib_path: Optional[str] = None) -> bool:
+    def _load_calibration(self, calib_path: str | None = None) -> bool:
         """Load stereo calibration and compute VR-corrected rectification maps."""
         paths = []
         if calib_path:
             paths.append(calib_path)
         paths.extend(self.DEFAULT_CALIB_PATHS)
 
-        npz_path: Optional[Path] = None
+        npz_path: Path | None = None
         for p in paths:
             candidate = Path(p)
             if candidate.exists():
@@ -135,8 +134,8 @@ class StereoCorrection:
 
         if npz_path is None:
             cloudlog.warning(
-                f"VRStereoCorrection: no calibration found (tried {paths}). "
-                f"Using fallback shift mode."
+                f"VRStereoCorrection: no calibration found (tried {paths}). " +
+                "Using fallback shift mode."
             )
             self._init_fallback()
             return False
@@ -188,8 +187,8 @@ class StereoCorrection:
                 # Normalise then scale
                 T_scaled = T * self._scale
                 cloudlog.info(
-                    f"VRStereoCorrection: scaling baseline {T_norm:.1f} → "
-                    f"{np.linalg.norm(T_scaled):.1f} (scale={self._scale:.3f}, "
+                    f"VRStereoCorrection: scaling baseline {T_norm:.1f} → " +
+                    f"{np.linalg.norm(T_scaled):.1f} (scale={self._scale:.3f}, " +
                     f"IPD={self.target_ipd_mm}mm)"
                 )
             else:
@@ -220,7 +219,7 @@ class StereoCorrection:
             self._has_full_calib = True
 
             cloudlog.info(
-                f"StereoCorrection: full rectification loaded from {npz_path} "
+                f"StereoCorrection: full rectification loaded from {npz_path} " +
                 f"(ROI left={roi1}, right={roi2})"
             )
             return True
@@ -243,7 +242,7 @@ class StereoCorrection:
         # We use a conservative fraction of image width.
         self._fallback_shift_px = max(1, int(img_w * 0.05 * (1.0 - self._scale)))
         cloudlog.info(
-            f"StereoCorrection: fallback shift = {self._fallback_shift_px}px "
+            f"StereoCorrection: fallback shift = {self._fallback_shift_px}px " +
             f"(scale={self._scale:.3f})"
         )
 
@@ -255,7 +254,7 @@ class StereoCorrection:
         self,
         left: np.ndarray,
         right: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Correct a stereo pair for human IPD viewing.
 
@@ -269,7 +268,7 @@ class StereoCorrection:
         self,
         left: np.ndarray,
         right: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Full OpenCV rectification with scaled baseline."""
         left_rect = cv2.remap(left, self._left_map1, self._left_map2, cv2.INTER_LINEAR)
         right_rect = cv2.remap(right, self._right_map1, self._right_map2, cv2.INTER_LINEAR)
@@ -288,7 +287,7 @@ class StereoCorrection:
         self,
         left: np.ndarray,
         right: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Fallback: crop/shift to approximate baseline reduction.
 

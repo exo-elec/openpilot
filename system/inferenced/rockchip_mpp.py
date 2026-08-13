@@ -121,7 +121,7 @@ class MPPBackend(HardwareBackend):
       )
 
     except Exception as e:
-      logger.error(f"MPP operation error: {e}")
+      logger.exception("MPP operation error")
       self._stats.tasks_failed += 1
       return InferenceResult(
           backend_type=self.backend_type,
@@ -132,7 +132,6 @@ class MPPBackend(HardwareBackend):
 
   def _h264_encode(self, inputs: dict[str, Any]) -> bytes:
     """H.264 video encoding."""
-    import numpy as np
 
     frame = inputs.get('frame')
     width = inputs.get('width', 1280)

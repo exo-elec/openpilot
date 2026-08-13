@@ -129,7 +129,7 @@ class Radar4DD:
             min_points=2,
             enable_ground_filter=True,
         )
-        self.bgt60: "BGT60TR13C | None" = None
+        self.bgt60: BGT60TR13C | None = None
         self.running = False
         self._calib_from_device: np.ndarray | None = None
         self._v_ego_mps: float = 0.0
@@ -147,8 +147,8 @@ class Radar4DD:
 
         if not HAL_AVAILABLE:
             cloudlog.error(
-                "radar4d: hal package not installed — cannot drive BGT60TR13C. "
-                "Dev PC: pip3 install -e ../exopilot/hal. On-device: rerun "
+                "radar4d: hal package not installed — cannot drive BGT60TR13C. " +
+                "Dev PC: pip3 install -e ../exopilot/hal. On-device: rerun " +
                 "exopilot/scripts/install/setup_rk3588.sh."
             )
             return
@@ -162,9 +162,9 @@ class Radar4DD:
             # sharing that GPIO bank. Matches VisionPilot's radar4d_node.py,
             # which hard-fails the same way unless explicitly run in mock mode.
             cloudlog.error(
-                "radar4d: BGT60_IRQ/BGT60_RST GPIO pins are UNCONFIRMED placeholders "
-                "(hal.platform.rk3588_pins, pending LubanCat5 schematic verification) "
-                "— refusing to drive real hardware with them. Confirm against the "
+                "radar4d: BGT60_IRQ/BGT60_RST GPIO pins are UNCONFIRMED placeholders " +
+                "(hal.platform.rk3588_pins, pending LubanCat5 schematic verification) " +
+                "— refusing to drive real hardware with them. Confirm against the " +
                 "LubanCat5 schematic and flip 'confirmed' to True once verified."
             )
             return
@@ -393,7 +393,7 @@ class Radar4DD:
                         now = time.monotonic()
                         if now - self._last_radar_xcheck_warn_t >= V_EGO_XCHECK_WARN_S:
                             cloudlog.warning(
-                                f"radar4d: ego-speed mismatch — vehicle {self._v_ego_mps:.2f} m/s "
+                                f"radar4d: ego-speed mismatch — vehicle {self._v_ego_mps:.2f} m/s " +
                                 f"vs radar-Doppler {v_radar:.2f} m/s (wheel slip or tyre-size error?)"
                             )
                             self._last_radar_xcheck_warn_t = now

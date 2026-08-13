@@ -1,7 +1,7 @@
 """Tests for EOP NSLC (Navigation Speed Limit Controller) unit conversion and logic."""
 import sys
 import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock  # noqa: TID251
 
 # Stub out missing Cython extensions before any imports
 _fake_params_pyx = MagicMock()
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         t.setup_method()
         getattr(t, name)()
         print(f"  PASS: {name}")
-      except Exception as e:
+      except Exception:
         failures += 1
         print(f"  FAIL: {name}")
         traceback.print_exc()

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import sys
-import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock  # noqa: TID251
 
 import pytest
 
@@ -18,7 +17,7 @@ sys.modules['cereal.messaging'] = mock_messaging
 from cereal import log
 from cereal import custom
 from openpilot.selfdrive.adaptd.adaptd import (
-  AdaptiveDrivingComputer, AdaptiveProfile, Thresholds, AdaptD,
+  AdaptiveDrivingComputer, AdaptD,
 )
 
 LongitudinalPersonality = log.LongitudinalPersonality
@@ -308,4 +307,4 @@ class TestAdaptD:
 
 
 if __name__ == '__main__':
-  pytest.main([__file__, '-v'])
+  pytest.main([__file__, '-v'])  # noqa: TID251

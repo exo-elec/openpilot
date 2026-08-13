@@ -43,7 +43,7 @@ from collections import deque
 
 from cereal import log, car
 import cereal.messaging as messaging
-from openpilot.system.hardware import HARDWARE, HAS_SIDE_CAMERAS
+from openpilot.system.hardware import HAS_SIDE_CAMERAS
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, DT_MDL

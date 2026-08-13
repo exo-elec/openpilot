@@ -12,8 +12,8 @@ Run: python3 selfdrive/steamd/tests/test_arbiter.py
 
 import sys
 import time
-import unittest
-from unittest.mock import MagicMock, patch
+import unittest  # noqa: TID251
+from unittest.mock import MagicMock, patch  # noqa: TID251
 
 # Mock compiled dependencies before importing arbiter
 _mock_msgq = MagicMock()

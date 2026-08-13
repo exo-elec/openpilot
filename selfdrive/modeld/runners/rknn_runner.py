@@ -6,30 +6,32 @@ All NPU access goes through InferenceClient - no direct RKNNLite usage.
 """
 
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, cast
 import numpy as np
 
 # Centralized HAL - ONLY way to access NPU
-from openpilot.system.inferenced import InferenceClient, BackendType
+from openpilot.system.inferenced import InferenceClient, HardwareBackend
 
 
 class RKNNRunner:
   """RKNN model runner using HAL.
-  
+
   This class provides a high-level interface for running RKNN models
   through the centralized HAL, abstracting away hardware details.
   """
 
+  _last_async_outputs: dict[str, np.ndarray | None] | None = None
+
   def __init__(
     self,
-    model_path: Union[str, Path],
+    model_path: str | Path,
     input_shapes: dict[str, tuple | None] = None,
     output_shapes: dict[str, tuple | None] = None,
     use_npu_cores: str = "all",
     verbose: bool = False,
   ):
     """Initialize RKNN runner via HAL.
-    
+
     Args:
         model_path: Path to .rknn model file
         input_shapes: Optional dict of input names to shapes
@@ -41,25 +43,25 @@ class RKNNRunner:
     self.input_shapes = input_shapes or {}
     self.output_shapes = output_shapes or {}
     self.verbose = verbose
-    
+
     if not self.model_path.exists():
       raise FileNotFoundError(f"RKNN model not found: {self.model_path}")
-    
+
     # Create HAL client - ONLY way to access NPU
     self.client = InferenceClient("rknn_runner")
-    
+
     # Get NPU backend
     try:
-      self.npu = self.client.npu()
+      self.npu: HardwareBackend = self.client.npu()
     except RuntimeError as e:
-      raise RuntimeError(f"NPU not available via HAL: {e}")
-    
+      raise RuntimeError(f"NPU not available via HAL: {e}") from e
+
     # Load model
     self._load_model(use_npu_cores)
-    
+
     # Get model info from HAL
     self._query_model_info()
-    
+
     if self.verbose:
       print(f"✅ RKNN model loaded via HAL: {self.model_path.name}")
       print(f"   Inputs: {self.input_shapes}")
@@ -87,15 +89,15 @@ class RKNNRunner:
   def _load_model(self, use_npu_cores: str):
     """Load model through HAL."""
     from openpilot.system.inferenced.compute import ModelConfig
-    
+
     core_mask = self._parse_core_mask(use_npu_cores)
-    
+
     config = ModelConfig(
       name='rknn_model',
       path=str(self.model_path),
       npu_cores=core_mask
     )
-    
+
     if not self.npu.load_model(config):
       raise RuntimeError(f"Failed to load model via HAL: {self.model_path}")
 
@@ -104,43 +106,43 @@ class RKNNRunner:
 
   def run(
     self,
-    inputs: Union[np.ndarray, dict[str, np.ndarray]],
+    inputs: np.ndarray | dict[str, np.ndarray],
     copy_to_cpu: bool = True,
-  ) -> Union[np.ndarray, list[np.ndarray], dict[str, np.ndarray]]:
+  ) -> np.ndarray | list[np.ndarray] | dict[str, np.ndarray]:
     """Run inference.
-    
+
     Args:
         inputs: Input tensor(s). Can be:
                 - Single numpy array for single-input models
                 - dict of name -> array for multi-input models
         copy_to_cpu: Copy outputs to CPU (always True with HAL)
-        
+
     Returns:
         Output tensor(s) in the same format as inputs
     """
     # Normalize inputs to dict
     if isinstance(inputs, np.ndarray):
       inputs = {'input': inputs}
-    
+
     # Run inference through HAL
     result = self.npu.infer('rknn_model', inputs)
-    
+
     if not result.success:
       raise RuntimeError(f"Inference failed: {result.error_message}")
-    
+
     outputs = result.outputs
-    
+
     # Return in appropriate format
     if len(outputs) == 1 and 'output' in outputs:
-      return outputs['output']
+      return cast(np.ndarray, outputs['output'])
     elif len(outputs) == 1:
-      return list(outputs.values())[0]
+      return cast(np.ndarray, list(outputs.values())[0])
     else:
-      return outputs
+      return cast(dict[str, np.ndarray], outputs)
 
   def run_async(
     self,
-    inputs: Union[np.ndarray, dict[str, np.ndarray]],
+    inputs: np.ndarray | dict[str, np.ndarray],
   ) -> str:
     """Run inference synchronously; HAL has no async API."""
     if isinstance(inputs, np.ndarray):
@@ -155,7 +157,9 @@ class RKNNRunner:
     """Return outputs from the last run_async() call."""
     outputs = getattr(self, '_last_async_outputs', None)
     self._last_async_outputs = None
-    return outputs
+    if outputs is None:
+      return {}
+    return cast(dict[str, np.ndarray | None], outputs)
 
   def get_perf_detail(self) -> dict[str, Any]:
     """Return available performance stats from the NPU backend."""
@@ -185,12 +189,12 @@ class RKNNModelPool:
 
   def __init__(
     self,
-    model_path: Union[str, Path],
+    model_path: str | Path,
     pool_size: int = 2,
     use_npu_cores: str = "all",
   ):
     """Initialize model pool.
-    
+
     Args:
         model_path: Path to .rknn model file
         pool_size: Number of runners in pool
@@ -198,23 +202,23 @@ class RKNNModelPool:
     """
     self.model_path = Path(model_path)
     self.pool_size = pool_size
-    
+
     # Create HAL client
     self.client = InferenceClient("rknn_pool")
-    
+
     # Get NPU backend
     self.npu = self.client.npu()
-    
+
     # Load model once
     from openpilot.system.inferenced.compute import ModelConfig
-    
+
     core_mask = 0xFF if use_npu_cores == "all" else int(use_npu_cores)
     config = ModelConfig(
       name='rknn_pool_model',
       path=str(self.model_path),
       npu_cores=core_mask
     )
-    
+
     if not self.npu.load_model(config):
       raise RuntimeError(f"Failed to load model: {self.model_path}")
 
@@ -223,22 +227,22 @@ class RKNNModelPool:
     batch_inputs: list[dict[str, np.ndarray]],
   ) -> list[dict[str, np.ndarray]]:
     """Run batch of inferences.
-    
+
     Args:
         batch_inputs: list of input dicts
-        
+
     Returns:
         list of output dicts
     """
     results = []
-    
+
     for inputs in batch_inputs:
       result = self.npu.infer('rknn_pool_model', inputs)
       if result.success:
         results.append(result.outputs)
       else:
         results.append({})
-    
+
     return results
 
   def release(self):

@@ -275,7 +275,7 @@ class WiperMotionDetector:
         self._fps = fps
 
     def _sweeps(self) -> int:
-        return sum(1 for a, b in zip(self._bursts, list(self._bursts)[1:])
+        return sum(1 for a, b in zip(self._bursts, list(self._bursts)[1:], strict=False)
                    if b and not a)
 
     @property
@@ -482,7 +482,7 @@ def _lshape_search(xy: np.ndarray) -> tuple[float, float, float]:
         d_min = 0.1 * 0.1
         d_max = 0.4 * 0.4
         beta = 0.0
-        for a, b in zip(c1, c2):
+        for a, b in zip(c1, c2, strict=False):
             d1 = min(max1 - a, a - min1)
             d2 = min(max2 - b, b - min2)
             d = max(min(d1, d2), d_min)
@@ -568,8 +568,8 @@ def _split_oversized(pts: list[RadarPoint], min_points: int, depth: int = 0) -> 
     if float(proj.max() - proj.min()) <= SPLIT_MAX_EXTENT_M:
         return [pts]
     median = float(np.median(proj))
-    lo = [p for p, v in zip(pts, proj) if v <= median]
-    hi = [p for p, v in zip(pts, proj) if v > median]
+    lo = [p for p, v in zip(pts, proj, strict=False) if v <= median]
+    hi = [p for p, v in zip(pts, proj, strict=False) if v > median]
     if not lo or not hi:
         return [pts]
     return _split_oversized(lo, min_points, depth + 1) + _split_oversized(hi, min_points, depth + 1)

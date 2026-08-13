@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import math
 import sqlite3
-import struct
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -79,29 +78,29 @@ class SurfacePrediction:
 
 class IMUBumpDetector:
     """IMU-based bump detection (reactive)."""
-    
+
     def __init__(self, threshold_g: float = 2.5, cooldown_s: float = 1.0, history_size: int = 10):
         self.threshold_g = threshold_g
         self.cooldown_s = cooldown_s
         self.z_history = deque(maxlen=history_size)
         self.last_shock_time: float | None = None
         self.recent_shocks: list[SurfaceShock] = []
-        
+
     def detect(self, z_accel_ms2: float, timestamp: float) -> SurfaceShock | None:
         """Detect shock from IMU z-acceleration."""
         z_g = abs(z_accel_ms2) / 9.81
         self.z_history.append(z_g)
-        
+
         # Cooldown check
         if self.last_shock_time:
             if timestamp - self.last_shock_time < self.cooldown_s:
                 return None
-        
+
         if len(self.z_history) >= 3:
             recent = list(self.z_history)[-3:]
             recent_avg = np.mean(recent[:-1])
             current = recent[-1]
-            
+
             # Spike detection: current > threshold AND > 1.5x average
             if current > self.threshold_g and current > recent_avg * 1.5:
                 self.last_shock_time = timestamp
@@ -117,7 +116,7 @@ class IMUBumpDetector:
                 self.recent_shocks.append(shock)
                 return shock
         return None
-    
+
     def get_shock_count_and_clear(self) -> int:
         """Get count of recent shocks and clear."""
         count = len(self.recent_shocks)
@@ -131,7 +130,7 @@ class IMUBumpDetector:
 
 class StereoSurfaceAnalyzer:
     """Stereo-based surface analysis (predictive real-time)."""
-    
+
     def __init__(
         self,
         baseline_mm: float = 160.0,
@@ -144,23 +143,23 @@ class StereoSurfaceAnalyzer:
         self.bump_height_thresh = bump_height_thresh
         self.pothole_depth_thresh = pothole_depth_thresh
         self.cooldown_s = cooldown_s
-        
+
         self.plane_history = deque(maxlen=5)
         self.last_detection_time: float | None = None
         self.last_obstacles: list[SurfaceShock] = []
-        
+
     def _estimate_ground_plane(self, points: np.ndarray) -> np.ndarray:
         """Estimate ground plane from point cloud using SVD."""
         if len(points) < 100:
             return np.array([0, 1, 0, 0])
-        
+
         # Filter to forward-facing points
         valid = (points[:, 0] > 0) & (points[:, 0] < self.max_range)
         valid &= (points[:, 2] > -2) & (points[:, 2] < 2)
-        
+
         if np.sum(valid) < 50:
             return np.array([0, 1, 0, 0])
-        
+
         valid_points = points[valid]
         centroid = np.mean(valid_points, axis=0)
         centered = valid_points - centroid
@@ -168,40 +167,40 @@ class StereoSurfaceAnalyzer:
         normal = Vt[-1]
         d = -np.dot(normal, centroid)
         plane = np.array([normal[0], normal[1], normal[2], d])
-        
+
         # Temporal smoothing
         self.plane_history.append(plane)
         if len(self.plane_history) > 1:
             return np.mean(self.plane_history, axis=0)
         return plane
-    
+
     def analyze(self, points_xyz: np.ndarray, timestamp: float) -> list[SurfaceShock]:
         """Analyze point cloud for surface obstacles."""
         self.last_obstacles = []
-        
+
         # Cooldown
         if self.last_detection_time:
             if timestamp - self.last_detection_time < self.cooldown_s:
                 return []
-        
+
         if len(points_xyz) < 100:
             return []
-        
+
         plane = self._estimate_ground_plane(points_xyz)
         a, b, c, d = plane
         norm = np.sqrt(a**2 + b**2 + c**2)
-        
+
         obstacles = []
-        
+
         for point in points_xyz:
             # Distance from plane
             dist = (a * point[0] + b * point[1] + c * point[2] + d) / norm
             forward_dist = point[0]
             lateral_dist = point[2]
-            
+
             if forward_dist > self.max_range:
                 continue
-            
+
             # Raised obstacle (bump/speed table)
             if dist > self.bump_height_thresh:
                 obstacles.append(SurfaceShock(
@@ -214,7 +213,7 @@ class StereoSurfaceAnalyzer:
                     timestamp=timestamp
                 ))
                 self.last_detection_time = timestamp
-                
+
             # Depressed obstacle (pothole)
             elif dist < -self.pothole_depth_thresh:
                 obstacles.append(SurfaceShock(
@@ -227,10 +226,10 @@ class StereoSurfaceAnalyzer:
                     timestamp=timestamp
                 ))
                 self.last_detection_time = timestamp
-        
+
         self.last_obstacles = obstacles
         return obstacles
-    
+
     def get_obstacle_count_and_clear(self) -> int:
         """Get count of recent obstacles and clear."""
         count = len(self.last_obstacles)
@@ -244,32 +243,32 @@ class StereoSurfaceAnalyzer:
 
 class SurfaceQualityAnalyzer:
     """Analyze surface quality from continuous IMU data."""
-    
+
     WINDOW_DURATION_S = 2.0
     SAMPLE_RATE_HZ = 100
     WINDOW_SIZE = int(WINDOW_DURATION_S * SAMPLE_RATE_HZ)
-    
+
     def __init__(self):
         self.z_history = deque(maxlen=self.WINDOW_SIZE)
         self.timestamps = deque(maxlen=self.WINDOW_SIZE)
         self.quality_history = deque(maxlen=10)
-        
+
     def add_sample(self, z_accel_ms2: float, timestamp: float):
         """Add IMU sample for analysis."""
         self.z_history.append(z_accel_ms2)
         self.timestamps.append(timestamp)
-    
+
     def analyze(self) -> SurfaceQuality | None:
         """Analyze surface quality from recent samples."""
         if len(self.z_history) < self.WINDOW_SIZE * 0.5:
             return None
-        
+
         values = np.array(self.z_history)
         values_centered = values - np.mean(values)
-        
+
         # RMS roughness
         rms = np.sqrt(np.mean(values_centered ** 2)) if len(values_centered) > 0 else 0.0
-        
+
         # Peak detection
         peak_threshold = 2.0 * 9.81
         peak_count = 0
@@ -277,15 +276,15 @@ class SurfaceQualityAnalyzer:
             if abs(values_centered[i]) > peak_threshold:
                 if abs(values_centered[i]) > abs(values_centered[i-1]) and abs(values_centered[i]) > abs(values_centered[i+1]):
                     peak_count += 1
-        
+
         # Normalize score
         rms_normalized = min(rms / 4.0, 1.0)
         peak_contribution = min(peak_count / 5.0, 0.3)
         raw_score = rms_normalized * 0.7 + peak_contribution
-        
+
         self.quality_history.append(raw_score)
         score = float(np.mean(self.quality_history))
-        
+
         # Texture classification
         if score < 0.2:
             texture = "smooth"
@@ -295,16 +294,16 @@ class SurfaceQualityAnalyzer:
             texture = "rough"
         else:
             texture = "very_rough"
-        
+
         confidence = min(len(self.z_history) / self.WINDOW_SIZE, 1.0)
-        
+
         return SurfaceQuality(
             score=score,
             texture=texture,
             roughness_rms=rms,
             confidence=confidence
         )
-    
+
     def reset(self):
         """Reset analyzer."""
         self.z_history.clear()
@@ -320,12 +319,12 @@ def _encode_geohash(lat: float, lon: float, precision: int = 7) -> str:
     base32 = "0123456789bcdefghjkmnpqrstuvwxyz"
     lat_range = [-90.0, 90.0]
     lon_range = [-180.0, 180.0]
-    
+
     geohash = []
     bits = 0
     bits_total = 0
     is_even = True
-    
+
     while len(geohash) < precision:
         if is_even:
             mid = (lon_range[0] + lon_range[1]) / 2
@@ -343,54 +342,54 @@ def _encode_geohash(lat: float, lon: float, precision: int = 7) -> str:
             else:
                 bits = bits * 2
                 lat_range[1] = mid
-        
+
         is_even = not is_even
         bits_total += 1
-        
+
         if bits_total == 5:
             geohash.append(base32[bits])
             bits = 0
             bits_total = 0
-    
+
     return "".join(geohash)
 
 
 def _calculate_destination(lat: float, lon: float, bearing: float, distance_m: float) -> tuple[float, float]:
     """Calculate destination point given start, bearing, and distance."""
     R = 6371000  # Earth radius in meters
-    
+
     lat_rad = math.radians(lat)
     lon_rad = math.radians(lon)
     bearing_rad = math.radians(bearing)
-    
+
     angular_distance = distance_m / R
-    
+
     dest_lat = math.asin(
         math.sin(lat_rad) * math.cos(angular_distance) +
         math.cos(lat_rad) * math.sin(angular_distance) * math.cos(bearing_rad)
     )
-    
+
     dest_lon = lon_rad + math.atan2(
         math.sin(bearing_rad) * math.sin(angular_distance) * math.cos(lat_rad),
         math.cos(angular_distance) - math.sin(lat_rad) * math.sin(dest_lat)
     )
-    
+
     return math.degrees(dest_lat), math.degrees(dest_lon)
 
 
 class SurfaceQualityDB:
     """SQLite database for surface quality with GPS indexing.
-    
+
     Uses exopilot_shared schema v1.0 for compatibility with EVP.
     """
-    
+
     DB_PATH = Path("/data/shared/exopilot/surface.db")
     GEOHASH_PRECISION = 7  # ~150m precision
-    
+
     def __init__(self):
         self.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
-    
+
     def _init_db(self):
         """Initialize database schema - matches exopilot_shared package."""
         with sqlite3.connect(self.DB_PATH) as conn:
@@ -414,36 +413,36 @@ class SurfaceQualityDB:
                     source TEXT DEFAULT 'exopilot01m' CHECK(source IN ('exopilot01m', 'exopilot02m', 'exopilot03m', 'merged'))
                 )
             """)
-            
+
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_spatial 
+                CREATE INDEX IF NOT EXISTS idx_spatial
                 ON surface_quality(geohash, heading_bucket)
             """)
-            
+
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_timestamp 
+                CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON surface_quality(timestamp)
             """)
-            
+
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_source 
+                CREATE INDEX IF NOT EXISTS idx_source
                 ON surface_quality(source)
             """)
-            
+
             conn.commit()
-    
+
     def _heading_to_bucket(self, heading: float) -> int:
         """Convert heading to 8-direction bucket."""
         heading = heading % 360.0
         return int(heading / 45.0) % 8
-    
+
     def _get_heading_difference(self, h1: float, h2: float) -> float:
         """Get smallest angle difference between headings."""
         diff = abs((h1 % 360) - (h2 % 360))
         if diff > 180:
             diff = 360 - diff
         return diff
-    
+
     def _estimate_feature_type(self, shock_count: int, quality_score: float) -> str:
         """Estimate feature type from recorded data."""
         if shock_count >= 3:
@@ -457,7 +456,7 @@ class SurfaceQualityDB:
         elif quality_score > 0.4:
             return SurfaceFeatureType.GRAVEL_TRANSITION.value
         return SurfaceFeatureType.UNKNOWN.value
-    
+
     def record_surface(
         self,
         lat: float,
@@ -474,7 +473,7 @@ class SurfaceQualityDB:
         """Record surface quality at a location."""
         if timestamp is None:
             timestamp = time.monotonic()
-        
+
         # Calculate recommended speed
         if shock_count > 0:
             base_speed = 8.0
@@ -486,42 +485,42 @@ class SurfaceQualityDB:
             base_speed = 20.0
         else:
             base_speed = 30.0
-        
+
         if 0 < v_ego_ms < base_speed:
             recommended_speed = v_ego_ms
         else:
             recommended_speed = base_speed
-        
+
         feature_type = self._estimate_feature_type(shock_count, quality_score)
-        
+
         geohash = _encode_geohash(lat, lon, self.GEOHASH_PRECISION)
         heading_bucket = self._heading_to_bucket(heading)
-        
+
         try:
             with sqlite3.connect(self.DB_PATH) as conn:
                 cursor = conn.execute(
-                    """SELECT quality_score, record_count, shock_count, recommended_speed_ms 
+                    """SELECT quality_score, record_count, shock_count, recommended_speed_ms
                        FROM surface_quality WHERE geohash = ? AND heading_bucket = ?""",
                     (geohash, heading_bucket)
                 )
                 existing = cursor.fetchone()
-                
+
                 if existing:
                     old_score, pass_count, old_shocks, old_speed = existing
                     new_pass_count = min(pass_count + 1, 100)
-                    
+
                     alpha = 1.0 / new_pass_count
                     new_score = old_score * (1 - alpha) + quality_score * alpha
                     new_shocks = int(old_shocks * (1 - alpha) + shock_count * alpha)
-                    
+
                     old_conf = min(pass_count / 10.0, 1.0)
                     if old_conf + alpha > 0:
                         new_speed = (old_speed * old_conf + recommended_speed * alpha) / (old_conf + alpha)
                     else:
                         new_speed = recommended_speed
-                    
+
                     confidence = min(new_pass_count / 10.0, 1.0)
-                    
+
                     conn.execute(
                         """UPDATE surface_quality SET
                             lat = ?, lon = ?,
@@ -536,8 +535,8 @@ class SurfaceQualityDB:
                 else:
                     confidence = 0.1
                     conn.execute(
-                        """INSERT INTO surface_quality 
-                        (geohash, lat, lon, heading_bucket, quality_score, shock_count, 
+                        """INSERT INTO surface_quality
+                        (geohash, lat, lon, heading_bucket, quality_score, shock_count,
                          roughness_rms, texture, feature_type, recommended_speed_ms, section_length_m,
                          timestamp, record_count, confidence, source)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -545,14 +544,14 @@ class SurfaceQualityDB:
                          roughness_rms, texture, feature_type, recommended_speed, section_length_m,
                          timestamp, 1, confidence, 'exopilot01m')
                     )
-                
+
                 conn.commit()
                 return True
-                
+
         except sqlite3.Error as e:
             print(f"SurfaceQualityDB error: {e}")
             return False
-    
+
     def predict_ahead(
         self,
         lat: float,
@@ -567,36 +566,36 @@ class SurfaceQualityDB:
                 distances_m = [int(v_ego_ms * t) for t in [2, 4, 8, 12]]
             else:
                 distances_m = [50, 100, 200, 300]
-        
+
         predictions = []
         heading_bucket = self._heading_to_bucket(heading)
-        
+
         for distance in distances_m:
             dest_lat, dest_lon = _calculate_destination(lat, lon, heading, distance)
             dest_geohash = _encode_geohash(dest_lat, dest_lon, self.GEOHASH_PRECISION)
-            
+
             try:
                 with sqlite3.connect(self.DB_PATH) as conn:
                     # Query by geohash and heading bucket
                     cursor = conn.execute(
-                        """SELECT quality_score, texture, feature_type, recommended_speed_ms, 
+                        """SELECT quality_score, texture, feature_type, recommended_speed_ms,
                                   record_count, confidence, heading_bucket
-                           FROM surface_quality 
+                           FROM surface_quality
                            WHERE geohash = ? AND heading_bucket = ?
                            ORDER BY record_count DESC, confidence DESC LIMIT 1""",
                         (dest_geohash, heading_bucket)
                     )
                     row = cursor.fetchone()
-                    
+
                     if row:
                         quality_score, texture, feature_type, rec_speed, record_count, conf, row_bucket = row
-                        
+
                         # Adjust confidence based on heading bucket match
                         bucket_diff = abs(row_bucket - heading_bucket)
                         bucket_diff = min(bucket_diff, 8 - bucket_diff)  # Wrap around
                         heading_boost = 1.0 - (bucket_diff / 8.0)
                         conf = conf * (0.7 + 0.3 * heading_boost)
-                        
+
                         predictions.append(SurfacePrediction(
                             distance_m=distance,
                             quality_score=quality_score,
@@ -614,7 +613,7 @@ class SurfaceQualityDB:
                             recommended_speed_ms=0.0,
                             confidence=0.0
                         ))
-                        
+
             except sqlite3.Error:
                 predictions.append(SurfacePrediction(
                     distance_m=distance,
@@ -624,9 +623,9 @@ class SurfaceQualityDB:
                     recommended_speed_ms=0.0,
                     confidence=0.0
                 ))
-        
+
         return predictions
-    
+
     def get_stats(self) -> dict:
         """Get database statistics."""
         try:
@@ -635,7 +634,7 @@ class SurfaceQualityDB:
                     "SELECT COUNT(*), AVG(confidence), AVG(quality_score) FROM surface_quality"
                 )
                 row = cursor.fetchone()
-                
+
                 return {
                     "total_segments": row[0] or 0,
                     "avg_confidence": row[1] or 0.0,

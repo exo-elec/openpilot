@@ -6,6 +6,8 @@ Configurable time gap profiles for longitudinal control.
 No NPU impact, parameter-based.
 """
 import time
+from typing import cast
+
 from openpilot.common.params import Params
 
 TIME_GAPS = {
@@ -48,11 +50,11 @@ class FollowingDistanceProfiles:
     def update(self):
         """Update profile from params."""
         self._read_param()
-    
+
     def get_time_gap(self) -> float:
         """Get current time gap in seconds."""
         return TIME_GAPS.get(self.profile, 1.5)
-    
+
     def get_profile(self) -> str:
         """Get current profile name."""
-        return self.profile
+        return cast(str, self.profile)

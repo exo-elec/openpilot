@@ -92,7 +92,7 @@ class ACLBackend(HardwareBackend):
       )
 
     except Exception as e:
-      logger.error(f"ACL inference error: {e}")
+      logger.exception("ACL inference error")
       self._stats.tasks_failed += 1
       return InferenceResult(
           backend_type=self.backend_type,

@@ -16,7 +16,8 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
+from typing import Any
+from collections.abc import Callable
 from collections import deque
 
 logger = logging.getLogger(__name__)
@@ -102,7 +103,7 @@ class PerformanceMonitor:
             metrics.last_updated = time.monotonic()
             self.latency_history[key].append(latency_ms)
 
-    def get_metrics(self, operation_name: str, backend_name: str) -> Optional[PerformanceMetrics]:
+    def get_metrics(self, operation_name: str, backend_name: str) -> PerformanceMetrics | None:
         """Get metrics for an operation."""
         with self._lock:
             key = f"{backend_name}:{operation_name}"
@@ -153,7 +154,7 @@ class HealthChecker:
             self.health_check_functions[name] = check_fn
             logger.info(f"Registered health check: {name}")
 
-    def run_check(self, name: str) -> Optional[HealthCheckResult]:
+    def run_check(self, name: str) -> HealthCheckResult | None:
         """Run a specific health check."""
         with self._lock:
             check_fn = self.health_check_functions.get(name)
@@ -163,7 +164,7 @@ class HealthChecker:
         try:
             return check_fn()
         except Exception as e:
-            logger.error(f"Health check '{name}' failed: {e}")
+            logger.exception(f"Health check '{name}' failed")
             return HealthCheckResult(
                 is_healthy=False,
                 message=f"Health check failed: {e}"

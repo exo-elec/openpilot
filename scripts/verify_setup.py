@@ -43,7 +43,7 @@ def main():
 
   # Process config
   print("\n⚙️  Process Configuration:")
-  with open("system/manager/process_config.py", "r") as f:
+  with open("system/manager/process_config.py") as f:
     content = f.read()
     for daemon in ["ntripd", "spkd", "soundd", "micd"]:
       if f'"{daemon}"' in content:
@@ -54,7 +54,7 @@ def main():
 
   # Parameters
   print("\n🔧 Parameters:")
-  with open("common/params_keys.h", "r") as f:
+  with open("common/params_keys.h") as f:
     content = f.read()
     for param in ["EOPRTKEnabled", "EOPNTRIPEnabled", "EOPNTRIPCaster", "EOPNTRIPMount",
                   "EOPNavVoiceEnabled", "EOPTTSVoice", "EOPLanguage", "EOPMicAdaptiveLoudness"]:

@@ -1,14 +1,14 @@
 # SocketD - SocketCAN daemon for EnhancedOpenPilot
 # Drop-in replacement for pandad using native Linux SocketCAN
 
-from .can_capnp import can_capnp_to_list, can_list_to_can_capnp
-from .socketd import cansend
+from openpilot.system.socketd.can_capnp import can_capnp_to_list, can_list_to_can_capnp
+from openpilot.system.socketd.socketd import cansend
 
 # Pandad API compatibility aliases
 # FrogPilot/OpenPilot expect: (address, busTime, dat, src) 4-tuple
 def can_capnp_to_can_list(can, src_filter=None):
   """Convert Cap'n Proto CAN events to list of tuples (pandad-compatible format).
-  
+
   Returns list of (address, busTime, dat, src) tuples for compatibility
   with the original pandad API.
   """

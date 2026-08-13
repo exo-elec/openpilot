@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import socket
 import struct
-from typing import Union
 from collections.abc import Iterable, Sequence
 
 import time
@@ -14,7 +13,7 @@ import cereal.messaging as messaging
 from cereal import log
 
 CANMessageTuple = tuple[int, bytes, int]
-RawCanInput = Union[bytes, log.Event, Sequence[bytes], Sequence[log.Event]]
+RawCanInput = bytes | log.Event | Sequence[bytes] | Sequence[log.Event]
 
 CAN_HEADER_FMT = "=IBB2x"
 CAN_HEADER_LEN = struct.calcsize(CAN_HEADER_FMT)

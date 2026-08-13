@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # EnhancedOpenPilot Validation Script
 # Run this to check the health of the EOP implementation
 

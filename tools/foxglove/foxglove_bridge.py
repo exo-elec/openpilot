@@ -8,7 +8,7 @@ Similar to PlotJuggler's streaming but outputs Foxglove-native format.
 Usage:
     python foxglove_bridge.py                    # Start WebSocket server
     python foxglove_bridge.py --port 8765        # Custom port
-    
+
 Then in Foxglove Studio:
     1. Add "Foxglove WebSocket" connection
     2. Enter ws://<device_ip>:8765
@@ -25,13 +25,8 @@ from __future__ import annotations
 import os
 import sys
 import json
-import time
 import asyncio
 import signal
-from pathlib import Path
-from typing import Optional, Dict, Any, Set
-from dataclasses import dataclass
-from collections import defaultdict
 
 try:
     import websockets
@@ -45,7 +40,6 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 import cereal.messaging as messaging
-from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
 
@@ -60,7 +54,7 @@ DEFAULT_HOST = "0.0.0.0"
 # Services to stream
 STREAM_SERVICES = [
     'carState',
-    'carControl', 
+    'carControl',
     'controlsState',
     'livePose',
     'gpsLocationExternal',
@@ -78,7 +72,7 @@ STREAM_SERVICES = [
 # Message Converters (same as rlog_to_mcap)
 # ============================================================================
 
-def convert_car_state(cs) -> Dict:
+def convert_car_state(cs) -> dict:
     return {
         "timestamp": cs.logMonoTime / 1e9,
         "speed_mps": cs.vEgo,
@@ -93,7 +87,7 @@ def convert_car_state(cs) -> Dict:
         "a_ego": cs.aEgo,
     }
 
-def convert_controls_state(cs) -> Dict:
+def convert_controls_state(cs) -> dict:
     return {
         "timestamp": cs.logMonoTime / 1e9,
         "active": cs.active,
@@ -104,7 +98,7 @@ def convert_controls_state(cs) -> Dict:
         "enabled": cs.enabled,
     }
 
-def convert_live_pose(lp) -> Dict:
+def convert_live_pose(lp) -> dict:
     return {
         "timestamp": lp.logMonoTime / 1e9,
         "position": {"x": 0.0, "y": 0.0, "z": 0.0},
@@ -121,7 +115,7 @@ def convert_live_pose(lp) -> Dict:
         },
     }
 
-def convert_gps(gps) -> Dict:
+def convert_gps(gps) -> dict:
     return {
         "timestamp": gps.logMonoTime / 1e9,
         "latitude": gps.latitude,
@@ -131,7 +125,7 @@ def convert_gps(gps) -> Dict:
         "accuracy": gps.accuracy,
     }
 
-def convert_device_state(ds) -> Dict:
+def convert_device_state(ds) -> dict:
     return {
         "timestamp": ds.logMonoTime / 1e9,
         "cpu_temp_c": list(ds.cpuTempC) if hasattr(ds, 'cpuTempC') else [],
@@ -139,7 +133,7 @@ def convert_device_state(ds) -> Dict:
         "cpu_usage_percent": getattr(ds, 'cpuUsagePercent', 0),
     }
 
-def convert_model_v2(m) -> Dict:
+def convert_model_v2(m) -> dict:
     return {
         "timestamp": m.logMonoTime / 1e9,
         "position": {
@@ -168,23 +162,23 @@ CONVERTERS = {
 class FoxgloveServer:
     """
     Foxglove WebSocket server for real-time streaming.
-    
+
     Protocol: Client connects, server sends channel advertisements,
     then streams messages in MCAP format over WebSocket.
     """
-    
+
     def __init__(self, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT):
         self.host = host
         self.port = port
-        self.clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.clients: set[websockets.WebSocketServerProtocol] = set()
         self.running = False
-        
+
         # Channel definitions for Foxglove
         self.channels = []
         self._build_channels()
-        
+
         cloudlog.info(f"FoxgloveServer initialized on {host}:{port}")
-    
+
     def _build_channels(self):
         """Build channel definitions for Foxglove."""
         chan_id = 0
@@ -197,13 +191,13 @@ class FoxgloveServer:
                 "schema": json.dumps({"type": "object"}),
             })
             chan_id += 1
-    
+
     async def handle_client(self, websocket: websockets.WebSocketServerProtocol, path: str):
         """Handle a client connection."""
         self.clients.add(websocket)
         client_addr = websocket.remote_address
         cloudlog.info(f"Foxglove client connected: {client_addr}")
-        
+
         try:
             # Send server info
             await websocket.send(json.dumps({
@@ -211,46 +205,46 @@ class FoxgloveServer:
                 "name": "openpilot-foxglove",
                 "capabilities": ["clientPublish", "connectionGraph", "assets"],
             }))
-            
+
             # Send channel advertisements
             for chan in self.channels:
                 await websocket.send(json.dumps({
                     "op": "advertise",
                     "channels": [chan],
                 }))
-            
+
             # Keep connection alive
             while self.running and websocket.open:
                 await asyncio.sleep(1)
-                
+
         except websockets.exceptions.ConnectionClosed:
             pass
         finally:
             self.clients.discard(websocket)
             cloudlog.info(f"Foxglove client disconnected: {client_addr}")
-    
-    async def broadcast_message(self, topic: str, data: Dict, timestamp_ns: int):
+
+    async def broadcast_message(self, topic: str, data: dict, timestamp_ns: int):
         """Broadcast a message to all connected clients."""
         if not self.clients:
             return
-        
+
         # Find channel id
         chan_id = None
         for chan in self.channels:
             if chan["topic"] == topic:
                 chan_id = chan["id"]
                 break
-        
+
         if chan_id is None:
             return
-        
+
         message = {
             "op": "message",
             "channelId": chan_id,
             "timestamp": timestamp_ns,
             "data": json.dumps(data),
         }
-        
+
         # Send to all clients
         disconnected = set()
         for client in self.clients:
@@ -261,10 +255,10 @@ class FoxgloveServer:
             except Exception as e:
                 cloudlog.debug(f"WebSocket send error: {e}")
                 disconnected.add(client)
-        
+
         # Clean up disconnected clients
         self.clients -= disconnected
-    
+
     async def run_server(self):
         """Run the WebSocket server."""
         self.running = True
@@ -272,7 +266,7 @@ class FoxgloveServer:
             cloudlog.info(f"Foxglove server running on ws://{self.host}:{self.port}")
             while self.running:
                 await asyncio.sleep(1)
-    
+
     def stop(self):
         """Stop the server."""
         self.running = False
@@ -284,26 +278,26 @@ class FoxgloveServer:
 
 class FoxgloveStreamer:
     """Streams cereal messages to Foxglove clients."""
-    
+
     def __init__(self, server: FoxgloveServer):
         self.server = server
         self.sm = messaging.SubMaster(STREAM_SERVICES)
         self.running = False
-        
+
         cloudlog.info("FoxgloveStreamer initialized")
-    
+
     async def stream_loop(self):
         """Main streaming loop."""
         self.running = True
         rk = Ratekeeper(20.0)  # 20 Hz
-        
+
         while self.running:
             self.sm.update()
-            
+
             for service in STREAM_SERVICES:
                 if self.sm.updated[service]:
                     msg = self.sm[service]
-                    
+
                     if service in CONVERTERS:
                         topic, converter = CONVERTERS[service]
                         data = converter(msg)
@@ -314,7 +308,7 @@ class FoxgloveStreamer:
             if rk.remaining > 0:
                 await asyncio.sleep(rk.remaining)
             rk.monitor_time()
-    
+
     def stop(self):
         """Stop streaming."""
         self.running = False
@@ -330,20 +324,20 @@ async def main_async():
     parser.add_argument('--host', default=DEFAULT_HOST, help='WebSocket host')
     parser.add_argument('--port', '-p', type=int, default=DEFAULT_PORT, help='WebSocket port')
     args = parser.parse_args()
-    
+
     # Create server
     server = FoxgloveServer(host=args.host, port=args.port)
     streamer = FoxgloveStreamer(server)
-    
+
     # Handle signals
     def signal_handler(signum, frame):
         cloudlog.info("Foxglove bridge shutting down...")
         server.stop()
         streamer.stop()
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     # Run both server and streamer
     await asyncio.gather(
         server.run_server(),
@@ -356,7 +350,7 @@ def main():
         print("Error: websockets module not installed")
         print("Install: pip install websockets")
         sys.exit(1)
-    
+
     asyncio.run(main_async())
 
 

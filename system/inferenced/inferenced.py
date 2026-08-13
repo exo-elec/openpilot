@@ -273,9 +273,9 @@ class InferenceD:
       if result.outputs:
         if len(result.outputs) > 1:
           cloudlog.warning(
-            f"InferenceD: Job {job.job_id} produced {len(result.outputs)} outputs; "
-            f"only '{next(iter(result.outputs))}' will be serialized over IPC. "
-            f"TODO: extend capnp schema for multi-output models."
+            f"InferenceD: Job {job.job_id} produced {len(result.outputs)} outputs; " +
+            f"only '{next(iter(result.outputs))}' will be serialized over IPC. " +
+            "TODO: extend capnp schema for multi-output models."
           )
         # Pick the first output for serialization
         first_key = next(iter(result.outputs))

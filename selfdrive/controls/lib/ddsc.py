@@ -26,7 +26,8 @@ UNCONSCIOUS MODE (medical emergency - heart attack, seizure, etc.):
 - Gas override works for first responders
 """
 
-from typing import Optional
+from typing import cast
+
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
 
 # Base DMS cap when too_distracted (m/s)
@@ -62,13 +63,13 @@ class DDSC:
   def __init__(self):
     self._active = False
     self._unconscious = False
-    self._v_target: Optional[float] = None
-    self._a_limit: Optional[float] = None
+    self._v_target: float | None = None
+    self._a_limit: float | None = None
     self._standstill_latched = False  # Once stopped in unconscious mode, stay stopped
     self._highway_latched = False     # Hysteresis: stay highway until speed < exit threshold
 
-  def update(self, driver_status, car_state, lead_speed: Optional[float] = None,
-             should_stop: bool = False) -> Optional[float]:
+  def update(self, driver_status, car_state, lead_speed: float | None = None,
+             should_stop: bool = False) -> float | None:
     """Compute distraction speed CAP.
 
     This is a CAP on maximum speed, not a target. The longitudinal planner's
@@ -155,21 +156,21 @@ class DDSC:
 
   @property
   def active(self) -> bool:
-    return self._active
+    return cast(bool, self._active)
 
   @property
   def unconscious(self) -> bool:
-    return self._unconscious
+    return cast(bool, self._unconscious)
 
   @property
   def standstill_latched(self) -> bool:
-    return self._standstill_latched
+    return cast(bool, self._standstill_latched)
 
   @property
-  def v_target(self) -> Optional[float]:
+  def v_target(self) -> float | None:
     return self._v_target
 
   @property
-  def a_limit(self) -> Optional[float]:
+  def a_limit(self) -> float | None:
     """Gentle deceleration limit when the cap drops."""
     return self._a_limit

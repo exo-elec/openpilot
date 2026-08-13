@@ -108,12 +108,12 @@ class RadarMounting:
         return np.array([self.x_m, self.y_m, self.z_m])
 
     @classmethod
-    def load(cls, path: str = EXTRINSICS_PATH) -> "RadarMounting":
+    def load(cls, path: str = EXTRINSICS_PATH) -> RadarMounting:
         """Load stored mounting extrinsics; returns the default mount if absent."""
         if not os.path.exists(path):
             return cls()
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
             return cls(
                 x_m=float(data.get("x_m", 0.0)),

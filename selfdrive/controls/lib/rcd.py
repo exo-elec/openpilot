@@ -25,7 +25,6 @@ Reference: VisionPilot Surface Analyzer (classical CV approach)
 from __future__ import annotations
 
 import time
-import math
 from enum import Enum
 from dataclasses import dataclass
 from collections import deque
@@ -70,15 +69,15 @@ class RCDState:
 class RoadConditionClassifier:
   """
   Classify road surface conditions from camera images.
-  
+
   Uses classical computer vision (no NPU required):
   - HSV color space analysis
   - Bright spot detection (specular reflections)
   - Saturation/value thresholds
-  
+
   Processes bottom 40% of image (road ROI).
   """
-  
+
   def __init__(
     self,
     roi_height_ratio: float = 0.4,
@@ -92,7 +91,7 @@ class RoadConditionClassifier:
     self.wet_saturation_threshold = wet_saturation_threshold
     self.wet_value_threshold = wet_value_threshold
     self.debris_threshold = debris_threshold
-    
+
     # Speed limits for conditions (m/s)
     self.speed_limits = {
       RoadCondition.GOOD: 0.0,      # No limit
@@ -101,33 +100,33 @@ class RoadConditionClassifier:
       RoadCondition.SNOW: 8.0,      # ~30 km/h
       RoadCondition.DEBRIS: 12.0,   # ~43 km/h (EVP zone 1 ceiling)
     }
-  
+
   def classify(self, image: np.ndarray) -> RoadConditionResult:
     """
     Classify road condition from BGR image.
-    
+
     Args:
       image: BGR image from road camera
-    
+
     Returns:
       RoadConditionResult with classification
     """
     h, w = image.shape[:2]
     roi_y = int(h * (1.0 - self.roi_height_ratio))
     road_roi = image[roi_y:, :]
-    
+
     # Convert to HSV
     hsv = cv2.cvtColor(road_roi, cv2.COLOR_BGR2HSV)
-    
+
     # Calculate metrics
     avg_saturation = float(np.mean(hsv[:, :, 1]))
     avg_value = float(np.mean(hsv[:, :, 2]))
-    
+
     # Detect bright spots (specular reflections = icy/wet)
     gray = cv2.cvtColor(road_roi, cv2.COLOR_BGR2GRAY)
     _, bright_mask = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
     bright_ratio = float(np.sum(bright_mask > 0) / (road_roi.shape[0] * road_roi.shape[1]))
-    
+
     # Classify based on metrics
     if bright_ratio > self.icy_threshold and avg_value > 180:
       condition = RoadCondition.ICY
@@ -145,7 +144,7 @@ class RoadConditionClassifier:
       condition = RoadCondition.GOOD
       confidence = 0.9
       description = 'good'
-    
+
     return RoadConditionResult(
       condition=condition,
       confidence=confidence,
@@ -157,26 +156,26 @@ class RoadConditionClassifier:
 class RCD:
   """
   Road Condition Detection controller.
-  
+
   Monitors road surface quality and applies speed limits.
   Similar to VTSC/MTSC/SQSC: perception → speed limit → planner.
-  
+
   Usage:
     rcd = RCD()
     state = rcd.update(sm)
     if state.is_active:
       v_cruise = min(v_cruise, state.speed_limit_ms)
   """
-  
+
   # Hysteresis: require N consecutive frames before changing condition
   HYSTERESIS_FRAMES = 5
-  
+
   # Confidence threshold for applying speed limit
   MIN_CONFIDENCE = 0.5
-  
+
   # Smoothing filter time constant
   SPEED_FILTER_TC = 2.0  # seconds
-  
+
   PARAM_REFRESH_S = 5.0
 
   def __init__(self):
@@ -184,30 +183,30 @@ class RCD:
     self.enabled = self.params.get_bool("EOPRCDEnabled")
     self._last_param_t = 0.0
     self.classifier = RoadConditionClassifier()
-    
+
     # State
     self.current_condition = RoadCondition.GOOD
     self.current_confidence = 0.0
     self._condition_history: deque = deque(maxlen=self.HYSTERESIS_FRAMES)
     self._last_condition = RoadCondition.GOOD
     self._hysteresis_count = 0
-    
+
     # Speed limit smoothing
     self._speed_filter = FirstOrderFilter(0.0, self.SPEED_FILTER_TC, DT_MDL)
     self._last_limit = 0.0
-    
+
     # Frame counter
     self._frame_count = 0
-    
+
     cloudlog.info(f"RCD initialized: enabled={self.enabled}")
-  
+
   def update(self, sm) -> RCDState:
     """
     Main update loop.
-    
+
     Args:
       sm: SubMaster with roadCameraState, surfaceStatus, monoSegments
-    
+
     Returns:
       RCDState with current condition and speed limit
     """
@@ -224,7 +223,7 @@ class RCD:
         is_active=False,
         reason="RCD disabled"
       )
-    
+
     self._frame_count += 1
 
     # Camera/surface classification path
@@ -299,15 +298,15 @@ class RCD:
     """Try to get condition from surfaced daemon (most accurate)."""
     if not sm.valid.get('surfaceStatus', False):
       return None
-    
+
     surface = sm['surfaceStatus']
     if not surface.hasSurfaceQuality:
       return None
-    
+
     quality = surface.surfaceQuality
     score = quality.score  # 0-1 roughness
     texture = quality.texture
-    
+
     # Map surface quality to road condition
     if score > 0.6:
       condition = RoadCondition.DEBRIS
@@ -321,31 +320,31 @@ class RCD:
       condition = RoadCondition.GOOD
       confidence = 1.0 - score
       description = f"good ({texture})"
-    
+
     return RoadConditionResult(
       condition=condition,
       confidence=confidence,
       description=description,
       speed_limit_ms=self.classifier.speed_limits[condition]
     )
-  
+
   # EOP-CLEANUP: Removed _update_from_camera() — was a TODO stub that
   # always returned None. Production implementation requires VisionIPC frame
   # decoding which is not yet integrated. Falls through to _update_from_segmentation.
-  
+
   def _update_from_segmentation(self, sm) -> RoadConditionResult | None:
     """Enhance detection using monoSegments from monod."""
     if not sm.valid.get('monoSegments', False):
       return None
-    
+
     mono_seg = sm['monoSegments']
     # monoSegments has hasRoad, hasEdge, hasDrivable booleans
     # Could be enhanced with actual segmentation mask data
-    
+
     # For now, use this as a secondary confirmation source
     if not mono_seg.hasRoad:
       return None
-    
+
     # If road is detected but drivable area is uncertain, be cautious
     if mono_seg.hasEdge and not mono_seg.hasDrivable:
       return RoadConditionResult(
@@ -354,29 +353,29 @@ class RCD:
         description="edge_no_drivable",
         speed_limit_ms=self.classifier.speed_limits[RoadCondition.DEBRIS]
       )
-    
+
     return None
-  
+
   def _apply_hysteresis(self, new_condition: RoadCondition) -> RoadCondition:
     """Apply hysteresis to prevent rapid condition switching."""
     self._condition_history.append(new_condition)
-    
+
     if len(self._condition_history) < self.HYSTERESIS_FRAMES:
       return self._last_condition
-    
+
     # Check if all recent frames agree
     if all(c == new_condition for c in self._condition_history):
       if new_condition != self._last_condition:
         cloudlog.info(f"RCD condition changed: {self._last_condition.name} → {new_condition.name}")
         self._last_condition = new_condition
       return new_condition
-    
+
     return self._last_condition
-  
+
   def get_speed_limit(self, current_speed_ms: float) -> float:
     """
     Get applicable speed limit.
-    
+
     Returns 0.0 if no limit applies (good road).
     """
     if not self.enabled or self.current_condition == RoadCondition.GOOD:
@@ -388,11 +387,11 @@ class RCD:
 def apply_rcd_limit(v_cruise: float, rcd_state: RCDState) -> float:
   """
   Apply RCD speed limit to cruise velocity.
-  
+
   Args:
     v_cruise: Current cruise velocity (m/s)
     rcd_state: Current RCD state
-  
+
   Returns:
     Limited cruise velocity
   """

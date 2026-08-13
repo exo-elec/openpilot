@@ -175,7 +175,7 @@ def resolve_voice(voice_param: str, language: str) -> str:
     return voice_param
   voice = LANGUAGE_TO_VOICE.get(language, FALLBACK_VOICE)
   if language not in LANGUAGE_TO_VOICE:
-    logger.warning('Language "%s" not in EOP10 20-language set; falling back to English. '
+    logger.warning('Language "%s" not in EOP10 20-language set; falling back to English. ' +
                    'Use VisionPilot for extended language support.', language)
   return voice
 
@@ -199,8 +199,8 @@ def _ensure_model(voice_name: str) -> Path | None:
     urllib.request.urlretrieve(model_url, model_file)
     urllib.request.urlretrieve(config_url, config_file)
     logger.info('Downloaded: %s', voice_name)
-  except Exception as e:
-    logger.error('Failed to download voice %s: %s', voice_name, e)
+  except Exception:
+    logger.exception('Failed to download voice %s', voice_name)
     return None
   return model_file
 
@@ -235,8 +235,8 @@ class PiperTTS:
       self._initialized = True
       logger.info('Piper TTS ready: %s', self.voice_id)
       return True
-    except Exception as e:
-      logger.error('Failed to load voice %s: %s', self.voice_id, e)
+    except Exception:
+      logger.exception('Failed to load voice %s', self.voice_id)
       return False
 
   def set_voice(self, voice_id: str):
@@ -260,6 +260,6 @@ class PiperTTS:
       buf.seek(0)
       samples = np.frombuffer(buf.read(), dtype=np.int16)
       return samples.astype(np.float32) / 32768.0
-    except Exception as e:
-      logger.error('TTS synthesis failed: %s', e)
+    except Exception:
+      logger.exception('TTS synthesis failed')
       return None

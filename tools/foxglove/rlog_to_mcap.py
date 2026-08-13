@@ -19,7 +19,6 @@ import os
 import sys
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
@@ -39,7 +38,7 @@ except ImportError:
 # Message Converters (Cereal → Foxglove JSON)
 # ============================================================================
 
-def convert_car_state(cs) -> Dict:
+def convert_car_state(cs) -> dict:
     """carState → /car/state"""
     return {
         "timestamp": cs.logMonoTime / 1e9,
@@ -55,7 +54,7 @@ def convert_car_state(cs) -> Dict:
         "a_ego": cs.aEgo,
     }
 
-def convert_controls_state(cs) -> Dict:
+def convert_controls_state(cs) -> dict:
     """controlsState → /controls/state"""
     return {
         "timestamp": cs.logMonoTime / 1e9,
@@ -67,7 +66,7 @@ def convert_controls_state(cs) -> Dict:
         "enabled": cs.enabled,
     }
 
-def convert_live_pose(lp) -> Dict:
+def convert_live_pose(lp) -> dict:
     """livePose → /pose (Foxglove Pose format)"""
     return {
         "timestamp": lp.logMonoTime / 1e9,
@@ -85,7 +84,7 @@ def convert_live_pose(lp) -> Dict:
         },
     }
 
-def convert_gps(gps) -> Dict:
+def convert_gps(gps) -> dict:
     """gpsLocationExternal → /gps (NavSatFix-like)"""
     return {
         "timestamp": gps.logMonoTime / 1e9,
@@ -96,7 +95,7 @@ def convert_gps(gps) -> Dict:
         "accuracy": gps.accuracy,
     }
 
-def convert_device_state(ds) -> Dict:
+def convert_device_state(ds) -> dict:
     """deviceState → /device/state"""
     return {
         "timestamp": ds.logMonoTime / 1e9,
@@ -125,20 +124,20 @@ CONVERTERS = {
 class RlogToMcapConverter:
     """Converts rlog to Foxglove-native MCAP."""
     output_path: Path
-    
+
     def __post_init__(self):
         self.output_path = Path(self.output_path)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         self._file = open(self.output_path, "wb")
         self._writer = Writer(self._file)
         self._writer.start()
-        
-        self._channels: Dict[str, int] = {}
+
+        self._channels: dict[str, int] = {}
         self._register_schemas()
-        
+
         print(f"Output: {self.output_path}")
-    
+
     def _register_schemas(self):
         """Register Foxglove JSON schemas."""
         for cereal_type, (topic, _) in CONVERTERS.items():
@@ -155,26 +154,26 @@ class RlogToMcapConverter:
                 message_encoding="json"
             )
             self._channels[cereal_type] = channel_id
-    
+
     def convert_rlog(self, rlog_path: str):
         """Convert rlog file."""
         print(f"Reading: {rlog_path}")
-        
+
         lr = LogReader(rlog_path)
         count = 0
         converted = 0
-        
+
         for msg in lr:
             count += 1
             which = msg.which()
-            
+
             if which in CONVERTERS:
                 topic, converter = CONVERTERS[which]
                 data = converter(getattr(msg, which))
-                
+
                 channel_id = self._channels[which]
                 timestamp_ns = msg.logMonoTime
-                
+
                 self._writer.write_message(
                     channel_id=channel_id,
                     log_time=timestamp_ns,
@@ -182,12 +181,12 @@ class RlogToMcapConverter:
                     publish_time=timestamp_ns
                 )
                 converted += 1
-            
+
             if count % 10000 == 0:
                 print(f"  Processed {count} messages, converted {converted}")
-        
+
         print(f"Done: {count} messages read, {converted} converted")
-    
+
     def close(self):
         if self._writer:
             self._writer.finish()
@@ -201,14 +200,14 @@ def main():
     parser.add_argument('rlog', help='rlog file or route name')
     parser.add_argument('-o', '--output', help='Output MCAP path')
     args = parser.parse_args()
-    
+
     # Default output path
     if args.output:
         output = args.output
     else:
         base = Path(args.rlog).stem.replace('.zst', '').replace('.bz2', '')
         output = f"{base}.mcap"
-    
+
     converter = RlogToMcapConverter(output)
     try:
         converter.convert_rlog(args.rlog)

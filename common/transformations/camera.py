@@ -51,7 +51,44 @@ _os_fisheye = CameraConfig(2688 // 2, 1520 // 2, 567.0 / 4 * 3)
 _ar_ox_config = DeviceCameraConfig(CameraConfig(1928, 1208, 2648.0), _ar_ox_fisheye, _ar_ox_fisheye)
 _os_config = DeviceCameraConfig(CameraConfig(2688 // 2, 1520 // 2, 1522.0 * 3 / 4), _os_fisheye, _os_fisheye)
 _neo_config = DeviceCameraConfig(CameraConfig(1164, 874, 910.0), CameraConfig(816, 612, 650.0), _NoneCameraConfig())
-_gc4653_config = DeviceCameraConfig(CameraConfig(2560, 1440, 1250.0), _ar_ox_fisheye, _ar_ox_fisheye)
+
+# EOP10 RK3588 fallback configs, used when the closed exopilot HAL is not
+# installed (e.g. dev PC). Production values live in exopilot's
+# hal.platform.rk3588_camera_geometry and override these at import time.
+# Focal lengths are derived from the lens focal length and sensor pixel pitch:
+#   OX03C10 pixel pitch = 3.0 µm  →  8.0mm lens ≈ 2667 px, 1.7mm lens ≈ 567 px.
+# Resolution matches the OX03C10 native 1920x1280 readout used by the driver.
+_eop_ox03c10_config = DeviceCameraConfig(
+  CameraConfig(1920, 1280, 2667.0),   # road: 8.0mm lens, ~40deg HFOV
+  _NoneCameraConfig(),                 # no driver monitoring camera
+  CameraConfig(1920, 1280, 567.0),    # wide_road: 1.7mm lens, ~118deg HFOV
+)
+
+
+def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  """Load RK3588 camera geometry from exopilot HAL; fall back to public defaults.
+
+  EOP10 uses the same OX03C10 sensor and lens stack as the reference platform.
+  The native readout is 1920x1280, close to the reference's 1928x1208. Focal
+  length in pixels is a physical property of the lens and sensor pixel pitch,
+  so it stays ~2667/567 regardless of the exact output resolution. The HAL owns
+  the canonical values.
+  """
+  try:
+    from hal.platform.rk3588_camera_geometry import FOCAL_PX, IMAGE_SIZE_PX
+    def _cfg(name: str) -> CameraConfig:
+      w, h = IMAGE_SIZE_PX[name]
+      fx, _fy = FOCAL_PX[name]
+      return CameraConfig(w, h, fx)
+    return DeviceCameraConfig(
+      fcam=_cfg("road"),
+      dcam=_NoneCameraConfig(),
+      ecam=_cfg("wide_road"),
+    )
+  except Exception:
+    # HAL not installed or geometry incomplete — use the public fallback.
+    return _eop_ox03c10_config
+
 
 DEVICE_CAMERAS = {
   # A "device camera" is defined by a device type and sensor
@@ -68,20 +105,22 @@ DEVICE_CAMERAS = {
   # simulator (emulates a tici)
   ("pc", "unknown"): _ar_ox_config,
 
-  # ExoPilot 01M (RK3588) - 4 MIPI cameras + 3 USB cameras
-  ("rk3588", "ox03c10"): _ar_ox_config,
-  ("rk3588", "gc4653"): _gc4653_config,
-  ("rk3588", "unknown"): _ar_ox_config,
+  # ExoPilot 01M (RK3588) - road/wide_road are OX03C10, stereo is GC4653.
+  # GC4653 is not a model input camera, so all RK3588 lookups return the
+  # OX03C10 main/wide geometry.
+  ("rk3588", "ox03c10"): _load_eop_rk3588_config("ox03c10"),
+  ("rk3588", "gc4653"): _load_eop_rk3588_config("gc4653"),
+  ("rk3588", "unknown"): _load_eop_rk3588_config("ox03c10"),
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})
 
 def get_device_camera_config(camera_type: str = "ox03c10") -> DeviceCameraConfig:
   """Get camera config for current hardware platform
-  
+
   Args:
     camera_type: Camera sensor type (ox03c10, gc4653)
-  
+
   Returns:
     DeviceCameraConfig for the specified camera
   """

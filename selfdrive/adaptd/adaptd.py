@@ -18,8 +18,7 @@ from __future__ import annotations
 
 import time
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from cereal import log
 from cereal import custom
@@ -250,7 +249,7 @@ class AdaptD:
     self._enabled = False
     self._last_data_time: float = 0.0
     self._data_timeout_sec: float = 60.0
-    self._last_profile: Optional[AdaptiveProfile] = None
+    self._last_profile: AdaptiveProfile | None = None
 
     if messaging:
       self.pm = messaging.PubMaster(['adaptiveDrivingState'])
@@ -284,7 +283,7 @@ class AdaptD:
     vd.odometer = obd.odometer if obd.odometer > 0 else -1.0
     vd.vin = obd.vin
     vd.vehicleType = obd.vehicleType
-    vd.timestamp = int(time.time() * 1e9)
+    vd.timestamp = int(time.time() * 1e9)  # noqa: TID251
     return vd
 
   def _refresh_params(self) -> None:
@@ -337,8 +336,8 @@ class AdaptD:
     if not self._enabled:
       return
 
-    profile: Optional[AdaptiveProfile] = None
-    vd: Optional[NcpVehicleData] = None
+    profile: AdaptiveProfile | None = None
+    vd: NcpVehicleData | None = None
 
     if self.sm and self.sm.updated['ncpVehicleData']:
       vd = self.sm['ncpVehicleData']

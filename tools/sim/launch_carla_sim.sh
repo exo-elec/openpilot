@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Launch CARLA server + openpilot sim bridge for EOP testing.
 #
 # Usage:

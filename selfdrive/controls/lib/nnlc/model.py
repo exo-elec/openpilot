@@ -1,11 +1,10 @@
 import json
-import math
 import numpy as np
 
 
 class NNTorqueModel:
   def __init__(self, model_path: str):
-    with open(model_path, 'r') as f:
+    with open(model_path) as f:
       data = json.load(f)
 
     self.input_mean = np.array(data['input_mean'], dtype=np.float32).flatten()

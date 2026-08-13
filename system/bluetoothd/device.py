@@ -26,7 +26,7 @@ class Info:
     name: str
     device_type: Type
     uuids: tuple[str, ...]
-    
+
     def is_mobile(self) -> bool:
         return self.device_type == Type.MOBILE
 
@@ -34,16 +34,16 @@ class Info:
 def classify(address: str, name: str, uuids: list[str]) -> Info:
     """Classify device based on UUIDs and name."""
     uuid_set = set(uuids)
-    
+
     # Check for SPP (Serial Port Profile) - used by companion apps
     if SPP in uuid_set:
         return Info(address, name, Type.MOBILE, tuple(uuids))
-    
+
     # Check name patterns for mobile devices
     name_lower = name.lower()
     phone_keywords = ('iphone', 'samsung', 'pixel', 'phone', 'mobile', 'navpilot')
-    
+
     if any(k in name_lower for k in phone_keywords):
         return Info(address, name, Type.MOBILE, tuple(uuids))
-    
+
     return Info(address, name, Type.UNKNOWN, tuple(uuids))

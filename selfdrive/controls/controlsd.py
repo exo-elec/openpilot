@@ -2,6 +2,7 @@
 import math
 import time
 from numbers import Number
+from typing import Any
 
 from cereal import car, log
 import cereal.messaging as messaging
@@ -22,7 +23,7 @@ from openpilot.selfdrive.controls.lib.cat import CAT
 from openpilot.selfdrive.controls.lib.dlat import DLAT
 from openpilot.selfdrive.controls.lib.red import RED
 from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
-from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneAlertLevel
+from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor
 from openpilot.selfdrive.controls.lib.aeb import AEB
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
@@ -37,7 +38,9 @@ class Controls:
   def __init__(self) -> None:
     self.params = Params()
     cloudlog.info("controlsd is waiting for CarParams")
-    self.CP = messaging.log_from_bytes(self.params.get("CarParams", block=True), car.CarParams)
+    _car_params = self.params.get("CarParams")
+    assert _car_params is not None, "CarParams not available"
+    self.CP = messaging.log_from_bytes(_car_params, car.CarParams)
     cloudlog.info("controlsd got CarParams")
 
     # Tesla-only: No need for generic interface lookup
@@ -89,7 +92,7 @@ class Controls:
 
     # EOP: per-frame state needed by ALCC
     self.CS_prev = car.CarState.new_message()  # zeroed CarState; safe on first frame
-    self.events = []
+    self.events: list[Any] = []
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     # EOP: TJA resume alert debounce
@@ -98,7 +101,7 @@ class Controls:
     # EOP-CLEANUP: Cached params — refreshed once per second, not every frame
     self._param_refresh_s = 1.0
     self._last_param_t = 0.0
-    self._cached_eop_params = {}
+    self._cached_eop_params: dict[str, Any] = {}
 
     self.LaC: LatControl
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:

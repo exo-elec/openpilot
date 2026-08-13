@@ -59,25 +59,24 @@ from __future__ import annotations
 
 import numpy as np
 from dataclasses import dataclass
-from pathlib import Path
 from openpilot.common.swaglog import cloudlog
 
 @dataclass
 class CameraIntrinsics:
     """Camera intrinsic parameters (K matrix)."""
-    
+
     fx: float  # Focal length x (pixels)
     fy: float  # Focal length y (pixels)
     cx: float  # Principal point x (pixels)
     cy: float  # Principal point y (pixels)
-    
+
     # Distortion coefficients (k1, k2, p1, p2, k3)
     k1: float = 0.0
     k2: float = 0.0
     p1: float = 0.0
     p2: float = 0.0
     k3: float = 0.0
-    
+
     @property
     def K(self) -> np.ndarray:
         """3x3 camera matrix."""
@@ -86,13 +85,13 @@ class CameraIntrinsics:
             [0, self.fy, self.cy],
             [0, 0, 1]
         ])
-    
+
     @property
     def dist_coeffs(self) -> np.ndarray:
         """Distortion coefficients vector."""
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3])
-    
-    def scale(self, scale_x: float, scale_y: float) -> 'CameraIntrinsics':
+
+    def scale(self, scale_x: float, scale_y: float) -> CameraIntrinsics:
         """Return scaled intrinsics for different resolution."""
         return CameraIntrinsics(
             fx=self.fx * scale_x,
@@ -110,30 +109,30 @@ class CameraIntrinsics:
 @dataclass
 class CameraExtrinsics:
     """Camera extrinsic parameters (pose in vehicle frame).
-    
+
     Coordinate system:
     - World: X=forward, Y=left, Z=up (ISO 8855 vehicle frame)
     - Camera: X=right, Y=down, Z=forward (OpenCV convention)
     """
-    
+
     # Rotation matrix (3x3): transforms from world to camera coordinates
     # R @ v_world gives vector in camera frame
     R: np.ndarray
-    
+
     # Translation vector (3,): camera position in world coordinates
     # t is where camera center is in world frame
     t: np.ndarray
-    
+
     def __post_init__(self):
         if self.R.shape != (3, 3):
             raise ValueError(f"R must be 3x3, got {self.R.shape}")
         if self.t.shape != (3,):
             raise ValueError(f"t must be (3,), got {self.t.shape}")
-    
+
     def world_to_camera(self, P_world: np.ndarray) -> np.ndarray:
         """Transform point from world to camera coordinates."""
         return self.R @ (P_world - self.t)
-    
+
     def camera_to_world(self, P_cam: np.ndarray) -> np.ndarray:
         """Transform point from camera to world coordinates."""
         return self.R.T @ P_cam + self.t
@@ -142,7 +141,7 @@ class CameraExtrinsics:
 @dataclass
 class CameraConfig:
     """Complete camera configuration."""
-    
+
     name: str
     intrinsics: CameraIntrinsics
     extrinsics: CameraExtrinsics
@@ -161,7 +160,7 @@ class CameraArrayGeometry:
 
     Loads camera parameters from calibration YAML files or uses defaults.
     """
-    
+
     # ========== Default Configurations ==========
     #
     # Physically-measured mounting positions/angles/lens data for ExoPilot 01M
@@ -232,28 +231,28 @@ class CameraArrayGeometry:
         self.platform = platform.lower()
         self.cameras: dict[str, CameraConfig] = {}
         self.reference_camera = 'road'
-        
+
         if config_path:
             self._load_from_yaml(config_path)
         else:
             self._load_defaults()
-    
+
     @classmethod
-    def for_platform(cls, platform: str) -> 'CameraArrayGeometry':
+    def for_platform(cls, platform: str) -> CameraArrayGeometry:
         """Create geometry for a specific platform."""
         return cls(platform=platform)
-    
+
     @classmethod
-    def from_calibration_file(cls, config_path: str) -> 'CameraArrayGeometry':
+    def from_calibration_file(cls, config_path: str) -> CameraArrayGeometry:
         """Create geometry from calibration file."""
         # Detect platform from file or use generic
         return cls(config_path=config_path)
-    
+
     def _load_defaults(self):
         """Load default hardcoded geometry for platform."""
         self._load_exo01_defaults()
         cloudlog.info(f"Loaded default camera geometry for {self.platform}")
-    
+
     def _load_exo01_defaults(self):
         """Load ExoPilot 01M (RK3588) defaults."""
         for name in self.EXO01_CAMERAS:
@@ -281,35 +280,35 @@ class CameraArrayGeometry:
                 fov_degrees=fov_deg,
                 role=name
             )
-    
+
     def _load_from_yaml(self, config_path: str):
         """Load camera geometry from calibration YAML file."""
         try:
             import yaml
-            with open(config_path, 'r') as f:
+            with open(config_path) as f:
                 data = yaml.safe_load(f)
-            
+
             array_config = data.get('camera_array', data)
             self.reference_camera = array_config.get('reference_camera', 'road')
             self.platform = array_config.get('platform', self.platform)
-            
+
             cameras_data = array_config.get('cameras', {})
             for cam_id, cam_data in cameras_data.items():
                 self.cameras[cam_id] = self._parse_camera_data(cam_id, cam_data)
-            
+
             cloudlog.info(f"Loaded camera calibration from {config_path}")
-            
+
         except Exception as e:
             cloudlog.warning(f"Failed to load calibration from {config_path}: {e}")
             cloudlog.info("Falling back to defaults")
             self._load_defaults()
-    
+
     def _parse_camera_data(self, cam_id: str, data: dict) -> CameraConfig:
         """Parse camera data from YAML."""
         intr = data.get('intrinsics', {})
         width = intr.get('width', 1920)
         height = intr.get('height', 1080)
-        
+
         intrinsics = CameraIntrinsics(
             fx=intr.get('fx', 1000.0),
             fy=intr.get('fy', 1000.0),
@@ -321,12 +320,12 @@ class CameraArrayGeometry:
             p2=intr.get('distortion', {}).get('p2', 0.0),
             k3=intr.get('distortion', {}).get('k3', 0.0),
         )
-        
+
         ext = data.get('extrinsics', {})
         rotation = np.array(ext.get('rotation', [[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
         translation = np.array(ext.get('translation', [0.0, 0.0, 0.0]))
         extrinsics = CameraExtrinsics(R=rotation, t=translation)
-        
+
         return CameraConfig(
             name=cam_id,
             intrinsics=intrinsics,
@@ -338,108 +337,108 @@ class CameraArrayGeometry:
             fov_degrees=data.get('fov_degrees', 60.0),
             role=data.get('role', cam_id)
         )
-    
+
     # ========== Coordinate Transformations ==========
-    
+
     def world_to_camera(self, camera_name: str, P_world: np.ndarray) -> np.ndarray:
         """Transform point from world to camera coordinates.
-        
+
         Args:
             camera_name: Name of camera
             P_world: 3D point in world coordinates [X, Y, Z] (forward, left, up)
-        
+
         Returns:
             P_camera: 3D point in camera frame [X, Y, Z] (right, down, forward)
         """
         cam = self.cameras[camera_name]
         return cam.extrinsics.world_to_camera(P_world)
-    
+
     def camera_to_image(self, camera_name: str, P_camera: np.ndarray) -> tuple[float, float]:
         """Project 3D camera point to 2D image coordinates.
-        
+
         Args:
             camera_name: Name of camera
             P_camera: 3D point in camera frame
-        
+
         Returns:
             (u, v): Image coordinates in pixels, or (nan, nan) if behind camera
         """
         cam = self.cameras[camera_name]
         x, y, z = P_camera
-        
+
         if z <= 0:  # Behind camera
             return (float('nan'), float('nan'))
-        
+
         u = cam.intrinsics.fx * (x / z) + cam.intrinsics.cx
         v = cam.intrinsics.fy * (y / z) + cam.intrinsics.cy
-        
+
         return (u, v)
-    
+
     def world_to_image(self, camera_name: str, P_world: np.ndarray) -> tuple[float, float]:
         """Project world point directly to image coordinates.
-        
+
         Args:
             camera_name: Name of camera
             P_world: 3D point in world coordinates [X, Y, Z]
-        
+
         Returns:
             (u, v): Image coordinates in pixels
         """
         P_camera = self.world_to_camera(camera_name, P_world)
         return self.camera_to_image(camera_name, P_camera)
-    
+
     def image_to_camera_ray(self, camera_name: str, u: float, v: float) -> np.ndarray:
         """Back-project image point to normalized ray in camera coordinates.
-        
+
         Args:
             camera_name: Name of camera
             u, v: Image coordinates in pixels
-        
+
         Returns:
             Normalized 3D ray direction in camera frame [X=right, Y=down, Z=forward]
         """
         cam = self.cameras[camera_name]
-        
+
         # Camera coordinates: X=right, Y=down, Z=forward
         # Image: u increases right, v increases down
         x = (u - cam.intrinsics.cx) / cam.intrinsics.fx  # Right
         y = (v - cam.intrinsics.cy) / cam.intrinsics.fy  # Down
         z = 1.0  # Forward
-        
+
         ray = np.array([x, y, z])
         return ray / np.linalg.norm(ray)
-    
+
     def image_to_world_ray(self, camera_name: str, u: float, v: float) -> tuple[np.ndarray, np.ndarray]:
         """Back-project image point to ray in world coordinates.
-        
+
         Args:
             camera_name: Name of camera
             u, v: Image coordinates in pixels
-        
+
         Returns:
             (origin, direction): Ray origin (camera center) and direction in world frame
         """
         cam = self.cameras[camera_name]
-        
+
         # Camera center in world frame
         origin = cam.extrinsics.t
-        
+
         # Ray in camera frame
         ray_cam = self.image_to_camera_ray(camera_name, u, v)
-        
+
         # Transform to world frame
         direction = cam.extrinsics.R.T @ ray_cam
-        
+
         return origin, direction
-    
+
     # ========== Multi-Camera Operations ==========
-    
+
     def project_world_to_all_cameras(self, P_world: np.ndarray) -> dict[str, tuple[float, float | None]]:
         """Project a world point to all camera images.
-        
+
         Args:
             P_world: 3D point in world coordinates
-        
+
         Returns:
             Dict mapping camera name to (u, v) or None if not visible
         """
@@ -447,86 +446,86 @@ class CameraArrayGeometry:
         for name in self.cameras:
             u, v = self.world_to_image(name, P_world)
             cam = self.cameras[name]
-            
+
             # Check if within image bounds
             if 0 <= u < cam.image_width and 0 <= v < cam.image_height:
                 results[name] = (u, v)
             else:
                 results[name] = None
-        
+
         return results
-    
+
     def find_best_camera_for_point(self, P_world: np.ndarray) -> str | None:
         """Find which camera has the best view of a world point.
-        
+
         Best = largest projected area (closest to image center with reasonable distance)
         """
         projections = self.project_world_to_all_cameras(P_world)
-        
+
         best_cam = None
         best_score = -1.0
-        
+
         for name, proj in projections.items():
             if proj is None:
                 continue
-            
+
             u, v = proj
             cam = self.cameras[name]
             cx, cy = cam.intrinsics.cx, cam.intrinsics.cy
-            
+
             # Distance from center (normalized)
             dist_from_center = np.sqrt(((u - cx) / cx)**2 + ((v - cy) / cy)**2)
-            
+
             # Score: closer to center is better
             score = 1.0 - dist_from_center
-            
+
             if score > best_score:
                 best_score = score
                 best_cam = name
-        
+
         return best_cam
-    
+
     def get_stereo_baseline(self, left: str = 'stereo_left', right: str = 'stereo_right') -> float:
         """Get stereo baseline between two cameras."""
         if left not in self.cameras or right not in self.cameras:
             return 0.0
-        
+
         p1 = self.cameras[left].extrinsics.t
         p2 = self.cameras[right].extrinsics.t
         return abs(p1[1] - p2[1])  # Lateral separation (Y axis = left)
-    
+
     def get_relative_pose(self, from_cam: str, to_cam: str) -> tuple[np.ndarray, np.ndarray]:
         """Get relative pose from one camera to another.
-        
+
         Returns:
             (R_rel, t_rel): Rotation and translation from from_cam to to_cam
         """
         if from_cam not in self.cameras or to_cam not in self.cameras:
             raise ValueError(f"Unknown camera: {from_cam} or {to_cam}")
-        
+
         ext_from = self.cameras[from_cam].extrinsics
         ext_to = self.cameras[to_cam].extrinsics
-        
+
         # Relative rotation: R_to @ R_from.T
         R_rel = ext_to.R @ ext_from.R.T
-        
+
         # Relative translation: t_to - R_rel @ t_from
         t_rel = ext_to.t - R_rel @ ext_from.t
-        
+
         return R_rel, t_rel
-    
+
     # ========== Utility Methods ==========
-    
+
     def get_camera_names(self) -> list[str]:
         """Get list of camera names."""
         return list(self.cameras.keys())
-    
+
     def get_camera_config(self, name: str) -> CameraConfig:
         """Get configuration for a specific camera."""
         if name not in self.cameras:
             raise ValueError(f"Unknown camera: {name}")
         return self.cameras[name]
-    
+
     def get_platform_info(self) -> dict:
         """Get platform information."""
         return {

@@ -44,7 +44,7 @@ def export_settings(path: str):
 
 def import_settings(path: str):
   """Import EOP* params from JSON."""
-  with open(path, 'r') as f:
+  with open(path) as f:
     eop_settings = json.load(f)
 
   p = Params()

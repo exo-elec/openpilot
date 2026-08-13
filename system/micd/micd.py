@@ -17,10 +17,9 @@ import threading
 
 from cereal import messaging
 from openpilot.common.realtime import Ratekeeper
-from openpilot.common.retry import retry
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.core_config import set_daemon_affinity
-from openpilot.system.hardware import HARDWARE, HAS_VOICE_INPUT
+from openpilot.system.hardware import HAS_VOICE_INPUT
 
 # BSP I2S HAL
 try:
@@ -68,59 +67,59 @@ def apply_a_weighting(measurements: np.ndarray) -> np.ndarray:
 
 class MicD:
     """Microphone input daemon."""
-    
+
     def __init__(self):
         set_daemon_affinity("micd")
-        
+
         # Auto-detect voice input hardware (RK3588 has no on-board mic)
         self.hardware_available = HAS_VOICE_INPUT and I2S_HAL_AVAILABLE
-        
+
         if not self.hardware_available:
             cloudlog.info("micd: No voice input hardware detected, entering standby mode")
         else:
             cloudlog.info("micd: Microphone hardware detected, starting capture")
-        
+
         self.rk = Ratekeeper(RATE)
         self.pm = messaging.PubMaster(['soundPressure', 'rawAudioData'])
-        
+
         self.measurements = np.empty(0)
         self.sound_pressure = 0
         self.sound_pressure_weighted = 0
         self.sound_pressure_level_weighted = 0
-        
+
         self.lock = threading.Lock()
-        
+
         # BSP I2S HAL (only used if hardware available)
         self.i2s = get_i2s_hal() if self.hardware_available else None
-        
+
         cloudlog.info("micd: Initialized")
-    
+
     def _audio_callback(self, audio_int16: np.ndarray):
         """Called by I2S HAL with audio data."""
         if not self.hardware_available:
             return
-        
+
         # Publish raw audio for voiced
         msg = messaging.new_message('rawAudioData', valid=True)
         msg.rawAudioData.data = audio_int16.tobytes()
         msg.rawAudioData.sampleRate = SAMPLE_RATE
         self.pm.send('rawAudioData', msg)
-        
+
         # Process for SPL
         audio_float = audio_int16.astype(np.float32) / 32768.0
-        
+
         with self.lock:
             self.measurements = np.concatenate((self.measurements, audio_float))
-            
+
             while self.measurements.size >= FFT_SAMPLES:
                 measurements = self.measurements[:FFT_SAMPLES]
-                
+
                 self.sound_pressure, _ = calculate_spl(measurements)
                 measurements_weighted = apply_a_weighting(measurements)
                 self.sound_pressure_weighted, self.sound_pressure_level_weighted = calculate_spl(measurements_weighted)
-                
+
                 self.measurements = self.measurements[FFT_SAMPLES:]
-    
+
     def update(self):
         """Update loop - publish SPL measurements."""
         if not self.hardware_available:
@@ -132,34 +131,34 @@ class MicD:
             self.pm.send('soundPressure', msg)
             self.rk.keep_time()
             return
-        
+
         with self.lock:
             spl = self.sound_pressure
             spl_w = self.sound_pressure_weighted
             spl_db = self.sound_pressure_level_weighted
-        
+
         msg = messaging.new_message('soundPressure', valid=True)
         msg.soundPressure.soundPressure = float(spl)
         msg.soundPressure.soundPressureWeighted = float(spl_w)
         msg.soundPressure.soundPressureWeightedDb = float(spl_db)
-        
+
         self.pm.send('soundPressure', msg)
         self.rk.keep_time()
-    
+
     def run(self):
         """Main daemon loop."""
         if self.hardware_available:
             # Start I2S capture
             self.i2s.start_capture(self._audio_callback)
             cloudlog.info("micd: Capture started")
-        
+
         try:
             while True:
                 self.update()
         finally:
             if self.i2s:
                 self.i2s.stop_capture()
-    
+
     def stop(self):
         """Stop daemon."""
         if self.i2s:

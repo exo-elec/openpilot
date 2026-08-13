@@ -1,6 +1,7 @@
 import math
 
 import cereal.messaging as messaging
+from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmapGenerator
 from openpilot.selfdrive.gridd.gridd import GridD
 
 
@@ -44,7 +45,7 @@ class _FuseHost:
     _r2d_corner_pose = GridD._R2D_CORNER_POSE
     _R4D_SNR_REF_DB = GridD._R4D_SNR_REF_DB
     _R4D_CONFIDENCE_BOOST = GridD._R4D_CONFIDENCE_BOOST
-    _active_costmap = None
+    _active_costmap: FusionCostmapGenerator | None = None
 
     _fuse_radar2d = GridD._fuse_radar2d
     _fuse_radar2d_objects = GridD._fuse_radar2d_objects

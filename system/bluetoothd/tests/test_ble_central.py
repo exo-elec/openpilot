@@ -214,7 +214,7 @@ class TestCornerPairTable:
         table.learn(self.ADDR_FL, 0)
         assert table.as_dict() == {self.ADDR_FL: 0}
         # saved to params on change
-        assert params.store[CornerPairTable.PARAM_KEY] == '{"%s": 0}' % self.ADDR_FL
+        assert params.store[CornerPairTable.PARAM_KEY] == f'{{"{self.ADDR_FL}": 0}}'
 
     def test_learn_is_idempotent_no_rewrite(self):
         params = FakeParams()
@@ -244,7 +244,7 @@ class TestCornerPairTable:
             table.learn(self.ADDR_FL, 2)
         assert table.as_dict() == {self.ADDR_FL: 2}
         assert any('now reports' in r.message for r in caplog.records)
-        assert '"%s": 2' % self.ADDR_FL in params.store[CornerPairTable.PARAM_KEY]
+        assert f'"{self.ADDR_FL}": 2' in params.store[CornerPairTable.PARAM_KEY]
 
     def test_duplicate_corner_claim_keeps_both(self, caplog):
         params = FakeParams()
@@ -264,8 +264,7 @@ class TestCornerPairTable:
 
     def test_invalid_corner_ids_filtered_on_load(self):
         params = FakeParams({CornerPairTable.PARAM_KEY:
-                             '{"%s": 0, "%s": 7, "%s": -1}' %
-                             (self.ADDR_FL, self.ADDR_FR, self.ADDR_NEW)})
+                             f'{{"{self.ADDR_FL}": 0, "{self.ADDR_FR}": 7, "{self.ADDR_NEW}": -1}}'})
         assert CornerPairTable(params).as_dict() == {self.ADDR_FL: 0}
 
     def test_learn_rejects_bad_inputs(self):
@@ -284,8 +283,8 @@ class TestCornerPairTable:
         table.learn(self.ADDR_FL.lower(), 0)  # addresses normalize to upper
         table.learn(self.ADDR_FR, 1)
         desc = table.describe()
-        assert '%s→FL' % self.ADDR_FL in desc
-        assert '%s→FR' % self.ADDR_FR in desc
+        assert f'{self.ADDR_FL}→FL' in desc
+        assert f'{self.ADDR_FR}→FR' in desc
 
 
 class TestAuthorizationPredicate:
@@ -302,15 +301,15 @@ class TestAuthorizationPredicate:
         assert t.is_allowed(self.UNKNOWN, pairing_open=False) is True
 
     def test_enforcement_rejects_unknown_window_closed(self):
-        t = self._table({CornerPairTable.PARAM_KEY: '{"%s": 0}' % self.KNOWN})
+        t = self._table({CornerPairTable.PARAM_KEY: f'{{"{self.KNOWN}": 0}}'})
         assert t.is_allowed(self.UNKNOWN, pairing_open=False) is False
 
     def test_window_open_admits_unknown(self):
-        t = self._table({CornerPairTable.PARAM_KEY: '{"%s": 0}' % self.KNOWN})
+        t = self._table({CornerPairTable.PARAM_KEY: f'{{"{self.KNOWN}": 0}}'})
         assert t.is_allowed(self.UNKNOWN, pairing_open=True) is True
 
     def test_known_address_always_admitted(self):
-        t = self._table({CornerPairTable.PARAM_KEY: '{"%s": 0}' % self.KNOWN})
+        t = self._table({CornerPairTable.PARAM_KEY: f'{{"{self.KNOWN}": 0}}'})
         assert t.is_allowed(self.KNOWN, pairing_open=False) is True
         assert t.is_allowed(self.KNOWN.lower(), pairing_open=False) is True
         assert t.is_allowed(self.KNOWN, pairing_open=True) is True
@@ -427,10 +426,10 @@ class TestLoadWifiRoster:
 
     def test_tolerant_parsing(self, tmp_path):
         f = tmp_path / 'ap0.accept'
-        f.write_text('# our vehicle corners\n'
-                     '02:11:22:33:44:55\n'
-                     '\n'
-                     'aa:bb:cc:dd:ee:ff   # trailing comment\n'
+        f.write_text('# our vehicle corners\n' +
+                     '02:11:22:33:44:55\n' +
+                     '\n' +
+                     'aa:bb:cc:dd:ee:ff   # trailing comment\n' +
                      'not-a-mac\n')
         assert load_wifi_roster(str(f)) == {'02:11:22:33:44:55', 'AA:BB:CC:DD:EE:FF'}
 
@@ -543,7 +542,7 @@ class TestLearnEligibilityIntegration:
     def test_paired_address_bypasses_eligibility(self):
         # already-paired unit: no candidate evidence needed — identity was
         # proven when learned
-        central = self._central({CornerPairTable.PARAM_KEY: '{"%s": 0}' % self.ADDR})
+        central = self._central({CornerPairTable.PARAM_KEY: f'{{"{self.ADDR}": 0}}'})
         self._feed(central)
         assert 0 in central._corners
 

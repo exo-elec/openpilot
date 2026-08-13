@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import logging
-import numpy as np
 from openpilot.system.inferenced.compute import (
     HAL, HALConfig, ModelConfig, BackendType, get_hal
 )
@@ -117,7 +116,7 @@ class TestModelPreloading:
 
     if vision_cached and policy_cached:
       logger.info("✓ Multiple models preloaded")
-      logger.info(f"  Cached models: vision, policy")
+      logger.info("  Cached models: vision, policy")
       return True
     else:
       logger.warning(f"✗ Preload incomplete (vision={vision_cached}, policy={policy_cached})")
@@ -188,8 +187,8 @@ class TestModelPreloading:
     logger.info("Model Preloading Test Results")
     logger.info("="*60)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    sum(1 for v in results.values() if v)
+    len(results)
 
     for test_name, result in results.items():
       status = "✓ PASS" if result else "✗ FAIL"

@@ -4,7 +4,6 @@
 from abc import abstractmethod, ABC
 import os
 from dataclasses import dataclass, fields
-from cereal import log
 from enum import Enum, auto
 
 
@@ -133,121 +132,99 @@ class LPABase(ABC):
 
 class HardwareBase(ABC):
     """Base class for hardware platforms."""
-    
+
     @staticmethod
     @abstractmethod
     def detect() -> bool:
         """Detect if this hardware is present."""
-        pass
-    
+
     @abstractmethod
     def get_device_type(self) -> str:
         """Get device type string."""
-        pass
-    
+
     @abstractmethod
     def reboot(self, reason=None):
         """Reboot the system."""
-        pass
-    
+
     @abstractmethod
     def uninstall(self):
         """Uninstall software."""
-        pass
-    
+
     @abstractmethod
     def get_os_version(self):
         """Get OS version."""
-        pass
-    
+
     @abstractmethod
     def get_imei(self, slot) -> str:
         """Get IMEI."""
-        pass
-    
+
     @abstractmethod
     def get_serial(self):
         """Get hardware serial number."""
-        pass
 
     def get_dongle_id(self):
         """Get dongle ID (device identity). Defaults to serial for backward compatibility."""
         return self.get_serial()
-    
+
     @abstractmethod
     def get_network_info(self):
         """Get network info."""
-        pass
-    
+
     @abstractmethod
     def get_network_type(self):
         """Get network type."""
-        pass
-    
+
     @abstractmethod
     def get_sim_info(self):
         """Get SIM info."""
-        pass
-    
+
     @abstractmethod
     def get_sim_lpa(self):
         """Get LPA."""
-        pass
-    
+
     @abstractmethod
     def get_network_strength(self, network_type):
         """Get network strength."""
-        pass
-    
+
     @abstractmethod
     def get_current_power_draw(self):
         """Get current power draw."""
-        pass
-    
+
     @abstractmethod
     def get_som_power_draw(self):
         """Get SoM power draw."""
-        pass
-    
+
     @abstractmethod
     def shutdown(self):
         """Shutdown the system."""
-        pass
-    
+
     @abstractmethod
     def set_screen_brightness(self, percentage):
         """Set screen brightness."""
-        pass
-    
+
     @abstractmethod
     def get_screen_brightness(self):
         """Get screen brightness."""
-        pass
-    
+
     @abstractmethod
     def set_power_save(self, powersave_enabled):
         """Set power save mode."""
-        pass
-    
+
     @abstractmethod
     def get_gpu_usage_percent(self):
         """Get GPU usage percentage."""
-        pass
-    
+
     @abstractmethod
     def get_modem_temperatures(self):
         """Get modem temperatures."""
-        pass
-    
+
     @abstractmethod
     def initialize_hardware(self):
         """Initialize hardware."""
-        pass
-    
+
     @abstractmethod
     def get_networks(self):
         """Get available networks."""
-        pass
 
     def modem_power_on(self) -> bool:
         """Power on cellular modem.
@@ -268,7 +245,7 @@ class HardwareBase(ABC):
     def get_modem_type(self) -> str:
         """Return detected cellular modem identifier (e.g. 'quectel_ec25')."""
         return "unknown"
-    
+
     def get_camera_array_config(self) -> dict:
         """Get camera array configuration."""
         return {
@@ -277,27 +254,27 @@ class HardwareBase(ABC):
             "stereo_baseline_mm": 0.0,
             "cameras": []
         }
-    
+
     def get_stereo_baseline_mm(self) -> float:
         """Get stereo baseline in mm."""
         return 0.0
-    
+
     def get_capabilities(self) -> set:
         """Get hardware capabilities."""
         return set()
-    
+
     def has_speaker(self) -> bool:
         """Check if platform has speaker for audio output."""
         return False
-    
+
     def has_voice_input(self) -> bool:
         """Check if platform has voice input hardware (microphone + Hailo NPU)."""
         return False
-    
+
     def has_side_cameras(self) -> bool:
         """Check if platform has side cameras (UVC via USB 3.0 hub RTS5411S)."""
         return False
-    
+
     def has_rear_camera(self) -> bool:
         """Check if platform supports a rear-facing USB camera."""
         return False
@@ -305,7 +282,7 @@ class HardwareBase(ABC):
     def get_max_reliable_depth_m(self) -> float:
         """Get maximum reliable stereo depth distance in meters."""
         return 80.0
-    
+
     def get_can_bitrate(self) -> int:
         """Return default CAN bitrate in bits per second."""
         return 500000

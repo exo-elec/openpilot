@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # CARLA Simulator Launcher for EOP/openpilot

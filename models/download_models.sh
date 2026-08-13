@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Download models from RKNN Model Zoo and Hailo Model Zoo
 # Usage: ./download_models.sh [all|rknn|hailo]
 

@@ -66,7 +66,7 @@ class MessageType(IntEnum):
     Direction:
         PHONE→DEVICE: Commands from companion app to device
         DEVICE→PHONE: Telemetry/Responses from device to app
-    
+
     Ranges:
         0x00–0x0F  Device info
         0x10–0x1F  Telemetry (DEVICE→PHONE)
@@ -125,7 +125,7 @@ class MessageType(IntEnum):
     # --- Control ---
     PING = 0x40   # PHONE→DEVICE: Keepalive
     PONG = 0x41   # DEVICE→PHONE: Keepalive response
-    
+
     # --- Search ---
     SEARCH_REQUEST  = 0x50   # PHONE→DEVICE: Search query
     SEARCH_RESPONSE = 0x51   # DEVICE→PHONE: Search results
@@ -365,25 +365,25 @@ VEHICLE_WMI_MAP = {
 
 def detect_vehicle_type_from_vin(vin: str) -> tuple[str, str]:
     """Detect vehicle type and make from VIN.
-    
+
     Args:
         vin: Vehicle Identification Number (17 characters)
-    
+
     Returns:
         (vehicle_type, make) tuple
     """
     if not vin or len(vin) < 3:
         return ('generic_ice', 'Unknown')
-    
+
     wmi = vin[:3].upper()
-    
+
     if wmi in VEHICLE_WMI_MAP:
         return VEHICLE_WMI_MAP[wmi]
-    
+
     # Chinese manufacturer = likely EV
     if wmi.startswith('L'):
         return ('generic_ev', 'Unknown')
-    
+
     return ('generic_ice', 'Unknown')
 
 

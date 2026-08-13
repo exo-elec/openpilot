@@ -9,7 +9,7 @@ import time
 
 from openpilot.system.bluetoothd import protocol
 from openpilot.system.bluetoothd.ble_central import (
-    CornerPairTable, BLECentral, PAIR_DWELL_S, check_learn_eligibility,
+    CornerPairTable, BLECentral, PAIR_DWELL_S,
 )
 from openpilot.system.bluetoothd.ncp_session import (
     NCPSession, build_radar_pair_status,
@@ -70,7 +70,7 @@ class TestBLECentralAccessors:
 
     def test_pairs_dump(self):
         central = make_central({CornerPairTable.PARAM_KEY:
-                                '{"%s": 0, "%s": 3}' % (ADDR_A, ADDR_B)})
+                                f'{{"{ADDR_A}": 0, "{ADDR_B}": 3}}'})
         assert central.pairs_dump() == [
             {'address': ADDR_A, 'corner': 0},
             {'address': ADDR_B, 'corner': 3},
@@ -98,7 +98,7 @@ class TestBLECentralAccessors:
         assert 'roster' in c['reason']
 
     def test_candidates_dump_corner_after_learn(self):
-        central = make_central({CornerPairTable.PARAM_KEY: '{"%s": 2}' % ADDR_A})
+        central = make_central({CornerPairTable.PARAM_KEY: f'{{"{ADDR_A}": 2}}'})
         seed_candidate(central, ADDR_A, WIFI_A, PAIR_DWELL_S + 1.0)
         assert central.candidates_dump()[0]['corner'] == 2
 
@@ -142,7 +142,7 @@ class TestRadarPairStatus:
     """Outbound 0x0611 — pinned payload shape, cadence rules."""
 
     def test_payload_shape_pinned(self):
-        central = make_central({CornerPairTable.PARAM_KEY: '{"%s": 0}' % ADDR_A})
+        central = make_central({CornerPairTable.PARAM_KEY: f'{{"{ADDR_A}": 0}}'})
         seed_candidate(central, ADDR_B, WIFI_B, 2.0)  # short dwell → ineligible
         p = build_radar_pair_status(central)
         assert set(p) == {'windowOpen', 'pairs', 'candidates'}

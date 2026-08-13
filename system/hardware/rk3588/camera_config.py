@@ -47,9 +47,10 @@ class CameraConfig:
 # exopilot hal package (hal.platform.rk3588_camera_geometry) rather than living
 # in this public repo. Without hal, this list is empty and side/rear camera
 # support degrades gracefully (see HardwareBase.has_side_cameras/has_rear_camera).
+USB_CAMERAS: list[CameraConfig]
 try:
   from hal.platform.rk3588_camera_geometry import USB_CAMERAS as _HAL_USB_CAMERAS
-  USB_CAMERAS: list[CameraConfig] = [
+  USB_CAMERAS = [
     CameraConfig(
       name=c["name"],
       sensor=CameraSensor.UVC,
@@ -68,7 +69,7 @@ try:
     for c in _HAL_USB_CAMERAS
   ]
 except ImportError:
-  USB_CAMERAS: list[CameraConfig] = []
+  USB_CAMERAS = []
 
 
 def get_camera(name: str) -> CameraConfig | None:

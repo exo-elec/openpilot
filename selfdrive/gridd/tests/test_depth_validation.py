@@ -29,7 +29,7 @@ class TestDepthValidation:
     def _create_test_q_matrix(self, baseline_m: float, focal_px: float, cx: float, cy: float) -> np.ndarray:
         """
         Create Q matrix for stereo rectification.
-        
+
         Q = [
             [1, 0, 0, -cx],
             [0, 1, 0, -cy],
@@ -48,7 +48,7 @@ class TestDepthValidation:
     def _create_synthetic_disparity(self, true_depth_m: float, add_noise: bool = False) -> np.ndarray:
         """
         Create synthetic disparity map with known depth.
-        
+
         depth = f * B / disparity
         disparity = f * B / depth
         """
@@ -96,7 +96,7 @@ class TestDepthValidation:
 
             error = abs(measured_depth - true_depth)
             assert error < tolerance, (
-                f"Depth error too large at {true_depth}m: "
+                f"Depth error too large at {true_depth}m: " +
                 f"measured={measured_depth:.2f}m, error={error:.2f}m"
             )
 
@@ -119,18 +119,18 @@ class TestDepthValidation:
 
             error_pct = abs(measured_depth - true_depth) / true_depth
             assert error_pct < tolerance_pct, (
-                f"Depth error too large at {true_depth}m: "
+                f"Depth error too large at {true_depth}m: " +
                 f"measured={measured_depth:.2f}m, error={error_pct*100:.1f}%"
             )
 
     def test_coordinate_system(self):
         """Test that coordinate system follows OpenCV stereoRectify conventions.
-        
+
         OpenCV stereoRectify convention (camera coordinates):
         - X: right (positive right)
-        - Y: down (positive down)  
+        - Y: down (positive down)
         - Z: forward (positive forward) - but OpenCV produces negative Z!
-        
+
         Note: OpenCV's reprojectImageTo3D produces points in camera coordinates
         where Z is negative for points in front of the camera. The EOP10 code
         takes absolute value or uses the Z component appropriately.
@@ -147,7 +147,7 @@ class TestDepthValidation:
         # Check center pixel - Z should be approximately -true_depth (negative forward)
         center_y, center_x = self.IMAGE_HEIGHT // 2, self.IMAGE_WIDTH // 2
         z_forward = xyz[center_y, center_x, 2]
-        
+
         # OpenCV convention: Z is negative for points in front of camera
         assert z_forward < 0, f"OpenCV Z should be negative (forward), got {z_forward}"
         # With clean synthetic data, should be within 0.5m

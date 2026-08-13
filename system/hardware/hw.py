@@ -8,7 +8,7 @@ DEFAULT_DOWNLOAD_CACHE_ROOT = "/tmp/comma_download_cache"
 
 def get_storage_root():
   """Get storage root directory (SD card or internal eMMC).
-  
+
   For EOP platforms, checks common SD card mount points.
   """
   # Check common SD card mount points

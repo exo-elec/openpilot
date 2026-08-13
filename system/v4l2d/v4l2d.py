@@ -30,6 +30,17 @@ _params = Params()
 
 from openpilot.system.v4l2d.occlusion_detector import OcclusionDetector, OcclusionROI
 
+# MIPI CSI device-path candidates live in the closed HAL package.
+try:
+  from hal.platform.rk3588_camera_paths import DEFAULT_MIPI_CAMERA_PATHS as _HAL_MIPI_PATHS
+except ImportError:
+  _HAL_MIPI_PATHS = {}  # type: ignore[assignment]
+
+
+def _mipi_paths(camera: str, fallback: list[str]) -> list[str]:
+  """Return HAL device-path candidates for a camera, with a safe fallback."""
+  return _HAL_MIPI_PATHS.get(camera, fallback) if _HAL_MIPI_PATHS else fallback
+
 # ---------------------------------------------------------------------------
 # Stream type IDs — all cameras in one place
 # EOP stereo IDs extend upstream enum (msgq not modified; raw ints are fine
@@ -142,7 +153,7 @@ def _default_camera_configs() -> list[CameraConfig]:
     CameraConfig(
       msg_name    = "roadCameraState",
       stream_type = STREAM_ROAD,
-      device_path = _find_and_track(["/dev/video0", "/dev/video2"], "ox03c10"),
+      device_path = _find_and_track(_mipi_paths("road", ["/dev/video0", "/dev/video2"]), "ox03c10"),
       cam_id      = "road_camera",
       vipc_server = "v4l2d",
       sensor      = sensor.ox03c10,
@@ -153,7 +164,7 @@ def _default_camera_configs() -> list[CameraConfig]:
     CameraConfig(
       msg_name    = "wideRoadCameraState",
       stream_type = STREAM_WIDE_ROAD,
-      device_path = _find_and_track(["/dev/video1", "/dev/video3"], "ox03c10"),
+      device_path = _find_and_track(_mipi_paths("wide_road", ["/dev/video1", "/dev/video3"]), "ox03c10"),
       cam_id      = "wide_camera",
       vipc_server = "v4l2d",
       sensor      = sensor.ox03c10,
@@ -168,7 +179,7 @@ def _default_camera_configs() -> list[CameraConfig]:
       CameraConfig(
         msg_name    = "stereoCameraState",
         stream_type = STREAM_STEREO_LEFT,
-        device_path = _find_and_track(["/dev/video22", "/dev/video4"], "gc4653"),
+        device_path = _find_and_track(_mipi_paths("stereo_left", ["/dev/video22", "/dev/video4"]), "gc4653"),
         cam_id      = "stereo_left_camera",
         vipc_server = "v4l2d",
         sensor      = sensor.gc4653,
@@ -179,7 +190,7 @@ def _default_camera_configs() -> list[CameraConfig]:
       CameraConfig(
         msg_name    = "stereoCameraStateRight",
         stream_type = STREAM_STEREO_RIGHT,
-        device_path = _find_and_track(["/dev/video31", "/dev/video5"], "gc4653"),
+        device_path = _find_and_track(_mipi_paths("stereo_right", ["/dev/video31", "/dev/video5"]), "gc4653"),
         cam_id      = "stereo_right_camera",
         vipc_server = "v4l2d",
         sensor      = sensor.gc4653,
@@ -239,7 +250,7 @@ def load_camera_configs() -> list[CameraConfig]:
 
     device_path = cam.get("device")
     if not device_path:
-      device_path = _find_device(["/dev/video0"], sensor_name, exclude=used_nodes)
+      device_path = _find_device(_mipi_paths(stream_name, ["/dev/video0"]), sensor_name, exclude=used_nodes)
 
     used_nodes.add(device_path)
 
@@ -280,10 +291,46 @@ class CameraState:
     return "".join(p.capitalize() for p in parts if p) + "Ready"
 
   def init_isp(self, device_path: str):
-    """Initialize ISP HAL for hardware 3A."""
+    """Initialize ISP HAL for hardware 3A (AE/AWB) via Rockchip RKIAQ."""
+    sensor_name = self._get_sensor_name()
+    if not sensor_name:
+      cloudlog.warning(
+        f"v4l2d: skipping ISP init for {self.config.cam_id} — unknown sensor"
+      )
+      self.isp_hal = None
+      return
+
     try:
-      # TODO: Implement direct V4L2 ISP control via Rockchip ISP driver
-      cloudlog.info(f"v4l2d: ISP ready for {self.config.cam_id}")
+      from openpilot.system.v4l2d.isp.rkiaq_wrapper import RKIAQWrapper
+      isp = RKIAQWrapper(device_path, sensor_name)
+      if not isp.initialize():
+        cloudlog.warning(
+          f"v4l2d: RKIAQ init failed for {self.config.cam_id} — " +
+          "falling back to sensor default AE/AWB"
+        )
+        self.isp_hal = None
+        return
+
+      if not isp.start():
+        cloudlog.warning(f"v4l2d: RKIAQ start failed for {self.config.cam_id}")
+        isp.shutdown()
+        self.isp_hal = None
+        return
+
+      # Default AE: 100 µs – 33 ms, 0–24 dB gain, target 128/255.
+      # These are safe starting points for ADAS day/night operation;
+      # per-sensor tuning is applied via the IQ file loaded from /etc/iqfiles.
+      isp.set_ae(
+        target_brightness=128,
+        exposure_range_us=(100, 33000),
+        gain_range_db=(0.0, 24.0),
+      )
+      isp.set_awb("auto")
+
+      self.isp_hal = isp
+      cloudlog.info(
+        f"v4l2d: RKIAQ ISP ready for {self.config.cam_id} ({sensor_name})"
+      )
     except Exception as e:
       cloudlog.warning(f"v4l2d: ISP init failed for {self.config.cam_id}: {e}")
       self.isp_hal = None
@@ -453,13 +500,27 @@ class V4L2D:
       return
 
     try:
+      # Prefer RKIAQ ISP metadata when available; otherwise fall back to the
+      # V4L2 driver-reported values from the frame object.
+      exposure_us = frame_obj.exposure_time_us
+      gain = frame_obj.analog_gain
+      if state.isp_hal is not None:
+        try:
+          meta = state.isp_hal.get_metadata()
+          if meta.exposure_time_us > 0:
+            exposure_us = meta.exposure_time_us
+          if meta.analog_gain > 0:
+            gain = meta.analog_gain
+        except Exception:
+          pass
+
       dat = messaging.new_message(state.config.msg_name, valid=True)
       msg = getattr(dat, state.config.msg_name)
       msg.frameId = state.frame_id
       msg.timestampSof = ts
       msg.timestampEof = ts
-      msg.exposureTime = frame_obj.exposure_time_us
-      msg.gain = frame_obj.analog_gain
+      msg.exposureTime = exposure_us
+      msg.gain = gain
       msg.exposureValPercent = (1.0 - frame_obj.light_level) * 100.0
       msg.sensor = state.config.sensor
       msg.transform = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]

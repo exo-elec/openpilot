@@ -23,7 +23,6 @@ import logging
 import math
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -86,7 +85,7 @@ class HailoSideProcessor:
   def is_available(self) -> bool:
     return self._detector.is_available
 
-  def detect(self, frame: np.ndarray | None) -> List[SideObject]:
+  def detect(self, frame: np.ndarray | None) -> list[SideObject]:
     """Run Hailo inference on a single side camera frame."""
     return self._detector.detect(frame)
 
@@ -104,7 +103,7 @@ class SideProcessor:
     over = mean_bright > 250.0
     return FrameQuality(mean_bright, under, over)
 
-  def detect(self, frame: np.ndarray | None) -> List[SideObject]:
+  def detect(self, frame: np.ndarray | None) -> list[SideObject]:
     # CPU fallback: no neural inference yet
     return []
 
@@ -129,8 +128,8 @@ class SingleCameraTracker:
   def process_frame(
     self,
     frame_bgr: np.ndarray,
-    raw_detections: List[SideObject],
-  ) -> List[SideObject]:
+    raw_detections: list[SideObject],
+  ) -> list[SideObject]:
     """Process one frame and return tracked SideObjects.
 
     Args:
@@ -144,7 +143,7 @@ class SingleCameraTracker:
       self.tracker.update([])
       return []
 
-    perceived: List[SideObject] = []
+    perceived: list[SideObject] = []
     for det in raw_detections:
       if det.label not in RELEVANT_CLASSES:
         continue
@@ -185,8 +184,8 @@ class SideTrackerCore:
   def __init__(
     self,
     obj_threshold: float = 0.30,
-    left_geometry: Optional[SideCameraGeometry] = None,
-    right_geometry: Optional[SideCameraGeometry] = None,
+    left_geometry: SideCameraGeometry | None = None,
+    right_geometry: SideCameraGeometry | None = None,
   ) -> None:
     self.obj_threshold = obj_threshold
 
@@ -211,8 +210,8 @@ class SideTrackerCore:
 
   @staticmethod
   def _load_calibrated_geometry(
-    left_geo: Optional[SideCameraGeometry],
-    right_geo: Optional[SideCameraGeometry],
+    left_geo: SideCameraGeometry | None,
+    right_geo: SideCameraGeometry | None,
   ) -> tuple[SideCameraGeometry, SideCameraGeometry]:
     """Load side camera geometry from CalibrationStorage.
 
@@ -240,7 +239,7 @@ class SideTrackerCore:
       if side_left_calib is not None:
         left_geo = geometry_from_calibration('side_left', side_left_calib)
         cloudlog.info(
-          "SideTrackerCore: loaded calibrated side_left geometry "
+          "SideTrackerCore: loaded calibrated side_left geometry " +
           "(yaw=%.2f°, pitch=%.2f°, height=%.2f m)",
           math.degrees(left_geo.yaw_rad),
           math.degrees(left_geo.pitch_rad),
@@ -256,7 +255,7 @@ class SideTrackerCore:
       if side_right_calib is not None:
         right_geo = geometry_from_calibration('side_right', side_right_calib)
         cloudlog.info(
-          "SideTrackerCore: loaded calibrated side_right geometry "
+          "SideTrackerCore: loaded calibrated side_right geometry " +
           "(yaw=%.2f°, pitch=%.2f°, height=%.2f m)",
           math.degrees(right_geo.yaw_rad),
           math.degrees(right_geo.pitch_rad),
@@ -270,13 +269,13 @@ class SideTrackerCore:
 
   def process_frames(
     self,
-    left_frame: Optional[np.ndarray],
-    right_frame: Optional[np.ndarray],
-    left_dets: List[SideObject],
-    right_dets: List[SideObject],
-  ) -> List[SideObject]:
+    left_frame: np.ndarray | None,
+    right_frame: np.ndarray | None,
+    left_dets: list[SideObject],
+    right_dets: list[SideObject],
+  ) -> list[SideObject]:
     """Process both camera frames and return globally-tracked objects."""
-    camera_tracks: Dict[str, List[SideObject]] = {}
+    camera_tracks: dict[str, list[SideObject]] = {}
 
     if left_frame is not None:
       camera_tracks['side_left'] = self.left_tracker.process_frame(left_frame, left_dets)
@@ -403,7 +402,7 @@ class SideD:
       cloudlog.debug("SideD: VisionIPC frame retrieval failed: %s", e)
       return None
 
-  def _publish(self, tracks: List[SideObject], left_quality: FrameQuality | None,
+  def _publish(self, tracks: list[SideObject], left_quality: FrameQuality | None,
                right_quality: FrameQuality | None, ts: int,
                proc_time_ms: float, left_present: bool, right_present: bool) -> None:
     # sideDetections

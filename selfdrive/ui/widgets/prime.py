@@ -1,3 +1,5 @@
+from typing import cast
+
 import pyray as rl
 
 from openpilot.system.ui.lib.application import gui_app, FontWeight
@@ -22,12 +24,12 @@ class PrimeWidget(Widget):
     y = rect.y + 40
     w = rect.width - 112
 
-    font = gui_app.font(FontWeight.BOLD)
+    font = gui_app.font(cast(FontWeight, FontWeight.BOLD))
     rl.draw_text_ex(font, "✓ OFFLINE", rl.Vector2(x, y), 41, 0, rl.Color(134, 255, 78, 255))
     rl.draw_text_ex(font, "EnhancedOpenPilot", rl.Vector2(x, y + 61), 75, 0, rl.WHITE)
 
     y += 160
-    desc_font = gui_app.font(FontWeight.LIGHT)
+    desc_font = gui_app.font(cast(FontWeight, FontWeight.LIGHT))
     desc = "All processing is local. No cloud account required."
     wrapped = wrap_text(desc_font, desc, 45, int(w))
     for line in wrapped:

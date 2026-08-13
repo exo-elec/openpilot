@@ -30,7 +30,7 @@ from openpilot.common.swaglog import cloudlog
 # =============================================================================
 # Daemon CPU Allocation - OpenPilot Only
 # =============================================================================
-# 
+#
 # CORE_BIG (A76 0-3): Safety-Critical ADAS
 #   - Direct vehicle control
 #   - Perception and planning
@@ -51,7 +51,7 @@ DAEMON_CORE_TYPE = {
     "gridd": CORE_BIG,          # Stereo depth - obstacle detection
     "pathd": CORE_BIG,          # Path planning - trajectory
     "plannerd": CORE_BIG,       # Longitudinal planning
-    
+
     # Safety-Critical I/O
     "v4l2d": CORE_BIG,          # Camera capture - ADAS input
     "uvcd": CORE_BIG,           # USB camera capture (UVC via RTS5411S hub)
@@ -67,11 +67,11 @@ DAEMON_CORE_TYPE = {
     "sided": CORE_BIG,          # Side camera perception
     "reard": CORE_BIG,          # Rear camera perception
     "pointcloudd": CORE_BIG,    # Point cloud recording
-    
+
     # Data Pipeline
     "loggerd": CORE_BIG,        # Data logging
     "encoderd": CORE_BIG,       # Video encoding
-    
+
     # -------------------------------------------------------------------------
     # CORE_LITTLE (A55) - Support Functions
     # -------------------------------------------------------------------------
@@ -79,7 +79,7 @@ DAEMON_CORE_TYPE = {
     "spkd": CORE_LITTLE,        # Speaker output via I2S DAC
     "soundd": CORE_LITTLE,      # TTS synthesis + alert tones
     "micd": CORE_LITTLE,        # Microphone input + SPL metering (standby — no mic on RK3588)
-    
+
     # Positioning/Navigation (Accuracy - not safety critical)
     "pigeond": CORE_LITTLE,     # GPS driver
     "rtcd": CORE_LITTLE,        # RTC time sync
@@ -107,15 +107,15 @@ DAEMON_CORE_TYPE = {
     "logmessaged": CORE_LITTLE, # Log aggregation
     "deleter": CORE_LITTLE,     # Log deletion
     "uploader": CORE_LITTLE,    # Log upload
-    
+
     # Inference
     "inferenced": CORE_BIG,     # Inference backend (GPU/NPU pre-warm)
     "mcapd": CORE_LITTLE,       # MCAP parallel logging for Foxglove
-    
+
     # Optional/External
     "valhalla_service": CORE_LITTLE,  # Valhalla routing service (offline nav)
     "steamd": CORE_LITTLE,      # VR teleoperation + external control (subsumes joystickd)
-    
+
     # Misc
     "tripd": CORE_LITTLE,       # Trip statistics
     "calibrationd": CORE_BIG,   # Calibration - camera geometry critical
@@ -129,13 +129,13 @@ DAEMON_CORE_TYPE = {
 def get_daemon_core_type(daemon_name: str) -> str:
     """
     Get CPU core type for a daemon.
-    
+
     Args:
         daemon_name: Name of the daemon (e.g., "soundd", "modeld")
-        
+
     Returns:
         Core type: CORE_BIG or CORE_LITTLE
-        
+
     Raises:
         KeyError: If daemon not found in configuration
     """
@@ -150,10 +150,10 @@ def get_daemon_core_type(daemon_name: str) -> str:
 def set_daemon_affinity(daemon_name: str) -> None:
     """
     Set CPU affinity for the current process based on daemon name.
-    
+
     Args:
         daemon_name: Name of the daemon
-        
+
     Example:
         # In soundd.py __init__:
         from openpilot.common.core_config import set_daemon_affinity
@@ -166,13 +166,13 @@ def set_daemon_affinity(daemon_name: str) -> None:
 def get_allocation_summary() -> dict:
     """
     Get summary of core allocation for reporting.
-    
+
     Returns:
         Dict with 'big' and 'little' daemon lists
     """
     big = [name for name, core_type in DAEMON_CORE_TYPE.items() if core_type == CORE_BIG]
     little = [name for name, core_type in DAEMON_CORE_TYPE.items() if core_type == CORE_LITTLE]
-    
+
     return {
         "big": sorted(big),
         "little": sorted(little),
@@ -187,17 +187,17 @@ def get_allocation_summary() -> dict:
 # =============================================================================
 if __name__ == "__main__":
     summary = get_allocation_summary()
-    
+
     print("=" * 60)
     print("OpenPilot CPU Core Allocation Summary")
     print("=" * 60)
     print(f"\nCORE_BIG (A76 - Safety Critical): {summary['big_count']} daemons")
     for name in summary["big"]:
         print(f"  • {name}")
-        
+
     print(f"\nCORE_LITTLE (A55 - Support Functions): {summary['little_count']} daemons")
     for name in summary["little"]:
         print(f"  • {name}")
-        
+
     print(f"\nTotal: {summary['total']} daemons configured")
     print("=" * 60)

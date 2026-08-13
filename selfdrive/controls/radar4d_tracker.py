@@ -415,7 +415,7 @@ class ABGTrackManager:
             del self._tracks[tid]
 
         # Spawn new tentative tracks for unmatched detections.
-        for det, meta in zip(remaining, remaining_meta):
+        for det, meta in zip(remaining, remaining_meta, strict=False):
             tid = self._alloc_id()
             x_m, y_m, z_m = _det_to_cartesian(det)
             self._tracks[tid] = Track(
@@ -736,7 +736,7 @@ class KalmanTrackManager:
             del self._covs[tid]
 
         # Spawn new tentative tracks for unmatched detections.
-        for det, meta in zip(remaining, remaining_meta):
+        for det, meta in zip(remaining, remaining_meta, strict=False):
             tid = self._alloc_id()
             x_m, y_m, z_m = _det_to_cartesian(det)
             self._tracks[tid] = Track(

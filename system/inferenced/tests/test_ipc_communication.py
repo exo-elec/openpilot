@@ -17,7 +17,7 @@ import time
 import numpy as np
 
 from openpilot.system.inferenced import InferenceClient, BackendType
-from openpilot.system.inferenced.compute import get_hal, InferenceResult
+from openpilot.system.inferenced.compute import InferenceResult
 
 
 def _skip_if_messaging_unavailable():
@@ -312,4 +312,4 @@ class TestIPCEndToEnd:
 
 
 if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+    pytest.main([__file__, '-v'])  # noqa: TID251

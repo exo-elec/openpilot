@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # RK3588 Platform Environment Setup
 # Source this in /etc/profile.d/ or from openpilot launch script.
 #

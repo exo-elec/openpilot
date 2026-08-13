@@ -1,7 +1,6 @@
 import difflib
 import os
 
-from openpilot.common.params import Params
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 SIMILARITY_THRESHOLD = 0.85

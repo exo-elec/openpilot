@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 
-import numpy as np
 import pytest
 
 from openpilot.selfdrive.controls.radar4d_pointcloud import (
@@ -410,4 +409,4 @@ class TestVisionBlocked:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    pytest.main([__file__, "-v"])  # noqa: TID251

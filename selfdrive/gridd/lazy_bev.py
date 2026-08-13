@@ -15,7 +15,7 @@ Inputs (per frame):
   xyz_map  : HxWx3 float32 — stereo XYZ point cloud (X=lateral, Z=forward)
   obj_mask : HxW uint8    — SceneSeg foreground pixels (1=object)
   road_mask: HxW uint8    — PPLiteSeg road pixels (1=road)
-  
+
 Optional (for multi-camera fusion):
   camera_points : dict[str, np.ndarray] — XYZ points from each camera
   geometry      : CameraArrayGeometry — Camera calibration/geometry
@@ -25,6 +25,7 @@ Output:
 """
 from __future__ import annotations
 import time
+from typing import Any, cast
 import numpy as np
 from openpilot.system.hardware import HARDWARE
 from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
@@ -60,15 +61,15 @@ LOG_ODDS_DETECTION_OCCUPIED = np.log(P_DETECTION_OCCUPIED / (1 - P_DETECTION_OCC
 LOG_ODDS_DETECTION_FREE = np.log(P_DETECTION_FREE / (1 - P_DETECTION_FREE))
 
 
-def probability_to_log_odds(p: float) -> float:
+def probability_to_log_odds(p: np.ndarray | float) -> np.ndarray | float:
     """Convert probability to log odds."""
     p = np.clip(p, MIN_PROBABILITY, MAX_PROBABILITY)
-    return np.log(p / (1 - p))
+    return cast(np.ndarray | float, np.log(p / (1 - p)))
 
 
-def log_odds_to_probability(l: float) -> float:
+def log_odds_to_probability(l: np.ndarray | float) -> np.ndarray | float:
     """Convert log odds back to probability."""
-    return 1.0 / (1.0 + np.exp(-l))
+    return cast(np.ndarray | float, 1.0 / (1.0 + np.exp(-l)))
 
 
 class ProbabilisticLazyBEV:
@@ -83,7 +84,7 @@ class ProbabilisticLazyBEV:
     Bayes filter update:
     1. Prediction: Apply temporal decay (cells become more uncertain over time)
     2. Correction: Update with sensor observation using Bayes rule
-    
+
     Multi-camera support:
     - Integrates points from multiple cameras using camera geometry
     - Range-aware weighting (tele_road for far, wide_road for near)
@@ -102,10 +103,10 @@ class ProbabilisticLazyBEV:
         self.resolution_m = resolution_m
         self.safe_width_m = safe_width_m
         self.decay_time_s = decay_time_s
-        
+
         # Camera geometry for multi-camera fusion
         self.geometry = geometry
-        
+
         # Grid dimensions: rows = forward, cols = lateral
         self.grid_h = int(range_m / resolution_m)
         half_w = int(safe_width_m / resolution_m)
@@ -115,14 +116,14 @@ class ProbabilisticLazyBEV:
         # Persistent state: log-odds of occupancy
         # Initialize to prior (unknown): log(0.5/0.5) = 0
         self.log_odds: np.ndarray = np.zeros((self.grid_h, self.grid_w), dtype=np.float32)
-        
+
         # Last update time per cell (for decay calculation)
         self._last_update: np.ndarray = np.full((self.grid_h, self.grid_w), -1e9, dtype=np.float64)
         self._last_frame_time: float = time.monotonic()
-        
+
         # Prior probability (unknown state)
         self.prior_log_odds = 0.0
-        
+
         # Camera confidence weights (based on lens characteristics)
         self._camera_weights = self._init_camera_weights()
 
@@ -130,7 +131,7 @@ class ProbabilisticLazyBEV:
         """Initialize camera confidence weights based on lens characteristics."""
         if self.geometry is None:
             return {}
-        
+
         weights = {}
         for name, config in self.geometry.cameras.items():
             # Weight based on focal length and typical use case
@@ -142,7 +143,7 @@ class ProbabilisticLazyBEV:
                 weights[name] = 0.8  # Good for side/detection
             else:  # Ultra-wide
                 weights[name] = 0.7  # Lower confidence but wide FOV
-        
+
         return weights
 
     def update_multi_camera(
@@ -152,74 +153,74 @@ class ProbabilisticLazyBEV:
         road_mask: np.ndarray | None = None,
     ) -> dict:
         """Update BEV grid with points from multiple cameras.
-        
+
         Args:
             camera_points: Dict mapping camera name to XYZ points (N×3)
             obj_masks: Optional dict of foreground masks per camera
             road_mask: Optional road segmentation mask
-        
+
         Returns:
             Grid metrics dict
         """
         now = time.monotonic()
         dt = now - self._last_frame_time
         self._last_frame_time = now
-        
+
         # Apply temporal decay
         if dt > 0:
             self._apply_temporal_decay(dt)
-        
+
         # Process points from each camera
-        all_points = []
-        all_weights = []
-        
+        all_points: list[np.ndarray] = []
+        all_weights: list[float] = []
+
         for cam_name, points in camera_points.items():
             if points is None or len(points) == 0:
                 continue
-            
+
             # Get camera weight
             weight = self._camera_weights.get(cam_name, 0.5)
-            
+
             # Filter to valid range
             z = points[:, 2]  # forward distance
             x = points[:, 0]  # lateral position
-            
+
             valid = (
                 (z > 0.5) &
                 (z < self.range_m) &
                 (np.abs(x) <= self.safe_width_m)
             )
-            
+
             if not np.any(valid):
                 continue
-            
+
             valid_points = points[valid]
             all_points.append(valid_points)
             all_weights.extend([weight] * len(valid_points))
-        
+
         if not all_points:
             return self._metrics()
-        
+
         # Concatenate all points
-        all_points = np.vstack(all_points)
-        all_weights = np.array(all_weights)
-        
+        all_points_arr = np.vstack(all_points)
+        all_weights_arr = np.array(all_weights)
+
         # Map to grid cells
-        z = all_points[:, 2]
-        x = all_points[:, 0]
-        
+        z = all_points_arr[:, 2]
+        x = all_points_arr[:, 0]
+
         row = np.clip(np.floor(z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
         col = np.clip(np.floor(x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
 
         # Update grid with weighted observations
         unique_cells = {}
-        for r, c, w in zip(row, col, all_weights):
+        for r, c, w in zip(row, col, all_weights_arr, strict=False):
             key = (r, c)
             if key not in unique_cells:
                 unique_cells[key] = {'count': 0, 'weight': 0.0}
             unique_cells[key]['count'] += 1
             unique_cells[key]['weight'] += w
-        
+
         # Apply Bayes update
         for (r, c), data in unique_cells.items():
             # Weighted observation confidence
@@ -227,10 +228,10 @@ class ProbabilisticLazyBEV:
             observation_log_odds = LOG_ODDS_DETECTION_OCCUPIED * obs_weight
             self.log_odds[r, c] += observation_log_odds
             self._last_update[r, c] = now
-        
+
         # Clip to reasonable bounds
         self.log_odds = np.clip(self.log_odds, -10.0, 10.0)
-        
+
         return self._metrics()
 
     # ------------------------------------------------------------------
@@ -286,11 +287,11 @@ class ProbabilisticLazyBEV:
         # ---- 5. Correction: Bayes filter update ----
         # For each occupied cell: increase log-odds
         # Use batched updates for efficiency
-        unique_cells = {}
-        for r, c in zip(row, col):
+        unique_cells: dict[tuple[int, int], int] = {}
+        for r, c in zip(row, col, strict=False):
             key = (r, c)
             unique_cells[key] = unique_cells.get(key, 0) + 1
-        
+
         # Update each unique cell with Bayes rule
         for (r, c), count in unique_cells.items():
             # Multiple observations strengthen belief
@@ -314,7 +315,7 @@ class ProbabilisticLazyBEV:
     def _apply_temporal_decay(self, dt: float) -> None:
         """
         Apply temporal decay to log-odds.
-        
+
         Over time, cells should return to prior (unknown) state.
         This handles:
         - Moving objects leaving a cell
@@ -323,7 +324,7 @@ class ProbabilisticLazyBEV:
         """
         # Decay rate: how fast we return to prior
         decay_factor = np.exp(-dt / self.decay_time_s)
-        
+
         # Move log-odds toward prior
         self.log_odds = self.prior_log_odds + (self.log_odds - self.prior_log_odds) * decay_factor
 
@@ -336,26 +337,26 @@ class ProbabilisticLazyBEV:
         """Detect bike/scooter cut-in using segmentation overlap."""
         if road_mask is None or obj_mask is None:
             return False
-        
+
         overlap = obj_mask.astype(bool) & road_mask.astype(bool)
         if not np.any(overlap):
             return False
-        
+
         oz = xyz_map[:, :, 2][overlap]
         ox = xyz_map[:, :, 0][overlap]
         near = (oz > 0.5) & (oz < 20.0) & (np.abs(ox) < self.safe_width_m * 1.5)
-        
-        return np.any(near)
+
+        return bool(np.any(near))
 
     # ------------------------------------------------------------------
     def _metrics(self, *, bike_cutin: bool = False) -> dict:
         """Compute grid metrics for output."""
         # Convert log-odds to probability
-        occupancy_prob = log_odds_to_probability(self.log_odds)
-        
+        occupancy_prob = cast(np.ndarray, log_odds_to_probability(self.log_odds))
+
         # Cells above threshold considered occupied
         occupied = occupancy_prob >= OCCUPANCY_THRESHOLD
-        
+
         # Find closest occupied cell (drivable limit)
         drivable_limit = self.range_m
         occupied_rows = np.where(np.any(occupied, axis=1))[0]
@@ -372,14 +373,57 @@ class ProbabilisticLazyBEV:
 
     def flat_grid(self) -> list[float]:
         """Flatten to list[float] for cereal serialisation."""
-        occupancy_prob = log_odds_to_probability(self.log_odds)
-        return occupancy_prob.flatten().tolist()
+        occupancy_prob = cast(np.ndarray, log_odds_to_probability(self.log_odds))
+        return cast(list[float], occupancy_prob.flatten().tolist())
+
+    def get_grid(self) -> np.ndarray:
+        """Return the current occupancy probability grid."""
+        return cast(np.ndarray, log_odds_to_probability(self.log_odds))
+
+    def update_from_points(self, xyz_points: np.ndarray) -> None:
+        """Update the BEV grid directly from an Nx3 point cloud.
+
+        This is the lazy BEV entry point used by gridd: only the points that
+        survived the ROI filter in _lazy_reprojection are integrated.
+        """
+        now = time.monotonic()
+        dt = now - self._last_frame_time
+        self._last_frame_time = now
+
+        if dt > 0:
+            self._apply_temporal_decay(dt)
+
+        if xyz_points is None or len(xyz_points) == 0:
+            return
+
+        z = xyz_points[:, 2]  # forward distance
+        x = xyz_points[:, 0]  # lateral position
+
+        valid = (
+            (z > 0.5) &
+            (z < self.range_m) &
+            (np.abs(x) <= self.safe_width_m)
+        )
+        if not np.any(valid):
+            return
+
+        z = z[valid]
+        x = x[valid]
+
+        row = np.clip(np.floor(z / self.resolution_m).astype(np.int32), 0, self.grid_h - 1)
+        col = np.clip(np.floor(x / self.resolution_m).astype(np.int32) + self.half_w, 0, self.grid_w - 1)
+
+        for r, c in zip(row, col, strict=False):
+            self.log_odds[r, c] += LOG_ODDS_DETECTION_OCCUPIED
+            self._last_update[r, c] = now
+
+        self.log_odds = np.clip(self.log_odds, -10.0, 10.0)
 
     def get_cell_probability(self, forward_m: float, lateral_m: float) -> float:
         """Get occupancy probability at specific world coordinates."""
         row = int(np.floor(forward_m / self.resolution_m))
         col = int(np.floor(lateral_m / self.resolution_m)) + self.half_w
-        
+
         if 0 <= row < self.grid_h and 0 <= col < self.grid_w:
             return float(log_odds_to_probability(self.log_odds[row, col]))
         return 0.5  # Unknown outside grid

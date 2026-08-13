@@ -29,7 +29,7 @@ class PredictedCluster:
     threat_level: int        # 0=none, 1=caution, 2=warning, 3=critical
 
 
-def predict(tracks: list['TrackedCluster'], v_ego: float = 0.0) -> list[PredictedCluster]:
+def predict(tracks: list[TrackedCluster], v_ego: float = 0.0) -> list[PredictedCluster]:
     """
     Project each tracked cluster forward using constant-velocity model.
     v_ego: ego forward velocity (m/s) for relative kinematics.

@@ -12,7 +12,6 @@ Falls back to smbus2 if IIO device is not present.
 from __future__ import annotations
 
 import os
-import struct
 import glob
 
 from openpilot.common.swaglog import cloudlog
@@ -41,7 +40,7 @@ class IIOImu:
         for iio_dev in sorted(glob.glob("/sys/bus/iio/devices/iio:device*")):
             name_path = os.path.join(iio_dev, "name")
             try:
-                with open(name_path, "r") as f:
+                with open(name_path) as f:
                     name = f.read().strip()
                 if self.device_name.lower() in name.lower():
                     return iio_dev
@@ -50,11 +49,11 @@ class IIOImu:
         return None
 
     def _read_sysfs_float(self, path: str) -> float:
-        with open(path, "r") as f:
+        with open(path) as f:
             return float(f.read().strip())
 
     def _read_sysfs_int(self, path: str) -> int:
-        with open(path, "r") as f:
+        with open(path) as f:
             return int(f.read().strip())
 
     def init(self) -> bool:

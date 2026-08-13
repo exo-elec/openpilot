@@ -12,6 +12,12 @@ import urllib.parse
 import warnings
 import zstandard as zstd
 
+try:
+  from enum import StrEnum  # type: ignore[attr-defined]
+except ImportError:
+  class StrEnum(str, enum.Enum):  # type: ignore[no-redef]
+    pass
+
 from collections.abc import Callable, Iterable, Iterator
 from typing import cast
 from urllib.parse import parse_qs, urlparse
@@ -132,7 +138,7 @@ class _LogFileReader:
         yield ent
 
 
-class ReadMode(enum.StrEnum):
+class ReadMode(StrEnum):
   RLOG = "r"  # only read rlogs
   QLOG = "q"  # only read qlogs
   AUTO = "a"  # default to rlogs, fallback to qlogs
@@ -297,7 +303,7 @@ class LogReader:
     identifiers = auto_source(identifier, self.sources, self.default_mode)
     return identifiers
 
-  def __init__(self, identifier: str | list[str], default_mode: ReadMode = ReadMode.RLOG,
+  def __init__(self, identifier: str | list[str], default_mode: ReadMode = cast(ReadMode, ReadMode.RLOG),
                sources: list[Source] = None, sort_by_time=False, only_union_types=False):
     if sources is None:
       sources = [internal_source, comma_api_source, openpilotci_source, comma_car_segments_source]

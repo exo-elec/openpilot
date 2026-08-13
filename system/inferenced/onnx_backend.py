@@ -71,8 +71,8 @@ class OnnxBackend(HardwareBackend):
     except ImportError:
       logger.warning("onnxruntime not installed — ONNX backend unavailable")
       return False
-    except Exception as e:
-      logger.error(f"ONNX initialization failed: {e}")
+    except Exception:
+      logger.exception("ONNX initialization failed")
       return False
 
   def release(self) -> None:
@@ -103,8 +103,8 @@ class OnnxBackend(HardwareBackend):
       logger.info(f"Loaded ONNX model: {config.name} ({path.stat().st_size // 1024 // 1024} MB)")
       return True
 
-    except Exception as e:
-      logger.error(f"Failed to load ONNX model '{config.name}': {e}")
+    except Exception:
+      logger.exception(f"Failed to load ONNX model '{config.name}'")
       return False
 
   def infer(self, model_name: str, inputs: dict[str, Any]) -> InferenceResult:
@@ -155,7 +155,7 @@ class OnnxBackend(HardwareBackend):
 
       raw_outputs = session.run(None, ort_inputs)
       output_names = [o.name for o in session.get_outputs()]
-      outputs = {name: np.asarray(out) for name, out in zip(output_names, raw_outputs)}
+      outputs = {name: np.asarray(out) for name, out in zip(output_names, raw_outputs, strict=False)}
 
       inference_time_ms = (time.monotonic() - start) * 1000
       self._stats.tasks_completed += 1
@@ -171,7 +171,7 @@ class OnnxBackend(HardwareBackend):
 
     except Exception as e:
       self._stats.tasks_failed += 1
-      logger.error(f"ONNX inference error ({model_name}): {e}")
+      logger.exception(f"ONNX inference error ({model_name})")
       return InferenceResult(
           backend_type=self.backend_type,
           model_name=model_name,

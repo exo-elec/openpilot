@@ -47,10 +47,10 @@ This document defines the camera pipeline architecture for ExoPilot, covering:
 ├────────────────────────────────────────────────────────────────────────────┤
 │  Camera    │ Sensor  │ Resolution │ fps   │ HDR  │ ISP         │ Position  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│  Road      │ OX03C10 │ 1920×1080  │ 20fps │ HDR4 │ RKISP linear│ −40 mm    │
-│  wide_road │ OX03C10 │ 1920×1080  │ 20fps │ HDR4 │ RKISP linear│ +40 mm    │
-│  stereo_left│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ −40 mm    │
-│  stereo_right│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ +40 mm    │
+│  Road      │ OX03C10 │ 1920×1280  │ 20fps │ HDR4 │ RKISP linear│ 0 mm      │
+│  wide_road │ OX03C10 │ 1920×1280  │ 20fps │ HDR4 │ RKISP linear│ +80 mm    │
+│  stereo_left│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ 0 mm      │
+│  stereo_right│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ +80 mm    │
 └────────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -58,9 +58,9 @@ This document defines the camera pipeline architecture for ExoPilot, covering:
 ├────────────────────────────────────────────────────────────────────────────┤
 │  Camera    │ Sensor  │ Resolution │ fps   │ HDR  │ ISP         │ Position  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│  Road      │ OX03C10 │ 1920×1080  │ 20fps │ HDR4 │ RKISP linear│ 0 mm      │
-│  wide_road │ OX03C10 │ 1920×1080  │ 20fps │ HDR4 │ RKISP linear│ +80 mm    │
-│  tele_road │ OX03C10 │ 1920×1080  │ 20fps │ HDR4 │ RKISP linear│ −80 mm    │
+│  Road      │ OX03C10 │ 1920×1280  │ 20fps │ HDR4 │ RKISP linear│ 0 mm      │
+│  wide_road │ OX03C10 │ 1920×1280  │ 20fps │ HDR4 │ RKISP linear│ +80 mm    │
+│  tele_road │ OX03C10 │ 1920×1280  │ 20fps │ HDR4 │ RKISP linear│ 0 mm      │
 │  stereo_left│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ −80 mm    │
 │  stereo_right│ GC4653  │ 2560×1440  │ 20fps │ SDR  │ V4L2 direct │ +80 mm    │
 └────────────────────────────────────────────────────────────────────────────┘

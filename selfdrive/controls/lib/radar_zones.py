@@ -204,9 +204,12 @@ class RadarZoneMonitor:
         self.right_state = self._classify(ZoneSide.RIGHT, right_objs, self._right_seen, t)
         self.rear_state  = self._classify(ZoneSide.REAR,  rear_objs,  self._rear_seen,  t)
 
-        if self.left_state.detected:   self._left_seen  = t
-        if self.right_state.detected:  self._right_seen = t
-        if self.rear_state.detected:   self._rear_seen  = t
+        if self.left_state.detected:
+          self._left_seen  = t
+        if self.right_state.detected:
+          self._right_seen = t
+        if self.rear_state.detected:
+          self._rear_seen  = t
 
         self.lca_blocked_left, self.lca_blocked_right = self._compute_lca_blocked(all_objs)
 
@@ -366,15 +369,23 @@ class RadarZoneMonitor:
         # (behind ego AND in the adjacent lane, e.g. an overtaking car) is a
         # blind-spot threat when driving forward.  Pure rear-zone objects
         # (|yRel| below SIDE_Y_MIN) still report as rear cross traffic.
-        if lw and rw:       return "Vehicles in both blind spots"
-        if lw:              return "Vehicle in left blind spot"
-        if rw:              return "Vehicle in right blind spot"
-        if bw:              return "Rear cross traffic"
+        if lw and rw:
+          return "Vehicles in both blind spots"
+        if lw:
+          return "Vehicle in left blind spot"
+        if rw:
+          return "Vehicle in right blind spot"
+        if bw:
+          return "Rear cross traffic"
         lc = self.left_state.alert_level  == ZoneAlertLevel.CAUTION
         rc = self.right_state.alert_level == ZoneAlertLevel.CAUTION
         bc = self.rear_state.alert_level  == ZoneAlertLevel.CAUTION
-        if lc and rc:       return "Check blind spots"
-        if lc:              return "Vehicle left"
-        if rc:              return "Vehicle right"
-        if bc:              return "Check rear cross traffic"
+        if lc and rc:
+          return "Check blind spots"
+        if lc:
+          return "Vehicle left"
+        if rc:
+          return "Vehicle right"
+        if bc:
+          return "Check rear cross traffic"
         return None

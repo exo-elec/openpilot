@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 from openpilot.system.inferenced.compute import (
-    HAL, HALConfig, BackendType, InferenceResult, ModelConfig, get_hal
+    HAL, HALConfig, BackendType, InferenceResult, get_hal
 )
 from openpilot.system.inferenced.client import InferenceClient
 
@@ -303,4 +303,4 @@ class TestBackendErrors:
 
 
 if __name__ == '__main__':
-  pytest.main([__file__, '-v'])
+  pytest.main([__file__, '-v'])  # noqa: TID251

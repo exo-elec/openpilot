@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import time
 import logging
 import numpy as np
 from openpilot.system.inferenced import get_hal, BackendType
@@ -140,8 +139,8 @@ class TestTimeout:
     logger.info("Timeout Test Results")
     logger.info("="*60)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    sum(1 for v in results.values() if v)
+    len(results)
 
     for test_name, result in results.items():
       status = "✓ PASS" if result else "✗ FAIL"

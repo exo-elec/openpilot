@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import os
 import sys
 from pathlib import Path
 from urllib.request import urlopen, Request
@@ -71,7 +70,7 @@ def verify_checksum(filepath: Path, expected_sha256: str | None) -> bool:
     if expected_sha256 is None:
         return True  # Skip if no checksum provided
 
-    print(f"  Verifying checksum...")
+    print("  Verifying checksum...")
     sha256 = hashlib.sha256()
     with open(filepath, 'rb') as f:
         for chunk in iter(lambda: f.read(8192), b''):
@@ -79,12 +78,12 @@ def verify_checksum(filepath: Path, expected_sha256: str | None) -> bool:
 
     actual = sha256.hexdigest()
     if actual != expected_sha256:
-        print(f"  Checksum mismatch!")
+        print("  Checksum mismatch!")
         print(f"    Expected: {expected_sha256}")
         print(f"    Actual:   {actual}")
         return False
 
-    print(f"  Checksum verified")
+    print("  Checksum verified")
     return True
 
 
@@ -101,16 +100,16 @@ def download_model(name: str, info: dict, force: bool = False) -> bool:
     if dest.exists() and not force:
         print(f"  File already exists: {dest}")
         if info['sha256'] and verify_checksum(dest, info['sha256']):
-            print(f"  Skipping download (use --force to overwrite)")
+            print("  Skipping download (use --force to overwrite)")
             return True
         else:
-            print(f"  Re-downloading...")
+            print("  Re-downloading...")
 
     try:
         download_file(info['url'], dest)
         if info['sha256']:
             if not verify_checksum(dest, info['sha256']):
-                print(f"  Warning: Checksum verification failed")
+                print("  Warning: Checksum verification failed")
                 return False
         return True
     except Exception as e:

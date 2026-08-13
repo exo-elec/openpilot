@@ -191,16 +191,16 @@ def load_library(name: str, extra_paths: list[str] | None = None) -> ctypes.CDLL
     if name in ("rga", "rockchip_mpp", "mpp"):
       deb_hint = (
         f"Install vendor package: sudo dpkg -i {name}*.deb\n"
-        "Or run: sudo ./scripts/install_rockchip_deps.sh"
+        + "Or run: sudo ./scripts/install_rockchip_deps.sh"
       )
     elif name in ("od_share", "md_share", "RKAP_3A"):
       deb_hint = (
         "This library ships in third_party/rockchip_algo/. "
-        "Ensure the .so file is present."
+        + "Ensure the .so file is present."
       )
     raise OSError(
       f"Library 'lib{name}.so' not found. Searched: {searched}.\n"
-      f"{deb_hint}"
+      + f"{deb_hint}"
     )
   return ctypes.CDLL(path)
 

@@ -10,17 +10,17 @@ Tests critical safety features:
 
 import time
 import pytest
-from openpilot.system.socketd.safety.tesla_safety import TeslaSafety, SafetyLimits, SafetyViolation
+from openpilot.system.socketd.safety.tesla_safety import TeslaSafety, SafetyViolation
 from openpilot.system.socketd.safety.safety_manager import SafetyManager
 
 
 class TestChecksumValidation:
     """Test RX message checksum validation"""
-    
+
     def test_checksum_calculation(self):
         """Test Tesla checksum calculation"""
         safety = TeslaSafety()
-        
+
         # Create a valid EPS message (0x370)
         # Checksum at byte 7, counter at byte 6
         addr = 0x370
@@ -28,7 +28,7 @@ class TestChecksumValidation:
         data[4] = 0x20  # Steering angle high
         data[5] = 0x00  # Steering angle low
         data[6] = 0x05  # Counter = 5
-        
+
         # Calculate expected checksum
         expected = (addr & 0xFF) + ((addr >> 8) & 0xFF)
         for i, byte in enumerate(data):
@@ -36,23 +36,23 @@ class TestChecksumValidation:
                 expected += byte
         expected &= 0xFF
         data[7] = expected
-        
+
         # Validate
         assert safety._validate_checksum(addr, bytes(data), 7)
-    
+
     def test_checksum_invalid(self):
         """Test checksum detects corruption"""
         safety = TeslaSafety()
-        
+
         addr = 0x370
         data = bytearray(8)
         data[4] = 0x20
         data[5] = 0x00
         data[6] = 0x05
         data[7] = 0xFF  # Wrong checksum
-        
+
         assert not safety._validate_checksum(addr, bytes(data), 7)
-    
+
     def test_unknown_message_allowed(self):
         """Unknown messages are allowed through"""
         safety = TeslaSafety()
@@ -63,33 +63,33 @@ class TestChecksumValidation:
 
 class TestCounterValidation:
     """Test RX message counter validation"""
-    
+
     def test_counter_increment(self):
         """Test counter increments correctly"""
         safety = TeslaSafety()
-        
+
         addr = 0x370
         data = bytearray(8)
-        
+
         # First message (counter = 5)
         data[6] = 0x05
         assert safety._validate_counter(addr, bytes(data), 6, 15)
-        
+
         # Next message (counter = 6)
         data[6] = 0x06
         assert safety._validate_counter(addr, bytes(data), 6, 15)
-    
+
     def test_counter_wraparound(self):
         """Test counter wraps at max"""
         safety = TeslaSafety()
         safety.state.message_counters[0x370] = 15
-        
+
         addr = 0x370
         data = bytearray(8)
         data[6] = 0x00  # Should wrap to 0
-        
+
         assert safety._validate_counter(addr, bytes(data), 6, 15)
-    
+
     def test_counter_dropped_messages(self):
         """Test tolerance for dropped messages (up to 2 missed)"""
         safety = TeslaSafety()
@@ -101,64 +101,64 @@ class TestCounterValidation:
 
         # Should still be valid (within tolerance: delta <= 3)
         assert safety._validate_counter(addr, bytes(data), 6, 15)
-    
+
     def test_counter_error(self):
         """Test counter error detection (too many dropped)"""
         safety = TeslaSafety()
         safety.state.message_counters[0x370] = 5
-        
+
         addr = 0x370
         data = bytearray(8)
         data[6] = 0x0A  # Jump from 5 to 10 (missed 4 messages)
-        
+
         # Should be invalid (exceeds tolerance)
         assert not safety._validate_counter(addr, bytes(data), 6, 15)
 
 
 class TestSafetyTick:
     """Test safety_tick() message monitoring"""
-    
+
     def test_safety_tick_valid(self):
         """Test safety_tick passes when messages are recent"""
         manager = SafetyManager()
-        
+
         # Set recent timestamps
         now = time.monotonic()
         manager.safety.state.message_timestamps[0x370] = now
         manager.safety.state.message_timestamps[0x257] = now
-        
+
         # Should pass
         assert manager.safety_tick()
         assert not manager.safety.state.rx_checks_invalid
-    
+
     def test_safety_tick_lagging(self):
         """Test safety_tick detects lagging messages"""
         manager = SafetyManager()
-        
+
         # Set old timestamps (2 seconds ago)
         manager.safety.state.message_timestamps[0x370] = time.monotonic() - 2.0
         manager.safety.state.controls_allowed = True
-        
+
         # Should fail and disengage
         assert not manager.safety_tick()
         assert manager.safety.state.rx_checks_invalid
         assert not manager.safety.state.controls_allowed
-    
+
     def test_safety_tick_rate_limit(self):
         """Test safety_tick only runs at 1Hz"""
         manager = SafetyManager()
         manager._last_tick_time = time.monotonic()
-        
+
         # First call should return True (not run yet)
         assert manager.safety_tick()
-        
+
         # Immediate second call should also return True (rate limited)
         assert manager.safety_tick()
 
 
 class TestSteeringSafety:
     """Test steering control safety checks"""
-    
+
     def test_steering_angle_limit(self):
         """Test steering angle limit enforcement"""
         safety = TeslaSafety()
@@ -217,7 +217,7 @@ class TestSteeringSafety:
 
 class TestLongitudinalSafety:
     """Test longitudinal control safety checks"""
-    
+
     def test_accel_limit(self):
         """Test acceleration limit enforcement"""
         safety = TeslaSafety()
@@ -263,25 +263,25 @@ class TestLongitudinalSafety:
 
 class TestHeartbeat:
     """Test safety heartbeat"""
-    
+
     def test_heartbeat_timeout(self):
         """Test controls disengage on heartbeat timeout"""
         safety = TeslaSafety()
         safety.state.controls_allowed = True
         safety.state.last_heartbeat_time = time.monotonic() - 1.0  # 1 second ago
-        
+
         # Should timeout (200ms limit)
         assert not safety.check_heartbeat()
         assert not safety.state.controls_allowed
-    
+
     def test_heartbeat_valid(self):
         """Test controls allowed with valid heartbeat"""
         safety = TeslaSafety()
         safety.state.controls_allowed = True
         safety.state.last_heartbeat_time = time.monotonic()
-        
+
         assert safety.check_heartbeat()
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    pytest.main([__file__, "-v"])  # noqa: TID251

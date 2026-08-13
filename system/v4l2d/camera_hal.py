@@ -29,6 +29,7 @@ class CameraHAL:
     name = (sensor_name or "").lower()
     cam_id_lower = cam_id.lower()
 
+    drv: BaseCameraDriver
     if name == "ox03c10":
       drv = OX03C10Driver(device_path, width=width, height=height, fps=fps)
     elif name == "gc4653":

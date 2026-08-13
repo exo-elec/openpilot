@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable
+from collections.abc import Callable
 
 try:
     import dbus
@@ -93,13 +93,13 @@ InvalidArgs  = _make_exc('InvalidArgsException')
 # ── GATT Application (ObjectManager) ──────────────────────────────────────────
 
 class _Application(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignore[misc]
-    def __init__(self, bus: dbus.Bus, service: '_NUSService', rx: '_RXChar', tx: '_TXChar'):
+    def __init__(self, bus: dbus.Bus, service: _NUSService, rx: _RXChar, tx: _TXChar):
         if DBUS_AVAILABLE:
             dbus.service.Object.__init__(self, bus, GATT_APP_PATH)
         self._svc, self._rx, self._tx = service, rx, tx
 
     @dbus_method(OBJMGR_IFACE, out_signature='a{oa{sa{sv}}}')  # type: ignore[misc]
-    def GetManagedObjects(self):  # noqa: N802
+    def GetManagedObjects(self):
         return {
             dbus.ObjectPath(NUS_SVC_PATH): self._svc.get_properties(),
             dbus.ObjectPath(NUS_RX_PATH):  self._rx.get_properties(),
@@ -123,7 +123,7 @@ class _NUSService(dbus.service.Object if DBUS_AVAILABLE else object):  # type: i
         }}
 
     @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
-    def GetAll(self, interface):  # noqa: N802
+    def GetAll(self, interface):
         return self.get_properties().get(interface, {})
 
 
@@ -144,22 +144,22 @@ class _RXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
         }}
 
     @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
-    def GetAll(self, interface):  # noqa: N802
+    def GetAll(self, interface):
         return self.get_properties().get(interface, {})
 
     @dbus_method(GATT_CHAR_IFACE, in_signature='aya{sv}', out_signature='')  # type: ignore[misc]
-    def WriteValue(self, value, options):  # noqa: N802
+    def WriteValue(self, value, options):
         data = bytes(bytearray(value))
         logger.debug('BLE RX: %d bytes', len(data))
         if self._on_write:
             self._on_write(data)
 
     @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
-    def StartNotify(self):  # noqa: N802
+    def StartNotify(self):
         raise NotSupported('RX is write-only')
 
     @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
-    def StopNotify(self):  # noqa: N802
+    def StopNotify(self):
         raise NotSupported('RX is write-only')
 
 
@@ -187,11 +187,11 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
         }}
 
     @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
-    def GetAll(self, interface):  # noqa: N802
+    def GetAll(self, interface):
         return self.get_properties().get(interface, {})
 
     @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
-    def StartNotify(self):  # noqa: N802
+    def StartNotify(self):
         with self._lock:
             self._notifying = True
         logger.info('BLE TX: notify started (phone connected)')
@@ -199,7 +199,7 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
             self._on_notify_start()
 
     @dbus_method(GATT_CHAR_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
-    def StopNotify(self):  # noqa: N802
+    def StopNotify(self):
         with self._lock:
             self._notifying = False
         logger.info('BLE TX: notify stopped (phone disconnected)')
@@ -207,7 +207,7 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
             self._on_notify_stop()
 
     @dbus_signal(PROPS_IFACE, signature='sa{sv}as')  # type: ignore[misc]
-    def PropertiesChanged(self, interface, changed, invalidated):  # noqa: N802
+    def PropertiesChanged(self, interface, changed, invalidated):
         pass
 
     def is_notifying(self) -> bool:
@@ -240,7 +240,7 @@ class _LEAdvertisement(dbus.service.Object if DBUS_AVAILABLE else object):  # ty
         self._name = name
 
     @dbus_method(PROPS_IFACE, in_signature='s', out_signature='a{sv}')  # type: ignore[misc]
-    def GetAll(self, interface):  # noqa: N802
+    def GetAll(self, interface):
         if interface != LE_ADV_IFACE:
             raise InvalidArgs()
         return {
@@ -251,7 +251,7 @@ class _LEAdvertisement(dbus.service.Object if DBUS_AVAILABLE else object):  # ty
         }
 
     @dbus_method(LE_ADV_IFACE, in_signature='', out_signature='')  # type: ignore[misc]
-    def Release(self):  # noqa: N802
+    def Release(self):
         logger.info('BLE advertisement released')
 
 
@@ -324,8 +324,8 @@ class GATTD:
             logger.info('BLE GATT setup complete — advertising as "%s"', self._device_name)
             return True
 
-        except Exception as e:
-            logger.error('BLE GATT setup failed: %s', e)
+        except Exception:
+            logger.exception('BLE GATT setup failed')
             return False
 
     # ── Phone connect / disconnect (wired from _TXChar callbacks) ─────────────

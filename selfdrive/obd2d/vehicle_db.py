@@ -297,7 +297,9 @@ def detect_vehicle_type(vin: str, vehicle_info: dict | None = None) -> VehicleTy
     # Known EV brands (non-Chinese)
     elif make in ('TESLA', 'NISSAN') and 'LEAF' in (vehicle_info or {}).get('model', '').upper():
         return VehicleType.GENERIC_EV
-    elif 'ELECTRIC' in (vehicle_info or {}).get('model', '').upper() or 'EV' in (vehicle_info or {}).get('model', '').upper() or 'BEV' in (vehicle_info or {}).get('model', '').upper():
+    elif ('ELECTRIC' in (vehicle_info or {}).get('model', '').upper() or
+          'EV' in (vehicle_info or {}).get('model', '').upper() or
+          'BEV' in (vehicle_info or {}).get('model', '').upper()):
         return VehicleType.GENERIC_EV
 
     # Generic by fuel type

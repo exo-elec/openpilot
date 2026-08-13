@@ -25,16 +25,22 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
-import struct
 import sys
 
 
-def _read_file(path: str, binary: bool = False) -> bytes | None:
+def _read_text(path: str) -> str | None:
     try:
-        with open(path, "rb" if binary else "r") as f:
+        with open(path, "r") as f:
             return f.read().strip()
-    except (OSError, IOError):
+    except OSError:
+        return None
+
+
+def _read_bytes(path: str) -> bytes | None:
+    try:
+        with open(path, "rb") as f:
+            return f.read().strip()
+    except OSError:
         return None
 
 
@@ -45,18 +51,17 @@ def get_dt_serial() -> str | None:
     string like 'unknown' or copied from the reference DTB. Do not rely
     on this alone for security.
     """
-    data = _read_file("/proc/device-tree/serial-number")
+    data = _read_text("/proc/device-tree/serial-number")
     if data is None:
         return None
     # Device-tree strings are often NUL-terminated
-    if isinstance(data, bytes):
-        data = data.decode("utf-8", errors="ignore").strip("\x00")
+    data = data.strip("\x00")
     return data if data else None
 
 
 def get_cpu_serial() -> str | None:
     """Read CPU serial from /proc/cpuinfo (ARM-specific field)."""
-    data = _read_file("/proc/cpuinfo")
+    data = _read_text("/proc/cpuinfo")
     if data is None:
         return None
     for line in data.splitlines():
@@ -86,7 +91,7 @@ def get_emmc_cid() -> str | None:
     # eMMC is usually mmcblk0 or mmcblk1 depending on board layout
     for blk in ("mmcblk0", "mmcblk1", "mmcblk2"):
         path = f"/sys/block/{blk}/device/cid"
-        data = _read_file(path)
+        data = _read_text(path)
         if data:
             return data
     return None
@@ -155,7 +160,7 @@ def get_rk_otp() -> bytes | None:
         "/sys/bus/nvmem/devices/rockchip-otp/nvmem",
     ]
     for path in paths:
-        data = _read_file(path, binary=True)
+        data = _read_bytes(path)
         if data:
             # Filter out all-0x00 or all-0xFF (unprogrammed)
             if data and not (set(data) <= {0x00}) and not (set(data) <= {0xFF}):
@@ -180,7 +185,7 @@ def get_rk_otp_chip_id() -> str | None:
 def get_mac_address(iface: str = "eth0") -> str | None:
     """Fallback: use Ethernet MAC (burned into some boards)."""
     path = f"/sys/class/net/{iface}/address"
-    data = _read_file(path)
+    data = _read_text(path)
     return data if data else None
 
 
@@ -224,9 +229,7 @@ def compute_device_fingerprint(
 
     # Determine platform
     platform = "unknown"
-    compat = _read_file("/proc/device-tree/compatible") or ""
-    if isinstance(compat, bytes):
-        compat = compat.decode("utf-8", errors="ignore")
+    compat = _read_text("/proc/device-tree/compatible") or ""
     if "rk3588" in compat.lower():
         platform = "rk3588"
 

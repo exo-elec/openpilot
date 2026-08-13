@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
 import time
@@ -211,8 +210,8 @@ def calibrate_stereo(
     left_imgpoints: list[np.ndarray] = []
     right_imgpoints: list[np.ndarray] = []
 
-    print(f"\nProcessing stereo pairs...")
-    for left_frame, right_frame in zip(left_frames, right_frames):
+    print("\nProcessing stereo pairs...")
+    for left_frame, right_frame in zip(left_frames, right_frames, strict=False):
         left_corners = detect_chessboard(left_frame, board_width, board_height)
         right_corners = detect_chessboard(right_frame, board_width, board_height)
 
@@ -220,9 +219,9 @@ def calibrate_stereo(
             objpoints.append(objp)
             left_imgpoints.append(left_corners)
             right_imgpoints.append(right_corners)
-            print(f"  Stereo pair: both patterns detected")
+            print("  Stereo pair: both patterns detected")
         else:
-            print(f"  Stereo pair: skipped (missing pattern)")
+            print("  Stereo pair: skipped (missing pattern)")
 
     if len(objpoints) < 5:
         raise RuntimeError(f"Need at least 5 valid stereo pairs, got {len(objpoints)}")

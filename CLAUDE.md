@@ -36,6 +36,9 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 3. **Daemon initialization** — All attributes used in `get_state()` must be initialized in `__init__`, not just in `update()` code paths
 
 4. **Testing** — Code is at dev PC stage; hardware bugs lower priority than Python runtime crashes
+   - Run `./test.sh` before pushing; it checks lint, shebangs, and the RK3588/Rockchip host-side pytest suites.
+   - For the full upstream lint gate, run `./test.sh --full`.
+   - Install pre-commit hooks: `uv pip install pre-commit && pre-commit install`
 
 ### Build & Platform
 
@@ -52,6 +55,9 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 | `docs/eop/` | Feature documentation |
 | `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP architecture (dual transport) |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
+| `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
+| `test.sh` | Local dev gate before pushing |
+| `.pre-commit-config.yaml` | Pre-commit hooks |
 | `cereal/{log,custom}.capnp` | Message definitions |
 | `common/core_config.py` | CPU affinity mapping |
 | `system/bluetoothd/ble_gatt.py` | BLE GATT server (Nordic UART, iOS + Android) |
@@ -138,9 +144,20 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 
 See `docs/upstream-audit/DELTA_AUDIT.md` Step 15 for earlier Python runtime bugs (thermald, sqsc, camera_calibrationd, surface_quality_db, eop_utils).
 
+## Lint & Code Quality (2026-08-12)
+
+A focused lint cleanup landed on `dev/EOP10`:
+
+- `./test.sh` (focused gate) is green.
+- `./test.sh --full` is green for ruff, shebang, large-file, merge-marker, and codespell checks; only mypy debt remains (553 errors in 149 files, down from ~740/203).
+- Real runtime bugs fixed: `gridd/yolo_objdet.py` wrong result attributes, `surfaced/surfaced.py` missing `CellState` aliases, `system/hardware/rk_device_id.py` mixed bytes/str reads.
+- ~200 shebang files marked executable; pre-existing large assets excluded from the 120 KB gate; codespell ignore-list expanded for EOP/Rockchip domain terms.
+
+See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended next steps.
+
 ---
 
-**Last updated**: 2026-08-03  
+**Last updated**: 2026-08-12  
 **Branch**: EOP10
 
 ---

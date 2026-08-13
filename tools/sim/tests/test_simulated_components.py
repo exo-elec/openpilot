@@ -18,7 +18,10 @@ def _make_stereo_objects(*objs):
     """Build a fake StereoObjects message from (dRel, yRel, vRel, prob) tuples."""
     class _Obj:
         def __init__(self, d, y, v, p):
-            self.dRel = d; self.yRel = y; self.vRel = v; self.prob = p
+            self.dRel = d
+            self.yRel = y
+            self.vRel = v
+            self.prob = p
     class _Msg:
         def __init__(self, items):
             self.objects = [_Obj(*o) for o in items]
@@ -62,7 +65,9 @@ class TestRadarZoneMonitor:
 
         class _Det:
             def __init__(self, x, y, conf):
-                self.x = x; self.y = y; self.confidence = conf
+                self.x = x
+                self.y = y
+                self.confidence = conf
         class _Msg:
             def __init__(self, dets):
                 self.detections = dets

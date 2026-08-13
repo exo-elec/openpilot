@@ -16,7 +16,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Optional, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class BackendHealthMonitor:
         self.backend_name = backend_name
         self.max_failures = max_failures
         self.consecutive_failures = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
         self.is_healthy = True
         self._lock = threading.Lock()
 
@@ -104,7 +104,7 @@ class BackendHealthMonitor:
             if self.consecutive_failures >= self.max_failures:
                 self.is_healthy = False
                 logger.error(
-                    f"Backend {self.backend_name} marked unhealthy "
+                    f"Backend {self.backend_name} marked unhealthy " +
                     f"({self.consecutive_failures} consecutive failures)"
                 )
                 return True
@@ -159,11 +159,11 @@ class ErrorRecoveryManager:
                 self.error_history.pop(0)
 
         logger.error(
-            f"[{error_info.category.name}] {error_info.message} "
+            f"[{error_info.category.name}] {error_info.message} " +
             f"(model={error_info.model_name}, retry={error_info.retry_count})"
         )
 
-    def get_fallback_backend(self, primary: str) -> Optional[str]:
+    def get_fallback_backend(self, primary: str) -> str | None:
         """Get fallback backend for a primary backend."""
         for strategy in self.fallback_strategies.values():
             if strategy.primary == primary and strategy.should_try_fallback():

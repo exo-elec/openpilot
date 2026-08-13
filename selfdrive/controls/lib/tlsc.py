@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import math
 import time
+from typing import cast
 
 from openpilot.common.params import Params
 
@@ -92,7 +93,7 @@ class TLSC:
         v_target = math.sqrt(2.0 * TLSC_DECEL * best_dist)
         v_target = max(0.0, min(v_target, v_ego))
         self._v_target = v_target
-        return v_target
+        return cast(float | None, v_target)
 
     @property
     def active(self) -> bool:

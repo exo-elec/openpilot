@@ -13,10 +13,9 @@ Verifies:
 from __future__ import annotations
 
 import sys
-import time
-import unittest
-from unittest.mock import MagicMock, patch
-from dataclasses import dataclass, field
+import unittest  # noqa: TID251
+from unittest.mock import MagicMock  # noqa: TID251
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -29,7 +28,7 @@ sys.modules['cereal'] = MagicMock()
 sys.modules['cereal.messaging'] = mock_messaging
 
 from openpilot.system.inferenced.inferenced import InferenceD, InferenceJob
-from openpilot.system.inferenced.compute import BackendType, InferenceResult
+from openpilot.system.inferenced.compute import InferenceResult
 
 
 @dataclass

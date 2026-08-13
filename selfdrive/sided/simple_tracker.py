@@ -17,7 +17,6 @@ Algorithm per frame:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -42,7 +41,7 @@ class SideObject:
   lateral_m: float = 0.0        # lateral in vehicle frame
   height_m: float = 0.0
   velocity_mps: float = 0.0
-  bbox_2d: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+  bbox_2d: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
   width_m: float = 1.8
   length_m: float = 4.5
 
@@ -61,7 +60,7 @@ class _Track:
 # ──────────────────────────────────────────────────────────────────────────────
 # IoU helpers
 # ──────────────────────────────────────────────────────────────────────────────
-def _iou(a: Tuple[float, ...], b: Tuple[float, ...]) -> float:
+def _iou(a: tuple[float, ...], b: tuple[float, ...]) -> float:
   """Compute 2-D IoU between two (x1,y1,x2,y2) bounding boxes."""
   ax1, ay1, ax2, ay2 = a
   bx1, by1, bx2, by2 = b
@@ -85,10 +84,10 @@ class SimpleTracker:
   """Maintains persistent UIDs for detected objects across frames."""
 
   def __init__(self) -> None:
-    self._tracks: Dict[int, _Track] = {}
+    self._tracks: dict[int, _Track] = {}
     self._next_uid: int = 1
 
-  def update(self, detections: List[SideObject]) -> List[SideObject]:
+  def update(self, detections: list[SideObject]) -> list[SideObject]:
     """Match detections to existing tracks and return annotated list."""
     if not detections:
       self._age_tracks(set())

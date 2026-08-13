@@ -70,7 +70,7 @@ class SoundD:
         self._last_param_check = 0.0
 
         cloudlog.info("soundd: Initialized")
-    
+
     def _send_audio(self, audio_int16: np.ndarray, sample_rate: int):
         """Send audio data to spkd via audioData message."""
         msg = messaging.new_message('audioData', valid=True)
@@ -78,7 +78,7 @@ class SoundD:
         msg.audioData.sampleRate = sample_rate
         self.pm.send('audioData', msg)
         self.is_playing = True
-    
+
     def _play_tts(self, text: str):
         """Play TTS using Piper."""
         cloudlog.info(f"soundd: TTS: {text}")
@@ -87,49 +87,49 @@ class SoundD:
             audio = self.tts.synthesize(text)
         if audio is None:
             return
-        
+
         # Convert to int16
         audio_int16 = (audio * 32767).astype(np.int16)
-        
+
         # Send to spkd
         self._send_audio(audio_int16, self.tts.sample_rate)
-    
+
     def _play_alert_tone(self, audible_alert: AudibleAlert):
         """Play alert tone for AudibleAlert value."""
         tone = get_alert_tone(audible_alert)
         if tone is None:
             return
-        
+
         cloudlog.info(f"soundd: Alert tone: {audible_alert}")
         self._send_audio(tone, TONE_SAMPLE_RATE)
-    
+
     def _check_alert_sound(self):
         """Check for alert sound changes in selfdriveState."""
         if not self.sm.updated['selfdriveState']:
             return
-        
+
         ss = self.sm['selfdriveState']
         current_alert_sound = ss.alertSound
-        
+
         # Only play when alert sound changes to a new non-none value
         if current_alert_sound == AudibleAlert.none:
             self._last_alert_sound = AudibleAlert.none
             return
-        
+
         if current_alert_sound == self._last_alert_sound:
             # Same alert sound still active — don't repeat too fast
             return
-        
+
         # Cooldown check (prevent rapid-fire tones)
         now = time.monotonic()
         if now < self._alert_tone_cooldown:
             return
-        
+
         self._last_alert_sound = current_alert_sound
         self._alert_tone_cooldown = now + 0.5  # 500ms minimum between tones
-        
+
         self._play_alert_tone(current_alert_sound)
-    
+
     def _check_voice_params(self):
         """Poll EOPLanguage + EOPTTSVoice every 5s; reload voice in background if changed."""
         now = time.monotonic()
@@ -179,16 +179,16 @@ class SoundD:
 
         # Reset playing flag (spkd handles actual playback timing)
         self.is_playing = False
-    
+
     def run(self):
         """Main daemon loop."""
         rk = Ratekeeper(100)
         cloudlog.info("soundd: Running")
-        
+
         while True:
             self.update()
             rk.keep_time()
-    
+
     def stop(self):
         """Stop daemon."""
         cloudlog.info("soundd: Stopped")

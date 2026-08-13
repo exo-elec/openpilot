@@ -19,6 +19,11 @@ from __future__ import annotations
 from openpilot.system.v4l2d.drivers.base import BaseCameraDriver
 from openpilot.common.swaglog import cloudlog
 
+try:
+  from hal.drivers.camera.sensor_registers import GC4653 as _GC4653
+except ImportError:
+  _GC4653 = {}  # type: ignore[assignment]
+
 
 class GC4653Driver(BaseCameraDriver):
     """GC4653 4MP stereo camera driver.
@@ -28,28 +33,31 @@ class GC4653Driver(BaseCameraDriver):
     - SDR capture — DWDR (~110dB) handled by ISP tone-mapping
     - OTP black level calibration for matched stereo pair
     - I2C register control for synchronized exposure (master/slave)
+
+    Register map and I2C addresses are imported from the closed HAL package.
+    When the HAL is not installed the driver uses empty defaults and will not
+    configure a real sensor, but the module still imports cleanly for PC testing.
     """
 
-    SENSOR_NAME = "gc4653"
-    DEFAULT_WIDTH  = 2560
-    DEFAULT_HEIGHT = 1440
-    DEFAULT_FPS    = 20
+    SENSOR_NAME = _GC4653.get("SENSOR_NAME", "gc4653")
+    DEFAULT_WIDTH = _GC4653.get("DEFAULT_WIDTH", 2560)
+    DEFAULT_HEIGHT = _GC4653.get("DEFAULT_HEIGHT", 1440)
+    DEFAULT_FPS = _GC4653.get("DEFAULT_FPS", 20)
 
-    # GC4653 register map (GalaxyCore datasheet V1.0)
-    REG_BLC_TARGET = 0x0315
-    REG_EXPOSURE_H = 0x0202
-    REG_EXPOSURE_L = 0x0203
-    REG_GAIN_H     = 0x02b3
-    REG_GAIN_L     = 0x02b4
-    REG_OTP_MODE   = 0x0100
+    # GC4653 register map
+    REG_BLC_TARGET = _GC4653.get("REG_BLC_TARGET", 0x0000)
+    REG_EXPOSURE_H = _GC4653.get("REG_EXPOSURE_H", 0x0000)
+    REG_EXPOSURE_L = _GC4653.get("REG_EXPOSURE_L", 0x0000)
+    REG_GAIN_H = _GC4653.get("REG_GAIN_H", 0x0000)
+    REG_GAIN_L = _GC4653.get("REG_GAIN_L", 0x0000)
+    REG_OTP_MODE = _GC4653.get("REG_OTP_MODE", 0x0000)
 
     # OTP memory map
-    OTP_ADDR_BLACK_LEVEL = 0x10  # 4 bytes: R, Gr, Gb, B
+    OTP_ADDR_BLACK_LEVEL = _GC4653.get("OTP_ADDR_BLACK_LEVEL", 0x00)
 
     # Default I2C addresses per ExoPilot hardware
-    # stereo_left = master @ 0x52, stereo_right = slave @ 0x53
-    I2C_ADDR_MASTER = 0x52
-    I2C_ADDR_SLAVE  = 0x53
+    I2C_ADDR_MASTER = _GC4653.get("I2C_ADDR_MASTER", 0x00)
+    I2C_ADDR_SLAVE = _GC4653.get("I2C_ADDR_SLAVE", 0x00)
 
     def __init__(self, device_path: str, i2c_bus: int = -1, i2c_addr: int = I2C_ADDR_MASTER,
                  width: int = 0, height: int = 0, fps: int = 0,
@@ -79,9 +87,9 @@ class GC4653Driver(BaseCameraDriver):
 
         # Log SDR-only mode explicitly
         cloudlog.info(
-            f"GC4653 ({self.device_path}): SDR mode only — "
-            f"{'master' if self.is_master else 'slave'} "
-            f"stereo camera, no HDR"
+            f"GC4653 ({self.device_path}): SDR mode only — " +
+            f"{'master' if self.is_master else 'slave'} " +
+            "stereo camera, no HDR"
         )
 
         # Attempt OTP black level read (best effort)
@@ -131,7 +139,7 @@ class GC4653Driver(BaseCameraDriver):
             self._v4l2_set_ctrl(self.REG_GAIN_L, gain_l)
 
             cloudlog.debug(
-                f"GC4653 sync: exposure={exposure_lines}, gain={gain:.2f}x "
+                f"GC4653 sync: exposure={exposure_lines}, gain={gain:.2f}x " +
                 f"({'master' if self.is_master else 'slave'})"
             )
             return True

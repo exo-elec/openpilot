@@ -6,6 +6,7 @@ import pyray as rl
 from enum import IntEnum
 
 from openpilot.system.hardware import HARDWARE
+from typing import cast
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.wifi_manager import WifiManagerWrapper
 from openpilot.system.ui.widgets import Widget
@@ -82,7 +83,7 @@ class Updater(Widget):
   def render_prompt_screen(self, rect: rl.Rectangle):
     # Title
     title_rect = rl.Rectangle(MARGIN + 50, 250, rect.width - MARGIN * 2 - 100, TITLE_FONT_SIZE)
-    gui_label(title_rect, "Update Required", TITLE_FONT_SIZE, font_weight=FontWeight.BOLD)
+    gui_label(title_rect, "Update Required", TITLE_FONT_SIZE, font_weight=cast(FontWeight, FontWeight.BOLD))
 
     # Description
     desc_text = ("An operating system update is required. Connect your device to Wi-Fi for the fastest update experience. " +
@@ -119,7 +120,7 @@ class Updater(Widget):
 
   def render_progress_screen(self, rect: rl.Rectangle):
     title_rect = rl.Rectangle(MARGIN + 100, 330, rect.width - MARGIN * 2 - 200, 100)
-    gui_label(title_rect, self.progress_text, 90, font_weight=FontWeight.SEMI_BOLD)
+    gui_label(title_rect, self.progress_text, 90, font_weight=cast(FontWeight, FontWeight.SEMI_BOLD))
 
     # Progress bar
     bar_rect = rl.Rectangle(MARGIN + 100, 330 + 100 + 100, rect.width - MARGIN * 2 - 200, PROGRESS_BAR_HEIGHT)

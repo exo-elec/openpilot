@@ -16,7 +16,7 @@ import pytest
 @pytest.fixture(scope="module")
 def onnx_backend():
     """Initialize HAL and return ONNX backend (skips if models missing)."""
-    from openpilot.system.inferenced.compute import HAL, HALConfig, ModelConfig, BackendType
+    from openpilot.system.inferenced.compute import HAL, HALConfig, BackendType
 
     hal = HAL(HALConfig())
     hal.initialize()

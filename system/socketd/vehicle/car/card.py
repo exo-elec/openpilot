@@ -6,7 +6,7 @@ This is the socketd-owned Tesla/BrownPanda vehicle adapter.
 import os
 import time
 import threading
-from typing import Any
+from typing import Any, cast
 
 import cereal.messaging as messaging
 
@@ -25,6 +25,7 @@ from openpilot.system.socketd.vehicle.safety.safety_manager import SafetyManager
 from openpilot.system.socketd.vehicle.car.cruise import VCruiseHelper
 from openpilot.system.socketd.vehicle.car.events import VehicleEvents
 from openpilot.system.socketd import can_capnp_to_list, can_list_to_can_capnp
+from opendbc.car.can_definitions import CanData
 from opendbc.car.tesla.radar_interface import RadarInterface
 
 REPLAY = "REPLAY" in os.environ
@@ -96,6 +97,8 @@ class Car:
 
     # Read vehicle type from params (simulation or real)
     vehicle_type_name = self.params.get("EOPVehicleType") or "SUV_C"
+    if isinstance(vehicle_type_name, bytes):
+      vehicle_type_name = vehicle_type_name.decode()
     vehicle_cfg = VehicleType.get(vehicle_type_name)
     platform = VEHICLE.from_vehicle_config(vehicle_cfg)
 
@@ -165,7 +168,7 @@ class Car:
   def state_update(self) -> tuple[car.CarState, Any | None]:
     """carState update loop, driven by can."""
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
-    can_list = can_capnp_to_list(can_strs)
+    can_list = [CanData(*msg) for msg in can_capnp_to_list(can_strs)]
 
     # OpenDBC owns CAN parsing and Tesla CarState translation.
     CS = self.CS.update(can_list)
@@ -203,7 +206,8 @@ class Car:
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)
     CS.vCruiseCluster = float(self.v_cruise_helper.v_cruise_cluster_kph)
 
-    RD = self.radar.update(can_list)
+    RadarCanPackets = list[tuple[int, list[CanData]] | list[CanData] | CanData]
+    RD = self.radar.update(cast(RadarCanPackets, can_list))
     return CS, RD
 
   def state_publish(self, CS: car.CarState, RD=None):

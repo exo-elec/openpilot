@@ -7,8 +7,8 @@ Automatically manages tiles based on GPS location and WiFi connectivity.
 import os
 import time
 import threading
-from pathlib import Path
 from dataclasses import dataclass
+from typing import cast
 
 import cereal.messaging as messaging
 from openpilot.common.params import Params
@@ -44,29 +44,29 @@ class AutoTileManager:
     3. Checks for tile updates weekly
     4. Handles multi-region for long trips
     """
-    
+
     def __init__(self):
         self.tm = TileManager()
         self.params = Params()
         self.sm = messaging.SubMaster(['gpsLocationExternal', 'fusedPosition'])
-        
+
         # Current region tracking
         self.current_region: str | None = None
         self.nearby_regions: list[str] = []
-        
+
         # Download state
         self.download_thread: threading.Thread | None = None
         self.is_downloading = False
-        
+
         # Last check time
         self.last_check_time = 0
-        
+
         cloudlog.info("AutoTileManager initialized")
-    
+
     def get_current_position(self) -> GPSPosition | None:
         """Get current GPS position."""
         self.sm.update(0)
-        
+
         # Prefer fused position
         if self.sm.updated['fusedPosition']:
             fused = self.sm['fusedPosition']
@@ -76,7 +76,7 @@ class AutoTileManager:
                     lon=fused.positionGeodetic.longitude,
                     accuracy=10.0  # fused is more accurate
                 )
-        
+
         # Fallback to raw GPS
         if self.sm.updated['gpsLocationExternal']:
             gps = self.sm['gpsLocationExternal']
@@ -86,9 +86,9 @@ class AutoTileManager:
                     lon=gps.longitude,
                     accuracy=gps.accuracy
                 )
-        
+
         return None
-    
+
     def find_region_for_position(self, pos: GPSPosition) -> str | None:
         """
         Find which region a GPS position belongs to.
@@ -115,13 +115,13 @@ class AutoTileManager:
             (24.5, 31.0, -87.5, -80.0, "florida"),
             (40.5, 45.0, -79.8, -71.8, "new-york"),
         ]
-        
+
         for min_lat, max_lat, min_lon, max_lon, region in REGIONS_BBOX:
             if min_lat <= pos.lat <= max_lat and min_lon <= pos.lon <= max_lon:
                 return region
-        
+
         return None
-    
+
     def is_on_wifi(self) -> bool:
         """Check if connected to WiFi (not cellular)."""
         try:
@@ -140,48 +140,49 @@ class AutoTileManager:
         except Exception:
             pass
         return False
-    
+
     def get_tile_age_days(self, region: str) -> float:
         """Get age of tile file in days."""
         tar_file = self.tm.tile_dir / "valhalla_tiles.tar"
         if not tar_file.exists():
             return float('inf')
-        
+
         mtime = tar_file.stat().st_mtime
-        age_seconds = time.time() - mtime
-        return age_seconds / (24 * 3600)
-    
+        age_seconds = time.time() - mtime  # noqa: TID251
+        return cast(float, age_seconds / (24 * 3600))
+
     def should_auto_download(self, region: str) -> bool:
         """Check if we should auto-download this region."""
         # Check if auto-tile is enabled
         if not self.params.get_bool("EOPAutoTileEnabled"):
             return False
-        
+
         if region not in TILE_SOURCES:
             return False
-        
+
         info = TILE_SOURCES[region]
-        
+
         # Check if already have recent tiles
         if self.tm.get_status(region).is_ready:
             age = self.get_tile_age_days(region)
             if age < TILE_UPDATE_INTERVAL_DAYS:
                 return False  # Have fresh tiles
-        
+
         # Check WiFi-only setting
         wifi_only = self.params.get_bool("EOPAutoTileWifiOnly")
-        if wifi_only and info['tiles_size_mb'] > WIFI_ONLY_THRESHOLD_MB:
+        tile_size_mb = cast(float, info['tiles_size_mb'])
+        if wifi_only and tile_size_mb > WIFI_ONLY_THRESHOLD_MB:
             if not self.is_on_wifi():
-                cloudlog.info(f"AutoTile: {region} is large ({info['tiles_size_mb']} MB), waiting for WiFi")
+                cloudlog.info(f"AutoTile: {region} is large ({tile_size_mb} MB), waiting for WiFi")
                 return False
-        
+
         return True
-    
+
     def download_in_background(self, region: str):
         """Download tiles in background thread."""
         if self.is_downloading:
             return
-        
+
         def download():
             self.is_downloading = True
             try:
@@ -196,10 +197,10 @@ class AutoTileManager:
                 cloudlog.exception(f"AutoTile: Download error: {e}")
             finally:
                 self.is_downloading = False
-        
+
         self.download_thread = threading.Thread(target=download, daemon=True)
         self.download_thread.start()
-    
+
     def check_and_update(self):
         """Main check loop - call periodically."""
         # Rate limit checks
@@ -207,33 +208,33 @@ class AutoTileManager:
         if now - self.last_check_time < CHECK_INTERVAL:
             return
         self.last_check_time = now
-        
+
         # Get current position
         pos = self.get_current_position()
         if not pos:
             return
-        
+
         # Find current region
         region = self.find_region_for_position(pos)
         if not region:
             cloudlog.debug(f"AutoTile: Position ({pos.lat:.2f}, {pos.lon:.2f}) not in known region")
             return
-        
+
         # Check if we need to download
         if self.should_auto_download(region):
             if not self.is_downloading:
                 cloudlog.info(f"AutoTile: Detected region {region}, starting download")
                 self.download_in_background(region)
-        
+
         # Update current region for UI
         if region != self.current_region and not self.is_downloading:
             self.current_region = region
-    
+
     def get_status(self) -> dict:
         """Get current status for UI display."""
         pos = self.get_current_position()
         region = self.find_region_for_position(pos) if pos else None
-        
+
         status = {
             'current_region': region,
             'detected_position': (pos.lat, pos.lon) if pos else None,
@@ -242,26 +243,26 @@ class AutoTileManager:
             'tiles_ready': False,
             'tile_age_days': None,
         }
-        
+
         if region:
             tile_status = self.tm.get_status(region)
             status['tiles_ready'] = tile_status.is_ready
             if tile_status.is_ready:
                 status['tile_age_days'] = self.get_tile_age_days(region)
-        
+
         return status
 
 
 def main():
     """Run auto tile manager as standalone daemon."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Auto Tile Manager")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     args = parser.parse_args()
-    
+
     atm = AutoTileManager()
-    
+
     if args.daemon:
         cloudlog.info("AutoTileManager daemon started")
         while True:
@@ -270,7 +271,7 @@ def main():
     else:
         # One-time status check
         status = atm.get_status()
-        print(f"\nAuto Tile Manager Status:")
+        print("\nAuto Tile Manager Status:")
         print(f"  Current region: {status['current_region'] or 'Unknown'}")
         print(f"  Position: {status['detected_position']}")
         print(f"  Tiles ready: {status['tiles_ready']}")

@@ -140,17 +140,17 @@ class CarControllerParams:
   STEER_LIMIT_TIMER = 0.4     # seconds
   STEER_ACTUATOR_DELAY = 0.1  # seconds
   STEER_AT_STANDSTILL = True
-  
+
   # Angle limits (degrees)
   MAX_STEER_ANGLE = 360.0
   MAX_ANGLE_RATE = 5.0        # deg/20ms frame, EPS faults at 12 at standstill
-  
+
   # Lateral acceleration limits
   # Add extra tolerance for average banked road (~3.4 degrees, 6% superelevation)
   AVERAGE_ROAD_ROLL = 0.06
   MAX_LATERAL_ACCEL = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)  # ~3.6 m/s^2
   MAX_LATERAL_JERK = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)   # ~3.6 m/s^3
-  
+
   # Longitudinal — sourced from the shared OpenDBC fork's tesla/values.py,
   # the canonical numbers for Tesla's DAS_control accel encoding.
   ACCEL_MAX = _OpenDBCCarControllerParams.ACCEL_MAX          # m/s^2

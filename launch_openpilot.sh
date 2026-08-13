@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # openpilot launcher for RK3588 (ExoPilot 01M)
 # Usage: ./launch_openpilot.sh [mode]
 #   mode: full (default) | model | controls | camera

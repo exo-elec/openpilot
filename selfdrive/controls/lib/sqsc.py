@@ -32,38 +32,38 @@ class PredictiveSurfaceAnalyzer:
     GPS-based predictive surface analyzer.
     Like MTSC for curves - looks up historical surface quality ahead.
     """
-    
+
     def __init__(self):
         self.db = SurfaceQualityDB()
         self.predictions: list[SurfacePrediction] = []
         self.rough_sections: list[dict] = []
         self.last_lookup_time = 0.0
         self.lookup_interval = 1.0
-        
+
     def update(self, lat: float, lon: float, heading: float, v_ego_ms: float) -> list[SurfacePrediction]:
         """Update predictive analysis."""
         current_time = time.monotonic()
-        
+
         if current_time - self.last_lookup_time < self.lookup_interval:
             return self.predictions
-        
+
         self.last_lookup_time = current_time
-        
+
         # Get predictions at dynamic distances based on speed
         self.predictions = self.db.predict_ahead(lat, lon, heading, v_ego_ms)
-        
+
         # Also get rough sections for planning
         self.rough_sections = self.db.get_rough_sections_ahead(
             lat, lon, heading, max_distance_m=500.0, min_quality_score=0.4
         )
-        
+
         return self.predictions
-    
+
     def get_best_prediction(self, v_ego_ms: float) -> SurfacePrediction | None:
         """Get most relevant prediction for current speed."""
         if not self.predictions:
             return None
-        
+
         # At higher speeds, care about further distances
         if v_ego_ms >= 24:  # >= 86 kph (EVP zone 3)
             target_distances = [200, 300, 150, 100, 50]
@@ -71,36 +71,36 @@ class PredictiveSurfaceAnalyzer:
             target_distances = [100, 150, 50, 200, 300]
         else:
             target_distances = [50, 100, 150, 200, 300]
-        
+
         for target in target_distances:
             for pred in self.predictions:
                 if abs(pred.distance_m - target) < 30 and pred.confidence > 0.3:
                     return pred
-        
+
         # Fall back to first with data
         for pred in self.predictions:
             if pred.confidence > 0.3:
                 return pred
-        
+
         return None
-    
+
     def get_most_restrictive_ahead(self, max_distance_m: float = 300) -> SurfacePrediction | None:
         """Get the most restrictive (lowest speed) prediction within range."""
         if not self.predictions:
             return None
-        
+
         best = None
         lowest_speed = float('inf')
-        
+
         for pred in self.predictions:
             if pred.distance_m <= max_distance_m and pred.confidence > 0.3:
                 speed = pred.recommended_speed_ms if pred.recommended_speed_ms > 0 else 30.0
                 if speed < lowest_speed:
                     lowest_speed = speed
                     best = pred
-        
+
         return best
-    
+
     def record_surface(
         self, lat: float, lon: float, heading: float, quality_score: float,
         shock_count: int, texture: str, v_ego_ms: float, section_length_m: float = 0.0
@@ -116,13 +116,13 @@ class PredictiveSurfaceAnalyzer:
 class SQSC:
     """
     Surface Quality Speed Controller - SIMPLIFIED VERSION.
-    
+
     Consumes surfaceStatus from surfaced daemon (real-time perception).
     Consumes GPS for predictive history lookup.
-    
+
     Like VTSC/MTSC: perception (surfaced) + control (SQSC) separation.
     """
-    
+
     PROFILES = {
         'sport': {
             'quality_threshold': 0.6,
@@ -146,7 +146,7 @@ class SQSC:
             'use_learned': True,
         },
     }
-    
+
     def __init__(self):
         self.params = Params()
 
@@ -201,7 +201,7 @@ class SQSC:
         self.predictions: list = []
         self.lookahead_enabled = self._cached_lookahead
         self.use_learned_speed = self._cached_use_learned
-        
+
     def _update_cached_params(self):
         """Cache params — file I/O no more than once per second."""
         now = time.monotonic()
@@ -228,7 +228,7 @@ class SQSC:
         except (ValueError, TypeError):
             pass
         return default
-    
+
     def _read_profile(self) -> str:
         try:
             profile = self.params.get("EOPSQSCProfile")
@@ -239,7 +239,7 @@ class SQSC:
         except Exception:
             pass
         return 'balanced'
-    
+
     def _read_sensitivity(self) -> float:
         try:
             sens = self.params.get("EOPSQSCSensitivity")
@@ -248,7 +248,7 @@ class SQSC:
         except Exception:
             pass
         return 1.0
-    
+
     def _extract_heading(self, gps_data) -> float:
         if gps_data is None:
             return 0.0
@@ -258,7 +258,7 @@ class SQSC:
             vn, ve, _ = gps_data.velocityNED
             return math.degrees(math.atan2(ve, vn))
         return 0.0
-    
+
     def _should_record(self, v_ego_ms: float, surface_quality, shock_count: int, sm: messaging.SubMaster) -> bool:
         """
         Traffic jam / curve guard — prevent polluting surface DB with congestion speeds.
@@ -303,23 +303,23 @@ class SQSC:
         """Handle immediate shock response from surfaceStatus."""
         if self.shock_active and current_time > self.shock_end_time:
             self.shock_active = False
-        
+
         if self.shock_active:
             return self.shock_limit_kph / 3.6
         return None
-    
+
     def _get_predictive_limit(self, v_ego_ms: float) -> float | None:
         """Get speed limit from predictive analysis."""
         if not self.predictions:
             return None
-        
+
         best_pred = self.predictions[0] if self.predictions else None
         if best_pred and best_pred.confidence > 0.3:
             # Use learned recommended speed if available and enabled
             if self.use_learned_speed and self.config.get('use_learned', True):
                 if best_pred.recommended_speed_ms > 0:
                     return best_pred.recommended_speed_ms
-            
+
             # Calculate from quality score
             effective_quality = min(best_pred.quality_score * self.sensitivity, 1.0)
             if effective_quality > self.config['quality_threshold']:
@@ -329,34 +329,34 @@ class SQSC:
                 base_speed_kph = max(v_ego_ms * 3.6, 80.0)
                 limit_kph = max(base_speed_kph * (1.0 - reduction), self.config['min_speed_kph'])
                 return limit_kph / 3.6
-        
+
         return None
-    
+
     def _get_realtime_limit(self, v_ego_ms: float, surface) -> float | None:
         """
         Get speed limit from surfaceStatus (real-time from surfaced).
-        
+
         Args:
             v_ego_ms: Current speed
             surface: surfaceStatus message from surfaced
         """
         if not surface.hasSurfaceQuality:
             return None
-        
+
         quality = surface.surfaceQuality
         effective_quality = min(quality.score * self.sensitivity, 1.0)
-        
+
         if effective_quality < self.config['quality_threshold']:
             return None
-        
+
         excess = (effective_quality - self.config['quality_threshold']) / \
                  (1.0 - self.config['quality_threshold'])
         reduction = excess * self.config['speed_reduction']
         base_speed_kph = max(v_ego_ms * 3.6, 80.0)
         limit_kph = max(base_speed_kph * (1.0 - reduction), self.config['min_speed_kph'])
-        
+
         return limit_kph / 3.6
-    
+
     def _phase_shock_detection(self, sm: messaging.SubMaster, current_time: float) -> float | None:
         """Phase 1: Immediate shock detection from surfaceStatus."""
         if sm.updated['surfaceStatus']:
@@ -502,12 +502,12 @@ class SQSC:
         if self.current_limit_kph < 150.0:
             return self.current_limit_kph / 3.6
         return None
-    
+
     def get_state(self) -> dict:
         """Get SQSC state for debugging."""
         current_time = time.monotonic()
         db_stats = self.predictive_analyzer.db.get_stats()
-        
+
         return {
             'profile': self.profile,
             'sensitivity': self.sensitivity,

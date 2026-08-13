@@ -54,6 +54,7 @@ import logging
 import math
 import os
 import time
+from typing import Any, cast
 import numpy as np
 import cv2
 
@@ -86,27 +87,27 @@ def _nv12_to_bgr(data: bytes, width: int, height: int) -> np.ndarray:
 class GridD:
     """
     Lazy BEV perception daemon - fuses 2D stereo outputs.
-    
+
     Performs on-demand 3D reprojection from 2D disparity.
     Critical path: fault here reduces ADAS to lane keeping only.
     """
-    
+
     # Calibration path for Q matrix (3D reprojection).
     # Canonical factory-intrinsics filename; the HAL loader also falls back to
     # the legacy stereo_calibration.npz during migration.
     CALIBRATION_PATH = os.path.join(Paths.eop_data_root(), "calibration", "stereo_intrinsics.npz")
-    
+
     def __init__(self) -> None:
         # Set CPU affinity to A76 cores (big cores) - safety critical
         set_daemon_affinity("gridd")
-        
+
         self.params = Params()
-        
+
         # Load camera geometry from HAL (hardware abstraction)
-        hardware = PlatformRegistry.create()
+        hardware = cast(Any, PlatformRegistry.create())
         self.geometry: CameraGeometry = hardware.get_camera_geometry()
         cloudlog.info(f"GridD loaded HAL geometry: {self.geometry.variant}")
-        
+
         # Load stereo calibration (Q matrix for reprojection)
         self.Q = self._load_calibration()
         if self.Q is None:
@@ -119,7 +120,7 @@ class GridD:
         # Mounting extrinsics are user-refined and stored at this layer.
         try:
             from openpilot.selfdrive.controls.radar4d_geometry import RadarMounting, RadarStereoGeometry
-            self.radar_geometry = RadarStereoGeometry(mount=RadarMounting.load())
+            self.radar_geometry: RadarStereoGeometry | None = RadarStereoGeometry(mount=RadarMounting.load())
             cloudlog.info("GridD: radar-stereo geometry available")
         except Exception as e:
             self.radar_geometry = None
@@ -150,7 +151,7 @@ class GridD:
 
         # VisionIPC for road camera
         self.vipc_road = VisionIpcClient("v4l2d", VisionStreamType.VISION_STREAM_ROAD, True)
-        
+
         # Pub/Sub
         self.pm = messaging.PubMaster(['gridObjects', 'stereoGround', 'stereoObjects', 'gridStatus'])
         self.sm = messaging.SubMaster(
@@ -160,16 +161,16 @@ class GridD:
              'radar4d',   # BGT60TR13C 4D FMCW — 0-15m front, ±40° azimuth
              'radar3d',   # car OEM CAN radar — 15-200m, all tracked points
              'radar2d'],  # corner/blind-spot zone sensors — 0-10m presence
-            poll=['stereoDepth']
+            poll=cast(str | None, ['stereoDepth'])
         )
-        
+
         self.rk = Ratekeeper(RATE, print_delay_threshold=None)
-        
+
         # Perception modules
         self.ppliteseg = PPLiteSeg()
         self.bev = LazyBEV()
         self.occ_grid = OccupancyGrid(range_m=100.0)
-        
+
         # Fusion costmap generator (GPU with CPU fallback)
         # 60w × 120h cells @ 0.5m/cell = 30m lateral × 60m forward, origin 15m left / 5m behind ego
         costmap_config = FusionCostmapConfig(
@@ -189,10 +190,10 @@ class GridD:
             'left_edge_y': None, 'right_edge_y': None,
             'valid': False,
         }
-        
+
         # Road camera frame
         self.road_bgr: np.ndarray | None = None
-        
+
         # RGA preprocessing for PP-LiteSeg (InferenceClient)
         self._inference_client: InferenceClient | None = None
         self._rga = None
@@ -204,19 +205,19 @@ class GridD:
             cloudlog.info("GridD: RGA preprocessing available (InferenceClient)")
         except Exception as e:
             cloudlog.warning(f"GridD: RGA not available, using OpenCV fallback: {e}")
-        
+
         # Fault tracking
         self.frame_id = 0
         self.consecutive_failures = 0
         self.fault = False
         self.fault_reason = ""
         self.enabled = True
-        
+
         cloudlog.info(
             "GridD initialized (ppliteseg=%s, geometry=%s, rga=%s, lazy_bev=enabled)",
             self.ppliteseg.available, self.geometry.variant, self._rga_available
         )
-    
+
     def _load_calibration(self) -> np.ndarray | None:
         """Load stereo Q matrix for 3D reprojection (factory intrinsics from HAL)."""
         try:
@@ -235,38 +236,38 @@ class GridD:
                 cloudlog.warning(f"Failed to load calibration: {e}")
                 return None
         cloudlog.info(f"Loaded calibration, baseline={-1.0/Q[3,2]:.3f}m")
-        return Q
-    
+        return cast(np.ndarray, Q)
+
     def _default_calibration(self) -> np.ndarray:
         """Default Q matrix for ExoPilot."""
         f_px = 700.0
         cx, cy = 320.0, 240.0
         baseline_m = 0.08  # 80mm default
-        
-        Q = np.float64([
+
+        Q = np.array([
             [1, 0, 0, -cx],
             [0, 1, 0, -cy],
             [0, 0, 0, f_px],
             [0, 0, -1.0 / baseline_m, 0],
-        ])
+        ], dtype=np.float64)
         cloudlog.info(f"Using default calibration, baseline={baseline_m*1000:.0f}mm")
         return Q
 
     def _preprocess_frame(self, bgr_frame: np.ndarray) -> np.ndarray:
         """
         Preprocess road camera frame for PP-LiteSeg inference.
-        
+
         Uses RGA hardware accelerator (resize) when available,
         falls back to OpenCV on dev PC.
-        
+
         PP-LiteSeg RKNN model expects 320x320 input.
         """
         target_w, target_h = PPLITESEG_INPUT_SIZE
-        
+
         # Fast path: already correct size
         if bgr_frame.shape[1] == target_w and bgr_frame.shape[0] == target_h:
             return bgr_frame
-        
+
         # Try RGA hardware resize first
         if self._rga_available and self._rga is not None:
             try:
@@ -285,84 +286,87 @@ class GridD:
                         return output
             except Exception as e:
                 cloudlog.debug(f"RGA resize failed, falling back to OpenCV: {e}")
-        
+
         # OpenCV fallback
         return cv2.resize(bgr_frame, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
 
     def _lazy_reprojection(self, stereo_depth) -> np.ndarray | None:
         """
         Lazy 3D reprojection from 2D disparity.
-        
+
         Only reprojects pixels needed for BEV (ROI), not full image.
         Much faster than dense 3D reconstruction in pointcloudd.
         """
         if stereo_depth is None or not stereo_depth.disparityMap:
             return None
-        
+
+        if self.Q is None:
+            return None
+
         try:
             # Decode 2D disparity
             h, w = stereo_depth.height, stereo_depth.width
             disparity = np.frombuffer(stereo_depth.disparityMap, dtype=np.float32).reshape((h, w))
-            
+
             # Decode confidence if available
             confidence = None
             if stereo_depth.confidenceMap:
                 confidence = np.frombuffer(stereo_depth.confidenceMap, dtype=np.float32).reshape((h, w))
-            
+
             # Lazy: filter to valid disparities first
             valid_mask = disparity > 0
             if confidence is not None:
                 valid_mask &= confidence > 0.3
-            
+
             # Subsample for efficiency (gridd doesn't need full resolution)
             # Keep every 4th pixel - sufficient for BEV grid
             step = 4
             valid_mask[::step, ::step] &= valid_mask[::step, ::step]  # Maintain stride pattern
             valid_mask[1::step, :] = False
             valid_mask[:, 1::step] = False
-            
+
             if not np.any(valid_mask):
                 return None
-            
+
             # Get valid pixel coordinates
             v_coords, u_coords = np.where(valid_mask)
             disparities = disparity[valid_mask]
-            
+
             # Reprojection using Q matrix
             # Q = [[1, 0, 0, -cx],
             #      [0, 1, 0, -cy],
             #      [0, 0, 0,  f],
             #      [0, 0, -1/b, 0]]
-            
+
             cx = -self.Q[0, 3]
             cy = -self.Q[1, 3]
             f = self.Q[2, 2]
             baseline = -1.0 / self.Q[3, 2]
-            
+
             # Vectorized reprojection
             # Z = f * baseline / disparity
             # X = (u - cx) * Z / f
             # Y = (v - cy) * Z / f
-            
+
             Z = f * baseline / disparities
             X = (u_coords - cx) * Z / f  # Right (lateral)
             Y = (v_coords - cy) * Z / f  # Down (vertical)
-            
+
             # Stack: [right, down, forward]
             xyz = np.column_stack([X, Y, Z]).astype(np.float32)
-            
+
             # Filter to BEV range (lazy - only keep points in useful range)
             # Forward: 0.5m to 80m, Lateral: +/- 15m
             in_range = (
                 (xyz[:, 2] > 0.5) & (xyz[:, 2] < 80.0) &  # forward
                 (np.abs(xyz[:, 0]) < 15.0)  # lateral
             )
-            
+
             if not np.any(in_range):
                 return None
-            
+
             return xyz[in_range]
-            
+
         except Exception as e:
             cloudlog.debug(f"Lazy reprojection failed: {e}")
             return None
@@ -373,26 +377,26 @@ class GridD:
         xyz_points: np.ndarray | None,
     ) -> list[dict]:
         """Fuse monoDetections with stereo depth points."""
-        fused_objects = []
-        
+        fused_objects: list[dict[str, Any]] = []
+
         if mono_dets is None or not mono_dets.detections:
             return fused_objects
-        
+
         for det in mono_dets.detections:
             x = det.x  # forward (m)
             y = det.y  # lateral (m)
             z = det.z  # up (m)
-            
+
             # Validate with stereo depth if available
             if xyz_points is not None and len(xyz_points) > 0:
                 dists = np.abs(xyz_points[:, 2] - x)
                 closest_idx = np.argmin(dists)
-                
+
                 if dists[closest_idx] < 5.0:
                     stereo_x = xyz_points[closest_idx, 2]
                     if stereo_x < 30.0:
                         x = 0.7 * stereo_x + 0.3 * x
-            
+
             fused_objects.append({
                 'dRel': float(x),
                 'yRel': float(-y),
@@ -404,7 +408,7 @@ class GridD:
                 'width': float(getattr(det, 'width', 0.0)),
                 'height': float(getattr(det, 'height', 0.0)),
             })
-        
+
         return fused_objects
 
     def _fuse_modeld_detections(
@@ -413,31 +417,31 @@ class GridD:
         xyz_points: np.ndarray | None,
     ) -> list[dict]:
         """Fuse modeld (drive_vision) detections with stereo depth."""
-        fused_objects = []
-        
+        fused_objects: list[dict[str, Any]] = []
+
         if model_v2 is None:
             return fused_objects
-        
+
         # Extract leads from modelV2 (drive_vision output)
         if hasattr(model_v2, 'leads'):
             for lead in model_v2.leads:
                 if not lead.status:
                     continue
-                
+
                 x = lead.x[0]  # forward (m)
                 y = lead.y[0]  # lateral (m)
                 v = lead.v[0]  # velocity (m/s)
                 prob = lead.prob
-                
+
                 # Validate with stereo depth
                 confidence = prob
                 if xyz_points is not None and len(xyz_points) > 0:
                     dists = np.sqrt(
-                        (xyz_points[:, 2] - x)**2 + 
+                        (xyz_points[:, 2] - x)**2 +
                         (xyz_points[:, 0] - (-y))**2
                     )
                     close_mask = dists < 3.0
-                    
+
                     if np.any(close_mask):
                         stereo_x = np.median(xyz_points[close_mask, 2])
                         if abs(stereo_x - x) < 5.0:
@@ -445,7 +449,7 @@ class GridD:
                             confidence = min(prob * 1.2, 1.0)
                         else:
                             confidence = prob * 0.7
-                
+
                 fused_objects.append({
                     'dRel': float(x),
                     'yRel': float(-y),
@@ -457,7 +461,7 @@ class GridD:
                     'width': 1.8,
                     'height': 1.5,
                 })
-        
+
         return fused_objects
 
     # radar4d fusion constants
@@ -786,7 +790,7 @@ class GridD:
         only the best-scoring (nearest-to-center) cluster per stereo object
         instead of last-write-wins.
         """
-        best_per_stereo = {}  # stereo idx -> (score, obj_msg, confidence_boost)
+        best_per_stereo: dict[int, tuple[float, Any, float]] = {}  # stereo idx -> (score, obj_msg, confidence_boost)
 
         for obj_msg in radar4d.objects:
             if abs(obj_msg.elevation) > self._R4D_ELEV_GATE_DEG:
@@ -1079,9 +1083,9 @@ class GridD:
             return mono_objects
         if not mono_objects:
             return model_objects
-        
+
         merged = list(mono_objects)
-        
+
         for model_obj in model_objects:
             is_duplicate = False
             for existing in merged:
@@ -1094,10 +1098,10 @@ class GridD:
                         existing.update(model_obj)
                     is_duplicate = True
                     break
-            
+
             if not is_duplicate:
                 merged.append(model_obj)
-        
+
         return merged
 
     def _costmap(
@@ -1108,9 +1112,9 @@ class GridD:
         img_shape: tuple,
     ) -> np.ndarray:
         """Generate semantic costmap - VisionPilot-style fusion.
-        
+
         Uses FusionCostmapGenerator with GPU-assigned compute.
-        
+
         Cost values:
           0   = Lane marking (preferred path)
           10  = Confident road (geometry + semantics agree)
@@ -1123,18 +1127,18 @@ class GridD:
     def _drivable_area_to_costmap(self, drivable_area) -> np.ndarray | None:
         """
         Convert drivableArea from surfaced to gridd costmap format.
-        
+
         drivableArea provides:
         - BEV occupancy grid
         - Precise pose (road frame)
         - Clearances (left/right/front)
         - Surface quality
-        
+
         We convert this to the costmap format expected by pathd.
         """
         if drivable_area is None:
             return None
-        
+
         # Get grid dimensions from drivableArea
         # capnp fields: width, height, resolution (not rows/cols/resolutionM)
         grid_data = np.frombuffer(drivable_area.data, dtype=np.uint8)
@@ -1162,7 +1166,7 @@ class GridD:
         costmap[grid == 3] = 25   # rough → elevated cost
         costmap[grid == 4] = 25   # learned rough → elevated cost
         # 0 (unknown) stays at 50
-        
+
         # Apply clearances as soft constraints
         if drivable_area.leftClearanceM > 0:
             # Mark area beyond left clearance as higher cost
@@ -1171,33 +1175,33 @@ class GridD:
                 costmap[:, :grid_w//2 - left_cells] = np.minimum(
                     costmap[:, :grid_w//2 - left_cells] + 25, 100
                 )
-        
+
         if drivable_area.rightClearanceM > 0:
             right_cells = int(drivable_area.rightClearanceM / drivable_area.resolution)
             if right_cells < grid_w // 2:
                 costmap[:, grid_w//2 + right_cells:] = np.minimum(
                     costmap[:, grid_w//2 + right_cells:] + 25, 100
                 )
-        
+
         # Apply surface quality as cost multiplier
         if drivable_area.hasSurfaceQuality:
             quality = drivable_area.surfaceQuality.score
             if quality > 0.3:
                 # Rough surface -> increase cost
                 costmap = np.minimum(costmap + int(quality * 30), 100)
-        
+
         return costmap
 
     def _extract_road_boundaries(self, xyz_points: np.ndarray | None) -> tuple:
         """Extract road boundaries from point cloud."""
         defaults = ([-3.0] * 7, [3.0] * 7)
-        
+
         if xyz_points is None or len(xyz_points) == 0:
             return defaults
-        
+
         bins = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]
         left_b, right_b = [], []
-        
+
         for dist in bins:
             in_bin = (xyz_points[:, 2] >= dist - 2.5) & (xyz_points[:, 2] < dist + 2.5)
             if not np.any(in_bin):
@@ -1207,7 +1211,7 @@ class GridD:
                 x_vals = xyz_points[in_bin, 0]
                 left_b.append(float(np.percentile(x_vals, 5)))
                 right_b.append(float(np.percentile(x_vals, 95)))
-        
+
         return left_b, right_b
 
     def _publish(
@@ -1229,14 +1233,14 @@ class GridD:
         g.originX = -self.bev.half_w * self.bev.resolution_m
         g.originY = 0.0
         g.sourceFlags = 0b00000111 | (0b10000 if objects else 0) | (0b100000 if costmap is not None else 0)
-        
+
         # Calculate number of layers
         num_layers = 1  # Occupancy
         if costmap is not None:
             num_layers = 2  # Add costmap layer
-        
+
         layers = g.init('layers', num_layers)
-        
+
         # Layer 0: occupancy
         grid = self.bev.get_grid()
         if grid is not None:
@@ -1245,16 +1249,16 @@ class GridD:
             layers[0].encoding = 0
             layers[0].data = occ_uint8.tobytes()
             layers[0].scale = 1.0 / 255.0
-        
+
         # Layer 1: semantic costmap (if available)
         if costmap is not None and num_layers > 1:
             layers[1].name = "semantic_costmap"
             layers[1].encoding = 1  # 1=cost (uint8 cost values: 0, 10, 25, 50, 100)
             layers[1].data = costmap.tobytes()
             layers[1].scale = 1.0  # Cost values are direct (not scaled)
-        
+
         self.pm.send('gridObjects', msg)
-        
+
         # stereoGround - for pathd
         left_b, right_b = self._extract_road_boundaries(xyz_points)
         ground_msg = messaging.new_message('stereoGround')
@@ -1266,10 +1270,10 @@ class GridD:
         sg.hasStereoDepth = xyz_points is not None
         sg.hasSegmentation = road_mask is not None
         self.pm.send('stereoGround', ground_msg)
-        
+
         # stereoObjects - fused detections (mono + modeld)
         obj_msg = messaging.new_message('stereoObjects')
-        
+
         if objects:
             items = obj_msg.stereoObjects.init('objects', len(objects))
             for idx, obj in enumerate(objects):
@@ -1283,26 +1287,26 @@ class GridD:
                 items[idx].laneZone = obj.get('laneZone', 0)
         else:
             obj_msg.stereoObjects.init('objects', 0)
-        
+
         self.pm.send('stereoObjects', obj_msg)
 
     def _publish_status(self, ts: int, processing_time_ms: float, objects_count: int) -> None:
         """Publish gridStatus with fault tracking."""
         msg = messaging.new_message('gridStatus')
         status = msg.gridStatus
-        
+
         status.timestamp = ts
         status.enabled = self.enabled
         status.frameId = self.frame_id
         status.processingTimeMs = processing_time_ms
         status.fps = RATE
         status.objectsDetected = objects_count
-        
+
         # Fault state
         status.fault = self.fault
         status.faultReason = self.fault_reason
         status.consecutiveFailures = self.consecutive_failures
-        
+
         self.pm.send('gridStatus', msg)
 
     def run(self) -> None:
@@ -1310,22 +1314,22 @@ class GridD:
         if not self.params.get_bool("EOPGridEnabled"):
             cloudlog.info("GridD disabled (EOPGridEnabled=false), exiting")
             return
-        
+
         cloudlog.info("Connecting to VisionIPC (road)...")
         while not self.vipc_road.connect(False):
             time.sleep(0.1)
-        
+
         cloudlog.info("GridD running (fusing: stereod + monod + modeld)")
-        
+
         while True:
             loop_start = time.monotonic()
             buf_road = self.vipc_road.recv(timeout_ms=0)
             if buf_road is not None:
                 self.road_bgr = _nv12_to_bgr(bytes(buf_road.data), buf_road.width, buf_road.height)
-            
+
             self.sm.update(0)
             ts = int(time.monotonic() * 1e9)
-            
+
             # Get stereo depth from stereod (lazy reprojection from 2D disparity)
             xyz_points = None
             if self.sm.updated['stereoDepth']:
@@ -1333,11 +1337,11 @@ class GridD:
                 xyz_points = self._lazy_reprojection(stereo_depth)
                 if xyz_points is not None:
                     cloudlog.debug(f"Lazy reprojection: {len(xyz_points)} points")
-            
+
             # Get mono detections from monod
             mono_dets = self.sm['monoDetections'] if self.sm.updated['monoDetections'] else None
             mono_objects = self._fuse_mono_detections(mono_dets, xyz_points)
-            
+
             # Get drive_vision detections from modeld
             model_v2 = self.sm['modelV2'] if self.sm.updated['modelV2'] else None
             model_objects = self._fuse_modeld_detections(model_v2, xyz_points)
@@ -1368,10 +1372,10 @@ class GridD:
                     }
                 else:
                     self._lane_cache['valid'] = False
-            
+
             # Get drivableArea from surfaced (surface perception with free space)
             drivable_area = self.sm['drivableArea'] if self.sm.updated['drivableArea'] else None
-            
+
             # Merge all detections
             all_objects = self._merge_detections(mono_objects, model_objects)
 
@@ -1386,16 +1390,18 @@ class GridD:
             road_mask = None
             costmap = None
             inference_success = True
-            
+
             if self.ppliteseg.available and self.road_bgr is not None:
                 try:
                     # Preprocess frame to PP-LiteSeg input size (320x320)
                     # Uses RGA hardware resize when available, OpenCV fallback on dev PC
                     preprocessed = self._preprocess_frame(self.road_bgr)
                     seg_mask = self.ppliteseg.infer(preprocessed)  # Returns 19-class mask
+                    if seg_mask is None:
+                        raise RuntimeError("PP-LiteSeg returned no segmentation mask")
                     # Extract road pixels (class 0=road, 1=sidewalk)
                     road_mask = ((seg_mask == 0) | (seg_mask == 1)).astype(np.uint8) * 255
-                    
+
                     # Use drivableArea from surfaced if available (preferred)
                     # Otherwise fall back to computed costmap
                     if drivable_area is not None:
@@ -1410,7 +1416,7 @@ class GridD:
                 except Exception as e:
                     cloudlog.error(f"PP-LiteSeg inference failed: {e}")
                     inference_success = False
-            
+
             # Radar fusion: order matters — radar4d close range first, then radar3d far range
             self._active_costmap = self.costmap_gen
             if _radar4d_msg is not None:
@@ -1431,7 +1437,7 @@ class GridD:
 
             # Calculate processing time
             processing_time_ms = (time.monotonic() - loop_start) * 1000
-            
+
             # Fault tracking: count consecutive NPU inference failures
             if not inference_success:
                 self.consecutive_failures += 1
@@ -1446,14 +1452,14 @@ class GridD:
                     self.fault = False
                     self.fault_reason = ""
                     cloudlog.info("GridD fault cleared (NPU recovered)")
-            
+
             # Publish outputs
             self._publish(ts, xyz_points, road_mask, costmap, all_objects)
-            
+
             # Publish status at 1Hz (every 20 frames at 20Hz)
             if self.frame_id % 20 == 0:
                 self._publish_status(ts, processing_time_ms, len(all_objects))
-            
+
             self.frame_id += 1
             self.rk.keep_time()
 

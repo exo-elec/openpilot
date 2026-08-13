@@ -18,7 +18,7 @@ import numpy as np
 
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced.client import InferenceClient
-from openpilot.system.inferenced.compute import BackendType, ModelConfig
+from openpilot.system.inferenced.compute import ModelConfig
 
 ROAD_CLASS_IDS = {0, 1}  # Cityscapes class 0=road, 1=sidewalk
 

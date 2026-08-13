@@ -5,6 +5,7 @@ import sys
 
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
+from typing import cast
 from openpilot.system.ui.text import wrap_text
 from openpilot.system.ui.widgets import Widget
 
@@ -57,7 +58,7 @@ class Spinner(Widget):
                         spinner_origin, self._rotation, rl.WHITE)
 
     # Draw EXO-ELECTRONICS brand text in bold white
-    bold_font = gui_app.font(FontWeight.BOLD)
+    bold_font = gui_app.font(cast(FontWeight, FontWeight.BOLD))
     text_size = measure_text_cached(bold_font, BRAND_TEXT, BRAND_FONT_SIZE)
     text_x = center.x - text_size.x / 2.0
     text_y = center.y - text_size.y / 2.0

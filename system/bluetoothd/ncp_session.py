@@ -16,7 +16,7 @@ import logging
 import math
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
 
 try:
     import cereal.messaging as messaging
@@ -267,7 +267,7 @@ class NCPSession:
             logger.info('%s: navigate → %s (%.5f, %.5f)', self._name, name, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_NAVIGATE)
         except Exception as e:
-            logger.error('%s: navigate error: %s', self._name, e)
+            logger.exception('%s: navigate error', self._name)
             return protocol.make_error(f'Navigate failed: {e}')
 
     def _handle_cancel_nav(self, frame: protocol.Frame) -> protocol.Frame:
@@ -302,7 +302,7 @@ class NCPSession:
             logger.info('%s: convoy lead → %s (%.5f, %.5f)', self._name, friend_id, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_CONVOY_LEAD)
         except Exception as e:
-            logger.error('%s: convoy lead error: %s', self._name, e)
+            logger.exception('%s: convoy lead error', self._name)
             return protocol.make_error(f'Convoy lead failed: {e}')
 
     def _handle_convoy_cancel(self, frame: protocol.Frame) -> protocol.Frame:
@@ -325,8 +325,8 @@ class NCPSession:
                 msg.obdCommand.command = cmd
                 self.pm.send('obdCommand', msg)
                 return protocol.make_ack(protocol.MessageType.CMD_OBD_REQUEST)
-        except Exception as e:
-            logger.error('%s: OBD error: %s', self._name, e)
+        except Exception:
+            logger.exception('%s: OBD error', self._name)
         return protocol.make_error('Invalid OBD command')
 
     def _handle_get_vehicle_info(self, frame: protocol.Frame) -> protocol.Frame:
@@ -372,11 +372,11 @@ class NCPSession:
             vd.odometer          = data.get('odometer', -1.0)
             vd.vin               = data.get('vin', '')
             vd.vehicleType       = data.get('vehicleType', '')
-            vd.timestamp         = data.get('timestamp', int(time.time() * 1e9))
+            vd.timestamp         = data.get('timestamp', int(time.time() * 1e9))  # noqa: TID251
             self.pm.send('ncpVehicleData', msg)
             return protocol.make_ack(protocol.MessageType.CMD_VEHICLE_DATA)
-        except Exception as e:
-            logger.error('%s: vehicle data error: %s', self._name, e)
+        except Exception:
+            logger.exception('%s: vehicle data error', self._name)
             return protocol.make_error('Vehicle data failed')
 
     def _handle_voice_intent(self, frame: protocol.Frame) -> protocol.Frame:
@@ -496,7 +496,7 @@ class NCPSession:
                         self._name, 'OPEN' if open_window else 'CLOSED')
             return protocol.make_ack(protocol.MessageType.RADAR_PAIR_CONTROL)
         except Exception as e:
-            logger.error('%s: radar pair control error: %s', self._name, e)
+            logger.exception('%s: radar pair control error', self._name)
             return protocol.make_error(f'Radar pair control failed: {e}')
 
     def _maybe_send_radar_pair_status(self) -> None:
@@ -569,18 +569,30 @@ class NCPSession:
                     'gear': str(cs.gearShifter),
                 }
                 if obd is not None and obd.obdConnected:
-                    if obd.engineRpm > 0:      data['engineRpm']      = round(obd.engineRpm, 1)
-                    if obd.coolantTemp > -40:  data['coolantTemp']    = round(obd.coolantTemp, 1)
-                    if obd.fuelLevel >= 0:     data['fuelLevel']      = round(obd.fuelLevel, 1)
-                    if obd.throttlePos >= 0:   data['throttlePos']    = round(obd.throttlePos, 1)
-                    if obd.odometer > 0:       data['odometer']       = round(obd.odometer, 1)
-                    if obd.batterySoc >= 0:    data['batterySoc']     = round(obd.batterySoc, 1)
-                    if obd.batteryVoltage > 0: data['batteryVoltage'] = round(obd.batteryVoltage, 1)
-                    if obd.batteryCurrent != 0: data['batteryCurrent'] = round(obd.batteryCurrent, 1)
-                    if obd.batteryTempMax > -40: data['batteryTempMax'] = round(obd.batteryTempMax, 1)
-                    if obd.rangeRemaining > 0: data['rangeRemaining'] = round(obd.rangeRemaining, 1)
-                    if obd.motorTemp > -40:    data['motorTemp']      = round(obd.motorTemp, 1)
-                    if obd.inverterTemp > -40: data['inverterTemp']   = round(obd.inverterTemp, 1)
+                    if obd.engineRpm > 0:
+                      data['engineRpm']      = round(obd.engineRpm, 1)
+                    if obd.coolantTemp > -40:
+                      data['coolantTemp']    = round(obd.coolantTemp, 1)
+                    if obd.fuelLevel >= 0:
+                      data['fuelLevel']      = round(obd.fuelLevel, 1)
+                    if obd.throttlePos >= 0:
+                      data['throttlePos']    = round(obd.throttlePos, 1)
+                    if obd.odometer > 0:
+                      data['odometer']       = round(obd.odometer, 1)
+                    if obd.batterySoc >= 0:
+                      data['batterySoc']     = round(obd.batterySoc, 1)
+                    if obd.batteryVoltage > 0:
+                      data['batteryVoltage'] = round(obd.batteryVoltage, 1)
+                    if obd.batteryCurrent != 0:
+                      data['batteryCurrent'] = round(obd.batteryCurrent, 1)
+                    if obd.batteryTempMax > -40:
+                      data['batteryTempMax'] = round(obd.batteryTempMax, 1)
+                    if obd.rangeRemaining > 0:
+                      data['rangeRemaining'] = round(obd.rangeRemaining, 1)
+                    if obd.motorTemp > -40:
+                      data['motorTemp']      = round(obd.motorTemp, 1)
+                    if obd.inverterTemp > -40:
+                      data['inverterTemp']   = round(obd.inverterTemp, 1)
                 self._send_frame(protocol.MessageType.TELEMETRY_VEHICLE, data)
             except Exception as e:
                 logger.debug('%s: carState telem error: %s', self._name, e)

@@ -60,6 +60,7 @@ See **INFERENCED_INDEX.md** for:
 | **InferenceD** | INFERENCED_INDEX.md | Compute HAL (RKNN, ACL, RGA, MPP) |
 | **Performance** | PHASE4_PERFORMANCE_REPORT.md | Benchmark results & metrics |
 | **Business** | SUBSCRIPTION_BUSINESS_MODEL.md | NavPilot monetization |
+| **Code Quality** | CODE_QUALITY_LINT_CLEANUP.md | Lint cleanup status & mypy debt (2026-08-12) |
 
 ### Per-Daemon READMEs
 
@@ -82,4 +83,4 @@ See **INFERENCED_INDEX.md** for:
 ---
 
 **Branch:** EOP10  
-**Last Updated:** 2026-05-30 (InferenceD Phase 3 & 4 Complete)
+**Last Updated:** 2026-08-12 (Lint cleanup + CODE_QUALITY_LINT_CLEANUP.md added)

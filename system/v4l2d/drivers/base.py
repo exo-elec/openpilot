@@ -13,6 +13,7 @@ import struct
 import time
 from dataclasses import dataclass
 from collections.abc import Generator
+from typing import cast
 
 import cv2
 import numpy as np
@@ -112,7 +113,7 @@ class BaseCameraDriver:
             buf = bytearray(struct.pack(_CTRL_FMT, ctrl_id, value))
             fcntl.ioctl(fd, VIDIOC_S_CTRL, buf, True)
             return True
-        except (OSError, IOError) as e:
+        except OSError as e:
             cloudlog.debug(f"V4L2 set_ctrl 0x{ctrl_id:08x}={value} failed: {e}")
             return False
 
@@ -123,8 +124,8 @@ class BaseCameraDriver:
             buf = bytearray(struct.pack(_CTRL_FMT, ctrl_id, 0))
             fcntl.ioctl(fd, VIDIOC_G_CTRL, buf, True)
             _, value = struct.unpack(_CTRL_FMT, buf)
-            return value
-        except (OSError, IOError) as e:
+            return cast(int, value)
+        except OSError as e:
             cloudlog.debug(f"V4L2 get_ctrl 0x{ctrl_id:08x} failed: {e}")
             return None
 
@@ -155,7 +156,7 @@ class BaseCameraDriver:
             return False
 
         if self.fourcc:
-            self._cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*self.fourcc))
+            self._cap.set(cv2.CAP_PROP_FOURCC, getattr(cv2, 'VideoWriter_fourcc')(*self.fourcc))
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self._cap.set(cv2.CAP_PROP_FPS, self.fps)
@@ -165,7 +166,7 @@ class BaseCameraDriver:
         self.height = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         actual_fps = self._cap.get(cv2.CAP_PROP_FPS)
         cloudlog.info(
-            f"{self.SENSOR_NAME} opened: {self.width}x{self.height} @ {actual_fps:.1f}fps "
+            f"{self.SENSOR_NAME} opened: {self.width}x{self.height} @ {actual_fps:.1f}fps " +
             f"({self.device_path})"
         )
 

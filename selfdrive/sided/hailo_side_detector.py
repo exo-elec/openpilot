@@ -17,7 +17,6 @@ ever gets a working accelerator and the other silently gets zero detections.
 
 from __future__ import annotations
 
-from typing import List
 
 import cv2
 import numpy as np
@@ -76,7 +75,7 @@ class HailoSideDetector:
   def is_available(self) -> bool:
     return self._available
 
-  def detect(self, frame_bgr: np.ndarray | None) -> List[SideObject]:
+  def detect(self, frame_bgr: np.ndarray | None) -> list[SideObject]:
     """Run YOLO inference on a single BGR frame via the centralized daemon."""
     if frame_bgr is None or not self._available:
       return []
@@ -116,7 +115,7 @@ class HailoSideDetector:
   # ---------------------------------------------------------------------------
   # Post-processing
   # ---------------------------------------------------------------------------
-  def _postprocess(self, outputs: dict, orig_shape: tuple[int, int]) -> List[SideObject]:
+  def _postprocess(self, outputs: dict, orig_shape: tuple[int, int]) -> list[SideObject]:
     """Parse Hailo YOLO outputs into SideObject list."""
     if not outputs:
       return []
@@ -136,7 +135,7 @@ class HailoSideDetector:
     orig_h, orig_w = orig_shape
     in_w, in_h = self.INPUT_SIZE
 
-    detections: List[SideObject] = []
+    detections: list[SideObject] = []
     pixel_mode = False
 
     # Heuristic: if any coordinate > 1.5, assume pixel space (0-input_size)
@@ -215,14 +214,14 @@ class HailoSideDetector:
     focal_len_px = img_h  # rough
     return (real_h * focal_len_px) / box_h_px
 
-  def _nms(self, detections: List[SideObject]) -> List[SideObject]:
+  def _nms(self, detections: list[SideObject]) -> list[SideObject]:
     """Greedy IoU-based NMS."""
     if not detections:
       return detections
 
     # Sort by confidence descending
     dets = sorted(detections, key=lambda d: d.confidence, reverse=True)
-    keep: List[SideObject] = []
+    keep: list[SideObject] = []
 
     while dets:
       current = dets.pop(0)

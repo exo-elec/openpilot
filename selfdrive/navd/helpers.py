@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+from typing import cast
 
 from openpilot.common.numpy_fast import clip
 from openpilot.common.params import Params
@@ -112,7 +113,7 @@ def minimum_distance(a: Coordinate, b: Coordinate, p: Coordinate) -> float:
     ap = p - a
     ab = b - a
     t = clip(ap.dot(ab) / ab.dot(ab), 0.0, 1.0)
-    return (a + ab * t).distance_to(p)
+    return cast(float, (a + ab * t).distance_to(p))
 
 
 def distance_along_geometry(geometry: list[Coordinate], pos: Coordinate) -> float:
@@ -255,7 +256,7 @@ def format_distance_for_tts(distance_m: float) -> str:
         return ""  # Very close — omit distance
     elif distance_m < 100:
         # Round to nearest 10m
-        d = round(distance_m / 10) * 10
+        d: float = round(distance_m / 10) * 10
         return f"In {int(d)} meters"
     elif distance_m < 1000:
         # Round to nearest 50m
@@ -300,7 +301,6 @@ def generate_tts_text(
 
     # Build action phrase
     action = maneuver_type
-    modifier_phrase = ""
 
     if maneuver_type == 'turn':
         if maneuver_modifier:

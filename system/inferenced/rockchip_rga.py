@@ -37,7 +37,7 @@ class RGABackend(HardwareBackend):
       except OSError:
         # Dev PC: use OpenCV fallback
         try:
-          import cv2
+          import cv2  # noqa: F401
           self._use_opencv_fallback = True
           self._rga_available = False
           logger.info("RGA backend initialized (OpenCV fallback)")
@@ -102,7 +102,7 @@ class RGABackend(HardwareBackend):
       )
 
     except Exception as e:
-      logger.error(f"RGA operation error: {e}")
+      logger.exception("RGA operation error")
       self._stats.tasks_failed += 1
       return InferenceResult(
           backend_type=self.backend_type,

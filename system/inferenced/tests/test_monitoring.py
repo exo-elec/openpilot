@@ -200,7 +200,7 @@ class TestMonitoring:
         thresholds = AlertThresholds()
 
         # Record some operations
-        for i in range(3):
+        for _i in range(3):
             monitor.record_operation(
                 operation_name="model_a",
                 backend_name="NPU",
@@ -275,7 +275,7 @@ class TestMonitoring:
         # Try to infer with NPU (will fail gracefully if not available)
         if hal.is_backend_available(BackendType.NPU):
             # This will record metrics even though inference may fail
-            result = hal.infer(
+            hal.infer(
                 BackendType.NPU,
                 "test_model",
                 {"dummy": np.zeros((1, 224, 224, 3), dtype=np.float32)}
@@ -347,8 +347,8 @@ class TestMonitoring:
         logger.info("Monitoring Test Results")
         logger.info("="*60)
 
-        passed = sum(1 for v in results.values() if v)
-        total = len(results)
+        sum(1 for v in results.values() if v)
+        len(results)
 
         for test_name, result in results.items():
             status = "✓ PASS" if result else "✗ FAIL"

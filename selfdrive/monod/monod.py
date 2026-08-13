@@ -19,7 +19,7 @@ import numpy as np
 import time
 from pathlib import Path
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum
 from collections import deque
 
 import cereal.messaging as messaging
@@ -29,7 +29,7 @@ from openpilot.common.core_config import set_daemon_affinity
 from openpilot.selfdrive.modeld.runners.rknn_platform import get_platform_npu_config
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.system.inferenced.compute import (
-    BackendType, ModelConfig
+    ModelConfig
 )
 from openpilot.common.swaglog import cloudlog
 
@@ -77,7 +77,7 @@ class CameraLens(Enum):
 
 class CameraSynchronizer:
     """Synchronizes frames from multiple cameras for fusion."""
-    
+
     def __init__(self, max_age_ms: float = 50.0):
         self.max_age_ms = max_age_ms
         self._road_frames: deque = deque(maxlen=5)
@@ -352,10 +352,10 @@ class MultiCameraFusion:
             y = road_det.get('lateral_m', 0.0)
             z = 0.0
             class_name = road_det.get('class', 'unknown')
-            
+
             # Check for match with existing fused tracks
             existing = self._find_matching_track(x, y, class_name)
-            
+
             if existing:
                 # Merge with existing track
                 existing.road_detection = road_det
@@ -377,11 +377,11 @@ class MultiCameraFusion:
                 )
                 self._next_track_id += 1
                 fused.append(track)
-        
+
         # Update active tracks
         self._active_tracks = {t.track_id: t for t in fused}
         self._track_history.extend(fused)
-        
+
         return fused
 
     def _find_matching_track(self, x: float, y: float,
@@ -390,14 +390,14 @@ class MultiCameraFusion:
         for track in self._active_tracks.values():
             if track.class_name != class_name:
                 continue
-            
+
             # Distance threshold (meters)
             dist = np.sqrt((track.x - x)**2 + (track.y - y)**2)
             if dist < 5.0:  # 5 meter threshold
                 return track
-        
+
         return None
-    
+
     def get_active_tracks(self) -> list[FusedDetection]:
         """Get list of currently active tracks."""
         return list(self._active_tracks.values())
@@ -450,12 +450,12 @@ class MonoD:
         self._vipc_wide = None
         self._init_visionipc()
 
-        cloudlog.info(f"MonoD initialized: enabled={self.enabled}, "
+        cloudlog.info(f"MonoD initialized: enabled={self.enabled}, " +
                    f"rknn={self.rknn_processor.is_available}")
-        cloudlog.info(f"Platform: {self._platform_name} ({self._core_count} NPU cores), "
+        cloudlog.info(f"Platform: {self._platform_name} ({self._core_count} NPU cores), " +
                    f"using Core {self.rknn_processor.core_id}")
-        cloudlog.info(f"VisionIPC: available={HAS_VISIONIPC}, "
-                   f"road={self._vipc_road is not None}, "
+        cloudlog.info(f"VisionIPC: available={HAS_VISIONIPC}, " +
+                   f"road={self._vipc_road is not None}, " +
                    f"wide={self._vipc_wide is not None}")
         cloudlog.info("2-camera fusion: road + wide")
         cloudlog.info("Thermal-safe allocation: 75% max NPU utilization")
@@ -489,17 +489,17 @@ class MonoD:
         except Exception as e:
             cloudlog.warning(f"MonoD: VisionIPC wide init failed: {e}")
             self._vipc_wide = None
-        
+
     def _get_frame(self, vipc_client, fallback_shape: tuple[int, int, int]) -> np.ndarray:
         """Get frame from VisionIPC or return zeros if unavailable."""
         if vipc_client is None:
             return np.zeros(fallback_shape, dtype=np.uint8)
-        
+
         try:
             buf = vipc_client.recv()
             if buf is None:
                 return np.zeros(fallback_shape, dtype=np.uint8)
-            
+
             # Convert VisionIPC buffer to numpy array
             # buf.data is a memoryview-like object
             h, w = fallback_shape[:2]
@@ -508,35 +508,35 @@ class MonoD:
         except Exception as e:
             cloudlog.debug(f"MonoD: VisionIPC frame retrieval failed: {e}")
             return np.zeros(fallback_shape, dtype=np.uint8)
-    
+
     def _process_road(self, frame: np.ndarray) -> tuple[list, np.ndarray]:
         """Process road camera frame."""
         detections = []
         segmentation = np.zeros((640, 640), dtype=np.uint8)
-        
+
         if not self.enabled:
             return detections, segmentation
-        
+
         if self.rknn_processor.is_available:
             detections = self.rknn_processor.infer_yolo_road(frame)
             segmentation = self.rknn_processor.infer_sceneseg_road(frame)
-        
+
         return detections, segmentation
-    
+
     def _process_wide(self, frame: np.ndarray) -> np.ndarray:
         """Process wide camera frame (10Hz for thermal safety)."""
         segmentation = np.zeros((320, 320), dtype=np.uint8)
-        
+
         if not self.enabled:
             return segmentation
-        
+
         # Run at half rate (10Hz) for thermal safety
         if self.frame_id % 2 == 0:
             if self.rknn_processor.is_available:
                 segmentation = self.rknn_processor.infer_ppliteseg_wide(frame)
-        
+
         return segmentation
-    
+
     def _publish(self, fused_tracks: list[FusedDetection],
                  road_seg: np.ndarray,
                  wide_seg: np.ndarray,
@@ -586,7 +586,7 @@ class MonoD:
         ss.faultReason = self.rknn_processor.fault_reason
         ss.consecutiveFailures = self.rknn_processor.consecutive_failures
         self.pm.send('monoStatus', status_msg)
-    
+
     def run(self):
         """Main loop."""
         if not self.enabled:

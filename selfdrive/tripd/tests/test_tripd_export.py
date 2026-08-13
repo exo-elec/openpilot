@@ -2,7 +2,7 @@
 import sys
 import time
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock  # noqa: TID251
 
 # Stub out missing Cython extensions before any imports
 _fake_params_pyx = MagicMock()
@@ -27,7 +27,7 @@ sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
 from cereal import log
 
-from openpilot.selfdrive.tripd.tripd import TripD, TripStats, DriveState
+from openpilot.selfdrive.tripd.tripd import TripD, TripStats
 
 
 class MockParams:
@@ -71,7 +71,7 @@ class TestTripDExport:
 
   def test_drive_end_exports_to_params(self):
     self.tripd._handle_drive_end()
-    puts = {k: v for k, v in self.tripd.params._puts}
+    puts = dict(self.tripd.params._puts)
     assert "EOPTripLastDistance" in puts
     assert "EOPTripLastMaxAccel" in puts
     assert "EOPTripLastOverrideFreeDistance" in puts
@@ -80,14 +80,14 @@ class TestTripDExport:
 
   def test_drive_end_distance_is_float(self):
     self.tripd._handle_drive_end()
-    puts = {k: v for k, v in self.tripd.params._puts}
+    puts = dict(self.tripd.params._puts)
     val = puts["EOPTripLastDistance"]
     assert isinstance(val, float)
     assert abs(val - 1234.5) < 0.1
 
   def test_drive_end_personality_json_is_string(self):
     self.tripd._handle_drive_end()
-    puts = {k: v for k, v in self.tripd.params._puts}
+    puts = dict(self.tripd.params._puts)
     val = puts["EOPTripLastPersonalityTime"]
     assert isinstance(val, str)
     parsed = json.loads(val)
@@ -112,7 +112,7 @@ class TestTripDExport:
     self.tripd.lifetime.onroad_time = 3600
     self.tripd.lifetime.engaged_time = 1800
     self.tripd._save_stats()
-    puts = {k: v for k, v in self.tripd.params._puts}
+    puts = dict(self.tripd.params._puts)
     assert "EOPTripTotalDistance" in puts
     assert "EOPTripUptimeOnroad" in puts
     assert "EOPTripUptimeEngaged" in puts
@@ -130,7 +130,7 @@ if __name__ == '__main__':
         t.setup_method()
         getattr(t, name)()
         print(f"  PASS: {name}")
-      except Exception as e:
+      except Exception:
         failures += 1
         print(f"  FAIL: {name}")
         traceback.print_exc()

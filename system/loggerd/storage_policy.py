@@ -3,7 +3,6 @@
 Provides configurable storage limits, automatic rotation, and
 cleanup policies for log segments.
 """
-import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -18,7 +17,7 @@ from openpilot.system.loggerd.xattr_cache import getxattr
 @dataclass
 class StorageLimits:
     """Storage limit configuration.
-    
+
     Args:
         max_total_size_gb: Maximum total storage for all segments
         max_single_segment_gb: Maximum size for a single segment
@@ -35,16 +34,16 @@ class StorageLimits:
 
 class StoragePolicy:
     """Manages log storage with rotation and cleanup policies.
-    
+
     Enforces storage limits by rotating segments when they exceed
     size/duration limits and cleaning up old segments when total
     storage exceeds limits.
-    
+
     Args:
         base_path: Root directory for log storage
         limits: Storage limit configuration
         on_cleanup: Optional callback when segments are deleted
-    
+
     Example:
         >>> policy = StoragePolicy(
         ...     Path("/data/media/0/realdata"),
@@ -54,53 +53,53 @@ class StoragePolicy:
         ...     start_new_segment()
         >>> deleted = policy.enforce_limits()
     """
-    
+
     PRESERVE_ATTR_NAME = 'user.preserve'
     PRESERVE_ATTR_VALUE = b'1'
     PRESERVE_COUNT = 5
-    
+
     def __init__(self, base_path: Path, limits: StorageLimits,
                  on_cleanup: Callable[[list[Path]], None] | None = None):
         self._base_path = Path(base_path)
         self._limits = limits
         self._on_cleanup = on_cleanup
         self._lock = threading.Lock()
-    
+
     def should_rotate(self, segment_path: Path) -> bool:
         """Check if segment should be rotated.
-        
+
         Args:
             segment_path: Path to current segment directory
-        
+
         Returns:
             True if segment exceeds size or duration limits
         """
         if not segment_path.exists():
             return False
-        
+
         # Check size limit
         size_gb = self._get_dir_size(segment_path) / (1024**3)
         if size_gb >= self._limits.max_single_segment_gb:
-            cloudlog.info(f"storage: Rotating segment {segment_path.name} "
+            cloudlog.info(f"storage: Rotating segment {segment_path.name} " +
                          f"(size {size_gb:.2f}GB >= {self._limits.max_single_segment_gb}GB)")
             return True
-        
+
         # Check duration limit
         try:
             ctime = datetime.fromtimestamp(segment_path.stat().st_ctime)
             duration = datetime.now() - ctime
             if duration >= timedelta(minutes=self._limits.max_segment_duration_min):
-                cloudlog.info(f"storage: Rotating segment {segment_path.name} "
+                cloudlog.info(f"storage: Rotating segment {segment_path.name} " +
                              f"(duration {duration} >= {self._limits.max_segment_duration_min}min)")
                 return True
         except (OSError, ValueError):
             pass
-        
+
         return False
-    
+
     def check_free_space(self) -> bool:
         """Check if free space is above minimum.
-        
+
         Returns:
             True if free space >= min_free_space_gb
         """
@@ -110,14 +109,14 @@ class StoragePolicy:
         except Exception:
             # metric unavailable — let the legacy statvfs signal drive cleanup
             return True
-    
+
     def get_free_space_gb(self) -> float:
         """Get available free space in GB."""
         try:
             return shutil.disk_usage(self._base_path).free / (1024**3)
         except Exception:
             return float('inf')  # metric unavailable — don't trigger on it
-    
+
     def get_used_space_gb(self) -> float:
         """Get used space by log segments in GB."""
         try:
@@ -126,7 +125,7 @@ class StoragePolicy:
             return total_size / (1024**3)
         except OSError:
             return 0.0
-    
+
     def enforce_limits(self, force: bool = False) -> list[Path]:
         """Clean up old segments to enforce storage limits.
 
@@ -153,8 +152,20 @@ class StoragePolicy:
             total_size_gb = self.get_used_space_gb()
             free_gb = self.get_free_space_gb()
 
-            cloudlog.debug(f"storage: {len(segments)} segments, "
+            cloudlog.debug(f"storage: {len(segments)} segments, " +
                           f"{total_size_gb:.2f}GB used, {free_gb:.2f}GB free")
+
+            # Clean up corrupt/empty segments first so they do not block
+            # deletion of older segments or skew size accounting.
+            for segment in list(segments):
+                if self._is_corrupt(segment) and not self._is_preserved(segment):
+                    try:
+                        shutil.rmtree(segment)
+                        segments.remove(segment)
+                        deleted.append(segment)
+                        cloudlog.info(f"storage: Deleted corrupt segment {segment.name}")
+                    except OSError as e:
+                        cloudlog.warning(f"storage: Failed to delete corrupt {segment}: {e}")
 
             # Delete oldest segments until under limits
             while segments and (force or
@@ -168,7 +179,17 @@ class StoragePolicy:
                 # Skip if locked (still being written).
                 if self._is_locked(oldest):
                     continue
-                
+
+                # Corrupt/empty segments should not block cleanup of a full disk.
+                if self._is_corrupt(oldest):
+                    try:
+                        shutil.rmtree(oldest)
+                        deleted.append(oldest)
+                        cloudlog.info(f"storage: Deleted corrupt segment {oldest.name}")
+                    except OSError as e:
+                        cloudlog.warning(f"storage: Failed to delete corrupt {oldest}: {e}")
+                    continue
+
                 try:
                     size = self._get_dir_size(oldest)
                     shutil.rmtree(oldest)
@@ -178,14 +199,14 @@ class StoragePolicy:
                     cloudlog.info(f"storage: Deleted {oldest.name}")
                 except OSError as e:
                     cloudlog.warning(f"storage: Failed to delete {oldest}: {e}")
-            
+
             # Delete by age
             if self._limits.max_age_days:
                 cutoff = datetime.now() - timedelta(days=self._limits.max_age_days)
                 for segment in segments:
                     if self._is_preserved(segment) or self._is_locked(segment):
                         continue
-                    
+
                     try:
                         ctime = datetime.fromtimestamp(segment.stat().st_ctime)
                         if ctime < cutoff:
@@ -194,22 +215,22 @@ class StoragePolicy:
                             cloudlog.info(f"storage: Deleted aged segment {segment.name}")
                     except OSError as e:
                         cloudlog.warning(f"storage: Failed to delete aged {segment}: {e}")
-        
+
         if deleted and self._on_cleanup:
             self._on_cleanup(deleted)
-        
+
         return deleted
-    
+
     def get_stats(self) -> dict:
         """Get storage statistics.
-        
+
         Returns:
             Dictionary with segment count, total size, free space
         """
         segments = list(self._base_path.glob("*--*"))
         total_size_gb = sum(self._get_dir_size(s) for s in segments) / (1024**3)
         free_gb = self.get_free_space_gb()
-        
+
         return {
             "segment_count": len(segments),
             "total_size_gb": round(total_size_gb, 2),
@@ -217,7 +238,7 @@ class StoragePolicy:
             "max_size_gb": self._limits.max_total_size_gb,
             "max_age_days": self._limits.max_age_days,
         }
-    
+
     DELETE_LAST = ('boot', 'crash')
 
     def _list_segments(self) -> list[Path]:
@@ -238,28 +259,42 @@ class StoragePolicy:
             ))
         except OSError:
             return []
-    
+
     def _get_dir_size(self, path: Path) -> int:
         """Get total size of directory in bytes."""
         try:
             return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
         except OSError:
             return 0
-    
+
     def _is_preserved(self, path: Path) -> bool:
         """Check if segment is preserved via xattr."""
         try:
             return getxattr(path, self.PRESERVE_ATTR_NAME) == self.PRESERVE_ATTR_VALUE
         except Exception:
             return False
-    
+
     def _is_locked(self, path: Path) -> bool:
         """Check if segment has active lock files."""
         try:
             return any(f.name.endswith(".lock") for f in path.iterdir())
         except OSError:
             return False
-    
+
+    def _is_corrupt(self, path: Path) -> bool:
+        """Check if segment appears corrupted (empty or only metadata).
+
+        A healthy segment contains video/qlog files. Corrupt/empty directories
+        can be left behind by crashed encoder processes and should be cleaned
+        up before they confuse size accounting.
+        """
+        try:
+            files = [f for f in path.rglob("*") if f.is_file()]
+            # Allow lock files; anything else means real data is present.
+            return len(files) == 0 or all(f.name.endswith(".lock") for f in files)
+        except OSError:
+            return False
+
     def get_preserved_segments(self) -> list[Path]:
         """Get list of preserved segments."""
         return [s for s in self._list_segments() if self._is_preserved(s)]

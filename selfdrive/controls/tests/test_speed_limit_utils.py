@@ -1,7 +1,7 @@
 """Tests for EOP speed limit utilities: SpeedLimitOffset, SpeedLimitConfirmation, SpeedLimitResolver."""
 import sys
 import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock  # noqa: TID251
 
 # Stub out missing Cython extensions before any imports
 _fake_params_pyx = MagicMock()
@@ -12,7 +12,7 @@ _fake_params_pyx.UnknownKeyName = Exception
 sys.modules['openpilot.common.params_pyx'] = _fake_params_pyx
 
 from openpilot.selfdrive.controls.lib.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
-from openpilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver, ResolvedLimit
+from openpilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 
 
 class MockParams:
@@ -281,7 +281,7 @@ if __name__ == '__main__':
             t.setup_method()
           getattr(t, name)()
           print(f"  PASS: {cls.__name__}.{name}")
-        except Exception as e:
+        except Exception:
           failures += 1
           print(f"  FAIL: {cls.__name__}.{name}")
           traceback.print_exc()

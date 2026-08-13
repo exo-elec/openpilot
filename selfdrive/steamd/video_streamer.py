@@ -83,8 +83,8 @@ class UdpVideoStreamer:
       )
       logger.info(f"UdpVideoStreamer: FFmpeg started → udp://{self.cfg.target_addr}:{self.cfg.target_port}")
       return True
-    except Exception as e:
-      logger.error(f"UdpVideoStreamer: FFmpeg start failed: {e}")
+    except Exception:
+      logger.exception("UdpVideoStreamer: FFmpeg start failed")
       return False
 
   def write(self, frame: np.ndarray) -> bool:
@@ -96,8 +96,8 @@ class UdpVideoStreamer:
     except BrokenPipeError:
       logger.warning("UdpVideoStreamer: FFmpeg pipe broken")
       return False
-    except Exception as e:
-      logger.error(f"UdpVideoStreamer: write error: {e}")
+    except Exception:
+      logger.exception("UdpVideoStreamer: write error")
       return False
 
   def stop(self):

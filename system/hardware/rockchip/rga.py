@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import ctypes
 import logging
-import time
 from enum import IntEnum
+from typing import Any, cast
 
 import numpy as np
 
@@ -74,13 +74,13 @@ class _RgaBufferT(ctypes.Structure):
   ]
 
 
-_FORMAT_MAP = {
-  (np.uint8, 4, "RGBA"): RGAFormat.RK_FORMAT_RGBA_8888,
-  (np.uint8, 4, "BGRA"): RGAFormat.RK_FORMAT_BGRA_8888,
-  (np.uint8, 3, "RGB"): RGAFormat.RK_FORMAT_RGB_888,
-  (np.uint8, 3, "BGR"): RGAFormat.RK_FORMAT_BGR_888,
-  (np.uint8, 2, "NV12"): RGAFormat.RK_FORMAT_YCbCr_420_SP,
-  (np.uint8, 2, "NV21"): RGAFormat.RK_FORMAT_YCrCb_420_SP,
+_FORMAT_MAP: dict[tuple[np.dtype, int, str], RGAFormat] = {
+  (np.dtype(np.uint8), 4, "RGBA"): RGAFormat.RK_FORMAT_RGBA_8888,
+  (np.dtype(np.uint8), 4, "BGRA"): RGAFormat.RK_FORMAT_BGRA_8888,
+  (np.dtype(np.uint8), 3, "RGB"): RGAFormat.RK_FORMAT_RGB_888,
+  (np.dtype(np.uint8), 3, "BGR"): RGAFormat.RK_FORMAT_BGR_888,
+  (np.dtype(np.uint8), 2, "NV12"): RGAFormat.RK_FORMAT_YCbCr_420_SP,
+  (np.dtype(np.uint8), 2, "NV21"): RGAFormat.RK_FORMAT_YCrCb_420_SP,
 }
 
 
@@ -110,17 +110,25 @@ def _opencv_cvt_color(src: np.ndarray, dst_format: str) -> np.ndarray:
   channels = src.shape[2] if src.ndim == 3 else 1
   df = dst_format.upper()
   if df == "RGB":
-    if channels == 4: return cv2.cvtColor(src, cv2.COLOR_RGBA2RGB)
-    if channels == 1: return cv2.cvtColor(src, cv2.COLOR_GRAY2RGB)
+    if channels == 4:
+      return cv2.cvtColor(src, cv2.COLOR_RGBA2RGB)
+    if channels == 1:
+      return cv2.cvtColor(src, cv2.COLOR_GRAY2RGB)
   elif df == "BGR":
-    if channels == 4: return cv2.cvtColor(src, cv2.COLOR_RGBA2BGR)
-    if channels == 1: return cv2.cvtColor(src, cv2.COLOR_GRAY2BGR)
+    if channels == 4:
+      return cv2.cvtColor(src, cv2.COLOR_RGBA2BGR)
+    if channels == 1:
+      return cv2.cvtColor(src, cv2.COLOR_GRAY2BGR)
   elif df == "GRAY":
-    if channels == 3: return cv2.cvtColor(src, cv2.COLOR_RGB2GRAY)
-    if channels == 4: return cv2.cvtColor(src, cv2.COLOR_RGBA2GRAY)
+    if channels == 3:
+      return cv2.cvtColor(src, cv2.COLOR_RGB2GRAY)
+    if channels == 4:
+      return cv2.cvtColor(src, cv2.COLOR_RGBA2GRAY)
   elif df == "RGBA":
-    if channels == 3: return cv2.cvtColor(src, cv2.COLOR_RGB2RGBA)
-    if channels == 1: return cv2.cvtColor(src, cv2.COLOR_GRAY2RGBA)
+    if channels == 3:
+      return cv2.cvtColor(src, cv2.COLOR_RGB2RGBA)
+    if channels == 1:
+      return cv2.cvtColor(src, cv2.COLOR_GRAY2RGBA)
   return src
 
 
@@ -134,12 +142,12 @@ class RGABackend:
   def __init__(self) -> None:
     self._lib: ctypes.CDLL | None = None
     self._lib_path: str | None = None
-    self._fn_wrap: ctypes._FuncPtr | None = None
-    self._fn_resize: ctypes._FuncPtr | None = None
-    self._fn_crop: ctypes._FuncPtr | None = None
-    self._fn_cvtcolor: ctypes._FuncPtr | None = None
-    self._fn_rotate: ctypes._FuncPtr | None = None
-    self._fn_flip: ctypes._FuncPtr | None = None
+    self._fn_wrap: Any = None
+    self._fn_resize: Any = None
+    self._fn_crop: Any = None
+    self._fn_cvtcolor: Any = None
+    self._fn_rotate: Any = None
+    self._fn_flip: Any = None
     self._initialized = False
 
   def initialize(self) -> bool:
@@ -205,7 +213,7 @@ class RGABackend:
     wstride_px = stride // arr.itemsize
     if channels > 1:
       wstride_px = wstride_px // channels
-    return self._fn_wrap(arr.ctypes.data, w, h, wstride_px, h, _np_to_rga(arr, hint))
+    return cast(_RgaBufferT, self._fn_wrap(arr.ctypes.data, w, h, wstride_px, h, _np_to_rga(arr, hint)))
 
   # ------------------------------------------------------------------
   # Operations

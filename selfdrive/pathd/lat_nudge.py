@@ -22,6 +22,8 @@ Safety limits (design §3.5):
 """
 from __future__ import annotations
 
+from typing import cast
+
 # Distances matching stereoGround leftBoundary / rightBoundary indices
 BOUNDARY_DISTANCES = (0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0)
 
@@ -76,16 +78,16 @@ class LatNudge:
     if not self.enabled:
       self._smoothed_offsets = [0.0] * len(BOUNDARY_DISTANCES)
       self.state = _DISABLED
-      return self._smoothed_offsets
+      return cast(list[float], self._smoothed_offsets)
 
     if v_ego > MAX_AVOIDANCE_SPEED:
       # Fade offsets smoothly to zero above speed limit
       self._smoothed_offsets = [o * 0.9 for o in self._smoothed_offsets]
-      return self._smoothed_offsets
+      return cast(list[float], self._smoothed_offsets)
 
     if len(stereo_left) != 7 or len(stereo_right) != 7:
       self._smoothed_offsets = [0.0] * len(BOUNDARY_DISTANCES)
-      return self._smoothed_offsets
+      return cast(list[float], self._smoothed_offsets)
 
     raw_offsets = self._compute_offsets(stereo_left, stereo_right, grid_tracks, v_ego)
     self._smooth(raw_offsets)

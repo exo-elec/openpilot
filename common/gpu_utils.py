@@ -35,38 +35,38 @@ class GPUInfo:
 def detect_mali_gpu() -> GPUInfo | None:
     """
     Detect Mali GPU and return device info.
-    
+
     Returns:
         GPUInfo if Mali GPU found, None otherwise
     """
     if not HAS_OPENCL:
         return None
-    
+
     try:
         platforms = cl.get_platforms()
-        
+
         for platform in platforms:
             platform_name = platform.name
-            
+
             # Get GPU devices
             try:
                 devices = platform.get_devices(cl.device_type.GPU)
             except cl.RuntimeError:
                 continue
-            
+
             for device in devices:
                 device_name = device.name
                 device_name_lower = device_name.lower()
-                
+
                 # Check if Mali GPU
                 is_mali = 'mali' in device_name_lower or 'arm' in platform_name.lower()
-                
+
                 if is_mali:
                     # Get device info
                     try:
                         compute_units = device.max_compute_units
                         global_mem = device.global_mem_size // (1024 * 1024)  # MB
-                        
+
                         return GPUInfo(
                             name=device_name,
                             platform=platform_name,
@@ -87,9 +87,9 @@ def detect_mali_gpu() -> GPUInfo | None:
                             global_memory_mb=0,
                             is_mali=True
                         )
-        
+
         return None
-        
+
     except Exception as e:
         logger.warning(f"GPU detection failed: {e}")
         return None
@@ -98,7 +98,7 @@ def detect_mali_gpu() -> GPUInfo | None:
 def get_mali_gpu_model() -> str:
     """
     Get Mali GPU model name.
-    
+
     Returns:
         GPU model string (e.g., 'Mali-G52', 'Mali-G610', 'Unknown')
     """
@@ -127,31 +127,31 @@ def get_recommended_work_group_size() -> tuple[int, int]:
 def create_opencl_context() -> tuple[cl.Context, cl.CommandQueue, cl.Device | None]:
     """
     Create OpenCL context for Mali GPU.
-    
+
     Returns:
         Tuple of (context, queue, device) or None if failed
     """
     if not HAS_OPENCL:
         return None
-    
+
     try:
         platforms = cl.get_platforms()
-        
+
         for platform in platforms:
             try:
                 devices = platform.get_devices(cl.device_type.GPU)
             except cl.RuntimeError:
                 continue
-            
+
             for device in devices:
                 if 'mali' in device.name.lower() or 'arm' in platform.name.lower():
                     ctx = cl.Context([device])
                     queue = cl.CommandQueue(ctx)
                     logger.info(f"OpenCL context created for {device.name}")
                     return ctx, queue, device
-        
+
         return None
-        
+
     except Exception as e:
         logger.warning(f"Failed to create OpenCL context: {e}")
         return None
@@ -160,7 +160,7 @@ def create_opencl_context() -> tuple[cl.Context, cl.CommandQueue, cl.Device | No
 def log_gpu_info():
     """Log GPU information for debugging."""
     gpu_info = detect_mali_gpu()
-    
+
     if gpu_info:
         logger.info("=" * 50)
         logger.info("GPU Information:")
@@ -178,7 +178,7 @@ def log_gpu_info():
 def test_gpu_utils():
     """Test GPU utilities."""
     print("Testing GPU Utilities...")
-    
+
     # Test detection
     gpu_info = detect_mali_gpu()
     if gpu_info:
@@ -188,7 +188,7 @@ def test_gpu_utils():
         print(f"  Is G610: {is_mali_g610()}")
     else:
         print("✗ No GPU detected")
-    
+
     # Test context creation
     ctx_result = create_opencl_context()
     if ctx_result:
@@ -196,7 +196,7 @@ def test_gpu_utils():
         print(f"✓ OpenCL context created for {device.name}")
     else:
         print("✗ Failed to create OpenCL context")
-    
+
     print("\nTest complete!")
 
 

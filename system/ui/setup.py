@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import re
 import threading
 import time
 import urllib.request
@@ -354,7 +353,6 @@ class Setup(Widget):
   def download(self, url: str):
     # autocomplete incomplete URLs
     # EOP: No cloud installer service. Local URLs only.
-    pass
 
     parsed = urlparse(url, scheme='https')
     self.download_url = (urlparse(f"https://{url}") if not parsed.netloc else parsed).geturl()

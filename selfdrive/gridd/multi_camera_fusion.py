@@ -65,15 +65,15 @@ class CameraFrame:
     timestamp: float        # seconds
     width: int
     height: int
-    
+
     # Camera properties
     focal_length_mm: float = 8.0
     fov_degrees: float = 60.0
-    
+
     # Effective range
     min_range_m: float = 0.0
     max_range_m: float = 80.0
-    
+
     @property
     def is_valid(self) -> bool:
         return self.image is not None and self.image.size > 0
@@ -82,13 +82,13 @@ class CameraFrame:
 @dataclass
 class FusedPerception:
     """Fused perception output from all cameras."""
-    
+
     # Fused image for model input
     fused_image: np.ndarray
-    
+
     # Individual camera features (for debugging/analysis)
     camera_features: dict[CameraRole, np.ndarray] = field(default_factory=dict)
-    
+
     # Range-aware weights
     range_weights: np.ndarray | None = None
 
@@ -104,19 +104,19 @@ class FusedPerception:
 @dataclass
 class FusionConfig:
     """Configuration for multi-camera fusion."""
-    
+
     # Timing
     sync_window_ms: float = 50.0    # Max time diff for frame sync
     temporal_decay: float = 0.7     # Weight for historical data
-    
+
     # Image processing
     target_width: int = 512
     target_height: int = 256
-    
+
     # Range weighting
     enable_range_weights: bool = True
     road_weight_near: float = 0.8   # Road camera weight at close range
-    
+
     # Platform-specific
     platform: str = "rk3588"
 
@@ -161,18 +161,18 @@ class MultiCameraFusion:
 
         self.config = config
         self.platform = config.platform
-        
+
         # Camera geometry
         self.geometry = CameraArrayGeometry.for_platform(self.platform)
-        
+
         # Frame buffers
         self._frames: dict[CameraRole, CameraFrame] = {}
         self._frame_history: deque = deque(maxlen=5)
-        
+
         # Precompute range weight maps
         self._range_weights: dict[CameraRole, np.ndarray] = {}
         self._init_range_weights()
-        
+
         # RGA for hardware-accelerated preprocessing
         self._rga = None
         try:
@@ -182,48 +182,48 @@ class MultiCameraFusion:
             cloudlog.info("MultiCameraFusion: RGA available for preprocessing")
         except Exception:
             cloudlog.warning("MultiCameraFusion: RGA not available, using cv2 fallback")
-        
+
         cloudlog.info(f"MultiCameraFusion initialized for {self.platform}")
         cloudlog.info(f"Supported cameras: {self._get_supported_cameras()}")
-    
+
     def _get_supported_cameras(self) -> list[CameraRole]:
         """Get list of cameras supported by current platform."""
         specs = self.CAMERA_SPECS.get(self.platform, self.CAMERA_SPECS['rk3588'])
         return list(specs.keys())
-    
+
     def _init_range_weights(self):
         """Initialize range-aware weight maps."""
         h, w = self.config.target_height, self.config.target_width
-        
+
         # Create coordinate grids
         x = np.linspace(-1, 1, w)   # -1 = left, 1 = right
         y = np.linspace(0, 1, h)    # 0 = top (far), 1 = bottom (near)
         xx, yy = np.meshgrid(x, y)
-        
+
         # Distance from center (normalized)
-        dist_from_center = np.sqrt(xx**2 + (yy - 0.5)**2)
-        
+        np.sqrt(xx**2 + (yy - 0.5)**2)
+
         for role in self._get_supported_cameras():
             if role == CameraRole.ROAD:
                 # Road: primary weight in center, all ranges
                 weight = np.exp(-((xx)/0.4)**2) * np.ones_like(yy)
-                
+
             elif role == CameraRole.WIDE_ROAD:
                 # Wide: high weight for close range, side regions
                 weight = np.exp(-((xx + 0.5)/0.5)**2) * (1 - yy * 0.3)
-                
+
             elif role in (CameraRole.STEREO_LEFT, CameraRole.STEREO_RIGHT):
                 # Stereo: side views, close to medium range
                 center_x = -0.8 if role == CameraRole.STEREO_LEFT else 0.8
                 weight = np.exp(-((xx - center_x)/0.3)**2) * (1 - yy * 0.2)
             else:
                 weight = np.ones((h, w))
-            
+
             self._range_weights[role] = weight
-    
+
     def add_frame(self, camera_name: str, image: np.ndarray, timestamp: float):
         """Add a frame from a camera.
-        
+
         Args:
             camera_name: 'road', 'wide_road', 'stereo_left', 'stereo_right'
             image: BGR image
@@ -239,19 +239,19 @@ class MultiCameraFusion:
             'stereo_left': CameraRole.STEREO_LEFT,
             'stereo_right': CameraRole.STEREO_RIGHT,
         }
-        
+
         role = role_map.get(camera_name.lower())
         if role is None:
             cloudlog.warning(f"Unknown camera: {camera_name}")
             return
-        
+
         if role not in self._get_supported_cameras():
             cloudlog.debug(f"Camera {camera_name} not supported on {self.platform}")
             return
-        
+
         # Get specs
         specs = self.CAMERA_SPECS[self.platform][role]
-        
+
         self._frames[role] = CameraFrame(
             role=role,
             image=image,
@@ -263,43 +263,43 @@ class MultiCameraFusion:
             min_range_m=specs['min_m'],
             max_range_m=specs['max_m']
         )
-    
+
     def _sync_frames(self) -> dict[CameraRole, CameraFrame]:
         """Synchronize frames within time window."""
         if not self._frames:
             return {}
-        
+
         # Find reference timestamp (most recent)
         timestamps = [f.timestamp for f in self._frames.values()]
         ref_time = max(timestamps)
-        
+
         # Filter frames within sync window
         synced = {}
         for role, frame in self._frames.items():
             if abs(frame.timestamp - ref_time) * 1000 <= self.config.sync_window_ms:
                 synced[role] = frame
-        
+
         return synced
-    
+
     def _preprocess(self, frame: CameraFrame) -> np.ndarray:
         """Preprocess frame for fusion."""
         image = frame.image
-        
+
         # Ensure BGR
         if len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         elif len(image.shape) == 3 and image.shape[2] == 4:
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        
+
         # Resize to target using RGA if available
         target_size = (self.config.target_width, self.config.target_height)
         resized = self._rga_resize(image, target_size)
-        
+
         # Normalize to float
         normalized = resized.astype(np.float32) / 255.0
-        
+
         return normalized
-    
+
     def _rga_resize(self, image: np.ndarray, target_size: tuple) -> np.ndarray:
         """Resize image using RGA hardware accelerator if available."""
         if self._rga is not None:
@@ -313,46 +313,46 @@ class MultiCameraFusion:
             except Exception:
                 pass  # Fall back to cv2
         return cv2.resize(image, target_size, interpolation=cv2.INTER_LINEAR)
-    
+
     def fuse(self) -> FusedPerception | None:
         """Fuse all camera frames.
-        
+
         Returns:
             FusedPerception or None if insufficient frames
         """
         # Synchronize frames
         synced = self._sync_frames()
-        
+
         # Need at least road camera
         if CameraRole.ROAD not in synced:
             return None
-        
+
         # Preprocess all frames
         features = {}
         for role, frame in synced.items():
             features[role] = self._preprocess(frame)
-        
+
         # Create fused image using weighted combination
         h, w = self.config.target_height, self.config.target_width
         fused = np.zeros((h, w, 3), dtype=np.float32)
         total_weight = np.zeros((h, w), dtype=np.float32)
-        
+
         for role, feature in features.items():
             weight = self._range_weights.get(role, np.ones((h, w)))
-            
+
             # Expand weight for broadcasting
             weight_expanded = np.expand_dims(weight, axis=-1)
-            
+
             # Weighted addition
             fused += feature * weight_expanded
             total_weight += weight
-        
+
         # Normalize by total weight
         total_weight_expanded = np.expand_dims(total_weight, axis=-1)
         fused = np.divide(fused, total_weight_expanded,
                          where=total_weight_expanded > 0,
                          out=np.zeros_like(fused))
-        
+
         max_range = 80.0
 
         # Create range weight map
@@ -395,15 +395,15 @@ class MultiCameraFusion:
         weights = np.clip(1.0 - distance_map * 0.5, 0.5, 1.0)
 
         return weights
-    
+
     def clear(self):
         """Clear all frames."""
         self._frames.clear()
-    
+
     def get_camera_status(self) -> dict:
         """Get status of all cameras."""
         specs = self.CAMERA_SPECS.get(self.platform, self.CAMERA_SPECS['rk3588'])
-        
+
         has_stereo = (CameraRole.STEREO_LEFT in self._frames and
                      CameraRole.STEREO_RIGHT in self._frames)
 
@@ -437,7 +437,7 @@ def test_multi_camera_fusion():
 
     result1 = fusion1.fuse()
     if result1:
-        print(f"✓ Fusion successful")
+        print("✓ Fusion successful")
         print(f"  Active: {[r.name for r in result1.active_cameras]}")
         print(f"  Max range: {result1.max_detection_range_m}m")
         print(f"  Fused shape: {result1.fused_image.shape}")

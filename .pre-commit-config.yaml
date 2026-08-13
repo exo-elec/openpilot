@@ -1,0 +1,27 @@
+# Pre-commit hooks for dev/EOP10.
+# Install:  uv pip install pre-commit
+# Run:      pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=120', '--enforce-all']
+      - id: check-shebang-scripts-are-executable
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: .venv/bin/python -m ruff check
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: shebang-format
+        name: shebang format
+        entry: bash scripts/lint/check_shebang_format.sh
+        language: system
+        types: [text]
+        pass_filenames: true

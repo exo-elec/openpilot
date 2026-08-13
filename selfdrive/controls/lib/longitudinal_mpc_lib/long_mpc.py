@@ -12,6 +12,7 @@ from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
 from openpilot.selfdrive.modeld.constants import index_function
 from openpilot.selfdrive.controls.radar3d import _LEAD_ACCEL_TAU
+from typing import cast
 
 if __name__ == '__main__':  # generating code
   from openpilot.third_party.acados.acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
@@ -77,7 +78,7 @@ def _load_personality_params(now: float = None):
   global _personality_param_cache
   if now is None:
     now = time.monotonic()
-  if now - _personality_param_cache['ts'] < 2.0:
+  if now - cast(float, _personality_param_cache['ts']) < 2.0:
     return _personality_param_cache['vals']
 
   try:

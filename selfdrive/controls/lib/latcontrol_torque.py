@@ -97,7 +97,7 @@ class LatControlTorque(LatControl):
       meta_path = model_path + '.json'
       if os.path.isfile(meta_path):
         try:
-          with open(meta_path, 'r') as f:
+          with open(meta_path) as f:
             meta = json.load(f)
           self._nn_friction_override = meta.get('friction_override', False)
         except Exception as e:

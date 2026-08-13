@@ -371,7 +371,7 @@ class CornerPairTable:
                            address, CORNER_NAMES[known], CORNER_NAMES[corner_id])
         for other, c in self._table.items():
             if c == corner_id and other != address:
-                logger.warning('BLE central: %s also claims corner %s — both kept, '
+                logger.warning('BLE central: %s also claims corner %s — both kept, ' +
                                'liveness arbitrates', other, CORNER_NAMES[corner_id])
         self._table[address] = corner_id
         self._save()
@@ -440,7 +440,7 @@ class BLECentral:
         # advertising observation state: {'first_seen','last_seen','rssi','wifi_mac'}
         self._wifi_roster = load_wifi_roster()
         if self._wifi_roster is None:
-            logger.warning('BLE central: %s unreadable — cross-vehicle protection '
+            logger.warning('BLE central: %s unreadable — cross-vehicle protection ' +
                            'degraded to dwell-only (no identity check)',
                            WIFI_PAIR_ROSTER_PATH)
         self._candidates: dict[str, dict] = {}
@@ -472,7 +472,7 @@ class BLECentral:
 
     def _warn_unauthorized(self, address: str | None, where: str) -> None:
         self._log_limited(f'unauth:{address or "?"}',
-                          'BLE central: unauthorized unit %s %s — not paired and '
+                          'BLE central: unauthorized unit %s %s — not paired and ' +
                           'pairing window closed (%s=0)',
                           address or '?', where, PAIRING_OPEN_PARAM)
 
@@ -502,7 +502,7 @@ class BLECentral:
             rssi = cand.get('rssi')
             if rssi is not None and rssi < PAIR_RSSI_DBM:
                 self._log_limited(f'rssi:{key}',
-                                  'BLE central: %s eligible but weak signal '
+                                  'BLE central: %s eligible but weak signal ' +
                                   '(RSSI %d < %d dBm) — check antenna/placement',
                                   key, rssi, PAIR_RSSI_DBM)
         return ok, reason
@@ -558,8 +558,8 @@ class BLECentral:
             self._signals_subscribed = True
             logger.info('BLE central: subscribed to BlueZ property signals')
             return True
-        except Exception as e:
-            logger.error('BLE central setup failed: %s', e)
+        except Exception:
+            logger.exception('BLE central setup failed')
             return False
 
     # ── Connect / discovery loop ──────────────────────────────────────────────
@@ -671,8 +671,8 @@ class BLECentral:
                         state['connected'] = False
                     logger.warning('BLE central: connect %s failed (%s) — retry in %.0fs',
                                    dev['address'], e, state['backoff_s'])
-        except Exception as e:
-            logger.error('BLE central: sweep error: %s', e)
+        except Exception:
+            logger.exception('BLE central: sweep error')
         return True  # keep the GLib timeout alive
 
     # ── Notification receive path ─────────────────────────────────────────────
@@ -731,7 +731,7 @@ class BLECentral:
             self._has_objects_field = True
         except AttributeError:
             self._has_objects_field = False
-            logger.warning('BLE central: custom.Radar2D has no objects field yet — '
+            logger.warning('BLE central: custom.Radar2D has no objects field yet — ' +
                            'publishing legacy returns only until schema lands')
             return
         for i, (corner, obj) in enumerate(entries):

@@ -9,6 +9,8 @@ ExoPilot 01M/02:
 The UVC streams come from the "uvcd" VisionIPC server instead of "v4l2d".
 """
 
+from typing import cast
+
 import pyray as rl
 from msgq.visionipc import VisionStreamType
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
@@ -47,7 +49,7 @@ class CameraSourceSwitcher:
       return True
 
     # Single turn signal only — hazards (both on) keep road camera
-    return (car_state.leftBlinker != car_state.rightBlinker)
+    return bool(car_state.leftBlinker != car_state.rightBlinker)
 
   def get_uvc_camera(self) -> CameraView:
     """Return the UVC CameraView, switching stream if needed.
@@ -82,4 +84,4 @@ class CameraSourceSwitcher:
       self._uvc_camera.switch_stream(target)
       self._active_stream = target
 
-    return self._uvc_camera
+    return cast(CameraView, self._uvc_camera)

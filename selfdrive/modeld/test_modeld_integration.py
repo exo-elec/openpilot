@@ -12,7 +12,6 @@ import logging
 import numpy as np
 from typing import Any
 
-from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced import InferenceClient
 
 logging.basicConfig(level=logging.INFO)
@@ -56,8 +55,8 @@ class TestModeld:
       self.npu.load_model(policy_config)
       logger.info("✓ Policy model loaded")
 
-    except Exception as e:
-      logger.error(f"Failed to load models: {e}")
+    except Exception:
+      logger.exception("Failed to load models")
 
   def test_vision_model(self) -> bool:
     """Test vision model inference."""
@@ -78,7 +77,7 @@ class TestModeld:
       latency_ms = (time.monotonic() - start) * 1000
 
       if result.success:
-        logger.info(f"✓ Vision model inference success")
+        logger.info("✓ Vision model inference success")
         logger.info(f"  Latency: {latency_ms:.2f}ms")
         logger.info(f"  Output shape: {result.outputs['output'].shape}")
         return True
@@ -86,8 +85,8 @@ class TestModeld:
         logger.error(f"✗ Inference failed: {result.error_message}")
         return False
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_policy_model(self) -> bool:
@@ -107,7 +106,7 @@ class TestModeld:
       latency_ms = (time.monotonic() - start) * 1000
 
       if result.success:
-        logger.info(f"✓ Policy model inference success")
+        logger.info("✓ Policy model inference success")
         logger.info(f"  Latency: {latency_ms:.2f}ms")
         logger.info(f"  Output shape: {result.outputs['output'].shape}")
         return True
@@ -115,8 +114,8 @@ class TestModeld:
         logger.error(f"✗ Inference failed: {result.error_message}")
         return False
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def test_inference_loop(self, num_frames: int = 10) -> dict[str, Any]:
@@ -149,7 +148,7 @@ class TestModeld:
       max_latency = np.max(latencies) if latencies else 0
       min_latency = np.min(latencies) if latencies else 0
 
-      logger.info(f"✓ Loop complete")
+      logger.info("✓ Loop complete")
       logger.info(f"  Success rate: {success_rate:.1f}%")
       logger.info(f"  Avg latency: {avg_latency:.2f}ms")
       logger.info(f"  Min/Max: {min_latency:.2f}ms / {max_latency:.2f}ms")
@@ -161,8 +160,8 @@ class TestModeld:
           'max_latency_ms': max_latency,
       }
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return {}
 
   def test_output_consistency(self) -> bool:
@@ -198,15 +197,15 @@ class TestModeld:
       if output.dtype not in (np.float32, np.float64):
         logger.warning(f"Unusual output dtype: {output.dtype}")
 
-      logger.info(f"✓ Output consistency verified")
+      logger.info("✓ Output consistency verified")
       logger.info(f"  Shape: {output.shape}")
       logger.info(f"  Dtype: {output.dtype}")
       logger.info(f"  Range: [{output.min():.3f}, {output.max():.3f}]")
 
       return True
 
-    except Exception as e:
-      logger.error(f"✗ Exception: {e}")
+    except Exception:
+      logger.exception("✗ Exception")
       return False
 
   def run_all_tests(self) -> dict[str, bool]:
@@ -229,15 +228,15 @@ class TestModeld:
     logger.info("Test Results Summary")
     logger.info("="*60)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    sum(1 for v in results.values() if v)
+    len(results)
 
     for test_name, result in results.items():
       status = "✓ PASS" if result else "✗ FAIL"
       logger.info(f"  {test_name:25} {status}")
 
     if loop_results:
-      logger.info(f"\nLoop Performance:")
+      logger.info("\nLoop Performance:")
       logger.info(f"  Success Rate: {loop_results['success_rate']:.1f}%")
       logger.info(f"  Avg Latency: {loop_results['avg_latency_ms']:.2f}ms")
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 import time
 import logging
 import numpy as np
-from typing import Any
 from dataclasses import dataclass
 
 from openpilot.system.inferenced import get_hal, BackendType
@@ -52,7 +51,7 @@ class PerformanceProfiler:
     latencies = []
     errors = 0
 
-    for i in range(iterations):
+    for _i in range(iterations):
       try:
         start = time.perf_counter()
         result = backend.infer(operation, inputs)
@@ -62,12 +61,12 @@ class PerformanceProfiler:
           latencies.append(latency)
         else:
           errors += 1
-      except Exception as e:
-        logger.error(f"  Error: {e}")
+      except Exception:
+        logger.exception("  Error")
         errors += 1
 
     if not latencies:
-      logger.warning(f"  No successful operations")
+      logger.warning("  No successful operations")
       return None
 
     avg_latency = float(np.mean(latencies))
@@ -246,16 +245,16 @@ class PerformanceProfiler:
 
     # Measure backend access
     try:
-      npu = client.npu()
-      logger.info(f"✓ NPU backend access successful")
+      client.npu()
+      logger.info("✓ NPU backend access successful")
     except RuntimeError:
-      logger.info(f"⚠ NPU not available")
+      logger.info("⚠ NPU not available")
 
     try:
-      rga = client.rga()
-      logger.info(f"✓ RGA backend access successful")
+      client.rga()
+      logger.info("✓ RGA backend access successful")
     except RuntimeError:
-      logger.info(f"⚠ RGA not available")
+      logger.info("⚠ RGA not available")
 
     client.release()
     return results
@@ -285,10 +284,10 @@ class PerformanceProfiler:
     logger.info(f"{'Backend':<10} {'Operation':<20} {'Latency (ms)':<15} {'Throughput':<15} {'Success Rate'}")
     logger.info("-" * 75)
 
-    for category, metrics_list in all_results.items():
+    for _category, metrics_list in all_results.items():
       for metrics in metrics_list:
-        logger.info(f"{metrics.backend:<10} {metrics.operation:<20} "
-                   f"{metrics.latency_ms:<14.3f} {metrics.throughput_ops_sec:<14.1f} ops/s "
+        logger.info(f"{metrics.backend:<10} {metrics.operation:<20} " +
+                   f"{metrics.latency_ms:<14.3f} {metrics.throughput_ops_sec:<14.1f} ops/s " +
                    f"{metrics.success_rate:.1f}%")
 
     # Performance expectations

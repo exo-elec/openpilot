@@ -6,10 +6,15 @@
 
 // Encoder selection:
 // - QCOM2: Used V4LEncoder (Qualcomm-specific, now excluded from build)
-// - Rockchip: Use FfmpegEncoder (with MPP support via ffmpeg)
-// TODO: Add Rockchip MPP native encoder when v4l_encoder.cc is ported
-#include "system/loggerd/encoder/ffmpeg_encoder.h"
-#define Encoder FfmpegEncoder
+// - Rockchip RK3588: native MppEncoder (MPP + RGA)
+// - Other / dev PC: FfmpegEncoder
+#if defined(RK3588)
+  #include "system/loggerd/encoder/mpp_encoder.h"
+  #define Encoder MppEncoder
+#else
+  #include "system/loggerd/encoder/ffmpeg_encoder.h"
+  #define Encoder FfmpegEncoder
+#endif
 
 ExitHandler do_exit;
 

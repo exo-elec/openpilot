@@ -9,10 +9,10 @@ from openpilot.system.hardware.base import HardwareBase
 
 class PlatformRegistry:
     """Registry for ExoPilot hardware platforms."""
-    
+
     _platforms: dict[str, type[HardwareBase]] = {}
     _aliases: dict[str, str] = {}
-    
+
     @classmethod
     def register(cls, name: str, hardware_class: type[HardwareBase], aliases: list[str] = None):
         """Register a hardware platform."""
@@ -20,22 +20,22 @@ class PlatformRegistry:
         if aliases:
             for alias in aliases:
                 cls._aliases[alias] = name
-    
+
     @classmethod
     def create(cls, platform: str = None) -> HardwareBase:
         """Create hardware instance for platform."""
         if platform is None:
             platform = cls.detect()
-        
+
         # Resolve alias
         if platform in cls._aliases:
             platform = cls._aliases[platform]
-        
+
         if platform not in cls._platforms:
             raise ValueError(f"Unknown platform: {platform}")
-        
+
         return cls._platforms[platform]()
-    
+
     @classmethod
     def detect(cls) -> str:
         """Auto-detect hardware platform."""
@@ -47,14 +47,14 @@ class PlatformRegistry:
                     return 'rk3588'
         except Exception:
             pass
-        
+
         # Check environment variable for testing
         if 'HARDWARE' in os.environ:
             return os.environ['HARDWARE']
 
         # No RK device tree: dev PC (upstream semantics)
         return 'pc'
-    
+
     @classmethod
     def clear(cls):
         """Clear all registrations (for testing)."""
