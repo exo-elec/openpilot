@@ -43,6 +43,9 @@ jobs:
       - name: Run focused gate
         run: uv run ./test.sh
 
+      - name: RKNN model local-placement check
+        run: python3 .github/scripts/check_rknn_local.py
+
   full:
     name: Full upstream lint gate
     runs-on: ubuntu-24.04
