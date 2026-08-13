@@ -33,15 +33,9 @@ v4l2d integrates with the Rockchip ISP for hardware-accelerated:
 
 ### IQ Tuning Files
 
-IQ tuning files ship from the closed `exopilot` HAL package and are installed
-to `/etc/iqfiles` by `exopilot/scripts/install/setup_rk3588.sh`:
-
-- `ox03c10_default_default.json` — Road/Wide road tuning
-- `gc4653_CMK-OT2117-PC1_30IRC-F16.json` — Stereo pair tuning (CMK module)
-- `gc4653_YT10120_30IRC-4M-F20.json` — Stereo pair tuning (YT module)
-
-Source files live in `../exopilot/hal/hal/tuning/isp/`. They are **not**
-copied into the public EOP10 repo; the BSP setup script installs them on-device.
+Per-sensor IQ tuning files ship from the closed `exopilot` HAL package and are
+installed to `/etc/iqfiles` by `exopilot/scripts/install/setup_rk3588.sh`. They
+are **not** copied into the public EOP10 repo.
 
 RKIAQ loads the correct file automatically by sensor name from `/etc/iqfiles`.
 Custom per-unit tuning can be placed there and will override the factory files.
@@ -101,21 +95,24 @@ Custom per-unit tuning can be placed there and will override the factory files.
 
 ## Camera Configuration
 
-v4l2d uses **dynamic sensor-aware discovery** to handle non-deterministic `/dev/videoN` numbering on RK3588. It scans sysfs for nodes matching specific sensor strings:
+v4l2d uses **dynamic sensor-aware discovery** to handle non-deterministic
+`/dev/videoN` numbering on RK3588. Default V4L2 node candidates and sensor
+wiring are imported from the closed ExoPilot HAL (`hal.platform.rk3588_camera_paths`);
+EOP10 only carries safe fallbacks for dev-PC testing.
 
 ### Front Camera Bar (MIPI CSI)
 
-| Camera | Sensor | Default Node(s) | Discovery String | Y Offset |
-|--------|--------|-----------------|------------------|----------|
-| Road | OX03C10 | `/dev/video0` | `ox03c10` + `mainpath` | 0 mm |
-| Wide road | OX03C10 | `/dev/video1` | `ox03c10` + `mainpath` | +80 mm |
-| Stereo Left | GC4653 | `/dev/video22` | `gc4653` + `mainpath` | +80 mm |
-| Stereo Right | GC4653 | `/dev/video31` | `gc4653` + `mainpath` | 0 mm |
+| Camera | Sensor | Discovery String | Y Offset |
+|--------|--------|------------------|----------|
+| Road | OX03C10 | `ox03c10` + `mainpath` | 0 mm |
+| Wide road | OX03C10 | `ox03c10` + `mainpath` | +80 mm |
+| Stereo Left | GC4653 | `gc4653` + `mainpath` | +80 mm |
+| Stereo Right | GC4653 | `gc4653` + `mainpath` | 0 mm |
 
 ### Side Cameras (UVC)
 
-| Camera | Type | Default Node | Y Offset | Purpose |
-|--------|------|--------------|----------|---------|
+| Camera | Type | Symlink | Y Offset | Purpose |
+|--------|------|---------|----------|---------|
 | side_left | UVC | `/dev/video-side-left` | +850 mm | Left blind spot |
 | side_right | UVC | `/dev/video-side-right` | −850 mm | Right blind spot |
 
