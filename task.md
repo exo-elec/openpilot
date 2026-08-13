@@ -352,5 +352,65 @@ Known remaining work:
 - [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
   exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
   consume calibrated camera metadata via HAL.
-- [ ] **Full delta review of external RK3588 changes vs stock openpilot**.
+- [x] **Full delta review of the proven v0.8.13 fork vs stock openpilot**:
+  completed in this session (see new section below).
 - [ ] **EOP CPU budgets in test_onroad.py**.
+
+## Follow-up session (bukapilot delta review + EOP10 porting plan, 2026-08-13)
+
+Goal: systematically compare the proven v0.8.13 fork (`bukapilot`) against
+upstream `commaai/openpilot v0.8.13` and decide what belongs in EOP10 vs ExoPilot.
+
+Key findings (no `KA2`/`kommu` references per policy):
+
+- The fork is **not an RK3588 HAL reference**. It is based on upstream v0.8.13
+  for Qualcomm (LeEco EON / comma tici) hardware. There are **no OX03C10/GC4653
+  sensor registers, no MIPI/ISP tuning, no RK3588 DT overlays, and no RKNN/NPU
+  code** in the audited tree.
+- The fork's value is in **application-layer driving behavior** and **local-market
+  car ports** (Proton, Perodua, BYD, Honda City Bosch, Toyota tuning).
+- EOP10 already has a better RK3588 inference architecture (`system.inferenced`
+  HAL + `rknn_runner.py`). That is an improvement over the fork's SNPE/ONNX
+  stack, not a break from openpilot's design concept.
+- AGNOS is comma's OEM update OS. Because EOP10 runs on the SOM supplier's
+  Ubuntu image, AGNOS is not needed. The fork's `UpdateStatus` param lifecycle
+  and dirty-repo guard are useful, but the AGNOS image-flashing path is not.
+- EC25 on EOP10 is already correctly delegated to `hal.drivers.cellular` in
+  ExoPilot. The fork never used EC25 QMI; it used the QCOM GPSD/SUPL stack, so
+  there is no GPS code to port.
+- Camera intrinsic/exposure: the fork has no OX03C10 data. EOP10's camera
+  geometry already lives in `hal.platform.rk3588_camera_geometry` / ExoPilot.
+  There is no hard-coded intrinsic table to copy from the fork.
+
+Recommended porting plan (highest value first):
+
+1. [ ] **Power monitoring + auto-shutdown**: add `PowerSaverEntryDuration` param
+   and an offroad timer that sets `DoShutdown`. Port from the fork's simplified
+   `power_monitoring.py` logic. Application layer.
+2. [ ] **Quiet mode + volume limits**: add `QuietMode` param; scale alert tone
+   volume and filter non-critical sounds in `soundd`. Application layer.
+3. [ ] **Update backend lifecycle**: add `UpdateStatus` string param and a
+   dirty-repo guard in the update flow. Application layer (EOP10 already has the
+   pyray updater UI).
+4. [ ] **ALC / lane-change behavior**: road-edge blinker guard, below-ALC-speed
+   event, and post-LKA-resume steer ramp. Application layer.
+5. [ ] **Generic schema extensions**: `stockAdas`, `cruiseState.setDistance`,
+   `speedControlled`, `belowLaneChangeSpeed` event. Car-schema/application layer.
+6. [ ] **Car ports**: BYD, Proton, Perodua, Honda City Bosch only if those
+   vehicles are in EOP10 scope. Most are application/opendbc layer; actuator
+   hardware glue stays in ExoPilot.
+7. [ ] **RK3588 public-repo boundary hardening**: move `install_target.sh`,
+   `npu_powerctrl.sh`, and any remaining vendor-deb/pinout details out of public
+   EOP10 into ExoPilot; keep only thin application wrappers.
+
+Do-not-adopt list:
+
+- Branding/rename changes.
+- `FeaturesDict` / `FeaturesPackage` subscription/licensing gate.
+- QC mode (`startupQC`/`qcDone`) and factory test flows.
+- Frequency-check `0` overrides and disabled-tester-present workarounds in
+  Honda/Hyundai parsers.
+- `IgnoreDM` / driver-monitoring bypass.
+- AGNOS/NEOS updater image flashing.
+- Prebuilt custom panda firmware (`icptr.bin.signed`) and custom USB flasher
+  protocol — keep in ExoPilot or a private panda fork.
