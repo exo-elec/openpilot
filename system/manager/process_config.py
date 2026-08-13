@@ -99,7 +99,7 @@ procs = [
   PythonProcess("obd2d", "selfdrive.obd2d.obd2d", always_run),
   PythonProcess("adaptd", "selfdrive.adaptd.adaptd", always_run),
 
-  # Audio output (Piper TTS navigation + alerts) - runs on all platforms
+  # Audio output (local alert tones only; language voice handled by Azure server)
   PythonProcess("soundd", "selfdrive.soundd.soundd", only_onroad),
 
   # UI
