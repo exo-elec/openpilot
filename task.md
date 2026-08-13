@@ -289,9 +289,12 @@ Verification:
 Known remaining work:
 
 - [x] **EC25/GPS driver boundary**: DONE — see next session below.
-- [ ] **RKNN model local-placement audit**: confirm `inference_registry.yaml`,
-  `convert_models_to_rknn.py`, and download placeholders use only locally-built
-  artifacts with no external branding. Add a CI check if useful.
+- [x] **RKNN model local-placement audit**: confirmed `inference_registry.yaml`,
+  `tools/convert_models_to_rknn.py`, and `selfdrive/modeld/vision/models/download_models.py`
+  use only local paths and offline-first placeholders; no external branded RKNN
+  model references remain. Added `.github/scripts/check_rknn_local.py` and wired
+  it into `.github/workflows/eop10_lint.yaml`.
+  Commit: `931783258` "ci: add RKNN local-placement check for EOP10 model references".
 - [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
   exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
   consume calibrated camera metadata via HAL.
@@ -340,9 +343,12 @@ Verification:
 
 Known remaining work:
 
-- [ ] **RKNN model local-placement audit**: confirm `inference_registry.yaml`,
-  `convert_models_to_rknn.py`, and download placeholders use only locally-built
-  artifacts with no external branding. Add a CI check if useful.
+- [x] **RKNN model local-placement audit**: confirmed `inference_registry.yaml`,
+  `tools/convert_models_to_rknn.py`, and `selfdrive/modeld/vision/models/download_models.py`
+  use only local paths and offline-first placeholders; no external branded RKNN
+  model references remain. Added `.github/scripts/check_rknn_local.py` and wired
+  it into `.github/workflows/eop10_lint.yaml`.
+  Commit: `931783258` "ci: add RKNN local-placement check for EOP10 model references".
 - [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
   exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
   consume calibrated camera metadata via HAL.
