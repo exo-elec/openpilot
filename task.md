@@ -243,3 +243,64 @@ Net result: `test_daemon_imports.py` 31/40 → 40/40.
 (minus `tici`-marked): 272 passed, 2 failed — both the already-documented,
 hardware-data-dependent gaps (`test_nslc::test_get_nslc_speed_helper`,
 `test_depth_validation::test_with_real_calibration`), nothing new.
+
+## Follow-up session (camera geometry propagation + source anonymization, 2026-08-12)
+
+Goal: propagate proven OX03C10/GC4653 camera constants to ExoPilot 02M (RK3576) /
+VisionPilot, and scrub identifiable external-source names from EOP10.
+
+Completed:
+
+- [x] **ExoPilot HAL**: added `hal/hal/platform/rk3576_camera_geometry.py` with
+  physics-derived focal lengths for RK3576 / ExoPilot 02M:
+  - OX03C10 mono cameras: 1920×1280, fx 567/2667/5333 px (1.7/8.0/16.0 mm)
+  - GC4653 stereo cameras: 2560×1440, fx 1800 px (3.6 mm)
+  - exported from `hal.platform`.
+- [x] **VisionPilot calibration defaults**: updated
+  `src/calibration/geometry/geometry/camera_model.py` and
+  `src/calibration/geometry/geometry/camera_array.py` to use the corrected
+  defaults; `create_default()` imports from `hal.platform.rk3576_camera_geometry`
+  when available, falling back to hardcoded corrected values.
+- [x] **VisionPilot driving_model defaults**: updated deprecated
+  `camera_geometry.py`, `multi_camera_fusion.py`, `camera_calibration.py`,
+  inference docstring, and the two calibration YAML templates to 1920×1280 /
+  2560×1440 and the matching focal lengths.
+- [x] **VisionPilot docs**: updated
+  `docs/perception/calibration/calibration_pipeline.md`,
+  `docs/hardware/cameras/camera-array-design.md`,
+  `docs/architecture/CAMERA_QUICK_REFERENCE.md`.
+- [x] **Source-name scrub**: removed `KA2`, `Kommu`, `bukapilot`, `kommuai` from
+  all EOP10 Python code and docs. Replaced
+  `docs/eop/RKNN_PROVENANCE.md` with `docs/eop/RKNN_RUNTIME_NOTES.md` and
+  updated cross-references.
+- [x] Commits and pushes:
+  - `exopilot@main`: `7b656f1 feat(hal): add RK3576 camera geometry module and export it`
+  - `visionpilot@EVP09`: `7e0c579 fix(calibration): align camera defaults with OX03C10/GC4653 physics`
+  - `openpilot@dev/EOP10`: `f7dffdb7f docs: anonymize external RK3588 source references in EOP10 docs`
+
+Verification:
+
+- `python3 -m py_compile` passes on all modified Python files.
+- `CameraArray.create_default('rk3576')` returns correct values both with and
+  without `hal.platform.rk3576_camera_geometry` importable.
+- Deprecated `CameraArrayGeometry()` defaults verified at 1920×1280 with
+  fx 567/2667/5333/1800 px.
+
+Known remaining work:
+
+- [ ] **EC25/GPS driver boundary**: `openpilot/system/hardware/rk3588/modem.py`
+  and `openpilot/system/ubloxd/pigeond.py` are low-level hardware drivers that
+  should move into `exopilot/hal/hal/drivers/cellular/` and
+  `exopilot/hal/hal/drivers/gps/`. EOP10 should consume only the higher-level
+  messages (`DeviceState.NetworkType`, cellular params, `gpsLocationExternal`).
+- [ ] **RKNN model local-placement audit**: confirm `inference_registry.yaml`,
+  `convert_models_to_rknn.py`, and download placeholders use only locally-built
+  artifacts with no external branding. Add a CI check if useful.
+- [ ] **Camera exposure / 3A / IQ tuning boundary**: move OX03C10 HDR4 + GC4653
+  exposure curves, AE/AWB gains, and IQ tuning files into ExoPilot; EOP10 should
+  consume calibrated camera metadata via HAL.
+- [ ] **Full delta review of external RK3588 changes vs stock openpilot**: the
+  anonymized audit docs still describe the port; a systematic pass could find
+  additional fixes (thermal, watchdog, process supervision) worth pulling in.
+- [ ] **EOP CPU budgets in test_onroad.py**: measure and add budgets for EOP
+  daemons when on RK hardware (carried forward from earlier sessions).
