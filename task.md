@@ -269,10 +269,9 @@ Completed:
   `docs/perception/calibration/calibration_pipeline.md`,
   `docs/hardware/cameras/camera-array-design.md`,
   `docs/architecture/CAMERA_QUICK_REFERENCE.md`.
-- [x] **Source-name scrub**: removed `KA2`, `Kommu`, `bukapilot`, `kommuai` from
-  all EOP10 Python code and docs. Replaced
-  `docs/eop/RKNN_PROVENANCE.md` with `docs/eop/RKNN_RUNTIME_NOTES.md` and
-  updated cross-references.
+- [x] **Source-name scrub**: removed all external source names from EOP10
+  Python code and docs. Replaced `docs/eop/RKNN_PROVENANCE.md` with
+  `docs/eop/RKNN_RUNTIME_NOTES.md` and updated cross-references.
 - [x] Commits and pushes:
   - `exopilot@main`: `7b656f1 feat(hal): add RK3576 camera geometry module and export it`
   - `visionpilot@EVP09`: `7e0c579 fix(calibration): align camera defaults with OX03C10/GC4653 physics`
@@ -360,12 +359,12 @@ Known remaining work:
   completed in this session (see new section below).
 - [ ] **EOP CPU budgets in test_onroad.py**.
 
-## Follow-up session (bukapilot delta review + EOP10 porting plan, 2026-08-13)
+## Follow-up session (proven v0.8.13 fork delta review + EOP10 porting plan, 2026-08-13)
 
-Goal: systematically compare the proven v0.8.13 fork (`bukapilot`) against
+Goal: systematically compare the proven v0.8.13 fork against
 upstream `commaai/openpilot v0.8.13` and decide what belongs in EOP10 vs ExoPilot.
 
-Key findings (no `KA2`/`kommu` references per policy):
+Key findings (no external source names per policy):
 
 - The fork is **not an RK3588 HAL reference**. It is based on upstream v0.8.13
   for Qualcomm (LeEco EON / comma tici) hardware. There are **no OX03C10/GC4653
