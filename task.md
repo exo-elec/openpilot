@@ -470,6 +470,55 @@ Known remaining work:
   and post-resume steer ramp should be validated on hardware before relying on
   them in production.
 
+## Follow-up session (VisionPilot EOP10 voice/power alignment, 2026-08-14)
+
+Goal: keep VisionPilot concept-aligned with EOP10 so it does not diverge into a
+local STT/TTS stack.
+
+Completed:
+
+- [x] **No local STT/TTS in VisionPilot**:
+  - Stripped Whisper/Piper model paths from
+    `src/launch/visionpilot_launch/config/voice/voice_config.param.yaml`.
+  - `src/audio/tts_driver/tts_driver/tts_driver_node.py`: removed Piper
+    initialization; forwards `/voice/tts_driver/speak` → `/voice/cloud_tts/speak`.
+  - `src/voice/cloud_assistant/cloud_assistant/cloud_assistant_node.py`: added
+    `/voice/cloud_tts/speak` subscriber that calls backend `/assistant/tts` and
+    plays returned audio.
+  - `src/navigation/navi_tts/navi_tts/navi_tts_node.py` and
+    `src/launch/visionpilot_launch/launch/voice.launch.py`: docstrings refreshed
+    to "cloud-first / no local STT or TTS".
+- [x] **Quiet mode for local alert tones**:
+  - `src/audio/sounds/sounds/sounds_node.py`: added `sounds.quiet_mode` param
+    that scales tones to ~25% and suppresses engage/disengage chimes.
+- [x] **Offroad auto-shutdown**:
+  - `src/system/power_manager/power_manager/power_manager_node.py`: added
+    `power.offroad_shutdown_timeout_s` (default 1800 s) with `disable_shutdown`
+    / `force_shutdown` guards, subscribing to
+    `/system/operation_mode_manager/ignition`.
+  - Wired params in
+    `src/system/power_manager/launch/power_manager.launch.py` and
+    `src/launch/visionpilot_launch/config/system/system_config.param.yaml`.
+- [x] **Docs**: updated `TASKS.md` and the superseded
+  `docs/VOICE_PIPELINE_IMPLEMENTATION.md` note.
+- [x] **Commits and pushes**:
+  - `visionpilot@EVP09`: `125e151 feat(voice/power): align VisionPilot with EOP10
+    — no local STT/TTS, quiet mode, offroad auto-shutdown`
+
+Verification:
+
+- `python3 -m py_compile` passes for all modified Python files.
+- Only the intended VisionPilot files were committed; unrelated Autoware
+  refactoring already in the working tree was left untouched.
+
+Known remaining work:
+
+- [ ] **EOP CPU budgets in test_onroad.py**: measure and add budgets for EOP
+  daemons when on RK hardware (carried forward from earlier sessions).
+- [ ] **On-road validation**: the ALC road-edge guard, below-ALC-speed event,
+  post-resume steer ramp, and VisionPilot quiet/offroad-shutdown behavior should
+  be validated on hardware before relying on them in production.
+
 Do-not-adopt list:
 
 - Branding/rename changes.
