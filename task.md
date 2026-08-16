@@ -529,3 +529,49 @@ Do-not-adopt list:
 - AGNOS/NEOS updater image flashing.
 - Prebuilt custom panda firmware (`icptr.bin.signed`) and custom USB flasher
   protocol — keep in ExoPilot or a private panda fork.
+
+## Follow-up session (cross-repo docs sync, 2026-08-16)
+
+Goal: verify commit/push state across `openpilot`/`exopilot`/`visionpilot` after a
+usage-limit interruption, and bring this log up to date with VisionPilot work
+that landed independently of the EOP10 branch.
+
+Findings:
+
+- `openpilot@dev/EOP10`, `exopilot@main`, and `visionpilot@EVP09` were all
+  clean working trees, fully committed, and already pushed (`git fetch` +
+  `git status -sb` showed no ahead/behind on any of the three). The prior
+  session's ALC/update-lifecycle/schema and VisionPilot voice/power work
+  (recorded above) was not lost to the interruption.
+- `visionpilot/TASKS.md` mislabeled two sections as "uncommitted": the R.1–R.10
+  / C.2–C.8 refactoring continuation (typed velocity/steering reports, flat
+  `AckermannControlCommand` fixes, `tire_monitor.py` restore, steering-torque
+  reporting, tracked-object wiring, outer-`__init__.py` cleanup) is actually
+  committed in `visionpilot@ac0d262` (`update: Sync local modifications`,
+  2026-08-16 00:37). Fixed the stale labels and `Last updated` date in
+  `visionpilot/TASKS.md`.
+- VisionPilot also has an independent `SAFE.1` audit (15 commits,
+  `ff56d17`..`8f4a4fb`, 2026-08-16) not previously logged here: a full
+  control-path + perception-to-safety bug pass covering the same
+  flat-`AckermannControlCommand` and `DetectedObject` field-name bugs found by
+  the R./C. continuation from a different starting point (from-scratch audit,
+  not reconciled/deduped against R./C. — both efforts independently converged
+  on the same real bugs). Also fixed a permanently-latching `EMERGENCY_STOP`
+  (missing `control_cmd` watchdog subscription in `mrm_handler_node`), three
+  safety nodes (AEB/FCW/BSD) crashing in `main()` on a wrong class name before
+  `rclpy.spin()` ran, and removed a phantom RCW module from
+  `src/safety/README.md`. See `visionpilot/TASKS.md` `SAFE.1` row for the full
+  file list.
+
+Known remaining work (unchanged, carried forward — none actionable from this
+dev-PC sandbox):
+
+- [ ] **EOP CPU budgets in test_onroad.py**: measure and add budgets for EOP
+  daemons when on RK hardware.
+- [ ] **On-road validation**: ALC road-edge guard, below-ALC-speed event,
+  post-resume steer ramp, and VisionPilot quiet/offroad-shutdown behavior.
+- [ ] **VisionPilot C.7**: final `colcon build --symlink-install` +
+  `colcon test` on a real ROS host — no `/opt/ros`/colcon available here.
+- [ ] **Car ports scope** (item 6, line 405 above): BYD/Proton/Perodua/Honda
+  City Bosch are still an open scope question for the user, not a technical
+  blocker — left unanswered pending that decision.
