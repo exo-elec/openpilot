@@ -244,3 +244,12 @@ shared-transform refactor didn't regress radar2d).
       `MAX_RANGE_M` on first real-hardware test — all currently
       best-effort/untuned for the new 4-corner geometry (previously tuned
       for a single center-mounted sensor).
+- [ ] The RK3588 host-side WiFi setup this daemon's UDP link depends on
+      isn't built yet — no `setup_wifi_dualwan.sh` equivalent exists for
+      this board. Planned band split: corner-node AP on 2.4GHz (ESP32-S3
+      has no 5GHz radio — hardware constraint, not a choice), STA/router
+      uplink on 5GHz. Whether the installed WiFi chip can run both bands
+      concurrently on one radio is unverified — see exopilot's
+      `docs/02-HARDWARE/RK3588_PINS.md` §6.1, which also flags an
+      unresolved RTL8821CE-vs-8822CE naming discrepancy that bears on
+      whether 5GHz is even available.
