@@ -11,7 +11,7 @@ from openpilot.common.realtime import DT_MDL
 from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
 from openpilot.selfdrive.modeld.constants import index_function
-from openpilot.selfdrive.controls.radar3d import _LEAD_ACCEL_TAU
+from openpilot.selfdrive.controls.radard import _LEAD_ACCEL_TAU
 from typing import cast
 
 if __name__ == '__main__':  # generating code

@@ -6,7 +6,6 @@ This is the socketd-owned Tesla/BrownPanda vehicle adapter.
 import os
 import time
 import threading
-from typing import Any, cast
 
 import cereal.messaging as messaging
 
@@ -26,7 +25,6 @@ from openpilot.system.socketd.vehicle.car.cruise import VCruiseHelper
 from openpilot.system.socketd.vehicle.car.events import VehicleEvents
 from openpilot.system.socketd import can_capnp_to_list, can_list_to_can_capnp
 from opendbc.car.can_definitions import CanData
-from opendbc.car.tesla.radar_interface import RadarInterface
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
@@ -47,7 +45,7 @@ class Car:
   def __init__(self, CS=None, CC=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
     self.sm = messaging.SubMaster(['carControl', 'onroadEvents'])
-    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'radar3d'])
+    self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput'])
 
     self.can_rcv_cum_timeout_counter = 0
 
@@ -69,7 +67,6 @@ class Car:
     self.CS = CS or CarState(self.CP)
     self.CC = CC or CarController(self.CP)
     self.can_parsers = self.CS.can_parsers
-    self.radar = RadarInterface(self.CP)
 
     # Layer 1 Safety (replaces panda safety)
     safety_limits = SafetyLimits()
@@ -165,7 +162,7 @@ class Car:
     self.params.put_nonblocking("CarParamsCache", cp_bytes)
     self.params.put_nonblocking("CarParamsPersistent", cp_bytes)
 
-  def state_update(self) -> tuple[car.CarState, Any | None]:
+  def state_update(self) -> car.CarState:
     """carState update loop, driven by can."""
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
     can_list = [CanData(*msg) for msg in can_capnp_to_list(can_strs)]
@@ -206,11 +203,9 @@ class Car:
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)
     CS.vCruiseCluster = float(self.v_cruise_helper.v_cruise_cluster_kph)
 
-    RadarCanPackets = list[tuple[int, list[CanData]] | list[CanData] | CanData]
-    RD = self.radar.update(cast(RadarCanPackets, can_list))
-    return CS, RD
+    return CS
 
-  def state_publish(self, CS: car.CarState, RD=None):
+  def state_publish(self, CS: car.CarState):
     """carState and carParams publish loop."""
 
     # carParams - logged every 50 seconds (> 1 per segment)
@@ -239,13 +234,6 @@ class Car:
     cs_send.carState.canErrorCounter = self.can_rcv_cum_timeout_counter
     cs_send.carState.cumLagMs = -self.rk.remaining * 1000.
     self.pm.send('carState', cs_send)
-
-    # publish radar tracks when available (feeds radard.py)
-    if RD is not None:
-      tracks_msg = messaging.new_message('radar3d')
-      tracks_msg.valid = not (RD.errors)
-      tracks_msg.radar3d = RD
-      self.pm.send('radar3d', tracks_msg)
 
   def controls_update(self, CS: car.CarState, CC: car.CarControl):
     """control update loop, driven by carControl."""
@@ -289,9 +277,9 @@ class Car:
       self.CC_prev = CC
 
   def step(self):
-    CS, RD = self.state_update()
+    CS = self.state_update()
 
-    self.state_publish(CS, RD)
+    self.state_publish(CS)
 
     initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents'].events) and
                    self.sm.seen['onroadEvents'])

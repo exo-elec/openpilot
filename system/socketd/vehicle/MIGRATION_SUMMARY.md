@@ -17,8 +17,7 @@ system/socketd/vehicle/
 │   └── vehicle_model.py      # Vehicle dynamics model
 ├── tesla/                    # EOP BrownPanda adapter over pinned OpenDBC DBCs
 │   ├── values.py              # Tesla constants
-│   ├── tesla_parser.py        # OpenDBC CANParser boundary wrapper
-│   └── continental_interface.py  # Continental radar (party-bus) interface
+│   └── tesla_parser.py        # OpenDBC CANParser boundary wrapper
 ├── safety/                   # Shim over system/socketd/safety/tesla_safety.py
 │   ├── safety.py              # re-exports TeslaSafety, SafetyLimits, etc.
 │   └── safety_manager.py      # SafetyManager wrapper
@@ -114,8 +113,7 @@ To close that gap:
   are now sourced directly from `opendbc.car.tesla.values` instead of being
   redefined. `system/socketd/vehicle/tesla/values.py` stays the stable import
   path for the rest of the EOP tree (`card.py`, `longitudinal_planner.py`,
-  `long_mpc.py`, `continental_interface.py`, sim tooling) — only where the
-  numbers come from changed.
+  `long_mpc.py`, sim tooling) — only where the numbers come from changed.
 - `GEAR_MAP`, `TeslaSafetyFlags`, `TeslaFlags`, `STEER_THRESHOLD`, and
   `FW_QUERY_CONFIG` were removed from this file — they were dead code with no
   importers anywhere in the tree (`carstate.py`/`carcontroller.py` delegate

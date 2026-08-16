@@ -124,9 +124,16 @@ procs = [
   PythonProcess("controlsd", "selfdrive.controls.controlsd", and_(ignition_on, not_joystick, not_remote_control, iscar)),
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", ignition_on),
   # socketd owns SocketCAN transport and the OpenDBC vehicle adapter loop.
+  # radar3d: long-range UART radar producer (car.RadarData -> 'radar3d' socket).
+  # Not gated on a presence param — the vehicle's forward-radar hardware is a
+  # fixed part of this build, unlike radar4d below.
   PythonProcess("radar3d", "selfdrive.controls.radar3d", ignition_on),
+  # radard: fuses camera (modelV2) leads with 'radar3d' points -> radarState -> ACC.
+  # Renamed from this repo's old radar3d.py to match upstream openpilot's name,
+  # now that radar3d.py itself is the sensor producer, not the fusion daemon.
+  PythonProcess("radard", "selfdrive.controls.radard", ignition_on),
   # BGT60TR13C 4D short-range radar (EOP 01M) — gated on hardware presence, unlike
-  # radar3d (car OEM CAN radar, always present when the car has one).
+  # radar3d (long-range UART radar, always present in this build).
   PythonProcess("radar4d", "selfdrive.controls.radar4d", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPRadar4DEnabled")),

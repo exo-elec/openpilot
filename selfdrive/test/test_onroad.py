@@ -45,6 +45,7 @@ PROCS = {
   "./ui": 18.0,
   "system.imud.imud": 13.0,
   "selfdrive.controls.radar3d": 2.0,
+  "selfdrive.controls.radard": 2.0,
   "selfdrive.modeld.modeld": 22.0,
   "selfdrive.monod.monod": 18.0,
   "system.hardware.hardwared": 4.0,

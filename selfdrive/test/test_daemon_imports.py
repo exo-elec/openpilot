@@ -24,6 +24,7 @@ CRITICAL_DAEMONS = [
     "selfdrive.controls.controlsd",
     "selfdrive.controls.plannerd",
     "selfdrive.controls.radar3d",
+    "selfdrive.controls.radard",
     "selfdrive.selfdrived.selfdrived",
     # EOP perception daemons
     "selfdrive.modeld.modeld",

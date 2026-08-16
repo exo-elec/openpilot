@@ -97,7 +97,6 @@ Tesla CAN → socketd bridge → 'can' topic → vehicle.Car (safety RX processi
 | `car/events.py` | `VehicleEvents` — Tesla-specific event handling |
 | `car/vehicle_model.py` | Vehicle dynamics model |
 | `tesla/tesla_parser.py` | Tesla CAN message parser |
-| `tesla/continental_interface.py` | Continental radar (party-bus) CAN interface |
 | `tesla/values.py` | `VEHICLE`/`PlatformConfig` (EOP chassis presets) + `CarControllerParams` (steering fields EOP-owned; `CANBUS` and `ACCEL_MIN/MAX`/`JERK_LIMIT_MIN/MAX` re-exported from `opendbc.car.tesla.values`, see `MIGRATION_SUMMARY.md`) |
 | `safety/safety.py` | Compatibility shim re-exporting `system/socketd/safety/tesla_safety.py` |
 | `safety/safety_manager.py` | `SafetyManager` — wraps `TeslaSafety` for the CAN bridge |
@@ -120,9 +119,16 @@ Tesla CAN → socketd bridge → 'can' topic → vehicle.Car (safety RX processi
   fingerprinting/handshake) — not used; this fork is Tesla-only and has no
   Panda to fingerprint against. What EOP *does* reuse directly from the
   pinned OpenDBC submodule (shared commit with `dev/NGP10`): `CarState`/
-  `CarController`/`RadarInterface` (via thin wrappers in `car/carstate.py`,
+  `CarController` (via thin wrappers in `car/carstate.py`,
   `car/carcontroller.py`, `car/card.py`), and `CANBUS`/accel-jerk limits (via
   `tesla/values.py`, see `MIGRATION_SUMMARY.md`).
+- `opendbc.car.tesla.radar_interface.RadarInterface` — `card.py` no longer
+  drives it (it decoded a Continental ARS4-B/BrownPanda CAN stream that was
+  never actually wired to real hardware; the vehicle only has a 2D
+  blind-spot corner radar). The `radar3d` cereal socket (ACC lead tracking)
+  is now produced independently by `selfdrive/controls/radar3d.py`, over a
+  direct UART link to a long-range radar sensor — not part of `card.py`'s
+  CAN loop. See `docs/eop/04_Integration/TC375_RADAR.md`.
 - `panda` — Safety moved to this software layer + BrownPanda gateway (hardware).
 
 ## Process Configuration

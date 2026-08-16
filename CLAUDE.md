@@ -69,8 +69,36 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 | Old name | New name | Note |
 |----------|----------|------|
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
+| `radar3d.py` (camera+radar fusion) | `radard.py` | Renamed 2026-08-16 — matches upstream openpilot's name. `radar3d.py` is now the long-range UART radar *producer* daemon, not the fusion daemon; see New Features below |
 
 ## New Features
+
+**radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
+- The vehicle has no real forward OEM radar — only a 2D blind-spot corner
+  radar (`radar2d`, unchanged). `card.py` used to source the `radar3d`
+  socket from `opendbc.car.tesla.radar_interface.RadarInterface`, decoding
+  a Continental ARS4-B/TC375-BrownPanda CAN stream that was never actually
+  wired to real hardware — a second, more complete decoder
+  (`continental_interface.py`) existed alongside it and was never imported
+  either. Both removed; `card.py` no longer touches radar at all.
+- New standalone producer `selfdrive/controls/radar3d.py` (`Radar3DD`,
+  Class-D pattern) reads a long-range UART radar sensor directly (77GHz,
+  up to 120m, onboard CFAR/AoA — no local DSP needed) and publishes
+  `car.RadarData` on the `radar3d` socket at 20Hz. No capnp changes —
+  `RadarPoint`'s existing fields covered everything the sensor provides.
+- `radar3d` feeds two independent, complementary consumers: `radard.py`
+  (renamed from this repo's old `radar3d.py` — see Daemon Naming above)
+  for ACC ego-lane lead tracking, and `gridd.py`'s pre-existing
+  `_fuse_radar3d()` for forward adjacent-lane (merge/cut-in) awareness —
+  the latter already existed and needed zero changes.
+- Driver lives in `../exopilot/hal/hal/drivers/radar/radar3d.py` (`Radar3D`,
+  `Radar3DConfig`) — low-level sensor porting can't live in this public
+  repo, same ownership split as BGT60TR13C. See
+  `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
+  sign-convention bench-verify items, and file map.
+- `radar4d`/BGT60 unchanged — a future replacement with `~/radar/ESP32_RADAR`
+  (4x corner-mounted nodes, UDP point cloud) is scoped separately, not part
+  of this change.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical
@@ -157,7 +185,7 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 ---
 
-**Last updated**: 2026-08-12  
+**Last updated**: 2026-08-16  
 **Branch**: EOP10
 
 ---

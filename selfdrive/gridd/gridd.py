@@ -159,7 +159,7 @@ class GridD:
              'stereoDepth', 'stereoStatus', 'stereoDetections',
              'modelV2', 'drivableArea',
              'radar4d',   # BGT60TR13C 4D FMCW — 0-15m front, ±40° azimuth
-             'radar3d',   # car OEM CAN radar — 15-200m, all tracked points
+             'radar3d',   # long-range UART radar — 15-200m, all tracked points
              'radar2d'],  # corner/blind-spot zone sensors — 0-10m presence
             poll=cast(str | None, ['stereoDepth'])
         )
@@ -505,7 +505,7 @@ class GridD:
         3: (-1.8, -0.8, -135.0),   # rear-right
     }
 
-    # radar3d fusion constants (OEM CAN radar — raw RadarPoint list)
+    # radar3d fusion constants (long-range UART radar — raw RadarPoint list)
     _R3D_MIN_DREL       = 12.0   # m — below this radar4d has better coverage; skip overlap
     _R3D_ASSOC_M        = 3.0    # Cartesian match radius to existing stereo object (m)
     _R3D_PROB           = 0.80   # radar track confidence
@@ -574,7 +574,7 @@ class GridD:
         return self._LANE_ZONE_ADJ_RIGHT
 
     def _fuse_radar3d(self, objects: list, radar3d) -> list:
-        """Add OEM CAN radar tracks to stereoObjects.
+        """Add long-range UART radar tracks to stereoObjects.
 
         Radar3d is a FORWARD-FACING front-bumper radar (dRel > 0 only).
         It cannot see cars approaching from behind — that coverage comes from
