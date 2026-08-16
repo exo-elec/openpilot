@@ -132,8 +132,8 @@ procs = [
   # Renamed from this repo's old radar3d.py to match upstream openpilot's name,
   # now that radar3d.py itself is the sensor producer, not the fusion daemon.
   PythonProcess("radard", "selfdrive.controls.radard", ignition_on),
-  # BGT60TR13C 4D short-range radar (EOP 01M) — gated on hardware presence, unlike
-  # radar3d (long-range UART radar, always present in this build).
+  # 4x ESP32_RADAR corner nodes, WiFi/UDP (EOP 01M) — gated on hardware presence,
+  # unlike radar3d (long-range UART radar, always present in this build).
   PythonProcess("radar4d", "selfdrive.controls.radar4d", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPRadar4DEnabled")),

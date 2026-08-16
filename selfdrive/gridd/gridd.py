@@ -115,8 +115,10 @@ class GridD:
             self.Q = self._default_calibration()
 
         # Radar-stereo geometry for FOV gating and pixel-level association.
-        # The BGT60 is mounted at the center of the stereo pair, so its
-        # polar detections map directly into the stereo/road camera images.
+        # radar4d.py already transforms its 4 corner nodes' detections into
+        # vehicle frame before publish, so this mount is now a nominal
+        # vehicle-origin reference for the FOV gate below, not a physical
+        # single-sensor mount (see docs/eop/bgt60_radar.md#extrinsic-calibration).
         # Mounting extrinsics are user-refined and stored at this layer.
         try:
             from openpilot.selfdrive.controls.radar4d_geometry import RadarMounting, RadarStereoGeometry
@@ -137,10 +139,20 @@ class GridD:
         # so this is an all-or-nothing swap, never a silent per-corner mix
         # of real and placeholder poses.
         try:
-            from openpilot.selfdrive.controls.radar4d_geometry import load_corner_poses
+            from openpilot.selfdrive.controls.radar4d_geometry import (
+                corner_local_to_vehicle_frame, load_corner_poses)
             registry_poses = load_corner_poses()
+            self._corner_local_to_vehicle_frame = corner_local_to_vehicle_frame
         except Exception as e:
             registry_poses = None
+            # Same trivial 2D rotate+translate radar4d_geometry.py's
+            # corner_local_to_vehicle_frame() implements -- duplicated here
+            # only as an emergency fallback for the case that module itself
+            # fails to import (e.g. a yaml/numpy/camera_geometry issue),
+            # same failure mode _r2d_corner_pose's placeholder fallback
+            # below already handles; this keeps radar2d fusion working
+            # either way rather than silently going blind.
+            self._corner_local_to_vehicle_frame = self._corner_pose_transform_fallback
             cloudlog.warning(f"GridD: corner-radar registry unavailable: {e}")
         if registry_poses is not None:
             self._r2d_corner_pose = registry_poses
@@ -158,7 +170,7 @@ class GridD:
             ['monoDetections', 'monoStatus',
              'stereoDepth', 'stereoStatus', 'stereoDetections',
              'modelV2', 'drivableArea',
-             'radar4d',   # BGT60TR13C 4D FMCW — 0-15m front, ±40° azimuth
+             'radar4d',   # ESP32_RADAR corner nodes, WiFi/UDP — 0-15m surround
              'radar3d',   # long-range UART radar — 15-200m, all tracked points
              'radar2d'],  # corner/blind-spot zone sensors — 0-10m presence
             poll=cast(str | None, ['stereoDepth'])
@@ -504,6 +516,20 @@ class GridD:
         2: (-1.8,  0.8,  135.0),   # rear-left
         3: (-1.8, -0.8, -135.0),   # rear-right
     }
+
+    @staticmethod
+    def _corner_pose_transform_fallback(range_m: float, azimuth_deg: float,
+                                         pose: tuple[float, float, float]) -> tuple[float, float]:
+        """Emergency fallback for radar4d_geometry.corner_local_to_vehicle_frame()
+        -- see its __init__ call site above for when this is used instead."""
+        px, py, yaw_deg = pose
+        az = math.radians(azimuth_deg)
+        yaw = math.radians(yaw_deg)
+        sx = range_m * math.cos(az)
+        sy = range_m * math.sin(az)
+        d_rel = px + sx * math.cos(yaw) - sy * math.sin(yaw)
+        y_rel = py + sx * math.sin(yaw) + sy * math.cos(yaw)
+        return d_rel, y_rel
 
     # radar3d fusion constants (long-range UART radar — raw RadarPoint list)
     _R3D_MIN_DREL       = 12.0   # m — below this radar4d has better coverage; skip overlap
@@ -904,7 +930,7 @@ class GridD:
         return objects
 
     def _fuse_radar4d_points(self, objects: list, radar4d) -> list:
-        """Associate raw BGT60TR13C detections with stereo objects; add unmatched as new entries.
+        """Associate raw radar4d detections with stereo objects; add unmatched as new entries.
 
         Forward (|az|<20°): annotates stereo objects with Doppler vRel + boosted prob
         (blended from SNR/RCS and the tracker's confirm-hit-streak existenceProb — a
@@ -1024,13 +1050,8 @@ class GridD:
                 # 0xFF = unresolved corner strap (ESP32_RADAR wire_format.h) —
                 # without a mounting pose we cannot place the track.
                 continue
-            px, py, yaw_deg = self._r2d_corner_pose[obj_msg.corner]
-            az = math.radians(obj_msg.azimuthDeg)
-            yaw = math.radians(yaw_deg)
-            sx = obj_msg.rangM * math.cos(az)   # forward in sensor frame
-            sy = obj_msg.rangM * math.sin(az)   # left in sensor frame
-            d_rel = px + sx * math.cos(yaw) - sy * math.sin(yaw)
-            y_rel = py + sx * math.sin(yaw) + sy * math.cos(yaw)
+            d_rel, y_rel = self._corner_local_to_vehicle_frame(
+                obj_msg.rangM, obj_msg.azimuthDeg, self._r2d_corner_pose[obj_msg.corner])
 
             snr_frac = min(obj_msg.snrDb / self._R4D_SNR_REF_DB, 1.0)
             existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)  # 0-100, same convention as Radar4DObject

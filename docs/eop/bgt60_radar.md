@@ -1,66 +1,107 @@
-# BGT60TR13C Radar — openpilot ExoPilot 01M Integration
+# radar4d — corner-node WiFi/UDP point cloud (ExoPilot 01M Integration)
+
+*(Filename kept for history/link stability — this doc used to describe a
+single BGT60TR13C sensor mounted on the stereo camera bar, driven directly
+over SPI. That sensor is gone: `radar4d` now comes from 4 identical
+corner-mounted `~/radar/ESP32_RADAR` nodes (FL/FR/RL/RR — ESP32-S3 +
+BGT60TR13C each), streaming their own onboard-CFAR point clouds over
+WiFi/UDP instead. The chip name in this doc's filename is now historical,
+not descriptive of the current sensor topology.)*
 
 ## Radar classification
 
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
-| `radar3d` | car OEM CAN radar (TC375 BrownPanda) | 15–200m | `radard.py` → `radarState` | ACC, lead car tracking |
-| `radar4d` | BGT60TR13C (radar4d.py, SPI bus from HAL) | 0–15m | `gridd.py` → `stereoObjects` | close-range maneuvering |
-| `radar2d` | *(reserved)* corner/blind-spot | — | — | future |
+| `radar3d` | long-range UART radar (`selfdrive/controls/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
+| `radar4d` | 4x ESP32_RADAR corner nodes (`radar4d.py`, WiFi/UDP) | 0–15m | `gridd.py` → `stereoObjects` | close-range surround maneuvering |
+| `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
-`radar3d` and `radar4d` are **fully independent pipelines**. `radard.py` is not touched.
+`radar2d` and `radar4d` share the same 4 physical corner-node brackets —
+`radar2d` reads each node's on-node-tracked BLE object stream, `radar4d`
+reads the same nodes' raw CFAR point cloud over an independent WiFi/UDP
+link. Two transports, one set of hardware, same corner-pose registry (see
+"Driver ownership" below).
 
 ## Driver ownership — shared with VisionPilot via `hal`
 
-The BGT60TR13C register/SPI protocol driver and DSP chain live in the
-`exopilot` repo's `hal` package (`hal.drivers.radar.bgt60tr13c`), **not**
-duplicated in this repo — VisionPilot (02M/RK3576) uses the same driver.
-This repo only owns the openpilot-specific cereal daemon, tracker, and
-calibration tools:
+Low-level wire decode lives in the `exopilot` repo's `hal` package
+(`hal.drivers.radar.radar4d`), **not** duplicated here — openpilot is a
+public repository and `exopilot` is not, so hardware/wire-protocol porting
+can't live in this repo. This repo only owns the openpilot-specific cereal
+daemon, tracker, and pointcloud pipeline (all sensor-agnostic, unchanged
+from the BGT60 era):
 
 ```
-../exopilot/hal/hal/drivers/radar/bgt60tr13c.py   ← SPI/GPIO acquisition, register I/O
-../exopilot/hal/hal/drivers/radar/dsp.py          ← range-Doppler FFT, 2-D CA-CFAR, dual-baseline AoA
-../exopilot/hal/hal/platform/rk3588_pins.py        ← SPI bus + radar IRQ/RST GPIO map
+../exopilot/hal/hal/drivers/radar/radar4d.py      ← UDP wire decode (RadarCornerReceiver,
+                                                      CornerFrame, decode_corner_packet)
+../exopilot/hal/hal/drivers/radar/bgt60tr13c.py   ← shared RadarDetection dataclass
+                                                      (range_m, vel_mps, azimuth_deg,
+                                                      elevation_deg, snr_db, is_static, track_id)
+../exopilot/hal/hal/drivers/radar/ego_velocity.py ← RANSAC/GNC ego-speed estimation (generic)
+../exopilot/hal/hal/drivers/radar/dsp.py          ← compensate_ego_velocity() (generic)
 
 selfdrive/controls/radar4d.py           ← cereal daemon (Radar4DD, process name "radar4d")
 selfdrive/controls/radar4d_tracker.py   ← KalmanTrackManager (EKF + occlusion coasting)
-selfdrive/controls/radar4d_pointcloud.py ← Autoware-style pointcloud → objects pipeline
-selfdrive/controls/radar4d_geometry.py  ← radar ↔ stereo camera coordinate transforms
-selfdrive/controls/radar4d_calibrate.py ← intrinsic calibration wizard
+selfdrive/controls/radar4d_pointcloud.py ← DBSCAN cluster → shape estimation
+selfdrive/controls/radar4d_geometry.py  ← corner-pose registry + transform (shared with
+                                            radar2d/gridd.py), RadarStereoGeometry (FOV gating)
 ```
 
 Requires `hal` installed: on-device, `exopilot/scripts/install/setup_rk3588.sh`
 does this during first-boot BSP setup; on a dev PC, `pip3 install -e ../exopilot/hal`.
 `radar4d.py` degrades to an idle no-op (logged once, not a crash) if `hal`
-isn't importable, or if the radar IRQ/RST GPIO entries in `hal.platform.rk3588_pins`
-aren't yet `confirmed: True` — refusing to drive unconfirmed GPIO lines on
-real hardware, same behavior as VisionPilot's `radar4d_node.py` (which
-hard-fails identically unless run with `use_mock:=true`).
+isn't importable or the UDP port fails to open.
 
-Import in daemon:
-```python
-from hal.drivers.radar import BGT60TR13C, BGT60Config, RadarPhyStatus
-from hal.platform.rk3588_pins import GPIO, SPI
-```
+`hal.drivers.radar.bgt60tr13c`/`dsp_gpu.py`/`dsp_gpu_kernel.py`/`intrinsics.py`
+(the old SPI driver, GPU CFAR kernel, and factory intrinsics LUT) are **not
+deleted** from the shared `hal` package — they may still be used by
+VisionPilot (RK3576) for its own camera-bar-mounted BGT60 unit, which this
+repo has no visibility into. Only this repo's *consumption* of them was
+removed.
+
+## Wire protocol (UDP, port 47000, from any of 4 corner nodes)
+
+Each node does its own onboard range-Doppler/CFAR/AoA — no raw ADC/FFT/CFAR
+on this side, `hal.drivers.radar.radar4d.decode_corner_packet()` just
+parses the sensor's own binary frame:
+
+- Packed little-endian, one datagram per frame per node, never fragmented
+  (11-byte header + up to 32×10-byte detections = 331 bytes max).
+- Header: `corner_id` (`0=FL,1=FR,2=RL,3=RR,0xFF=UNKNOWN` — a resistor-strap
+  read at node boot; a `0xFF` frame is structurally valid, just unplaceable
+  without a resolved mounting pose — skipped, not errored), `count` (0-32),
+  `seq`, `capture_time_us` (monotonic per-node, not cross-node-synced),
+  `protocol_version`, `dsp_time_ms`, `frame_interval_ms`.
+- Detection record (×count): `range_cm` (÷100→m), `vel_mps_x100` (÷100,
+  negative=approaching — **not yet bench-verified on real silicon**),
+  `azimuth_deg_x10` (÷10, **sensor-local frame**, real AoA always computed),
+  `elevation_deg_x10` (÷10, same caveat), `snr_db_x10` (÷10).
+- No ack/retransmit — a dropped frame is just gone, by design (perishable
+  stream data).
+- Detections arrive in **each node's own local sensor frame**. `radar4d.py`
+  transforms them into vehicle frame using `radar4d_geometry.load_corner_poses()`
+  — the *same* shared registry `gridd.py` already uses for `radar2d`'s
+  corner nodes (`<eop_data_root>/calibration/sensor_calibration.yaml`,
+  written by visionpilot's pairing/on-road calibrator, read-only here). Same
+  all-or-nothing fallback to a placeholder pose table if the registry is
+  absent/incomplete.
 
 ## Data flow
 
 ```
-BGT60TR13C (SPI bus / device node from hal.platform.rk3588_pins.SPI)
-    ↓
-hal.drivers.radar.bgt60tr13c   (acquisition + DSP: range-Doppler FFT, CA-CFAR, dual-baseline AoA)
-    ↓  list[RadarDetection(range_m, vel_mps, azimuth_deg, elevation_deg, snr_db)]
-radar4d.py  →  ego-velocity compensation (liveLocationKalman → carState → HAL GNC
-               radar-Doppler fallback; vehicle vs radar speed cross-checked)
-            →  environment inference on raw returns (precipitation, wiper motion,
-               glass contamination, weather severity, drop-off → cereal radar4d msg)
-            →  RadarPointcloudProcessor (ground filter → DBSCAN cluster → shape estimate)
-               →  KalmanTrackManager (EKF + occlusion coasting, confirm/drop hysteresis)
+4x ESP32_RADAR corner nodes (WiFi/UDP, port 47000, one datagram/frame/node)
+    ↓  decode_corner_packet() — hal.drivers.radar.radar4d, no CFAR here (node does it onboard)
+radar4d.py  →  per corner_id: look up mounting pose (load_corner_poses(), skip if
+               unresolved) → corner_local_to_vehicle_frame() rotates each detection
+               into vehicle frame → merge all 4 corners into one flat detection list
+            →  ego-velocity compensation (liveLocationKalman → carState → HAL GNC
+               radar-Doppler fallback; vehicle vs radar speed cross-checked) — unchanged
+            →  RadarPointcloudProcessor (ground filter → DBSCAN cluster → shape estimate) — unchanged
+               →  KalmanTrackManager (EKF + occlusion coasting, confirm/drop hysteresis) — unchanged
                  ↓  list[Track], confirmed only
               cereal "radar4d"  (Custom.Radar4D, 20Hz)
                  ↓
-              gridd.py  (reads radar4d + stereoDepth + monoDetections)
+              gridd.py  (reads radar4d + stereoDepth + monoDetections)  — unchanged
                  ↓ _fuse_radar4d(): prefers Radar4DObject clusters (shape-aware gate),
                  ↓   falls back to raw points; FOV gate rejects clutter outside camera view
                  ↓ sets CameraObject.vRel/aRel + length/width/height/yaw,
@@ -68,39 +109,45 @@ radar4d.py  →  ego-velocity compensation (liveLocationKalman → carState → 
               cereal "stereoObjects"  (CameraObject list with velocity + shape)
                  ↓
               pathd  (lateral maneuvering in dense traffic)
-
-car OEM CAN radar (via TC375 BrownPanda)
-    →  cereal "radar3d"  →  radard.py  →  "radarState"  →  controlsd/ACC
-       (unchanged — renamed from liveTracks, same wire ordinal @131)
 ```
 
-## Pipeline architecture (Autoware-inspired)
+Everything from `radar4d.py`'s ego-velocity compensation onward is
+**unchanged from the BGT60 era** — that pipeline was always sensor-agnostic
+(operates on a duck-typed `range_m/vel_mps/azimuth_deg/elevation_deg/
+snr_db/is_static` protocol), the only rewrite was the sensor I/O feeding it.
 
-The radar4d pipeline applies the Autoware perception pattern to the BGT60's
-sparse pointcloud (originally built for lidar, sensor-agnostic in Autoware):
+## Pipeline architecture (Autoware-inspired) — unchanged
 
-1. **Pointcloud** — raw CFAR detections from `hal.drivers.radar.dsp`
+1. **Pointcloud** — per-corner CFAR detections, merged after vehicle-frame transform
 2. **Ego-velocity compensation** — label stationary clutter vs dynamic obstacles;
    speed source is liveLocationKalman → carState → radar-Doppler GNC fallback
    (`hal.drivers.radar.estimate_ego_velocity_gnc`), with a vehicle-vs-radar
    cross-check warning on disagreement (wheel slip / tyre-size errors)
-3. **Environment inference** — precipitation clutter, wiper motion, glass
-   contamination + attenuation, weather severity, drop-off guard; runs on the
-   raw returns because the evidence is what the ground filter discards
-4. **Ground filter** — elevation-aware removal of road-surface returns
-5. **Clustering** — DBSCAN (scipy cKDTree) in Cartesian space
-6. **Shape estimation** — PCA for small clusters, L-shape search for larger ones
-7. **Tracking** — constant-acceleration EKF with occlusion coasting
-8. **Fusion** — gridd consumes `Radar4DObject` clusters with shape-aware association
+3. **Ground filter** — elevation-aware removal of road-surface returns
+4. **Clustering** — DBSCAN (scipy cKDTree) in Cartesian space
+5. **Shape estimation** — PCA for small clusters, L-shape search for larger ones
+6. **Tracking** — constant-acceleration EKF with occlusion coasting
+7. **Fusion** — gridd consumes `Radar4DObject` clusters with shape-aware association
 
-## Tracking: Kalman vs alpha-beta-gamma
+**Removed, not carried forward**: the environment-inference stage
+(precipitation/wiper/windshield-contamination/drop-off) that used to run on
+BGT60's raw pre-ground-filter returns. It assumed a windshield/camera-bar-
+mounted sensor with glass behind it — physically meaningless for
+bumper-mounted corner nodes. The capnp fields it fed
+(`precipProb`/`wiperOn`/`glassContaminated`/`weatherSeverity`/
+`visionBlocked`/`dropOffHazard`/`dropOffDistM`) are unchanged in schema and
+still published, just always at neutral defaults now (no schema/ordinal
+churn for downstream consumers).
+
+## Tracking: Kalman vs alpha-beta-gamma — unchanged
 
 `radar4d_tracker.py` defaults to `KalmanTrackManager` (constant-acceleration EKF):
 
 - **Adaptive gains** — trusts high-SNR / close-range measurements more; coasts
   through occlusion when uncertainty grows
-- **Measured frame dt** — the real (IRQ-jittering) frame period, clamped to
-  [20 ms, 150 ms], feeds the EKF prediction step instead of a nominal dt
+- **Measured frame dt** — clamped to [20ms, 150ms], now measuring the UDP
+  receiver's actual poll-to-poll period (WiFi + 4 independent senders jitter,
+  same clamp band as the old IRQ-jitter case) instead of hardware IRQ timing
 - **Crossing-yaw ghost rejection** — fast tangential tracks swept up by ego
   rotation are dropped (Autoware radar_crossing_objects_noise_filter pattern)
 - **Covariance estimate** — downstream fusion can gate by uncertainty, not just
@@ -108,288 +155,92 @@ sparse pointcloud (originally built for lidar, sensor-agnostic in Autoware):
 - **Occlusion handling** — confirmed tracks coast up to 10 missed frames;
   re-acquisition uses a covariance-scaled gate
 
-`ABGTrackManager` is kept as a fallback for comparison.
-
-## Chirp configuration
-
-Current tuning (`radar4d.py`):
-
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| `n_samples` | 1280 | ~17.5 m unambiguous range (15 m gate) |
-| `n_chirps` | 64 | Better velocity resolution than default 48 |
-| `frame_rate_hz` | 20 | Match camera pipeline |
-| `high_speed_spi` | True | Offset increased SPI volume from more chirps |
-| `use_gpu` | True | Mali OpenCL CFAR via inferenced ACL backend |
-
-Range resolution is at the 5.5 GHz hardware limit (2.7 cm).  Velocity
-resolution improves with more chirps, but note: actual chirp spacing is
-dominated by the software `read_fifo()` loop (~2 ms/chirp), not the RTU
-register — verify `vel_mps` absolute scale on hardware.
-
-## inferenced GPU backend
-
-Radar CFAR routes through `InferenceClient("radar4d").acl().infer("radar_cfar")`
-— the same direct-HAL pattern stereod/gridd use.  The ACL backend dispatches
-to a hand-written OpenCL kernel (`dsp_gpu_kernel.py`) with CPU fallback.
-
-No IPC schema changes are needed; the direct in-process call avoids the
-serialize→queue→deserialize round trip.
-
-## Intrinsic calibration
-
-Factory intrinsics are owned by the exopilot HAL
-(`hal/drivers/radar/intrinsics.py`: `load_intrinsics` / `save_intrinsics`);
-`radar4d.py` loads the LUT from
-`Paths.eop_data_root()/calibration/radar_intrinsics.json` at startup.
-Mounting extrinsics are user-refined and stored by the application layer in
-`Paths.eop_data_root()/calibration/radar_extrinsics.json`
-(`RadarMounting.load/save` in `radar4d_geometry.py`).
-
-Generate the intrinsics LUT with the bench wizard:
-
-```bash
-python3 selfdrive/controls/radar4d_calibrate.py
-```
-
-The wizard guides target placement at known (x, y, z) positions, captures
-strongest detections, and builds a 4-band × 8-bin correction grid.  Automotive
-range bands (3/6/9/12 m) replace DISP_RADAR4D's indoor 1.5/2.5/3.5 m bands.
+`ABGTrackManager` is kept as a fallback for comparison. Still needed: unlike
+`radar3d`'s NanoRadar sensor (which reports a persistent per-target ID over
+UART), ESP32_RADAR's UDP wire format carries **no track ID** — every
+detection is a fresh, unlabeled CFAR hit, same as BGT60's raw returns were.
 
 ## Extrinsic calibration
 
-The radar sits mid-bracket on the same tiltable mount as the stereo camera
-pair, and the device (bracket + cameras + radar) can be installed at a range
-of windshield/mount angles and can drift on the road. Extrinsics split into
-two, independently-sourced pieces — same factory-vs-runtime pattern
-`calibration_storage.py` uses on the VisionPilot side:
+Two independently-sourced pieces, same factory-vs-runtime split as before:
 
 | Component | Owner | Where it's applied |
 |---|---|---|
-| **On-road vehicle tilt** (pitch, yaw — the dominant term) | `calibrationd.py`'s `liveCalibration.rpyCalib`, the same signal that de-tilts camera images | `radar4d.py`: `_update_calibration()` caches `calib_from_device = rot_from_euler(rpyCalib).T` from `liveCalibration`; `_apply_calibration()` rotates every detection's (azimuth, elevation) by it before publishing on the `radar4d` cereal socket |
-| **Factory boresight residual** (position always; yaw/pitch nominally 0, roll never estimated) | `RadarMounting` (`radar4d_geometry.py`), loaded from `radar_extrinsics.json` | `RadarStereoGeometry` in `gridd.py`, for camera-FOV gating/visualization only — operates on az/el **already** rotated by `_apply_calibration()` above |
+| **Per-corner mounting pose** (x, y, yaw — dominant term) | `radar4d_geometry.load_corner_poses()`, shared `sensor_calibration.yaml` registry (visionpilot writes, openpilot reads) | `radar4d.py`'s `run()`: transforms each corner's local-frame detections into vehicle frame *before* clustering/tracking — same function (`corner_local_to_vehicle_frame()`) `gridd.py`'s `radar2d` fusion calls, extracted this session so both share one implementation |
+| **On-road vehicle tilt** (pitch, yaw) | `calibrationd.py`'s `liveCalibration.rpyCalib` | `radar4d.py`: `_apply_calibration()` — unchanged, still rotates each *tracked* detection's az/el by live vehicle tilt at publish time, same as the BGT60 era |
+| **FOV-gating reference mount** | `RadarMounting.load()` (`radar4d_geometry.py`), `radar_extrinsics.json` | `gridd.py`'s `RadarStereoGeometry`, used only to gate radar4d detections against the camera FOV — **now a nominal vehicle-origin reference**, not a physical sensor mount, since detections already arrive vehicle-frame-transformed by the time this gate runs. Verify `radar_extrinsics.json` doesn't still carry BGT60's old camera-bar-mount offset (pre-existing default is all-zero, so this is only a concern if that file was ever populated non-zero) |
 
-**Why two separate mechanisms and not one composed rotation:** `radar4d.py`
-publishes az/el already in the calibrated (de-tilted) frame. `gridd.py`
-(`_radar4d_in_camera_fov`) consumes that already-corrected az/el through
-`RadarStereoGeometry.radar_to_image()` → `radar_polar_to_world()`. If
-`RadarMounting`'s rotation also carried the vehicle tilt, it would be applied
-**twice**. So `RadarMounting`'s (yaw, pitch) must stay at the small,
-near-zero factory value (radar physically centered and boresight-aligned in
-the bracket) — it is not a place to route on-road calibration output.
-`radar_polar_to_world`/`world_to_radar_polar` do apply the full mount
-rotation now (roll included, previously yaw-only — fixed because a nonzero
-factory-mount file would otherwise have silently ignored pitch/roll), but in
-practice this only matters for the small assembly-tolerance residual.
-
-Roll is never estimated on either path — `calibrationd.py` assumes a level
-mount by convention (roll is not part of `PITCH_LIMITS`/`YAW_LIMITS`
-sanity-clipping), matching upstream openpilot's own comment ("we assume it's
-zero"). `RadarMounting.roll_deg` is factory-only.
-
-### How this was checked against the rest of the codebase
-
-Every place in this repo (and VisionPilot) that combines two orientation
-estimates uses proper rotation composition — `rot_from_euler(A).dot(rot_from_euler(B))`
-or the quaternion equivalent — never adds Euler angles together:
-
-- `calibrationd.py` composes each new observation with the running estimate via
-  `rot_from_euler(current_rpy) @ rot_from_euler(observed_rpy)` (then converts
-  back with `euler_from_rot`).
-- `camera_calibrationd.py` (EOP10's multi-camera extension, not on
-  upstream `master`) does the identical `rot_from_euler(current_rpy).dot(rot_from_euler(observed_rpy))`
-  for each of its cameras.
-- `augmented_road_view.py`'s wide-camera projection — the closest existing
-  precedent to this module's own "fixed sensor offset + on-road device
-  tilt" problem — builds `view_from_wide_calib = view_frame_from_device_frame @ wide_from_device @ device_from_calib`,
-  i.e. composes the wide camera's fixed offset from the device with the
-  live `rpyCalib`-derived rotation via matrix multiplication.
-- VisionPilot's `OnRoadCalibrator._compute_observed_rpy` and its local
-  `geometry/transforms.py::rot_from_euler` (`Rz @ Ry @ Rx`) follow the same
-  pattern, and that exact `Rz@Ry@Rx` construction was independently
-  cross-checked against this repo's real compiled `rot_from_euler` (27
-  combined nonzero roll/pitch/yaw cases, floating-point exact) while fixing
-  a scalar-Euler-addition bug on the VisionPilot side (see
-  `docs/bgt60_radar.md#extrinsic-calibration` there) — it was never wrong
-  here, but worth confirming given the same mistake was found nearby.
-
-This module's `radar_polar_to_world`/`world_to_radar_polar` fix (full RPY via
-`rot_from_euler`, no `.T` — verified to reproduce the pre-existing yaw-only
-formula exactly at pitch=roll=0) is consistent with that pattern. The
-decision to keep `RadarMounting`'s rotation and `radar4d.py`'s live-tilt
-rotation as two separate, un-composed stages (rather than precomputing one
-combined matrix the way `view_from_wide_calib` does) is deliberate, not an
-oversight: composing them would require changing what `radar4d.py` publishes
-on the cereal wire (currently already-tilt-corrected az/el, consumed as such
-downstream), a larger change than this fix warrants. It is safe today only
-because `RadarMounting` defaults to all-zero rotation — this is a convention
-enforced by documentation, not a structural guarantee, and is the one
-argument in favor of eventually adopting the single-composed-matrix pattern
-if a real nonzero boresight file is ever needed.
-
-This is the openpilot side of the same design VisionPilot uses on
-`EVP09` (`docs/bgt60_radar.md#extrinsic-calibration`); VisionPilot shares
-the camera's on-road tilt via a ROS 2 topic
-(`/calibration/camera_calibration/camera_rpy`) and re-broadcasts a `tf2`
-static transform instead of rotating each point explicitly, since its
-downstream consumers already resolve `radar4d_link` through the TF tree.
+Roll is never estimated (same convention this codebase uses everywhere:
+`calibrationd.py` assumes a level mount).
 
 ## Changed files (this port)
 
 | File | Change |
 |------|--------|
-| `cereal/custom.capnp` | `Radar4DPoint` gains `elevation`, `existenceProb`, `dynProp`, `aRel`; `Radar4DObject` struct added; `Radar4D` gains `objects` list |
-| `cereal/services.py` | `radar4d` frequency `10.` → `20.` (match camera pipeline) |
-| `common/params_keys.h` | Add `EOPRadar4DEnabled` (hardware-presence gate) |
-| `system/manager/process_config.py` | Gate `radar4d` on `EOPRadar4DEnabled`, like `pointcloudd` |
-| `selfdrive/ui/qt/offroad/eop_panel.{h,cc}` | Add `add_radar4d_toggles()`, wired into the Assistance section |
-| `selfdrive/controls/radar4d.py` | Rewritten: `Radar4DD` (Class-D), 20Hz config, GPU CFAR, pointcloud pipeline, Kalman tracker |
-| `selfdrive/controls/radar4d_tracker.py` | **NEW** — `KalmanTrackManager` (EKF + occlusion coasting), `ABGTrackManager` fallback |
-| `selfdrive/controls/radar4d_pointcloud.py` | **NEW** — Autoware-style ground filter → DBSCAN → shape estimation |
-| `selfdrive/controls/radar4d_geometry.py` | **NEW** — radar ↔ stereo camera coordinate transforms, FOV gating |
-| `selfdrive/controls/radar4d_calibrate.py` | **NEW** — intrinsic calibration wizard |
-| `selfdrive/controls/tests/test_radar4d*.py` | **NEW** — tracker, pointcloud, geometry, calibration tests |
-| `selfdrive/gridd/gridd.py` | `_fuse_radar4d()`: objects-first fusion with shape-aware gate, FOV gating, Autoware camera-box velocity |
-| `selfdrive/gridd/tests/test_fuse_radar4d.py` | **NEW** |
-| `system/radar4d/` | **REMOVED** — was a duplicate of the driver now canonically in `hal.drivers.radar` |
-| `../exopilot/hal/hal/drivers/radar/bgt60tr13c.py` | Rewritten against Infineon's official `sensor-xensiv-bgt60trxx` C driver; real CA-CFAR + dual-baseline AoA |
-| `../exopilot/hal/hal/drivers/radar/dsp.py` | **NEW** — range-Doppler FFT, CA-CFAR, AoA |
-| `../exopilot/hal/hal/platform/rk3588_pins.py` | Add `SPI["RADAR4D"]` and radar IRQ/RST GPIO entries (unconfirmed placeholders) |
-| `../exopilot/hal/hal/platform/rk3576_pins.py` | **NEW** — same shape, for VisionPilot's SPI2/gpio2 |
-| `../exopilot/hal/tests/test_radar_dsp.py` | **NEW** |
+| `selfdrive/controls/radar4d.py` | Rewritten sensor I/O: `RadarCornerReceiver` + corner-pose transform replaces BGT60 SPI construction/read loop. Tracker/pointcloud/publish pipeline unchanged. Environment-inference calls removed (fields stay, neutral defaults). |
+| `selfdrive/controls/radar4d_geometry.py` | **NEW** `corner_local_to_vehicle_frame()` — extracted from `gridd.py`'s inline radar2d transform, now shared by both. |
+| `selfdrive/gridd/gridd.py` | `_fuse_radar2d_objects` calls the extracted shared transform instead of its own inline copy. No other changes — `_fuse_radar4d*` untouched. |
+| `selfdrive/controls/radar4d_calibrate.py` | **REMOVED** — BGT60-specific factory intrinsics wizard, no longer applicable. |
+| `system/bluetoothd/ble_central.py` | `decode_object_datagram()` and its wire-format structs moved to `hal.drivers.radar.radar2d` (same ownership pattern) — behavior unchanged, pure relocation. |
+| `../exopilot/hal/hal/drivers/radar/radar4d.py` | **NEW** — UDP wire decode (`RadarCornerReceiver`, `CornerFrame`, `decode_corner_packet`). |
+| `../exopilot/hal/hal/drivers/radar/radar2d.py` | **NEW** — BLE object-datagram wire decode (`decode_object_datagram`), extracted from `ble_central.py`. |
+| `../exopilot/hal/hal/platform/rk3588_pins.py` | Removed `SPI["RADAR4D"]`, `GPIO["BGT60_IRQ"/"BGT60_RST"]` — no SPI/GPIO wiring for a WiFi-attached sensor. |
+| `../exopilot/kernel/dts/rk3588-lubancat-exp01.dts` | `&spi0` disabled (was BGT60-only consumer). |
+| `../exopilot/kernel/rk3588/dt-overlays/exopilot01m-radar4d.dts` | **REMOVED** — IRQ/RST GPIO overlay fragment, no longer needed. |
 
-## Custom.Radar4DPoint fields (cereal/custom.capnp)
+## Custom.Radar4DPoint / Custom.Radar4DObject fields (cereal/custom.capnp)
 
-```
-trackId       @0 :UInt64   — stable ID (confirm/drop hysteresis, radar4d_tracker.py)
-rangM         @1 :Float32  — radial distance (m); BGT60 range res = 2.7 cm
-azimuth       @2 :Float32  — angle (deg, 0=forward, +left, -right); dual-baseline phase AoA
-vRel          @3 :Float32  — Doppler velocity (m/s); NEGATIVE = target approaching
-snrDb         @4 :Float32  — SNR dB, proxy for radar cross section (RCS)
-                             motorcycle ~5-10 dB·m², car ~20 dB·m²
-elevation     @5 :Float32  — angle (deg, 0=boresight, +up); dual-baseline phase AoA
-existenceProb @6 :Float32  — 0-100, from tracker confirm hit-streak
-isStatic      @7 :Bool     — ego-velocity compensated: true = stationary clutter
-dynProp       @8 :UInt8    — ARS-style: 0=stationary, 1=moving, 2=stopped
-aRel          @9 :Float32  — longitudinal relative acceleration (m/s²), negative = braking
-```
+**Unchanged** — no schema/ordinal changes were needed for this port. See the
+struct definitions in `cereal/custom.capnp` directly; field semantics
+(`trackId`, `rangM`, `azimuth`, `vRel`, `snrDb`, `elevation`,
+`existenceProb`, `isStatic`, `dynProp`, `aRel`, plus `lengthM`/`widthM`/
+`heightM`/`yawRad`/`pointCount` on `Radar4DObject`) are identical to the
+BGT60 era — they were already sensor-agnostic.
 
-## Custom.Radar4DObject fields (cereal/custom.capnp)
-
-```
-trackId       @0 :UInt64   — stable cluster/track ID
-rangM         @1 :Float32  — radial distance to object center (m)
-azimuth       @2 :Float32  — deg, 0=forward, +left, -right
-elevation     @3 :Float32  — deg, 0=boresight, +up
-vRel          @4 :Float32  — Doppler relative velocity (m/s), NEGATIVE = approaching
-aRel          @5 :Float32  — longitudinal relative acceleration (m/s²)
-snrDb         @6 :Float32  — peak SNR dB of cluster
-existenceProb @7 :Float32  — 0-100, from cluster tracker confirm hit-streak
-isStatic      @8 :Bool     — ego-velocity compensated: true = stationary clutter
-dynProp       @9 :UInt8    — ARS-style: 0=stationary, 1=moving, 2=stopped
-lengthM       @10 :Float32 — estimated object length (m), forward axis
-widthM        @11 :Float32 — estimated object width (m), lateral axis
-heightM       @12 :Float32 — estimated object height (m), vertical axis
-yawRad        @13 :Float32 — estimated object heading (rad), 0=forward
-pointCount    @14 :UInt8   — number of radar points in the cluster
-```
-
-## gridd.py fusion logic
+## gridd.py fusion logic — unchanged
 
 ```python
 # _fuse_radar4d(objects, radar4d):
 if len(radar4d.objects) > 0:
     return self._fuse_radar4d_objects(objects, radar4d)   # preferred
 return self._fuse_radar4d_points(objects, radar4d)       # fallback
-
-# _fuse_radar4d_objects:
-for obj_msg in radar4d.objects:
-    if abs(obj_msg.elevation) > _R4D_ELEV_GATE_DEG: continue
-    if not self._radar4d_in_camera_fov(...): continue      # reject clutter outside FOV
-    # shape-aware gate: normalized distance in object's oriented box
-    # ≤1 = match; >1 = spawn new object
-    # → set obj['vRel']/['aRel']/['length']/['width']/['height']/['yawRad']
-    # → boost obj['confidence'] from SNR + existenceProb
 ```
 
-## SPI hardware
-
-- Bus / IRQ / RST: `hal.platform.rk3588_pins.SPI` and `GPIO` — owned by the
-  closed ExoPilot HAL; pin numbers are unconfirmed placeholders pending the
-  carrier-board schematic.
-- Linux `spidev` kernel module `bufsiz` must be raised above its 4096-byte
-  default for this driver's burst FIFO reads (~9.2KB at the default
-  `n_samples=2048`) — `hal`'s driver logs a clear warning/error via
-  `_check_spidev_bufsiz()` if it can detect the configured value is too low.
-- Mounting: BGT60TR13C at Y=0 (vehicle centerline), between `stereo_left`
-  (-40mm) and `stereo_right` (+40mm) on the camera bar.
-
-## DSP pipeline (`../exopilot/hal/hal/drivers/radar/{bgt60tr13c,dsp}.py`)
-
-```
-FIFO raw [n_chirps × n_samples × 3 rx, 12-bit signed]
-  → mean removal (DC offset)
-  → MTI IIR: α=0.5 (static clutter rejection)
-  → range-Doppler FFT: rfft on range axis (ADC is real-valued, not I/Q —
-      a full complex FFT produces a spurious mirror-image ghost detection
-      with inverted azimuth/elevation for every real target), full FFT on
-      Doppler axis
-  → 2-D CA-CFAR (guard/training cells, Doppler-axis wrapped) → list[CFARHit]
-  → dual-baseline phase AoA per hit: azimuth from Rx1/Rx3, elevation from
-      Rx2/Rx3 (BGT60TR13C's 3 RX antennas are L-shaped, not a linear array —
-      Rx3 is the shared reference for both pairs)
-  → list[RadarDetection(range_m, vel_mps, azimuth_deg, elevation_deg, snr_db)]
-```
-
-Config sizing (`hal`'s `BGT60Config` defaults, see its docstring): n_samples
-and adc_div are chosen so the real usable range (n_samples//2 bins, since
-rfft only yields half the spectrum) clears the 0-15m target with margin,
-while adc_div is lowered from a naive default to keep chirp period — and
-therefore max unambiguous velocity — automotive-useful (~15 m/s) despite
-the larger n_samples. Deliberately not DISP_RADAR4D's tiny embedded defaults
-(32 samples/16 chirps) — that project is RAM-constrained (32KB STM32G431
-SRAM); the RK3588 this driver runs on is not.
-
-Reference: Infineon's official `sensor-xensiv-bgt60trxx` C driver (register
-addresses, SPI framing, FIFO burst-read encoding) — not the unofficial
-`micropython-radar-bgt60` port this driver was originally reverse-engineered
-from (whose FIFO burst-trigger second byte was wrong; see
-`bgt60tr13c.py::_read_single_chirp()`'s docstring for the derivation).
+No changes here — `radar4d.py`'s corner-pose transform happens *before*
+publish, so gridd still sees one coherent vehicle-frame stream regardless
+of how many physical corner nodes contributed to it.
 
 ## Verification
 
 ```bash
 cereal_print radar4d          # tracked 4D detections at ~20Hz (confirmed tracks only)
 cereal_print stereoObjects    # stereo objects — vRel should be non-zero for close targets
-cereal_print radarState       # car OEM ACC radar, unchanged
 ```
 
-No hardware needed for driver/DSP/tracker/fusion correctness — see
-`../exopilot/hal/tests/test_radar_dsp.py` (synthetic IQ, range/velocity/AoA
-recovery), `selfdrive/controls/tests/test_radar4d_tracker.py` (EKF + occlusion),
-`selfdrive/controls/tests/test_radar4d_pointcloud.py` (clustering + shape),
-`selfdrive/controls/tests/test_radar4d_geometry.py` (coordinate transforms),
-`selfdrive/controls/tests/test_radar4d_calibrate.py` (LUT building),
-`selfdrive/gridd/tests/test_fuse_radar4d.py` (fusion gates).
+No hardware needed for decode/transform/pipeline correctness:
+`../exopilot/hal/tests/test_radar4d.py` (packet decode, receiver demux/staleness),
+`selfdrive/controls/tests/test_radar4d_tracker.py` (EKF + occlusion, unchanged),
+`selfdrive/controls/tests/test_radar4d_pointcloud.py` (clustering + shape, unchanged),
+`selfdrive/controls/tests/test_radar4d_geometry.py` (coordinate transforms,
+now including the extracted `corner_local_to_vehicle_frame()`),
+`selfdrive/gridd/tests/test_fuse_radar2d.py` (fusion gates, confirms the
+shared-transform refactor didn't regress radar2d).
 
 ## Open items
 
-- [ ] Confirm radar IRQ/RST GPIO pin numbers against the carrier-board
-      schematic and flip `hal.platform.rk3588_pins.GPIO[...]["confirmed"]` to `True`
-- [ ] Confirm the RX-channel-to-antenna mapping with a known-angle target
-      before trusting azimuth/elevation sign on real hardware — which
-      physical FIFO channel is Rx1/Rx2/Rx3 depends on RX-enable bit order in
-      the chirp config register; an off-by-one here silently swaps azimuth
-      and elevation
-- [ ] Confirm `spidev.bufsiz` is raised (kernel/module parameter) on the
-      target image — required for the ~9.2KB burst reads at this driver's
-      default `n_samples`
-- [ ] Verify `vel_mps` absolute scale on hardware — actual chirp spacing is
-      software-loop-dominated (~2 ms), not RTU register timing
-- [ ] Tune CFAR `pfa`/guard/training cell sizes, `CLUSTER_EPS_M`,
-      `MAX_ASSOC_M`, `CONFIRM_HITS`/`DROP_MISSES`, `_R4D_ELEV_GATE_DEG`,
-      `_R4D_CONFIDENCE_BOOST` on first hardware test — all currently
-      best-effort/untuned
-- [ ] Replace `hal`'s hand-derived FSU/RSU/RTU chirp-PLL math with a
-      register list generated by Infineon's `bgt60-configurator-cli` tool
-      for the target chirp config, once available
+- [ ] Bench-verify azimuth/elevation sign and velocity sign against real
+      ESP32_RADAR hardware — `docs/dsp-design.md` in that repo flags all
+      three as "not yet bench-verified against real silicon."
+- [ ] Confirm `radar_extrinsics.json` doesn't carry a stale non-zero
+      camera-bar-mount offset from the BGT60 era (see Extrinsic calibration
+      above) — currently safe only because the file defaults to all-zero.
+- [ ] Corner_id ↔ physical-position mapping (resistor-strap read) should be
+      confirmed against the real installed harness before trusting which
+      detections come from which corner.
+- [ ] No pitch/roll transform is attempted for corner-local detections (2D
+      yaw-only, matching `radar2d`'s existing precedent) — revisit if
+      corner nodes end up mounted at a meaningful tilt.
+- [ ] Tune DBSCAN `eps_m`/`min_samples`, tracker gate sizes, and
+      `MAX_RANGE_M` on first real-hardware test — all currently
+      best-effort/untuned for the new 4-corner geometry (previously tuned
+      for a single center-mounted sensor).

@@ -43,6 +43,14 @@ class _FuseHost:
     # (registry pose when available, else this same placeholder table) — not
     # the class constant directly. Mirror that fallback here.
     _r2d_corner_pose = GridD._R2D_CORNER_POSE
+    # Likewise: __init__ sets this to the imported radar4d_geometry function
+    # (or this same fallback on import failure) — _fuse_radar2d_objects reads
+    # the instance attribute, not a module-level import. staticmethod(...)
+    # wrapper is required here (unlike the plain-method copies below) since
+    # _corner_pose_transform_fallback is itself a @staticmethod on GridD —
+    # without it, accessing this via `self.` would wrongly bind self as the
+    # first positional arg.
+    _corner_local_to_vehicle_frame = staticmethod(GridD._corner_pose_transform_fallback)
     _R4D_SNR_REF_DB = GridD._R4D_SNR_REF_DB
     _R4D_CONFIDENCE_BOOST = GridD._R4D_CONFIDENCE_BOOST
     _active_costmap: FusionCostmapGenerator | None = None

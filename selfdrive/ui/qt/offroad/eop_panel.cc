@@ -812,15 +812,15 @@ void EopPanel::add_driver_toggles() {
 void EopPanel::add_radar4d_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("📡 ") + tr("4D Short-Range Radar"),
-      tr("BGT60TR13C 60GHz FMCW radar, mounted on the stereo camera bar."
-         "\nAdds Doppler velocity and short-range (0-15m) forward/blind-spot"
-         " detection to the camera fusion pipeline. Requires the sensor to be"
-         " physically installed.")));
+      tr("4 corner-mounted radar nodes (WiFi/UDP), one per corner."
+         "\nAdds Doppler velocity and short-range (0-15m) surround"
+         " detection to the camera fusion pipeline. Requires the sensor"
+         " nodes to be physically installed and paired.")));
 
   auto radar4d_toggle = new ParamControl(
       "EOPRadar4DEnabled",
       tr("Enable 4D Radar"),
-      tr("Only enable if the BGT60TR13C radar is physically installed."
+      tr("Only enable if the corner radar nodes are physically installed."
          "\nLeave off on hardware without this sensor."),
       "", this);
   addItem(radar4d_toggle);

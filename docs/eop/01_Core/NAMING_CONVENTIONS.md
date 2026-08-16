@@ -274,8 +274,9 @@ selfdrive/controls/lib/
 | `gridd` | `selfdrive/gridd/gridd.py` | `GridD` | Stereo vision + occupancy grid | 20 Hz |
 | `pathd` | `selfdrive/pathd/pathd.py` | `PathD` | Path planning + collision avoidance | 20 Hz |
 | `recordd` | `selfdrive/recordd/recordd.py` | `RecordD` | DVR ring-buffer recording | Always |
-| `radar3d` | `selfdrive/controls/radar3d.py` | `RadarD` | Car OEM CAN radar (ACC) | 20 Hz |
-| `radar4d` | `selfdrive/controls/radar4d.py` | `Radar4DD` | BGT60TR13C 4D short-range → gridd | 20 Hz |
+| `radar3d` | `selfdrive/controls/radar3d.py` | `Radar3DD` | Long-range UART radar producer | 20 Hz |
+| `radard` | `selfdrive/controls/radard.py` | `RadarD` | radar3d + modelV2 lead fusion → radarState (ACC) | 20 Hz |
+| `radar4d` | `selfdrive/controls/radar4d.py` | `Radar4DD` | ESP32_RADAR corner-node point cloud (WiFi/UDP) → gridd | 20 Hz |
 | `plannerd` | `selfdrive/controls/plannerd.py` | `PlannerD` | Longitudinal planning | 20 Hz |
 | `imud` | `system/imud/imud.py` | `ImuD` | IMU sensor polling | 100 Hz |
 | `socketd` | `system/socketd/socketd.py` | `SocketD` | SocketCAN bridge | Always |

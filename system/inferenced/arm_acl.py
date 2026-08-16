@@ -123,7 +123,10 @@ class ACLBackend(HardwareBackend):
       return inputs.get('input')
 
     elif model_name == 'radar_cfar':
-      # BGT60TR13C 4D radar 2-D CA-CFAR offloaded to Mali GPU.
+      # BGT60TR13C 2-D CA-CFAR offloaded to Mali GPU. Currently unused by
+      # radar4d.py (moved to 4x ESP32_RADAR corner nodes doing their own
+      # onboard CFAR over WiFi/UDP, see docs/eop/bgt60_radar.md) — kept here
+      # since it's shared inferenced infrastructure, not radar4d-owned.
       logger.debug("ACL GPU: radar 2-D CA-CFAR")
       from hal.drivers.radar import dsp_gpu_kernel
       kernel = dsp_gpu_kernel.get_kernel()

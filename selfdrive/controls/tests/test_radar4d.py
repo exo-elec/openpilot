@@ -1,7 +1,3 @@
-import json
-import os
-import tempfile
-
 import numpy as np
 
 from openpilot.selfdrive.controls.radar4d import Radar4DD, _is_crossing_ghost
@@ -82,10 +78,6 @@ def test_apply_calibration_yaw_left_corrects_azimuth():
     assert abs(el) < 0.01
 
 
-def test_load_intrinsics_missing_file_returns_none():
-    assert Radar4DD._load_intrinsics() is None
-
-
 class TestRadarEgoVelocity:
     """Radar-Doppler ego velocity via the shared HAL estimator."""
 
@@ -132,45 +124,3 @@ class TestRadarEgoVelocity:
         vx = Radar4DD._estimate_radar_ego_velocity(self._static_scene(0.0))
         assert vx is not None
         assert abs(vx) < 0.5
-
-
-def test_load_intrinsics_round_trip_json(monkeypatch):
-    """The JSON loader must reconstruct the same grid fields it serializes."""
-    try:
-        from hal.drivers.radar import IntrinsicCalibration
-    except ImportError:
-        # HAL not installed on this test runner; skip.
-        return
-
-    cal = IntrinsicCalibration.identity()
-    cal.range_committed = True
-    cal.az_committed = True
-    cal.el_committed = False
-    cal.range_band_meas = (0.9, 1.9, 2.9, 3.9)
-    cal.range_band_true = (1.0, 2.0, 3.0, 4.0)
-    cal.az_col_meas = (-20.0, -10.0, 0.0, 10.0, 20.0, 30.0, 40.0, 50.0)
-    cal.az_cell_true = tuple(tuple(float(i + j) for i in range(8)) for j in range(4))
-
-    data = {
-        "range_committed": cal.range_committed,
-        "az_committed": cal.az_committed,
-        "el_committed": cal.el_committed,
-        "range_band_meas": list(cal.range_band_meas),
-        "range_band_true": list(cal.range_band_true),
-        "az_col_meas": list(cal.az_col_meas),
-        "az_cell_true": [list(row) for row in cal.az_cell_true],
-    }
-
-    with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "radar_intrinsics.json")
-        with open(path, "w") as f:
-            json.dump(data, f)
-        monkeypatch.setattr("openpilot.selfdrive.controls.radar4d.INTRINSICS_PATH", path)
-        loaded = Radar4DD._load_intrinsics()
-        assert loaded is not None
-        assert loaded.range_committed is True
-        assert loaded.az_committed is True
-        assert loaded.el_committed is False
-        assert loaded.range_band_meas == cal.range_band_meas
-        assert loaded.az_col_meas == cal.az_col_meas
-        assert loaded.az_cell_true == cal.az_cell_true

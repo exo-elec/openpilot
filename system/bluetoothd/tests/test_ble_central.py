@@ -9,10 +9,14 @@ import logging
 import struct
 import time
 
+from hal.drivers.radar.radar2d import (
+    HEADER_STRUCT, OBJECT_STRUCT, MAX_OBJECTS_PER_DATAGRAM,
+    decode_object_datagram,
+)
 from openpilot.system.bluetoothd.ble_central import (
-    HEADER_STRUCT, OBJECT_STRUCT, MAX_OBJECTS_PER_DATAGRAM, GATT_CHAR_IFACE,
+    GATT_CHAR_IFACE,
     ESPRESSIF_COMPANY_ID, PAIR_DWELL_S, PAIR_RSSI_DBM,
-    decode_object_datagram, corner_to_side,
+    corner_to_side,
     address_from_char_path, CornerPairTable, BLECentral,
     parse_wifi_mac_from_mfg_data, load_wifi_roster, check_learn_eligibility,
 )

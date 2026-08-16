@@ -1,10 +1,15 @@
 """
 Radar-stereo camera geometry utilities.
 
-The BGT60TR13C 4D radar is mounted at the center of the stereo camera pair
-(between stereo_left and stereo_right, on the vehicle centerline).  This
-module provides the geometric link between radar detections and camera
-images so gridd can:
+RadarMounting/RadarStereoGeometry below model a single sensor mounted at
+the center of the stereo camera pair (between stereo_left and stereo_right,
+on the vehicle centerline) — that was true when radar4d was one
+camera-bar-mounted BGT60TR13C. radar4d is now 4 corner-mounted ESP32_RADAR
+nodes (see docs/eop/bgt60_radar.md), each transformed into vehicle frame
+by `corner_local_to_vehicle_frame()` below *before* publish — so by the
+time gridd.py's FOV gate uses RadarMounting, it's a nominal vehicle-origin
+reference, not a physical sensor position. This module still provides the
+geometric link between radar detections and camera images so gridd can:
 
   - project radar points into stereo/road camera images for visualization
   - associate radar returns with stereo depth pixels
@@ -91,6 +96,27 @@ def load_corner_poses(path: str = SENSOR_REGISTRY_PATH) -> dict[int, tuple[float
         except (TypeError, KeyError, ValueError):
             return None
     return poses
+
+
+def corner_local_to_vehicle_frame(range_m: float, azimuth_deg: float,
+                                   pose: tuple[float, float, float]) -> tuple[float, float]:
+    """Rotate one corner-node-local polar detection into vehicle-frame (dRel, yRel).
+
+    2D only (yaw rotation + translation) — corner nodes are near-level-mounted
+    and pose carries no pitch/roll, matching gridd.py's existing radar2d
+    corner-fusion precedent this was extracted from (see _fuse_radar2d_objects
+    in selfdrive/gridd/gridd.py, which now calls this instead of its own
+    inline copy). `pose` is (x_m, y_m, yaw_deg) from load_corner_poses() or
+    its placeholder fallback — vehicle-frame mounting position + yaw.
+    """
+    px, py, yaw_deg = pose
+    az = math.radians(azimuth_deg)
+    yaw = math.radians(yaw_deg)
+    sx = range_m * math.cos(az)   # forward in sensor frame
+    sy = range_m * math.sin(az)   # left in sensor frame
+    d_rel = px + sx * math.cos(yaw) - sy * math.sin(yaw)
+    y_rel = py + sx * math.sin(yaw) + sy * math.cos(yaw)
+    return d_rel, y_rel
 
 
 @dataclass

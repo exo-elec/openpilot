@@ -115,7 +115,6 @@ import json
 import logging
 import math
 import re
-import struct
 import threading
 import time
 
@@ -136,6 +135,16 @@ except ImportError:
     messaging = None
     Params = None
 
+try:
+    from hal.drivers.radar.radar2d import CORNER_UNKNOWN, decode_object_datagram
+    HAL_RADAR2D_AVAILABLE = True
+except ImportError:
+    HAL_RADAR2D_AVAILABLE = False
+    CORNER_UNKNOWN = 0xFF
+
+    def decode_object_datagram(_data: bytes) -> dict | None:
+        return None
+
 logger = logging.getLogger('bluetoothd.ble_central')
 
 # ── GATT contract UUIDs (see module docstring — cross-repo contract) ──────────
@@ -151,14 +160,10 @@ PROPS_IFACE     = 'org.freedesktop.DBus.Properties'
 OBJMGR_IFACE    = 'org.freedesktop.DBus.ObjectManager'
 ADAPTER_PATH    = '/org/bluez/hci0'
 
-# ── Wire format (mirrors ESP32_RADAR/00_common/wire_format conventions) ───────
-HEADER_STRUCT = struct.Struct('<BBHI')        # corner_id, count, seq, capture_time_us
-OBJECT_STRUCT = struct.Struct('<IhhhhBBH')    # 16-byte tracked-object record
-MAX_OBJECTS_PER_DATAGRAM = 12                 # 8 + 12*16 = 200 B ≤ 244 B ATT MTU
-HEADER_SIZE = HEADER_STRUCT.size
-OBJECT_SIZE = OBJECT_STRUCT.size
-
-CORNER_UNKNOWN = 0xFF
+# ── Wire format ─────────────────────────────────────────────────────────────
+# Struct layout + decode_object_datagram() live in hal.drivers.radar.radar2d
+# (pure wire decode, no D-Bus/Params — shared-hal ownership pattern, same as
+# radar3d.py/radar4d.py in that package). CORNER_UNKNOWN imported above.
 
 CORNER_NAMES = {0: 'FL', 1: 'FR', 2: 'RL', 3: 'RR'}
 
@@ -271,46 +276,6 @@ def corner_to_side(corner_id: int) -> int | None:
     """Translate ESP32 corner ID (0=FL,1=FR,2=RL,3=RR) to Radar2DReturn.side
     (0=LF,1=LR,2=RF,3=RR). Returns None for unknown/strap-unresolved IDs."""
     return CORNER_TO_SIDE.get(corner_id)
-
-
-def decode_object_datagram(data: bytes) -> dict | None:
-    """Decode one radar-objects GATT notification (pure python, no D-Bus).
-
-    Returns {'corner_id', 'count', 'seq', 'capture_time_us', 'objects': [...]}
-    with each object a dict of SI-unit fields, or None if the datagram is
-    malformed (bad length, count mismatch, count out of range).
-    """
-    if data is None or len(data) < HEADER_SIZE:
-        return None
-    corner_id, count, seq, capture_time_us = HEADER_STRUCT.unpack_from(data, 0)
-    if count > MAX_OBJECTS_PER_DATAGRAM:
-        return None
-    if len(data) != HEADER_SIZE + count * OBJECT_SIZE:
-        return None
-
-    objects = []
-    for i in range(count):
-        (track_id, range_cm, vel_x100, az_x10, snr_x10,
-         existence_prob, flags, _reserved) = OBJECT_STRUCT.unpack_from(
-            data, HEADER_SIZE + i * OBJECT_SIZE)
-        objects.append({
-            'trackId': track_id,
-            'rangM': range_cm / 100.0,
-            'vRel': vel_x100 / 100.0,
-            'azimuthDeg': az_x10 / 10.0,
-            'snrDb': snr_x10 / 10.0,
-            'existenceProb': float(existence_prob),  # 0..100, matches Radar4DObject convention
-            'measured': bool(flags & 0x01),
-            'isStatic': bool(flags & 0x02),
-        })
-
-    return {
-        'corner_id': corner_id,
-        'count': count,
-        'seq': seq,
-        'capture_time_us': capture_time_us,
-        'objects': objects,
-    }
 
 
 # ── Persistent pair set (BLE address → corner_id) ────────────────────────────
