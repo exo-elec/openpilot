@@ -107,6 +107,22 @@ class. **The additive-tier logic cannot be lifted onto NGP10 as-is.**
    match if/when NGP10 does eventually pick up the pipeline upgrade for
    other reasons.
 
+**Third option surfaced (2026-08-17), not yet evaluated:** tinygrad
+natively loads `.onnx` graphs (`extra/onnx_helpers.py`, confirmed by
+example scripts in `~/pilot/tinygrad`) — it does not require the
+pkl/JIT-blob compilation step upstream's current `modeld.py` uses
+(`modeld_pkl_path()`/`load_oob()`). Since `big_driving_vision.onnx` and
+`big_driving_policy.onnx` are already `.onnx` files, a `ModelState` variant
+that hands them to tinygrad's ONNX frontend directly could sidestep
+needing upstream's specific offline compilation tooling under either
+option 1 or option 2 above. Not evaluated for correctness or performance —
+recorded as a variable in the decision, not a resolved third path. Full
+context: exopilot's `docs/02-HARDWARE/EGPU_ASM2464PD.md` §13 (also records
+why ONNX Runtime's ROCm execution provider was ruled out as an alternative
+runtime — the ASM2464PD never exposes a kernel-visible PCI device in the
+plain-USB3 mode this whole design depends on, so ROCm has nothing to bind
+to; tinygrad's own USB3 backend exists specifically to route around that).
+
 Per ExoPilot's decision (2026-08-17): EOP10's eventual eGPU tier will reuse
 NGP10's `big_driving_vision.onnx`/`big_driving_policy.onnx` models rather
 than sourcing new ones — whichever option is chosen here, keep those model
