@@ -7,6 +7,7 @@
 3. [`EOP10_PARITY_CANDIDATES.md`](EOP10_PARITY_CANDIDATES.md) — what EOP10 has that NGP10 doesn't yet, and why (portable vs. hardware-gated).
 4. [`SPEED_AND_TJA_POLICY.md`](SPEED_AND_TJA_POLICY.md) — CRAWL/WALK/CITY/URBAN/HIGHWAY and traffic-jam behavior.
 5. [`NAMING_CONVENTIONS.md`](NAMING_CONVENTIONS.md) — `ngp_` settings and module naming.
+6. [`USBGPU_EGPU_INTEGRATION.md`](USBGPU_EGPU_INTEGRATION.md) — ASM2464PD eGPU additive-tier design notes; no code changed yet, blocked on hardware and a `ModelState` pipeline decision.
 
 Runtime code follows the same order:
 
