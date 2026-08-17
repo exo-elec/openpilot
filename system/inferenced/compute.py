@@ -52,6 +52,7 @@ class BackendType(IntEnum):
     HAILO_8 = 6   # Hailo-8 NPU (26 TOPS, camera inference)
     ONNX = 7      # ONNX Runtime (x86 dev PC / CPU fallback)
     DX_M1 = 8     # DeepX DX-M1 PCIe AI accelerator (20 TOPS, camera inference tier)
+    USB_GPU = 9   # ASM2464PD-bridge eGPU + desktop AMD Radeon GPU (RDNA4) — presence-detection only, not yet an inference tier
 
 
 class WorkloadClass:
@@ -188,6 +189,7 @@ class HALConfig:
     enable_mpp: bool = True
     enable_hailo_8: bool = True  # Hailo-8 (26 TOPS) — gracefully skips if not present
     enable_dx_m1: bool = True   # DEEPX DX-M1 (20 TOPS) — gracefully skips if not present
+    enable_usb_gpu: bool = True  # ASM2464PD eGPU — presence detection only, not yet an inference tier
     enable_onnx: bool = True    # ONNX Runtime fallback (dev PC / x86_64)
     num_workers: int = 4
     max_queue_size: int = 100
@@ -252,6 +254,9 @@ class HAL:
 
         if self.config.enable_dx_m1:
             self._init_backend(BackendType.DX_M1, 'system.inferenced.deepx_dxnn', 'DeepXBackend')
+
+        if self.config.enable_usb_gpu:
+            self._init_backend(BackendType.USB_GPU, 'system.inferenced.usb_gpu', 'UsbGpuBackend')
 
         if self.config.enable_onnx:
             self._init_backend(BackendType.ONNX, 'system.inferenced.onnx_backend', 'OnnxBackend')
