@@ -5,19 +5,19 @@ from openpilot.system.hardware import TICI
 os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
 
 # Post-flash ASM2464PD USB IDs (tinygrad corp's own bridge firmware, not comma's
-# Chestnut build — see exopilot's docs/02-HARDWARE/EGPU_ASM2464PD.md). USBGPU only
+# Chestnut build — see exopilot's docs/02-HARDWARE/EGPU_ASM2464PD.md). EGPU only
 # opts in to eGPU device selection when the board is actually enumerated present,
 # so a stale/forgotten env var can never leave modeld pointed at a missing device.
-USBGPU_VID_PIDS = {('0xadd1', '0x0001'), ('0x3801', '0x0001')}
+EGPU_VID_PIDS = {('0xadd1', '0x0001'), ('0x3801', '0x0001')}
 
 # Literal USB product string tinygrad's extra/usbgpu/patch.py writes into the
 # flashed firmware (confirmed by reading patch.py directly). Unlike comma's
 # Chestnut firmware, which embeds a per-build hash, tinygrad's generic
 # firmware uses this fixed string — checked alongside VID:PID so an
 # unrelated device reusing those IDs can't false-positive.
-USBGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
+EGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
 
-def _usbgpu_present() -> bool:
+def _egpu_present() -> bool:
   for path in glob.glob('/sys/bus/usb/devices/*'):
     try:
       with open(f'{path}/idVendor') as f: vendor = f.read().strip().lower()
@@ -25,12 +25,12 @@ def _usbgpu_present() -> bool:
       with open(f'{path}/product') as f: product_str = f.read().strip()
     except OSError:
       continue
-    if (f'0x{vendor}', f'0x{product}') in USBGPU_VID_PIDS and product_str == USBGPU_PRODUCT:
+    if (f'0x{vendor}', f'0x{product}') in EGPU_VID_PIDS and product_str == EGPU_PRODUCT:
       return True
   return False
 
-USBGPU = "USBGPU" in os.environ and _usbgpu_present()
-if USBGPU:
+EGPU = "EGPU" in os.environ and _egpu_present()
+if EGPU:
   os.environ['DEV'] = 'AMD'
   os.environ['AMD_IFACE'] = 'USB'
 from tinygrad.tensor import Tensor
@@ -171,7 +171,7 @@ class ModelState:
     self.numpy_inputs['traffic_convention'][:] = inputs['traffic_convention']
     imgs_cl = {name: self.frames[name].prepare(bufs[name], transforms[name].flatten()) for name in self.vision_input_names}
 
-    if TICI and not USBGPU:
+    if TICI and not EGPU:
       # The imgs tensors are backed by opencl memory, only need init once
       for key in imgs_cl:
         if key not in self.vision_inputs:
@@ -203,9 +203,9 @@ class ModelState:
 
 def main(demo=False):
   cloudlog.warning("modeld init")
-  cloudlog.warning(f"USB eGPU {'active' if USBGPU else 'not active'}")
+  cloudlog.warning(f"eGPU {'active' if EGPU else 'not active'}")
 
-  if not USBGPU:
+  if not EGPU:
     # USB GPU currently saturates a core so can't do this yet,
     # also need to move the aux USB interrupts for good timings
     config_realtime_process(7, 54)

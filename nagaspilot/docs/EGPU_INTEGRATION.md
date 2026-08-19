@@ -1,4 +1,14 @@
-# USB eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19)
+# eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19)
+
+**Naming (2026-08-19):** this branch's `EGPU` flag/constants/functions were
+previously named `USBGPU` (inherited from comma's own variable name).
+Renamed to `EGPU` to match the single canonical name now used everywhere
+in the ecosystem — `dev/EOP10`, `visionpilot`, `humrobot`
+(`BackendType.EGPU`/`EgpuBackend`/`egpu.py`) and exopilot's BSP/DTS layer
+(already `egpu` before this change). Naming-only; no behavior change
+except the activating env var itself is now `EGPU=1`, not `USBGPU=1` — see
+exopilot doc §18 for the full rationale (previously three different names
+for the same thing with no single decision behind it).
 
 **Source of truth for hardware/firmware:** `exopilot`'s
 `docs/02-HARDWARE/EGPU_ASM2464PD.md` documents the full USB-port wiring on
@@ -40,9 +50,9 @@ Diffed `dev/NGP10:selfdrive/modeld/modeld.py` against
 `~/pilot/ext_gpu/openpilot-upstream`'s current `modeld.py` (comma's actual
 Chestnut port). NGP10 is not starting from zero — it already has:
 
-- `USBGPU = "USBGPU" in os.environ` env-var gate, and sets
+- `EGPU = "EGPU" in os.environ` env-var gate, and sets
   `os.environ['DEV'] = 'AMD'` / `os.environ['AMD_IFACE'] = 'USB'` when set.
-- A direct `tinygrad` import and a `TICI`-vs-`USBGPU` branch for vision
+- A direct `tinygrad` import and a `TICI`-vs-`EGPU` branch for vision
   input handling (`qcom_tensor_from_opencl_address` vs. a generic `Tensor`
   path).
 - `selfdrive/modeld/models/big_driving_policy.onnx` and
@@ -58,7 +68,7 @@ Chestnut port). NGP10 is not starting from zero — it already has:
   apply if/when one is trained/ported, but until then there is no distinct
   weight file to compile or point a second `ModelState` at.
 
-This is inherited from an **older generation** of upstream's USBGPU
+This is inherited from an **older generation** of upstream's EGPU
 support — it predates the current Chestnut-era architecture. What's
 missing, present in current upstream but not here:
 
@@ -145,7 +155,7 @@ the post-flash ASM2464PD USB VID:PIDs and reports unavailable if absent,
 with no driving-path code and no WorkloadClass tier wiring. That pattern
 doesn't apply here — NGP10 has no `system/inferenced/` HAL (confirmed via
 `git ls-tree`, 25 files / 6420 lines present on EOP10 only) — NGP10's
-model selection lives entirely inside `modeld.py`'s `USBGPU` env-var gate,
+model selection lives entirely inside `modeld.py`'s `EGPU` env-var gate,
 which is exactly the surface this doc is about.
 
 ## What was implemented (2026-08-19): presence-gated device selection
@@ -156,11 +166,11 @@ right now. But they don't block a narrower, honest slice of upstream's
 pattern that upstream also relies on independently of `ChestnutState`:
 **never let device selection point at hardware that isn't there.**
 
-Before this change, `USBGPU = "USBGPU" in os.environ"` was a blind env-var
+Before this change, `EGPU = "EGPU" in os.environ"` was a blind env-var
 gate — if set without the board physically present, `os.environ['DEV'] =
 'AMD'` / `os.environ['AMD_IFACE'] = 'USB'` would still fire, and tinygrad
 would go looking for a USB device that doesn't exist. `modeld.py` now
-checks real USB VID:PID presence (`USBGPU_VID_PIDS`, same post-flash IDs
+checks real USB VID:PID presence (`EGPU_VID_PIDS`, same post-flash IDs
 as exopilot's/EOP10's stubs: `0xADD1:0x0001`, `0x3801:0x0001` — tinygrad
 corp's own bridge firmware, not comma's Chestnut build) before switching
 `DEV`/`AMD_IFACE`, so an unset, forgotten, or stale env var can never leave
@@ -173,9 +183,9 @@ This is deliberately **not** the additive big-model tier: it changes
 *which device* runs the existing small model (falls back to the unchanged
 local `QCOM`/`LLVM` path exactly as before when the eGPU is absent, opted
 out, or the env var was never set), not *which model* runs. Every current
-real-world car is unaffected — `USBGPU` unset means the exact same code
+real-world car is unaffected — `EGPU` unset means the exact same code
 path as before this change. This is safe to land without hardware because
-the only branch that changes behavior (`USBGPU` set *and* the board
+the only branch that changes behavior (`EGPU` set *and* the board
 present) is unreachable until a board exists; the reachable branch
 (everything else) is provably identical to prior behavior.
 
@@ -190,8 +200,8 @@ which embeds a per-build hash (`f"custom {CHESTNUT_FW_VERSION}-CLEAN"`,
 requiring a firmware-release process to track), tinygrad's generic
 firmware uses this fixed literal — no release process on our side to
 version against, so an exact string match is the right check.
-`_usbgpu_present()` now reads `/sys/bus/usb/devices/*/product` and
-requires it to equal `USBGPU_PRODUCT` alongside the VID:PID check.
+`_egpu_present()` now reads `/sys/bus/usb/devices/*/product` and
+requires it to equal `EGPU_PRODUCT` alongside the VID:PID check.
 
 ## Not yet done
 
@@ -207,7 +217,7 @@ requires it to equal `USBGPU_PRODUCT` alongside the VID:PID check.
   against: port/reimplement `ChestnutState`, `load_big()`/`small_model`,
   `usbgpu_present()`/`usbgpu_compiled()` equivalents, the `chestnutState`
   cereal service, and `selfdrived.py` soft-disable wiring. `usbgpu_present()`
-  can reuse this branch's new `USBGPU_VID_PIDS`/`_usbgpu_present()`
+  can reuse this branch's new `EGPU_VID_PIDS`/`_egpu_present()`
   (`modeld.py`) rather than porting upstream's exact-firmware-version
   string match — we don't have a frozen firmware release process to gate
   against.
