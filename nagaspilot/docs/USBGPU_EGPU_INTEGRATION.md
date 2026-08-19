@@ -1,4 +1,4 @@
-# USB eGPU (ASM2464PD) integration — design notes, no code changed (2026-08-17)
+# USB eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19)
 
 **Source of truth for hardware/firmware:** `exopilot`'s
 `docs/02-HARDWARE/EGPU_ASM2464PD.md` documents the full USB-port wiring on
@@ -48,6 +48,15 @@ Chestnut port). NGP10 is not starting from zero — it already has:
 - `selfdrive/modeld/models/big_driving_policy.onnx` and
   `big_driving_vision.onnx` already checked in, plus
   `runners/tinygrad_helpers.py`.
+
+  **Correction (2026-08-19):** these two files are not real distinct model
+  weights. `git cat-file -p` on both shows they are git-stored **symlinks**
+  pointing at `driving_vision.onnx` / `driving_policy.onnx` — the same
+  small models already in use. `git grep` for `big_driving` across the
+  branch's Python source returns nothing: nothing loads them today. There
+  is no "big model" asset on this branch — the two options below still
+  apply if/when one is trained/ported, but until then there is no distinct
+  weight file to compile or point a second `ModelState` at.
 
 This is inherited from an **older generation** of upstream's USBGPU
 support — it predates the current Chestnut-era architecture. What's
@@ -107,21 +116,21 @@ class. **The additive-tier logic cannot be lifted onto NGP10 as-is.**
    match if/when NGP10 does eventually pick up the pipeline upgrade for
    other reasons.
 
-**Third option surfaced (2026-08-17), not yet evaluated:** tinygrad
-natively loads `.onnx` graphs (`extra/onnx_helpers.py`, confirmed by
-example scripts in `~/pilot/tinygrad`) — it does not require the
-pkl/JIT-blob compilation step upstream's current `modeld.py` uses
-(`modeld_pkl_path()`/`load_oob()`). Since `big_driving_vision.onnx` and
-`big_driving_policy.onnx` are already `.onnx` files, a `ModelState` variant
-that hands them to tinygrad's ONNX frontend directly could sidestep
-needing upstream's specific offline compilation tooling under either
-option 1 or option 2 above. Not evaluated for correctness or performance —
-recorded as a variable in the decision, not a resolved third path. Full
-context: exopilot's `docs/02-HARDWARE/EGPU_ASM2464PD.md` §13 (also records
-why ONNX Runtime's ROCm execution provider was ruled out as an alternative
-runtime — the ASM2464PD never exposes a kernel-visible PCI device in the
-plain-USB3 mode this whole design depends on, so ROCm has nothing to bind
-to; tinygrad's own USB3 backend exists specifically to route around that).
+**Third option surfaced (2026-08-17):** tinygrad natively loads `.onnx`
+graphs via `tinygrad.nn.onnx.OnnxRunner` (confirmed by reading
+`tinygrad/nn/onnx.py` directly — `OnnxRunner(model_path)` then
+`runner(inputs)`, no pkl/JIT-blob compilation step required, unlike
+upstream's current `modeld.py` which depends on `modeld_pkl_path()` /
+`load_oob()`). This remains the most promising path **once a real
+big-model asset exists** — `big_driving_vision.onnx` /
+`big_driving_policy.onnx` turned out to be symlinks to the small models
+(see correction above), not something to load today. Not evaluated for
+correctness or performance against real weights. Full context: exopilot's
+`docs/02-HARDWARE/EGPU_ASM2464PD.md` §13 (also records why ONNX Runtime's
+ROCm execution provider was ruled out as an alternative runtime — the
+ASM2464PD never exposes a kernel-visible PCI device in the plain-USB3 mode
+this whole design depends on, so ROCm has nothing to bind to; tinygrad's
+own USB3 backend exists specifically to route around that).
 
 Per ExoPilot's decision (2026-08-17): EOP10's eventual eGPU tier will reuse
 NGP10's `big_driving_vision.onnx`/`big_driving_policy.onnx` models rather
@@ -139,15 +148,55 @@ doesn't apply here — NGP10 has no `system/inferenced/` HAL (confirmed via
 model selection lives entirely inside `modeld.py`'s `USBGPU` env-var gate,
 which is exactly the surface this doc is about.
 
+## What was implemented (2026-08-19): presence-gated device selection
+
+The two blockers above (no big-model asset, no hardware to test the
+driving path against) rule out porting the additive **big-model** tier
+right now. But they don't block a narrower, honest slice of upstream's
+pattern that upstream also relies on independently of `ChestnutState`:
+**never let device selection point at hardware that isn't there.**
+
+Before this change, `USBGPU = "USBGPU" in os.environ"` was a blind env-var
+gate — if set without the board physically present, `os.environ['DEV'] =
+'AMD'` / `os.environ['AMD_IFACE'] = 'USB'` would still fire, and tinygrad
+would go looking for a USB device that doesn't exist. `modeld.py` now
+checks real USB VID:PID presence (`USBGPU_VID_PIDS`, same post-flash IDs
+as exopilot's/EOP10's stubs: `0xADD1:0x0001`, `0x3801:0x0001` — tinygrad
+corp's own bridge firmware, not comma's Chestnut build) before switching
+`DEV`/`AMD_IFACE`, so an unset, forgotten, or stale env var can never leave
+modeld pointed at a missing device. `main()` logs whether the eGPU is
+active at startup, matching the file's existing `cloudlog.warning`
+transparency pattern (no new cereal service — that's still gated on the
+same two blockers as `ChestnutState` below).
+
+This is deliberately **not** the additive big-model tier: it changes
+*which device* runs the existing small model (falls back to the unchanged
+local `QCOM`/`LLVM` path exactly as before when the eGPU is absent, opted
+out, or the env var was never set), not *which model* runs. Every current
+real-world car is unaffected — `USBGPU` unset means the exact same code
+path as before this change. This is safe to land without hardware because
+the only branch that changes behavior (`USBGPU` set *and* the board
+present) is unreachable until a board exists; the reachable branch
+(everything else) is provably identical to prior behavior.
+
 ## Not yet done
 
-- Decide between the two options above.
-- Once decided and hardware exists: port/reimplement `ChestnutState`,
-  `load_big()`/`small_model`, `usbgpu_present()`/`usbgpu_compiled()`
-  equivalents, the `chestnutState` cereal service, and `selfdrived.py`
-  soft-disable wiring.
-- Compile `big_driving_vision.onnx`/`big_driving_policy.onnx` into
-  whatever pkl/blob format the chosen `ModelState` shape expects.
+- **Get a real big-model asset.** Nothing above can produce one — this is
+  an ML training/porting question, out of scope for BSP-level code
+  adaptation. Until a distinct (non-symlink) `big_driving_vision`/
+  `big_driving_policy` weight file exists, there is nothing for
+  `ChestnutState`/`load_big()`-equivalent code to load, regardless of
+  which pipeline option is chosen below.
+- Decide between the two pipeline options above (still open, still the
+  user's call — unchanged by this update).
+- Once decided, a big-model asset exists, and hardware exists to verify
+  against: port/reimplement `ChestnutState`, `load_big()`/`small_model`,
+  `usbgpu_present()`/`usbgpu_compiled()` equivalents, the `chestnutState`
+  cereal service, and `selfdrived.py` soft-disable wiring. `usbgpu_present()`
+  can reuse this branch's new `USBGPU_VID_PIDS`/`_usbgpu_present()`
+  (`modeld.py`) rather than porting upstream's exact-firmware-version
+  string match — we don't have a frozen firmware release process to gate
+  against.
 - ASM2464PD flashing tooling for this branch/device (exopilot doc §8, §10
   — likely reuse `tinygrad_repo`'s own `extra/usbgpu/patch.py` rather than
   porting comma's `flash.py` orchestration wholesale).
