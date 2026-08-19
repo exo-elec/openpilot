@@ -195,8 +195,11 @@ class UsbGpuBackend(HardwareBackend):
       start = time.monotonic()
       # Inputs are placed on the AMD device explicitly (not via the DEV env
       # var) so this backend can't interfere with any other tinygrad device
-      # this process might use — see module docstring.
-      tg_inputs = {k: Tensor(v, device="AMD") for k, v in inputs.items()}
+      # this process might use — see module docstring. Guard against an
+      # already-a-Tensor input (Tensor(existing_tensor) raises — tinygrad
+      # has no such-case handling, unlike OnnxRunner._parse_input, which
+      # this mirrors).
+      tg_inputs = {k: (v.to("AMD") if isinstance(v, Tensor) else Tensor(v, device="AMD")) for k, v in inputs.items()}
       raw_outputs = handle.runner(tg_inputs)
       outputs = {k: v.numpy() for k, v in raw_outputs.items()}
       inference_time_ms = (time.monotonic() - start) * 1000
