@@ -179,6 +179,20 @@ the only branch that changes behavior (`USBGPU` set *and* the board
 present) is unreachable until a board exists; the reachable branch
 (everything else) is provably identical to prior behavior.
 
+**Hardened further (2026-08-19), applied identically on `dev/EOP10`'s
+`system/inferenced/usb_gpu.py`:** VID:PID alone only rules out most
+false positives, not all — some unrelated device could in principle
+reuse `0xADD1:0x0001`. Read `tinygrad/extra/usbgpu/patch.py` directly
+(not from a summary) to find the literal USB product string it writes
+into the flashed firmware's descriptor: `"USB 3.2 PCIe TinyEnclosure"`
+(config1, ASCII bytes at offset 64). Unlike comma's Chestnut firmware,
+which embeds a per-build hash (`f"custom {CHESTNUT_FW_VERSION}-CLEAN"`,
+requiring a firmware-release process to track), tinygrad's generic
+firmware uses this fixed literal — no release process on our side to
+version against, so an exact string match is the right check.
+`_usbgpu_present()` now reads `/sys/bus/usb/devices/*/product` and
+requires it to equal `USBGPU_PRODUCT` alongside the VID:PID check.
+
 ## Not yet done
 
 - **Get a real big-model asset.** Nothing above can produce one — this is

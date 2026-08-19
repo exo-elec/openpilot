@@ -10,14 +10,22 @@ os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
 # so a stale/forgotten env var can never leave modeld pointed at a missing device.
 USBGPU_VID_PIDS = {('0xadd1', '0x0001'), ('0x3801', '0x0001')}
 
+# Literal USB product string tinygrad's extra/usbgpu/patch.py writes into the
+# flashed firmware (confirmed by reading patch.py directly). Unlike comma's
+# Chestnut firmware, which embeds a per-build hash, tinygrad's generic
+# firmware uses this fixed string — checked alongside VID:PID so an
+# unrelated device reusing those IDs can't false-positive.
+USBGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
+
 def _usbgpu_present() -> bool:
   for path in glob.glob('/sys/bus/usb/devices/*'):
     try:
       with open(f'{path}/idVendor') as f: vendor = f.read().strip().lower()
       with open(f'{path}/idProduct') as f: product = f.read().strip().lower()
+      with open(f'{path}/product') as f: product_str = f.read().strip()
     except OSError:
       continue
-    if (f'0x{vendor}', f'0x{product}') in USBGPU_VID_PIDS:
+    if (f'0x{vendor}', f'0x{product}') in USBGPU_VID_PIDS and product_str == USBGPU_PRODUCT:
       return True
   return False
 
