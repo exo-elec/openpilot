@@ -386,6 +386,29 @@ class HAL:
         """Check if a backend is available."""
         return backend_type in self._backends
 
+    def get_backend_for_workload(self, workload: str) -> HardwareBackend | None:
+        """Get the best available backend for a specific WorkloadClass.
+
+        Reads WORKLOAD_CLASS directly off each already-initialized backend
+        instance in self._backends — unlike get_backend(), which requires
+        knowing the exact BackendType, this lets a caller ask for
+        "whatever serves camera_inference" without hardcoding which
+        accelerator that is. Backend classes that don't set WORKLOAD_CLASS
+        (ACL, RGA, MPP, ONNX, EGPU) are never returned by this method —
+        query them directly via get_backend() if that's what's wanted.
+
+        Order follows registration order in initialize() above, e.g.
+        HAILO_8 before DX_M1 for camera_inference. Tiers are fully
+        isolated (see WorkloadClass docstring) — no cross-tier fallback,
+        so this never returns the NPU/RKNN backend for camera_inference or
+        vice versa. Returns None if nothing is available for that
+        workload; there is no universal software fallback baked in here.
+        """
+        for backend in self._backends.values():
+            if getattr(backend, 'WORKLOAD_CLASS', None) == workload:
+                return backend
+        return None
+
     def infer(self, backend_type: BackendType, model_name: str,
               inputs: dict, priority: TaskPriority = TaskPriority.NORMAL,
               timeout_ms: float | None = None) -> InferenceResult:

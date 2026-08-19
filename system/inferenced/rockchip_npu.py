@@ -30,6 +30,9 @@ _FP16_MODELS = frozenset({"driving_vision", "driving_policy"})
 class RKNNBackend(HardwareBackend):
   """Rockchip RKNN Lite backend for NPU inference."""
 
+  WORKLOAD_CLASS = 'safety_inference'
+  HAS_DEVICE_MEMORY = False  # shared SoC memory, not discrete device DRAM
+
   def __init__(self):
     super().__init__(BackendType.NPU)
     self._rknn = None
