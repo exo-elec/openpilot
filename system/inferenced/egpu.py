@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""USB GPU Backend — ASM2464PD-bridge eGPU + desktop AMD Radeon GPU (RDNA4).
+"""eGPU Backend — ASM2464PD-bridge eGPU + desktop AMD Radeon GPU (RDNA4).
 
 Loads and runs .onnx models via tinygrad's ONNX frontend
 (tinygrad.nn.onnx.OnnxRunner) on the USB-attached AMD GPU
@@ -55,7 +55,7 @@ from openpilot.system.inferenced.compute import (
 
 logger = logging.getLogger(__name__)
 
-POST_FLASH_VID_PIDS = {("0xadd1", "0x0001"), ("0x3801", "0x0001")}
+EGPU_VID_PIDS = {("0xadd1", "0x0001"), ("0x3801", "0x0001")}
 
 # The literal USB product string tinygrad's extra/usbgpu/patch.py writes into
 # config1's descriptor bytes at flash time (confirmed by reading patch.py
@@ -64,10 +64,10 @@ POST_FLASH_VID_PIDS = {("0xadd1", "0x0001"), ("0x3801", "0x0001")}
 # (f"custom {CHESTNUT_FW_VERSION}-CLEAN"), tinygrad's generic firmware uses
 # this fixed literal — no release process on our side to track a hash
 # against, so an exact string match is the right check here.
-POST_FLASH_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
+EGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
 
 
-def _detect_usb_gpu() -> bool:
+def _detect_egpu() -> bool:
   """Return True if a flashed (post-firmware) ASM2464PD is on the USB bus.
 
   Checks both the VID:PID and the product string tinygrad's patch.py writes,
@@ -83,19 +83,19 @@ def _detect_usb_gpu() -> bool:
         product_str = f.read().strip()
     except OSError:
       continue
-    if (f'0x{vendor}', f'0x{product_id}') in POST_FLASH_VID_PIDS and product_str == POST_FLASH_PRODUCT:
+    if (f'0x{vendor}', f'0x{product_id}') in EGPU_VID_PIDS and product_str == EGPU_PRODUCT:
       return True
   return False
 
 
 @dataclass
-class _UsbGpuModelHandle:
+class _EgpuModelHandle:
   name: str
   path: str
   runner: Any  # tinygrad.nn.onnx.OnnxRunner, weights moved onto the AMD device
 
 
-class UsbGpuBackend(HardwareBackend):
+class EgpuBackend(HardwareBackend):
   """ASM2464PD-bridge eGPU backend — loads/runs .onnx models via tinygrad's ONNX frontend.
 
   Deliberately not registered as CAMERA_INFERENCE, VOICE_INFERENCE, or
@@ -107,9 +107,9 @@ class UsbGpuBackend(HardwareBackend):
   HAS_DEVICE_MEMORY = True  # discrete desktop GPU VRAM, unlike Hailo-8/DX-M1
 
   def __init__(self):
-    super().__init__(BackendType.USB_GPU)
+    super().__init__(BackendType.EGPU)
     self._onnx_runner_cls: Any = None
-    self._models: dict[str, _UsbGpuModelHandle] = {}
+    self._models: dict[str, _EgpuModelHandle] = {}
 
   # ------------------------------------------------------------------
   # Backend lifecycle
@@ -117,19 +117,19 @@ class UsbGpuBackend(HardwareBackend):
 
   def initialize(self) -> bool:
     """Probe for a flashed ASM2464PD and confirm tinygrad is importable."""
-    if not _detect_usb_gpu():
-      logger.debug("USB GPU (ASM2464PD) not detected — skipping backend")
+    if not _detect_egpu():
+      logger.debug("eGPU (ASM2464PD) not detected — skipping backend")
       return False
 
     try:
       from tinygrad.nn.onnx import OnnxRunner
       self._onnx_runner_cls = OnnxRunner
     except ImportError:
-      logger.warning("USB GPU (ASM2464PD) detected but tinygrad is not installed — backend unavailable")
+      logger.warning("eGPU (ASM2464PD) detected but tinygrad is not installed — backend unavailable")
       return False
 
     self._initialized = True
-    logger.info("USB GPU (ASM2464PD) detected and tinygrad available — backend ready")
+    logger.info("eGPU (ASM2464PD) detected and tinygrad available — backend ready")
     return True
 
   def release(self) -> None:
@@ -144,26 +144,26 @@ class UsbGpuBackend(HardwareBackend):
   def load_model(self, config: ModelConfig) -> bool:
     """Load an .onnx model via tinygrad's ONNX frontend, weights on the AMD device."""
     if not self._initialized:
-      logger.error("USB GPU backend not initialized")
+      logger.error("eGPU backend not initialized")
       return False
 
     if config.name in self._models:
-      logger.debug(f"USB GPU model already loaded: {config.name}")
+      logger.debug(f"eGPU model already loaded: {config.name}")
       return True
 
     path = Path(config.path)
     if not path.is_file():
-      logger.error(f"USB GPU model not found: {config.path}")
+      logger.error(f"eGPU model not found: {config.path}")
       return False
 
     try:
       runner = self._onnx_runner_cls(str(path)).to("AMD")
-      self._models[config.name] = _UsbGpuModelHandle(name=config.name, path=str(path), runner=runner)
+      self._models[config.name] = _EgpuModelHandle(name=config.name, path=str(path), runner=runner)
       config.loaded = True
-      logger.info(f"Loaded USB GPU model: {config.name} ({path.stat().st_size // 1024 // 1024} MB)")
+      logger.info(f"Loaded eGPU model: {config.name} ({path.stat().st_size // 1024 // 1024} MB)")
       return True
     except Exception:
-      logger.exception(f"Failed to load USB GPU model '{config.name}'")
+      logger.exception(f"Failed to load eGPU model '{config.name}'")
       return False
 
   def unload_model(self, name: str) -> bool:
@@ -178,15 +178,15 @@ class UsbGpuBackend(HardwareBackend):
     """Run inference through tinygrad's ONNX frontend on the USB-attached AMD GPU."""
     if not self._initialized:
       return InferenceResult(
-          backend_type=BackendType.USB_GPU, model_name=model_name,
-          success=False, error_message="USB GPU backend not initialized",
+          backend_type=BackendType.EGPU, model_name=model_name,
+          success=False, error_message="eGPU backend not initialized",
       )
 
     handle = self._models.get(model_name)
     if handle is None:
       return InferenceResult(
-          backend_type=BackendType.USB_GPU, model_name=model_name,
-          success=False, error_message=f"Model not loaded on USB GPU backend: {model_name}",
+          backend_type=BackendType.EGPU, model_name=model_name,
+          success=False, error_message=f"Model not loaded on eGPU backend: {model_name}",
       )
 
     try:
@@ -208,14 +208,14 @@ class UsbGpuBackend(HardwareBackend):
       self._stats.total_exec_time_ms += inference_time_ms
 
       return InferenceResult(
-          backend_type=BackendType.USB_GPU, model_name=model_name,
+          backend_type=BackendType.EGPU, model_name=model_name,
           outputs=outputs, inference_time_ms=inference_time_ms, success=True,
       )
     except Exception as e:
       self._stats.tasks_failed += 1
-      logger.exception(f"USB GPU inference error ({model_name})")
+      logger.exception(f"eGPU inference error ({model_name})")
       return InferenceResult(
-          backend_type=BackendType.USB_GPU, model_name=model_name,
+          backend_type=BackendType.EGPU, model_name=model_name,
           success=False, error_message=str(e),
       )
 
@@ -226,6 +226,6 @@ class UsbGpuBackend(HardwareBackend):
   def get_device_info(self) -> dict[str, Any]:
     info = super().get_device_info()
     info['device'] = 'ASM2464PD eGPU'
-    info['vendor_ids'] = sorted(f"{v}:{p}" for v, p in POST_FLASH_VID_PIDS)
+    info['vendor_ids'] = sorted(f"{v}:{p}" for v, p in EGPU_VID_PIDS)
     info['loaded_models'] = list(self._models.keys())
     return info
