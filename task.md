@@ -3,6 +3,84 @@
 Branch: `EOP10`
 Goal: Complete the EOP schema/runtime alignment changes so the working tree is coherent and the modified daemons are syntactically and import-clean.
 
+## Current session — USB eGPU camera expansion (2026-08-23)
+
+Scope and ownership:
+
+- OpenPilot owns the front driving cameras plus two independent optional workloads:
+  `sided` for `side_left`/`side_right`, and `reard` for `rear`.
+- Corner-radar/4D point-cloud work is not part of this OpenPilot eGPU change. Its
+  future integration belongs in `../visionpilot`.
+- The first milestone is shadow comparison: run the existing small/local result
+  and the eGPU model on the same frame, measure consistency and any improvement,
+  and leave the existing result authoritative.
+- The main expansion target is semantic segmentation. The production driving
+  model remains the openpilot-native vision + temporal-policy pipeline and its
+  existing input buffers, output slices, parsers and message contract.
+- Side and rear are complete inference pipelines, not camera-only feeds: each
+  needs its own detection and segmentation sessions, health and validation data.
+
+Completed in the working tree:
+
+- [x] Pin `tinygrad_repo` to the official stable `v0.13.0` tag
+  (`2d48fe8b7bd9acfa00e91a7f89b28b3ded370c27`), rather than following `master`.
+- [x] Add separate `side_yolo_egpu` and `rear_yolo_egpu` model IDs, artifacts,
+  Params, sessions and shadow queues. Rear is not folded into a generic camera model.
+- [x] Keep `inferenced` as the only process allowed to own the USB eGPU and make
+  the eGPU path fail closed; it cannot silently open a per-daemon direct backend.
+- [x] Keep only `off` and `shadow` modes. No eGPU result has driving authority.
+- [x] Transport camera input as FP16 and cast in device memory to the ONNX-declared dtype.
+- [x] Audit the six ONNX artifacts in `../autoware_vision_pilot`.
+  All model ops exist in tinygrad v0.13 and all six graphs parse.
+- [x] Execute `autosteer_int8`, `autospeed_int8`, and `autodrive_int8` end to end
+  with tinygrad v0.13 on CPU using zero inputs; shapes were correct and outputs finite.
+  This verifies graph compatibility only, not USB eGPU latency or numerical quality.
+
+Next tasks, in order:
+
+- [ ] Finish focused tests, lint/compile checks, `git diff --check`, and review the
+  working-tree diff without disturbing unrelated user changes.
+- [ ] Stage/verify the `tinygrad_repo` gitlink and confirm a fresh recursive clone
+  resolves the official URL and exact release commit.
+- [ ] Add SHA-256 entries and viewpoint-specific production artifacts for side and
+  rear detection; the initial copied YOLOv8n files are hardware-path validation models only.
+- [ ] Add independent `side_seg_egpu` and `rear_seg_egpu` model contracts and
+  artifacts. Do not combine their masks, class maps, postprocessing or health state.
+- [ ] Add front road/wide segmentation shadow jobs by adapting the existing
+  SceneSeg/PP-LiteSeg contracts; benchmark useful mask quality before model size.
+- [ ] Flash and bench-identify the ASM2464PD-class enclosure, then measure actual
+  USB 3.0 Gen1 throughput, hot-unplug recovery and sustained thermal behavior.
+- [ ] Measure per-camera p50/p95/p99 latency, dropped deadlines, frame age, IoU,
+  precision/recall and false negatives with small/local and eGPU results side by side.
+- [ ] Implement real priority/deadline ordering in `inferenced`; its current single
+  worker serializes access but does not yet order the queue by job priority.
+- [ ] Extend private transport only where segmentation or the canonical openpilot
+  driving runner needs multiple named tensors/outputs. Schema changes still require approval.
+- [ ] Keep driving inference behind the existing openpilot `modeld` runner and
+  `parse_vision_outputs`/`parse_policy_outputs` contract, including temporal feature,
+  desire, traffic-convention and previous-curvature buffers. An eGPU backend may
+  implement this runner interface; it must not introduce a parallel driving contract.
+- [ ] Keep AutoSpeed, AutoSteer and AutoDrive as optional compatibility/reference
+  experiments, below segmentation in priority. Do not substitute their outputs for
+  openpilot's driving model or connect them directly to trajectory planning.
+- [ ] Reuse one locally preprocessed tensor where contracts match, but keep model
+  sessions, outputs, health, deadlines and promotion decisions independent.
+- [ ] Do not enable a primary eGPU mode or feed planning/control until replay, HIL,
+  hardware-soak, failure-recovery and closed-course gates are defined and passed.
+
+Autoware model contracts captured for the next session:
+
+| Model | Input contract | Output contract | Current IPC fit |
+|---|---|---|---|
+| AutoSpeed INT8 | `input`, `[N,3,512,1024]` FP32 | `[N,8,10752]` | Yes, for shadow experiments |
+| AutoSteer INT8 | `input_0`, `[1,3,512,1024]` FP32 | two `[1,1,64,1]` tensors | No: multi-output needed |
+| AutoDrive INT8 | `image_prev`, `image_curr`, each `[N,3,512,1024]` FP32 | distance, curvature, flag logit | No: multi-input and multi-output needed |
+
+The Autoware driving-model bandwidth numbers remain useful as a worst-case
+transport reference, but those models are not the production driving direction.
+Measured USB admission must prioritize segmentation plus independent side/rear
+inference while preserving the canonical openpilot driving model's deadlines.
+
 ## Completed
 
 - [x] Inspect working tree (24 modified files, no `task.md` existed).

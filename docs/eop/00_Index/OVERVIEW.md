@@ -29,6 +29,7 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
   driver (id=2) → VisionIPC "uvcd" → driverd → driverPoseState / driverStatus
   side_left  (id=7) → VisionIPC "uvcd" → sided → blindSpotAlert
   side_right (id=8) → VisionIPC "uvcd" → sided → blindSpotAlert
+  rear       (id=9) → VisionIPC "uvcd" → reard → rearDetections / rearStatus
 
   # Hailo perception pipeline (camera-tier PCIe accel, when present):
   wide_road (1.7mm) ──┐
@@ -72,14 +73,34 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
 **SIDED** — side camera perception (selfdrive/sided/, ExoPilot 01M & 02)
 - `sided.py`       Side camera daemon (20Hz, ignition-gated)
 - `hailo_side_detector.py` YOLOv8-nano on Hailo-8 @ 640×640, via `inferenced`
-  IPC (`InferenceClient(use_ipc=True)` → `submit_job`) — shared with `reard`
-  (rear camera), never a direct `client.hailo()`/`VDevice`, since the two
-  daemons run concurrently against one physical Hailo-8
+  IPC (`InferenceClient(use_ipc=True)` → `submit_job`). `reard` reuses this
+  detector implementation only; side and rear submit separate jobs and keep
+  separate model/session state. Neither daemon opens a direct `VDevice`.
 - `bev_reprojector.py` Ground-plane BEV reprojection (advisory only)
 - `simple_tracker.py` + `handover_manager.py` Cross-camera tracking
 - Publishes: `sideDetections` (BEV objects), `sideStatus` (health)
 - Publishes: `blindSpotAlert` → fused with vehicle BSD → blocks lane changes
 - **Advisory only** — uncalibrated extrinsics, NOT for trajectory planning
+
+**REARD** — rear camera perception (selfdrive/reard/)
+- Owns the rear camera and its rear-view model session; it is not part of `sided`
+- Existing Hailo/local detection remains authoritative
+- Optional `rear_yolo_egpu` shadow comparison is configured independently with
+  `EOPRearEGPUMode`; `side_yolo_egpu` uses `EOPSideEGPUMode`
+- Both eGPU sessions route through the single `inferenced` device owner
+- Corner radar and future 4D point-cloud integration belong to VisionPilot, not
+  this OpenPilot camera pipeline
+
+**OPTIONAL USB eGPU** — tinygrad camera inference (`system/inferenced/`)
+- Semantic segmentation is the main expansion workload: front SceneSeg/PP-LiteSeg
+  shadowing plus independent future `side_seg_egpu` and `rear_seg_egpu` sessions
+- Side and rear each run detection and, later, viewpoint-specific segmentation;
+  artifacts, outputs, scheduling and health are not combined
+- The production driving model continues through openpilot `modeld`'s vision and
+  temporal-policy runners and parsers. An eGPU backend must implement that contract
+- Autoware AutoSpeed/AutoSteer/AutoDrive graphs are compatibility references, not
+  replacements for the openpilot driving model
+- All eGPU paths remain shadow-only until replay, hardware and safety gates pass
 
 **GRIDD** — lazy BEV perception (selfdrive/gridd/)
 - `gridd.py`       Consumes 2D disparity from stereod
@@ -275,6 +296,7 @@ Quick reference:
 | `navd` | On-device Valhalla routing; NavPilot turn-by-turn via BLE SPP | always-on | `selfdrive/navd/` |
 | `driverd` | Driver monitoring — Hailo SCRFD + attention tracker | 20 Hz | `selfdrive/driverd/` *(not implemented)* |
 | `sided` | Side camera BSD/RCTA (camera-tier accel) | 20 Hz | `selfdrive/sided/` |
+| `reard` | Independent rear-camera perception (camera-tier accel) | 20 Hz | `selfdrive/reard/` |
 | `stereod` | Stereo depth (SGM + semantic fusion) | 20 Hz | `selfdrive/stereod/` |
 | `surfaced` | Road surface monitoring (IMU + stereo shock detection) | 20 Hz | `selfdrive/surfaced/` |
 | `pointcloudd` | 3D reconstruction + geo-tagging (feeds coordinationd SGM) | 5 Hz | `selfdrive/pointcloudd/` |
@@ -285,7 +307,7 @@ Quick reference:
 | `rtkd` | RTK GPS NTRIP correction client | always-on | `system/rtkd/` |
 | `micd` | Microphone capture and sound pressure level | 10 Hz | `system/micd/` |
 | `monod` | Multi-camera perception with Hailo-8 (camera-tier accel) | 20 Hz | `selfdrive/monod/` |
-| `inferenced` | Unified NPU/GPU/RGA/MPP inference backend | always-on | `system/inferenced/` |
+| `inferenced` | Unified NPU/GPU/RGA/MPP inference backend; sole optional USB eGPU owner | always-on | `system/inferenced/` |
 | `soundd` | TTS + alert tone generation | — | `selfdrive/soundd/` |
 | `spkd` | I2S speaker output (PCM5102A / MAX98357A) | — | `system/spkd/` |
 | `wdgd` | Hardware watchdog | — | `system/wdgd/` |

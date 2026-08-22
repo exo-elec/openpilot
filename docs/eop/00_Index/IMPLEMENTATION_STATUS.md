@@ -235,6 +235,8 @@ New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_A
 | `selfdrive/coordinationd/coordinationd.py` | OSM + SGM localization |
 | `selfdrive/monod/monod.py` | Multi-camera Hailo perception |
 | `selfdrive/sided/sided.py` | Side camera BSD/RCTA |
+| `selfdrive/reard/reard.py` | Independent rear-camera perception |
+| `system/inferenced/egpu.py` | Optional tinygrad USB eGPU backend; side/rear shadow validation only, hardware benchmark pending |
 
 ### Surface Perception Pipeline
 

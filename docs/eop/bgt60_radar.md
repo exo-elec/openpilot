@@ -11,10 +11,11 @@ the current OpenPilot process or safety contract.)*
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | long-range UART radar (`selfdrive/controls/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
-| `radar4d` | 4x ESP32_RADAR corner nodes (`radar4d.py`, WiFi/UDP) | 0–15m | `gridd.py` → `stereoObjects` | close-range surround maneuvering |
+| `radar4d` | 4x ESP32_RADAR corner nodes (future VisionPilot WiFi/UDP path) | 0–15m | VisionPilot-owned, no current OpenPilot consumer | close-range corner coverage |
 | `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
-`radar2d` and `radar4d` share the same 4 physical corner-node brackets —
+The historical `radar2d` and proposed VisionPilot `radar4d` designs share the
+same 4 physical corner-node brackets —
 `radar2d` reads each node's on-node-tracked BLE object stream, `radar4d`
 reads the same nodes' raw CFAR point cloud over an independent WiFi/UDP
 link. Two transports, one set of hardware, same corner-pose registry (see

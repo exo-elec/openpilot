@@ -264,8 +264,8 @@ docker run --rm -v $PWD:/tmp/openpilot -w /tmp/openpilot \
 | `.rknn` | RKNNLite (ARM only) | Production deployment |
 | `.onnx` | ONNX Runtime | Dev PC + CARLA testing |
 | `.hef` | HailRT (Hailo-8) | Optional Hailo NPU |
-| `.pkl` (tinygrad) | tinygrad | **Not used** — EOP does not use tinygrad |
+| `.onnx` via tinygrad | tinygrad v0.13 | Optional USB eGPU shadow validation; Python 3.11+ required (EOP `.venv` is 3.12) |
 
 ---
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-08-23

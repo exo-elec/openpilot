@@ -73,6 +73,23 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
 
 ## New Features
 
+**Optional USB eGPU camera shadow path (2026-08-23):**
+- `tinygrad_repo` is pinned to the official stable `v0.13.0` tag; do not follow
+  `master`. The deployed runtime must use Python 3.11+ (EOP `.venv` is 3.12).
+- `inferenced` is the sole eGPU owner. `sided` and `reard` submit IPC jobs with
+  direct fallback disabled and keep independent model IDs, Params, sessions,
+  health and queues. Side and rear are not one combined model.
+- Only `off` and `shadow` modes exist. Existing Hailo/local detections remain
+  authoritative; no eGPU output is connected to planning or control.
+- Corner-radar/4D point-cloud integration belongs to `../visionpilot`, outside
+  this OpenPilot camera pipeline.
+- Future AutoSpeed, AutoSteer and AutoDrive ONNX experiments must be independent,
+  lower-priority compatibility references. Semantic segmentation is the main eGPU
+  expansion: front plus independent side and rear sessions. Production driving
+  inference must preserve openpilot `modeld`'s vision/policy runners, temporal
+  buffers, output parsers and `modelV2` semantics. See
+  `docs/eop/05_Features/EGPU_CAMERA_SHADOW.md`.
+
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner
   radar (`radar2d`, unchanged). `card.py` used to source the `radar3d`
@@ -96,9 +113,9 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
   repo, same ownership split as BGT60TR13C. See
   `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
   sign-convention bench-verify items, and file map.
-- `radar4d`/BGT60 unchanged — a future replacement with `~/radar/ESP32_RADAR`
-  (4x corner-mounted nodes, UDP point cloud) is scoped separately, not part
-  of this change.
+- OpenPilot no longer owns a `radar4d` runtime. Future ESP32 corner-radar
+  point-cloud work is scoped to VisionPilot; OpenPilot keeps only its current
+  radar interfaces and camera consumers.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical

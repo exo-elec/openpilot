@@ -8,6 +8,7 @@
 - **Phase 4**: ✅ COMPLETE - Performance Profiling (all tasks complete)
 - **Phase 5**: ⏳ PENDING - Hardware Deployment (requires RK3588)
 - **Phase 6**: ✅ COMPLETE - Production Hardening (All 5 tasks complete)
+- **Phase 7**: 🚧 IN PROGRESS - Optional USB eGPU shadow validation
 
 ---
 
@@ -264,6 +265,43 @@ Remaining work: Phase 5 (blocked on RK3588 hardware availability)
 - Task 5.3: End-to-End Hardware Validation
 
 Hardware readiness procedures documented in PHASE5_HARDWARE_READINESS.md
+
+---
+
+## Phase 7: Optional USB eGPU shadow validation (2026-08-23)
+
+This phase extends the historical 26-task RK backend plan; it is not included in
+the older “26/26 complete” total. The existing local/Hailo result remains
+authoritative throughout this phase.
+
+- [x] Pin the official tinygrad `v0.13.0` release as a submodule.
+- [x] Add independent side and rear model IDs, artifacts, Params and shadow queues.
+- [x] Enforce `inferenced` as the sole eGPU owner and disable direct fallback.
+- [x] Audit all six ONNX models in `../autoware_vision_pilot`; parse all six and
+  execute the three INT8 variants on CPU for graph compatibility.
+- [x] Set the architecture priority: segmentation first; side and rear remain
+  independent inference pipelines; production driving models follow openpilot's
+  existing `modeld` runner, temporal state and output parser contracts.
+- [ ] Validate the focused unit tests and repository gates.
+- [ ] Flash and identify the ASM2464PD-class enclosure and verify the selected
+  tinygrad device/backend on the actual external GPU.
+- [ ] Benchmark sustained USB 3.0 Gen1 transfer, inference latency, thermals,
+  disconnect/reconnect and contention with side and rear active independently.
+- [ ] Add true priority/deadline scheduling; the current worker is serialized but
+  the queue is not priority ordered.
+- [ ] Add independent front, side and rear segmentation shadow sessions, artifacts,
+  class maps, postprocessing and quality metrics. Prioritize useful masks over size.
+- [ ] Add private versioned multi-input/multi-output transport only when required
+  by segmentation or the canonical openpilot model runner. Do not change public
+  cereal schemas without approval.
+- [ ] If retained, run AutoSpeed, AutoSteer and AutoDrive only as separately
+  rate-limited compatibility references below segmentation priority.
+- [ ] Any future eGPU driving backend must implement the openpilot `modeld` runner
+  contract; it must not bypass its temporal buffers, parsers or `modelV2` semantics.
+- [ ] Define replay, HIL, soak and closed-course promotion gates before adding any
+  primary mode or connecting a result to trajectory planning/control.
+
+See `05_Features/EGPU_CAMERA_SHADOW.md` and the current section in `task.md`.
 
 ---
 
