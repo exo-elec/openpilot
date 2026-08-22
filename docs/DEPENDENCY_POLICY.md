@@ -19,12 +19,13 @@ Submodule rules shared with NGP10:
 
 EOP10 uses commaai msgq directly because its pinned commit
 `0e1ec5eb42404bfed9f5ad6ca06f3044488b3a15` exists upstream and carries no EOP
-patch. EOP10's vehicle stack and safety integration are in-tree, so local
-`opendbc_repo/` and `panda/` build/reference directories are not submodules or
-runtime dependencies.
+patch. `opendbc_repo/` is an explicit submodule because the Tesla CAN adapter
+and safety envelope are shared with the EXO vehicle stack; `panda/` remains a
+build/reference directory and is not an OpenPilot runtime dependency.
 
 The shared modified OpenDBC authority is `exo-electronics/opendbc`. EOP10 and
-NGP10 pin the same commit, `62c915ce4b9ca5d0ce561f7d59b7fff5dac6b5c1`.
+NGP10 pin the same EXO commit, `49d48498` (the full SHA is recorded by the
+parent gitlink).
 It is descended from the official `v0.2.1` release and includes the Tesla
 BrownPanda radar/safety work required by both products.
 
@@ -32,4 +33,9 @@ The official `v0.2.1` tag is a compatibility reference, not the selected
 runtime pin: it declares Python 3.9+ but does not contain the BrownPanda safety
 tree. Rebasing to that tag would remove required safety APIs. The shared fork
 also carries a small Python 3.10 compatibility layer for Ubuntu 22.04 and ROS
-2 Humble.
+2 Humble. Do not replace this pin with upstream `v0.2.1`.
+
+Tinygrad is pinned to the official `v0.13.0` tag and is not floated on
+`master`. Msgq and rednose intentionally follow their commaai `master` pins;
+the remaining `third_party` entries are exact gitlinks with tag/branch hints
+in `.gitmodules` and should not be mass-upgraded without RK3588 ABI validation.
