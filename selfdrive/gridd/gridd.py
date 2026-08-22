@@ -73,6 +73,8 @@ from openpilot.system.hardware.registry import PlatformRegistry
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
+from openpilot.selfdrive.controls.radar_corner_geometry import (
+    corner_local_to_vehicle_frame, encode_corner_track_id, load_corner_poses)
 
 RATE = 20  # Hz
 PPLITESEG_INPUT_SIZE = (320, 320)  # PP-LiteSeg RKNN model input resolution
@@ -114,52 +116,15 @@ class GridD:
             cloudlog.warning("No stereo calibration, using default")
             self.Q = self._default_calibration()
 
-        # Radar-stereo geometry for FOV gating and pixel-level association.
-        # radar4d.py already transforms its 4 corner nodes' detections into
-        # vehicle frame before publish, so this mount is now a nominal
-        # vehicle-origin reference for the FOV gate below, not a physical
-        # single-sensor mount (see docs/eop/bgt60_radar.md#extrinsic-calibration).
-        # Mounting extrinsics are user-refined and stored at this layer.
-        try:
-            from openpilot.selfdrive.controls.radar4d_geometry import RadarMounting, RadarStereoGeometry
-            self.radar_geometry: RadarStereoGeometry | None = RadarStereoGeometry(mount=RadarMounting.load())
-            cloudlog.info("GridD: radar-stereo geometry available")
-        except Exception as e:
-            self.radar_geometry = None
-            cloudlog.warning(f"GridD: radar-stereo geometry unavailable: {e}")
-
-        # Corner-radar mounting poses: prefer the shared vehicle-frame
-        # registry (visionpilot WRITES it -- pairing seeds, on-road
-        # refines; see radar4d_geometry.load_corner_poses()'s docstring and
-        # ESP32_RADAR docs/pairing-and-calibration.md "Unified vehicle-frame
-        # extrinsics"), falling back to the class-level placeholder table
-        # (_R2D_CORNER_POSE) when the registry is absent or any corner
-        # entry is missing/garbled -- load_corner_poses() already returns
-        # None wholesale in that case rather than a partially-filled dict,
-        # so this is an all-or-nothing swap, never a silent per-corner mix
-        # of real and placeholder poses.
-        try:
-            from openpilot.selfdrive.controls.radar4d_geometry import (
-                corner_local_to_vehicle_frame, load_corner_poses)
-            registry_poses = load_corner_poses()
-            self._corner_local_to_vehicle_frame = corner_local_to_vehicle_frame
-        except Exception as e:
-            registry_poses = None
-            # Same trivial 2D rotate+translate radar4d_geometry.py's
-            # corner_local_to_vehicle_frame() implements -- duplicated here
-            # only as an emergency fallback for the case that module itself
-            # fails to import (e.g. a yaml/numpy/camera_geometry issue),
-            # same failure mode _r2d_corner_pose's placeholder fallback
-            # below already handles; this keeps radar2d fusion working
-            # either way rather than silently going blind.
-            self._corner_local_to_vehicle_frame = self._corner_pose_transform_fallback
-            cloudlog.warning(f"GridD: corner-radar registry unavailable: {e}")
-        if registry_poses is not None:
-            self._r2d_corner_pose = registry_poses
-            cloudlog.info("GridD: corner-radar poses loaded from shared registry")
-        else:
-            self._r2d_corner_pose = self._R2D_CORNER_POSE
-            cloudlog.info("GridD: corner-radar registry absent/incomplete, using placeholder poses")
+        # BLE Radar2D uses the pose jointly calibrated by the ESP32 and host.
+        # already levels BLE tracks with roll/pitch; this host step applies
+        # the remaining per-corner yaw and XY translation. Approximate
+        # installation priors are calibration/display aids, never ADAS input.
+        self._corner_local_to_vehicle_frame = corner_local_to_vehicle_frame
+        self._r2d_corner_pose = {}
+        self._corner_pose_reload_t = -1.0
+        self._corner_pose_warn_t = -30.0
+        self._refresh_corner_poses(force=True)
 
         # VisionIPC for road camera
         self.vipc_road = VisionIpcClient("v4l2d", VisionStreamType.VISION_STREAM_ROAD, True)
@@ -170,7 +135,6 @@ class GridD:
             ['monoDetections', 'monoStatus',
              'stereoDepth', 'stereoStatus', 'stereoDetections',
              'modelV2', 'drivableArea',
-             'radar4d',   # ESP32_RADAR corner nodes, WiFi/UDP — 0-15m surround
              'radar3d',   # long-range UART radar — 15-200m, all tracked points
              'radar2d'],  # corner/blind-spot zone sensors — 0-10m presence
             poll=cast(str | None, ['stereoDepth'])
@@ -476,21 +440,8 @@ class GridD:
 
         return fused_objects
 
-    # radar4d fusion constants
-    _R4D_BLIND_AZ_DEG    = 20.0   # |azimuth| above this → adjacent lane (blind spot zone)
-    _R4D_ASSOC_M         = 2.0    # Cartesian match radius to existing stereo object (m)
-    _R4D_ELEV_GATE_DEG   = 15.0   # |elevation| above this → overhead sign / ground bounce, reject
-    _R4D_SNR_REF_DB      = 20.0   # SNR reference: car at 10m ≈ 20 dB → max RCS boost
-    _R4D_CONFIDENCE_BOOST = 0.15  # max prob boost, blended from SNR/RCS + tracker existenceProb
-    _R4D_SKIP_STATIC      = False # keep static tracks; gridd/pathd can filter downstream
-    _R4D_USE_FOV_GATE     = True  # reject radar points outside stereo/road camera FOV
-
-    # Autoware radar-in-camera-box velocity fusion defaults (m)
-    _R4D_BOX_LEN_M   = 4.5   # longitudinal half-length for leads / cars without size
-    _R4D_BOX_WIDTH_M = 1.0   # lateral half-width when no mono size available
-    _R4D_BOX_HEIGHT_M= 1.5   # vertical half-height
-    _R4D_VEL_OUTLIER_MPS = 3.0  # reject radar points >3 m/s away from median
-    _R4D_VEL_ASSOC_GATE_MPS = 3.0  # skip vRel attach when stereo/radar disagree by more (Autoware velocity-consistency gate)
+    _R2D_SNR_REF_DB      = 20.0   # SNR reference: car at 10m ≈ 20 dB
+    _R2D_CONFIDENCE_BOOST = 0.15  # max boost from SNR + track existence
 
     # radar2d zone positions in vehicle frame (dRel=forward, yRel=left, m)
     _R2D_ZONE_POS = {
@@ -502,37 +453,24 @@ class GridD:
     _R2D_ZONE_RADIUS   = 2.0   # costmap obstacle radius (m)
     _R2D_PROB          = 0.92  # hardware detection — high confidence
 
-    # radar2d corner mounting poses in vehicle frame (x_m forward, y_m left, yaw_deg CCW).
-    # Keys match ESP32_RADAR radar_corner_id_t: 0=FL, 1=FR, 2=RL, 3=RR.
-    # FALLBACK ONLY as of 2026-08-08 -- __init__ prefers the shared
-    # vehicle-frame registry (radar4d_geometry.load_corner_poses()) and
-    # falls back to this table only when that registry is absent or
-    # incomplete; see self._r2d_corner_pose, the actual attribute every
-    # consumer reads. PLACEHOLDER values pending extrinsic calibration —
-    # same honesty convention as the ESP32_RADAR pins.h placeholders.
-    _R2D_CORNER_POSE = {
-        0: ( 1.8,  0.8,   45.0),   # front-left
-        1: ( 1.8, -0.8,  -45.0),   # front-right
-        2: (-1.8,  0.8,  135.0),   # rear-left
-        3: (-1.8, -0.8, -135.0),   # rear-right
-    }
-
-    @staticmethod
-    def _corner_pose_transform_fallback(range_m: float, azimuth_deg: float,
-                                         pose: tuple[float, float, float]) -> tuple[float, float]:
-        """Emergency fallback for radar4d_geometry.corner_local_to_vehicle_frame()
-        -- see its __init__ call site above for when this is used instead."""
-        px, py, yaw_deg = pose
-        az = math.radians(azimuth_deg)
-        yaw = math.radians(yaw_deg)
-        sx = range_m * math.cos(az)
-        sy = range_m * math.sin(az)
-        d_rel = px + sx * math.cos(yaw) - sy * math.sin(yaw)
-        y_rel = py + sx * math.sin(yaw) + sy * math.cos(yaw)
-        return d_rel, y_rel
+    def _refresh_corner_poses(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and now - self._corner_pose_reload_t < 1.0:
+            return
+        self._corner_pose_reload_t = now
+        poses = load_corner_poses(require_confirmed=True)
+        if poses is None:
+            self._r2d_corner_pose = {}
+            if now - self._corner_pose_warn_t >= 30.0:
+                cloudlog.warning(
+                    "GridD: BLE Radar2D waiting for a confirmed corner pose"
+                )
+                self._corner_pose_warn_t = now
+            return
+        self._r2d_corner_pose = poses
 
     # radar3d fusion constants (long-range UART radar — raw RadarPoint list)
-    _R3D_MIN_DREL       = 12.0   # m — below this radar4d has better coverage; skip overlap
+    _R3D_MIN_DREL       = 0.0    # built-in 77 GHz radar owns the full forward range
     _R3D_ASSOC_M        = 3.0    # Cartesian match radius to existing stereo object (m)
     _R3D_PROB           = 0.80   # radar track confidence
     _EGO_LANE_FALLBACK_M = 1.8   # half-lane-width fallback when modelV2 lane data unavailable
@@ -607,7 +545,7 @@ class GridD:
         radar2d (corner sensors) and native carState.leftBlindspot/rightBlindspot.
 
         Use case here: forward adjacent-lane objects (merging traffic, cut-in),
-        range 12–200m where radar4d and camera have limited coverage.
+        full forward range where the corner BLE radars are advisory only.
         Ego-lane objects are skipped using lane-relative bounds from modelV2 laneLines
         so the gate adapts to curves and S-bends — ACC owns same-lane via radarState.
         """
@@ -616,13 +554,13 @@ class GridD:
                 continue
             if pt.dRel <= 0:                 # forward-only radar — skip any stale negative dRel
                 continue
-            if pt.dRel < self._R3D_MIN_DREL: # let radar4d cover close-range
+            if pt.dRel < self._R3D_MIN_DREL:
                 continue
             right_y, left_y = self._ego_lane_bounds(pt.dRel)
             if right_y <= pt.yRel <= left_y:  # ego-lane → ACC owns this
                 continue
 
-            # Try to associate with an existing stereo/radar4d object
+            # Try to associate with an existing stereo object
             best_idx, best_dist = None, float('inf')
             for i, obj in enumerate(objects):
                 d = math.hypot(obj['dRel'] - pt.dRel, obj['yRel'] - pt.yRel)
@@ -643,382 +581,6 @@ class GridD:
                     'trackId': int(pt.trackId), 'obstacleType': 0,
                 })
         return objects
-
-    @staticmethod
-    def _object_box_m(obj: dict) -> tuple[float, float, float]:
-        """Return (length, width, height) in meters for a camera object.
-
-        Uses radar-estimated shape when available (Radar4DObject.lengthM etc.),
-        then mono detection size, then class-specific defaults so radar points
-        can be gated inside a plausible 3-D box.
-        """
-        # Radar4DObject fusion writes these keys directly.
-        if obj.get('length', 0.0) > 0.0 and obj.get('width', 0.0) > 0.0 and obj.get('height', 0.0) > 0.0:
-            return float(obj['length']), float(obj['width']), float(obj['height'])
-
-        obstacle_type = str(obj.get('obstacleType', ''))
-        # mono detections may carry width/height (meters); length is rarely
-        # estimated by monod, so infer it from the class.
-        width = obj.get('width', 0.0)
-        height = obj.get('height', 0.0)
-
-        if width > 0.0 and height > 0.0:
-            if 'person' in obstacle_type or 'pedestrian' in obstacle_type:
-                length = 0.5
-                width = max(width, 0.4)
-                height = max(height, 1.4)
-            elif 'cyclist' in obstacle_type or 'bicycle' in obstacle_type or 'motorcycle' in obstacle_type:
-                length = 1.8
-                width = max(width, 0.6)
-                height = max(height, 1.5)
-            elif 'truck' in obstacle_type or 'bus' in obstacle_type:
-                length = 8.0
-                width = max(width, 2.4)
-                height = max(height, 2.8)
-            else:  # car / lead / unknown
-                length = 4.5
-                width = max(width, 1.5)
-                height = max(height, 1.4)
-            return length, width, height
-
-        # Default boxes by class when no mono size is available.
-        defaults = {
-            'person': (0.5, 0.5, 1.6),
-            'car': (4.5, 1.8, 1.5),
-            'lead': (4.5, 1.8, 1.5),
-            'truck': (8.0, 2.5, 2.8),
-            'bus': (10.0, 2.5, 3.0),
-            'cyclist': (1.8, 0.7, 1.6),
-            'motorcycle': (2.0, 0.8, 1.5),
-        }
-        for key, box in defaults.items():
-            if key in obstacle_type:
-                return box
-        return (GridD._R4D_BOX_LEN_M, GridD._R4D_BOX_WIDTH_M * 2.0, GridD._R4D_BOX_HEIGHT_M * 2.0)
-
-    @classmethod
-    def _estimate_box_kinematics(cls, obj: dict, points: list) -> tuple[float | None, float | None]:
-        """Autoware-style radar-in-camera-box velocity + acceleration estimator.
-
-        Collects radar points that fall inside the object's 3-D bounding box and
-        returns robust weighted estimates for vRel and aRel. Aggregating all
-        returns belonging to the object is much better than a single nearest-
-        point match for sparse CFAR hits in dense traffic.
-
-        Estimator (in order of robustness):
-          1. Weighted median of inlier points (robust to occasional clutter).
-          2. Weighted average if too few points for a median.
-          3. Nearest point as final fallback.
-
-        Weights combine SNR and tracker existence probability. Outliers more
-        than _R4D_VEL_OUTLIER_MPS from the median are rejected.
-        """
-        if not points:
-            return None, None
-
-        length, width, height = cls._object_box_m(obj)
-        obj_d = obj['dRel']
-        obj_y = obj['yRel']
-        obj_z = obj.get('zRel', 0.0)
-
-        candidates = []
-        for pt in points:
-            az = math.radians(pt.azimuth)
-            el = math.radians(pt.elevation)
-            d_rel = pt.rangM * math.cos(az)
-            y_rel = pt.rangM * math.sin(az)
-            z_rel = pt.rangM * math.sin(el)
-
-            if (abs(d_rel - obj_d) <= length / 2.0 and
-                abs(y_rel - obj_y) <= width / 2.0 and
-                abs(z_rel - obj_z) <= height / 2.0):
-                weight = max((pt.snrDb / cls._R4D_SNR_REF_DB), 0.1) * max(pt.existenceProb / 100.0, 0.1)
-                candidates.append((float(pt.vRel), float(pt.aRel), weight))
-
-        if not candidates:
-            # No points inside the camera box — fall back to nearest point.
-            pt0 = points[0]
-            return float(pt0.vRel), float(pt0.aRel)
-
-        def _weighted_median(values_weights: list[tuple[float, float]]) -> float:
-            sorted_cands = sorted(values_weights, key=lambda x: x[0])
-            total_w = sum(w for _, w in sorted_cands)
-            if total_w <= 0.0:
-                return sorted_cands[0][0]
-            cum = 0.0
-            for v, w in sorted_cands:
-                cum += w
-                if cum >= total_w / 2.0:
-                    return v
-            return sorted_cands[-1][0]
-
-        def _weighted_average(values_weights: list[tuple[float, float]]) -> float:
-            total_w = sum(w for _, w in values_weights)
-            if total_w <= 0.0:
-                return values_weights[0][0]
-            return sum(v * w for v, w in values_weights) / total_w
-
-        def _robust_estimate(value_weight_list: list[tuple[float, float]]) -> float:
-            if len(value_weight_list) >= 3:
-                vals = [v for v, _ in value_weight_list]
-                median_val = float(np.median(vals))
-                inliers = [(v, w) for v, w in value_weight_list
-                           if abs(v - median_val) <= cls._R4D_VEL_OUTLIER_MPS]
-                if inliers:
-                    value_weight_list = inliers
-            if len(value_weight_list) >= 3:
-                return _weighted_median(value_weight_list)
-            return _weighted_average(value_weight_list)
-
-        vel_est = _robust_estimate([(v, w) for v, _, w in candidates])
-        # Only use points that reported a valid acceleration estimate.
-        accel_cands = [(a, w) for _, a, w in candidates if not math.isnan(a)]
-        accel_est = _robust_estimate(accel_cands) if accel_cands else None
-        return vel_est, accel_est
-
-    def _radar4d_in_camera_fov(self, rang_m: float, azimuth_deg: float, elevation_deg: float) -> bool:
-        """Check if a radar detection falls inside ANY fused camera's FOV.
-
-        The radar data is fused with stereo, road, AND wide cameras, so the
-        gate is the union of their fields of view — a return visible only to
-        the 150° wide camera (e.g. |azimuth| 30-60°) must be kept.  Only
-        returns outside every camera's image are likely extreme side-lobe
-        clutter.
-        """
-        if not self._R4D_USE_FOV_GATE or self.radar_geometry is None:
-            return True
-        try:
-            cams = self.radar_geometry.cam_geo.cameras
-            names = [n for n in ('road', 'wide_road') if n in cams]
-            if not names:
-                # No camera geometry available (e.g. hal not installed) — fail open.
-                return True
-            return any(
-                self.radar_geometry.radar_in_camera_fov(n, rang_m, azimuth_deg, elevation_deg)
-                for n in names
-            )
-        except Exception:
-            # If projection fails, keep the point (fail-open).
-            return True
-
-    def _fuse_radar4d_objects(self, objects: list, radar4d) -> list:
-        """Fuse lidar-style Radar4DObject clusters with stereo objects.
-
-        The radar4d.py pipeline already clustered CFAR hits, removed ground
-        returns, and estimated each cluster's length/width/height/yaw.  We use
-        that shape for a tighter, orientation-aware association gate instead of
-        a plain 2 m circle, and we use the cluster's own Doppler vRel/aRel as
-        the velocity estimate (the cluster itself is the "box").
-
-        Two-phase association (Autoware radar_fusion_to_detected_object): a
-        large vehicle often splits into several radar clusters that all match
-        the same stereo object.  Phase 1 collects every match; phase 2 applies
-        only the best-scoring (nearest-to-center) cluster per stereo object
-        instead of last-write-wins.
-        """
-        best_per_stereo: dict[int, tuple[float, Any, float]] = {}  # stereo idx -> (score, obj_msg, confidence_boost)
-
-        for obj_msg in radar4d.objects:
-            if abs(obj_msg.elevation) > self._R4D_ELEV_GATE_DEG:
-                continue
-            if obj_msg.isStatic and self._R4D_SKIP_STATIC:
-                continue
-            if not self._radar4d_in_camera_fov(obj_msg.rangM, obj_msg.azimuth, obj_msg.elevation):
-                continue
-
-            az = math.radians(obj_msg.azimuth)
-            d_rel = obj_msg.rangM * math.cos(az)
-            y_rel = obj_msg.rangM * math.sin(az)
-            z_rel = obj_msg.rangM * math.sin(math.radians(obj_msg.elevation))
-
-            # Shape-aware association gate.  Convert the radar object's oriented
-            # box into a normalized distance: <= 1 means the camera object center
-            # lies inside the radar box; > 1 means outside.  A loose base gate
-            # keeps the fallback when shape is tiny or unreliable.
-            half_len = max(obj_msg.lengthM / 2.0, 0.25)
-            half_wid = max(obj_msg.widthM / 2.0, 0.25)
-            yaw = obj_msg.yawRad
-            cos_y, sin_y = math.cos(yaw), math.sin(yaw)
-
-            best_idx, best_score = None, float('inf')
-            for i, obj in enumerate(objects):
-                dx = obj['dRel'] - d_rel
-                dy = obj['yRel'] - y_rel
-                dx_local = dx * cos_y + dy * sin_y
-                dy_local = -dx * sin_y + dy * cos_y
-                score = math.hypot(dx_local / half_len, dy_local / half_wid)
-                if score < best_score:
-                    best_score, best_idx = score, i
-
-            snr_frac = min(obj_msg.snrDb / self._R4D_SNR_REF_DB, 1.0)
-            existence_frac = obj_msg.existenceProb / 100.0
-            confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R4D_CONFIDENCE_BOOST
-
-            if best_idx is not None and best_score <= 1.0:
-                prev = best_per_stereo.get(best_idx)
-                if prev is None or best_score < prev[0]:
-                    best_per_stereo[best_idx] = (best_score, obj_msg, confidence_boost)
-            else:
-                objects.append({
-                    'dRel': d_rel, 'yRel': y_rel, 'zRel': z_rel,
-                    'vRel': float(obj_msg.vRel), 'aRel': float(obj_msg.aRel),
-                    'confidence': 0.5 + confidence_boost, 'prob': 0.5 + confidence_boost,
-                    'trackId': int(obj_msg.trackId), 'obstacleType': 0,
-                    'dynProp': int(obj_msg.dynProp),
-                    'length': float(obj_msg.lengthM),
-                    'width': float(obj_msg.widthM),
-                    'height': float(obj_msg.heightM),
-                    'yawRad': float(obj_msg.yawRad),
-                })
-
-            if abs(obj_msg.azimuth) > self._R4D_BLIND_AZ_DEG and self._active_costmap is not None:
-                self._active_costmap.add_obstacle(d_rel, y_rel, radius=1.5, cost=0.8)
-
-        # Phase 2: apply the winning cluster to each matched stereo object.
-        for best_idx, (_, obj_msg, confidence_boost) in best_per_stereo.items():
-            obj = objects[best_idx]
-            # Velocity-consistency gate (Autoware radar_fusion_to_detected_object
-            # isVelocityAvailable): if the stereo object already carries a
-            # velocity estimate that disagrees wildly with the radar cluster,
-            # keep the confidence boost but do not corrupt its vRel.
-            v_rel_stereo = obj.get('vRel')
-            velocity_consistent = (v_rel_stereo is None or
-                                   abs(v_rel_stereo - obj_msg.vRel) <= self._R4D_VEL_ASSOC_GATE_MPS)
-            if velocity_consistent:
-                obj['vRel'] = float(obj_msg.vRel)
-                obj['aRel'] = float(obj_msg.aRel)
-                obj['dynProp'] = max(obj.get('dynProp', 0), int(obj_msg.dynProp))
-                # Merge shape into the stereo object so downstream pathd/selfdrived
-                # can use the radar-estimated footprint.
-                if obj_msg.lengthM > 0.1:
-                    obj['length'] = float(obj_msg.lengthM)
-                if obj_msg.widthM > 0.1:
-                    obj['width'] = float(obj_msg.widthM)
-                if obj_msg.heightM > 0.1:
-                    obj['height'] = float(obj_msg.heightM)
-                if obj_msg.yawRad != 0.0 or obj_msg.lengthM > obj_msg.widthM:
-                    obj['yawRad'] = float(obj_msg.yawRad)
-            obj['confidence'] = min(obj.get('confidence', 0.5) + confidence_boost, 1.0)
-
-        return objects
-
-    def _merge_radar4d_dropoff(self, objects: list, radar4d) -> list:
-        """Merge the radar drop-off guard as a hard-limit obstacle.
-
-        Below-road returns ahead mean the road does not continue (cliff edge,
-        ditch, collapsed shoulder).  Camera road-surface detection can miss
-        this at night or in glare, so the radar guard enters the costmap at
-        maximum cost across the corridor and as a fused object downstream
-        planners cannot miss.
-        """
-        if not getattr(radar4d, 'dropOffHazard', False):
-            return objects
-        dist = float(radar4d.dropOffDistM)
-        if dist <= 0.0:
-            return objects
-        objects.append({
-            'dRel': dist, 'yRel': 0.0, 'zRel': -1.0,
-            'vRel': 0.0, 'aRel': 0.0,
-            'confidence': 0.95, 'prob': 0.95,
-            'trackId': 0, 'obstacleType': 'dropoff',
-            'dynProp': 0,
-        })
-        if self._active_costmap is not None:
-            # Hard limit across the forward corridor, not a single cell.
-            for y in (-2.0, -1.0, 0.0, 1.0, 2.0):
-                self._active_costmap.add_obstacle(dist, y, radius=1.5, cost=1.0)
-        return objects
-
-    def _fuse_radar4d_points(self, objects: list, radar4d) -> list:
-        """Associate raw radar4d detections with stereo objects; add unmatched as new entries.
-
-        Forward (|az|<20°): annotates stereo objects with Doppler vRel + boosted prob
-        (blended from SNR/RCS and the tracker's confirm-hit-streak existenceProb — a
-        confirmed multi-frame track is stronger evidence than one high-SNR return).
-        Adjacent-lane (|az|>20°): also marks costmap blind-spot zone.
-        Points with |elevation| beyond _R4D_ELEV_GATE_DEG are rejected outright —
-        overhead signage / ground-bounce clutter a 2-D-only pipeline can't otherwise
-        distinguish from a real forward obstacle.
-
-        New: dynProp/isStatic/aRel are forwarded to gridd objects; velocity and
-        acceleration are estimated with an Autoware-style camera-box aggregator;
-        forward roadside clutter outside modelV2 lane bounds is dropped to reduce
-        phantom obstacles in messy traffic.
-        """
-        # Per-object list of matched radar points for box velocity estimation.
-        matched_points: list[list] = [[] for _ in objects]
-
-        for pt in radar4d.points:
-            if abs(pt.elevation) > self._R4D_ELEV_GATE_DEG:
-                continue
-            if pt.isStatic and self._R4D_SKIP_STATIC:
-                continue
-            if not self._radar4d_in_camera_fov(pt.rangM, pt.azimuth, pt.elevation):
-                continue
-
-            az = math.radians(pt.azimuth)
-            d_rel = pt.rangM * math.cos(az)   # forward (+)
-            y_rel = pt.rangM * math.sin(az)   # lateral left (+)
-
-            best_idx, best_dist = None, float('inf')
-            for i, obj in enumerate(objects):
-                d = math.hypot(obj['dRel'] - d_rel, obj['yRel'] - y_rel)
-                if d < best_dist:
-                    best_dist, best_idx = d, i
-
-            snr_frac = min(pt.snrDb / self._R4D_SNR_REF_DB, 1.0)
-            existence_frac = pt.existenceProb / 100.0
-            confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R4D_CONFIDENCE_BOOST
-
-            if best_idx is not None and best_dist < self._R4D_ASSOC_M:
-                matched_points[best_idx].append(pt)
-                obj = objects[best_idx]
-                obj['vRel'] = float(pt.vRel)
-                obj['aRel'] = float(pt.aRel)
-                obj['confidence'] = min(obj.get('confidence', 0.5) + confidence_boost, 1.0)
-                # dynProp: keep the most dynamic label seen for this object.
-                obj['dynProp'] = max(obj.get('dynProp', 0), int(pt.dynProp))
-            else:
-                objects.append({
-                    'dRel': d_rel, 'yRel': y_rel, 'vRel': float(pt.vRel),
-                    'aRel': float(pt.aRel),
-                    'confidence': 0.5 + confidence_boost, 'prob': 0.5 + confidence_boost,
-                    'trackId': int(pt.trackId), 'obstacleType': 0,
-                    'dynProp': int(pt.dynProp),
-                })
-                matched_points.append([])
-
-            if abs(pt.azimuth) > self._R4D_BLIND_AZ_DEG and self._active_costmap is not None:
-                self._active_costmap.add_obstacle(d_rel, y_rel, radius=1.5, cost=0.8)
-
-        # Second pass: Autoware-style camera-box velocity/acceleration fusion.
-        # Replacing the single-point values with robust estimates over all radar
-        # returns inside the object's 3-D bounding box reduces noise and clutter
-        # contamination — critical for smooth braking/acceleration in dense traffic.
-        for i, obj in enumerate(objects):
-            pts = matched_points[i]
-            if not pts:
-                continue
-            box_vel, box_accel = self._estimate_box_kinematics(obj, pts)
-            if box_vel is not None:
-                obj['vRel'] = box_vel
-            if box_accel is not None:
-                obj['aRel'] = box_accel
-
-        return objects
-
-    def _fuse_radar4d(self, objects: list, radar4d) -> list:
-        """Orchestrate radar4d fusion.
-
-        Prefer lidar-style Radar4DObject clusters when radar4d.py publishes them;
-        they carry shape and already aggregated Doppler.  Fall back to raw points
-        for legacy / diagnostic paths or when clustering yielded nothing.
-        """
-        if radar4d is None:
-            return objects
-        if len(radar4d.objects) > 0:
-            return self._fuse_radar4d_objects(objects, radar4d)
-        return self._fuse_radar4d_points(objects, radar4d)
 
     def _fuse_radar2d(self, objects: list, radar2d) -> list:
         """Orchestrate radar2d corner fusion.
@@ -1053,9 +615,9 @@ class GridD:
             d_rel, y_rel = self._corner_local_to_vehicle_frame(
                 obj_msg.rangM, obj_msg.azimuthDeg, self._r2d_corner_pose[obj_msg.corner])
 
-            snr_frac = min(obj_msg.snrDb / self._R4D_SNR_REF_DB, 1.0)
-            existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)  # 0-100, same convention as Radar4DObject
-            confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R4D_CONFIDENCE_BOOST
+            snr_frac = min(obj_msg.snrDb / self._R2D_SNR_REF_DB, 1.0)
+            existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)
+            confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R2D_CONFIDENCE_BOOST
             confidence = 0.5 + confidence_boost
             if not obj_msg.measured:
                 # Predict-only coast through occlusion — softer evidence.
@@ -1065,7 +627,8 @@ class GridD:
                 'dRel': d_rel, 'yRel': y_rel, 'vRel': float(obj_msg.vRel),
                 'aRel': float(obj_msg.aRel),
                 'confidence': confidence, 'prob': confidence,
-                'trackId': int(obj_msg.trackId), 'obstacleType': 0,
+                'trackId': encode_corner_track_id(obj_msg.corner, obj_msg.trackId),
+                'obstacleType': 0,
                 'dynProp': int(obj_msg.dynProp),
                 'length': float(obj_msg.lengthM),
                 'width': float(obj_msg.widthM),
@@ -1094,7 +657,7 @@ class GridD:
             objects.append({
                 'dRel': d_rel, 'yRel': y_rel, 'vRel': v_rel,
                 'confidence': self._R2D_PROB, 'prob': self._R2D_PROB,
-                'trackId': 0, 'obstacleType': 0,
+                'trackId': encode_corner_track_id(r.side, 0), 'obstacleType': 0,
             })
         return objects
 
@@ -1402,9 +965,9 @@ class GridD:
 
             # Radar fusion — must run after costmap is available (set below)
             # _active_costmap is set once costmap is computed so fusion can mark it
-            _radar4d_msg = self.sm['radar4d'] if self.sm.updated['radar4d'] else None
             _radar3d_msg = self.sm['radar3d'] if self.sm.updated['radar3d'] else None
             _radar2d_msg = self.sm['radar2d'] if self.sm.updated['radar2d'] else None
+            self._refresh_corner_poses()
 
             # Segmentation - PP-LiteSeg with full semantic costmap
             # PP-LiteSeg (19-class Cityscapes) class 0=road, 1=sidewalk
@@ -1438,11 +1001,8 @@ class GridD:
                     cloudlog.error(f"PP-LiteSeg inference failed: {e}")
                     inference_success = False
 
-            # Radar fusion: order matters — radar4d close range first, then radar3d far range
+            # Radar fusion: 77 GHz long range plus BLE corner Radar2D.
             self._active_costmap = self.costmap_gen
-            if _radar4d_msg is not None:
-                all_objects = self._fuse_radar4d(all_objects, _radar4d_msg)
-                all_objects = self._merge_radar4d_dropoff(all_objects, _radar4d_msg)
             if _radar3d_msg is not None:
                 all_objects = self._fuse_radar3d(all_objects, _radar3d_msg)
             if _radar2d_msg is not None:

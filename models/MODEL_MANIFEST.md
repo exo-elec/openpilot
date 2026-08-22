@@ -29,6 +29,8 @@ They are NOT stored in git. Verify downloads with the sha256 checksums below.
 | `onnx/sceneseg_lite_int8.onnx` | *(set after first verified build)* | internal CDN | Scene segmentation |
 | `onnx/autosteer_full_int8.onnx` | *(set after first verified build)* | internal CDN | Steer model |
 | `onnx/autospeed_full_int8.onnx` | *(set after first verified build)* | internal CDN | Speed model |
+| `onnx/yolo_side.onnx` | *(set after verified export)* | Ultralytics YOLOv8n export | Side-left/right eGPU shadow model; replace independently after side-camera training |
+| `onnx/yolo_rear.onnx` | *(set after verified export)* | Ultralytics YOLOv8n export | Rear eGPU shadow model; replace independently after rear-camera training |
 
 ## Adding New Models
 

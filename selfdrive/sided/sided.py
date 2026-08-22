@@ -54,6 +54,7 @@ from openpilot.selfdrive.locationd.calibration_storage import CalibrationStorage
 from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
 from openpilot.selfdrive.sided.handover_manager import HandoverManager
 from openpilot.selfdrive.sided.hailo_side_detector import HailoSideDetector
+from openpilot.selfdrive.sided.egpu_camera_detector import EgpuCameraShadowRunner
 
 RATE = 20  # 20 Hz
 
@@ -321,6 +322,12 @@ class SideD:
     self.cpu_processor = SideProcessor()
     self.hailo_processor = HailoSideProcessor()
     self.use_hailo = self.hailo_processor.is_available
+    self._egpu_mode = (self.params.get("EOPSideEGPUMode") or b"off").decode().strip().lower()
+    if self._egpu_mode not in ("off", "shadow"):
+      cloudlog.warning("SideD: unsupported EOPSideEGPUMode=%s — using off", self._egpu_mode)
+      self._egpu_mode = "off"
+    self.egpu_shadow = EgpuCameraShadowRunner("sided", "side_yolo_egpu") if self._egpu_mode == "shadow" else None
+    self._egpu_camera_index = 0
 
     self._vipc_left = None
     self._vipc_right = None
@@ -335,9 +342,9 @@ class SideD:
     self.tracker_core = SideTrackerCore(left_geometry=left_geo, right_geometry=right_geo)
 
     cloudlog.info(
-      "SideD initialized: enabled=%s, left=%s, right=%s, swapped=%s, hailo=%s, visionipc=%s",
+      "SideD initialized: enabled=%s, left=%s, right=%s, swapped=%s, hailo=%s, egpu=%s, visionipc=%s",
       self.enabled, self._left_enabled, self._right_enabled,
-      self._cameras_swapped, self.use_hailo, HAS_VISIONIPC,
+      self._cameras_swapped, self.use_hailo, self._egpu_mode, HAS_VISIONIPC,
     )
 
   def _load_geometry_pair(self):
@@ -424,10 +431,17 @@ class SideD:
     if tracks:
       items = msg.sideDetections.init('detections', len(tracks))
       for i, track in enumerate(tracks):
+        items[i].trackId = track.uid
         items[i].className = track.label
         items[i].confidence = track.confidence
         items[i].x = track.distance_m
         items[i].y = track.lateral_m
+        items[i].vx = track.velocity_mps
+        items[i].vy = 0.0
+        # Side-camera BEV depth is useful for association but much less precise
+        # than corner-radar range, especially with approximate shop mounting.
+        items[i].sigmaX = 2.5
+        items[i].sigmaY = 1.5
         # After swap, lateral_m > 0 still means left side of vehicle
         items[i].cameraSource = 'side_left' if track.lateral_m > 0 else 'side_right'
     self.pm.send('sideDetections', msg)
@@ -480,6 +494,21 @@ class SideD:
           left_dets = self.cpu_processor.detect(left_frame) if self._left_enabled else []
           right_dets = self.cpu_processor.detect(right_frame) if self._right_enabled else []
 
+        # eGPU validation is separate from the authoritative detector. Keep at
+        # most one side-camera job in flight and alternate left/right frames.
+        if self.egpu_shadow is not None:
+          candidates = []
+          if self._left_enabled and left_frame is not None:
+            candidates.append(('side_left', left_frame, left_dets))
+          if self._right_enabled and right_frame is not None:
+            candidates.append(('side_right', right_frame, right_dets))
+          if candidates:
+            camera, shadow_frame, reference = candidates[self._egpu_camera_index % len(candidates)]
+            if self.egpu_shadow.submit(camera, shadow_frame, reference):
+              self._egpu_camera_index += 1
+          else:
+            self.egpu_shadow.poll()
+
         # Tracking + BEV + handover
         tracks = self.tracker_core.process_frames(
           left_frame, right_frame, left_dets, right_dets,
@@ -498,6 +527,9 @@ class SideD:
     except Exception as e:
       cloudlog.error("SideD: main loop error: %s", e)
       raise
+    finally:
+      if self.egpu_shadow is not None:
+        self.egpu_shadow.close()
 
 
 def main() -> int:

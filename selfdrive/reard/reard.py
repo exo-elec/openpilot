@@ -34,6 +34,7 @@ except ImportError:
 VISION_STREAM_REAR = VisionStreamType.VISION_STREAM_REAR
 
 from openpilot.selfdrive.sided.hailo_side_detector import HailoSideDetector
+from openpilot.selfdrive.sided.egpu_camera_detector import EgpuCameraShadowRunner
 from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
 
 RATE = 20  # 20 Hz
@@ -67,7 +68,7 @@ def _to_tracker_objects(detections) -> list[SideObject]:
     so = SideObject()
     so.label = det.label
     so.confidence = det.confidence
-    so.bbox = det.bbox
+    so.bbox_2d = det.bbox_2d
     so.distance_m = 0.0  # Will be estimated from bbox size
     so.lateral_m = 0.0   # Centered in rear view
     so.track_id = -1
@@ -130,9 +131,10 @@ class HailoRearProcessor:
     # Estimate distance from bbox size
     h = frame_bgr.shape[0]
     for obj in objs:
-      obj.distance_m = _estimate_distance_from_bbox(obj.bbox, h)
+      # Vehicle frame is +x forward, therefore rear-camera detections are -x.
+      obj.distance_m = -_estimate_distance_from_bbox(obj.bbox_2d, h)
       # lateral position: center of bbox relative to image center
-      x1, _, x2, _ = obj.bbox
+      x1, _, x2, _ = obj.bbox_2d
       cx = (x1 + x2) / 2.0
       # Normalize: 0 = center, -1 = left edge, +1 = right edge
       img_w = frame_bgr.shape[1]
@@ -157,13 +159,18 @@ class RearD:
     self.cpu_processor = RearProcessor()
     self.hailo_processor = HailoRearProcessor()
     self.use_hailo = self.hailo_processor.is_available
+    self._egpu_mode = (self.params.get("EOPRearEGPUMode") or b"off").decode().strip().lower()
+    if self._egpu_mode not in ("off", "shadow"):
+      cloudlog.warning("RearD: unsupported EOPRearEGPUMode=%s — using off", self._egpu_mode)
+      self._egpu_mode = "off"
+    self.egpu_shadow = EgpuCameraShadowRunner("reard", "rear_yolo_egpu") if self._egpu_mode == "shadow" else None
 
     self._vipc_rear = None
     self._init_visionipc()
 
     cloudlog.info(
-      "RearD initialized: enabled=%s, hailo=%s, visionipc=%s",
-      self.enabled, self.use_hailo, HAS_VISIONIPC,
+      "RearD initialized: enabled=%s, hailo=%s, egpu=%s, visionipc=%s",
+      self.enabled, self.use_hailo, self._egpu_mode, HAS_VISIONIPC,
     )
 
   def _init_visionipc(self) -> None:
@@ -210,10 +217,15 @@ class RearD:
     if tracks:
       items = msg.rearDetections.init('detections', len(tracks))
       for i, track in enumerate(tracks):
+        items[i].trackId = track.uid
         items[i].className = track.label
         items[i].confidence = track.confidence
         items[i].x = track.distance_m
         items[i].y = track.lateral_m
+        items[i].vx = track.velocity_mps
+        items[i].vy = 0.0
+        items[i].sigmaX = 4.0
+        items[i].sigmaY = 2.0
         items[i].cameraSource = 'rear'
     self.pm.send('rearDetections', msg)
 
@@ -253,6 +265,8 @@ class RearD:
           dets = self.hailo_processor.detect(frame)
         else:
           dets = self.cpu_processor.detect(frame)
+        if self.egpu_shadow is not None:
+          self.egpu_shadow.submit('rear', frame, dets)
         proc_time_ms = (time.monotonic() - t0) * 1000.0
 
         ts = int(time.monotonic() * 1e9)
@@ -262,6 +276,9 @@ class RearD:
         self.rk.keep_time()
     except Exception:  # noqa: TRY203
       raise
+    finally:
+      if self.egpu_shadow is not None:
+        self.egpu_shadow.close()
 
 
 def main() -> int:

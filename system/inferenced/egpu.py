@@ -6,28 +6,15 @@ Loads and runs .onnx models via tinygrad's ONNX frontend
 (runtime/ops_amd.py's USBIface) — see exopilot's
 docs/02-HARDWARE/EGPU_ASM2464PD.md for the full hardware/firmware writeup.
 
-Not wired into any WorkloadClass tier yet: the additive-tier design
-(always-loaded local model stays authoritative, eGPU loads a bigger model
-on top opportunistically, soft-disable on absence or failure — matching
-upstream openpilot's modeld.py load_big()/small_model pattern) needs a
-real driving-model asset to route to a WorkloadClass, which doesn't exist
-yet (dev/NGP10's big_driving_vision.onnx/big_driving_policy.onnx turned
-out to be symlinks to the small models, not real weights — see exopilot
-doc §11/§15/§16) — and hardware to verify the driving path against, which
-this backend does not perform on its own. What this class does do for
-real: given any .onnx file and a loaded model name, run inference on it
-through the eGPU, same as any other backend in this HAL
-(OnnxBackend/DeepXBackend/Hailo8Backend) — nothing routes a model to it
-yet, but the class itself is not a stub.
+The first routed workloads are separate side-camera and rear-camera YOLO
+models in shadow mode. Hailo/local detections remain authoritative; eGPU
+results are compared and logged only. The backend is deliberately not part
+of a WorkloadClass fallback tier, so it cannot replace safety inference by
+being merely present.
 
-Requires tinygrad (tinygrad.nn.onnx, tinygrad.tensor). Not currently a
-dependency of this branch — dev/EOP10 has no vendored tinygrad_repo/ and
-no `tinygrad` pip package, unlike dev/NGP10 which vendors a pinned
-tinygrad_repo submodule. initialize() guards the import the same way
-OnnxBackend guards `onnxruntime` and DeepXBackend guards `dx_engine`:
-absence makes initialize() return False, same as a missing runtime
-dependency for any other backend in this HAL — it is not treated as a
-harder failure than that.
+Requires tinygrad (tinygrad.nn.onnx, tinygrad.tensor), pinned through the
+official tinygrad_repo submodule at release tag v0.13.0. initialize() still
+guards the import so an incomplete deployment degrades cleanly.
 
 Detection: post-flash device enumerates as 0xADD1:0x0001 or 0x3801:0x0001
 (tinygrad corp's own USB-GPU bridge IDs, not comma-specific — see
@@ -93,14 +80,14 @@ class _EgpuModelHandle:
   name: str
   path: str
   runner: Any  # tinygrad.nn.onnx.OnnxRunner, weights moved onto the AMD device
+  input_names: tuple[str, ...]
 
 
 class EgpuBackend(HardwareBackend):
   """ASM2464PD-bridge eGPU backend — loads/runs .onnx models via tinygrad's ONNX frontend.
 
   Deliberately not registered as CAMERA_INFERENCE, VOICE_INFERENCE, or
-  SAFETY_INFERENCE: no WorkloadClass routes to this backend yet (no real
-  driving-model asset exists to route — see module docstring).
+  SAFETY_INFERENCE. Shadow callers request BackendType.EGPU explicitly.
   """
 
   WORKLOAD_CLASS = None  # not yet assigned to a tier — see module docstring
@@ -158,7 +145,8 @@ class EgpuBackend(HardwareBackend):
 
     try:
       runner = self._onnx_runner_cls(str(path)).to("AMD")
-      self._models[config.name] = _EgpuModelHandle(name=config.name, path=str(path), runner=runner)
+      input_names = tuple(runner.graph_inputs)
+      self._models[config.name] = _EgpuModelHandle(name=config.name, path=str(path), runner=runner, input_names=input_names)
       config.loaded = True
       logger.info(f"Loaded eGPU model: {config.name} ({path.stat().st_size // 1024 // 1024} MB)")
       return True
@@ -193,13 +181,30 @@ class EgpuBackend(HardwareBackend):
       from tinygrad.tensor import Tensor
 
       start = time.monotonic()
+      self._stats.tasks_submitted += 1
       # Inputs are placed on the AMD device explicitly (not via the DEV env
       # var) so this backend can't interfere with any other tinygrad device
       # this process might use — see module docstring. Guard against an
       # already-a-Tensor input (Tensor(existing_tensor) raises — tinygrad
       # has no such-case handling, unlike OnnxRunner._parse_input, which
       # this mirrors).
-      tg_inputs = {k: (v.to("AMD") if isinstance(v, Tensor) else Tensor(v, device="AMD")) for k, v in inputs.items()}
+      model_inputs = inputs
+      # The current cereal IPC contract calls its sole input "input", while
+      # exported ONNX models commonly call it "images". Remap only when both
+      # sides are unambiguously single-input; multi-input models must use their
+      # real names through a future multi-tensor transport.
+      if set(inputs) == {'input'} and len(handle.input_names) == 1:
+        model_inputs = {handle.input_names[0]: inputs['input']}
+
+      tg_inputs = {}
+      for name, value in model_inputs.items():
+        tensor = value.to("AMD") if isinstance(value, Tensor) else Tensor(value, device="AMD")
+        input_spec = handle.runner.graph_inputs.get(name)
+        if input_spec is not None and tensor.dtype is not input_spec.dtype:
+          # Camera tensors can travel as FP16 to halve USB traffic, then
+          # cast in VRAM to the model's declared dtype (normally FP32).
+          tensor = tensor.cast(input_spec.dtype)
+        tg_inputs[name] = tensor
       raw_outputs = handle.runner(tg_inputs)
       outputs = {k: v.numpy() for k, v in raw_outputs.items()}
       inference_time_ms = (time.monotonic() - start) * 1000

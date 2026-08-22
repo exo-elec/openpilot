@@ -69,7 +69,11 @@ if arch == "aarch64":
 
 lenv = {
   "PATH": os.environ['PATH'],
-  "PYTHONPATH": Dir("#").abspath + ':' + Dir(f"#third_party/acados").abspath,
+  "PYTHONPATH": os.pathsep.join([
+    Dir("#").abspath,
+    Dir("#tinygrad_repo").abspath,
+    Dir(f"#third_party/acados").abspath,
+  ]),
   "ACADOS_SOURCE_DIR": Dir("#third_party/acados").abspath,
   "ACADOS_PYTHON_INTERFACE_PATH": Dir("#third_party/acados/acados_template").abspath,
   "TERA_PATH": Dir("#").abspath + f"/third_party/acados/{arch}/t_renderer",

@@ -31,8 +31,9 @@ if [ ! -x "$PYTHON" ]; then
   exit 1
 fi
 
-# Python path includes repo root
-export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
+# Python path includes the repo root and the pinned tinygrad submodule used by
+# inferenced's optional USB eGPU backend.
+export PYTHONPATH="${SCRIPT_DIR}:${SCRIPT_DIR}/tinygrad_repo:${PYTHONPATH}"
 
 MODE="${1:-full}"
 

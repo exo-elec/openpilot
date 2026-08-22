@@ -227,18 +227,19 @@ class TestLongitudinalSafety:
         safety.state.last_accel_max = 375
         safety.state.last_accel_min = 375
 
-        def _pack(accel_max: int, accel_min: int) -> bytes:
+        def _pack(accel_max: int, accel_min: int, aeb_event: int = 0) -> bytes:
             # Matches tesla_safety parsing:
             #   raw_accel_max = ((data[6] & 0x1F) << 4) | (data[5] >> 4)
             #   raw_accel_min = ((data[5] & 0x0F) << 5) | (data[4] >> 3)
             data = bytearray(8)
+            data[2] = aeb_event
             data[6] = (accel_max >> 4) & 0x1F
             data[5] = ((accel_max & 0x0F) << 4) | ((accel_min >> 5) & 0x0F)
             data[4] = (accel_min & 0x1F) << 3
             return bytes(data)
 
         # Valid: mild accel request (390 = +15 units over inactive) with
-        # accel_min held at inactive; within MAX_ACCEL=415 / MIN_ACCEL=305
+        # accel_min held at inactive; within MAX_ACCEL=415 / MIN_ACCEL=312
         # and within the 16-unit rate limit.
         allowed, _ = safety._check_longitudinal_control(_pack(390, 375))
         assert allowed
@@ -248,17 +249,33 @@ class TestLongitudinalSafety:
             safety._check_longitudinal_control(_pack(450, 375))
         assert exc_info.value.violation_type == "max_accel_limit"
 
-    def test_aeb_blocked(self):
-        """Test AEB commands are blocked"""
+    def test_aeb_requires_explicit_emergency_range(self):
+        """Normal commands stay comfortable; explicit AEB may use the wider range."""
         safety = TeslaSafety()
         safety.state.controls_allowed = True
 
-        data = bytearray(8)
-        data[2] = 0x01  # AEB event = 1 (ACTIVE)
+        def _pack(accel_min: int, aeb_event: int = 0) -> bytes:
+            data = bytearray(8)
+            data[2] = aeb_event
+            data[6] = (375 >> 4) & 0x1F
+            data[5] = ((375 & 0x0F) << 4) | ((accel_min >> 5) & 0x0F)
+            data[4] = (accel_min & 0x1F) << 3
+            return bytes(data)
 
         with pytest.raises(SafetyViolation) as exc_info:
-            safety._check_longitudinal_control(bytes(data))
-        assert exc_info.value.violation_type == "aeb_blocked"
+            safety._check_longitudinal_control(_pack(300))  # ~-3.0 without AEB
+        assert exc_info.value.violation_type == "min_accel_limit"
+
+        allowed, _ = safety._check_longitudinal_control(_pack(300, aeb_event=1))
+        assert allowed
+
+        with pytest.raises(SafetyViolation) as exc_info:
+            safety._check_longitudinal_control(_pack(312, aeb_event=1))
+        assert exc_info.value.violation_type == "aeb_without_emergency_decel"
+
+        with pytest.raises(SafetyViolation) as exc_info:
+            safety._check_longitudinal_control(_pack(300, aeb_event=2))
+        assert exc_info.value.violation_type == "invalid_aeb_event"
 
 
 class TestHeartbeat:

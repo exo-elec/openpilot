@@ -265,6 +265,38 @@ Remaining work: Phase 5 (blocked on RK3588 hardware availability)
 
 Hardware readiness procedures documented in PHASE5_HARDWARE_READINESS.md
 
+---
+
+## Longitudinal safety and corner-radar task register (2026-08)
+
+These items supersede the older “complete” AEB wording above. They are
+engineering tasks, not a safety or regulatory approval statement.
+
+- [x] Set normal OpenPilot longitudinal braking boundary from comfort evidence:
+  approximately `-2.5 m/s²` (Tesla raw `312`); keep normal speed-profile
+  braking gentler at approximately `-1.2 m/s²`.
+- [x] Reserve the existing `DAS_aebEvent=ACTIVE` bit for the explicit
+  built-in-forward-radar collision-mitigation path.
+- [x] Keep AEB authority restricted to confirmed 77 GHz radar leads; BLE corner
+  radar and camera-only tracks remain advisory.
+- [x] Keep canonical FCW owned by the forward radar/model pipeline; corner
+  radar owns BSD, RCW, FCTA and RCTA.
+- [x] Add a separate low-speed front-corner near-field warning for high-SUV
+  bumper/elevation blind zones. Two front corners or corner-plus-camera are
+  required for warning/chime; it never commands braking.
+- [x] Use a controlled jerk transition: normal profile `2.0 m/s³`, emergency
+  collision-mitigation ramp `4.5 m/s³`, below BrownPanda's `5.0 m/s³` hard cap.
+- [ ] Validate commanded versus measured deceleration, jerk, TTC, impact speed,
+  false positives and driver override on a closed course and HIL bench.
+- [ ] Validate low-adhesion, grade, payload, tyre, temperature, stale-radar,
+  sensor-misalignment and CAN-dropout cases.
+- [ ] Do not claim UN R152 AEBS compliance until the complete vehicle test
+  matrix and the regulation's at-least-`5.0 m/s²` emergency demand are met.
+
+See [`AEB_LONGITUDINAL_ENVELOPE.md`](AEB_LONGITUDINAL_ENVELOPE.md) for the
+standards/research rationale and the evidence required before widening the
+emergency envelope.
+
 **Test Status**:
 - ✅ test_timeout.py (4/4 passing)
 - ✅ test_model_preloading.py (6/6 passing)

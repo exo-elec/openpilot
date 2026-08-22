@@ -58,6 +58,15 @@ if src.exists():
     print('✓ yolo_640.onnx saved')
 " 2>/dev/null || echo "✗ YOLOv8n export failed — install: pip install ultralytics"
     fi
+
+    # Keep distinct artifacts and model sessions for side and rear. They start
+    # from the same generic COCO export for hardware validation, then can be
+    # replaced independently with viewpoint-specific trained models.
+    if [ -f "$MODELS_DIR/onnx/yolo_640.onnx" ]; then
+        cp "$MODELS_DIR/onnx/yolo_640.onnx" "$MODELS_DIR/onnx/yolo_side.onnx"
+        cp "$MODELS_DIR/onnx/yolo_640.onnx" "$MODELS_DIR/onnx/yolo_rear.onnx"
+        echo "✓ separate side/rear eGPU validation models saved"
+    fi
 fi
 
 # ============================================================================

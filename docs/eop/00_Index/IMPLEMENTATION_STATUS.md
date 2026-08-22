@@ -346,7 +346,7 @@ New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_A
 | TC275 Layer 2 Ready | Hardware gateway | ✅ Done |
 
 **Safety Architecture:**
-- Layer 1 (Software): SocketD - TIGHTER limits (80% of Panda)
+- Layer 1 (Software): SocketD - comfort-bounded normal control with explicit AEB envelope
 - Layer 2 (Hardware): TC275 - Panda original limits (100%)
 
 ### Fault Countermeasures — Complete (2026-04-04)

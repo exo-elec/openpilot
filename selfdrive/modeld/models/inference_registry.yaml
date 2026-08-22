@@ -117,6 +117,34 @@ models:
       num_classes: 19
       class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
 
+  # Optional USB eGPU validation models. These are independent sessions and
+  # remain shadow-only; Hailo/local detections continue to drive sided/reard.
+  - id: side_yolo_egpu
+    task: detection
+    backend: egpu
+    path: models/onnx/yolo_side.onnx
+    input_size: [640, 640]
+    priority: 1
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["side_left", "side_right"]
+      input_layout: nchw
+      transport_dtype: float16
+
+  - id: rear_yolo_egpu
+    task: detection
+    backend: egpu
+    path: models/onnx/yolo_rear.onnx
+    input_size: [640, 640]
+    priority: 1
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["rear"]
+      input_layout: nchw
+      transport_dtype: float16
+
   # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
   # These models require voxeld daemon which was never created
   # Kept for reference only

@@ -35,7 +35,6 @@ private:
   void add_device_toggles();
   void add_voice_ai_toggles();      // Voice AI (waked, voiced, intentd)
   void add_driver_toggles();        // Driver pose detection toggles
-  void add_radar4d_toggles();       // ESP32_RADAR corner-node 4D short-range radar
   void add_monod_toggles();         // Hailo-8 long-range detection
   void add_pointcloud_toggles();    // 3D point cloud recording
   void add_globald_toggles();       // Global localization (OSM + SGM)

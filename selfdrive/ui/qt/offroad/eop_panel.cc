@@ -702,7 +702,6 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
   // ── ASSISTANCE ───────────────────────────────────────
   addItem(makeDivider(QString::fromUtf8("👁  ") + tr("Assistance")));
   add_driver_toggles();
-  add_radar4d_toggles();
 
   // ── DISPLAY ──────────────────────────────────────────
   addItem(makeDivider(QString::fromUtf8("🖥  ") + tr("Display")));
@@ -807,24 +806,6 @@ void EopPanel::add_driver_toggles() {
       "", this);
   addItem(rear_cam_toggle);
   toggles["EOPRearCameraEnabled"] = rear_cam_toggle;
-}
-
-void EopPanel::add_radar4d_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("📡 ") + tr("4D Short-Range Radar"),
-      tr("4 corner-mounted radar nodes (WiFi/UDP), one per corner."
-         "\nAdds Doppler velocity and short-range (0-15m) surround"
-         " detection to the camera fusion pipeline. Requires the sensor"
-         " nodes to be physically installed and paired.")));
-
-  auto radar4d_toggle = new ParamControl(
-      "EOPRadar4DEnabled",
-      tr("Enable 4D Radar"),
-      tr("Only enable if the corner radar nodes are physically installed."
-         "\nLeave off on hardware without this sensor."),
-      "", this);
-  addItem(radar4d_toggle);
-  toggles["EOPRadar4DEnabled"] = radar4d_toggle;
 }
 
 void EopPanel::add_monod_toggles() {

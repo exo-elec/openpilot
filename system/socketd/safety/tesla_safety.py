@@ -23,11 +23,14 @@ class SafetyLimits:
     """
     Safety limits for Tesla protocol - LAYER 1 (TIGHTER).
 
-    Layer 1 (this): TIGHTER limits for normal operation (80% of Panda)
+    Layer 1 (this): comfort-bounded normal commands plus explicit AEB authority
     Layer 2 (BrownPanda): hardware enforcement - final safety net
 
-    These limits are 80% of the original Panda limits from openpilot 0.10.0.
-    BrownPanda v1/v2 enforces the final vehicle-side limits.
+    Normal braking is bounded at approximately -2.5 m/s² from real-world
+    comfort evidence. An explicitly marked AEB frame may use the separately
+    bounded Tesla/Panda collision-mitigation range. BrownPanda v1/v2 remains
+    the independent final vehicle-side backstop. See
+    docs/eop/AEB_LONGITUDINAL_ENVELOPE.md.
 
     Reference (Panda/openpilot 0.10.0 original):
     - MAX_STEERING_ANGLE: 3600 (360°)
@@ -42,19 +45,19 @@ class SafetyLimits:
     MAX_STEERING_RATE: int = 200    # 20 deg/s (0.1 deg/s units) - 80% of 250
     MAX_ANGLE_ERROR: int = 240      # 24 degrees max error - 80% of 30°
 
-    # Longitudinal Limits - ~80% of Panda (TIGHTER)
+    # Longitudinal command backstops. Normal control is comfort-bounded;
+    # AEB_MIN_ACCEL is available only when DAS_aebEvent is explicitly ACTIVE.
     # Tesla DAS_control accel is offset-encoded: INACTIVE_ACCEL (375) = 0 m/s²,
-    # values above = accelerate, below = brake.  The 80% factor must be applied
-    # to the offset from 375, NOT to the raw Panda values (naive 0.8*425=340 is
-    # below INACTIVE and would make every command a "both negative" block).
-    #   MAX: 375 + 0.8*(425-375) = 415  (~+1.6 m/s²)
-    #   MIN: 375 - 0.8*(375-288) = 305  (~-2.8 m/s²)
+    # values above = accelerate and values below = brake. Raw 312 is about
+    # -2.5 m/s²; raw 288 is -3.48 m/s².
     MAX_ACCEL: int = 415           # ~+1.6 m/s² (Tesla units, offset from 375)
-    MIN_ACCEL: int = 305           # ~-2.8 m/s² (Tesla units, offset from 375)
+    MIN_ACCEL: int = 312           # ~-2.5 m/s² normal comfort boundary
+    AEB_MIN_ACCEL: int = 288       # ~-3.48 m/s² bounded collision mitigation
     INACTIVE_ACCEL: int = 375      # 0 m/s²
 
-    # Rate Limits for longitudinal - 80% of Panda (TIGHTER)
-    MAX_ACCEL_RATE: int = 16       # Max change per frame - 80% of 20
+    # Per-frame sanity backstop. Physical jerk is independently checked against
+    # measured sample time by BrownPanda; AEB itself ramps at 4.5 m/s³.
+    MAX_ACCEL_RATE: int = 16
 
     # Timing - 80% of Panda (TIGHTER/faster response)
     HEARTBEAT_TIMEOUT_MS: float = 200.0  # 200ms timeout - 80% of 250ms
@@ -81,7 +84,9 @@ class SafetyLimits:
                 MAX_STEERING_RATE=int(params.get("EOPSafetyMaxSteeringRate") or 200),
                 MAX_ANGLE_ERROR=int(params.get("EOPSafetyMaxAngleError") or 240),
                 MAX_ACCEL=int(params.get("EOPSafetyMaxAccel") or 415),
-                MIN_ACCEL=int(params.get("EOPSafetyMinAccel") or 305),
+                # A persisted value may tighten this bound, but cannot widen
+                # normal operation beyond the research-backed comfort floor.
+                MIN_ACCEL=max(312, int(params.get("EOPSafetyMinAccel") or 312)),
                 HEARTBEAT_TIMEOUT_MS=int(params.get("EOPSafetyHeartbeatTimeout") or 200),
                 MESSAGE_TIMEOUT_MS=int(params.get("EOPSafetyMessageTimeout") or 1200),
                 DRIVER_TORQUE_THRESHOLD=int(params.get("EOPSafetyDriverTorqueThreshold") or 200),
@@ -716,12 +721,13 @@ class TeslaSafety:
                 {'len': len(data)}
             )
 
-        # Check AEB event - never allow AEB commands from openpilot
+        # Only ACTIVE is a valid host AEB request. FAULT/SNA are vehicle status
+        # values, not authorization to widen host braking authority.
         aeb_event = data[2] & 0x03
-        if aeb_event != 0:
+        if aeb_event not in (0, 1):
             raise SafetyViolation(
-                f"AEB event {aeb_event} not allowed from openpilot",
-                "aeb_blocked",
+                f"Invalid host AEB event {aeb_event}",
+                "invalid_aeb_event",
                 {'aeb_event': aeb_event}
             )
 
@@ -749,13 +755,22 @@ class TeslaSafety:
                 }
             )
 
-        if raw_accel_min < self.limits.MIN_ACCEL:
+        if aeb_event == 1 and raw_accel_min >= self.limits.MIN_ACCEL:
             raise SafetyViolation(
-                f"Min accel {raw_accel_min} below limit {self.limits.MIN_ACCEL}",
+                "AEB flag set without an emergency-range deceleration request",
+                "aeb_without_emergency_decel",
+                {'accel_min': raw_accel_min, 'normal_limit': self.limits.MIN_ACCEL}
+            )
+
+        min_accel_limit = self.limits.AEB_MIN_ACCEL if aeb_event == 1 else self.limits.MIN_ACCEL
+        if raw_accel_min < min_accel_limit:
+            raise SafetyViolation(
+                f"Min accel {raw_accel_min} below limit {min_accel_limit}",
                 "min_accel_limit",
                 {
                     'accel_min': raw_accel_min,
-                    'limit': self.limits.MIN_ACCEL,
+                    'limit': min_accel_limit,
+                    'aeb_active': aeb_event == 1,
                 }
             )
 

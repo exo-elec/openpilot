@@ -65,8 +65,8 @@ class TestSimpleTracker:
     tracker.update(dets1)
     dets2 = [SideObject(label='car', confidence=0.9, bbox_2d=(12, 12, 52, 52), distance_m=8.0)]
     tracks2 = tracker.update(dets2)
-    # delta_dist = 8 - 10 = -2, velocity = alpha * (-(-2)) = alpha * 2 = 0.8
-    assert tracks2[0].velocity_mps == pytest.approx(0.8)
+    # Decreasing absolute range means approaching (negative range rate).
+    assert tracks2[0].velocity_mps == pytest.approx(-0.8)
 
   def test_reset(self):
     tracker = SimpleTracker()

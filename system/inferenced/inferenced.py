@@ -65,6 +65,8 @@ class InferenceD:
     'driving_policy': ('models/{fmt}/driving_policy.{ext}', 'policy'),
     'yolo_640':       ('models/{fmt}/yolo_640.{ext}', 'detection'),
     'yolo_side':      ('models/hef/yolov8n.hef', 'detection'),  # Hailo-8 HEF, sided+reard — fixed format, no rknn/onnx variant
+    'side_yolo_egpu': ('models/onnx/yolo_side.onnx', 'detection'),
+    'rear_yolo_egpu': ('models/onnx/yolo_rear.onnx', 'detection'),
     'sgm_stereo':     ('', 'sgm'),  # ACL operation — no model file
     'h264_encode':    ('', 'codec'),  # MPP operation — no model file
     'h264_decode':    ('', 'codec'),

@@ -38,6 +38,7 @@ dependencies = [
 
   # modeld
   "onnx >= 1.14.0",
+  "tinygrad",
 
   # GPU compute (OpenCL on Mali G52)
   "pyopencl >= 2024.0",
@@ -129,6 +130,9 @@ packages = [ "." ]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv.sources]
+tinygrad = { path = "tinygrad_repo", editable = true }
 
 [tool.pytest.ini_options]
 minversion = "6.0"

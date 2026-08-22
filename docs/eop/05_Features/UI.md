@@ -138,7 +138,7 @@ private:
 
 | Parameter | UI Element | Description | Requires |
 |-----------|------------|-------------|----------|
-| `EOPAEBEnabled` | Toggle | Emergency Braking | Stereo |
+| `EOPAEBEnabled` | Toggle | Experimental bounded collision mitigation (confirmed forward 77 GHz radar only) | Forward radar |
 
 **Note:** These toggles are disabled when `EOPStereoEnabled` is false.
 

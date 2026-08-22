@@ -1,12 +1,10 @@
-# radar4d — corner-node WiFi/UDP point cloud (ExoPilot 01M Integration)
+# Archived radar4d design — superseded by Radar2D corner BLE
 
-*(Filename kept for history/link stability — this doc used to describe a
-single BGT60TR13C sensor mounted on the stereo camera bar, driven directly
-over SPI. That sensor is gone: `radar4d` now comes from 4 identical
-corner-mounted `~/radar/ESP32_RADAR` nodes (FL/FR/RL/RR — ESP32-S3 +
-BGT60TR13C each), streaming their own onboard-CFAR point clouds over
-WiFi/UDP instead. The chip name in this doc's filename is now historical,
-not descriptive of the current sensor topology.)*
+*(Filename kept for history/link stability. The WiFi/UDP Radar4D corner-node
+pipeline described below is no longer an OpenPilot runtime dependency. OpenPilot
+uses the BLE Radar2D object stream for advisory corner coverage; VisionPilot may
+retain a separate WiFi/UDP point-cloud integration. Do not use this document as
+the current OpenPilot process or safety contract.)*
 
 ## Radar classification
 

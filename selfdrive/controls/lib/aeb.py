@@ -11,9 +11,7 @@ Architecture:
   3. AEB: Main controller integrating with openpilot's control loop
 
 Inputs:
-  - radarState: Lead vehicle data from radar
-  - modelV2: drive_vision lead predictions
-  - monoDetections: Multi-camera detections from monod (pedestrians, cyclists)
+  - radarState: Lead vehicle data measured by the built-in 77 GHz radar
   - carState: Ego vehicle state (velocity, acceleration, steering torque)
 
 Outputs:
@@ -24,12 +22,13 @@ Safety Design:
   - NEVER overrides driver steering or throttle directly
   - Driver override detection (steering >3Nm or throttle during braking)
   - Progressive braking: precharge → partial → full
-  - Vulnerable road users (pedestrians/cyclists) get maximum braking
+  - Corner BLE radar and auxiliary cameras are advisory-only and cannot brake
 
 Reference: Mobileye RSS model ( Responsibility-Sensitive Safety )
 """
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -236,19 +235,29 @@ class BrakingController:
   """
 
   # Thresholds
-  TTC_PARTIAL = 1.5     # Start partial braking / pre-charge
-  TTC_FULL = 0.8        # Start full emergency braking
-  TTC_RELEASE = 3.0     # Release braking threshold
+  TTC_PARTIAL = 4.0     # Earliest staged-braking envelope
+  TTC_FULL = 1.2        # Imminent-collision backstop
+  TTC_RELEASE = 4.5     # Release braking threshold
 
   # Deceleration levels (m/s²)
-  DECEL_PARTIAL = -3.0
-  DECEL_FULL = -5.0
-  DECEL_MAX = -8.0      # For vulnerable road users
-  DECEL_HOLD = -2.0     # Hold at standstill
+  DECEL_PARTIAL = -1.5
+  DECEL_COMFORT = -2.5  # strongest ordinary cruise/following request
+  # Collision-mitigation request ceiling from the Tesla protocol/controller
+  # envelope (TC275 backstop: -3.5). This is not a UN R152-qualified AEBS
+  # value: R152 emergency braking demands at least 5.0 m/s², and layer-1
+  # safety currently keeps ordinary commands above -2.5 m/s². See the safety
+  # envelope document before changing either independent safety layer.
+  DECEL_FULL = -3.48
+  DECEL_MAX = -3.48
+  DECEL_HOLD = -1.0     # Hold at standstill
 
   # Jerk limits (m/s³)
-  JERK_NORMAL = 10.0
-  JERK_EMERGENCY = 25.0
+  JERK_NORMAL = 2.0
+  # Faster than the normal profile, with margin below TC275's 5.0 m/s³ hard
+  # backstop for timestamp and CAN quantization error.
+  JERK_EMERGENCY = 4.5
+  STOP_BUFFER_M = 2.0
+  WARNING_LEAD_S = 0.8  # UN R152 warning lead when the collision is anticipatable
 
   # Override detection
   STEERING_OVERRIDE_NM = 3.0
@@ -258,6 +267,7 @@ class BrakingController:
     self._current_decel = 0.0
     self._override_active = False
     self._standstill_time = 0.0
+    self._precharge_elapsed_s = 0.0
 
   def update(
     self,
@@ -294,7 +304,7 @@ class BrakingController:
     if self.state == AEBState.IDLE:
       return self._state_idle(ego_state, threat)
     elif self.state == AEBState.PRECHARGE:
-      return self._state_precharge(ego_state, threat)
+      return self._state_precharge(ego_state, threat, dt)
     elif self.state == AEBState.BRAKING:
       return self._state_braking(ego_state, threat, dt)
     elif self.state == AEBState.HOLD:
@@ -325,29 +335,41 @@ class BrakingController:
 
     if ttc < self.TTC_PARTIAL:
       self.state = AEBState.PRECHARGE
+      self._precharge_elapsed_s = 0.0
       return _r(AEBLevel.CRITICAL, AEBState.PRECHARGE, ttc, threat.x, 0.0, True, False,
-                "Pre-charge for imminent braking", threat.obj_type)
+                "Collision warning before braking", threat.obj_type)
 
     level = AEBLevel.CAUTION if ttc < self.TTC_RELEASE else AEBLevel.NONE
     return _r(level, AEBState.IDLE, ttc, threat.x, 0.0, False, False, "Monitoring", threat.obj_type)
 
-  def _state_precharge(self, ego_state: EgoState, threat: TrackedObject | None) -> AEBResult:
-    """Pre-charge state - ready for braking."""
+  def _state_precharge(self, ego_state: EgoState, threat: TrackedObject | None, dt: float) -> AEBResult:
+    """Apply smooth partial braking while the threat remains feasible."""
     if threat is None:
       self.state = AEBState.IDLE
       return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "Threat cleared")
 
     ttc = threat.x / max(0.1, ego_state.v_ego - threat.v_x) if ego_state.v_ego > threat.v_x else float('inf')
+    self._precharge_elapsed_s += dt
 
-    if ttc < self.TTC_FULL:
+    # UN R152 calls for warning before emergency braking when the collision is
+    # anticipatable. If detection arrives already imminent, intervene at once
+    # for impact mitigation instead of waiting out the warning timer.
+    if self._precharge_elapsed_s < self.WARNING_LEAD_S and ttc > self.WARNING_LEAD_S:
+      return _r(AEBLevel.CRITICAL, AEBState.PRECHARGE, ttc, threat.x, 0.0, True, False,
+                "Collision warning before braking", threat.obj_type)
+
+    target = self._calculate_decel(threat, ttc)
+    if ttc < self.TTC_FULL or target < self.DECEL_COMFORT:
       self.state = AEBState.BRAKING
-      decel = self._calculate_decel(threat, ttc)
-      self._current_decel = decel
-      return _r(AEBLevel.EMERGENCY, AEBState.BRAKING, ttc, threat.x, decel, True, False,
+      max_change = self.JERK_EMERGENCY * dt
+      self._current_decel = max(target, self._current_decel - max_change)
+      return _r(AEBLevel.EMERGENCY, AEBState.BRAKING, ttc, threat.x, self._current_decel, True, False,
                 f"Emergency braking: TTC={ttc:.2f}s", threat.obj_type)
 
-    return _r(AEBLevel.CRITICAL, AEBState.PRECHARGE, ttc, threat.x, 0.0, True, False,
-              "Brake pre-charged", threat.obj_type)
+    max_change = self.JERK_NORMAL * dt
+    self._current_decel = max(target, self._current_decel - max_change)
+    return _r(AEBLevel.CRITICAL, AEBState.PRECHARGE, ttc, threat.x, self._current_decel, True, False,
+              "Controlled collision braking", threat.obj_type)
 
   def _state_braking(self, ego_state: EgoState, threat: TrackedObject | None, dt: float) -> AEBResult:
     """Active braking state."""
@@ -401,26 +423,21 @@ class BrakingController:
       return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "Vehicle moved - releasing hold")
 
   def _calculate_decel(self, threat: TrackedObject, ttc: float) -> float:
-    """Calculate braking deceleration based on threat."""
-    # Vulnerable road users get maximum braking
-    is_vulnerable = threat.obj_type in ('pedestrian', 'cyclist', 'motorcycle', 'bicycle')
-    if is_vulnerable:
-      return self.DECEL_MAX
-
-    # Progressive braking based on TTC
-    if ttc < 0.5:
-      return self.DECEL_FULL
-    elif ttc < self.TTC_FULL:
-      ratio = (self.TTC_FULL - ttc) / (self.TTC_FULL - 0.5)
-      return self.DECEL_PARTIAL + (self.DECEL_FULL - self.DECEL_PARTIAL) * ratio
-    else:
+    """Request only the deceleration needed within the bounded envelope."""
+    if not (0.0 < ttc < float('inf')):
       return self.DECEL_PARTIAL
+    closing_speed = threat.x / ttc
+    usable_distance = max(threat.x - self.STOP_BUFFER_M, 0.5)
+    required = closing_speed * closing_speed / (2.0 * usable_distance)
+    requested = max(abs(self.DECEL_PARTIAL), min(required * 1.1, abs(self.DECEL_MAX)))
+    return -requested
 
   def reset(self):
     """Reset controller state."""
     self.state = AEBState.IDLE
     self._current_decel = 0.0
     self._override_active = False
+    self._precharge_elapsed_s = 0.0
 
 
 class AEB:
@@ -434,13 +451,17 @@ class AEB:
       actuators.accel = min(actuators.accel, result.target_decel)
   """
 
-  # Radar4D weather severity (0=clear..3=heavy) margin scales.
-  # min_brake: less braking grip assumed on wet/slippery surfaces.
-  # reaction_time: extra perceived delay in adverse weather.
-  # TTC_PARTIAL/TTC_FULL: trigger earlier so braking finishes in time.
-  WEATHER_BRAKE_SCALE = (1.0, 0.9, 0.8, 0.65)
-  WEATHER_REACTION_ADD_S = (0.0, 0.1, 0.25, 0.5)
-  WEATHER_TTC_SCALE = (1.0, 1.1, 1.25, 1.5)
+  # radard already treats <=0.75 m as the near-field glitch region. Above that
+  # floor, keep braking even when a full stop is impossible: impact mitigation
+  # remains valuable.
+  MIN_ENTRY_RANGE_M = 0.75
+  MAX_ENTRY_RANGE_M = 120.0
+  MIN_EGO_SPEED_MS = 2.0
+  MIN_CLOSING_SPEED_MS = 1.0
+  MIN_RADAR_CONFIDENCE = 0.70
+  MAX_ENTRY_TTC_S = BrakingController.TTC_PARTIAL
+  MIN_REQUIRED_DECEL_MS2 = 0.8
+  ENTRY_CONFIRM_FRAMES = 3
 
   def __init__(self):
     self.params = Params()
@@ -449,20 +470,10 @@ class AEB:
     self.braking = BrakingController()
     self._last_update_time = 0.0
     self._frame_count = 0
-    self._base_min_brake = self.predictor.params.min_brake
-    self._base_reaction_s = self.predictor.params.reaction_time
-    self._base_ttc_partial = BrakingController.TTC_PARTIAL
-    self._base_ttc_full = BrakingController.TTC_FULL
-
+    self._candidate_track_id: int | None = None
+    self._candidate_frames = 0
+    self._candidate_x_m = 0.0
     cloudlog.info(f"AEB initialized: enabled={self.enabled}")
-
-  def apply_weather_margins(self, severity: int):
-    """Scale braking margins from radar4d weather severity (0=clear..3=heavy)."""
-    severity = max(0, min(int(severity), 3))
-    self.predictor.params.min_brake = self._base_min_brake * self.WEATHER_BRAKE_SCALE[severity]
-    self.predictor.params.reaction_time = self._base_reaction_s + self.WEATHER_REACTION_ADD_S[severity]
-    self.braking.TTC_PARTIAL = self._base_ttc_partial * self.WEATHER_TTC_SCALE[severity]
-    self.braking.TTC_FULL = self._base_ttc_full * self.WEATHER_TTC_SCALE[severity]
 
   def update(self, sm, CS) -> AEBResult:
     """
@@ -478,9 +489,6 @@ class AEB:
     self.enabled = self.params.get_bool("EOPAEBEnabled")
     if not self.enabled:
       return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "AEB disabled")
-
-    severity = int(sm['radar4d'].weatherSeverity) if sm.valid.get('radar4d', False) else 0
-    self.apply_weather_margins(severity)
 
     self._frame_count += 1
     current_time = time.monotonic()
@@ -501,6 +509,7 @@ class AEB:
 
     # Find most critical threat
     threat = self.predictor.check_collision(ego, objects)
+    threat = self._confirmed_entry_threat(threat, ego)
 
     # Run braking controller
     result = self.braking.update(ego, threat, dt)
@@ -511,51 +520,58 @@ class AEB:
 
     return result
 
-  def _collect_objects(self, sm) -> list[TrackedObject]:
-    """
-    Collect tracked objects from all perception sources.
+  def _confirmed_entry_threat(self, threat: TrackedObject | None,
+                              ego: EgoState) -> TrackedObject | None:
+    """Reject implausible/single-frame targets before AEB state entry."""
+    active = self.braking.state in (AEBState.PRECHARGE, AEBState.BRAKING, AEBState.HOLD)
+    if threat is None or not self._entry_plausible(threat, ego, active):
+      self._candidate_track_id = None
+      self._candidate_frames = 0
+      return None
+    if active:
+      return threat
 
-    Priority (most accurate distance first):
-      1. stereoDetections - 3D objects from stereo depth (most accurate)
-      2. radarState - Radar leads (reliable for cars)
-      3. modelV2 - drive_vision leads (neural prediction)
-      4. monoDetections - monod multi-camera (pedestrians/cyclists)
+    range_continuous = self._candidate_track_id == threat.track_id and abs(threat.x - self._candidate_x_m) < 8.0
+    if range_continuous:
+      self._candidate_frames += 1
+    else:
+      self._candidate_track_id = threat.track_id
+      self._candidate_frames = 1
+    self._candidate_x_m = threat.x
+    return threat if self._candidate_frames >= self.ENTRY_CONFIRM_FRAMES else None
+
+  def _entry_plausible(self, threat: TrackedObject, ego: EgoState, active: bool = False) -> bool:
+    """Check the measured target lies inside the plausible AEB envelope."""
+    if not all(math.isfinite(value) for value in
+               (threat.x, threat.y, threat.v_x, threat.confidence, ego.v_ego)):
+      return False
+    min_range = 0.1 if active else self.MIN_ENTRY_RANGE_M
+    if not (min_range <= threat.x <= self.MAX_ENTRY_RANGE_M):
+      return False
+    if ego.v_ego < self.MIN_EGO_SPEED_MS or threat.confidence < self.MIN_RADAR_CONFIDENCE:
+      return False
+    closing_speed = ego.v_ego - threat.v_x
+    if closing_speed < self.MIN_CLOSING_SPEED_MS:
+      return False
+    ttc = threat.x / closing_speed
+    usable_distance = max(threat.x - BrakingController.STOP_BUFFER_M, 0.5)
+    required_decel = closing_speed * closing_speed / (2.0 * usable_distance)
+    return active or (ttc <= self.MAX_ENTRY_TTC_S and required_decel >= self.MIN_REQUIRED_DECEL_MS2)
+
+  def _collect_objects(self, sm) -> list[TrackedObject]:
+    """Collect only leads measured by the vehicle's built-in 77 GHz radar.
+
+    This hard boundary prevents BLE corner radar or camera-only tracks from
+    acquiring braking authority. Those sources remain available to FCW/RCW/
+    FCTA/RCTA advisory logic in RadarZoneMonitor.
     """
     objects: list[TrackedObject] = []
 
-    # From stereoDetections (stereod - 3D objects with stereo depth, MOST ACCURATE)
-    if sm.valid.get('stereoDetections', False):
-      stereo = sm['stereoDetections']
-      for i, det in enumerate(stereo.detections):
-        obj_type = det.className.lower()
-        # Map to AEB object types
-        if obj_type in ('car', 'truck', 'bus', 'vehicle'):
-         aeb_type = 'car'
-        elif obj_type in ('pedestrian', 'person'):
-          aeb_type = 'pedestrian'
-        elif obj_type in ('cyclist', 'bicycle', 'motorcycle', 'motorcyclist'):
-          aeb_type = 'cyclist'
-        else:
-          aeb_type = obj_type
-
-        objects.append(TrackedObject(
-          track_id=300 + i,
-          x=det.center.z,  # Forward distance from stereo depth
-          y=-det.center.x,  # Lateral (convert to left-positive)
-          v_x=0.0,  # Stereo doesn't provide velocity directly
-          v_y=0.0,
-          width=det.size.y if hasattr(det, 'size') else 1.8,
-          length=det.size.x if hasattr(det, 'size') else 4.5,
-          obj_type=aeb_type,
-          confidence=det.confidence * getattr(det, 'depthConfidence', 1.0)
-        ))
-
-    # From radarState (reliable for lead vehicles)
     if sm.valid.get('radarState', False):
       radar = sm['radarState']
-      if radar.leadOne.status:
+      if radar.leadOne.status and radar.leadOne.radar:
         objects.append(TrackedObject(
-          track_id=0,
+          track_id=int(radar.leadOne.radarTrackId),
           x=radar.leadOne.dRel,
           y=-radar.leadOne.yRel,  # Convert to left-positive
           v_x=radar.leadOne.vRel + sm['carState'].vEgo,  # Absolute velocity
@@ -565,9 +581,9 @@ class AEB:
           obj_type='car',
           confidence=radar.leadOne.modelProb
         ))
-      if radar.leadTwo.status:
+      if radar.leadTwo.status and radar.leadTwo.radar:
         objects.append(TrackedObject(
-          track_id=1,
+          track_id=int(radar.leadTwo.radarTrackId),
           x=radar.leadTwo.dRel,
           y=-radar.leadTwo.yRel,
           v_x=radar.leadTwo.vRel + sm['carState'].vEgo,
@@ -576,43 +592,6 @@ class AEB:
           length=4.5,
           obj_type='car',
           confidence=radar.leadTwo.modelProb
-        ))
-
-    # From modelV2 (drive_vision leads - neural prediction fallback)
-    if sm.valid.get('modelV2', False):
-      model = sm['modelV2']
-      for i, lead in enumerate(model.leadsV3):
-        if lead.prob < 0.5:
-          continue
-        objects.append(TrackedObject(
-          track_id=100 + i,
-          x=lead.x[0],
-          y=lead.y[0],
-          v_x=lead.v[0],
-          v_y=0.0,
-          width=1.8,
-          length=4.5,
-          obj_type='car',
-          confidence=lead.prob
-        ))
-
-    # From monoDetections (monod - pedestrians, cyclists, vulnerable road users)
-    if sm.valid.get('monoDetections', False):
-      mono = sm['monoDetections']
-      for det in mono.detections:
-        obj_type = det.className.lower()
-        if obj_type not in ('pedestrian', 'cyclist', 'motorcycle', 'bicycle', 'person'):
-          continue
-        objects.append(TrackedObject(
-          track_id=200 + det.trackId,
-          x=det.x,
-          y=det.y,
-          v_x=det.vx if hasattr(det, 'vx') else 0.0,
-          v_y=det.vy if hasattr(det, 'vy') else 0.0,
-          width=det.width if hasattr(det, 'width') else 0.5,
-          length=det.height if hasattr(det, 'height') else 1.7,
-          obj_type='pedestrian' if obj_type in ('pedestrian', 'person') else obj_type,
-          confidence=det.confidence
         ))
 
     return objects

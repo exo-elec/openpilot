@@ -69,7 +69,7 @@ class InferenceClient:
     """
 
     _job_id_counter = threading.Lock()
-    _next_job_id = 1
+    _job_sequence = 1
 
     def __init__(self, daemon_name: str, config: ClientConfig | None = None,
                  use_ipc: bool = False):
@@ -135,10 +135,19 @@ class InferenceClient:
             return False
 
     def _next_job_id(self) -> int:
-        """Generate unique job ID."""
+        """Generate a process-qualified UInt32 job ID.
+
+        Multiple daemon processes publish onto the same request/result services.
+        A process-local counter alone lets sided and reard both issue job 1 and
+        accept each other's result. Reserve the high 16 bits for the PID and
+        use the low 16 bits as the per-process sequence.
+        """
         with InferenceClient._job_id_counter:
-            jid = InferenceClient._next_job_id
-            InferenceClient._next_job_id += 1
+            sequence = InferenceClient._job_sequence & 0xFFFF
+            if sequence == 0:
+                sequence = 1
+            jid = ((os.getpid() & 0xFFFF) << 16) | sequence
+            InferenceClient._job_sequence = (sequence + 1) & 0xFFFF
             return jid
 
     def submit_job(
@@ -150,6 +159,7 @@ class InferenceClient:
         timeout_ms: int = 0,
         wait_result: bool = True,
         poll_timeout_ms: float = 5000.0,
+        allow_direct_fallback: bool = True,
     ) -> InferenceResult:
         """
         Submit an inference job to the centralized inferenced daemon.
@@ -165,14 +175,23 @@ class InferenceClient:
             timeout_ms: Max execution time (0 = unlimited)
             wait_result: If True, block until result received or poll_timeout_ms
             poll_timeout_ms: Max time to wait for result
+            allow_direct_fallback: If False, fail closed when daemon IPC is
+              unavailable. Required for exclusive-owner devices such as the
+              USB eGPU, which must only be opened by inferenced.
 
         Returns:
             InferenceResult with success flag and outputs dict.
             On IPC failure, falls back to direct HAL execution.
         """
         if not self.use_ipc or not self._init_ipc():
-            # Fallback to direct HAL
-            return self._direct_infer(backend_type, model_name, input_array)
+            if allow_direct_fallback:
+                return self._direct_infer(backend_type, model_name, input_array)
+            return InferenceResult(
+                backend_type=backend_type,
+                model_name=model_name,
+                success=False,
+                error_message="Inference daemon IPC unavailable; direct fallback disabled",
+            )
 
         job_id = self._next_job_id()
 
@@ -228,8 +247,16 @@ class InferenceClient:
             )
 
         except Exception as e:
-            cloudlog.warning(f"InferenceClient IPC error: {e}, falling back to direct HAL")
-            return self._direct_infer(backend_type, model_name, input_array)
+            if allow_direct_fallback:
+                cloudlog.warning(f"InferenceClient IPC error: {e}, falling back to direct HAL")
+                return self._direct_infer(backend_type, model_name, input_array)
+            cloudlog.warning(f"InferenceClient IPC error: {e}; direct fallback disabled")
+            return InferenceResult(
+                backend_type=backend_type,
+                model_name=model_name,
+                success=False,
+                error_message=f"Inference daemon IPC error: {e}",
+            )
 
     def _direct_infer(self, backend_type: BackendType, model_name: str,
                       input_array: np.ndarray | None) -> InferenceResult:

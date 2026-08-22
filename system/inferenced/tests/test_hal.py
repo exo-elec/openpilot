@@ -220,6 +220,27 @@ class TestInferenceClient:
     client = InferenceClient("test_daemon")
     assert client.daemon_name == "test_daemon"
 
+  def test_job_ids_are_process_qualified(self, monkeypatch):
+    """Concurrent daemons must not accept one another's IPC results."""
+    InferenceClient._job_sequence = 1
+    client = InferenceClient.__new__(InferenceClient)
+    monkeypatch.setattr("openpilot.system.inferenced.client.os.getpid", lambda: 0x1234)
+    first = client._next_job_id()
+    second = client._next_job_id()
+    assert first == 0x12340001
+    assert second == 0x12340002
+
+  def test_exclusive_backend_can_disable_direct_fallback(self):
+    client = InferenceClient("exclusive_test", use_ipc=False)
+    result = client.submit_job(
+      BackendType.EGPU,
+      "side_yolo_egpu",
+      np.zeros((1,), dtype=np.float16),
+      allow_direct_fallback=False,
+    )
+    assert not result.success
+    assert "direct fallback disabled" in result.error_message
+
   def test_client_backend_access(self):
     """InferenceClient should provide backend access."""
     client = InferenceClient("test_daemon")

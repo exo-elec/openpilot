@@ -23,7 +23,7 @@ from openpilot.selfdrive.controls.lib.cat import CAT
 from openpilot.selfdrive.controls.lib.dlat import DLAT
 from openpilot.selfdrive.controls.lib.red import RED
 from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
-from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor
+from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
 from openpilot.selfdrive.controls.lib.aeb import AEB
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
@@ -32,6 +32,12 @@ LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
 
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
+
+# Ordinary cruise/following authority. This is a behavior limit based on the
+# real-world comfort band, not an arbitrary percentage of a hardware range.
+# AEB is applied later and may cross this boundary only from a confirmed lead
+# measured by the built-in forward 77 GHz radar.
+NORMAL_BRAKE_LIMIT_MS2 = -2.5
 
 
 def reduce_steer(steer: float, steering_angle_deg: float, cs_angle_deg: float, resume_diff: float) -> tuple[float, float]:
@@ -70,7 +76,6 @@ class Controls:
                                    'surfaceStatus', 'radarState',
                                    'monoDetections', 'stereoDetections', 'stereoObjects',
                                    'sideDetections', 'rearDetections',  # EOP: camera fallback for zone monitor
-                                   'radar4d',  # EOP: weather severity for AEB margins
                                    'adaptiveDrivingState'],  # EOP: adaptd
                                   poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState', 'blindSpotAlert', 'ttsRequest', 'alccState'])
@@ -183,8 +188,10 @@ class Controls:
     p = self._cached_eop_params
 
     # EOP: radar zone monitor — advisory only, never intervenes in steering/braking
-    # Reads stereoObjects (gridd-fused: radar4d velocity + radar2d zones + camera)
-    if p.get('EOPBSDEnabled') and CS.vEgo > p.get('EOPBSDMinSpeed', 5.5):
+    # Camera-only operation remains available when a BLE corner is absent.
+    # Feature-specific speed/gear gates are owned by RadarZoneMonitor so
+    # low-speed cross-traffic warnings are not disabled by the BSD threshold.
+    if p.get('EOPBSDEnabled'):
       self.zone_monitor.update(
         stereo_objects_msg=self.sm['stereoObjects'] if self.sm.valid.get('stereoObjects') else None,
         carstate=CS,
@@ -195,18 +202,26 @@ class Controls:
       zm = self.zone_monitor
 
       zone_msg = messaging.new_message('blindSpotAlert')
-      zone_msg.blindSpotAlert.leftAlertLevel  = zm.left_state.alert_level.value
-      zone_msg.blindSpotAlert.rightAlertLevel = zm.right_state.alert_level.value
-      zone_msg.blindSpotAlert.leftDetected    = zm.left_state.detected
-      zone_msg.blindSpotAlert.rightDetected   = zm.right_state.detected
-      zone_msg.blindSpotAlert.leftDistance    = zm.left_state.distance_m
-      zone_msg.blindSpotAlert.rightDistance   = zm.right_state.distance_m
-      zone_msg.blindSpotAlert.leftRelativeSpeed  = zm.left_state.vRel_ms
-      zone_msg.blindSpotAlert.rightRelativeSpeed = zm.right_state.vRel_ms
-      zone_msg.blindSpotAlert.rearCrossTrafficDetected     = zm.rear_state.detected
-      zone_msg.blindSpotAlert.rearCrossTrafficAlertLevel   = zm.rear_state.alert_level.value
-      zone_msg.blindSpotAlert.rearCrossTrafficDistance     = zm.rear_state.distance_m
-      zone_msg.blindSpotAlert.rearCrossTrafficRelativeSpeed = zm.rear_state.vRel_ms
+      cross_threats = (zm.fcta_state, zm.rcta_state)
+      left_cross = [threat for threat in cross_threats if threat.detected and threat.side == ZoneSide.LEFT]
+      right_cross = [threat for threat in cross_threats if threat.detected and threat.side == ZoneSide.RIGHT]
+      left_level = max([zm.left_state.alert_level.value] + [threat.alert_level.value for threat in left_cross])
+      right_level = max([zm.right_state.alert_level.value] + [threat.alert_level.value for threat in right_cross])
+      left_primary = min(left_cross, key=lambda threat: threat.ttc_s) if left_cross else None
+      right_primary = min(right_cross, key=lambda threat: threat.ttc_s) if right_cross else None
+
+      zone_msg.blindSpotAlert.leftAlertLevel  = left_level
+      zone_msg.blindSpotAlert.rightAlertLevel = right_level
+      zone_msg.blindSpotAlert.leftDetected    = zm.left_state.detected or bool(left_cross)
+      zone_msg.blindSpotAlert.rightDetected   = zm.right_state.detected or bool(right_cross)
+      zone_msg.blindSpotAlert.leftDistance    = left_primary.distance_m if left_primary else zm.left_state.distance_m
+      zone_msg.blindSpotAlert.rightDistance   = right_primary.distance_m if right_primary else zm.right_state.distance_m
+      zone_msg.blindSpotAlert.leftRelativeSpeed  = left_primary.vRel_ms if left_primary else zm.left_state.vRel_ms
+      zone_msg.blindSpotAlert.rightRelativeSpeed = right_primary.vRel_ms if right_primary else zm.right_state.vRel_ms
+      zone_msg.blindSpotAlert.rearCrossTrafficDetected     = zm.rcta_state.detected
+      zone_msg.blindSpotAlert.rearCrossTrafficAlertLevel   = zm.rcta_state.alert_level.value
+      zone_msg.blindSpotAlert.rearCrossTrafficDistance     = zm.rcta_state.distance_m
+      zone_msg.blindSpotAlert.rearCrossTrafficRelativeSpeed = zm.rcta_state.vRel_ms
       zone_msg.blindSpotAlert.alertMessage   = zm.alert_message() or ""
       # Wide TTC-based LCA gate (reads radar3d far-range adjacent objects)
       zone_msg.blindSpotAlert.lcaBlockedLeft  = zm.lca_blocked_left
@@ -297,9 +312,10 @@ class Controls:
       self.LoC.reset()
 
     # accel PID loop
-    # Tesla-only: Use default accel limits (could be made configurable)
-    # Fallback (-3.48, 2.0) matches Tesla CarControllerParams defaults
+    # Tesla-only actuator envelope. Keep ordinary cruise/following inside the
+    # comfort boundary; the built-in-radar AEB path is applied separately below.
     pid_accel_limits = (self.CP.accelMin, self.CP.accelMax) if self.CP.accelMin < self.CP.accelMax else (-3.48, 2.0)
+    pid_accel_limits = (max(pid_accel_limits[0], NORMAL_BRAKE_LIMIT_MS2), pid_accel_limits[1])
 
     # EOP: adaptd adaptive driving — clamp accel/decel limits from OBD telemetry
     if self.sm.valid.get('adaptiveDrivingState', False):
@@ -340,7 +356,10 @@ class Controls:
       et = self.sm['enhancedTrajectory']
       alert = et.trajectoryAlertLevel
       if alert == "critical":
-        actuators.accel = min(actuators.accel, -3.0)   # Emergency brake
+        # Camera/path perception has no AEB authority. It may request firm but
+        # comfortable mitigation only; crossing the boundary is reserved for
+        # the confirmed built-in-radar AEB path above.
+        actuators.accel = min(actuators.accel, NORMAL_BRAKE_LIMIT_MS2)
       elif alert == "warning" and et.speedAdjustment and et.speedAdjustment[0] < -0.1:
         # speedAdjustment is m/s² (pathd divides Δv by ACCEL_RESPONSE_TIME=1.0s)
         actuators.accel = min(actuators.accel, max(et.speedAdjustment[0], -2.0))

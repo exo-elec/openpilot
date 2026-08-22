@@ -20,7 +20,7 @@ BrownPanda gateway remains the hardware safety gateway (v1 = TC275, v2 = TC375).
 │  Layer 1 (Software): socketd vehicle adapter safety              │
 │  - Location: system/socketd/vehicle/safety/ (shim) →            │
 │    system/socketd/safety/tesla_safety.py (canonical)            │
-│  - Limits: TIGHTER (80% of Panda limits)                        │
+│  - Limits: comfort-bounded normal control + explicit AEB       │
 │  - Purpose: Catch bugs, enforce smooth control                  │
 │  - Runs on: RK3588/RK3576 A76 cores                             │
 │                                                                  │
@@ -101,15 +101,16 @@ Tesla CAN → socketd bridge → 'can' topic → vehicle.Car (safety RX processi
 | `safety/safety.py` | Compatibility shim re-exporting `system/socketd/safety/tesla_safety.py` |
 | `safety/safety_manager.py` | `SafetyManager` — wraps `TeslaSafety` for the CAN bridge |
 
-## Safety Limits (Layer 1 - TIGHTER)
+## Safety Limits (Layer 1)
 
-| Parameter | Value | Panda Original | Ratio |
-|-----------|-------|----------------|-------|
+| Parameter | Value | Hardware envelope | Basis |
+|-----------|-------|-------------------|-------|
 | MAX_STEERING_ANGLE | 270° | 360° | 75% |
 | MAX_STEERING_RATE | 20°/s | 25°/s | 80% |
 | MAX_ANGLE_ERROR | 24° | 30° | 80% |
 | MAX_ACCEL | ~1.6 m/s² | 2.0 m/s² | 80% |
-| MIN_ACCEL | ~-2.8 m/s² | -3.48 m/s² | 80% |
+| Normal MIN_ACCEL | ~-2.5 m/s² | -3.48 m/s² | Real-world comfort evidence |
+| Explicit AEB MIN_ACCEL | -3.48 m/s² | -3.5 m/s² | Bounded collision mitigation |
 | HEARTBEAT_TIMEOUT | 200ms | 250ms | 80% |
 | DRIVER_TORQUE | 2.0 Nm | 2.5 Nm | 80% |
 

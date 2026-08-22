@@ -93,6 +93,11 @@ Calibration is loaded from `CalibrationStorage.get_merged_calibration()` at daem
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `EOPSideCamerasEnabled` | bool | `true` | Master side camera toggle |
+| `EOPSideEGPUMode` | string | `off` | Optional `off`/`shadow` tinygrad eGPU side-model validation |
+
+Rear eGPU validation is separately owned by `reard` and controlled by
+`EOPRearEGPUMode`; it does not share the side model session. See
+`docs/eop/05_Features/EGPU_CAMERA_SHADOW.md`.
 
 ## Files
 

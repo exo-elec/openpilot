@@ -133,19 +133,6 @@ def _apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: fl
   return min(raw_max_accel, low_speed_limit, ramp_off)
 
 
-# EOP: Slippery-weather risk gate — radar4d's 3-step weather severity
-# (rain/snow/mud-dirt from precipitation clutter + wiper rate + windshield
-# contamination) steps max acceleration down like a careful driver would as
-# grip drops.
-WEATHER_ACCEL_SCALE = (1.0, 0.8, 0.6, 0.4)  # by severity: clear/light/moderate/heavy
-
-
-def _apply_weather_severity_limit(max_accel: float, severity: int) -> float:
-  """Scale max acceleration by the radar4d weather severity level (0-3)."""
-  level = min(max(int(severity), 0), len(WEATHER_ACCEL_SCALE) - 1)
-  return max_accel * WEATHER_ACCEL_SCALE[level]
-
-
 # BRSC: Bumpy Road Speed Controller — reduce speed/accel on rough pavement, detected
 # from vertical IMU acceleration (nagaspilot.controls.ngp_brsc). Only applies above
 # walking speed and never cuts speed below a floor, mirroring VTSC's MIN_VELOCITY.
@@ -370,10 +357,6 @@ class LongitudinalPlanner:
       max_accel = get_max_accel(v_ego)
       # EOP: Adaptive acceleration limit (low-speed clamp + ramp-off near cruise)
       max_accel = _apply_adaptive_accel_limit(max_accel, v_cruise, v_ego)
-      # EOP: Slippery-weather risk gate — radar4d 3-step weather severity
-      # (clutter + wiper + glass contamination) steps max accel down per level.
-      if sm.valid.get('radar4d', False):
-        max_accel = _apply_weather_severity_limit(max_accel, int(sm['radar4d'].weatherSeverity))
       # BRSC: cap positive accel while rough-road hold is active.
       if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
         accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)

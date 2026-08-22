@@ -3,6 +3,7 @@ import math
 import cereal.messaging as messaging
 from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmapGenerator
 from openpilot.selfdrive.gridd.gridd import GridD
+from openpilot.selfdrive.controls.radar_corner_geometry import corner_local_to_vehicle_frame
 
 
 def _radar2d_msg(returns: list[dict] | None = None, objects: list[dict] | None = None):
@@ -38,21 +39,13 @@ class _FuseHost:
     _R2D_ZONE_POS = GridD._R2D_ZONE_POS
     _R2D_ZONE_RADIUS = GridD._R2D_ZONE_RADIUS
     _R2D_PROB = GridD._R2D_PROB
-    _R2D_CORNER_POSE = GridD._R2D_CORNER_POSE
-    # _fuse_radar2d_objects reads the instance attribute GridD.__init__ sets
-    # (registry pose when available, else this same placeholder table) — not
-    # the class constant directly. Mirror that fallback here.
-    _r2d_corner_pose = GridD._R2D_CORNER_POSE
-    # Likewise: __init__ sets this to the imported radar4d_geometry function
-    # (or this same fallback on import failure) — _fuse_radar2d_objects reads
-    # the instance attribute, not a module-level import. staticmethod(...)
-    # wrapper is required here (unlike the plain-method copies below) since
-    # _corner_pose_transform_fallback is itself a @staticmethod on GridD —
-    # without it, accessing this via `self.` would wrongly bind self as the
-    # first positional arg.
-    _corner_local_to_vehicle_frame = staticmethod(GridD._corner_pose_transform_fallback)
-    _R4D_SNR_REF_DB = GridD._R4D_SNR_REF_DB
-    _R4D_CONFIDENCE_BOOST = GridD._R4D_CONFIDENCE_BOOST
+    _r2d_corner_pose = {
+        0: (1.8, 0.8, 45.0), 1: (1.8, -0.8, -45.0),
+        2: (-1.8, 0.8, 135.0), 3: (-1.8, -0.8, -135.0),
+    }
+    _corner_local_to_vehicle_frame = staticmethod(corner_local_to_vehicle_frame)
+    _R2D_SNR_REF_DB = GridD._R2D_SNR_REF_DB
+    _R2D_CONFIDENCE_BOOST = GridD._R2D_CONFIDENCE_BOOST
     _active_costmap: FusionCostmapGenerator | None = None
 
     _fuse_radar2d = GridD._fuse_radar2d

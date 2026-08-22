@@ -229,28 +229,7 @@ class RCD:
     # Camera/surface classification path
     state = self._update_camera(sm)
 
-    # Radar4D weather severity (rain/snow/mud from radar clutter + wiper +
-    # glass contamination) — works when the camera is blind (night, glare,
-    # spray), so it can tighten the limit but never loosen it.
-    radar_limit, radar_severity = self._radar_weather_limit(sm)
-    if radar_limit > 0.0 and (not state.is_active or radar_limit < state.speed_limit_ms):
-      state.speed_limit_ms = radar_limit
-      state.is_active = True
-      state.reason = f"{state.reason} + radarSeverity={radar_severity}"
-
     return state
-
-  # Radar4D weather severity caps (m/s): clear/light = no cap (accel gate
-  # covers it), moderate ~72 km/h, heavy ~43 km/h (matches WET).
-  RADAR_WEATHER_LIMITS_MS = (0.0, 0.0, 20.0, 12.0)
-
-  def _radar_weather_limit(self, sm) -> tuple[float, int]:
-    """Speed cap from radar4d weather severity (0-3).  Returns (limit, severity);
-    limit 0.0 = no radar limit."""
-    if not sm.valid.get('radar4d', False):
-      return 0.0, 0
-    severity = min(max(int(sm['radar4d'].weatherSeverity), 0), len(self.RADAR_WEATHER_LIMITS_MS) - 1)
-    return self.RADAR_WEATHER_LIMITS_MS[severity], severity
 
   def _update_camera(self, sm) -> RCDState:
     """Camera/surface classification path (original update flow)."""

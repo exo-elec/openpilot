@@ -267,7 +267,7 @@ Quick reference:
 | `pathd` | Track + predict + collision avoidance | 20 Hz | `selfdrive/pathd/` |
 | `controlsd` | Lateral + longitudinal control + EOP accel override | 100 Hz | `selfdrive/controls/` |
 | `imud` | LSM6DS3 accel/gyro (104 Hz) + RK3588 temp (2 Hz) | — | `system/imud/` |
-| `socketd` | SocketCAN (SBU-aware dynamic remap) ↔ cereal + Layer 1 Safety (80% limits) | always-on | `system/socketd/` |
+| `socketd` | SocketCAN (SBU-aware dynamic remap) ↔ cereal + comfort-bounded Layer 1 Safety + explicit AEB envelope | always-on | `system/socketd/` |
 | `hardwared` | Thermal, power, fan | 2 Hz | `system/hardware/` |
 | `bluetoothd` | BLE SPP server — NavPilot companion app integration (NCP v4.1) | always-on | `system/bluetoothd/` |
 | `recordd` | DVR ring-buffer recording from stereo_right | always-on | `selfdrive/recordd/` |
@@ -353,7 +353,7 @@ Quick reference:
 | `EOPSafetyMaxSteeringRate` | 200 | Max steering rate (0.1 deg/s, 20°/s) |
 | `EOPSafetyMaxAngleError` | 240 | Max angle error (0.1 deg, 24°) |
 | `EOPSafetyMaxAccel` | 340 | Max acceleration (Tesla units, ~1.6 m/s²) |
-| `EOPSafetyMinAccel` | 310 | Min acceleration (Tesla units, ~-2.8 m/s²) |
+| `EOPSafetyMinAccel` | 312 | Normal-control floor (Tesla units, ~-2.5 m/s²); explicit AEB has a separately checked envelope |
 | `EOPSafetyHeartbeatTimeout` | 200 | Heartbeat timeout (ms) |
 | `EOPSafetyEventLogEnabled` | 1 | Enable safety event logging |
 | `EOPSafetyEventLogPath` | "/data/safety_violations.log" | Safety log file path |
@@ -468,7 +468,7 @@ EOP preserves all other vehicle safety features:
 | **LCA** | Uses stock BSM CAN signals for gap check |
 | **VTSC/MTSC** | Modifies EOP target speed, respects stock ACC limits |
 | **TJA** | Smooths EOP longitudinal control at low speeds |
-| **AEB** | Parallel to stock AEB; EOP AEB is stereo-based, stock is radar-based |
+| **AEB** | EOP collision mitigation uses confirmed built-in forward 77 GHz radar; corner radar is advisory-only |
 
 ---
 

@@ -35,7 +35,6 @@ _services: dict[str, tuple] = {
   "roadEncodeIdx": (False, 20., 1),
   "driverEncodeIdx": (False, 20., 1),
   "radar3d": (True, 20.),   # long-range UART radar (was liveTracks / car OEM CAN radar)
-  "radar4d": (True, 20.),   # ESP32_RADAR corner-node point cloud, WiFi/UDP (matches 20 Hz camera pipeline)
   "radar2d": (True, 20.),   # ESP32-S3 corner radars — tracked objects + legacy zone presence
   "stereoObjects": (True, 20.),
   "stereoGround": (True, 20.),

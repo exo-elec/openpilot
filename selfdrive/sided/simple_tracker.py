@@ -83,9 +83,10 @@ def _iou(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 class SimpleTracker:
   """Maintains persistent UIDs for detected objects across frames."""
 
-  def __init__(self) -> None:
+  def __init__(self, max_age: int = MAX_AGE) -> None:
     self._tracks: dict[int, _Track] = {}
     self._next_uid: int = 1
+    self.max_age = max(0, int(max_age))
 
   def update(self, detections: list[SideObject]) -> list[SideObject]:
     """Match detections to existing tracks and return annotated list."""
@@ -124,10 +125,12 @@ class SimpleTracker:
       track = self._tracks[tid]
       det = detections[di]
 
-      # Velocity EMA (negative delta because distance_m is typically behind ego)
-      delta_dist = det.distance_m - track.obj.distance_m
+      # Range rate: negative means the object is approaching from any camera.
+      # This is visual-only evidence; RadarZoneMonitor will not use it for a
+      # warning unless a BLE Doppler track is associated.
+      delta_dist = abs(det.distance_m) - abs(track.obj.distance_m)
       track.velocity_ema = (
-        VELOCITY_ALPHA * (-delta_dist)
+        VELOCITY_ALPHA * delta_dist
         + (1.0 - VELOCITY_ALPHA) * track.velocity_ema
       )
 
@@ -161,7 +164,7 @@ class SimpleTracker:
     for uid, track in self._tracks.items():
       if uid not in matched_uids:
         track.age += 1
-        if track.age > MAX_AGE:
+        if track.age > self.max_age:
           evict.append(uid)
     for uid in evict:
       del self._tracks[uid]
