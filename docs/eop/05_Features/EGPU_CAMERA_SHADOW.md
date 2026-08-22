@@ -96,7 +96,14 @@ model contracts. `selfdrive/modeld` remains canonical for:
 A future eGPU implementation may provide an openpilot-compatible model runner,
 but it must preserve those inputs, temporal state, output semantics and deadline
 behavior. It must not create a second driving/planning interface alongside
-`modeld`.
+`modeld`. The concrete upstream comparison and RKNN failover state machine are
+documented in [CHESTNUT_EGPU_ADOPTION.md](CHESTNUT_EGPU_ADOPTION.md).
+
+The target external driving artifact is the official upstream Chestnut big
+supercombo. The local fallback is the proven Bukapilot supercombo converted
+separately for RK3588 and RK3576. Bring-up first runs the exact Bukapilot source
+ONNX on eGPU against its RKNN conversion for same-graph parity; only then does it
+introduce the different-generation upstream big model.
 
 ## Autoware ONNX compatibility references
 

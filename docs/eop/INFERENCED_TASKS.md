@@ -298,6 +298,22 @@ authoritative throughout this phase.
   rate-limited compatibility references below segmentation priority.
 - [ ] Any future eGPU driving backend must implement the openpilot `modeld` runner
   contract; it must not bypass its temporal buffers, parsers or `modelV2` semantics.
+- [x] Audit latest upstream Chestnut integration and capture the EOP/RKNN adaptation
+  in `05_Features/CHESTNUT_EGPU_ADOPTION.md`.
+- [ ] Preload and warm the RKNN driving runner before activating an external model;
+  keep temporal inputs current for immediate failover.
+- [ ] Match upstream's one-way onroad failure rule: exception, timeout, non-finite
+  output, unplug or dead stream switches to RKNN and cannot auto-retry until restart.
+- [ ] Add loading/no-entry, failure/soft-disable and settling behavior without a
+  public cereal change; request approval first if existing Params/status cannot carry it.
+- [ ] Replace dynamic ONNX execution with compiled tinygrad JIT artifacts before
+  driving promotion; retain dynamic ONNX only for shadow model bring-up.
+- [x] Audit the Bukapilot fallback contract and binary: monolithic nine-input
+  supercombo, one 6,504-float output, RKNN compiler 2.3.0, target RK3588.
+- [ ] Build and validate independent Bukapilot-derived RKNN artifacts for RK3588
+  and RK3576 from the same hash-locked source ONNX.
+- [ ] Add an exact-model parity stage: Bukapilot ONNX on eGPU versus Bukapilot RKNN
+  locally, followed by the official upstream big model as the target eGPU model.
 - [ ] Define replay, HIL, soak and closed-course promotion gates before adding any
   primary mode or connecting a result to trajectory planning/control.
 

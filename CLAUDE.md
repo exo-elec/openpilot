@@ -89,6 +89,17 @@ sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilo
   inference must preserve openpilot `modeld`'s vision/policy runners, temporal
   buffers, output parsers and `modelV2` semantics. See
   `docs/eop/05_Features/EGPU_CAMERA_SHADOW.md`.
+- For an authoritative external driving model, follow upstream Chestnut's one-way
+  failover: keep the RKNN small model loaded/warm, reject activation unless the
+  external model loads and warms, switch to RKNN on exception/timeout/non-finite
+  output/unplug, soft-disable if engaged, and never auto-retry eGPU onroad. EOP's
+  single device owner remains `inferenced`; `modeld` owns driving state and parsing.
+  See `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
+- Driving artifacts are asymmetric by design: the eGPU target is official upstream
+  Chestnut big supercombo; local fallback is the Bukapilot monolithic supercombo,
+  converted and validated separately for RK3588 and RK3576. Never reuse an RKNN
+  binary across target SoCs. First validate the exact Bukapilot ONNX on eGPU versus
+  Bukapilot RKNN before introducing the different-generation upstream big model.
 
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner

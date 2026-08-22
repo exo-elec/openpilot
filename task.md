@@ -60,6 +60,43 @@ Next tasks, in order:
   `parse_vision_outputs`/`parse_policy_outputs` contract, including temporal feature,
   desire, traffic-convention and previous-curvature buffers. An eGPU backend may
   implement this runner interface; it must not introduce a parallel driving contract.
+- [x] Audit latest upstream openpilot Chestnut behavior at master commit
+  `084747c75d2cbd23af65ab7a9e770bbd7b98bac9` and document its build, firmware,
+  runtime, telemetry and one-way fallback patterns in
+  `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
+- [ ] Refactor driving execution behind one openpilot-compatible runner contract
+  before enabling eGPU driving. Preserve modeld's temporal state and parsed outputs.
+- [ ] Keep a local RKNN driving runner loaded, warmed and temporally current whenever
+  an external driving model is active.
+- [ ] On eGPU exception, timeout, non-finite output, hot-unplug or stale model stream:
+  discard the failed frame, switch once to RKNN, soft-disable if engaged, and prohibit
+  onroad eGPU retry until the next offroad/ignition restart.
+- [ ] Port upstream's compiled tinygrad JIT artifact identity and deterministic
+  compile/replay checks. Dynamic `OnnxRunner` remains shadow-only.
+- [ ] Verify whether stable tinygrad v0.13.0 can compile/run the Chestnut path.
+  Upstream currently pins commit `138fb4a783d82f4e877ad2fe3692aaf8d1de2e46`,
+  948 commits after v0.13.0; do not move EOP off a stable tag without approval.
+- [x] Audit `../bukapilot` v10.0.5 local model. It is a monolithic nine-input,
+  one-output openpilot supercombo with a 6,504-float output and canonical metadata.
+  The checked RKNN binary targets RK3588 only; it is not an RK3576 artifact.
+- [ ] Materialize and verify Bukapilot's exact source ONNX
+  (`d21daa542227ecc5972da45df4e26f018ba113c0461f270e367d57e3ad89221a`,
+  51,461,700 bytes) from its LFS history.
+- [ ] Package separate Bukapilot fallback conversions for RK3588 and RK3576.
+  Record source/converter/toolkit/calibration/target/output hashes; never load the
+  RK3588 binary on RK3576.
+- [ ] First run the exact Bukapilot ONNX through tinygrad on eGPU and compare it to
+  local RKNN on identical prepared tensors (`egpu_parity`). This validates backend
+  and failover mechanics without changing the model graph.
+- [ ] Then compile the official upstream Chestnut big model for `egpu_big`:
+  `big_driving_supercombo.onnx` LFS SHA-256
+  `a501760a9d1d5fef0eab2b8c5d122d06124fc26dc8e0782e0aa94b82a208f0ff`
+  (1,757,355,221 bytes at the audited commit).
+- [ ] Treat upstream-big → Bukapilot-RKNN as a model-generation transition, not
+  numerical fallback parity. Require parsed-contract/replay validation and always
+  soft-disable if that transition is triggered while engaged.
+- [ ] Design offroad-only, versioned ASM firmware flashing and recovery separately.
+  Do not modify RK3588 BSP configuration without approval.
 - [ ] Keep AutoSpeed, AutoSteer and AutoDrive as optional compatibility/reference
   experiments, below segmentation in priority. Do not substitute their outputs for
   openpilot's driving model or connect them directly to trajectory planning.

@@ -98,6 +98,12 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
   artifacts, outputs, scheduling and health are not combined
 - The production driving model continues through openpilot `modeld`'s vision and
   temporal-policy runners and parsers. An eGPU backend must implement that contract
+- Any external driving model follows the upstream Chestnut failover pattern: keep
+  RKNN loaded and warm, switch once on failure, soft-disable if engaged, and do not
+  retry the eGPU onroad. See `05_Features/CHESTNUT_EGPU_ADOPTION.md`
+- Target eGPU model: official upstream Chestnut big supercombo. Local fallback:
+  hash-locked Bukapilot supercombo converted independently for RK3588 and RK3576;
+  the checked Bukapilot binary itself is RK3588-only
 - Autoware AutoSpeed/AutoSteer/AutoDrive graphs are compatibility references, not
   replacements for the openpilot driving model
 - All eGPU paths remain shadow-only until replay, hardware and safety gates pass
