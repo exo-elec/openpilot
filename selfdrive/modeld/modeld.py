@@ -1,35 +1,11 @@
 #!/usr/bin/env python3
 import os
-import glob
 from openpilot.system.hardware import TICI
+from openpilot.selfdrive.modeld.egpu_detect import egpu_present
 os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
 
-# Post-flash ASM2464PD USB IDs (tinygrad corp's own bridge firmware, not comma's
-# Chestnut build — see exopilot's docs/02-HARDWARE/EGPU_ASM2464PD.md). EGPU only
-# opts in to eGPU device selection when the board is actually enumerated present,
-# so a stale/forgotten env var can never leave modeld pointed at a missing device.
-EGPU_VID_PIDS = {('0xadd1', '0x0001'), ('0x3801', '0x0001')}
-
-# Literal USB product string tinygrad's extra/usbgpu/patch.py writes into the
-# flashed firmware (confirmed by reading patch.py directly). Unlike comma's
-# Chestnut firmware, which embeds a per-build hash, tinygrad's generic
-# firmware uses this fixed string — checked alongside VID:PID so an
-# unrelated device reusing those IDs can't false-positive.
-EGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
-
-def _egpu_present() -> bool:
-  for path in glob.glob('/sys/bus/usb/devices/*'):
-    try:
-      with open(f'{path}/idVendor') as f: vendor = f.read().strip().lower()
-      with open(f'{path}/idProduct') as f: product = f.read().strip().lower()
-      with open(f'{path}/product') as f: product_str = f.read().strip()
-    except OSError:
-      continue
-    if (f'0x{vendor}', f'0x{product}') in EGPU_VID_PIDS and product_str == EGPU_PRODUCT:
-      return True
-  return False
-
-EGPU = "EGPU" in os.environ and _egpu_present()
+EGPU_FIRMWARE = egpu_present() if "EGPU" in os.environ else None
+EGPU = EGPU_FIRMWARE is not None
 if EGPU:
   os.environ['DEV'] = 'AMD'
   os.environ['AMD_IFACE'] = 'USB'
@@ -203,7 +179,7 @@ class ModelState:
 
 def main(demo=False):
   cloudlog.warning("modeld init")
-  cloudlog.warning(f"eGPU {'active' if EGPU else 'not active'}")
+  cloudlog.warning(f"eGPU {'active (' + EGPU_FIRMWARE + ' firmware)' if EGPU else 'not active'}")
 
   if not EGPU:
     # USB GPU currently saturates a core so can't do this yet,
