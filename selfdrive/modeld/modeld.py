@@ -11,11 +11,15 @@ if EGPU:
   os.environ['AMD_IFACE'] = 'USB'
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
+from tinygrad.device import Device
+import struct
+import threading
 import time
 import pickle
 import numpy as np
 import cereal.messaging as messaging
 from cereal import car, log
+from cereal.services import SERVICE_LIST
 from pathlib import Path
 from cereal.messaging import PubMaster, SubMaster
 from msgq.visionipc import VisionIpcClient, VisionStreamType, VisionBuf
@@ -40,14 +44,17 @@ from openpilot.selfdrive.modeld.runners.tinygrad_helpers import qcom_tensor_from
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
 
-VISION_PKL_PATH = Path(__file__).parent / 'models/driving_vision_tinygrad.pkl'
-POLICY_PKL_PATH = Path(__file__).parent / 'models/driving_policy_tinygrad.pkl'
-VISION_METADATA_PATH = Path(__file__).parent / 'models/driving_vision_metadata.pkl'
-POLICY_METADATA_PATH = Path(__file__).parent / 'models/driving_policy_metadata.pkl'
+MODELS_DIR = Path(__file__).parent / 'models'
+
+def _model_path(name: str, usbgpu: bool) -> Path:
+  # 'big_' prefix matches upstream openpilot's own naming for the eGPU/ASM2464PD
+  # variant of each artifact -- same small-model contract, bigger compiled graph.
+  return MODELS_DIR / (('big_' if usbgpu else '') + name)
 
 LAT_SMOOTH_SECONDS = 0.1
 LONG_SMOOTH_SECONDS = 0.3
 MIN_LAT_CONTROL_SPEED = 0.3
+EGPU_LOAD_TIMEOUT = 60
 
 
 def get_action_from_model(model_output: dict[str, np.ndarray], prev_action: log.ModelDataV2.Action,
@@ -73,6 +80,73 @@ def get_action_from_model(model_output: dict[str, np.ndarray], prev_action: log.
                                   desiredAcceleration=float(desired_accel),
                                   shouldStop=bool(should_stop))
 
+class EgpuState:
+  """ASM2464PD USB eGPU hardware telemetry (AMD SMU + bridge-chip registers).
+
+  Ported from upstream openpilot's ChestnutState, renamed since we support
+  both our own flashed firmware and comma's Chestnut firmware on the same
+  physical chip -- see selfdrive/modeld/egpu_detect.py. Only modeld touches
+  the eGPU device, matching upstream's "only modeld can access it" comment.
+  All hardware access below is defensively wrapped: if a specific
+  register/SMU call isn't available (e.g. tinygrad version drift), telemetry
+  for that field is simply unavailable, it never blocks driving.
+  """
+
+  def __init__(self, pm: PubMaster, big: bool):
+    self.pm = pm
+    self.big = big
+    self.valid = True
+    self.sends = 0
+    self.metrics: dict[str, float] = {}
+    self._power_limit: int | None = None
+
+  def _power_limit_cached(self) -> int:
+    if self._power_limit is None:
+      smu = Device["AMD"].iface.dev_impl.smu
+      self._power_limit = smu._send_msg(smu.smu_mod.PPSMC_MSG_GetPptLimit, 0, read_back_arg=True, timeout=100)
+    return self._power_limit
+
+  def send(self) -> None:
+    msg = messaging.new_message('egpuState')
+    state = msg.egpuState
+    self.sends += 1
+    if self.big and "AMD" in Device._opened_devices and self.sends % 100 == 1:
+      try:
+        smu = Device["AMD"].iface.dev_impl.smu
+        smu._send_msg(smu.smu_mod.PPSMC_MSG_TransferTableSmu2Dram, smu.smu_mod.TABLE_SMU_METRICS, timeout=100)
+        metrics = smu.read_table(smu.smu_mod.SmuMetricsExternal_t, smu.smu_mod.TABLE_SMU_METRICS).SmuMetrics
+        self.metrics = {'tempC': metrics.AvgTemperature[smu.smu_mod.TEMP_HOTSPOT],
+                        'memoryTempC': metrics.AvgTemperature[smu.smu_mod.TEMP_MEM],
+                        'powerDrawW': metrics.AverageSocketPower,
+                        'powerLimitW': self._power_limit_cached(),
+                        'gpuUsagePercent': metrics.AverageGfxActivity,
+                        'gpuClockMhz': metrics.AverageGfxclkFrequencyPostDs,
+                        'fanSpeedRpm': metrics.AvgFanRpm}
+        self.valid = True
+      except Exception:
+        if self.valid:
+          cloudlog.exception("egpu state read failed")
+        self.valid = False
+        self.metrics.clear()
+    if self.big:
+      for k, v in self.metrics.items():
+        setattr(state, k, v)
+
+    asm_valid = False
+    if "AMD" in Device._opened_devices:
+      try:
+        # ASM runs on USB-C power, these still read without a gpu
+        asm = Device["AMD"].iface.pci_dev.usb
+        state.pcieLtssm = asm.read(0xB450, 1)[0]
+        state.supplyVoltage, state.supplyCurrent = struct.unpack('<Hh', bytes(asm.usb.control_read(0xC0, 5))[:4])
+        asm_valid = True
+      except Exception:
+        pass
+
+    msg.valid = asm_valid and (not self.big or self.valid)
+    self.pm.send('egpuState', msg)
+
+
 class FrameMeta:
   frame_id: int = 0
   timestamp_sof: int = 0
@@ -88,15 +162,16 @@ class ModelState:
   output: np.ndarray
   prev_desire: np.ndarray  # for tracking the rising edge of the pulse
 
-  def __init__(self, context: CLContext):
-    with open(VISION_METADATA_PATH, 'rb') as f:
+  def __init__(self, context: CLContext, usbgpu: bool = False):
+    self.usbgpu = usbgpu
+    with open(_model_path('driving_vision_metadata.pkl', usbgpu), 'rb') as f:
       vision_metadata = pickle.load(f)
       self.vision_input_shapes =  vision_metadata['input_shapes']
       self.vision_input_names = list(self.vision_input_shapes.keys())
       self.vision_output_slices = vision_metadata['output_slices']
       vision_output_size = vision_metadata['output_shapes']['outputs'][1]
 
-    with open(POLICY_METADATA_PATH, 'rb') as f:
+    with open(_model_path('driving_policy_metadata.pkl', usbgpu), 'rb') as f:
       policy_metadata = pickle.load(f)
       self.policy_input_shapes =  policy_metadata['input_shapes']
       self.policy_output_slices = policy_metadata['output_slices']
@@ -123,10 +198,10 @@ class ModelState:
     self.policy_output = np.zeros(policy_output_size, dtype=np.float32)
     self.parser = Parser()
 
-    with open(VISION_PKL_PATH, "rb") as f:
+    with open(_model_path('driving_vision_tinygrad.pkl', usbgpu), "rb") as f:
       self.vision_run = pickle.load(f)
 
-    with open(POLICY_PKL_PATH, "rb") as f:
+    with open(_model_path('driving_policy_tinygrad.pkl', usbgpu), "rb") as f:
       self.policy_run = pickle.load(f)
 
   def slice_outputs(self, model_outputs: np.ndarray, output_slices: dict[str, slice]) -> dict[str, np.ndarray]:
@@ -186,11 +261,52 @@ def main(demo=False):
     # also need to move the aux USB interrupts for good timings
     config_realtime_process(7, 54)
 
+  params = Params()
+  egpu_driving_enabled = params.get_bool("EgpuDrivingEnabled")
+  params.put_bool("EgpuDrivingLoading", False)
+  params.remove("EgpuDrivingActive")
+
   st = time.monotonic()
   cloudlog.warning("setting up CL context")
   cl_context = CLContext()
   cloudlog.warning("CL context ready; loading model")
-  model = ModelState(cl_context)
+  small_model = ModelState(cl_context)
+  model = small_model
+  egpu_active = False
+
+  # Both hardware presence (EGPU, see egpu_detect.py) and an explicit opt-in
+  # Param are required before even attempting a big-model load -- matches
+  # EOP10's ChestnutDrivingEnabled gate (defaults off; PERSISTENT so it's a
+  # deliberate choice, not incidental to whatever happens to be plugged in).
+  if EGPU and egpu_driving_enabled:
+    params.put_bool("EgpuDrivingLoading", True)
+    big_model = None
+    def load_big():
+      nonlocal big_model
+      try:
+        m = ModelState(cl_context, usbgpu=True)
+        # NOTE: unlike upstream's ModelState.warmup(), this only proves the
+        # compiled pkl deserialized -- it does not run a dummy inference to
+        # prove the graph actually executes before being trusted. Upstream's
+        # own warmup() takes plain numpy dummy frames; this run() needs real
+        # VisionBuf camera objects bound to this CL context (see run()'s
+        # self.frames[name].prepare(bufs[name], ...) call), so a synthetic
+        # warmup can't be written and verified without real hardware here.
+        # Whoever wires in a real big-model artifact must add a genuine
+        # warmup call using real camera frames before removing this note --
+        # do not trust "it loaded" as proof "it runs".
+        big_model = m
+      except Exception:
+        cloudlog.exception("eGPU model load failed")
+    loader = threading.Thread(target=load_big, daemon=True)
+    loader.start()
+    loader.join(EGPU_LOAD_TIMEOUT)
+    if big_model is not None:
+      model = big_model
+      egpu_active = True
+    params.put_bool("EgpuDrivingLoading", False)
+    params.put_bool("EgpuDrivingActive", egpu_active)
+
   cloudlog.warning(f"models loaded in {time.monotonic() - st:.1f}s, modeld starting")
 
   # visionipc clients
@@ -217,11 +333,13 @@ def main(demo=False):
     cloudlog.warning(f"connected extra cam with buffer size: {vipc_client_extra.buffer_len} ({vipc_client_extra.width} x {vipc_client_extra.height})")
 
   # messaging
-  pm = PubMaster(["modelV2", "drivingModelData", "cameraOdometry"])
+  pub_socks = ["modelV2", "drivingModelData", "cameraOdometry"] + (["egpuState"] if EGPU else [])
+  pm = PubMaster(pub_socks)
   sm = SubMaster(["deviceState", "carState", "roadCameraState", "liveCalibration", "driverMonitoringState", "carControl", "liveDelay"])
 
   publish_state = PublishState()
   params = Params()
+  egpu_state = EgpuState(pm, model.usbgpu) if EGPU else None
 
   # setup filter to track dropped frames
   frame_dropped_filter = FirstOrderFilter(0., 10., 1. / ModelConstants.MODEL_FREQ)
@@ -328,7 +446,23 @@ def main(demo=False):
     }
 
     mt1 = time.perf_counter()
-    model_output = model.run(bufs, transforms, inputs, prepare_only)
+    try:
+      model_output = model.run(bufs, transforms, inputs, prepare_only)
+    except Exception:
+      if not egpu_active:
+        raise
+      # Soft-disable and fall back to the small model. Never auto-retried
+      # onroad -- EgpuDrivingActive is only re-evaluated at the next modeld
+      # restart (offroad/ignition), matching EOP10's ChestnutDrivingRunner
+      # failover contract.
+      cloudlog.exception("eGPU model failed, falling back to small model")
+      params.put_bool("EgpuDrivingActive", False)
+      model = small_model
+      egpu_active = False
+      if egpu_state is not None:
+        egpu_state.big = False
+      run_count = 0
+      model_output = None
     mt2 = time.perf_counter()
     model_execution_time = mt2 - mt1
 
@@ -368,6 +502,9 @@ def main(demo=False):
       pm.send('drivingModelData', drivingdata_send)
       pm.send('cameraOdometry', posenet_send)
     last_vipc_frame_id = meta_main.frame_id
+
+    if egpu_state is not None and run_count % round(ModelConstants.MODEL_FREQ / SERVICE_LIST['egpuState'].frequency) == 0:
+      egpu_state.send()
 
 
 if __name__ == "__main__":

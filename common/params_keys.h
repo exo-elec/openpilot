@@ -38,6 +38,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DoUninstall", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverTooDistracted", {CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON, BOOL}},
     {"AlphaLongitudinalEnabled", {PERSISTENT | DEVELOPMENT_ONLY, BOOL}},
+    // ASM2464PD USB eGPU driving path (mirrors upstream UsbGpu*; named after
+    // the hardware, not comma's Chestnut model class -- we support both our
+    // own flashed firmware and comma's on the same physical chip).
+    {"EgpuDrivingEnabled", {PERSISTENT, BOOL}},
+    {"EgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"EgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ExperimentalMode", {PERSISTENT, BOOL}},
     {"ExperimentalModeConfirmed", {PERSISTENT, BOOL}},
     {"FirmwareQueryDone", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},

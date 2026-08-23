@@ -28,6 +28,7 @@ _services: dict[str, tuple] = {
   "selfdriveState": (True, 100., 10),
   "pandaStates": (True, 10., 1),
   "peripheralState": (True, 2., 1),
+  "egpuState": (True, 10., 10),
   "radarState": (True, 20., 5),
   "roadEncodeIdx": (False, 20., 1),
   "liveTracks": (True, 20.),

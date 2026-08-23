@@ -716,6 +716,22 @@ struct PandaState @0xa7649e2575e4591e {
   safetyParam2DEPRECATED @26 :UInt32;
 }
 
+struct EgpuState {
+  # ASM2464PD USB eGPU hardware telemetry -- same physical chip regardless of
+  # which firmware is flashed (our own generic bridge firmware or comma's
+  # Chestnut firmware, see selfdrive/modeld/egpu_detect.py).
+  tempC @0 :Float32;
+  memoryTempC @1 :Float32;
+  powerDrawW @2 :Float32;
+  powerLimitW @3 :Float32;
+  gpuUsagePercent @4 :UInt8;
+  gpuClockMhz @5 :UInt16;
+  fanSpeedRpm @6 :UInt16;
+  pcieLtssm @7 :UInt8;
+  supplyVoltage @8 :UInt16;  # mV
+  supplyCurrent @9 :Int16;  # mA
+}
+
 struct PeripheralState {
   pandaType @0 :PandaState.PandaType;
   voltage @1 :UInt32;
@@ -2614,6 +2630,7 @@ struct Event {
     userBookmark @93 :UserBookmark;
     bookmarkButton @148 :UserBookmark;
     audioFeedback @149 :AudioFeedback;
+    egpuState @150 :EgpuState;
 
     # *********** debug ***********
     testJoystick @52 :Joystick;
