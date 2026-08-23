@@ -405,6 +405,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"FactoryCalibrationParams", {PERSISTENT, BYTES}},
     {"CarMake", {PERSISTENT, STRING}},
     {"CarType", {PERSISTENT, STRING}},
+    {"CarVin", {PERSISTENT, STRING}},
     // ASM2464PD / Chestnut eGPU driving path (mirrors upstream UsbGpu*; named
     // Egpu* to cover both our own flashed firmware and comma's Chestnut
     // firmware on the same physical chip).
