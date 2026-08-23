@@ -20,7 +20,7 @@ from openpilot.system.inferenced import InferenceClient
 
 from openpilot.selfdrive.modeld.runners.driving_runner import DrivingRunner, DrivingModelSpec
 from openpilot.selfdrive.modeld.runners.rknn_driving_runner import RKNNDrivingRunner
-from openpilot.selfdrive.modeld.runners.chestnut_driving_runner import (
+from openpilot.selfdrive.modeld.runners.egpu_driving_runner import (
     EgpuDrivingRunner, ChestnutDrivingRunner,
     EGPU_MODEL_NAME, EGPU_PKL_FILENAME, EGPU_METADATA_FILENAME,
     CHESTNUT_MODEL_NAME, CHESTNUT_PKL_FILENAME, CHESTNUT_METADATA_FILENAME,
