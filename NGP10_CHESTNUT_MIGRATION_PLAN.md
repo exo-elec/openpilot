@@ -75,26 +75,73 @@ architecture comparison, still valid) on top of the new foundation.
 - **Effort:** genuinely weeks, likely needs staged rollout (shadow-mode
   testing before it's trusted on a paying customer's car).
 
+## Path B, measured: trial merge findings (2026-08-23)
+
+User chose Path B. Before touching the real branch, ran a diagnostic
+`git merge --no-commit` in a disposable worktree (`/tmp/.../ngp10-work`,
+never pushed, aborted and reset afterward — `dev/NGP10` on the remote is
+untouched) against just the first, smallest reconcilable slice: the June
+2026 monorepo restructure commit (`5edc0bd89`, "mv root dirs into nested
+openpilot", upstream `commaai/openpilot`) — the point every later commit
+including Chestnut sits behind. Findings:
+
+**Fork point:** `c085b8af1` (2025-08-19, tag `base/dev-NGP10-openpilot-v0.10.0`).
+**Upstream master today:** `084747c75` (2026-08-21, `v0.11.1-408-g084747c75`),
+**1872 commits ahead** of the fork point. NGP10 has **48 commits** of its own
+on top (DLAT/DLON, VTSC/MTSC, BRSC, NGP settings panel, migration-chain fixes
+backported from EOP10, then the eGPU detection work).
+
+**The restructure itself is clean** — 1054 of 1062 changed files are pure
+renames, only 5 lines of real content change (`pyproject.toml`,
+`scripts/lint/lint.sh`). NGP10's own pre-existing `openpilot/` directory
+(found during this trial) is not a submodule and is nearly empty — 1 file,
+last touched 2024-02-25, predates NGP10's fork entirely. Not a real
+collision risk.
+
+**But merging NGP10's 48 commits across that one restructure commit alone
+already produces real conflicts, in two tiers:**
+
+- *Mechanical, cheap to resolve:* a submodule conflict (`opendbc_repo` not
+  checked out in the trial worktree — non-issue, just needed a proper
+  checkout), two directory-in-the-way conflicts from the vestigial
+  `openpilot/` dir, and 6 advisory "this new NGP10 test file probably wants
+  to move" notices (`test_ngp_dlat.py`, `test_ngp_vtsc.py`, etc.) — trivial
+  `git mv`.
+- *Real reconciliation needed:* content conflicts in exactly the files
+  carrying NGP10's actual feature logic — `desire_helper.py`,
+  `longitudinal_planner.py`, `plannerd.py`, `torqued.py`, `modeld.py`,
+  `selfdrived.py` — plus **modify/delete conflicts on 5 UI files**
+  (`selfdrive/ui/SConscript`, `settings.cc`, `controls.h`, `ui.cc`, `ui.h`)
+  that the restructure-era upstream deleted/replaced outright, which NGP10's
+  **settings panel work (`d973c2115`, `695138c66`, `f2ce0d88d` — the NGP
+  panel with BRSC/DLAT/DLON toggles) directly depends on**. This is the
+  single biggest new risk this trial surfaced: the NGP panel likely needs a
+  real rewrite against upstream's new UI structure, not just a conflict
+  resolution — scope that specifically before committing to a timeline.
+
+This was **one commit's worth of the 1872-commit gap**, deliberately the
+smallest, cleanest slice available. It is not representative of the full
+size of Path B — it's a floor, not an estimate of the whole job.
+
 ## Recommendation for next session
 
-Don't decide this from a plan doc alone. Before committing to either path:
+1. **Scope the UI panel rewrite specifically** — it's now the biggest known
+   unknown, bigger than the modeld/controls conflicts. Check what upstream's
+   post-restructure settings UI actually looks like before estimating.
+2. **Scope the *full* diff** (not just this one restructure commit) between
+   NGP10's current base and the actual target version once chosen — this
+   trial only crossed the first commit of 1872.
+3. Confirm what comma's official Chestnut hardware actually requires
+   (stock/near-stock openpilot for OTA model delivery, or independent of fork
+   customization) — still unverified, still decides whether Path A's blocker
+   is real for NGP10.
+4. Given the real conflict shape found, doing this **incrementally by
+   subsystem** (modeld/controls first, then UI, rather than one mega-merge)
+   is probably the only tractable way to keep each step reviewable on
+   safety-critical code.
 
-1. **Confirm what "comma's official Chestnut hardware" actually requires** —
-   does it need stock/near-stock openpilot to get OTA model updates, or does
-   comma's model distribution work independent of how customized the rest of
-   the fork is? This fact alone determines whether Path A's blocker is
-   real for NGP10 or not. (Not something I can verify without checking
-   comma's actual update/model-distribution mechanism — worth a targeted
-   look before choosing.)
-2. If Path B: scope the *full* diff (not just `modeld.py`) between NGP10's
-   current base and target upstream version, so the size of the sync is
-   known before starting, not discovered mid-way.
-3. If Path A: it's ready to start as soon as you want — nothing further to
-   discover, the pattern is proven in EOP10 today.
-
-Both paths are compatible with each other long-term — Path A's scaffolding
-isn't wasted if you later do Path B; the `DrivingRunner` abstraction pattern
-would still be the right shape either way.
+Path A's scaffolding (`DrivingRunner` abstraction) isn't wasted if Path B
+happens later — same shape either way.
 
 ---
 
