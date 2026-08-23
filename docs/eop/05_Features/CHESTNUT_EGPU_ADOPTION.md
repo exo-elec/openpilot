@@ -58,32 +58,27 @@ The two production roles intentionally use different artifacts:
 
 | Role | Selected source | Artifact identity | Notes |
 |---|---|---|---|
-| external high-capacity model | current official openpilot Chestnut big model | `big_driving_supercombo.onnx`, LFS SHA-256 `a501760a9d1d5fef0eab2b8c5d122d06124fc26dc8e0782e0aa94b82a208f0ff`, 1,757,355,221 bytes at audited upstream commit | Compile with the upstream tinygrad/Chestnut pipeline after stable-tag compatibility is proven |
-| local fallback | `../bukapilot` v10.0.5 supercombo | `supercombo.rknn`, SHA-256 `39155c9cf03b5fe8bfc2949192ef954fd8cd325ee6f1442db19db06335fb5e5a` | User-designated proven RKNN fallback; checked binary explicitly targets RK3588 |
+| external high-capacity model | current official openpilot Chestnut big model | `big_driving_supercombo.onnx`, LFS SHA-256 `a501760a9d1d5fef0eab2b8c5d122d06124fc26dc8e0782e0aa94b82a208f0ff`, 1,757,355,221 bytes at audited upstream commit | Monolithic supercombo; compile with the upstream tinygrad/Chestnut pipeline after stable-tag compatibility is proven |
+| local fallback | `../bukapilot` KA2 (RK3588) branch `byd_sng_ka2` | split `driving_vision.rknn` + `driving_policy.rknn` (default, `USE_RKNN=1`); separate `dmonitoring_model.rknn` for non-driving | Matches EOP's existing split RKNN runner; bukapilot casts inputs to float16 before inference |
 
-Bukapilot commit `0c6977fc6970255b0eb09073c9c4951b8a7448d1` contains a
-165,403,347-byte RK3588 `supercombo.rknn` produced with RKNN compiler 2.3.0.
-Its source ONNX was previously tracked through LFS as SHA-256
+Bukapilot's current KA2 (RK3588) branch runs **separate** vision and policy
+RKNN models — not a monolithic supercombo. A monolithic nine-input
+`supercombo.rknn` (single 6,504-float output, RKNN compiler 2.3.0,
+165,403,347 bytes, SHA-256 `39155c9cf03b5fe8bfc2949192ef954fd8cd325ee6f1442db19db06335fb5e5a`)
+exists only in its older v10.0.5-era history (`origin/harmeet`, commit
+`0c6977fc6970255b0eb09073c9c4951b8a7448d1`), with source ONNX LFS SHA-256
 `d21daa542227ecc5972da45df4e26f018ba113c0461f270e367d57e3ad89221a`
-(51,461,700 bytes). The checked metadata SHA-256 is
-`45d370eb8f7ed618f6e5c2592e5c1e471a99f65eed08977621b8e474d9520421`.
+(51,461,700 bytes). It remains a reference artifact if a monolithic local
+fallback is ever wanted, but the proven KA2 driving configuration is the split
+one. Its separate models (`dmonitoring_model.rknn`, nav) are independent
+tasks, not driving-model components.
 
-The Bukapilot graph has nine inputs—two 12-channel temporal YUV image tensors,
-desire, traffic convention, lateral-control parameters, previous curvature,
-navigation features, navigation instructions and a 99x512 feature buffer—and
-one 6,504-float output. Its metadata slices the normal openpilot plan, lane-line,
-road-edge, lead, desire, pose, curvature and hidden-state outputs. This makes it
-a suitable local fallback behind the openpilot parser; it is not compatible
-with the present one-input/one-output inference IPC without a runner-specific
-multi-tensor path.
+Any RK3588 RKNN binary must not be reused on RK3576. RKNN reports
+target-platform mismatch for an incompatible binary. Package the split
+conversion per SoC with independently checked artifacts:
 
-The RK3588 RKNN binary must not be reused on RK3576. Its embedded metadata says
-`target_platform: rk3588`, and RKNN reports target-platform mismatch for an
-incompatible binary. Materialize the exact Bukapilot source ONNX and create two
-independently checked artifacts:
-
-- `supercombo_bukapilot_rk3588.rknn`, target `rk3588`;
-- `supercombo_bukapilot_rk3576.rknn`, target `rk3576`.
+- `driving_vision_rk3588.rknn` + `driving_policy_rk3588.rknn`, target `rk3588`;
+- `driving_vision_rk3576.rknn` + `driving_policy_rk3576.rknn`, target `rk3576`.
 
 Record the ONNX hash, conversion script hash, rknn-toolkit version, quantization
 settings, calibration dataset hash, target SoC and final RKNN hash for each.
@@ -121,9 +116,11 @@ Both executors must satisfy one internal openpilot driving-runner contract:
 | external big runner | ASM2464 + AMD GPU via tinygrad | Optional higher-capacity model |
 | local fallback runner | RK3588 RKNN NPU | Always-available small/openpilot model |
 
-Both selected artifacts are monolithic supercombo graphs. EOP's current split
-vision + temporal-policy implementation must not be treated as the final fallback
-contract; port the Bukapilot monolithic RKNN runner behind the canonical parser.
+The two executors use different graph shapes, both behind the one contract
+(`selfdrive/modeld/runners/driving_runner.py`): the external Chestnut runner is
+a monolithic supercombo (`run()` over the full input set), while the local RKNN
+runner is split vision + policy (`run_vision()`/`run_policy()`), matching
+bukapilot's KA2 architecture that EOP already validates on hardware.
 The adapter boundary is the parsed openpilot output dictionary, not an Autoware
 trajectory, AutoSteer lane vector or AutoDrive curvature tuple.
 
@@ -209,7 +206,7 @@ for side and rear. These paths remain independently schedulable:
 
 | Workload | External path | On-device fallback | Failure authority |
 |---|---|---|---|
-| openpilot driving | official upstream big model compiled for tinygrad; Bukapilot ONNX first for same-model parity | preloaded/warm, SoC-specific Bukapilot supercombo RKNN | soft-disable if active external model fails; continue later on RKNN |
+| openpilot driving | official upstream big model compiled for tinygrad; Bukapilot ONNX first for same-model parity | preloaded/warm, SoC-specific split Bukapilot KA2 RKNN (`driving_vision` + `driving_policy`) | soft-disable if active external model fails; continue later on RKNN |
 | front segmentation | eGPU SceneSeg/PP-LiteSeg | existing RKNN segmentation | keep local mask; never disturb driving |
 | side detection + segmentation | independent side eGPU sessions | Hailo when present, then compact side RKNN | advisory unavailable/degraded if all fail |
 | rear detection + segmentation | independent rear eGPU sessions | Hailo when present, then compact rear RKNN | advisory unavailable/degraded if all fail |

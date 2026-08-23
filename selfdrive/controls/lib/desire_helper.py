@@ -67,11 +67,19 @@ class DesireHelper:
     if md is None:
       return False
 
+    if not hasattr(md, 'roadEdgeStds') or not hasattr(md, 'laneLineProbs'):
+      return False
+
     edge_threshold = 0.475
-    left_edge_prob = clip(1.0 - md.roadEdgeStds[0], 0.0, 1.0)
-    right_edge_prob = clip(1.0 - md.roadEdgeStds[1], 0.0, 1.0)
-    left_nearside_prob = md.laneLineProbs[0]
-    right_nearside_prob = md.laneLineProbs[3]
+    try:
+      if len(md.roadEdgeStds) < 2 or len(md.laneLineProbs) < 4:
+        return False
+      left_edge_prob = clip(1.0 - md.roadEdgeStds[0], 0.0, 1.0)
+      right_edge_prob = clip(1.0 - md.roadEdgeStds[1], 0.0, 1.0)
+      left_nearside_prob = md.laneLineProbs[0]
+      right_nearside_prob = md.laneLineProbs[3]
+    except Exception:
+      return False
 
     if (right_edge_prob > edge_threshold and right_nearside_prob < 0.2 and
         left_nearside_prob >= right_nearside_prob):

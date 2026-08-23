@@ -122,27 +122,6 @@ class ACLBackend(HardwareBackend):
       logger.debug("ACL GPU: Convolution")
       return inputs.get('input')
 
-    elif model_name == 'radar_cfar':
-      # BGT60TR13C 2-D CA-CFAR offloaded to Mali GPU. Currently unused by
-      # radar4d.py (moved to 4x ESP32_RADAR corner nodes doing their own
-      # onboard CFAR over WiFi/UDP, see docs/eop/bgt60_radar.md) — kept here
-      # since it's shared inferenced infrastructure, not radar4d-owned.
-      logger.debug("ACL GPU: radar 2-D CA-CFAR")
-      from hal.drivers.radar import dsp_gpu_kernel
-      kernel = dsp_gpu_kernel.get_kernel()
-      d_idx, r_idx, snr_db = kernel.run(
-          power=np.array(inputs['power']),
-          guard_cells=(int(inputs['guard_cells'][0]), int(inputs['guard_cells'][1])),
-          training_cells=(int(inputs['training_cells'][0]), int(inputs['training_cells'][1])),
-          pfa=float(inputs['pfa']),
-          max_hits=int(inputs['max_hits']),
-      )
-      return {
-          'doppler_idx': d_idx,
-          'range_idx': r_idx,
-          'snr_db': snr_db,
-      }
-
     # Fallback
     return inputs.get('input')
 
@@ -152,7 +131,7 @@ class ACLBackend(HardwareBackend):
       return False
 
     # GPU-assigned operations (always use GPU if available)
-    if model_name in ('sgm_stereo', 'gemm', 'radar_cfar'):
+    if model_name in ('sgm_stereo', 'gemm'):
       return True
 
     # For other ops, estimate workload - GPU beneficial for large inputs

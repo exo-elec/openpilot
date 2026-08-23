@@ -29,7 +29,10 @@ from openpilot.common.core_config import set_daemon_affinity
 from openpilot.selfdrive.modeld.runners.rknn_platform import get_platform_npu_config
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.system.inferenced.compute import (
-    ModelConfig
+    BackendType, ModelConfig
+)
+from openpilot.selfdrive.sided.egpu_camera_detector import (
+    EgpuSegmentationShadowRunner, is_backend_available
 )
 from openpilot.common.swaglog import cloudlog
 
@@ -441,6 +444,10 @@ class MonoD:
         self.params = Params()
         self.enabled = self.params.get_bool("EOPMonoDEnabled")
 
+        # Optional front-wide eGPU segmentation shadow.
+        self._egpu_wide_seg_shadow: EgpuSegmentationShadowRunner | None = None
+        self._init_egpu_wide_seg_shadow()
+
         # State
         self.frame_id = 0
         self.wide_frame_id = 0  # Wide runs at 10Hz (half rate for thermal)
@@ -459,6 +466,22 @@ class MonoD:
                    f"wide={self._vipc_wide is not None}")
         cloudlog.info("2-camera fusion: road + wide")
         cloudlog.info("Thermal-safe allocation: 75% max NPU utilization")
+
+    def _init_egpu_wide_seg_shadow(self) -> None:
+        """Create the front-wide eGPU segmentation shadow runner if enabled and available."""
+        mode = (self.params.get("EOPFrontWideSegEGPUMode") or b"off").decode().strip().lower()
+        if mode != "shadow":
+            return
+        if not is_backend_available(BackendType.EGPU, timeout=0.5):
+            cloudlog.warning("MonoD: EOPFrontWideSegEGPUMode=shadow but EGPU backend not advertised")
+            return
+        self._egpu_wide_seg_shadow = EgpuSegmentationShadowRunner(
+            daemon_name="monod",
+            model_name="front_wide_seg_egpu",
+            input_size=(320, 320),
+            class_interest={0, 1},  # road + sidewalk
+        )
+        cloudlog.info("MonoD: front-wide eGPU segmentation shadow enabled")
 
     def _init_visionipc(self) -> None:
         """Initialize VisionIPC clients for camera frame retrieval."""
@@ -534,6 +557,10 @@ class MonoD:
         if self.frame_id % 2 == 0:
             if self.rknn_processor.is_available:
                 segmentation = self.rknn_processor.infer_ppliteseg_wide(frame)
+
+        # Front-wide eGPU segmentation shadow (optional; authoritative PP-LiteSeg unchanged)
+        if self._egpu_wide_seg_shadow is not None:
+            self._egpu_wide_seg_shadow.submit('wide_road', frame, segmentation)
 
         return segmentation
 
@@ -628,6 +655,8 @@ class MonoD:
                 self.frame_id += 1
                 self.rk.keep_time()
         finally:
+            if self._egpu_wide_seg_shadow is not None:
+                self._egpu_wide_seg_shadow.close()
             self.rknn_processor.release()
 
 

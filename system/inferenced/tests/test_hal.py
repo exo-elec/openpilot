@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 from openpilot.system.inferenced.compute import (
-    HAL, HALConfig, BackendType, InferenceResult, get_hal
+    HAL, HALConfig, BackendType, InferenceResult, ModelConfig, get_hal
 )
 from openpilot.system.inferenced.client import InferenceClient
 
@@ -73,6 +73,8 @@ class TestRKNNBackend:
     npu = hal.get_backend(BackendType.NPU)
     if npu is None:
       pytest.skip("NPU not available")
+
+    npu.load_model(ModelConfig(name='test_model', path='/tmp/test_model.rknn'))
 
     inputs = {'input': np.random.randn(1, 224, 224, 3).astype(np.float32)}
     result = npu.infer('test_model', inputs)

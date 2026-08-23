@@ -12,6 +12,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import numpy as np
 import cv2
 import pytest
@@ -210,7 +211,7 @@ class TestDepthWithCalibrationFile:
     CALIBRATION_PATH = "/data/calibration/stereo_intrinsics.npz"
 
     @pytest.mark.skipif(
-        not pytest.path.exists(CALIBRATION_PATH) if hasattr(pytest, 'path') else False,
+        not os.path.exists(CALIBRATION_PATH),
         reason="Calibration file not available"
     )
     def test_with_real_calibration(self):

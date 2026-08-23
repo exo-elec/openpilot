@@ -26,7 +26,7 @@ from collections.abc import Iterable, Sequence
 import cereal.messaging as messaging
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware import HARDWARE
-from openpilot.system.socketd.can_capnp.can_capnp import encode_can_id, sanitize_can_id
+from openpilot.system.socketd.can_capnp import encode_can_id, sanitize_can_id
 
 # Typing alias used for CAN tuples (address, data, bus)
 CANMsg = tuple[int, bytes, int]

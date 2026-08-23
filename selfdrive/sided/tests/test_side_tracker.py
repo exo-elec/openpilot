@@ -127,7 +127,7 @@ class TestHandoverManager:
     assert len(result) == 2  # far apart → new track
 
   def test_coasting(self):
-    hm = HandoverManager(coast_max_age=2)
+    hm = HandoverManager(coast_max_age=3)
     obj = SideObject(uid=1, label='car', confidence=0.9, distance_m=5.0, lateral_m=1.0)
     hm.update({'side_left': [obj]})
     hm.update({})

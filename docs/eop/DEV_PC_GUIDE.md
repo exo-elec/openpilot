@@ -36,21 +36,26 @@ Models are **not committed to git** (large binaries). Place them in `models/`:
 
 ```
 models/
-  onnx/
-    driving_vision.onnx    # 45 MB — dragonpilot 0.10.0 pre-build
-    driving_policy.onnx    # 14 MB — dragonpilot 0.10.0 pre-build
-  rknn/                    # Populated on ARM hardware or via convert_models_to_rknn.py
-  hef/                     # Hailo HEF files (optional)
+  rknn/
+    driving_vision.rknn    # 79 MB — bukapilot KA2 (byd_sng_ka2), hash-verified
+    driving_policy.rknn    # 16 MB — bukapilot KA2, same source pair
+  hef/                     # Hailo HEF files (yolov8n.hef, etc.)
+  onnx/                    # Chestnut's big model only — this dev PC does not
+                            # run the driving model via ONNX Runtime
 ```
 
-The driving ONNX models were extracted from dragonpilot `pre-build` branch:
+The driving RKNN pair is bukapilot's proven KA2 (RK3588) pair — EOP's own
+metadata pkls (`selfdrive/modeld/models/driving_{vision,policy}_metadata.pkl`)
+are verified to match them exactly (same input/output shapes and slices).
+Fetch it via `models/download_models.sh` from a local bukapilot checkout
+(hash-verified against `models/MODEL_MANIFEST.md`):
 ```bash
-cd /path/to/dragonpilot
-git show pre-build:selfdrive/modeld/models/driving_vision.onnx > \
-    /path/to/openpilot/models/onnx/driving_vision.onnx
-git show pre-build:selfdrive/modeld/models/driving_policy.onnx > \
-    /path/to/openpilot/models/onnx/driving_policy.onnx
+BUKAPILOT_DIR=/path/to/bukapilot ./models/download_models.sh rknn
 ```
+Do not substitute another fork's driving_vision/driving_policy export here —
+it is a different, unverified generation coupled to a different input method
+(NHWC layout, float16 casting, the big_img affine mitigation — see
+`MODEL_MANIFEST.md` and `rockchip_npu.py`'s `_NHWC_VISION_MODELS`).
 
 ---
 
@@ -150,7 +155,7 @@ tools/sim/launch_openpilot.sh                  # Terminal 2: openpilot daemons
 
 | Component | Dev PC behavior |
 |---|---|
-| `modeld` | Runs with ONNX backend (~47ms/frame CPU); no CL frame prep (numpy fallback) |
+| `modeld` | Falls back to mock RKNN (no ONNX driving-model files stored on this dev PC — see `MODEL_MANIFEST.md`); no CL frame prep (numpy fallback) |
 | `monod` | Starts but skips models if `models/onnx/yolo_640.onnx` missing |
 | `stereod` | ACL backend unavailable; falls back to CPU numpy SGM |
 | `inferenced` | ONNX initialized; RKNN/ACL/Hailo skipped |

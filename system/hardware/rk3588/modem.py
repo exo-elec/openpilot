@@ -16,7 +16,6 @@ try:
     from hal.drivers.cellular import (
         EC25Modem,
         SIMInfo,
-        BearerInfo,
         NetworkInfo,
         ModemTemperatures,
         NetworkType as _HalNetworkType,
@@ -104,7 +103,7 @@ def configure_modem() -> bool:
     apn = apn_raw.decode() if isinstance(apn_raw, bytes) else (apn_raw or "")
     if not apn:
         sim_info = _hal_get_sim_info()
-        mcc_mnc = str((sim_info.mcc_mnc or "")).strip()
+        mcc_mnc = str(sim_info.mcc_mnc or "").strip()
         apn = _hal_lookup_apn(mcc_mnc)
 
     if not apn:

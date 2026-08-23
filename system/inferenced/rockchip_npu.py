@@ -7,6 +7,7 @@ Works on both edge hardware (with real RKNNLite) and dev PC (with mocks).
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 from pathlib import Path
 
@@ -25,6 +26,21 @@ MIN_RKNPU_DRIVER_VERSION = "0.9.6"
 # NOTE: This set is deployment-specific and must be kept in sync with the
 # locally-converted RKNN models; do not copy generic defaults from other forks.
 _FP16_MODELS = frozenset({"driving_vision", "driving_policy"})
+
+# ``driving_vision``'s RKNN graph (bukapilot KA2 conversion) was compiled
+# expecting an NHWC runtime layout, not the NCHW the ONNX source and modeld's
+# preprocessing produce. Ported verbatim from bukapilot's proven runner
+# (env var names kept identical so existing tuning docs still apply); scoped
+# to this one model — other RKNN graphs on this backend (sceneseg, ppliteseg,
+# ...) keep their native NCHW layout.
+_NHWC_VISION_MODELS = frozenset({"driving_vision"})
+_VISION_LAYOUT = "nchw" if os.getenv("RKNN_ENFORCE_VISION_NCHW", "0") != "0" else os.getenv("RKNN_PY_VISION_LAYOUT", "nhwc").lower()
+# Companion mitigation: the big (wide-angle) input's brightness/contrast was
+# tuned for the NCHW-converted graph; re-linearize it before the NHWC swap so
+# the KA2 policy head sees the distribution it was trained on.
+_NHWC_BIGIMG_AFFINE_ENABLE = os.getenv("RKNN_NHWC_BIGIMG_AFFINE_ENABLE", "1") != "0"
+_NHWC_BIGIMG_SCALE = float(os.getenv("RKNN_NHWC_BIGIMG_SCALE", "0.55"))
+_NHWC_BIGIMG_BIAS = float(os.getenv("RKNN_NHWC_BIGIMG_BIAS", "-6.0"))
 
 
 class RKNNBackend(HardwareBackend):
@@ -174,6 +190,10 @@ class RKNNBackend(HardwareBackend):
         # Real hardware: run actual RKNN inference
         rknn = self._loaded_models[model_name]
 
+        if model_name in _NHWC_VISION_MODELS and "big_img" in inputs and _NHWC_BIGIMG_AFFINE_ENABLE:
+          big_img = inputs["big_img"].astype(np.float32) * _NHWC_BIGIMG_SCALE + _NHWC_BIGIMG_BIAS
+          inputs = {**inputs, "big_img": np.clip(big_img, 0.0, 255.0).astype(np.uint8)}
+
         # Preserve dict insertion order — callers must supply keys in model-compiled slot order
         rknn_inputs = []
         for val in inputs.values():
@@ -184,6 +204,10 @@ class RKNNBackend(HardwareBackend):
         # Run inference on NPU
         if model_name in _FP16_MODELS:
           rknn_inputs = [arr.astype(np.float16) for arr in rknn_inputs]
+          if model_name in _NHWC_VISION_MODELS and _VISION_LAYOUT == "nhwc":
+            # NCHW (N, C, H, W) -> NHWC (N, H, W, C), matching the graph's
+            # compiled input layout.
+            rknn_inputs = [np.ascontiguousarray(np.transpose(arr, (0, 2, 3, 1))) if arr.ndim == 4 else arr for arr in rknn_inputs]
           outputs = rknn.inference(rknn_inputs, data_type="float16")
         else:
           outputs = rknn.inference(rknn_inputs)

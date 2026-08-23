@@ -311,7 +311,7 @@ class RadarZoneMonitor:
             cameras.extend(self._rear_dets)
 
         used_camera: set[int] = set()
-        for index, radar in enumerate(fused):
+        for _index, radar in enumerate(fused):
             if not is_corner_track_id(radar.get('trackId', 0)):
                 continue
             best_index = None

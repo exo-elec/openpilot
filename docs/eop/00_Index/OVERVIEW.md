@@ -102,8 +102,8 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
   RKNN loaded and warm, switch once on failure, soft-disable if engaged, and do not
   retry the eGPU onroad. See `05_Features/CHESTNUT_EGPU_ADOPTION.md`
 - Target eGPU model: official upstream Chestnut big supercombo. Local fallback:
-  hash-locked Bukapilot supercombo converted independently for RK3588 and RK3576;
-  the checked Bukapilot binary itself is RK3588-only
+  hash-locked Bukapilot KA2 split RKNN (`driving_vision` + `driving_policy`)
+  converted independently for RK3588 and RK3576; never cross-load SoC binaries
 - Autoware AutoSpeed/AutoSteer/AutoDrive graphs are compatibility references, not
   replacements for the openpilot driving model
 - All eGPU paths remain shadow-only until replay, hardware and safety gates pass

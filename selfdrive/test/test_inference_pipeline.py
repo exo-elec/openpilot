@@ -150,6 +150,9 @@ def test_model_state_init():
     client = InferenceClient("modeld_test")
     ctx = CLContext()
 
-    model = ModelState(ctx, client)
+    try:
+        model = ModelState(ctx, client)
+    except FileNotFoundError as e:
+        pytest.skip(f"driving model artifacts not present on this host: {e}")
     assert model.vision_input_names == ["img", "big_img"]
-    assert model.npu.backend_type.name in ("ONNX", "NPU")
+    assert model.runner.backend_name in ("ONNX", "NPU")

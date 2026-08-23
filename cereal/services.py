@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-from typing import Optional
 
 
 class Service:
-  def __init__(self, should_log: bool, frequency: float, decimation: Optional[int] = None):
+  def __init__(self, should_log: bool, frequency: float, decimation: int | None = None):
     self.should_log = should_log
     self.frequency = frequency
     self.decimation = decimation
@@ -149,7 +148,7 @@ _services: dict[str, tuple] = {
   "customReservedRawData1": (True, 0.),
   "customReservedRawData2": (True, 0.),
   "livestreamRearRightEncodeData": (False, 20.),
-  
+
   # OBD2 / NCP
   "obdCommand": (False, 0.),           # SPP/GATT → obd2d
   "obdResponse": (False, 0.),          # obd2d → SPP
@@ -161,13 +160,13 @@ _services: dict[str, tuple] = {
   # Bluetooth SPP services
   # NOTE: HFP removed - both projects use SPP-only with I2S speaker
   "sppStatus": (True, 1., 1),     # SPP connection status
-  
+
   # ExoPilot Hailo AI Detection Services (monod)
   "monoDetections": (True, 20., 5),    # Multi-camera YOLO detections
   "monoSegments": (True, 20., 20),     # TeleRoad SceneSeg segmentation
   "monoFeatures": (True, 20., 10),     # Visual features from all cameras
   "monoStatus": (True, 2., 1),         # monod status and TOPS usage
-  
+
   # Stereo depth services (stereod)
   "stereoDepth": (True, 20., 5),       # Point cloud from SGBM
   "stereoDetections": (True, 20., 10), # 3D objects from stereo + YOLO (placeholder, 20Hz)
@@ -180,7 +179,7 @@ _services: dict[str, tuple] = {
   "drivableArea": (True, 20., 10),      # surfaced: BEV drivable area grid
   "surfaceStatus": (True, 20., 10),     # surfaced: surface quality + history
   "gridStatus": (True, 1., 1),          # gridd status (1Hz)
-  
+
   # Inference scheduler services (inferenced)
   "inferencedStatus": (True, 1., 1),       # inferenced backend health (1Hz)
   "rgaStatus": (True, 1., 1),             # RGA hardware accelerator health (1Hz)
@@ -193,7 +192,7 @@ _services: dict[str, tuple] = {
 
   # Power management and safety services (EXO platforms)
   "impactEvent": (True, 0., 1),        # Impact detection event (immediate, LSM6DS3)
-  
+
   # Audio services — adaptive loudness + Piper TTS navigation (both platforms)
   "micStatus": (True, 1., 1),          # micd: SPL level for adaptive loudness
   "ttsRequest": (False, 0.),           # soundd: Piper TTS request (nav + alerts)
@@ -201,7 +200,7 @@ _services: dict[str, tuple] = {
   "sounddStatus": (True, 1., 1),       # soundd: playback health
   "spkdStatus": (True, 1., 1),         # spkd: I2S output health
   "blindSpotAlert": (True, 10., 10),   # BSD: Blind spot detection alert (10Hz)
-  
+
   # Side camera perception (sided)
   "sideDetections": (True, 20., 5),    # sided: side camera detections
   "sideStatus": (True, 2., 1),         # sided: daemon status
@@ -237,8 +236,7 @@ def build_header():
   for k, v in SERVICE_LIST.items():
     should_log = "true" if v.should_log else "false"
     decimation = -1 if v.decimation is None else v.decimation
-    h += '  { "%s", {"%s", %s, %d, %d}},\n' % \
-         (k, k, should_log, v.frequency, decimation)
+    h += f'  {{ "{k}", {{"{k}", {should_log}, {v.frequency}, {decimation}}}}},\n'
   h += "};\n"
 
   h += "#endif\n"

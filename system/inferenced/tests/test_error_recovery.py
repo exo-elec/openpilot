@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class TestErrorRecovery:
   """Test error recovery and fallback functionality."""
 
-  def test_fallback_strategy(self) -> bool:
+  def test_fallback_strategy(self):
     """Test fallback strategy tracking."""
     logger.info("Testing fallback strategy...")
 
@@ -26,7 +26,7 @@ class TestErrorRecovery:
     # Initially should not use fallback (need at least 3 ops)
     if strategy.should_try_fallback():
       logger.warning("✗ Should not fallback initially")
-      return False
+      assert False, "Should not fallback initially"
 
     # Record failures (no successes) to trigger fallback
     # Needs total >= 3 and failure_count / total > 0.5
@@ -37,12 +37,12 @@ class TestErrorRecovery:
     # After 100% failure rate with 3+ ops, should fallback
     if strategy.should_try_fallback():
       logger.info("✓ Fallback triggered correctly (100% failure rate)")
-      return True
+      return
     else:
       logger.warning("✗ Fallback not triggered at 100% failure rate")
-      return False
+      assert False, "Fallback not triggered at 100% failure rate"
 
-  def test_health_monitor(self) -> bool:
+  def test_health_monitor(self):
     """Test backend health monitoring."""
     logger.info("Testing backend health monitor...")
 
@@ -51,25 +51,25 @@ class TestErrorRecovery:
     # Initially healthy
     if not monitor.is_healthy:
       logger.warning("✗ Should be healthy initially")
-      return False
+      assert False, "Should be healthy initially"
 
     # Record failures
     for _i in range(2):
       monitor.record_failure()
       if not monitor.is_healthy:
         logger.warning("✗ Should still be healthy after 2 failures")
-        return False
+        assert False, "Should still be healthy after 2 failures"
 
     # Third failure should mark unhealthy
     should_restart = monitor.record_failure()
     if not should_restart or monitor.is_healthy:
       logger.warning("✗ Should mark unhealthy after 3 failures")
-      return False
+      assert False, "Should mark unhealthy after 3 failures"
 
     logger.info("✓ Health monitor working correctly")
-    return True
+    return
 
-  def test_error_categorization(self) -> bool:
+  def test_error_categorization(self):
     """Test error categorization."""
     logger.info("Testing error categorization...")
 
@@ -78,19 +78,19 @@ class TestErrorRecovery:
     error = create_error_from_exception(timeout_exc, "NPU", "model")
     if error.category != ErrorCategory.TIMEOUT:
       logger.warning("✗ Timeout error not categorized correctly")
-      return False
+      assert False, "Timeout error not categorized correctly"
 
     # Test resource exhausted error
     mem_exc = MemoryError("Out of memory")
     error = create_error_from_exception(mem_exc, "ACL", "model")
     if error.category != ErrorCategory.RESOURCE_EXHAUSTED:
       logger.warning("✗ Memory error not categorized correctly")
-      return False
+      assert False, "Memory error not categorized correctly"
 
     logger.info("✓ Error categorization working")
-    return True
+    return
 
-  def test_error_recovery_manager(self) -> bool:
+  def test_error_recovery_manager(self):
     """Test error recovery manager."""
     logger.info("Testing error recovery manager...")
 
@@ -117,12 +117,12 @@ class TestErrorRecovery:
     summary = manager.get_error_summary()
     if summary['total_errors'] != 1:
       logger.warning("✗ Error not recorded")
-      return False
+      assert False, "Error not recorded"
 
     logger.info("✓ Error recovery manager working")
-    return True
+    return
 
-  def test_hal_error_recovery_integration(self) -> bool:
+  def test_hal_error_recovery_integration(self):
     """Test HAL integration with error recovery."""
     logger.info("Testing HAL error recovery integration...")
 
@@ -132,18 +132,18 @@ class TestErrorRecovery:
     health_report = hal.get_backend_health_report()
     if not health_report:
       logger.warning("⚠ No backends in health report (expected if no backends)")
-      return True
+      return
 
     # Get error summary
     error_summary = hal.get_error_summary()
     if 'total_errors' not in error_summary:
       logger.warning("✗ Error summary missing total_errors")
-      return False
+      assert False, "Error summary missing total_errors"
 
     logger.info("✓ HAL error recovery integrated")
-    return True
+    return
 
-  def test_backend_health_check(self) -> bool:
+  def test_backend_health_check(self):
     """Test backend health checking."""
     logger.info("Testing backend health checks...")
 
@@ -158,12 +158,12 @@ class TestErrorRecovery:
     for backend_type in hal.get_available_backends():
       if not hal.is_backend_healthy(backend_type):
         logger.warning(f"✗ {backend_type.name} should be healthy initially")
-        return False
+        assert False, "test failed"
 
     logger.info("✓ All backends healthy at startup")
-    return True
+    return
 
-  def test_error_recoverable_flag(self) -> bool:
+  def test_error_recoverable_flag(self):
     """Test error recoverability classification."""
     logger.info("Testing error recoverability...")
 
@@ -187,14 +187,14 @@ class TestErrorRecovery:
 
     if not timeout_error.is_recoverable:
       logger.warning("✗ Timeout should be recoverable")
-      return False
+      assert False, "Timeout should be recoverable"
 
     if oom_error.is_recoverable:
       logger.warning("✗ OOM should not be recoverable")
-      return False
+      assert False, "OOM should not be recoverable"
 
     logger.info("✓ Error recoverability correct")
-    return True
+    return
 
   def run_all_tests(self) -> dict[str, bool]:
     """Run all error recovery tests."""

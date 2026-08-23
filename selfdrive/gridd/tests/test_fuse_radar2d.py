@@ -3,7 +3,9 @@ import math
 import cereal.messaging as messaging
 from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmapGenerator
 from openpilot.selfdrive.gridd.gridd import GridD
-from openpilot.selfdrive.controls.radar_corner_geometry import corner_local_to_vehicle_frame
+from openpilot.selfdrive.controls.radar_corner_geometry import (
+    corner_local_to_vehicle_frame, encode_corner_track_id,
+)
 
 
 def _radar2d_msg(returns: list[dict] | None = None, objects: list[dict] | None = None):
@@ -78,7 +80,7 @@ class TestFuseRadar2DObjects:
         sqrt2 = math.sqrt(2.0)
         assert abs(objects[0]['dRel'] - (1.8 + sqrt2)) < 1e-6
         assert abs(objects[0]['yRel'] - (0.8 + sqrt2)) < 1e-6
-        assert objects[0]['trackId'] == 42
+        assert objects[0]['trackId'] == encode_corner_track_id(0, 42)
         assert objects[0]['vRel'] == -3.0
         # Measured object stamps a costmap blob at its real position.
         assert len(host._active_costmap.calls) == 1
@@ -133,6 +135,6 @@ class TestFuseRadar2DObjects:
         d_rel, y_rel = _FuseHost._R2D_ZONE_POS[0]
         assert objects[0]['dRel'] == d_rel
         assert objects[0]['yRel'] == y_rel
-        assert objects[0]['trackId'] == 0
+        assert objects[0]['trackId'] == encode_corner_track_id(0, 0)
         assert objects[0]['confidence'] == _FuseHost._R2D_PROB
         assert len(host._active_costmap.calls) == 1

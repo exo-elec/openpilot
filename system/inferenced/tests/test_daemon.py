@@ -16,7 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class TestDaemon:
-  """Simple test daemon using InferenceClient."""
+  """Simple test daemon using InferenceClient.
+
+  This is an integration harness run via ``if __name__ == '__main__'``; it is
+  not a pytest test class.
+  """
+  __test__ = False
 
   def __init__(self, daemon_name: str = "test_daemon"):
     self.daemon_name = daemon_name

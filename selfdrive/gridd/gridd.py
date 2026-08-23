@@ -71,6 +71,10 @@ from openpilot.selfdrive.modeld.vision.vision_pilot.occupancy_grid_infer import 
 from openpilot.system.hardware.camera_geometry import CameraGeometry
 from openpilot.system.hardware.registry import PlatformRegistry
 from openpilot.system.inferenced.client import InferenceClient
+from openpilot.system.inferenced.compute import BackendType
+from openpilot.selfdrive.sided.egpu_camera_detector import (
+    EgpuSegmentationShadowRunner, is_backend_available
+)
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
 from openpilot.selfdrive.controls.radar_corner_geometry import (
@@ -147,6 +151,11 @@ class GridD:
         self.bev = LazyBEV()
         self.occ_grid = OccupancyGrid(range_m=100.0)
 
+        # Optional eGPU segmentation shadow for front road camera.
+        # Created only when EOPFrontRoadSegEGPUMode=shadow AND inferenced advertises EGPU.
+        self._egpu_road_seg_shadow: EgpuSegmentationShadowRunner | None = None
+        self._init_egpu_road_seg_shadow()
+
         # Fusion costmap generator (GPU with CPU fallback)
         # 60w × 120h cells @ 0.5m/cell = 30m lateral × 60m forward, origin 15m left / 5m behind ego
         costmap_config = FusionCostmapConfig(
@@ -193,6 +202,23 @@ class GridD:
             "GridD initialized (ppliteseg=%s, geometry=%s, rga=%s, lazy_bev=enabled)",
             self.ppliteseg.available, self.geometry.variant, self._rga_available
         )
+
+    def _init_egpu_road_seg_shadow(self) -> None:
+        """Create the front-road eGPU segmentation shadow runner if enabled and available."""
+        mode = (self.params.get("EOPFrontRoadSegEGPUMode") or b"off").decode().strip().lower()
+        if mode != "shadow":
+            return
+        if not is_backend_available(BackendType.EGPU, timeout=0.5, client=self._inference_client):
+            cloudlog.warning("GridD: EOPFrontRoadSegEGPUMode=shadow but EGPU backend not advertised")
+            return
+        self._egpu_road_seg_shadow = EgpuSegmentationShadowRunner(
+            daemon_name="gridd",
+            model_name="front_road_seg_egpu",
+            input_size=PPLITESEG_INPUT_SIZE,
+            class_interest={0, 1},  # road + sidewalk
+            client=self._inference_client,
+        )
+        cloudlog.info("GridD: front-road eGPU segmentation shadow enabled")
 
     def _load_calibration(self) -> np.ndarray | None:
         """Load stereo Q matrix for 3D reprojection (factory intrinsics from HAL)."""
@@ -1001,6 +1027,10 @@ class GridD:
                     cloudlog.error(f"PP-LiteSeg inference failed: {e}")
                     inference_success = False
 
+            # Front-road eGPU segmentation shadow (optional; authoritative PP-LiteSeg result unchanged)
+            if self._egpu_road_seg_shadow is not None and self.road_bgr is not None:
+                self._egpu_road_seg_shadow.submit('road', self.road_bgr, road_mask)
+
             # Radar fusion: 77 GHz long range plus BLE corner Radar2D.
             self._active_costmap = self.costmap_gen
             if _radar3d_msg is not None:
@@ -1046,6 +1076,12 @@ class GridD:
 
     def release(self) -> None:
         """Release HAL resources."""
+        if self._egpu_road_seg_shadow is not None:
+            try:
+                self._egpu_road_seg_shadow.close()
+            except Exception:
+                pass
+            self._egpu_road_seg_shadow = None
         if self._inference_client is not None:
             try:
                 self._inference_client.release()

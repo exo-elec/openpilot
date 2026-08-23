@@ -12,23 +12,47 @@ Verifies:
 
 from __future__ import annotations
 
+import heapq
 import sys
+import time
 import unittest  # noqa: TID251
 from unittest.mock import MagicMock  # noqa: TID251
 from dataclasses import dataclass
 
 import numpy as np
 
-# Mock cereal.messaging BEFORE importing inferenced.py
-mock_messaging = MagicMock()
-mock_messaging.PubMaster = lambda _: MagicMock()
-mock_messaging.SubMaster = lambda _: MagicMock()
-mock_messaging.new_message = lambda service, valid=True: MagicMock()
-sys.modules['cereal'] = MagicMock()
-sys.modules['cereal.messaging'] = mock_messaging
+# Placeholders filled by setUpModule after mocking cereal.
+InferenceD = None  # type: ignore
+InferenceJob = None  # type: ignore
+InferenceResult = None  # type: ignore
 
-from openpilot.system.inferenced.inferenced import InferenceD, InferenceJob
-from openpilot.system.inferenced.compute import InferenceResult
+
+def setUpModule():
+    """Mock cereal.messaging only while inferenced.py is imported.
+
+    Keeping the mock scoped to test execution (not module-collection time)
+    prevents later test modules from importing a mocked ``cereal``.
+    """
+    global InferenceD, InferenceJob, InferenceResult
+    mock_messaging = MagicMock()
+    mock_messaging.PubMaster = lambda _: MagicMock()
+    mock_messaging.SubMaster = lambda _: MagicMock()
+    mock_messaging.new_message = lambda service, valid=True: MagicMock()
+    sys.modules['cereal'] = MagicMock()
+    sys.modules['cereal.messaging'] = mock_messaging
+    from openpilot.system.inferenced.inferenced import InferenceD as _InferenceD
+    from openpilot.system.inferenced.inferenced import InferenceJob as _InferenceJob
+    from openpilot.system.inferenced.compute import InferenceResult as _InferenceResult
+    InferenceD = _InferenceD
+    InferenceJob = _InferenceJob
+    InferenceResult = _InferenceResult
+
+
+def tearDownModule():
+    """Restore real cereal modules so later tests in the same process are not poisoned."""
+    sys.modules.pop('cereal.messaging', None)
+    sys.modules.pop('cereal', None)
+
 
 
 @dataclass
@@ -94,6 +118,7 @@ class TestDaemonExecution(unittest.TestCase):
         daemon._stop_event = MagicMock()
         daemon._job_queue = []
         daemon._queue_lock = MagicMock()
+        daemon._job_seq = 0
         daemon._tasks_completed = 0
         daemon._tasks_failed = 0
         daemon._total_exec_time_ms = 0.0
@@ -364,11 +389,61 @@ class TestDaemonExecution(unittest.TestCase):
         )
         daemon._process_job_request(req)
         self.assertEqual(len(daemon._job_queue), 1)
-        job = daemon._job_queue[0]
+        _key, job = daemon._job_queue[0]
         self.assertEqual(job.job_id, 7)
         self.assertEqual(job.input_shape, (3,))
         self.assertEqual(job.input_dtype, "float32")
         self.assertEqual(len(job.input_data), 12)  # 3 floats
+
+    def test_priority_ordering(self):
+        """Heap orders jobs by priority, then deadline."""
+        daemon = self._make_daemon()
+        now = time.monotonic()
+
+        # Low-priority, distant deadline
+        low = InferenceJob(
+            job_id=1, daemon_name="t", backend_type=1,
+            model_name="m", priority=3, timeout_ms=1000,
+            submitted_time=now,
+        )
+        # High-priority, distant deadline
+        high = InferenceJob(
+            job_id=2, daemon_name="t", backend_type=1,
+            model_name="m", priority=0, timeout_ms=1000,
+            submitted_time=now,
+        )
+        # Normal priority, tight deadline
+        urgent = InferenceJob(
+            job_id=3, daemon_name="t", backend_type=1,
+            model_name="m", priority=2, timeout_ms=1,
+            submitted_time=now,
+        )
+
+        for job in (low, high, urgent):
+            heapq.heappush(daemon._job_queue, (daemon._job_order_key(job), job))
+
+        order = [heapq.heappop(daemon._job_queue)[1].job_id for _ in range(3)]
+        self.assertEqual(order, [2, 3, 1])
+
+    def test_publish_status_includes_capabilities(self):
+        """Status message advertises available backends, models and health."""
+        from openpilot.system.inferenced.compute import BackendType
+
+        daemon = self._make_daemon()
+        daemon.hal.get_available_backends.return_value = [BackendType.NPU, BackendType.EGPU]
+        daemon.hal._models_cache = {'side_yolo_egpu': MagicMock(), 'rear_yolo_egpu': MagicMock()}
+        daemon.hal.get_backend_health_report.return_value = {'NPU': 'ok', 'EGPU': 'ok'}
+
+        daemon._publish_status()
+
+        self.assertEqual(len(self.pub.sent), 1)
+        service, msg = self.pub.sent[0]
+        self.assertEqual(service, "inferencedStatus")
+        status = msg.inferencedStatus
+        self.assertEqual(list(status.availableBackends), ['NPU', 'EGPU'])
+        self.assertEqual(sorted(status.availableModels), ['rear_yolo_egpu', 'side_yolo_egpu'])
+        self.assertIn('NPU', status.backendHealth)
+        self.assertIn('EGPU', status.backendHealth)
 
 
 if __name__ == "__main__":

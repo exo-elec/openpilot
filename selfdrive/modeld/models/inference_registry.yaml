@@ -145,6 +145,68 @@ models:
       input_layout: nchw
       transport_dtype: float16
 
+  # Independent eGPU segmentation shadow sessions. Each camera owner keeps its
+  # own model session, class map, postprocessing and health state.
+  - id: side_seg_egpu
+    task: segmentation
+    backend: egpu
+    path: models/onnx/seg_side.onnx
+    input_size: [512, 288]
+    priority: 2
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["side_left", "side_right"]
+      input_layout: nchw
+      transport_dtype: float16
+      num_classes: 19
+      class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
+  - id: rear_seg_egpu
+    task: segmentation
+    backend: egpu
+    path: models/onnx/seg_rear.onnx
+    input_size: [512, 288]
+    priority: 2
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["rear"]
+      input_layout: nchw
+      transport_dtype: float16
+      num_classes: 19
+      class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
+  - id: front_road_seg_egpu
+    task: segmentation
+    backend: egpu
+    path: models/onnx/seg_front_road.onnx
+    input_size: [320, 320]
+    priority: 2
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["road"]
+      input_layout: nchw
+      transport_dtype: float16
+      num_classes: 19
+      class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
+  - id: front_wide_seg_egpu
+    task: segmentation
+    backend: egpu
+    path: models/onnx/seg_front_wide.onnx
+    input_size: [320, 320]
+    priority: 2
+    metadata:
+      runtime: tinygrad_onnx
+      mode: shadow
+      cameras: ["wide_road"]
+      input_layout: nchw
+      transport_dtype: float16
+      num_classes: 19
+      class_names: ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic_light", "traffic_sign", "vegetation", "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
+
   # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
   # These models require voxeld daemon which was never created
   # Kept for reference only

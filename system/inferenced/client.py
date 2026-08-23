@@ -134,6 +134,30 @@ class InferenceClient:
             self.use_ipc = False
             return False
 
+    def _init_status_ipc(self) -> bool:
+        """Lazy SubMaster for inferencedStatus capability discovery."""
+        if not _CEREAL_AVAILABLE:
+            return False
+        try:
+            if not hasattr(self, '_sm_status') or self._sm_status is None:
+                self._sm_status = messaging.SubMaster(['inferencedStatus'])
+            return True
+        except Exception as e:
+            cloudlog.debug(f"InferenceClient status IPC init failed: {e}")
+            return False
+
+    def _query_status(self, timeout: float = 0.2) -> object | None:
+        """Return latest inferencedStatus message, or None if unavailable."""
+        if not self._init_status_ipc():
+            return None
+        try:
+            self._sm_status.update(int(timeout * 1000))
+            if self._sm_status.updated['inferencedStatus']:
+                return self._sm_status['inferencedStatus']
+        except Exception as e:
+            cloudlog.debug(f"InferenceClient status query failed: {e}")
+        return None
+
     def _next_job_id(self) -> int:
         """Generate a process-qualified UInt32 job ID.
 
@@ -406,6 +430,43 @@ class InferenceClient:
                 error_message=str(e),
                 outputs={}
             )
+
+    def get_available_backends(self) -> list[str]:
+        """Return backend names advertised by inferenced, or direct HAL fallback."""
+        status = self._query_status(timeout=0.2)
+        if status is not None and status.availableBackends:
+            return list(status.availableBackends)
+        # Direct HAL fallback (dev PC / no daemon running)
+        try:
+            return [bt.name for bt in self._hal.get_available_backends()]
+        except Exception as e:
+            cloudlog.debug(f"InferenceClient direct HAL backend list failed: {e}")
+            return []
+
+    def get_available_models(self) -> list[str]:
+        """Return model IDs advertised as loaded/loadable by inferenced."""
+        status = self._query_status(timeout=0.2)
+        if status is not None and status.availableModels:
+            return list(status.availableModels)
+        try:
+            return list(self._hal._models_cache.keys())
+        except Exception as e:
+            cloudlog.debug(f"InferenceClient direct HAL model list failed: {e}")
+            return []
+
+    def can_run_model(self, model_name: str) -> bool:
+        """Check if a model is currently loaded or loadable."""
+        return model_name in self.get_available_models()
+
+    def wait_for_backend(self, backend_type: BackendType, timeout: float = 5.0) -> bool:
+        """Block until a backend is advertised by inferenced (or direct HAL)."""
+        deadline = time.monotonic() + timeout
+        name = backend_type.name
+        while time.monotonic() < deadline:
+            if name in self.get_available_backends():
+                return True
+            time.sleep(0.05)
+        return False
 
     def release(self) -> None:
         """Release client resources."""

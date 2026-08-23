@@ -52,7 +52,7 @@ class DeepXBackend(HardwareBackend):
   """DEEPX DX-M1 PCIe AI accelerator backend — camera inference tier.
 
   Workload: camera_inference (PCIe, no device memory, interchangeable with Hailo-8).
-  Model zoo: models/deepx/  (.dxnn format, compiled with DXCOM)
+  Model zoo: models/dxnn/  (.dxnn format, compiled with DXCOM)
 
   Each loaded model owns its own InferenceEngine session.
   The engine is opened in load_model() and closed in unload_model()/release().
@@ -60,7 +60,7 @@ class DeepXBackend(HardwareBackend):
 
   WORKLOAD_CLASS = 'camera_inference'
   HAS_DEVICE_MEMORY = False  # Host RAM via PCIe DMA (no onboard DRAM)
-  MODEL_ZOO_SUBDIR = 'deepx'
+  MODEL_ZOO_SUBDIR = 'dxnn'
 
   def __init__(self):
     super().__init__(BackendType.DX_M1)

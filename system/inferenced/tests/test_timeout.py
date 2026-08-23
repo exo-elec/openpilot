@@ -12,7 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 class TestTimeout:
-  """Test timeout functionality for critical ADAS operations."""
+  """Test timeout functionality for critical ADAS operations.
+
+  This is an integration harness run via ``if __name__ == '__main__'``; it is
+  not a pytest test class.
+  """
+  __test__ = False
 
   def __init__(self):
     self.hal = get_hal()

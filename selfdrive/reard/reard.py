@@ -34,8 +34,12 @@ except ImportError:
 VISION_STREAM_REAR = VisionStreamType.VISION_STREAM_REAR
 
 from openpilot.selfdrive.sided.hailo_side_detector import HailoSideDetector
-from openpilot.selfdrive.sided.egpu_camera_detector import EgpuCameraShadowRunner
+from openpilot.selfdrive.sided.egpu_camera_detector import (
+  EgpuCameraShadowRunner, is_backend_available
+)
 from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
+from openpilot.selfdrive.sided.camera_health import CameraHealthTracker
+from openpilot.system.inferenced.compute import BackendType
 
 RATE = 20  # 20 Hz
 
@@ -156,6 +160,7 @@ class RearD:
     self.enabled = self.params.get_bool("EOPRearCameraEnabled")
 
     self.frame_id = 0
+    self._camera_health = CameraHealthTracker()
     self.cpu_processor = RearProcessor()
     self.hailo_processor = HailoRearProcessor()
     self.use_hailo = self.hailo_processor.is_available
@@ -163,7 +168,10 @@ class RearD:
     if self._egpu_mode not in ("off", "shadow"):
       cloudlog.warning("RearD: unsupported EOPRearEGPUMode=%s — using off", self._egpu_mode)
       self._egpu_mode = "off"
-    self.egpu_shadow = EgpuCameraShadowRunner("reard", "rear_yolo_egpu") if self._egpu_mode == "shadow" else None
+    egpu_ready = self._egpu_mode == "shadow" and is_backend_available(BackendType.EGPU, timeout=0.5)
+    if self._egpu_mode == "shadow" and not egpu_ready:
+      cloudlog.warning("RearD: EOPRearEGPUMode=shadow but EGPU backend not advertised — keeping off")
+    self.egpu_shadow = EgpuCameraShadowRunner("reard", "rear_yolo_egpu") if egpu_ready else None
 
     self._vipc_rear = None
     self._init_visionipc()
@@ -230,11 +238,13 @@ class RearD:
     self.pm.send('rearDetections', msg)
 
     # rearStatus
+    camera_fault, camera_reason = self._camera_health.check(['rear'] if self.enabled else [])
+
     status_msg = messaging.new_message('rearStatus', valid=True)
     ss = status_msg.rearStatus
     ss.enabled = self.enabled
-    ss.fault = False
-    ss.faultReason = ""
+    ss.fault = camera_fault
+    ss.faultReason = camera_reason
     ss.consecutiveFailures = 0
     ss.numTracks = len(tracks)
     ss.processingTimeMs = round(proc_time_ms, 2)
@@ -254,6 +264,8 @@ class RearD:
         frame = None
         if self.sm.updated['rearCameraState']:
           frame = self._get_frame()
+          if frame is not None:
+            self._camera_health.mark_frame('rear')
 
         quality = None
         if frame is not None:

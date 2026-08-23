@@ -12,8 +12,9 @@ Usage:
 import os
 import time
 import pickle
+import threading
+from collections import deque
 from pathlib import Path
-from dataclasses import dataclass
 
 import numpy as np
 import cereal.messaging as messaging
@@ -27,7 +28,7 @@ from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
-from openpilot.system.inferenced.compute import ModelConfig
+
 
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
 from openpilot.selfdrive.controls.lib.drive_helpers import (
@@ -37,6 +38,7 @@ from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState
 from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
 from openpilot.selfdrive.modeld.models.commonmodel_pyx import DrivingModelFrame, CLContext
+from openpilot.selfdrive.modeld.runners import create_driving_runner, DrivingRunner
 
 # Centralized inference HAL - ONLY way to access NPU
 from openpilot.system.inferenced import InferenceClient
@@ -44,6 +46,14 @@ from openpilot.system.inferenced import InferenceClient
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
+
+# Chestnut (external USB GPU) driving failover parameters.
+# Mirrors upstream's UsbGpuLoading/UsbGpuActive state machine, but named after
+# the Chestnut model class since EOP's inferenced owns the USB GPU device.
+CHESTNUT_DRIVING_LOAD_TIMEOUT = 60.0  # seconds to wait for external model load/warmup
+CHESTNUT_DRIVING_ENABLED_PARAM = "ChestnutDrivingEnabled"
+CHESTNUT_DRIVING_LOADING_PARAM = "ChestnutDrivingLoading"
+CHESTNUT_DRIVING_ACTIVE_PARAM = "ChestnutDrivingActive"
 
 # Repo-level models directory (relative to openpilot root)
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
@@ -66,10 +76,11 @@ def _resolve_model(name: str) -> Path | None:
     exts = (".rknn", ".onnx") if is_arm else (".onnx", ".rknn")
 
     for base in search_bases:
-        for subdir, ext in (("rknn", ".rknn"), ("onnx", ".onnx"), ("", exts[0]), ("", exts[1])):
-            p = (base / subdir / f"{name}{ext}") if subdir else (base / f"{name}{ext}")
-            if p.exists():
-                return p
+        for ext in exts:
+            subdir = ext[1:]  # ".rknn" -> "rknn", ".onnx" -> "onnx"
+            for p in (base / subdir / f"{name}{ext}", base / f"{name}{ext}"):
+                if p.exists():
+                    return p
     return None
 
 VISION_MODEL_PATH = _resolve_model("driving_vision") or Path("/data/openpilot/models/rknn/driving_vision.rknn")
@@ -93,14 +104,6 @@ LONG_SMOOTH_SECONDS = 0.3
 MIN_LAT_CONTROL_SPEED = 0.3
 
 
-@dataclass
-class VisionModelConfig:
-    """Vision model configuration from metadata."""
-    input_shapes: dict[str, tuple[int, ...]]
-    output_shapes: dict[str, tuple[int, ...]]
-    output_slices: dict[str, slice]
-
-
 class FrameMeta:
     """Frame metadata from VisionIPC."""
     frame_id: int = 0
@@ -120,17 +123,22 @@ class ModelState:
     All NPU access goes through InferenceClient.
     """
 
-    def __init__(self, context: CLContext, client: InferenceClient):
+    def __init__(self, context: CLContext, client: InferenceClient, runner: DrivingRunner | None = None):
         self.client = client
-
-        # Get best available inference backend (NPU on ARM, ONNX on x86 dev PC)
-        self.npu = client.inference_backend()
 
         # Load metadata
         self._load_metadata()
 
-        # Load models through HAL
-        self._load_models()
+        # Create/load the active driving runner.  If a runner is injected (tests)
+        # use it; otherwise the factory selects the safe RKNN path.
+        self.runner = runner or create_driving_runner(
+            client,
+            VISION_MODEL_PATH,
+            POLICY_MODEL_PATH,
+            VISION_METADATA_PATH,
+            POLICY_METADATA_PATH,
+        )
+        self._external_runner_active = self.runner.backend_name == "CHESTNUT"
 
         # Initialize frames (for preprocessing)
         self.frames = {
@@ -174,7 +182,24 @@ class ModelState:
         # Parser for output decoding
         self.parser = Parser()
 
+        # Temporary mitigation (ported from bukapilot's proven KA2 runner):
+        # suppress one-frame "straight blips" in the split RKNN/ONNX policy's
+        # plan output. Not applied to the Chestnut monolithic path.
+        self._blip_guard_enabled = os.getenv("RKNN_BLIP_GUARD", "1") != "0"
+        self._blip_guard_context = 3
+        self._blip_guard_curved = 0.8
+        self._blip_guard_straight = 0.25
+        self._blip_guard_recent_y20: deque[float] = deque(maxlen=self._blip_guard_context)
+        self._blip_guard_prev_plan_position: np.ndarray | None = None
+        self._blip_guard_prev_plan_stds_position: np.ndarray | None = None
+
         cloudlog.info("ModelState initialized via InferenceD HAL")
+
+    def set_runner(self, runner: DrivingRunner) -> None:
+        """Swap the active driving runner (used for Chestnut -> RKNN failover)."""
+        self.runner.release()
+        self.runner = runner
+        self._external_runner_active = runner.backend_name == "CHESTNUT"
 
     def _load_metadata(self):
         """Load model metadata (shapes, slices)."""
@@ -213,42 +238,48 @@ class ModelState:
             self.policy_output_slices = {}
             self.policy_output_size = 176
 
-    def _load_models(self):
-        """Load models through HAL."""
-        # Check model files exist
-        if not VISION_MODEL_PATH.exists():
-            raise FileNotFoundError(f"Vision model not found: {VISION_MODEL_PATH}")
-        if not POLICY_MODEL_PATH.exists():
-            raise FileNotFoundError(f"Policy model not found: {POLICY_MODEL_PATH}")
-
-        cloudlog.info(f"Loading vision model: {VISION_MODEL_PATH}")
-        # Load via HAL
-        vision_config = ModelConfig(
-            name='driving_vision',
-            path=str(VISION_MODEL_PATH),
-            input_shapes=self.vision_input_shapes,
-            output_shapes={'outputs': (1, self.vision_output_size)},
-            npu_cores=0
-        )
-        if not self.npu.load_model(vision_config):
-            raise RuntimeError("Failed to load vision model")
-
-        cloudlog.info(f"Loading policy model: {POLICY_MODEL_PATH}")
-        policy_config = ModelConfig(
-            name='driving_policy',
-            path=str(POLICY_MODEL_PATH),
-            input_shapes=self.policy_input_shapes,
-            output_shapes={'outputs': (1, self.policy_output_size)},
-            npu_cores=0
-        )
-        if not self.npu.load_model(policy_config):
-            raise RuntimeError("Failed to load policy model")
-
-        cloudlog.info("Models loaded via HAL")
-
     def slice_outputs(self, model_outputs: np.ndarray, output_slices: dict[str, slice]) -> dict[str, np.ndarray]:
         """Parse model outputs using slices."""
         return {k: model_outputs[np.newaxis, v] for k, v in output_slices.items()}
+
+    def _y_at_distance_from_plan(self, plan: np.ndarray, distance_m: float = 20.0) -> float | None:
+        x = np.asarray(plan[0, :, Plan.POSITION.start], dtype=np.float64)
+        y = np.asarray(plan[0, :, Plan.POSITION.start + 1], dtype=np.float64)
+        if x.size < 3 or y.size != x.size:
+            return None
+        if not np.all(np.diff(x) >= 0):
+            return None
+        if distance_m < x[0] or distance_m > x[-1]:
+            return None
+        return float(np.interp(distance_m, x, y))
+
+    def _apply_blip_guard(self, policy_outputs_dict: dict[str, np.ndarray]) -> None:
+        plan = policy_outputs_dict.get("plan")
+        plan_stds = policy_outputs_dict.get("plan_stds")
+        if plan is None or plan_stds is None:
+            return
+
+        y20 = self._y_at_distance_from_plan(plan)
+        if y20 is None:
+            return
+
+        should_guard = False
+        if len(self._blip_guard_recent_y20) >= self._blip_guard_context:
+            recent = list(self._blip_guard_recent_y20)
+            all_curved = all(abs(v) >= self._blip_guard_curved for v in recent)
+            same_side_curve = (min(recent) > 0.0) or (max(recent) < 0.0)
+            now_straight = abs(y20) < self._blip_guard_straight
+            should_guard = all_curved and same_side_curve and now_straight
+
+        if should_guard and self._blip_guard_prev_plan_position is not None and self._blip_guard_prev_plan_stds_position is not None:
+            plan[0, :, Plan.POSITION] = self._blip_guard_prev_plan_position
+            plan_stds[0, :, Plan.POSITION] = self._blip_guard_prev_plan_stds_position
+
+        self._blip_guard_prev_plan_position = plan[0, :, Plan.POSITION].copy()
+        self._blip_guard_prev_plan_stds_position = plan_stds[0, :, Plan.POSITION].copy()
+        y20_after = self._y_at_distance_from_plan(plan)
+        if y20_after is not None:
+            self._blip_guard_recent_y20.append(y20_after)
 
     def run(self, bufs: dict[str, VisionBuf], transforms: dict[str, np.ndarray],
             inputs: dict[str, np.ndarray], prepare_only: bool) -> dict[str, np.ndarray] | None:
@@ -285,16 +316,61 @@ class ModelState:
         if prepare_only:
             return None
 
-        # Run vision model through HAL
+        if self.runner.is_monolithic:
+            # Monolithic supercombo (Chestnut big model): one inference over the
+            # full input set, parsed with the big-model output slices.
+            t0 = time.perf_counter()
+            mono_inputs = {
+                **vision_inputs,
+                'desire': self.numpy_inputs['desire'],
+                'traffic_convention': self.numpy_inputs['traffic_convention'],
+                'features_buffer': self.numpy_inputs['features_buffer'],
+            }
+            result = self.runner.run(mono_inputs)
+            model_time = (time.perf_counter() - t0) * 1000
+
+            if not result.success:
+                cloudlog.error(f"Monolithic driving inference failed: {result.error_message}")
+                if self._external_runner_active:
+                    raise RuntimeError(f"External driving model failed: {result.error_message}")
+                return None
+
+            raw_output = result.outputs.get('outputs')
+            if raw_output is None:
+                if self._external_runner_active:
+                    raise RuntimeError("External driving model returned no outputs")
+                return None
+            raw_output = np.asarray(raw_output, dtype=np.float32).reshape(-1)
+            if self._external_runner_active and not np.all(np.isfinite(raw_output)):
+                raise RuntimeError("External driving model output is not finite")
+
+            cloudlog.debug(f"Inference times: monolithic={model_time:.1f}ms")
+            outputs_dict = self.parser.parse_outputs(self.slice_outputs(raw_output, self.runner.output_slices))
+
+            # Roll the features buffer from the model's hidden state
+            self.full_features_buffer[0, :-1] = self.full_features_buffer[0, 1:]
+            self.full_features_buffer[0, -1] = outputs_dict['hidden_state'][0, :]
+            self.numpy_inputs['features_buffer'][:] = self.full_features_buffer[0, self.temporal_idxs]
+
+            if SEND_RAW_PRED:
+                outputs_dict['raw_pred'] = raw_output.copy()
+            return outputs_dict
+
+        # Split vision+policy path (bukapilot KA2 RKNN architecture)
+        # Run vision model through the driving runner
         t0 = time.perf_counter()
-        vision_result = self.npu.infer('driving_vision', vision_inputs)
+        vision_result = self.runner.run_vision(vision_inputs)
         vision_time = (time.perf_counter() - t0) * 1000
 
         if not vision_result.success:
             cloudlog.error(f"Vision inference failed: {vision_result.error_message}")
+            if self._external_runner_active:
+                raise RuntimeError(f"External driving vision failed: {vision_result.error_message}")
             return None
 
         self.vision_output = vision_result.outputs.get('outputs', np.zeros(self.vision_output_size))
+        if self._external_runner_active and not np.all(np.isfinite(self.vision_output)):
+            raise RuntimeError("External driving vision output is not finite")
         vision_outputs_dict = self.parser.parse_vision_outputs(
             self.slice_outputs(self.vision_output, self.vision_output_slices)
         )
@@ -304,30 +380,32 @@ class ModelState:
         self.full_features_buffer[0, -1] = vision_outputs_dict['hidden_state'][0, :]
         self.numpy_inputs['features_buffer'][:] = self.full_features_buffer[0, self.temporal_idxs]
 
-        # Prepare policy inputs
-        # ONNX policy model names the desire input 'desire_pulse'; RKNN uses 'desire'
+        # Prepare policy inputs (runner normalizes ONNX 'desire_pulse' vs RKNN 'desire')
         policy_inputs = {
             'traffic_convention': self.numpy_inputs['traffic_convention'],
             'features_buffer': self.numpy_inputs['features_buffer'],
+            'desire': self.numpy_inputs['desire'],
         }
-        if self.npu.backend_type.name == 'ONNX':
-            policy_inputs['desire_pulse'] = self.numpy_inputs['desire']
-        else:
-            policy_inputs['desire'] = self.numpy_inputs['desire']
 
-        # Run policy model through HAL
+        # Run policy model through the driving runner
         t0 = time.perf_counter()
-        policy_result = self.npu.infer('driving_policy', policy_inputs)
+        policy_result = self.runner.run_policy(policy_inputs)
         policy_time = (time.perf_counter() - t0) * 1000
 
         if not policy_result.success:
             cloudlog.error(f"Policy inference failed: {policy_result.error_message}")
+            if self._external_runner_active:
+                raise RuntimeError(f"External driving policy failed: {policy_result.error_message}")
             return None
 
         self.policy_output = policy_result.outputs.get('outputs', np.zeros(self.policy_output_size))
+        if self._external_runner_active and not np.all(np.isfinite(self.policy_output)):
+            raise RuntimeError("External driving policy output is not finite")
         policy_outputs_dict = self.parser.parse_policy_outputs(
             self.slice_outputs(self.policy_output, self.policy_output_slices)
         )
+        if self._blip_guard_enabled:
+            self._apply_blip_guard(policy_outputs_dict)
 
         # Log performance
         cloudlog.debug(f"Inference times: vision={vision_time:.1f}ms, policy={policy_time:.1f}ms")
@@ -345,6 +423,7 @@ class ModelState:
 
     def release(self):
         """Release resources."""
+        self.runner.release()
         self.client.release()
 
 
@@ -379,6 +458,42 @@ def get_action_from_model(model_output: dict[str, np.ndarray], prev_action: log.
     )
 
 
+def _load_chestnut_runner(client: InferenceClient, params: Params) -> DrivingRunner | None:
+    """Load the Chestnut external-GPU driving runner with a bounded timeout.
+
+    Follows the upstream Chestnut pattern: load and warmup in a background
+    thread, return None if the deadline is missed or load fails.
+    """
+    params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, True)
+    chestnut_runner: DrivingRunner | None = None
+
+    def _load() -> None:
+        nonlocal chestnut_runner
+        try:
+            runner = create_driving_runner(
+                client,
+                VISION_MODEL_PATH,
+                POLICY_MODEL_PATH,
+                VISION_METADATA_PATH,
+                POLICY_METADATA_PATH,
+                params=params,
+                use_chestnut=True,
+            )
+            chestnut_runner = runner
+        except Exception:
+            cloudlog.exception("Chestnut driving runner load failed")
+
+    loader = threading.Thread(target=_load, daemon=True)
+    loader.start()
+    loader.join(timeout=CHESTNUT_DRIVING_LOAD_TIMEOUT)
+
+    active = chestnut_runner is not None
+    params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, active)
+    params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, False)
+    cloudlog.warning(f"Chestnut driving runner load: active={active}")
+    return chestnut_runner
+
+
 def main(demo=False) -> int:
     """Main entry point."""
     cloudlog.warning("modeld starting")
@@ -386,25 +501,13 @@ def main(demo=False) -> int:
     # Create InferenceD client - ONLY way to access NPU
     client = InferenceClient("modeld")
 
-    # Check inference backend available (NPU on ARM, ONNX on x86 dev PC)
-    try:
-        backend = client.inference_backend()
-        cloudlog.info(f"Inference backend acquired via HAL: {backend.backend_type.name}")
-    except RuntimeError as e:
-        cloudlog.error(f"No inference backend available: {e}")
-        return 1
-
-    # Check models exist
-    if not VISION_MODEL_PATH.exists():
-        cloudlog.error(f"Vision model not found: {VISION_MODEL_PATH}")
-        return 1
-    if not POLICY_MODEL_PATH.exists():
-        cloudlog.error(f"Policy model not found: {POLICY_MODEL_PATH}")
-        return 1
-
     # Setup process
     set_daemon_affinity("modeld")
     config_realtime_process(DT_MDL, 54)
+
+    params = Params()
+    chestnut_driving_enabled = params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)
+    params.remove(CHESTNUT_DRIVING_ACTIVE_PARAM)
 
     # Initialize CL context — mock on dev PC (no real OpenCL); used for frame preprocessing
     st = time.monotonic()
@@ -412,9 +515,30 @@ def main(demo=False) -> int:
     use_cl = cl_context.context is not None  # True only when real OpenCL context was created
     cloudlog.warning(f"CL context: {'GPU' if use_cl else 'dev-PC numpy mock'}; loading models via HAL")
 
-    # Initialize model state with HAL client
+    # Load Chestnut runner first (if enabled), then always keep RKNN fallback warm.
+    chestnut_runner = _load_chestnut_runner(client, params) if chestnut_driving_enabled else None
+    chestnut_active = chestnut_runner is not None
+
     try:
-        model = ModelState(cl_context, client)
+        rknn_runner = create_driving_runner(
+            client,
+            VISION_MODEL_PATH,
+            POLICY_MODEL_PATH,
+            VISION_METADATA_PATH,
+            POLICY_METADATA_PATH,
+            params=params,
+            use_chestnut=False,
+        )
+    except Exception as e:
+        cloudlog.error(f"Failed to initialize RKNN fallback runner: {e}")
+        return 1
+
+    active_runner = chestnut_runner if chestnut_active else rknn_runner
+    fallback_runner = rknn_runner
+
+    # Initialize model state with the selected active runner.
+    try:
+        model = ModelState(cl_context, client, runner=active_runner)
     except Exception as e:
         cloudlog.error(f"Failed to initialize model: {e}")
         return 1
@@ -566,9 +690,19 @@ def main(demo=False) -> int:
                 'traffic_convention': traffic_convention,
             }
 
-            # Run inference
+            # Run inference with upstream-style Chestnut-runner failover.
             mt1 = time.perf_counter()
-            model_output = model.run(bufs, transforms, inputs, prepare_only)
+            try:
+                model_output = model.run(bufs, transforms, inputs, prepare_only)
+            except Exception:
+                if not chestnut_active:
+                    raise
+                cloudlog.exception("Chestnut driving runner failed, falling back to RKNN")
+                params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, False)
+                model.set_runner(fallback_runner)
+                chestnut_active = False
+                run_count = 0
+                model_output = None
             mt2 = time.perf_counter()
             model_execution_time = mt2 - mt1
 

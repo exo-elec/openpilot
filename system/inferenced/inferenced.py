@@ -21,10 +21,11 @@ Architecture:
 
 from __future__ import annotations
 
+import heapq
+import json
 import os
 import time
 import threading
-from collections import deque
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -67,6 +68,10 @@ class InferenceD:
     'yolo_side':      ('models/hef/yolov8n.hef', 'detection'),  # Hailo-8 HEF, sided+reard — fixed format, no rknn/onnx variant
     'side_yolo_egpu': ('models/onnx/yolo_side.onnx', 'detection'),
     'rear_yolo_egpu': ('models/onnx/yolo_rear.onnx', 'detection'),
+    'side_seg_egpu':       ('models/onnx/seg_side.onnx', 'segmentation'),
+    'rear_seg_egpu':       ('models/onnx/seg_rear.onnx', 'segmentation'),
+    'front_road_seg_egpu': ('models/onnx/seg_front_road.onnx', 'segmentation'),
+    'front_wide_seg_egpu': ('models/onnx/seg_front_wide.onnx', 'segmentation'),
     'sgm_stereo':     ('', 'sgm'),  # ACL operation — no model file
     'h264_encode':    ('', 'codec'),  # MPP operation — no model file
     'h264_decode':    ('', 'codec'),
@@ -84,9 +89,11 @@ class InferenceD:
     self._running = False
     self._stop_event = threading.Event()
 
-    # Job queue (priority-based: lower priority value = higher priority)
-    self._job_queue: deque[InferenceJob] = deque()
+    # Job queue: priority heap ordered by (priority, deadline, seq).
+    # Lower priority value = higher priority; earlier deadline wins ties.
+    self._job_queue: list[tuple[tuple[int, float, int], InferenceJob]] = []
     self._queue_lock = threading.Lock()
+    self._job_seq = 0
 
     # Messaging (lazy-import cereal to avoid ARM .so on dev PC)
     import cereal.messaging as messaging
@@ -104,6 +111,18 @@ class InferenceD:
     self._model_ext = 'rknn' if self._model_fmt == 'rknn' else 'onnx'
 
     cloudlog.info(f"InferenceD: Initialized (model format: {self._model_fmt})")
+
+  def _job_order_key(self, job: InferenceJob) -> tuple[int, float, int]:
+    """Return heap ordering key for a job.
+
+    Priority is the primary sort (CRITICAL=0 first).  Deadline is the
+    secondary sort so tight-deadline jobs of the same priority run before
+    relaxed ones.  A monotonic sequence breaks ties to preserve FIFO order.
+    """
+    deadline = (job.submitted_time + job.timeout_ms / 1000.0
+                if job.timeout_ms > 0 else float('inf'))
+    self._job_seq += 1
+    return (job.priority, deadline, self._job_seq)
 
   def initialize(self) -> bool:
     """Initialize hardware abstraction layer."""
@@ -214,7 +233,7 @@ class InferenceD:
           input_dtype=req.inputDtype if req.inputDtype else '',
       )
       with self._queue_lock:
-        self._job_queue.append(job)
+        heapq.heappush(self._job_queue, (self._job_order_key(job), job))
       cloudlog.debug(f"InferenceD: Job {job.job_id} queued from {job.daemon_name}")
     except Exception as e:
       cloudlog.warning(f"InferenceD: Failed to process job request: {e}")
@@ -314,12 +333,13 @@ class InferenceD:
           if self.sm.updated['inferenceJobRequest']:
             self._process_job_request(self.sm['inferenceJobRequest'])
 
-          # Snapshot pending jobs under lock, then execute without holding it.
+          # Drain the priority heap under lock, then execute without holding it.
           # Releasing the lock during execution lets _process_job_request
           # enqueue new jobs while this batch runs.
           with self._queue_lock:
-            pending = list(self._job_queue)
-            self._job_queue.clear()
+            pending = []
+            while self._job_queue:
+              pending.append(heapq.heappop(self._job_queue)[1])
 
           for job in pending:
             success = False
@@ -398,6 +418,21 @@ class InferenceD:
       status.tasksFailed = self._tasks_failed
       status.avgExecTimeMs = (self._total_exec_time_ms / self._tasks_completed
                               if self._tasks_completed > 0 else 0.0)
+
+      # Capability discovery: advertise backends and loadable models so daemons
+      # can decide whether to schedule optional/enhancement workloads.
+      try:
+        available_backends = self.hal.get_available_backends()
+        status.availableBackends = [bt.name for bt in available_backends]
+        status.availableModels = list(self.hal._models_cache.keys())
+        health_report = self.hal.get_backend_health_report()
+        status.backendHealth = json.dumps(health_report, default=str)
+      except Exception as e:
+        cloudlog.debug(f"InferenceD: capability snapshot error: {e}")
+        status.availableBackends = []
+        status.availableModels = []
+        status.backendHealth = ""
+
       self.pm.send('inferencedStatus', msg)
     except Exception as e:
       cloudlog.debug(f"InferenceD: Status publish error: {e}")

@@ -10,7 +10,7 @@ import time
 from collections.abc import Callable
 
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.socketd.safety.tesla_safety.tesla_safety import TeslaSafety, SafetyLimits, SafetyViolation
+from openpilot.system.socketd.safety.tesla_safety import TeslaSafety, SafetyLimits, SafetyViolation
 
 
 class SafetyManager:

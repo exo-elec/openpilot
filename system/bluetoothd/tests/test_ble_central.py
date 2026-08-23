@@ -9,10 +9,16 @@ import logging
 import struct
 import time
 
-from hal.drivers.radar.radar2d import (
-    HEADER_STRUCT, OBJECT_STRUCT, MAX_OBJECTS_PER_DATAGRAM,
-    decode_object_datagram,
-)
+import pytest
+
+try:
+    from hal.drivers.radar.radar2d import (
+        HEADER_STRUCT, OBJECT_STRUCT, MAX_OBJECTS_PER_DATAGRAM,
+        decode_object_datagram,
+    )
+except ImportError:
+    pytest.skip("hal.drivers.radar.radar2d not available on this platform", allow_module_level=True)
+
 from openpilot.system.bluetoothd.ble_central import (
     GATT_CHAR_IFACE,
     ESPRESSIF_COMPANY_ID, PAIR_DWELL_S, PAIR_RSSI_DBM,

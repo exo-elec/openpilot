@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class TestModelPreloading:
   """Test model preloading and caching functionality."""
 
-  def test_preload_on_initialization(self) -> bool:
+  def test_preload_on_initialization(self):
     """Test that models are preloaded during HAL initialization."""
     logger.info("Testing model preloading on initialization...")
 
@@ -40,12 +40,12 @@ class TestModelPreloading:
     if hal.is_model_cached('vision_model'):
       logger.info("✓ Model preloaded successfully")
       logger.info(f"  Model: {hal.get_cached_model('vision_model').name}")
-      return True
+      return
     else:
       logger.warning("✗ Model not preloaded")
-      return False
+      assert False, "Model not preloaded"
 
-  def test_model_cache(self) -> bool:
+  def test_model_cache(self):
     """Test model caching mechanism."""
     logger.info("Testing model cache...")
 
@@ -66,12 +66,12 @@ class TestModelPreloading:
       if cached and cached.name == 'test_cache_model':
         logger.info("✓ Model caching working")
         logger.info(f"  Cached model: {cached.name}")
-        return True
+        return
 
     logger.warning("✗ Model caching failed")
-    return False
+    assert False, "Model caching failed"
 
-  def test_clear_cache(self) -> bool:
+  def test_clear_cache(self):
     """Test cache clearing."""
     logger.info("Testing cache clearing...")
 
@@ -83,19 +83,19 @@ class TestModelPreloading:
 
     if not hal.is_model_cached('temp_model'):
       logger.warning("✗ Model not cached before clear test")
-      return False
+      assert False, "Model not cached before clear test"
 
     # Clear cache
     hal.clear_model_cache()
 
     if not hal.is_model_cached('temp_model'):
       logger.info("✓ Cache cleared successfully")
-      return True
+      return
     else:
       logger.warning("✗ Cache not cleared")
-      return False
+      assert False, "Cache not cleared"
 
-  def test_multiple_model_preload(self) -> bool:
+  def test_multiple_model_preload(self):
     """Test preloading multiple models."""
     logger.info("Testing multiple model preloading...")
 
@@ -117,12 +117,12 @@ class TestModelPreloading:
     if vision_cached and policy_cached:
       logger.info("✓ Multiple models preloaded")
       logger.info("  Cached models: vision, policy")
-      return True
+      return
     else:
       logger.warning(f"✗ Preload incomplete (vision={vision_cached}, policy={policy_cached})")
-      return False
+      assert False, "test failed"
 
-  def test_preload_stats(self) -> bool:
+  def test_preload_stats(self):
     """Test that preloaded models track load time."""
     logger.info("Testing preload statistics...")
 
@@ -143,12 +143,12 @@ class TestModelPreloading:
     if cached_model and cached_model.loaded and cached_model.load_time_ms > 0:
       logger.info("✓ Model statistics tracked")
       logger.info(f"  Load time: {cached_model.load_time_ms:.2f}ms")
-      return True
+      return
     else:
       logger.warning("✗ Model statistics missing")
-      return False
+      assert False, "Model statistics missing"
 
-  def test_backend_not_available(self) -> bool:
+  def test_backend_not_available(self):
     """Test graceful handling when backend not available."""
     logger.info("Testing preload with unavailable backend...")
 
@@ -166,7 +166,7 @@ class TestModelPreloading:
 
     # Should handle gracefully without crashing
     logger.info("✓ Handled unavailable backend gracefully")
-    return True
+    return
 
   def run_all_tests(self) -> dict[str, bool]:
     """Run all preloading tests."""

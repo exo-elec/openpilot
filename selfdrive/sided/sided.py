@@ -54,7 +54,11 @@ from openpilot.selfdrive.locationd.calibration_storage import CalibrationStorage
 from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
 from openpilot.selfdrive.sided.handover_manager import HandoverManager
 from openpilot.selfdrive.sided.hailo_side_detector import HailoSideDetector
-from openpilot.selfdrive.sided.egpu_camera_detector import EgpuCameraShadowRunner
+from openpilot.selfdrive.sided.egpu_camera_detector import (
+  EgpuCameraShadowRunner, is_backend_available
+)
+from openpilot.selfdrive.sided.camera_health import CameraHealthTracker
+from openpilot.system.inferenced.compute import BackendType
 
 RATE = 20  # 20 Hz
 
@@ -319,6 +323,7 @@ class SideD:
     self._cameras_swapped = self.params.get_bool("EOPSideCamerasSwapped")
 
     self.frame_id = 0
+    self._camera_health = CameraHealthTracker()
     self.cpu_processor = SideProcessor()
     self.hailo_processor = HailoSideProcessor()
     self.use_hailo = self.hailo_processor.is_available
@@ -326,7 +331,10 @@ class SideD:
     if self._egpu_mode not in ("off", "shadow"):
       cloudlog.warning("SideD: unsupported EOPSideEGPUMode=%s — using off", self._egpu_mode)
       self._egpu_mode = "off"
-    self.egpu_shadow = EgpuCameraShadowRunner("sided", "side_yolo_egpu") if self._egpu_mode == "shadow" else None
+    egpu_ready = self._egpu_mode == "shadow" and is_backend_available(BackendType.EGPU, timeout=0.5)
+    if self._egpu_mode == "shadow" and not egpu_ready:
+      cloudlog.warning("SideD: EOPSideEGPUMode=shadow but EGPU backend not advertised — keeping off")
+    self.egpu_shadow = EgpuCameraShadowRunner("sided", "side_yolo_egpu") if egpu_ready else None
     self._egpu_camera_index = 0
 
     self._vipc_left = None
@@ -447,11 +455,18 @@ class SideD:
     self.pm.send('sideDetections', msg)
 
     # sideStatus
+    enabled_cameras = []
+    if self._left_enabled:
+      enabled_cameras.append('side_left')
+    if self._right_enabled:
+      enabled_cameras.append('side_right')
+    camera_fault, camera_reason = self._camera_health.check(enabled_cameras)
+
     status_msg = messaging.new_message('sideStatus', valid=True)
     ss = status_msg.sideStatus
     ss.enabled = self.enabled
-    ss.fault = False
-    ss.faultReason = ""
+    ss.fault = camera_fault
+    ss.faultReason = camera_reason
     ss.consecutiveFailures = 0
     ss.numTracks = len(tracks)
     ss.processingTimeMs = round(proc_time_ms, 2)
@@ -475,9 +490,13 @@ class SideD:
 
         if self.sm.updated['leftCameraState']:
           left_frame = self._get_frame(self._vipc_left)
+          if left_frame is not None:
+            self._camera_health.mark_frame('side_left')
 
         if self.sm.updated['rightCameraState']:
           right_frame = self._get_frame(self._vipc_right)
+          if right_frame is not None:
+            self._camera_health.mark_frame('side_right')
 
         if left_frame is not None:
           left_quality = self.cpu_processor.analyze_quality(left_frame)

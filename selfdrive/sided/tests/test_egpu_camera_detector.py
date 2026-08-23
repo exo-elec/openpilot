@@ -79,4 +79,3 @@ def test_shadow_comparison_matches_by_class_and_iou():
   assert comparison.shadow_count == 2
   assert comparison.matched_count == 1
   assert comparison.mean_iou > 0.8
-

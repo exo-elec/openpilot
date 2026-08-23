@@ -10,7 +10,7 @@ DOWNLOAD_TYPE="${1:-all}"
 
 cd "$TEMP_DIR"
 
-mkdir -p "$MODELS_DIR/onnx" "$MODELS_DIR/rknn" "$MODELS_DIR/hef"
+mkdir -p "$MODELS_DIR/onnx" "$MODELS_DIR/rknn" "$MODELS_DIR/hef" "$MODELS_DIR/axmodel" "$MODELS_DIR/dxnn"
 
 echo "=== EOP Model Downloader ==="
 echo "Download type: $DOWNLOAD_TYPE"
@@ -21,26 +21,32 @@ echo "  rknn    - RKNN models (requires RKNN model zoo)"
 echo "  hailo   - Hailo HEF models (requires Hailo model zoo)"
 echo "  all     - Everything above"
 echo ""
+echo "Folders are named by file format, not backend brand:"
+echo "  rknn/ (.rknn, Rockchip NPU — driving model)   hef/ (.hef, Hailo-8 — yolov8n)"
+echo "  onnx/ (.onnx — Chestnut's big model only)   axmodel/ (.axmodel, AX-M1 — reserved)"
+echo "  dxnn/ (.dxnn, DeepX DX-M1 — reserved)"
+echo ""
 
 # ============================================================================
-# Dev PC / CARLA — ONNX driving models from dragonpilot
+# Dev PC / CARLA — Chestnut's big-model ONNX + eGPU shadow YOLO exports
 # ============================================================================
 if [ "$DOWNLOAD_TYPE" = "dev-pc" ] || [ "$DOWNLOAD_TYPE" = "all" ]; then
-    echo "=== ONNX Driving Models (x86 dev PC) ==="
+    echo "=== ONNX Models (x86 dev PC) ==="
 
-    # Primary: extract from local dragonpilot repo if available
-    DRAGONPILOT_DIR="$(dirname "$MODELS_DIR")/../dragonpilot"
-    if [ -d "$DRAGONPILOT_DIR" ]; then
-        echo "Extracting from dragonpilot pre-build branch..."
-        (cd "$DRAGONPILOT_DIR" && \
-            git show pre-build:selfdrive/modeld/models/driving_vision.onnx > \
-                "$MODELS_DIR/onnx/driving_vision.onnx" && \
-            git show pre-build:selfdrive/modeld/models/driving_policy.onnx > \
-                "$MODELS_DIR/onnx/driving_policy.onnx" && \
-            echo "✓ driving_vision.onnx ($(du -sh "$MODELS_DIR/onnx/driving_vision.onnx" | cut -f1))" && \
-            echo "✓ driving_policy.onnx ($(du -sh "$MODELS_DIR/onnx/driving_policy.onnx" | cut -f1))" \
-        ) 2>/dev/null || echo "✗ dragonpilot extraction failed — see fallback below"
-    fi
+    copy_verified() {  # <src> <dst> <expected_sha256>
+        local src="$1" dst="$2" want="$3"
+        [ -f "$src" ] || return 1
+        [ "$(sha256sum "$src" | cut -d' ' -f1)" = "$want" ] || return 1
+        cp "$src" "$dst"
+    }
+
+    # NOTE: this used to also fetch bukapilot's driving_vision.onnx/
+    # driving_policy.onnx as a dev-PC ONNX-runtime substitute for the RKNN
+    # driving pair, plus a reference-only Autoware vision suite (egolanes/
+    # scene3d/sceneseg/autosteer/autospeed). Removed — onnx/ stores only
+    # Chestnut's big model; this dev PC does not run the driving model via
+    # ONNX Runtime. See MODEL_MANIFEST.md and git history if that capability
+    # is needed again.
 
     # YOLOv8n ONNX for monod (640×640 object detection)
     if [ ! -f "$MODELS_DIR/onnx/yolo_640.onnx" ]; then
@@ -67,12 +73,56 @@ if src.exists():
         cp "$MODELS_DIR/onnx/yolo_640.onnx" "$MODELS_DIR/onnx/yolo_rear.onnx"
         echo "✓ separate side/rear eGPU validation models saved"
     fi
+
+    # Chestnut's raw ONNX is not wired to any runner yet (ChestnutDrivingRunner
+    # is deliberately fail-closed — see task.md/CHESTNUT_EGPU_ADOPTION.md); this
+    # only pre-positions the artifact for a future gated compile step. Prefer
+    # a real commaai/openpilot checkout; fall back to sunnypilot (cross-verified
+    # byte-identical against it as of 2026-08-23).
+    EXT_GPU_UPSTREAM_DIR="${EXT_GPU_UPSTREAM_DIR:-$(dirname "$MODELS_DIR")/../ext_gpu/openpilot-upstream/openpilot}"
+    SUNNYPILOT_DIR="${SUNNYPILOT_DIR:-$(dirname "$MODELS_DIR")/../sunnypilot/openpilot}"
+    CHESTNUT_SHA="10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4"
+    if copy_verified "$EXT_GPU_UPSTREAM_DIR/selfdrive/modeld/models/big_driving_supercombo.onnx" \
+        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$CHESTNUT_SHA"; then
+        echo "✓ big_driving_supercombo.onnx (commaai/openpilot@master, hash-verified)"
+    elif copy_verified "$SUNNYPILOT_DIR/selfdrive/modeld/models/big_driving_supercombo.onnx" \
+        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$CHESTNUT_SHA"; then
+        echo "✓ big_driving_supercombo.onnx (sunnypilot@master fallback, hash-verified)"
+    else
+        echo "✗ big_driving_supercombo.onnx — not fetched. This is expected to go stale:"
+        echo "  comma updates this model upstream periodically (hash WILL change genuinely,"
+        echo "  not just on error). Re-verify against a fresh commaai/openpilot checkout"
+        echo "  and update the sha256 above + MODEL_MANIFEST.md before trusting a mismatch."
+    fi
 fi
 
 # ============================================================================
 # RKNN Model Zoo (Rockchip NPU)
 # ============================================================================
 if [ "$DOWNLOAD_TYPE" = "all" ] || [ "$DOWNLOAD_TYPE" = "rknn" ]; then
+    echo "=== RKNN Driving Models (bukapilot KA2, hash-verified) ==="
+
+    # Proven RK3588 driving pair from a local bukapilot checkout. No public
+    # direct-download URL exists (git-LFS on gitlab.com/iXcess/openpilot-lfs);
+    # clone bukapilot with LFS and re-run, or set BUKAPILOT_DIR.
+    BUKAPILOT_DIR="${BUKAPILOT_DIR:-$(dirname "$MODELS_DIR")/../bukapilot}"
+    copy_verified() {  # <src> <dst> <expected_sha256>
+        local src="$1" dst="$2" want="$3"
+        [ -f "$src" ] || return 1
+        [ "$(sha256sum "$src" | cut -d' ' -f1)" = "$want" ] || return 1
+        cp "$src" "$dst"
+    }
+    copy_verified "$BUKAPILOT_DIR/selfdrive/modeld/models/driving_vision.rknn" \
+        "$MODELS_DIR/rknn/driving_vision.rknn" \
+        "34da99c3b818df565d36a9729a5e186acb64174d2486ae4f75873b1a3cc8e78f" && \
+        echo "✓ driving_vision.rknn (bukapilot KA2, hash-verified)" || \
+        echo "✗ driving_vision.rknn — clone ../bukapilot with git-lfs or set BUKAPILOT_DIR"
+    copy_verified "$BUKAPILOT_DIR/selfdrive/modeld/models/driving_policy.rknn" \
+        "$MODELS_DIR/rknn/driving_policy.rknn" \
+        "988db22cbed43fd9c50a91a937a091d810b160059c010f61d80a32fc2236d708" && \
+        echo "✓ driving_policy.rknn (bukapilot KA2, hash-verified)" || \
+        echo "✗ driving_policy.rknn — clone ../bukapilot with git-lfs or set BUKAPILOT_DIR"
+
     echo "=== Downloading from RKNN Model Zoo ==="
     
     # Clone RKNN Model Zoo (shallow clone)
@@ -158,18 +208,16 @@ if [ "$DOWNLOAD_TYPE" = "all" ] || [ "$DOWNLOAD_TYPE" = "hailo" ]; then
         echo "✓ YOLOv5n (Hailo-8) saved to models/hef/yolov5n.hef"
     fi
 
-    # SCRFD 2.5G — face detection backbone for `driverd` (compiled with v2.18.0).
-    SCRFD_URL="https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.18.0/hailo8/scrfd_2.5g.hef"
-    echo ""
-    echo "Downloading SCRFD 2.5G (Hailo-8, face DMS)..."
-    wget -q --show-progress -O scrfd_2.5g.hef "$SCRFD_URL" 2>/dev/null || \
-        curl -L -o scrfd_2.5g.hef "$SCRFD_URL" 2>/dev/null || \
-        { echo "✗ Download failed"; echo "  Manual download: $SCRFD_URL"; }
+    # NOTE: SCRFD 2.5G (face detection for driver-monitoring/`driverd`) used to
+    # be fetched here. Removed — this hardware has no driver-facing camera;
+    # `driverd`'s face-DMS pipeline is VisionPilot-only anyway (see
+    # models/README.md). Re-add if a driver camera is ever fitted.
 
-    if [ -f "scrfd_2.5g.hef" ]; then
-        cp scrfd_2.5g.hef "$MODELS_DIR/hef/scrfd_2.5g.hef"
-        echo "✓ SCRFD 2.5G (Hailo-8) saved to models/hef/scrfd_2.5g.hef"
-    fi
+    # NOTE: whisper_base_5s_encoder.hef intentionally NOT fetched here. A
+    # .hef-compiled build exists in ../visionpilot, but hef/ is the
+    # CAMERA_INFERENCE tier and whisper is VOICE_INFERENCE (destined for
+    # axmodel/, once an AX-M1 backend and .axmodel build exist) — wrong tier
+    # for this folder's purpose. See MODEL_MANIFEST.md.
 fi
 
 # Cleanup
@@ -190,3 +238,6 @@ echo ""
 echo "Model Zoo references:"
 echo "  - RKNN Model Zoo: https://github.com/airockchip/rknn_model_zoo"
 echo "  - Hailo Model Zoo: https://github.com/hailo-ai/hailo_model_zoo"
+echo "  - DeepX DX Model Zoo (dxnn/, reserved): https://github.com/DEEPX-AI/dx-modelzoo"
+echo "  - Axera AXCL / axmodel (axmodel/, reserved): https://github.com/AXERA-TECH"
+echo "    (LLM-on-AX650 specifically: https://github.com/AXERA-TECH/ax-llm)"

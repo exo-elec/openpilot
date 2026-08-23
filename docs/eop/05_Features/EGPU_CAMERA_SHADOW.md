@@ -100,8 +100,9 @@ behavior. It must not create a second driving/planning interface alongside
 documented in [CHESTNUT_EGPU_ADOPTION.md](CHESTNUT_EGPU_ADOPTION.md).
 
 The target external driving artifact is the official upstream Chestnut big
-supercombo. The local fallback is the proven Bukapilot supercombo converted
-separately for RK3588 and RK3576. Bring-up first runs the exact Bukapilot source
+supercombo. The local fallback is the proven Bukapilot KA2 split RKNN pair
+(`driving_vision.rknn` + `driving_policy.rknn`), converted separately for
+RK3588 and RK3576. Bring-up first runs the exact Bukapilot source
 ONNX on eGPU against its RKNN conversion for same-graph parity; only then does it
 introduce the different-generation upstream big model.
 
