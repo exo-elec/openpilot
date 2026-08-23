@@ -1037,3 +1037,33 @@ either exists), left as pointers for a future session. Re-verified
 correctly to `rknn/driving_vision.rknn` on this x86 dev PC now that no `.onnx`
 substitute exists; same 119 passed/9 skipped/1 pre-existing-unrelated-failure
 result, `./test.sh` green.
+
+## Follow-up session (tinygrad pin alignment, workspace re-establishment, 2026-08-24)
+
+- [x] Bumped `tinygrad_repo` to `8611fe22a` (v0.13.0+882, matching real
+  upstream `commaai/openpilot@master`'s own pin) to investigate real Chestnut
+  support, then reverted back to plain `v0.13.0` on user direction — Chestnut
+  isn't in any official openpilot release tag yet (`v0.11.1`, 2026-05-29,
+  predates it by ~2 months; only exists on unreleased `master`), and the
+  fail-closed `ChestnutDrivingRunner` stub doesn't need the newer pin for
+  anything reachable today. Both `dev/EOP10` and `dev/NGP10` now track the
+  identical `v0.13.0` commit deliberately, for consistency.
+- [x] Session was interrupted (usage limit) and resumed in a **fresh clone**
+  (confirmed via `git reflog` showing only the clone event) — not the same
+  working directory as the interrupted session. `origin/dev/EOP10` had moved
+  to a new "WIP" tip (`32a791ce7c`) from a commit made outside this session
+  (`d436ce20`, "unify EGPU naming and add dual firmware detection for
+  ASM2464PD and Chestnut", author `EXO-ELEC`) — reviewed it carefully before
+  building on it (see `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`'s
+  "Implementation status (2026-08-23)" section for the full review and two
+  regressions found/fixed: a deleted `CarVin` params_keys.h entry, and three
+  submodule pins accidentally cross-contaminated from `dev/NGP10`). Fixed in
+  `ae37ac0de4`.
+- [x] Fixed the repo's `origin` remote from HTTPS to SSH
+  (`git@github.com:exo-elec/openpilot.git`) — SSH auth was already confirmed
+  working (`ssh -T git@github.com` succeeds as `exo-elec`) while the fresh
+  clone had defaulted to HTTPS; this is very likely what was causing GitHub
+  Desktop's intermittent branch-switch errors too. `gh` CLI's stored token is
+  expired and needs an interactive browser re-auth (`gh auth login`) that
+  can't be completed non-interactively — flagged for the user, not blocking
+  since git push/pull only need SSH.

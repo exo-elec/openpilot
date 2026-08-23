@@ -17,6 +17,50 @@ one external GPU to serve driving, segmentation, side and rear inference, so
 `inferenced` remains the sole hardware owner while `modeld` remains the sole
 owner of driving-model state and output semantics.
 
+## Implementation status (2026-08-23): renamed Chestnut* to Egpu*, dual firmware
+
+EOP builds its own eGPU board on the same ASM2464PD bridge chip comma's
+Chestnut hardware uses, and supports flashing either our own generic bridge
+firmware (primary/default) or comma's official Chestnut firmware on it — both
+recognized on the same `EGPU_VID_PIDS`, distinguished only by USB product
+string (`"USB 3.2 PCIe TinyEnclosure"` for ours vs.
+`f"custom {CHESTNUT_FW_VERSION}-CLEAN"` for comma's, confirmed byte-identical
+to upstream's own `common/hardware/usb.py`). Since the driving-side code
+isn't specific to one firmware, it's now named `Egpu*` throughout, with
+`Chestnut*` kept as backward-compatible aliases (not removed — external
+tooling/docs may still reference the old names):
+
+- `selfdrive/modeld/runners/egpu_driving_runner.py` (renamed from
+  `chestnut_driving_runner.py`) — `EgpuDrivingRunner` is the real class,
+  `ChestnutDrivingRunner = EgpuDrivingRunner` is an alias. Same fail-closed
+  stub behavior described below — `load()` still unconditionally raises
+  until the compiled artifact and validation gates exist.
+- `common/params_keys.h` — `EgpuDrivingEnabled`/`EgpuDrivingLoading`/
+  `EgpuDrivingActive` alongside the existing `ChestnutDriving*` keys (both
+  read at startup: `params.get_bool(EGPU_DRIVING_ENABLED_PARAM) or
+  params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)`).
+- `system/inferenced/egpu.py` — `_detect_egpu()` now returns which firmware
+  was found (`'own'` / `'chestnut'` / `None`) instead of a bare bool, same
+  dual product-string recognition as above.
+
+**Two regressions found and fixed while reviewing this rename** (commit
+`ae37ac0de4`): the rename's diff had accidentally deleted the unrelated
+`{"CarVin", {PERSISTENT, STRING}}` entry from `params_keys.h` (adjacent to
+where the new keys were inserted) — `selfdrive/obd2d/obd2d.py` still writes
+that param, so this would have raised `UnknownKeyName` on any real
+invocation; restored. Separately, `msgq_repo`/`opendbc_repo`/`rednose_repo`
+had all been repinned to exactly `dev/NGP10`'s submodule commits (not
+anything specific to this change) — a branch-switch-in-one-working-directory
+mistake, notably downgrading `opendbc_repo` off a newer safety-relevant
+commit; restored to this branch's actual prior pins. Neither regression was
+in the actual eGPU/Chestnut feature logic, which was sound as written.
+
+The equivalent dual-firmware-detection and `Egpu*`-primary-naming work was
+done the same day on `dev/NGP10` (`selfdrive/modeld/egpu_detect.py`,
+`nagaspilot/docs/EGPU_INTEGRATION.md`) — independently, since NGP10 has no
+`system/inferenced/` HAL and ports this pattern directly into `modeld.py`'s
+own `EGPU`/`EGPU_FIRMWARE` module-level gate instead.
+
 ## What upstream actually does
 
 The relevant upstream files are:
