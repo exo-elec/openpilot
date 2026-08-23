@@ -1,4 +1,4 @@
-# eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19)
+# eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19, 2026-08-23)
 
 **Naming (2026-08-19):** this branch's `EGPU` flag/constants/functions were
 previously named `USBGPU` (inherited from comma's own variable name).
@@ -29,7 +29,13 @@ no fallback. This matches upstream openpilot's own `modeld.py` design
 (`ChestnutState`, `load_big()`/`small_model`, `bigModelFailed` soft-disable
 event in `selfdrived.py`), not something ExoPilot invented.
 
-## Why this doc has no code in it
+## Why the original design pass (below) had no code in it
+
+**Update 2026-08-23: this section describes the state as of 2026-08-19.**
+Code now exists — see "What was implemented (2026-08-23)" further down.
+Blocker 2 (pipeline decision) is resolved; blocker 1 (no hardware) still
+applies to everything written since, which is why it's all still provably
+inert. Kept as-written below for the historical reasoning.
 
 Two independent blockers, not a scope decision:
 
@@ -203,24 +209,126 @@ version against, so an exact string match is the right check.
 `_egpu_present()` now reads `/sys/bus/usb/devices/*/product` and
 requires it to equal `EGPU_PRODUCT` alongside the VID:PID check.
 
+## What was implemented (2026-08-23): big-model tier scaffolding
+
+**Decision made:** option 2 above ("reimplement the additive-tier pattern
+natively against NGP10's existing `ModelState`"), on explicit user
+direction — port Chestnut support into the v0.10.0-era pipeline as-is,
+using the already-pinned tinygrad `v0.13.0`, rather than first migrating
+NGP10's model-running pipeline to upstream's current shape. Verified the
+specific tinygrad APIs this needs (`Device["AMD"].iface.dev_impl.smu`,
+`PPSMC_MSG_*`/`TABLE_SMU_METRICS` constants, USB bridge-chip register
+access via `iface.pci_dev.usb`) all exist at `v0.13.0` by reading
+`tinygrad_repo`'s own source directly before writing code against them —
+not assumed from upstream's newer pin.
+
+`ModelState(context, usbgpu: bool = False)` now resolves `big_`-prefixed
+pkl paths for the eGPU variant, using the exact same `pickle.load()`
+pattern this branch's own artifacts already use (deliberately not
+upstream's newer out-of-band buffer format via `load_oob()`, which needs
+artifacts saved in that specific layout — this branch's tooling doesn't
+produce that).
+
+`main()` now has the full `load_big()`/`small_model` dual-load pattern:
+background thread with a timeout (`EGPU_LOAD_TIMEOUT`), gated on **both**
+`EGPU` hardware presence **and** a new `EgpuDrivingEnabled` Param
+(`PERSISTENT`, defaults off — hardware presence alone is not sufficient
+opt-in, matches `dev/EOP10`'s `ChestnutDrivingEnabled` gate exactly).
+`model.run()` is wrapped in try/except: on failure while the big model is
+active, soft-disables (`EgpuDrivingActive` → false), falls back to
+`small_model`, and is never auto-retried onroad (only re-evaluated at the
+next modeld restart) — same failover contract as `dev/EOP10`'s
+`ChestnutDrivingRunner`. `EgpuDrivingLoading`/`EgpuDrivingActive` Params
+(`CLEAR_ON_MANAGER_START`) track state the way `UsbGpuLoading`/
+`UsbGpuActive` do upstream.
+
+`ChestnutState` was ported and **renamed to `EgpuState`**, on explicit user
+direction: this branch supports both our own flashed firmware and comma's
+Chestnut firmware on the same physical ASM2464PD bridge chip (confirmed:
+`CHESTNUT_USB_IDS` in upstream's `common/hardware/usb.py` is byte-identical
+to this branch's `EGPU_VID_PIDS`, distinguished only by USB product
+string), so the telemetry class/message shouldn't be named after one
+specific firmware. Added a new `EgpuState` cereal struct + `egpuState`
+service (renamed from `chestnutState`). All AMD SMU/bridge-register access
+stays defensively wrapped exactly as upstream's own `ChestnutState.send()`
+already does, so any remaining tinygrad-version API drift in the
+peripheral telemetry fields (a couple of exact method names weren't
+independently re-verified, e.g. `usb.control_read`) degrades gracefully —
+that field's telemetry is just unavailable, it can't block driving.
+
+**`_egpu_present()` was extended for dual-firmware detection** (moved out
+of `modeld.py` into its own `selfdrive/modeld/egpu_detect.py` module, so
+it's unit-tested — `selfdrive/modeld/tests/test_egpu_detection.py`, 7
+cases — without needing modeld's full hardware-oriented import chain).
+Recognizes our own firmware's product string (unchanged, still
+primary/default) **and** comma's Chestnut firmware string
+(`f"custom {CHESTNUT_FW_VERSION}-CLEAN"`, matching upstream's
+`common/hardware/usb.py` exactly) on the same VID:PID pair — per user
+direction: "we do not just use chestnut we use asm2464pd too... i want my
+own EGPU to flash not chestnut but both support."
+
+**What this doesn't change:** none of the above is reachable yet. No
+`big_driving_{vision,policy}_tinygrad.pkl` exists anywhere (the old
+`big_driving_vision.onnx`/`big_driving_policy.onnx` symlinks noted above
+are a different, unrelated artifact — not compiled tinygrad pickles, and
+the new code doesn't reference them), so `ModelState(cl_context,
+usbgpu=True)` fails at `open()` and `load_big()` catches that, leaving
+`model = small_model` always — identical to today's on-road behavior for
+every real car, same reasoning as the 2026-08-19 device-selection change's
+safety argument.
+
+**Explicitly documented, not silently skipped:** no `warmup()` equivalent.
+Upstream's `ModelState.warmup()` runs a dummy inference with plain numpy
+frames before trusting a loaded big model; NGP10's `run()` needs real
+`VisionBuf` camera objects bound to the CL context (`self.frames[name]
+.prepare(bufs[name], ...)`), so a synthetic warmup can't be written and
+verified without real hardware from a dev PC. Flagged inline in
+`modeld.py` for whoever wires in a real compiled artifact — "do not trust
+'it loaded' as proof 'it runs'."
+
+**Bonus find, fixed:** `cereal/log.capnp` referenced
+`Car.RadarData.ErrorDEPRECATED`, a type opendbc renamed to plain `Error`
+(opendbc commit `ff2ac79e`); this branch's own `opendbc_repo` pin already
+had the rename, so `import cereal` failed outright at schema-compile time
+— pre-existing (predates this branch's fork entirely), already known and
+worked around in a couple of test files rather than fixed (see
+`NGP10_FEATURE_MATRIX.md`). Verified `EXO-ELEC/opendbc`'s actively
+maintained `master` (checked same-day) also calls it plain `Error` before
+making this the actual fix, not a guess.
+
+**Tinygrad pin:** stayed on `v0.13.0` (this branch was previously on a much
+older `c30a113b`, from 2025-08-17) — `EOP10` was also moved to `v0.13.0` in
+the same session so both branches track the same commit. Considered
+bumping further to match real upstream's current pin (`8611fe22a`, needed
+for its newer fused-model Chestnut architecture) but reverted on user
+direction to stay on the stable `v0.13.0` tag; see
+`NGP10_CHESTNUT_MIGRATION_PLAN.md` for the fuller reasoning on why that
+newer pin isn't actually required for this branch's own (older-generation,
+option-2) eGPU pipeline.
+
 ## Not yet done
 
-- **Get a real big-model asset.** Nothing above can produce one — this is
-  an ML training/porting question, out of scope for BSP-level code
-  adaptation. Until a distinct (non-symlink) `big_driving_vision`/
-  `big_driving_policy` weight file exists, there is nothing for
-  `ChestnutState`/`load_big()`-equivalent code to load, regardless of
-  which pipeline option is chosen below.
-- Decide between the two pipeline options above (still open, still the
-  user's call — unchanged by this update).
-- Once decided, a big-model asset exists, and hardware exists to verify
-  against: port/reimplement `ChestnutState`, `load_big()`/`small_model`,
-  `usbgpu_present()`/`usbgpu_compiled()` equivalents, the `chestnutState`
-  cereal service, and `selfdrived.py` soft-disable wiring. `usbgpu_present()`
-  can reuse this branch's new `EGPU_VID_PIDS`/`_egpu_present()`
-  (`modeld.py`) rather than porting upstream's exact-firmware-version
-  string match — we don't have a frozen firmware release process to gate
-  against.
+- **Get a real big-model asset.** Still nothing above can produce one —
+  ML training/porting question, out of scope for BSP-level code
+  adaptation. This remains the actual, single blocker to any of the above
+  becoming reachable.
+- **No hardware exists yet to verify any of this against** — same
+  blocker #1 from the top of this doc, unchanged.
+- `usbgpu_compiled()` equivalent (a readiness check for whether a compiled
+  big-model artifact is actually present) — not added; right now
+  `load_big()`'s own `try/except FileNotFoundError`-via-`open()` serves
+  that purpose implicitly. Worth a named helper once a real artifact
+  exists and this gets exercised for real.
+- `selfdrived.py` soft-disable wiring (`bigModelLoading`/`bigModelFailed`
+  events) — not done. `modeld.py`'s own `EgpuDrivingActive` Param already
+  carries the state; `selfdrived.py` doesn't consume it yet.
+- Real `warmup()` validation (see above) — needs real hardware to write
+  and verify, can't be done from a dev PC.
 - ASM2464PD flashing tooling for this branch/device (exopilot doc §8, §10
   — likely reuse `tinygrad_repo`'s own `extra/usbgpu/patch.py` rather than
-  porting comma's `flash.py` orchestration wholesale).
+  porting comma's `flash.py` orchestration wholesale). Unchanged from
+  2026-08-19.
+- The pipeline-migration question (option 1 above) is not closed forever —
+  it was deferred, not rejected, for this pass specifically because the
+  goal was Chestnut capability on the current stable v0.10.0 foundation
+  without disturbing what's already shipping.

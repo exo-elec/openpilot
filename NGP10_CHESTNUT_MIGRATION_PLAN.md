@@ -1,12 +1,28 @@
 # NGP10 Chestnut/eGPU — Plan (revised)
 
-Status: **scoping only, no code changed on NGP10 yet**. Revised 2026-08-23
-after clarifying the actual product goal: NGP10 ships a stable product on
-real comma 3 hardware, running the openpilot v0.10.0-era model plus a suite
-of NagasPilot add-ons (DLAT/DLON, road-edge detection, etc.). The ask is to
-add Chestnut/eGPU capability so the product reaches comma-4-like capability
-(or better, via the add-ons) — not to experiment with an architecture that
-might destabilize what's already shipping.
+**Status update (2026-08-23, end of day): superseded by real code.** This
+file's Path A/Path B framing was written before the actual decision was
+made. What happened: user chose the equivalent of Path A / this doc's own
+"scaffolding" option — port Chestnut support into the current v0.10.0
+foundation using the already-pinned tinygrad `v0.13.0`, not a foundation
+sync to upstream. That's implemented and pushed (`0f7a67836`). **The
+up-to-date, actively-maintained doc for this feature going forward is
+[`nagaspilot/docs/EGPU_INTEGRATION.md`](nagaspilot/docs/EGPU_INTEGRATION.md)**
+— it lives in this branch's own doc convention (`nagaspilot/docs/`, indexed
+from `00_READ_ORDER.md`), not at repo root like this file. This file is kept
+as historical reference for the Path B research below (the trial-merge
+findings, the real 1872-commit-gap measurement, the tinygrad-pin research) —
+still valid if a foundation sync is ever picked up later — but is not being
+updated further; new status goes in `EGPU_INTEGRATION.md`.
+
+Original status note (superseded, kept for history): **scoping only, no
+code changed on NGP10 yet**. Revised 2026-08-23 after clarifying the actual
+product goal: NGP10 ships a stable product on real comma 3 hardware,
+running the openpilot v0.10.0-era model plus a suite of NagasPilot add-ons
+(DLAT/DLON, road-edge detection, etc.). The ask is to add Chestnut/eGPU
+capability so the product reaches comma-4-like capability (or better, via
+the add-ons) — not to experiment with an architecture that might
+destabilize what's already shipping.
 
 ## The decisive fact that changes everything
 

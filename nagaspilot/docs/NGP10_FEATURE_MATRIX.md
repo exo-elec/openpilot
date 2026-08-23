@@ -228,7 +228,12 @@ toggle, `ngp_lon_dlon_lane_confidence` (default on) — see above. Verified via
 (direct-import execution, same technique as the rest of this doc's testing
 notes — `test_ngp_dlon_mtsc.py`'s own imports hit the pre-existing
 `RadarData.ErrorDEPRECATED` capnp/opendbc version-skew blocker in this
-dev-PC worktree). The identical coupling was also implemented on
+dev-PC worktree; **fixed 2026-08-23** — `cereal/log.capnp` now references
+`Car.RadarData.Error`, matching the rename already present in this branch's
+own `opendbc_repo` pin and in `EXO-ELEC/opendbc`'s `master`; `import cereal`
+works normally again, the direct-import workaround is no longer required
+for new tests, see `EGPU_INTEGRATION.md`). The identical coupling was also
+implemented on
 `dev/EOP10`'s `dlon.py`/`dlat.py` (at the time, only applied while
 `EOPDLONMode` was `Auto`; since EOP10 removed `EOPDLONMode` entirely on
 2026-08-10, it's now always consulted there too, same as NGP10).
