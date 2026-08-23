@@ -47,10 +47,16 @@ from openpilot.system.inferenced import InferenceClient
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
 
-# Chestnut (external USB GPU) driving failover parameters.
-# Mirrors upstream's UsbGpuLoading/UsbGpuActive state machine, but named after
-# the Chestnut model class since EOP's inferenced owns the USB GPU device.
-CHESTNUT_DRIVING_LOAD_TIMEOUT = 60.0  # seconds to wait for external model load/warmup
+# ASM2464PD / Chestnut (external USB GPU) driving failover parameters.
+# Mirrors upstream's UsbGpuLoading/UsbGpuActive state machine, named Egpu*
+# to cover both custom flashed ASM2464PD firmware and comma's official Chestnut.
+EGPU_DRIVING_LOAD_TIMEOUT = 60.0  # seconds to wait for external model load/warmup
+EGPU_DRIVING_ENABLED_PARAM = "EgpuDrivingEnabled"
+EGPU_DRIVING_LOADING_PARAM = "EgpuDrivingLoading"
+EGPU_DRIVING_ACTIVE_PARAM = "EgpuDrivingActive"
+
+# Backward compatibility aliases
+CHESTNUT_DRIVING_LOAD_TIMEOUT = EGPU_DRIVING_LOAD_TIMEOUT
 CHESTNUT_DRIVING_ENABLED_PARAM = "ChestnutDrivingEnabled"
 CHESTNUT_DRIVING_LOADING_PARAM = "ChestnutDrivingLoading"
 CHESTNUT_DRIVING_ACTIVE_PARAM = "ChestnutDrivingActive"
@@ -138,7 +144,7 @@ class ModelState:
             VISION_METADATA_PATH,
             POLICY_METADATA_PATH,
         )
-        self._external_runner_active = self.runner.backend_name == "CHESTNUT"
+        self._external_runner_active = self.runner.backend_name in ("EGPU", "CHESTNUT")
 
         # Initialize frames (for preprocessing)
         self.frames = {
@@ -196,10 +202,10 @@ class ModelState:
         cloudlog.info("ModelState initialized via InferenceD HAL")
 
     def set_runner(self, runner: DrivingRunner) -> None:
-        """Swap the active driving runner (used for Chestnut -> RKNN failover)."""
+        """Swap the active driving runner (used for eGPU/Chestnut -> RKNN failover)."""
         self.runner.release()
         self.runner = runner
-        self._external_runner_active = runner.backend_name == "CHESTNUT"
+        self._external_runner_active = runner.backend_name in ("EGPU", "CHESTNUT")
 
     def _load_metadata(self):
         """Load model metadata (shapes, slices)."""
@@ -458,17 +464,18 @@ def get_action_from_model(model_output: dict[str, np.ndarray], prev_action: log.
     )
 
 
-def _load_chestnut_runner(client: InferenceClient, params: Params) -> DrivingRunner | None:
-    """Load the Chestnut external-GPU driving runner with a bounded timeout.
+def _load_egpu_runner(client: InferenceClient, params: Params) -> DrivingRunner | None:
+    """Load the eGPU (ASM2464PD / Chestnut) external-GPU driving runner with a bounded timeout.
 
     Follows the upstream Chestnut pattern: load and warmup in a background
     thread, return None if the deadline is missed or load fails.
     """
+    params.put_bool(EGPU_DRIVING_LOADING_PARAM, True)
     params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, True)
-    chestnut_runner: DrivingRunner | None = None
+    egpu_runner: DrivingRunner | None = None
 
     def _load() -> None:
-        nonlocal chestnut_runner
+        nonlocal egpu_runner
         try:
             runner = create_driving_runner(
                 client,
@@ -477,21 +484,27 @@ def _load_chestnut_runner(client: InferenceClient, params: Params) -> DrivingRun
                 VISION_METADATA_PATH,
                 POLICY_METADATA_PATH,
                 params=params,
-                use_chestnut=True,
+                use_egpu=True,
             )
-            chestnut_runner = runner
+            egpu_runner = runner
         except Exception:
-            cloudlog.exception("Chestnut driving runner load failed")
+            cloudlog.exception("eGPU driving runner load failed")
 
     loader = threading.Thread(target=_load, daemon=True)
     loader.start()
-    loader.join(timeout=CHESTNUT_DRIVING_LOAD_TIMEOUT)
+    loader.join(timeout=EGPU_DRIVING_LOAD_TIMEOUT)
 
-    active = chestnut_runner is not None
+    active = egpu_runner is not None
+    params.put_bool(EGPU_DRIVING_ACTIVE_PARAM, active)
+    params.put_bool(EGPU_DRIVING_LOADING_PARAM, False)
     params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, active)
     params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, False)
-    cloudlog.warning(f"Chestnut driving runner load: active={active}")
-    return chestnut_runner
+    cloudlog.warning(f"eGPU driving runner load: active={active}")
+    return egpu_runner
+
+
+# Backward compatibility alias
+_load_chestnut_runner = _load_egpu_runner
 
 
 def main(demo=False) -> int:
@@ -506,7 +519,8 @@ def main(demo=False) -> int:
     config_realtime_process(DT_MDL, 54)
 
     params = Params()
-    chestnut_driving_enabled = params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)
+    egpu_driving_enabled = params.get_bool(EGPU_DRIVING_ENABLED_PARAM) or params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)
+    params.remove(EGPU_DRIVING_ACTIVE_PARAM)
     params.remove(CHESTNUT_DRIVING_ACTIVE_PARAM)
 
     # Initialize CL context — mock on dev PC (no real OpenCL); used for frame preprocessing
@@ -515,9 +529,9 @@ def main(demo=False) -> int:
     use_cl = cl_context.context is not None  # True only when real OpenCL context was created
     cloudlog.warning(f"CL context: {'GPU' if use_cl else 'dev-PC numpy mock'}; loading models via HAL")
 
-    # Load Chestnut runner first (if enabled), then always keep RKNN fallback warm.
-    chestnut_runner = _load_chestnut_runner(client, params) if chestnut_driving_enabled else None
-    chestnut_active = chestnut_runner is not None
+    # Load eGPU runner first (if enabled), then always keep RKNN fallback warm.
+    egpu_runner = _load_egpu_runner(client, params) if egpu_driving_enabled else None
+    egpu_active = egpu_runner is not None
 
     try:
         rknn_runner = create_driving_runner(
@@ -527,13 +541,13 @@ def main(demo=False) -> int:
             VISION_METADATA_PATH,
             POLICY_METADATA_PATH,
             params=params,
-            use_chestnut=False,
+            use_egpu=False,
         )
     except Exception as e:
         cloudlog.error(f"Failed to initialize RKNN fallback runner: {e}")
         return 1
 
-    active_runner = chestnut_runner if chestnut_active else rknn_runner
+    active_runner = egpu_runner if egpu_active else rknn_runner
     fallback_runner = rknn_runner
 
     # Initialize model state with the selected active runner.
@@ -690,17 +704,18 @@ def main(demo=False) -> int:
                 'traffic_convention': traffic_convention,
             }
 
-            # Run inference with upstream-style Chestnut-runner failover.
+            # Run inference with upstream-style eGPU-runner failover.
             mt1 = time.perf_counter()
             try:
                 model_output = model.run(bufs, transforms, inputs, prepare_only)
             except Exception:
-                if not chestnut_active:
+                if not egpu_active:
                     raise
-                cloudlog.exception("Chestnut driving runner failed, falling back to RKNN")
+                cloudlog.exception("eGPU driving runner failed, falling back to RKNN")
+                params.put_bool(EGPU_DRIVING_ACTIVE_PARAM, False)
                 params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, False)
                 model.set_runner(fallback_runner)
-                chestnut_active = False
+                egpu_active = False
                 run_count = 0
                 model_output = None
             mt2 = time.perf_counter()

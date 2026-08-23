@@ -28,19 +28,25 @@ from openpilot.selfdrive.modeld.runners.driving_runner import (
 )
 
 
-# Model/artifact naming follows upstream openpilot's Chestnut big model.
-CHESTNUT_MODEL_NAME = "big_driving_supercombo"
-CHESTNUT_PKL_FILENAME = "big_driving_supercombo_tinygrad.pkl"
-CHESTNUT_METADATA_FILENAME = "big_driving_supercombo_metadata.pkl"
+# Model/artifact naming follows upstream openpilot's Chestnut / eGPU big model.
+EGPU_MODEL_NAME = "big_driving_supercombo"
+EGPU_PKL_FILENAME = "big_driving_supercombo_tinygrad.pkl"
+EGPU_METADATA_FILENAME = "big_driving_supercombo_metadata.pkl"
+
+# Backward compatibility aliases
+CHESTNUT_MODEL_NAME = EGPU_MODEL_NAME
+CHESTNUT_PKL_FILENAME = EGPU_PKL_FILENAME
+CHESTNUT_METADATA_FILENAME = EGPU_METADATA_FILENAME
 
 
-class ChestnutDrivingRunner(DrivingRunner):
-  """Chestnut external-GPU monolithic driving runner.
+class EgpuDrivingRunner(DrivingRunner):
+  """ASM2464PD / Chestnut eGPU monolithic driving runner.
 
   Mirrors upstream's ``big_driving_tinygrad.pkl`` pattern: load a compiled
   tinygrad JIT artifact and execute the official openpilot big supercombo
-  model. The current implementation is intentionally fail-closed until the
-  compiled artifact and validation gates exist.
+  model on the external GPU (supporting both custom flashed ASM2464PD and
+  comma's official Chestnut firmware). The current implementation is
+  intentionally fail-closed until the compiled artifact and validation gates exist.
   """
 
   is_monolithic = True
@@ -52,7 +58,7 @@ class ChestnutDrivingRunner(DrivingRunner):
 
   @property
   def backend_name(self) -> str:
-    return "CHESTNUT"
+    return "EGPU"
 
   @property
   def output_slices(self) -> dict[str, slice]:
@@ -60,16 +66,20 @@ class ChestnutDrivingRunner(DrivingRunner):
 
   def load(self) -> None:
     if not self.model_path.exists():
-      raise FileNotFoundError(f"Chestnut compiled artifact not found: {self.model_path}")
-    cloudlog.warning("ChestnutDrivingRunner: compiled tinygrad JIT artifact exists but transport and replay/HIL gates are not ready; failing closed")
-    raise RuntimeError("Chestnut driving path is gated until transport and validation are ready")
+      raise FileNotFoundError(f"eGPU compiled artifact not found: {self.model_path}")
+    cloudlog.warning("EgpuDrivingRunner: compiled tinygrad JIT artifact exists but transport and replay/HIL gates are not ready; failing closed")
+    raise RuntimeError("eGPU driving path is gated until transport and validation are ready")
 
   def run(self, inputs: dict[str, np.ndarray]) -> DrivingRunnerResult:
     return DrivingRunnerResult(
       success=False,
       outputs={},
-      error_message="Chestnut driving runner is stubbed",
+      error_message="eGPU driving runner is stubbed",
     )
 
   def release(self) -> None:
     self._loaded = False
+
+
+# Backward compatibility alias
+ChestnutDrivingRunner = EgpuDrivingRunner

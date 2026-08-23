@@ -219,7 +219,7 @@ def test_factory_selects_local_runner_and_loads_models(tmp_path: Path):
 
 def test_factory_chestnut_fails_closed_when_artifact_missing(tmp_path: Path):
   client = MagicMock()
-  with pytest.raises(FileNotFoundError, match="Chestnut compiled artifact not found"):
+  with pytest.raises(FileNotFoundError, match="(eGPU|Chestnut) compiled artifact not found"):
     create_driving_runner(
       client,
       vision_model_path=tmp_path / "vision.rknn",
@@ -227,9 +227,9 @@ def test_factory_chestnut_fails_closed_when_artifact_missing(tmp_path: Path):
       vision_metadata_path=tmp_path / "vision_metadata.pkl",
       policy_metadata_path=tmp_path / "policy_metadata.pkl",
       params=MagicMock(),
-      use_chestnut=True,
-      chestnut_model_path=tmp_path / "big_driving_supercombo_tinygrad.pkl",
-      chestnut_metadata_path=tmp_path / "big_driving_supercombo_metadata.pkl",
+      use_egpu=True,
+      egpu_model_path=tmp_path / "big_driving_supercombo_tinygrad.pkl",
+      egpu_metadata_path=tmp_path / "big_driving_supercombo_metadata.pkl",
     )
 
 
@@ -238,7 +238,7 @@ def test_factory_chestnut_fails_closed_when_gated(tmp_path: Path):
   artifact.write_text("mock")
 
   client = MagicMock()
-  with pytest.raises(RuntimeError, match="Chestnut driving path is gated"):
+  with pytest.raises(RuntimeError, match="(eGPU|Chestnut) driving path is gated"):
     create_driving_runner(
       client,
       vision_model_path=tmp_path / "vision.rknn",
@@ -262,7 +262,7 @@ def test_chestnut_runner_is_monolithic_and_stubbed(tmp_path: Path):
   )
   runner = ChestnutDrivingRunner(spec)
   assert runner.is_monolithic
-  assert runner.backend_name == "CHESTNUT"
+  assert runner.backend_name in ("EGPU", "CHESTNUT")
   assert runner.output_slices == {"plan": slice(0, 10)}
   assert not runner.run({}).success
   with pytest.raises(NotImplementedError):

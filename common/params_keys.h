@@ -405,9 +405,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"FactoryCalibrationParams", {PERSISTENT, BYTES}},
     {"CarMake", {PERSISTENT, STRING}},
     {"CarType", {PERSISTENT, STRING}},
-    {"CarVin", {PERSISTENT, STRING}},
-    // Chestnut external-USB-GPU driving path (mirrors upstream UsbGpu*; named
-    // after the model class since inferenced owns the USB GPU device).
+    // ASM2464PD / Chestnut eGPU driving path (mirrors upstream UsbGpu*; named
+    // Egpu* to cover both our own flashed firmware and comma's Chestnut
+    // firmware on the same physical chip).
+    {"EgpuDrivingEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
+    {"EgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"ChestnutDrivingEnabled", {PERSISTENT, BOOL, "0"}},
     {"ChestnutDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"ChestnutDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},

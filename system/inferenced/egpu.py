@@ -44,22 +44,22 @@ logger = logging.getLogger(__name__)
 
 EGPU_VID_PIDS = {("0xadd1", "0x0001"), ("0x3801", "0x0001")}
 
-# The literal USB product string tinygrad's extra/usbgpu/patch.py writes into
-# config1's descriptor bytes at flash time (confirmed by reading patch.py
-# directly: bytes 64-90 of config1 decode to this ASCII string). Unlike
-# comma's Chestnut firmware, which embeds a per-build hash
-# (f"custom {CHESTNUT_FW_VERSION}-CLEAN"), tinygrad's generic firmware uses
-# this fixed literal — no release process on our side to track a hash
-# against, so an exact string match is the right check here.
-EGPU_PRODUCT = "USB 3.2 PCIe TinyEnclosure"
+# Literal USB product string tinygrad's extra/usbgpu/patch.py writes into our
+# own flashed firmware (confirmed by reading patch.py directly) — this stays
+# the primary/default target. Comma's Chestnut firmware instead reports
+# "custom {CHESTNUT_FW_VERSION}-CLEAN" (matches upstream's
+# common/hardware/usb.py:CHESTNUT_FW_VERSION exactly); recognized alongside
+# ours so either flashed image is detected, never a third-party device
+# reusing the same VID:PID.
+EGPU_PRODUCT_OWN = "USB 3.2 PCIe TinyEnclosure"
+CHESTNUT_FW_VERSION = "ed4e39b7"
+EGPU_PRODUCT_CHESTNUT = f"custom {CHESTNUT_FW_VERSION}-CLEAN"
+EGPU_PRODUCTS = {EGPU_PRODUCT_OWN: 'own', EGPU_PRODUCT_CHESTNUT: 'chestnut'}
+EGPU_PRODUCT = EGPU_PRODUCT_OWN  # backward-compatibility alias
 
 
-def _detect_egpu() -> bool:
-  """Return True if a flashed (post-firmware) ASM2464PD is on the USB bus.
-
-  Checks both the VID:PID and the product string tinygrad's patch.py writes,
-  so an unrelated device that happens to reuse 0xADD1:0x0001 doesn't false-positive.
-  """
+def _detect_egpu() -> str | None:
+  """Return detected firmware ('own' / 'chestnut') if a flashed ASM2464PD is on the USB bus, else None."""
   for path in glob.glob('/sys/bus/usb/devices/*'):
     try:
       with open(f'{path}/idVendor') as f:
@@ -70,9 +70,9 @@ def _detect_egpu() -> bool:
         product_str = f.read().strip()
     except OSError:
       continue
-    if (f'0x{vendor}', f'0x{product_id}') in EGPU_VID_PIDS and product_str == EGPU_PRODUCT:
-      return True
-  return False
+    if (f'0x{vendor}', f'0x{product_id}') in EGPU_VID_PIDS and product_str in EGPU_PRODUCTS:
+      return EGPU_PRODUCTS[product_str]
+  return None
 
 
 @dataclass
