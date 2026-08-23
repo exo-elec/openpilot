@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from functools import cached_property
 import os
 from openpilot.system.hardware import TICI
 from openpilot.selfdrive.modeld.egpu_detect import egpu_present
@@ -98,13 +99,11 @@ class EgpuState:
     self.valid = True
     self.sends = 0
     self.metrics: dict[str, float] = {}
-    self._power_limit: int | None = None
 
-  def _power_limit_cached(self) -> int:
-    if self._power_limit is None:
-      smu = Device["AMD"].iface.dev_impl.smu
-      self._power_limit = smu._send_msg(smu.smu_mod.PPSMC_MSG_GetPptLimit, 0, read_back_arg=True, timeout=100)
-    return self._power_limit
+  @cached_property
+  def power_limit(self) -> int:
+    smu = Device["AMD"].iface.dev_impl.smu
+    return smu._send_msg(smu.smu_mod.PPSMC_MSG_GetPptLimit, 0, read_back_arg=True, timeout=100)
 
   def send(self) -> None:
     msg = messaging.new_message('egpuState')
@@ -118,7 +117,7 @@ class EgpuState:
         self.metrics = {'tempC': metrics.AvgTemperature[smu.smu_mod.TEMP_HOTSPOT],
                         'memoryTempC': metrics.AvgTemperature[smu.smu_mod.TEMP_MEM],
                         'powerDrawW': metrics.AverageSocketPower,
-                        'powerLimitW': self._power_limit_cached(),
+                        'powerLimitW': self.power_limit,
                         'gpuUsagePercent': metrics.AverageGfxActivity,
                         'gpuClockMhz': metrics.AverageGfxclkFrequencyPostDs,
                         'fanSpeedRpm': metrics.AvgFanRpm}
