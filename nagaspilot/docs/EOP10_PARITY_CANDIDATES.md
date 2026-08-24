@@ -28,6 +28,7 @@ No action needed.
 | ALCC (always-on lane centering) | `EOPLatALCC` | `ngp_lat_alcc` (inline in `controlsd.py`) |
 | LCA speed threshold | `EOPLatLCASpeed` | `ngp_lat_lca_speed`/`_auto_sec` (via upstream `DesireHelper`) |
 | Road Edge Detection | `EOPLatRoadEdgeDetection` | `ngp_lat_road_edge_detection`, `ngp_road_edge.py` (wired in `modeld.py`) |
+| Lane Change Lead Handoff | `lc_lead_handoff.py`, `EOPLCAdjacentLeadHandoff` (opt-in, no panel toggle) | `ngp_lc_lead_handoff.py` (ported 2026-08-25), `ngp_lon_lc_lead_handoff` — wired into `longitudinal_planner.py` via `NGPFlags.LC_LEAD_HANDOFF`, no panel toggle (matches EOP10) |
 
 Note: EOP10 also has a *separate*, camera-based "Lane Change Assistant (LCA)"
 toggle (`EOPLCAControllerEnabled`, multi-camera blind-spot detection) — don't
@@ -66,7 +67,6 @@ end.
 
 | Feature | EOP10 | Notes |
 |---|---|---|
-| Lane Change Lead Handoff | `lc_lead_handoff.py`, `EOPLCAdjacentLeadHandoff` (opt-in) | Pure `modelV2.leadsV3` camera-based — no special hardware. Small, self-contained, genuinely portable; probably the easiest brand-new port on this list. |
 | Driver preference profile (speed-limit offset, following-distance choice) | `driver_prefs.py` | Mostly pure parameter logic ("No NPU impact" per its own docstring); the "shock/obstacle awareness" part of it uses IMU shock detection (`EOPShockDetection` etc.) which is a *different* concept from BRSC (impact/curb-hit event detection+recording vs. BRSC's sustained-roughness speed policy) — don't conflate the two if porting this. |
 | Adaptive accel limit (low-speed clamp + cruise ramp-off) | inline function `_apply_adaptive_accel_limit()` in `longitudinal_planner.py`, always-on, no toggle | Tiny, pure `v_cruise`/`v_ego` math, no hardware dependency — cheap to port if wanted, but low visible impact. |
 | DLP curve assist (pre-emptive laneless for tight curves) | `EOPDLPCurvesEnabled` | Separate from DLAT's Laneful/Laneless *mode selection* — this is a curve-specific override on top of whatever DLAT picks. Depends on DLAT existing first. |
@@ -103,7 +103,7 @@ assumed from the feature name:
 
 ## Suggested order if starting from scratch
 
-1. **Lane Change Lead Handoff** (Tier 3) — smallest, self-contained, no design questions, pure camera data already available.
+1. ~~Lane Change Lead Handoff~~ — done, 2026-08-25 (Tier 1 now): `ngp_lc_lead_handoff.py` ported verbatim (pure `modelV2.leadsV3` logic, unchanged), wired into `longitudinal_planner.py`/`plannerd.py` via `NGPFlags.LC_LEAD_HANDOFF` and `ngp_lon_lc_lead_handoff` (default off, no panel toggle — matches EOP10). 6 unit tests in `nagaspilot/tests/test_ngp_lc_lead_handoff.py`. No on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note.
 2. **VTSC** (Tier 2) — module exists, `modelV2` curvature is already flowing through `longitudinal_planner.py`, same wiring shape as BRSC.
 3. **Speed-limit enforcement via `ngp_speed_policy.py`** (Tier 2) — real functional gap (DLON's trigger vs. actual clamping), data source (`mapData`/`navInstruction`) already subscribed.
 4. ~~DLAT~~ — done, 2026-08-09 (Tier 1 now): wired into `controlsd.py`, coupled into DLON's AUTO-mode switch, and given a real LCA-initiation-gate effect. See the feature matrix's "DLAT made a real default" note for what was and wasn't validated before shipping (thresholds reused from the module's own existing constants, not newly tuned; no on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note).
