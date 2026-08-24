@@ -50,6 +50,10 @@ jobs:
     name: Full upstream lint gate
     runs-on: ubuntu-24.04
     continue-on-error: true
+    # Informational only (never blocks) and mypy debt is tracked separately
+    # (see docs/eop/CODE_QUALITY_LINT_CLEANUP.md) -- skip on plain pushes to
+    # avoid a second noisy run per commit; still runs on PRs and manual dispatch.
+    if: github.event_name != 'push'
     steps:
       - uses: actions/checkout@v4
         with:
