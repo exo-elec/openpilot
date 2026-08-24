@@ -1067,3 +1067,53 @@ result, `./test.sh` green.
   expired and needs an interactive browser re-auth (`gh auth login`) that
   can't be completed non-interactively — flagged for the user, not blocking
   since git push/pull only need SSH.
+
+## Follow-up session (eGPU scope reconciliation + bandwidth confirmation, 2026-08-24)
+
+Goal: answer "what else can use eGPU idle capacity" honestly, after an
+earlier draft answer (local voice/LLM) turned out to conflict with an
+existing decision — investigate before recommending, don't build on an
+unverified assumption.
+
+- [x] Found and surfaced a real doc tension before acting on it: the
+  `axmodel/` folder's `VOICE_INFERENCE` (local LLM + whisper) tier, tagged
+  2026-08-23 in `MODEL_MANIFEST.md`, looked like it contradicted
+  `docs/eop/03_Software/Daemons/Enhanced/VOICE_PIPELINE.md`'s deliberate,
+  cross-repo "no local STT/TTS" decision from 2026-08-14 (which was pushed
+  as a real VisionPilot commit, `visionpilot@125e151`, specifically to keep
+  VisionPilot aligned with EOP10). User clarified: AX-M1/AXCL is a separate
+  PCIe-attached NPU with its own on-device DRAM, sharing neither the eGPU's
+  USB link nor the RK3588 driving NPU — so the "no NPU/GPU contention" reason
+  behind the cloud-voice decision doesn't block `axmodel/`'s tier. Documented
+  the reconciliation directly in `MODEL_MANIFEST.md` (Folder naming section)
+  so a future session doesn't re-flag this as a conflict, and noted that
+  actually building local voice on AX-M1 would still need its own explicit
+  `VOICE_PIPELINE.md` Safety Design update (the other three reasons —
+  attack surface, auditability, centralized updates — are independent of
+  the hardware-contention argument).
+- [x] Checked `../autoware_vision_pilot/VisionPilot` for eGPU-workload
+  candidates beyond the three already-documented AutoDrive/AutoSpeed/
+  AutoSteer ONNX pairs — found none. Its `safety_guardian` module
+  (`fusion/{lateral,longitudinal}_fusion`, `planning/{lateral,longitudinal}_
+  planning`) confirmed the whole stack is itself a redundant advisory
+  safety-guardian layer over those three models' outputs, not a source of
+  new production workloads; it also runs on TensorRT (Nvidia-desktop
+  oriented), reinforcing its existing "compatibility reference only" status.
+  Recorded in `EGPU_CAMERA_SHADOW.md`'s Autoware section.
+- [x] Code-verified (not just budget-estimated) that a Chestnut/Egpu driving
+  runner needs both road and wide camera uploads: `selfdrive/modeld/
+  modeld.py` opens a second `VisionIpcClient` for `VISION_STREAM_WIDE_ROAD`
+  whenever both it and `VISION_STREAM_ROAD` are available
+  (`use_extra_client`), and `CHESTNUT_EGPU_ADOPTION.md`'s "must preserve
+  those inputs" rule binds any Egpu runner to the same contract — so the
+  ≥126 MB/s road+wide figure in `EGPU_3D_RECONSTRUCTION_BANDWIDTH.md` is a
+  hard requirement, not a conservative estimate. Recorded in that doc.
+- [x] Answered "can all 5 cameras (road/wide/side_left/side_right/rear) run
+  through the eGPU together": worst-case combined load is ~224 MB/s, under
+  the ~300–350 MB/s realistic Gen1 ceiling but with little margin — and more
+  fundamentally gated by the still-missing priority/deadline scheduler
+  (`EGPU_CAMERA_SHADOW.md` already flagged this as a prerequisite before
+  this session; added the concrete arithmetic backing that statement).
+
+No code changes — this session was documentation reconciliation and
+bandwidth/architecture confirmation only; nothing was found broken.

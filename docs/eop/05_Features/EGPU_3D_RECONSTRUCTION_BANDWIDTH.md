@@ -67,6 +67,15 @@ the priority queue (`CHESTNUT_EGPU_ADOPTION.md`'s scheduler policy). Against
 a ~350 MB/s realistic ceiling, that's already more than a third of the
 budget for the driving path alone.
 
+**Code-verified, not just budget-estimated (2026-08-24):** `selfdrive/modeld/
+modeld.py` sets `use_extra_client` when both `VISION_STREAM_WIDE_ROAD` and
+`VISION_STREAM_ROAD` are available, and opens a second `VisionIpcClient` for
+`VISION_STREAM_WIDE_ROAD` alongside the main stream. This means any Chestnut/
+Egpu driving runner — bound by `CHESTNUT_EGPU_ADOPTION.md`'s "must preserve
+those inputs" rule — genuinely needs both camera uploads per inference cycle,
+not one; the ≥126 MB/s figure above is a hard input-contract requirement, not
+a conservative estimate.
+
 ## Why re-uploading a stereo camera pair for 3D reconstruction is the wrong move
 
 The naive approach — send both stereo views to the eGPU so it can do SGM

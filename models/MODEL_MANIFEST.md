@@ -82,6 +82,21 @@ nothing is stored there yet — a `.hef`-compiled whisper build exists in
 tier for this folder's purpose (camera inference); wait for a real
 `.axmodel`-compiled build instead of storing a mismatched-format placeholder.
 
+**Reconciled against `VOICE_PIPELINE.md`'s cloud-voice decision (2026-08-24):**
+`VOICE_PIPELINE.md` (2026-08-14, Design/Implementation both complete) mandates
+no local STT/TTS, reasoned partly around "no NPU/GPU contention with driving
+models" — that reasoning does not block `axmodel/`'s `VOICE_INFERENCE` tier.
+AX-M1/AXCL is a separate PCIe-attached NPU with its own on-device DRAM; it
+shares neither the eGPU's USB link nor the RK3588 driving-model NPU, so a
+future local voice/LLM build there would not contend with ADAS inference.
+The eGPU (ASM2464PD, USB) stays strictly ADAS/camera-only — see
+`docs/eop/05_Features/EGPU_CAMERA_SHADOW.md` and
+`docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`. If local voice is ever
+actually built on AX-M1, `VOICE_PIPELINE.md`'s Safety Design section still
+needs its own explicit update (attack surface / auditability / centralized
+updates are independent of the hardware-contention argument) — that decision
+is not made by this folder reservation alone.
+
 ## Adding New Models
 
 1. Download and place the file in the appropriate subdirectory.

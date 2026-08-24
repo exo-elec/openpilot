@@ -130,6 +130,18 @@ warps two consecutive frames into BEV and applies ImageNet normalization.
 AutoSteer and AutoSpeed use a resized 0..1 image. These contracts must remain
 model-specific even when preprocessing buffers can be shared.
 
+**Confirmed complete (2026-08-24):** `../autoware_vision_pilot/VisionPilot`
+contains no models beyond these three FP32/INT8 pairs
+(`modules/models/weights/{autodrive,autospeed,autosteer}_{fp32,int8}.onnx`) —
+nothing else to add to this reference list. Its `safety_guardian` module
+(`fusion/{lateral,longitudinal}_fusion`, `planning/{lateral,longitudinal}_planning`)
+is a redundant lateral/longitudinal check layered on these three models'
+outputs, confirming the whole stack is itself an advisory/shadow safety
+monitor, not a source of additional production workloads. It runs on
+TensorRT (`modules/models/include/models/trt_engine.hpp`) — Nvidia-desktop
+oriented, reinforcing why this stays a compatibility reference rather than a
+real tinygrad/AMD eGPU target.
+
 The current cereal request carries one tensor and the result returns only one
 output. A private versioned multi-tensor transport (or shared memory) may still
 be useful for segmentation graphs and an openpilot-compatible model runner. It
@@ -157,6 +169,17 @@ measured sustained bandwidth and frame-age deadlines, not the nominal link rate.
 The current `inferenced` worker provides single ownership but its queue does not
 yet sort by priority. Correct priority/deadline scheduling is a prerequisite for
 enabling these additional models together.
+
+**All 5 cameras at once (2026-08-24)?** Not safely, today. Worst-case combined
+load — road+wide (driving model, 20 Hz, ~63 MB/s each) plus side (shared
+model, L/R alternate, one active stream) and rear (own queue) at their
+theoretical max round-trip rate (~49 MB/s each upper bound) — totals roughly
+**~224 MB/s**, under the ~300–350 MB/s realistic Gen1 ceiling but with almost
+no margin for output traffic, protocol overhead, or front segmentation shadow
+on top. More importantly, bandwidth headroom existing is not the same as safe
+to enable: the missing priority/deadline scheduler above is the real gate —
+without it, nothing stops side/rear/segmentation traffic from starving the
+driving model's deadline if all paths are simply turned on simultaneously.
 
 Tinygrad v0.13 requires Python 3.11 or newer; EOP's deployed `.venv` is Python
 3.12. System Python 3.10 is not a supported launcher for this path.
