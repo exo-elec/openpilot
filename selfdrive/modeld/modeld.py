@@ -188,7 +188,7 @@ class ModelState:
         # Parser for output decoding
         self.parser = Parser()
 
-        # Temporary mitigation (ported from bukapilot's proven KA2 runner):
+        # Temporary mitigation (ported from a proven external split-RKNN reference runner):
         # suppress one-frame "straight blips" in the split RKNN/ONNX policy's
         # plan output. Not applied to the Chestnut monolithic path.
         self._blip_guard_enabled = os.getenv("RKNN_BLIP_GUARD", "1") != "0"
@@ -362,7 +362,7 @@ class ModelState:
                 outputs_dict['raw_pred'] = raw_output.copy()
             return outputs_dict
 
-        # Split vision+policy path (bukapilot KA2 RKNN architecture)
+        # Split vision+policy path (proven external split-RKNN architecture)
         # Run vision model through the driving runner
         t0 = time.perf_counter()
         vision_result = self.runner.run_vision(vision_inputs)

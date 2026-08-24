@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Tests for ModelState's blip guard (ported from bukapilot's proven KA2
-runner) — suppresses one-frame "straight blips" that follow a run of curved
+"""Tests for ModelState's blip guard (ported from a proven external
+split-RKNN reference runner) — suppresses one-frame "straight blips" that follow a run of curved
 frames in the split RKNN/ONNX policy's plan output. Exercises the guard
 methods directly against a bare ModelState instance (no CLContext/HAL needed)."""
 

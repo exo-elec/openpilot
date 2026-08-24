@@ -6,7 +6,7 @@ Follows the eGPU (ASM2464PD / Chestnut) architecture: the official
 artifact (``big_driving_supercombo_tinygrad.pkl``) and executed on the
 external USB GPU owned by ``inferenced``.
 
-Unlike the split RKNN path (bukapilot KA2 style), an eGPU runner executes
+Unlike the split RKNN path (proven external split-RKNN style), an eGPU runner executes
 the whole supercombo in one ``run()`` call over the full input set and returns
 a single raw output tensor that modeld slices with the big-model metadata.
 

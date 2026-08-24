@@ -5,11 +5,12 @@ A driving runner owns model loading and inference for one driving-model
 execution path. Modeld keeps temporal state, preprocessing, output parsing and
 messaging; the runner only sees prepared tensors and returns raw outputs.
 
-Two proven shapes are supported, mirroring upstream openpilot and bukapilot:
+Two proven shapes are supported, mirroring upstream openpilot and a proven
+external reference implementation:
 
 - Split vision + policy (``is_monolithic == False``): the runner implements
-  ``run_vision()`` and ``run_policy()``. This is the bukapilot KA2 (RK3588)
-  RKNN architecture — ``driving_vision.rknn`` + ``driving_policy.rknn``.
+  ``run_vision()`` and ``run_policy()``. This is the proven external
+  split-RKNN (RK3588) architecture — ``driving_vision.rknn`` + ``driving_policy.rknn``.
 - Monolithic supercombo (``is_monolithic == True``): the runner implements
   ``run()`` over the full input set and returns one raw output tensor. This is
   the upstream Chestnut external-USB-GPU big-model architecture
@@ -61,7 +62,7 @@ class DrivingRunner(ABC):
   """
 
   # True for single-supercombo runners (Chestnut big model); False for split
-  # vision+policy runners (RKNN, bukapilot KA2 style).
+  # vision+policy runners (RKNN, proven external split-RKNN style).
   is_monolithic: bool = False
 
   def __init__(self, *specs: DrivingModelSpec) -> None:

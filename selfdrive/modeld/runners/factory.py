@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Factory for creating the active modeld driving runner.
 
-Selection is intentionally conservative: the split RKNN runner (bukapilot KA2
-architecture) is always available and remains authoritative until the Chestnut
+Selection is intentionally conservative: the split RKNN runner (proven
+external split-RKNN architecture) is always available and remains authoritative until the Chestnut
 external-GPU driving path has passed replay/HIL/hardware gates. The factory
 only returns a Chestnut runner when explicitly requested; it fails closed so
 modeld exercises the failover path and falls back to RKNN.
@@ -107,7 +107,7 @@ def create_driving_runner(
 
   Selection is fail-closed:
     - ``use_egpu=False`` (default) returns the local split RKNN/ONNX runner
-      (bukapilot KA2 architecture).
+      (proven external split-RKNN architecture).
     - ``use_egpu=True`` (or ``use_chestnut=True``) returns the monolithic eGPU
       external-GPU runner. The current stub refuses to load so modeld exercises the
       failover path and falls back to RKNN. It will be replaced by a real

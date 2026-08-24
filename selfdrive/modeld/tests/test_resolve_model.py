@@ -4,7 +4,7 @@
 Regression coverage for a real bug: the search loop used to check the
 ``rknn`` subdir before ever consulting the platform-aware ``exts`` order,
 so once both ``models/rknn/`` and ``models/onnx/`` held real files (as they
-do after adopting bukapilot's KA2 pair), dev-PC runs would silently resolve
+do after adopting the proven external split-RKNN pair), dev-PC runs would silently resolve
 to the ``.rknn`` file instead of ``.onnx``."""
 
 from __future__ import annotations

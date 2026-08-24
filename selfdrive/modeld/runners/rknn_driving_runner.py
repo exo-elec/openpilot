@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Split RKNN driving runner (bukapilot KA2 / RK3588 architecture).
+"""Split RKNN driving runner (proven external split-RKNN / RK3588 architecture).
 
-Follows ``../bukapilot``'s KA2 modeld: separate ``driving_vision.rknn`` and
-``driving_policy.rknn`` models behind the openpilot driving-runner contract.
-All NPU access goes through the centralized inferenced HAL.
+Follows a proven external modeld reference: separate ``driving_vision.rknn``
+and ``driving_policy.rknn`` models behind the openpilot driving-runner
+contract. All NPU access goes through the centralized inferenced HAL.
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ from openpilot.selfdrive.modeld.runners.driving_runner import (
 class RKNNDrivingRunner(DrivingRunner):
   """Split RKNN driving runner using the centralized HAL.
 
-  Loads the split ``driving_vision`` and ``driving_policy`` models (bukapilot
-  KA2 architecture) and runs them through ``InferenceClient.npu()``. This
+  Loads the split ``driving_vision`` and ``driving_policy`` models (proven
+  external split-RKNN architecture) and runs them through ``InferenceClient.npu()``. This
   preserves the existing modeld behavior while fitting the driving-runner
   contract.
   """
