@@ -1170,3 +1170,63 @@ flagged fresh-clone gap: `msgq.ipc_pyx` Cython extension never rebuilt in
 this dev-PC working tree, unrelated to the fixes above). `gh` CLI auth is
 still pending the user's own device-code completion (`gh auth login`),
 started earlier this session, not yet finished as of this entry.
+
+## Follow-up session (eop10_lint.yaml actually going green, 2026-08-24/25)
+
+The user reported the phone kept showing "Run failed: EOP10 Lint" emails
+for every push all session, including after the requires-python fix above.
+`gh` auth device-code flow kept expiring before completion (tried twice),
+so switched to the public, unauthenticated GitHub Actions API
+(`api.github.com/repos/exo-elec/openpilot/actions/...`) to get real run/job/
+step data without needing a token — this repo is public, so this works and
+should be preferred over blocking on `gh auth login` for read-only CI
+diagnostics going forward. Chased the failure through four more real,
+distinct root causes, verified one at a time against the actual CI run
+(not just local reproduction, which kept missing what CI actually hits):
+
+- [x] **Root cause, not just the Python-version issue**: `eop10_lint.yaml`'s
+  two `actions/checkout@v4` steps never set `submodules: true`, unlike
+  every other real workflow in this repo (`docs.yaml`, `release.yaml`,
+  `selfdrive_tests.yaml`, `prebuilt.yaml`, `repo-maintenance.yaml` all have
+  it). `tinygrad` is a local editable path dependency
+  (`tool.uv.sources`: `{ path = "tinygrad_repo", editable = true }`), so
+  `tinygrad_repo/` checked out empty on every CI run and `uv sync` failed
+  trying to build a package from nothing -- independent of, and unmasked
+  by, the requires-python fix (verified: that commit's own CI run still
+  failed at the same step). `a8927836f1`.
+- [x] Naive `submodules: true` fetches *every* submodule in `.gitmodules`,
+  including large unrelated ones (`third_party/carla`, `arm_compute`,
+  `hailort`, `valhalla`, ...) -- confirmed via the API that the checkout
+  step hung in-progress for 10+ minutes. Replaced with a targeted
+  `git submodule update --init tinygrad_repo` step (verified locally: only
+  fetches that one submodule, leaves the others empty as intended).
+  `a5bed0c22e`.
+- [x] With checkout/deps fixed, the real next failure was `test.sh`'s final
+  pytest step: the RK3588/Rockchip suite needs cereal's compiled
+  `msgq.ipc_pyx` Cython extension, built via `scons` -- which nothing in
+  this bare (non-Docker) runner ever runs, unlike `selfdrive_tests.yaml`
+  which builds inside the `openpilot-base` Docker image first. This step
+  could never have passed here. User direction (asked via AskUserQuestion):
+  drop the pytest step from CI rather than add a full scons build step.
+  Added `test.sh --no-pytest` (default/no-flag behavior unchanged, so the
+  documented local-dev contract in `CLAUDE.md` still holds for anyone with
+  a real build); wired both `eop10_lint.yaml` jobs to pass it. `2c78415032`.
+- [x] Final failure, and a genuine content bug rather than a CI
+  infrastructure issue: `.github/scripts/check_rknn_local.py` (the "RKNN
+  model local-placement check" step) explicitly forbids vendor-branded
+  names ("kommu, KA2, bukapilot, kmini, ...") from public EOP10 source --
+  this session's earlier split-RKNN/eGPU port work left "bukapilot"/"KA2"
+  in comments and docstrings across `modeld.py` and its runners
+  (`rknn_driving_runner.py`, `factory.py`, `egpu_driving_runner.py`,
+  `driving_runner.py`, two test files). This is the check doing its job
+  correctly, not a bug in the check -- reworded all flagged comments to
+  describe the architecture generically ("proven external split-RKNN
+  reference/architecture") instead of naming the vendor, preserving
+  technical meaning. Verified: `check_rknn_local.py` passes clean.
+  `cb2c7156fa`.
+
+Each fix was verified against the *actual* GitHub-hosted CI run via the
+public API before moving to the next -- local reproduction alone had
+already given false confidence once (the requires-python fix tested green
+locally but the real CI run still failed on the submodule issue), so this
+time each commit's own run was checked before considering that layer done.
