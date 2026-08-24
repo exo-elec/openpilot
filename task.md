@@ -1117,3 +1117,56 @@ unverified assumption.
 
 No code changes — this session was documentation reconciliation and
 bandwidth/architecture confirmation only; nothing was found broken.
+
+## Follow-up session (CI/notification audit, 2026-08-24)
+
+Goal: user reported "many lint and github check ... boring in email" and
+asked what else can be improved. Delegated an initial pass to the locally
+installed Kimi Code CLI (`kimi -p`, new this session — see
+`feedback-delegate-to-kimi-cli` memory), then verified and finished its
+leads directly after its background run was interrupted mid-audit.
+
+- [x] `.github/workflows/eop10_lint.yaml`: skip the informational `full`
+  lint job (`continue-on-error: true`, mypy debt tracked separately) on
+  plain pushes — only run it on `pull_request`/`workflow_dispatch`. Halves
+  the per-push notification count. `695a855270`.
+- [x] Found and disabled 5 scheduled workflows (`prebuilt.yaml` hourly,
+  `release.yaml` daily, `repo-maintenance.yaml`/`ci_weekly_report.yaml`
+  weekly, `stale.yaml` daily) that fire independent of any push activity.
+  `origin/master` hasn't moved since 2026-02-14 (real work is all on
+  `dev/EOP10`, 830 commits past the divergence point); 4 of the 5 already
+  guard their jobs with `if: github.repository == 'commaai/openpilot'`, so
+  every scheduled run on this fork was a guaranteed no-op that still fired a
+  notification — the likely dominant source of the reported noise.
+  `stale.yaml` has no such guard and does real issue/PR triage; disabling
+  it per explicit user direction is a real behavior change, not just noise
+  removal — flagged as such in its own comment. All five keep
+  `workflow_dispatch` and only comment out (not delete) the `schedule:`
+  block, so it's a one-line revert. `f85f2039b7`.
+- [x] Found and fixed a real, previously-unnoticed bug while verifying the
+  above: `pyproject.toml`'s `requires-python = ">= 3.10, < 3.13"` doesn't
+  satisfy tinygrad==0.13.0's actual `Python>=3.11` requirement (pinned for
+  the eGPU work). Reproduced the exact failure with the exact command
+  `eop10_lint.yaml`'s install step runs (`uv sync --all-extras --dev` on a
+  pinned Python 3.10 runner) — full dependency resolution failure. This has
+  very likely been failing the EOP10 lint gate's install step on every
+  push/PR since tinygrad was pinned, independent of the two noise fixes
+  above. Fixed: `requires-python` floor bumped 3.10 → 3.11; `uv.lock`
+  regenerated (shrinks significantly — Python-3.10-conditional resolution
+  branches drop out); both `eop10_lint.yaml` jobs' `python-version` bumped
+  3.10 → 3.12 to match the documented deployed `.venv`. Verified locally:
+  `uv sync --all-extras --dev` now succeeds (failed identically to CI
+  before the fix). `e6570aa96a`.
+- [x] Checked the other 3 audit items Kimi's interrupted run hadn't reached:
+  TODO/FIXME/XXX grep across `selfdrive/`/`system/` — all pre-existing
+  upstream comma.ai debt, nothing EOP-specific and actionable beyond the
+  already-tracked `factory.py:118` eGPU gate; dead-link scan across
+  `docs/eop/*.md` — none found, clean.
+
+Known remaining, not acted on: `docs/eop/CODE_QUALITY_LINT_CLEANUP.md`'s
+tracked mypy debt (553 errors/149 files as of last count) — did not attempt
+a fresh count this session (blocked by the same pre-existing, already-
+flagged fresh-clone gap: `msgq.ipc_pyx` Cython extension never rebuilt in
+this dev-PC working tree, unrelated to the fixes above). `gh` CLI auth is
+still pending the user's own device-code completion (`gh auth login`),
+started earlier this session, not yet finished as of this entry.
