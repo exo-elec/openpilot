@@ -26,6 +26,9 @@ from nagaspilot.controls.ngp_brsc import NGPBRSC
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
 from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
+# VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
+# vtsc.py -- no learned-speed DB, no self-calibration. See ngp_vtsc.py.
+from nagaspilot.controls.ngp_vtsc import NGPVTSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -42,6 +45,7 @@ _A_TOTAL_MAX_BP = [20., 40.]
 class NGPFlags:
   BRSC = 2 ** 3
   LC_LEAD_HANDOFF = 2 ** 4
+  VTSC = 2 ** 5
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -101,6 +105,11 @@ class LongitudinalPlanner:
 
     # Lane Change Lead Handoff (pure camera)
     self.lc_handoff = NGPLeadHandoff()
+
+    # VTSC: Vision Turn Speed Control (0-250m advisory)
+    self.vtsc = NGPVTSC(enabled=False)
+    self.vtsc_result = None
+    self.vtsc_v_target = None
 
   @staticmethod
   def parse_model(model_msg):
@@ -190,6 +199,15 @@ class LongitudinalPlanner:
         and self.brsc_result.active and v_ego > BRSC_MIN_V_EGO):
       self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor, BRSC_MIN_SPEED_MS)
       v_cruise = min(v_cruise, self.brsc_v_target)
+
+    # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
+    # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
+    # otherwise, matching TJA/BRSC's "only ever tightens" contract.
+    vtsc_enabled = bool(ngp_flags & NGPFlags.VTSC)
+    self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
+    self.vtsc_v_target = self.vtsc_result.target_speed
+    if self.vtsc_v_target is not None:
+      v_cruise = min(v_cruise, self.vtsc_v_target)
 
     if force_slow_decel:
       v_cruise = 0.0

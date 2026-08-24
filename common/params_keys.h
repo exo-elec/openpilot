@@ -125,6 +125,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // laneChangeStarting (nagaspilot/controls/ngp_lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
     {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
+    // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
+    // using vision-only curvature (nagaspilot/controls/ngp_vtsc.py). Panel
+    // toggle, matching EOP10's EOPVTSCEnabled. Default off.
+    {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"Offroad_CarUnrecognized", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},

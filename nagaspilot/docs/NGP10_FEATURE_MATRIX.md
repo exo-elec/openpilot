@@ -12,6 +12,7 @@
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
 | Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
+| Longitudinal | VTSC (Vision Turn Speed Control, 0-250m advisory) | `nagaspilot/controls/ngp_vtsc.py` → longitudinal planner | Integrated, default off (`ngp_lon_vtsc`), panel toggle in Longitudinal Ctrl section |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
@@ -115,9 +116,10 @@ deliberately not — see below for why:
 (`ngp_dlon.py::update_params()` polls them every 1s) since there's no mode
 param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
 `ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
-`ngp_lon_brsc`) — plus the non-panel `ngp_lon_lc_lead_handoff` — is read once
-at process start (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their
-`while True:` loop) — a change takes effect on the next onroad transition
+`ngp_lon_brsc`, `ngp_lon_vtsc`) — plus the non-panel `ngp_lon_lc_lead_handoff`
+— is read once at process start (`plannerd.py`/`controlsd.py`/`modeld.py`,
+all before their `while True:` loop) — a change takes effect on the next
+onroad transition
 (these are `only_onroad`/car-gated processes in `process_config.py`, so this
 means "next drive," not "reboot the device"), not mid-drive. This matches how
 most openpilot/dragonpilot settings-panel toggles behave (the panel itself is

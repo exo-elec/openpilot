@@ -71,6 +71,11 @@ void NGPPanel::add_longitudinal_toggles() {
          "vertical IMU acceleration. Recovers gradually a few seconds "
          "after the road smooths out."),
     },
+    {
+      "ngp_lon_vtsc",
+      tr("Vision Turn Speed Control (VTSC)"),
+      tr("Slow down for upcoming curves (0-250m) using vision data."),
+    },
   };
 
   QWidget *label = nullptr;

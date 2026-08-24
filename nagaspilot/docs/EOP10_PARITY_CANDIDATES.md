@@ -29,6 +29,7 @@ No action needed.
 | LCA speed threshold | `EOPLatLCASpeed` | `ngp_lat_lca_speed`/`_auto_sec` (via upstream `DesireHelper`) |
 | Road Edge Detection | `EOPLatRoadEdgeDetection` | `ngp_lat_road_edge_detection`, `ngp_road_edge.py` (wired in `modeld.py`) |
 | Lane Change Lead Handoff | `lc_lead_handoff.py`, `EOPLCAdjacentLeadHandoff` (opt-in, no panel toggle) | `ngp_lc_lead_handoff.py` (ported 2026-08-25), `ngp_lon_lc_lead_handoff` — wired into `longitudinal_planner.py` via `NGPFlags.LC_LEAD_HANDOFF`, no panel toggle (matches EOP10) |
+| VTSC (Vision Turn Speed Control, 0-250m) | `vtsc.py`, `EOPVTSCEnabled` (learned-speed DB + self-calibration) | `ngp_vtsc.py` (wired 2026-08-25), `ngp_lon_vtsc` — comma-3-safe vision-only slice (no learned DB/self-calibration, deliberately simpler than EOP10's), wired into `longitudinal_planner.py` via `NGPFlags.VTSC`, panel toggle in `NGPPanel`'s Longitudinal Ctrl section |
 
 Note: EOP10 also has a *separate*, camera-based "Lane Change Assistant (LCA)"
 toggle (`EOPLCAControllerEnabled`, multi-camera blind-spot detection) — don't
@@ -53,7 +54,6 @@ end.
 
 | Feature | EOP10 module | NGP10 module (unwired) | What it'd need on NGP10 |
 |---|---|---|---|
-| VTSC (Vision Turn Speed Control, 0-250m) | `vtsc.py`, `EOPVTSCEnabled` | `ngp_vtsc.py` | Feed `modelV2` curvature into it, apply result via the same `_apply_speed_limit`-style clamp DLON/BRSC already use in `longitudinal_planner.py` |
 | MTSC (Map Turn Speed Control, 250-500m) | `mtsc.py`, `EOPMTSCEnabled` | `ngp_mtsc.py` | Needs OSM curvature data — check whether `mapd`/`mapData` (already subscribed for DLON's speed-limit trigger) carries this, or whether EOP10's `mapd` does something NGP10's doesn't have |
 | Collision-risk advisory | (folded into AEB path) | `ngp_collision.py` — "Advisory collision-risk assessment using normalized radar tracks" | Feed it `radarState`/`liveTracks`; explicitly non-controlling (`control_authority=False`) by design — stock AEB stays the real safety net regardless |
 | Traffic-light/stop-sign approach | `tlsc.py` (needs `stereoObjects` from gridd — **not portable as-is**, see Tier 4) | `ngp_traffic_control.py` — "Non-controlling traffic-light/stop-sign approach proposal" | This is the one Tier-2 item with a real question mark: NGP10's version was written to *not* need stereo, but check what input it actually expects before assuming it's a drop-in replacement for EOP10's TLSC. Partial overlap already exists — NGP10's DLON has its own `detect_traffic_control()` heuristic (stop + no lead + low speed) |
@@ -103,8 +103,8 @@ assumed from the feature name:
 
 ## Suggested order if starting from scratch
 
-1. ~~Lane Change Lead Handoff~~ — done, 2026-08-25 (Tier 1 now): `ngp_lc_lead_handoff.py` ported verbatim (pure `modelV2.leadsV3` logic, unchanged), wired into `longitudinal_planner.py`/`plannerd.py` via `NGPFlags.LC_LEAD_HANDOFF` and `ngp_lon_lc_lead_handoff` (default off, no panel toggle — matches EOP10). 6 unit tests in `nagaspilot/tests/test_ngp_lc_lead_handoff.py`. No on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note.
-2. **VTSC** (Tier 2) — module exists, `modelV2` curvature is already flowing through `longitudinal_planner.py`, same wiring shape as BRSC.
+1. ~~Lane Change Lead Handoff~~ — done, 2026-08-25 (Tier 1 now): `ngp_lc_lead_handoff.py` ported verbatim (pure `modelV2.leadsV3` logic, unchanged), wired into `longitudinal_planner.py`/`plannerd.py` via `NGPFlags.LC_LEAD_HANDOFF` and `ngp_lon_lc_lead_handoff` (default off, no panel toggle — matches EOP10). 9 unit tests in `nagaspilot/tests/test_ngp_lc_lead_handoff.py`. No on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note.
+2. ~~VTSC~~ — done, 2026-08-25 (Tier 1 now): `ngp_vtsc.py` wired into `longitudinal_planner.py`/`plannerd.py` via `NGPFlags.VTSC` and `ngp_lon_vtsc` (default off, panel toggle added to `NGPPanel`'s Longitudinal Ctrl section). Clamps `v_cruise` the same way BRSC does (`min()`), only while the state machine is ENTERING/TURNING. 5 unit tests in `nagaspilot/tests/test_ngp_vtsc.py`. No on-road validation yet.
 3. **Speed-limit enforcement via `ngp_speed_policy.py`** (Tier 2) — real functional gap (DLON's trigger vs. actual clamping), data source (`mapData`/`navInstruction`) already subscribed.
 4. ~~DLAT~~ — done, 2026-08-09 (Tier 1 now): wired into `controlsd.py`, coupled into DLON's AUTO-mode switch, and given a real LCA-initiation-gate effect. See the feature matrix's "DLAT made a real default" note for what was and wasn't validated before shipping (thresholds reused from the module's own existing constants, not newly tuned; no on-road validation yet — same caveat as everything else in this doc's "vehicle actuation still requires HIL" note).
 5. Everything else in Tier 2/3, roughly in the order listed.
