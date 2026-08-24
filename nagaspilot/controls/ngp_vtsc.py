@@ -1,8 +1,14 @@
 """Comma 3-safe Vision Turn Speed Control (VTSC) advisory calculation.
 
-This is the application proving slice of EOP10 VTSC.  It intentionally has no
-Params, cereal, GPS, or actuator integration: callers provide the model arrays
-and receive an observable speed suggestion that cannot change vehicle output.
+This is the application proving slice of EOP10 VTSC. It intentionally has no
+Params, cereal, GPS, or actuator integration of its own: callers provide the
+model arrays and get back a speed suggestion this module never applies
+itself. As of 2026-08-25, longitudinal_planner.py *does* clamp v_cruise to
+this result while ENTERING/TURNING (nagaspilot/docs/EOP10_PARITY_CANDIDATES.md
+Tier 1) -- so target_speed can change vehicle output once wired, the same way
+BRSC's/TJA's results do. This module staying free of Params/cereal/actuator
+access is what keeps it unit-testable in isolation; it is not a claim that
+its output is inert once a caller applies it.
 """
 
 from dataclasses import dataclass

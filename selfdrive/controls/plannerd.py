@@ -17,12 +17,23 @@ def main():
   cloudlog.info("plannerd got CarParams: %s", CP.brand)
 
   ldw = LaneDepartureWarning()
-  longitudinal_planner = LongitudinalPlanner(CP)
+  # Driver preference: constant kph offset applied to the final v_cruise,
+  # matching EOP10's EOPSpeedLimitOffset. Default 0 is a no-op; read once,
+  # matching this branch's other panel/non-panel toggles (see
+  # NGP10_FEATURE_MATRIX.md's "Live vs. next-drive toggles").
+  speed_offset_kph = int(params.get("ngp_lon_speed_offset_kph", return_default=True))
+  longitudinal_planner = LongitudinalPlanner(CP, speed_offset_kph=speed_offset_kph)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
+  # NOTE: 'mapData' is deliberately NOT subscribed here. NGP10 has no MapData
+  # struct/Event field in cereal/log.capnp, no 'mapData' entry in
+  # cereal/services.py, and no process publishes it -- subscribing crashed
+  # SubMaster.__init__ with KeyError('mapData') on cereal.services.SERVICE_LIST
+  # (a prior session ported this from EOP10, which does have the service).
+  # See ngp_dlon.py::detect_speed_limit_trigger()'s docstring.
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'mapData', 'navInstruction', 'accelerometer'],
+                            'navInstruction', 'accelerometer'],
                            poll='modelV2',
-                           ignore_alive=['mapData', 'navInstruction', 'accelerometer'])
+                           ignore_alive=['navInstruction', 'accelerometer'])
 
   # DLON runs unconditionally -- a default, always-on behavior of this
   # branch, not a user-selectable feature.
@@ -31,6 +42,10 @@ def main():
     ngp_flags |= NGPFlags.BRSC
   if params.get_bool("ngp_lon_lc_lead_handoff"):
     ngp_flags |= NGPFlags.LC_LEAD_HANDOFF
+  if params.get_bool("ngp_lon_vtsc"):
+    ngp_flags |= NGPFlags.VTSC
+  if params.get_bool("ngp_lon_nslc"):
+    ngp_flags |= NGPFlags.NSLC
 
   while True:
     sm.update()

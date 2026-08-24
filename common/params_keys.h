@@ -94,6 +94,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
+    // DLP curve assist: pre-emptively force laneless on a predicted tight
+    // curve (NGPDLAT.update_model()'s curve_assist_enabled), ahead of the
+    // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
+    // including its default-on.
+    {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
     // Edge guard: vision-only curvature nudge away from a close, high-
     // confidence road edge. NGP10-only -- not a port of EOP10's red.py
     // (which fuses stereo+YOLO). Unvalidated on road; default off.
@@ -125,6 +130,24 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // laneChangeStarting (nagaspilot/controls/ngp_lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
     {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
+    // NSLC-equivalent: clamp cruise speed to the posted navigation speed
+    // limit (nagaspilot/controls/ngp_speed_policy.py, NAVIGATION policy).
+    // Nav-only -- NGP10 has no map-data source (see
+    // nagaspilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
+    // toggle, matching EOP10's EOPNSLCEnabled. Default off.
+    {"ngp_lon_nslc", {PERSISTENT, BOOL, "0"}},
+    // Driver preference: constant kph offset applied to the final v_cruise
+    // (after all other limits), matching EOP10's EOPSpeedLimitOffset and its
+    // driver_prefs.py::get_speed_with_offset() application point. Default 0
+    // is a no-op, so this needs no separate enable flag. EOP10's
+    // driver_prefs.py also has a following_distance/get_time_gap() concept,
+    // but it's never actually called anywhere in EOP10's own
+    // longitudinal_planner.py -- dead code there too, not ported here.
+    {"ngp_lon_speed_offset_kph", {PERSISTENT, INT, "0"}},
+    // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
+    // using vision-only curvature (nagaspilot/controls/ngp_vtsc.py). Panel
+    // toggle, matching EOP10's EOPVTSCEnabled. Default off.
+    {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"Offroad_CarUnrecognized", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},

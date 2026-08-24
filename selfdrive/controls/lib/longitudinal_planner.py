@@ -26,6 +26,14 @@ from nagaspilot.controls.ngp_brsc import NGPBRSC
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
 from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
+# VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
+# vtsc.py -- no learned-speed DB, no self-calibration. See ngp_vtsc.py.
+from nagaspilot.controls.ngp_vtsc import NGPVTSC
+# NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
+# EOPNSLCEnabled (no panel toggle there either). Nav-only on this branch --
+# NGP10 has no map-data source at all (see EOP10_PARITY_CANDIDATES.md's
+# Tier 2.5 MTSC entry); MSLC is not portable here for the same reason.
+from nagaspilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -42,6 +50,8 @@ _A_TOTAL_MAX_BP = [20., 40.]
 class NGPFlags:
   BRSC = 2 ** 3
   LC_LEAD_HANDOFF = 2 ** 4
+  VTSC = 2 ** 5
+  NSLC = 2 ** 6
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -50,6 +60,34 @@ BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floo
 
 def get_max_accel(v_ego):
   return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
+
+
+# Adaptive acceleration -- merged from FrogPilot via EOP10's identical
+# _apply_adaptive_accel_limit(). Clamps max accel at low speeds and ramps it
+# off near the cruise setpoint for a more natural, less robotic feel.
+# Always-on, no param, no schema change -- pure v_cruise/v_ego math, ported
+# verbatim (EOP10_PARITY_CANDIDATES.md Tier 3).
+ADAPTIVE_ACCEL_CITY_SPEED_LIMIT = 13.9  # m/s (~50 km/h)
+
+
+def _apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: float) -> float:
+  """Reduce max acceleration at low speeds and near cruise speed."""
+  # Low-speed clamp: quarter max at standstill, half at 25 km/h, full at 50 km/h
+  low_speed_limit = np.interp(v_ego, [0.0, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT / 2, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT],
+                               [raw_max_accel / 4, raw_max_accel / 2, raw_max_accel])
+  # Ramp-off near setpoint: reduce accel as we approach cruise speed
+  ramp_off = np.interp(v_cruise - v_ego, [0.0, 1.0, 5.0], [0.0, 0.5, raw_max_accel])
+  return min(raw_max_accel, low_speed_limit, ramp_off)
+
+
+# Driver preference: constant kph offset on v_cruise -- ported from EOP10's
+# driver_prefs.py::get_speed_with_offset(). Only the speed-offset half of
+# that module has a real effect; its following_distance/get_time_gap()
+# concept is never called anywhere in EOP10's own longitudinal_planner.py
+# and isn't ported here (EOP10_PARITY_CANDIDATES.md).
+def _apply_speed_offset(v_cruise: float, offset_kph: float) -> float:
+  return (v_cruise * CV.MS_TO_KPH + offset_kph) * CV.KPH_TO_MS
+
 
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
@@ -70,8 +108,13 @@ def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
 
 
 class LongitudinalPlanner:
-  def __init__(self, CP, init_v=0.0, init_a=0.0, dt=DT_MDL):
+  def __init__(self, CP, init_v=0.0, init_a=0.0, dt=DT_MDL, speed_offset_kph=0):
     self.CP = CP
+    # Driver preference: constant kph offset applied to the final v_cruise,
+    # after all other limits (matches EOP10's driver_prefs.py application
+    # point). Read once by the caller (plannerd.py), not re-read here --
+    # default 0 is a no-op.
+    self.speed_offset_kph = speed_offset_kph
     self.mpc = LongitudinalMpc(dt=dt)
     # TODO remove mpc modes when TR released
     self.mpc.mode = 'acc'
@@ -101,6 +144,17 @@ class LongitudinalPlanner:
 
     # Lane Change Lead Handoff (pure camera)
     self.lc_handoff = NGPLeadHandoff()
+
+    # VTSC: Vision Turn Speed Control (0-250m advisory)
+    self.vtsc = NGPVTSC(enabled=False)
+    self.vtsc_result = None
+    self.vtsc_v_target = None
+
+    # NSLC-equivalent: nav-source speed-limit enforcement (nav-only, see
+    # ngp_speed_policy import comment above for why map isn't an option here).
+    self.speed_policy = NGPSpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
+    self.speed_policy_result = None
+    self.speed_policy_v_target = None
 
   @staticmethod
   def parse_model(model_msg):
@@ -161,7 +215,9 @@ class LongitudinalPlanner:
     prev_accel_constraint = not (reset_state or sm['carState'].standstill)
 
     if mode == 'acc':
-      accel_clip = [ACCEL_MIN, get_max_accel(v_ego)]
+      max_accel = get_max_accel(v_ego)
+      max_accel = _apply_adaptive_accel_limit(max_accel, v_cruise, v_ego)
+      accel_clip = [ACCEL_MIN, max_accel]
       steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
       accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP)
     else:
@@ -191,8 +247,60 @@ class LongitudinalPlanner:
       self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor, BRSC_MIN_SPEED_MS)
       v_cruise = min(v_cruise, self.brsc_v_target)
 
+    # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
+    # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
+    # otherwise, matching TJA/BRSC's "only ever tightens" contract. No speed
+    # floor here -- checked against EOP10's own application site
+    # (longitudinal_planner.py's `if self.vtsc_v_target < v_cruise: v_cruise =
+    # self.vtsc_v_target`), which has none either; this matches parity rather
+    # than being a gap relative to it.
+    vtsc_enabled = bool(ngp_flags & NGPFlags.VTSC)
+    self.vtsc_v_target = None
+    if sm.valid.get('modelV2', False):
+      self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
+      self.vtsc_v_target = self.vtsc_result.target_speed
+      if self.vtsc_v_target is not None:
+        v_cruise = min(v_cruise, self.vtsc_v_target)
+
+    # NSLC-equivalent: clamp v_cruise to the posted nav speed limit.
+    # ngp_speed_policy.py's evaluate() never applies anything itself (it's a
+    # pure resolver, like ngp_vtsc.py/ngp_mtsc.py); this is the one place
+    # that acts on its suggestion. Uses min(v_cruise, target) rather than
+    # evaluate()'s own suggested_cruise_mps, matching BRSC/VTSC's idiom
+    # exactly -- decouples this call site from how evaluate() recomputes its
+    # own copy of v_cruise internally (same result today since v_cruise is
+    # always >= 0 here, but this avoids relying on that staying true).
+    # Asymmetry vs. EOP10's MSLC/NSLC, noted rather than hidden: this is a
+    # hard, instant, undebounced clamp on 1 Hz nav data -- no
+    # driver_overriding concept, no offset, and no SpeedLimitConfirmation
+    # (EOP10's nslc.py gates limit *changes* on driver confirmation; this
+    # doesn't). Default off, opt-in, so this isn't a surprise until enabled.
+    nslc_enabled = bool(ngp_flags & NGPFlags.NSLC)
+    self.speed_policy_v_target = None
+    if nslc_enabled and sm.valid.get('navInstruction', False):
+      nav_limit = sm['navInstruction'].speedLimit  # m/s
+      observations = (SpeedLimitObservation(source=SpeedLimitSource.NAVIGATION, limit_mps=float(nav_limit)),) if nav_limit > 0 else ()
+      self.speed_policy_result = self.speed_policy.evaluate(v_ego, v_cruise, observations)
+      self.speed_policy_v_target = self.speed_policy_result.resolved_limit_mps
+      if self.speed_policy_v_target is not None:
+        v_cruise = min(v_cruise, self.speed_policy_v_target)
+
     if force_slow_decel:
       v_cruise = 0.0
+
+    # Driver preference: constant kph offset on the final v_cruise. Applied
+    # last, matching EOP10's own placement (driver_prefs.py's application
+    # site is the last v_cruise adjustment before mpc.set_weights there too).
+    # Deliberate divergence from EOP10: EOP10 applies the offset
+    # unconditionally, so a positive offset can add speed back on top of a
+    # force_slow_decel zero -- verified by tracing EOP10's v_cruise clamps
+    # between the two sites, none of which re-raise v_cruise once zeroed.
+    # force_slow_decel is set by selfdrived for driver-distraction/escalation
+    # events; a user-set positive offset must not undo that here, so the
+    # offset is skipped while force_slow_decel is active. Default 0 makes
+    # this a no-op for anyone who hasn't set the param either way.
+    if self.speed_offset_kph and not force_slow_decel:
+      v_cruise = _apply_speed_offset(v_cruise, self.speed_offset_kph)
 
     self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)

@@ -57,3 +57,23 @@ def test_mtsc_ignores_out_of_range_and_disable():
   mtsc = NGPMTSC()
   assert mtsc.update([(100.0, 0.1), (600.0, 0.1)]).state is MTSCState.DISABLED
   assert NGPMTSC(enabled=False).update([(300.0, 0.03)]).target_speed is None
+
+
+def test_speed_limit_trigger_is_nav_only():
+  """No 'mapData' source exists on NGP10 (see EOP10_PARITY_CANDIDATES.md's
+  Tier 2.5 entry) -- detect_speed_limit_trigger() must work from
+  navInstruction alone."""
+  dlon = NGPDLON()
+  sm = make_dlon_sm(v_ego=30.0)
+
+  # No navInstruction data at all -- no trigger.
+  assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
+
+  # navInstruction present but limit not meaningfully below v_ego -- no trigger.
+  sm.valid["navInstruction"] = True
+  sm["navInstruction"] = SimpleNamespace(speedLimit=29.0)
+  assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
+
+  # navInstruction limit meaningfully below v_ego -- triggers.
+  sm["navInstruction"] = SimpleNamespace(speedLimit=20.0)
+  assert dlon.detect_speed_limit_trigger(sm, v_ego=30.0)

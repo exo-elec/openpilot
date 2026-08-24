@@ -10,7 +10,6 @@ selection and force-stop policy while using NGP-owned names and dependencies.
 import time
 from enum import Enum
 from openpilot.common.realtime import DT_MDL
-from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
 # SmoothEMA is kept local so the NGP port has no EOP runtime dependency.
@@ -303,16 +302,25 @@ class NGPDLON:
     return False
 
   def detect_speed_limit_trigger(self, sm, v_ego) -> bool:
-    """Detect an active mapped/nav speed limit meaningfully lower than
-    current speed — E2E's smoother deceleration profile handles the
-    transition better than stock ACC. Same map-then-nav source preference
-    and unit handling as EOP10's nslc.py NSLC.update()."""
+    """Detect an active nav speed limit meaningfully lower than current
+    speed — E2E's smoother deceleration profile handles the transition
+    better than stock ACC.
+
+    NGP10 has no map-source speed limit: unlike EOP10, this branch's
+    log.capnp has no MapData struct/Event field and no service named
+    'mapData' is registered in cereal/services.py, and no process on this
+    branch publishes one (confirmed 2026-08-25: no mapd-equivalent in
+    process_config.py, no PubMaster('mapData') anywhere in the tree). A
+    prior session's map-then-nav port from EOP10's nslc.py subscribed to
+    'mapData' anyway, which made plannerd.py's SubMaster(...) construction
+    raise KeyError on cereal.services.SERVICE_LIST['mapData'] at startup --
+    this method's own map branch was unreachable dead code, guarded by
+    `sm.valid` so it never itself crashed, but the crash happened one layer
+    up before this method could ever run. Nav-only until NGP10 gets a real
+    map-data source; see nagaspilot/docs/EOP10_PARITY_CANDIDATES.md's MTSC
+    entry, which has the same gap."""
     limit_ms = None
-    if 'mapData' in sm.valid and sm.valid['mapData']:
-      map_limit = sm['mapData'].speedLimit  # km/h
-      if map_limit > 0:
-        limit_ms = map_limit * CV.KPH_TO_MS
-    if limit_ms is None and 'navInstruction' in sm.valid and sm.valid['navInstruction']:
+    if 'navInstruction' in sm.valid and sm.valid['navInstruction']:
       nav_limit = sm['navInstruction'].speedLimit  # m/s
       if nav_limit > 0:
         limit_ms = nav_limit

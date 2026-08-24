@@ -17,6 +17,11 @@ void NGPPanel::add_lateral_toggles() {
       tr("Road Edge Detection (RED)"),
       tr("Block lane change assist when the system detects the road edge.\nNOTE: This will show 'Car Detected in Blindspot' warning.")
     },
+    {
+      "ngp_lat_dlp_curves",
+      tr("Curve Assist (DLP)"),
+      tr("Switch to laneless mode pre-emptively for tight curves."),
+    },
   };
   // Default values below match the registered defaults in common/params_keys.h
   // (ngp_lat_lca_speed=20, ngp_lat_lca_auto_sec=0.0) -- Params::get() has no
@@ -70,6 +75,11 @@ void NGPPanel::add_longitudinal_toggles() {
       tr("Reduce speed and acceleration on rough pavement, detected from "
          "vertical IMU acceleration. Recovers gradually a few seconds "
          "after the road smooths out."),
+    },
+    {
+      "ngp_lon_vtsc",
+      tr("Vision Turn Speed Control (VTSC)"),
+      tr("Slow down for upcoming curves (0-250m) using vision data."),
     },
   };
 

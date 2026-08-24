@@ -48,11 +48,66 @@ def test_v010_model_adapter_uses_position_schema():
   assert result.suggestion is DLATSuggestion.LANEFUL
 
 
-def test_model_adapter_reports_curve_without_controlling():
-  dlat = NGPDLAT(enter_frames=1)
+def test_model_adapter_curve_assist_forces_laneless_by_default():
+  """DLP curve assist (ngp_lat_dlp_curves, default on) pre-emptively forces
+  laneless on a predicted tight curve, bypassing the hysteresis frame
+  counters entirely -- unlike ordinary low-confidence switching, one frame
+  is enough."""
+  dlat = NGPDLAT(enter_frames=20)  # would NOT be enough via ordinary hysteresis
   result = dlat.update_model(model_sample(yaw_rate=1.2), v_ego=20.0)
   assert result.curve_detected
+  assert result.suggestion is DLATSuggestion.LANELESS
+
+
+def test_model_adapter_curve_assist_disabled_reports_without_controlling():
+  """curve_assist_enabled=False (ngp_lat_dlp_curves off) must still report
+  curve_detected for logging/replay -- deliberately different from EOP10's
+  _predict_curve(), which returns False outright when its own toggle is off
+  and therefore never reports detection at all -- but must not force a
+  switch."""
+  dlat = NGPDLAT(enter_frames=20)
+  result = dlat.update_model(model_sample(yaw_rate=1.2), v_ego=20.0, curve_assist_enabled=False)
+  assert result.curve_detected
   assert result.suggestion is DLATSuggestion.LANEFUL
+
+
+def test_force_laneless_bypasses_enter_hysteresis():
+  dlat = NGPDLAT(enter_frames=20, exit_frames=2)
+  # Build up low-confidence frames short of the enter threshold.
+  dlat.update([0.0, 0.0, 0.0, 0.0])
+  dlat.update([0.0, 0.0, 0.0, 0.0])
+  assert dlat.suggestion is DLATSuggestion.LANEFUL
+  # Force switches immediately even on a single, high-confidence frame --
+  # entry doesn't wait for the ordinary low-confidence frame count.
+  assert dlat.update([0.9, 0.9, 0.9, 0.9], force_laneless=True) is DLATSuggestion.LANELESS
+
+
+def test_force_laneless_does_not_block_exit_accumulation():
+  """After a forced entry, continued high-confidence frames -- with no more
+  forcing -- must accumulate toward the ordinary exit normally, not restart
+  from zero. This is what a curve genuinely ending looks like."""
+  dlat = NGPDLAT(enter_frames=1, exit_frames=2)
+  dlat.update([0.0, 0.0, 0.0, 0.0], force_laneless=True)
+  assert dlat.suggestion is DLATSuggestion.LANELESS
+  assert dlat.update([0.9, 0.9, 0.9, 0.9]) is DLATSuggestion.LANELESS  # 1 of 2 exit_frames
+  assert dlat.update([0.9, 0.9, 0.9, 0.9]) is DLATSuggestion.LANEFUL  # 2 of 2 -- exits
+
+
+def test_sustained_forced_curve_does_not_latch_if_confidence_recovers():
+  """EOP10's own DLATState.laneless branch checks lane confidence and
+  elapsed time only -- it ignores curve_detected/force_laneless entirely
+  once already in laneless. So a long, gentle, well-marked curve (confidence
+  high the whole time, force_laneless also true the whole time) must still
+  exit once enough high-confidence frames accumulate, rather than latching
+  laneless until curve_detected itself goes False."""
+  dlat = NGPDLAT(enter_frames=1, exit_frames=5)
+  dlat.update([0.0, 0.0, 0.0, 0.0], force_laneless=True)
+  assert dlat.suggestion is DLATSuggestion.LANELESS
+  for _ in range(4):
+    dlat.update([0.9, 0.9, 0.9, 0.9], force_laneless=True)
+  assert dlat.suggestion is DLATSuggestion.LANELESS  # only 4 of 5 exit_frames so far
+  # 5th consecutive high-confidence frame, forcing still active -- must exit anyway.
+  assert dlat.update([0.9, 0.9, 0.9, 0.9], force_laneless=True) is DLATSuggestion.LANEFUL
 
 
 def test_missing_model_stays_neutral_and_laneful():

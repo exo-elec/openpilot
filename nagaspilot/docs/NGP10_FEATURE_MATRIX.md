@@ -4,6 +4,7 @@
 |---|---|---|---|
 | Longitudinal | DLON | `nagaspilot/controls/ngp_dlon.py` → longitudinal planner | Integrated, always-on automatic (no user-selectable mode) |
 | Lateral | DLAT | `nagaspilot/controls/ngp_dlat.py` → `controlsd.py` | Integrated, advisory (non-controlling), always-on automatic |
+| Lateral | DLP curve assist (pre-emptive laneless on predicted tight curve) | `NGPDLAT.update_model(curve_assist_enabled=...)` → `controlsd.py` | Integrated 2026-08-25, default on (`ngp_lat_dlp_curves`), panel toggle in Lateral Ctrl section. Forces laneless immediately (bypasses DLAT's hysteresis frame-counters), same as EOP10's `_predict_curve`/`force_laneless` |
 | Longitudinal | TJA gap/cut-in gate | `nagaspilot/controls/ngp_tja.py` → longitudinal planner | Integrated |
 | Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
 | Longitudinal | BRSC (Bumpy Road Speed Controller, vertical-IMU roughness) | `nagaspilot/controls/ngp_brsc.py` (pure policy, byte-identical across branches) → longitudinal planner | Integrated, default on (`ngp_lon_brsc`) |
@@ -12,6 +13,10 @@
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
 | Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
+| Longitudinal | VTSC (Vision Turn Speed Control, 0-250m advisory) | `nagaspilot/controls/ngp_vtsc.py` → longitudinal planner | Integrated, default off (`ngp_lon_vtsc`), panel toggle in Longitudinal Ctrl section |
+| Longitudinal | NSLC-equivalent (nav-source speed-limit enforcement) | `nagaspilot/controls/ngp_speed_policy.py` → longitudinal planner | Wired, default off (`ngp_lon_nslc`), no panel toggle (matches EOP10's `EOPNSLCEnabled`). **Verified 2026-08-25: currently inert on any real comma-3.** Its only input, `navInstruction`, has no publisher anywhere on this branch — `navd` isn't a registered process and doesn't exist as source (only stale `.mypy_cache` remains). This isn't an NGP10 gap to close: upstream comma removed in-car navigation from openpilot entirely in 2024 (commaai/openpilot commit `3b8ed67aa3`, "remove navigation"), so `navInstruction`/`navRoute` are vestigial capnp fields with no current or planned publisher on stock comma-3 hardware. The subscription is safe (`ignore_alive`, `sm.valid.get(...)` guard — same fail-safe pattern used elsewhere), so this never crashes or misfires, it just never fires. See `EOP10_PARITY_CANDIDATES.md` |
+| Longitudinal | Adaptive acceleration limit (low-speed clamp + cruise-setpoint ramp-off) | `_apply_adaptive_accel_limit()` in `longitudinal_planner.py` | Integrated, always-on, no param (ported verbatim from EOP10, itself merged from FrogPilot). Only takes effect in DLON's `acc` mode — `blended` (E2E) mode uses `accel_clip = [ACCEL_MIN, ACCEL_MAX]` unmodified, so how often this actually applies depends on how often DLON picks `acc`, which hasn't been measured on this branch |
+| Longitudinal | Driver preference speed offset | `_apply_speed_offset()` in `longitudinal_planner.py` | Integrated, default 0 (no-op) via `ngp_lon_speed_offset_kph`, no panel toggle (matches EOP10's `EOPSpeedLimitOffset`). Applied last, but skipped while `force_slow_decel` is active — deliberate divergence from EOP10, which has no such guard; see EOP10_PARITY_CANDIDATES.md |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
@@ -20,13 +25,26 @@
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
 
-**Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`,
-`ngp_collision.py`, `ngp_road_condition.py`, `ngp_traffic_control.py`,
-`ngp_speed_policy.py`, `ngp_radar.py`, `ngp_alcc.py`, `ngp_lca.py`,
-`selfdrive/adaptd/ngp_profile.py`) are deliberately not listed as
-"Integrated" above — see `EOP10_PARITY_CANDIDATES.md` in this same directory
-for the full EOP10-vs-NGP10 comparison, portability assessment per feature,
-and a suggested wiring order.
+**2026-08-08 to 2026-08-25, `plannerd` could not start at all** (`SubMaster.__init__`
+raised `KeyError('mapData')` — see the "Correction (2026-08-25)" note further down).
+Every row above whose runtime path is "longitudinal planner" (DLON, TJA, BRSC,
+Lane Change Lead Handoff, VTSC) ran through that same process and therefore never
+executed on this branch during that window, not just "unvalidated on road" —
+`longitudinalPlan` itself was never published. Fixed 2026-08-25; still no on-road
+validation of any of them as of this fix.
+
+**Written-but-unwired modules** (`ngp_mtsc.py`, `ngp_collision.py`,
+`ngp_road_condition.py`, `ngp_traffic_control.py`, `ngp_radar.py`,
+`ngp_alcc.py`, `ngp_lca.py`, `selfdrive/adaptd/ngp_profile.py`) are
+deliberately not listed as "Integrated" above — see
+`EOP10_PARITY_CANDIDATES.md` in this same directory for the full
+EOP10-vs-NGP10 comparison, portability assessment per feature, and current
+status. `ngp_vtsc.py` and `ngp_speed_policy.py` were removed from this list
+2026-08-25 — both wired this session (see the VTSC and NSLC-equivalent rows
+above). `selfdrive/adaptd/ngp_profile.py` differs from the rest of this
+list: it isn't just unwired, both its input source (vehicle
+telemetry/OBD-BLE pipeline) and its consumer are entirely absent from this
+branch — see `EOP10_PARITY_CANDIDATES.md`'s Tier 2.5 entry.
 
 **BRSC note (2026-08-04):** the pure policy module was ported first (commit
 `822986441`), then this worktree's pre-existing uncommitted `ngp_*` →
@@ -90,18 +108,26 @@ deliberately not — see below for why:
   Root cause was that the trigger itself had never been implemented, not
   that the toggle was meant to be permanently inert. Implemented the real
   trigger the same day: `detect_speed_limit_trigger()` in `ngp_dlon.py`
-  reads `mapData.speedLimit` (km/h, preferred) falling back to
-  `navInstruction.speedLimit` (m/s) — same source preference and unit
-  handling as `dev/EOP10`'s `nslc.py` — and fires when that limit is more
+  reads `navInstruction.speedLimit` (m/s) and fires when that limit is more
   than `SPEED_LIMIT_TRIGGER_MARGIN_MS` (2 m/s) below current speed, on the
   theory that E2E's smoother deceleration profile handles the transition
   into a lower posted limit better than stock ACC (same rationale as the
   existing `navigation` trigger, which uses `navInstruction.maneuverDistance`
-  for the analogous "upcoming route event" case). `plannerd.py`'s
-  `SubMaster` gained a `mapData` subscription (was missing entirely) and
-  `navInstruction` moved into `ignore_alive` (both optional/intermittent
-  services, matching EOP10's existing pattern) so the new trigger actually
-  has data to read.
+  for the analogous "upcoming route event" case).
+  **Correction (2026-08-25):** the original version of this entry also had
+  `detect_speed_limit_trigger()` reading `mapData.speedLimit` (km/h,
+  preferred over nav) to match `dev/EOP10`'s `nslc.py` source preference, and
+  had `plannerd.py`'s `SubMaster` subscribe to `'mapData'`. That subscription
+  crashed: NGP10's `cereal/log.capnp` has no `MapData` struct/Event field and
+  `cereal/services.py` has no `'mapData'` entry (EOP10 has both), so
+  `SubMaster.__init__`'s `SERVICE_LIST[s]` lookup raised `KeyError('mapData')`
+  on every `plannerd` start — confirmed by reproducing the lookup directly
+  and by confirming no process anywhere in this tree publishes `mapData`.
+  Fixed by dropping the `mapData` subscription and the map branch entirely;
+  `detect_speed_limit_trigger()` is nav-only until NGP10 gets a real
+  map-data source. This also answers `EOP10_PARITY_CANDIDATES.md`'s MTSC
+  entry's open question about whether `mapData` carries OSM curvature data —
+  it doesn't exist on this branch at all, so MTSC has moved out of Tier 2.
   TJA has no backing param on
   any branch (always active, not user-toggleable), so it was never a panel
   candidate.
@@ -115,9 +141,10 @@ deliberately not — see below for why:
 (`ngp_dlon.py::update_params()` polls them every 1s) since there's no mode
 param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
 `ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
-`ngp_lon_brsc`) — plus the non-panel `ngp_lon_lc_lead_handoff` — is read once
-at process start (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their
-`while True:` loop) — a change takes effect on the next onroad transition
+`ngp_lat_dlp_curves`, `ngp_lon_brsc`, `ngp_lon_vtsc`) — plus the non-panel
+`ngp_lon_lc_lead_handoff` and `ngp_lon_nslc` — is read once at process start
+(`plannerd.py`/`controlsd.py`/`modeld.py`, all before their `while True:`
+loop) — a change takes effect on the next onroad transition
 (these are `only_onroad`/car-gated processes in `process_config.py`, so this
 means "next drive," not "reboot the device"), not mid-drive. This matches how
 most openpilot/dragonpilot settings-panel toggles behave (the panel itself is
