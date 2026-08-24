@@ -289,6 +289,15 @@ enough; admission must account for transfer time, queued execution and frame age
 - Sustained USB 3.0 Gen1, thermal and multi-workload soak tests on RK3588 hardware.
 - Replay/HIL/closed-course gates before any external driving result gains authority.
 
+## 3D reconstruction on the eGPU (2026-08-24)
+
+Researched separately — see `EGPU_3D_RECONSTRUCTION_BANDWIDTH.md`. Short
+version: don't re-upload a stereo camera pair to the eGPU for this;
+`stereod`/`gridd` already do 3D reconstruction locally on RK3588 for free.
+If the eGPU's extra compute is ever genuinely needed, derive it from the
+driving model's own already-resident feature tensor (zero extra input
+bandwidth) rather than a second camera stream.
+
 ## Upstream references
 
 - [openpilot 0.11.2 release notes](https://github.com/commaai/openpilot/blob/master/RELEASES.md)

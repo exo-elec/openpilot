@@ -160,3 +160,10 @@ enabling these additional models together.
 
 Tinygrad v0.13 requires Python 3.11 or newer; EOP's deployed `.venv` is Python
 3.12. System Python 3.10 is not a supported launcher for this path.
+
+**Real sustained-throughput numbers for this budget** (not the 500 MB/s
+nominal link rate): researched in `EGPU_3D_RECONSTRUCTION_BANDWIDTH.md` while
+evaluating a proposed 3D-reconstruction eGPU path — realistic USB 3.0 Gen1
+ceiling is ~300–400 MB/s, and tinygrad's own bulk-DMA path measures ~700 MB/s
+at Gen2 (10 Gbps), i.e. ~350 MB/s at our Gen1 link. Budget against that
+number, not the link's nominal rate.
