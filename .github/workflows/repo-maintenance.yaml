@@ -1,8 +1,12 @@
 name: repo maintenance
 
 on:
-  schedule:
-    - cron: "0 14 * * 1" # every Monday at 2am UTC (6am PST)
+  # Disabled: these jobs already no-op via `if: github.repository ==
+  # 'commaai/openpilot'` on this fork, and origin/master hasn't moved since
+  # 2026-02-14 -- real work happens on dev/EOP10. A weekly schedule that
+  # always skips was pure notification noise. Still runnable manually.
+  # schedule:
+  #   - cron: "0 14 * * 1" # every Monday at 2am UTC (6am PST)
   workflow_dispatch:
 
 env:
