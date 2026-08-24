@@ -26,7 +26,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
+
+      - name: Init tinygrad submodule only
+        # `submodules: true` above would fetch every submodule in
+        # .gitmodules, including large unrelated ones (third_party/carla,
+        # arm_compute, hailort, valhalla, ...). tinygrad_repo is the only
+        # one this job actually needs (pyproject.toml's tool.uv.sources
+        # declares tinygrad as a local editable path dependency there).
+        run: git submodule update --init tinygrad_repo
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,7 +69,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
+
+      - name: Init tinygrad submodule only
+        # `submodules: true` above would fetch every submodule in
+        # .gitmodules, including large unrelated ones (third_party/carla,
+        # arm_compute, hailort, valhalla, ...). tinygrad_repo is the only
+        # one this job actually needs (pyproject.toml's tool.uv.sources
+        # declares tinygrad as a local editable path dependency there).
+        run: git submodule update --init tinygrad_repo
 
       - name: Set up Python
         uses: actions/setup-python@v5
