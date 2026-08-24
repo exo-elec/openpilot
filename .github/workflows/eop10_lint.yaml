@@ -42,7 +42,10 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run focused gate
-        run: uv run ./test.sh
+        # --no-pytest: this bare runner has no scons build step, so cereal's
+        # compiled msgq.ipc_pyx extension the RK3588/Rockchip pytest suite
+        # needs doesn't exist here. ruff + shebang checks below don't need it.
+        run: uv run ./test.sh --no-pytest
 
       - name: RKNN model local-placement check
         run: python3 .github/scripts/check_rknn_local.py
@@ -75,4 +78,4 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run full lint gate
-        run: uv run ./test.sh --full
+        run: uv run ./test.sh --full --no-pytest

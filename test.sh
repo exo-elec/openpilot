@@ -20,6 +20,22 @@ if [ "${1:-}" = "--full" ]; then
   shift
 fi
 
+# --no-pytest: skip the RK3588/Rockchip pytest step, which needs cereal's
+# compiled msgq.ipc_pyx Cython extension (built via `scons`, not by this
+# script). Bare CI runners without a scons build step can't pass that step;
+# ruff + shebang checks below don't need it. Local/full dev environments
+# should keep using the default (no flag) so this step still runs there.
+NO_PYTEST=0
+args=()
+for arg in "$@"; do
+  if [ "$arg" = "--no-pytest" ]; then
+    NO_PYTEST=1
+  else
+    args+=("$arg")
+  fi
+done
+set -- "${args[@]}"
+
 echo "==> Running focused ruff checks"
 ruff check \
   system/hardware/rk3588 \
@@ -48,10 +64,14 @@ if [ "$FULL" -eq 1 ]; then
   bash scripts/lint/lint.sh "$@"
 fi
 
-echo "==> Running RK3588 host-side tests"
-python3 -m pytest \
-  system/hardware/rk3588/tests/test_rk3588.py \
-  system/hardware/rockchip/tests/test_rockchip.py \
-  -v
+if [ "$NO_PYTEST" -eq 1 ]; then
+  echo "==> Skipping RK3588 host-side tests (--no-pytest)"
+else
+  echo "==> Running RK3588 host-side tests"
+  python3 -m pytest \
+    system/hardware/rk3588/tests/test_rk3588.py \
+    system/hardware/rockchip/tests/test_rockchip.py \
+    -v
+fi
 
 echo "==> All checks passed"
