@@ -125,6 +125,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // laneChangeStarting (nagaspilot/controls/ngp_lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
     {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
+    // NSLC-equivalent: clamp cruise speed to the posted navigation speed
+    // limit (nagaspilot/controls/ngp_speed_policy.py, NAVIGATION policy).
+    // Nav-only -- NGP10 has no map-data source (see
+    // nagaspilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
+    // toggle, matching EOP10's EOPNSLCEnabled. Default off.
+    {"ngp_lon_nslc", {PERSISTENT, BOOL, "0"}},
     // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
     // using vision-only curvature (nagaspilot/controls/ngp_vtsc.py). Panel
     // toggle, matching EOP10's EOPVTSCEnabled. Default off.

@@ -29,6 +29,11 @@ from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
 # VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
 # vtsc.py -- no learned-speed DB, no self-calibration. See ngp_vtsc.py.
 from nagaspilot.controls.ngp_vtsc import NGPVTSC
+# NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
+# EOPNSLCEnabled (no panel toggle there either). Nav-only on this branch --
+# NGP10 has no map-data source at all (see EOP10_PARITY_CANDIDATES.md's
+# Tier 2.5 MTSC entry); MSLC is not portable here for the same reason.
+from nagaspilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -46,6 +51,7 @@ class NGPFlags:
   BRSC = 2 ** 3
   LC_LEAD_HANDOFF = 2 ** 4
   VTSC = 2 ** 5
+  NSLC = 2 ** 6
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -110,6 +116,12 @@ class LongitudinalPlanner:
     self.vtsc = NGPVTSC(enabled=False)
     self.vtsc_result = None
     self.vtsc_v_target = None
+
+    # NSLC-equivalent: nav-source speed-limit enforcement (nav-only, see
+    # ngp_speed_policy import comment above for why map isn't an option here).
+    self.speed_policy = NGPSpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
+    self.speed_policy_result = None
+    self.speed_policy_v_target = None
 
   @staticmethod
   def parse_model(model_msg):
@@ -214,6 +226,29 @@ class LongitudinalPlanner:
       self.vtsc_v_target = self.vtsc_result.target_speed
       if self.vtsc_v_target is not None:
         v_cruise = min(v_cruise, self.vtsc_v_target)
+
+    # NSLC-equivalent: clamp v_cruise to the posted nav speed limit.
+    # ngp_speed_policy.py's evaluate() never applies anything itself (it's a
+    # pure resolver, like ngp_vtsc.py/ngp_mtsc.py); this is the one place
+    # that acts on its suggestion. Uses min(v_cruise, target) rather than
+    # evaluate()'s own suggested_cruise_mps, matching BRSC/VTSC's idiom
+    # exactly -- decouples this call site from how evaluate() recomputes its
+    # own copy of v_cruise internally (same result today since v_cruise is
+    # always >= 0 here, but this avoids relying on that staying true).
+    # Asymmetry vs. EOP10's MSLC/NSLC, noted rather than hidden: this is a
+    # hard, instant, undebounced clamp on 1 Hz nav data -- no
+    # driver_overriding concept, no offset, and no SpeedLimitConfirmation
+    # (EOP10's nslc.py gates limit *changes* on driver confirmation; this
+    # doesn't). Default off, opt-in, so this isn't a surprise until enabled.
+    nslc_enabled = bool(ngp_flags & NGPFlags.NSLC)
+    self.speed_policy_v_target = None
+    if nslc_enabled and sm.valid.get('navInstruction', False):
+      nav_limit = sm['navInstruction'].speedLimit  # m/s
+      observations = (SpeedLimitObservation(source=SpeedLimitSource.NAVIGATION, limit_mps=float(nav_limit)),) if nav_limit > 0 else ()
+      self.speed_policy_result = self.speed_policy.evaluate(v_ego, v_cruise, observations)
+      self.speed_policy_v_target = self.speed_policy_result.resolved_limit_mps
+      if self.speed_policy_v_target is not None:
+        v_cruise = min(v_cruise, self.speed_policy_v_target)
 
     if force_slow_decel:
       v_cruise = 0.0

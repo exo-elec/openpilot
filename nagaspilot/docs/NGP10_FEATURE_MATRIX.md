@@ -13,6 +13,7 @@
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
 | Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
 | Longitudinal | VTSC (Vision Turn Speed Control, 0-250m advisory) | `nagaspilot/controls/ngp_vtsc.py` → longitudinal planner | Integrated, default off (`ngp_lon_vtsc`), panel toggle in Longitudinal Ctrl section |
+| Longitudinal | NSLC-equivalent (nav-source speed-limit enforcement) | `nagaspilot/controls/ngp_speed_policy.py` → longitudinal planner | Integrated, default off (`ngp_lon_nslc`), no panel toggle (matches EOP10's `EOPNSLCEnabled`). Nav-only — no map source on this branch, no driver-confirmation debounce on limit changes (see `EOP10_PARITY_CANDIDATES.md`) |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
@@ -133,9 +134,9 @@ deliberately not — see below for why:
 param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
 `ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
 `ngp_lon_brsc`, `ngp_lon_vtsc`) — plus the non-panel `ngp_lon_lc_lead_handoff`
-— is read once at process start (`plannerd.py`/`controlsd.py`/`modeld.py`,
-all before their `while True:` loop) — a change takes effect on the next
-onroad transition
+and `ngp_lon_nslc` — is read once at process start
+(`plannerd.py`/`controlsd.py`/`modeld.py`, all before their `while True:`
+loop) — a change takes effect on the next onroad transition
 (these are `only_onroad`/car-gated processes in `process_config.py`, so this
 means "next drive," not "reboot the device"), not mid-drive. This matches how
 most openpilot/dragonpilot settings-panel toggles behave (the panel itself is

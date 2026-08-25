@@ -39,6 +39,8 @@ def main():
     ngp_flags |= NGPFlags.LC_LEAD_HANDOFF
   if params.get_bool("ngp_lon_vtsc"):
     ngp_flags |= NGPFlags.VTSC
+  if params.get_bool("ngp_lon_nslc"):
+    ngp_flags |= NGPFlags.NSLC
 
   while True:
     sm.update()
