@@ -80,6 +80,15 @@ def _apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: fl
   return min(raw_max_accel, low_speed_limit, ramp_off)
 
 
+# Driver preference: constant kph offset on v_cruise -- ported from EOP10's
+# driver_prefs.py::get_speed_with_offset(). Only the speed-offset half of
+# that module has a real effect; its following_distance/get_time_gap()
+# concept is never called anywhere in EOP10's own longitudinal_planner.py
+# and isn't ported here (EOP10_PARITY_CANDIDATES.md).
+def _apply_speed_offset(v_cruise: float, offset_kph: float) -> float:
+  return (v_cruise * CV.MS_TO_KPH + offset_kph) * CV.KPH_TO_MS
+
+
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
 
@@ -99,8 +108,13 @@ def limit_accel_in_turns(v_ego, angle_steers, a_target, CP):
 
 
 class LongitudinalPlanner:
-  def __init__(self, CP, init_v=0.0, init_a=0.0, dt=DT_MDL):
+  def __init__(self, CP, init_v=0.0, init_a=0.0, dt=DT_MDL, speed_offset_kph=0):
     self.CP = CP
+    # Driver preference: constant kph offset applied to the final v_cruise,
+    # after all other limits (matches EOP10's driver_prefs.py application
+    # point). Read once by the caller (plannerd.py), not re-read here --
+    # default 0 is a no-op.
+    self.speed_offset_kph = speed_offset_kph
     self.mpc = LongitudinalMpc(dt=dt)
     # TODO remove mpc modes when TR released
     self.mpc.mode = 'acc'
@@ -273,6 +287,20 @@ class LongitudinalPlanner:
 
     if force_slow_decel:
       v_cruise = 0.0
+
+    # Driver preference: constant kph offset on the final v_cruise. Applied
+    # last, matching EOP10's own placement (driver_prefs.py's application
+    # site is the last v_cruise adjustment before mpc.set_weights there too).
+    # Deliberate divergence from EOP10: EOP10 applies the offset
+    # unconditionally, so a positive offset can add speed back on top of a
+    # force_slow_decel zero -- verified by tracing EOP10's v_cruise clamps
+    # between the two sites, none of which re-raise v_cruise once zeroed.
+    # force_slow_decel is set by selfdrived for driver-distraction/escalation
+    # events; a user-set positive offset must not undo that here, so the
+    # offset is skipped while force_slow_decel is active. Default 0 makes
+    # this a no-op for anyone who hasn't set the param either way.
+    if self.speed_offset_kph and not force_slow_decel:
+      v_cruise = _apply_speed_offset(v_cruise, self.speed_offset_kph)
 
     self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)

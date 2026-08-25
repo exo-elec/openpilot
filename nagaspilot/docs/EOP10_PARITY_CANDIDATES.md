@@ -33,6 +33,7 @@ No action needed.
 | NSLC-equivalent (nav-source speed-limit enforcement) | `nslc.py`, `EOPNSLCEnabled` (no panel toggle either) — offset + `SpeedLimitConfirmation` debounce | `ngp_speed_policy.py` (wired 2026-08-25), `ngp_lon_nslc` — `SpeedLimitPolicy.NAVIGATION` only (no map source on this branch, no `driver_overriding`/offset/confirmation debounce — hard instant clamp), wired via `NGPFlags.NSLC` |
 | Adaptive accel limit (low-speed clamp + cruise ramp-off) | inline function `_apply_adaptive_accel_limit()` in `longitudinal_planner.py`, always-on, no toggle | Ported verbatim 2026-08-25, same placement (inside `mode == 'acc'`, right after `get_max_accel()`), always-on, no param, no schema change. 7 unit tests in `selfdrive/controls/tests/test_longitudinal_planner_adaptive_accel.py` |
 | DLP curve assist (pre-emptive laneless for tight curves) | `dlat.py`'s `_predict_curve`/`force_laneless`, `EOPDLPCurvesEnabled` (default on) | Wired 2026-08-25 into `NGPDLAT.update()`/`update_model()` (`nagaspilot/controls/ngp_dlat.py`) as `force_laneless`, bypassing the hysteresis frame-counters entirely, matching EOP10. `ngp_lat_dlp_curves` (default on), panel toggle in Lateral Ctrl section, wired via `controlsd.py`'s `self.dlp_curves_enabled`. NGP10's `_curve_detected()` was already ported (same 0.055 curvature threshold, same fifth-model-horizon sample) but its result had no effect until this commit — see `test_ngp_dlat.py`'s renamed test for what changed. 3 new/changed unit tests. |
+| Driver preference speed offset | `driver_prefs.py::get_speed_with_offset()`, `EOPSpeedLimitOffset` (default 0, no panel toggle) | Ported 2026-08-25 as `_apply_speed_offset()` in `longitudinal_planner.py`, `ngp_lon_speed_offset_kph` (default 0, no panel toggle, matches EOP10). Applied last, same site EOP10 uses, but deliberately *not* applied while `force_slow_decel` is active (`if self.speed_offset_kph and not force_slow_decel`) — EOP10 itself has no re-clamp there, so a positive offset there would add speed back on top of a forced-decel zero set by selfdrived for driver-distraction/escalation events; this branch does not copy that. `following_distance`/`get_time_gap()` not ported — dead code even in EOP10's own `longitudinal_planner.py` (defined, never called). 4 unit tests in `test_longitudinal_planner_speed_offset.py`. |
 
 Note: EOP10 also has a *separate*, camera-based "Lane Change Assistant (LCA)"
 toggle (`EOPLCAControllerEnabled`, multi-camera blind-spot detection) — don't
@@ -102,9 +103,13 @@ every 20 Hz frame that nothing on this branch reads, logs, or acts on.
 
 ## Tier 3 — EOP10 has it, NGP10 has no module at all yet
 
-| Feature | EOP10 | Notes |
-|---|---|---|
-| Driver preference profile (speed-limit offset, following-distance choice) | `driver_prefs.py` | Mostly pure parameter logic ("No NPU impact" per its own docstring); the "shock/obstacle awareness" part of it uses IMU shock detection (`EOPShockDetection` etc.) which is a *different* concept from BRSC (impact/curb-hit event detection+recording vs. BRSC's sustained-roughness speed policy) — don't conflate the two if porting this. Only the speed-offset half has a real effect (clamps `v_cruise`); port that half only. |
+Empty as of 2026-08-25: Driver preference profile (the last remaining item)
+moved to Tier 1 below. Only its speed-offset half was ported — see that
+entry for why (`following_distance`/`get_time_gap()` is dead code even on
+EOP10 itself: defined, never called anywhere in EOP10's own
+`longitudinal_planner.py`). The "shock/obstacle awareness" part
+(`EOPShockDetection` etc.) is a *different* concept from BRSC and was never
+in scope here.
 
 ---
 
@@ -154,14 +159,25 @@ assumed from the feature name:
    - ~~DLP curve assist~~ (Tier 3) — done, 2026-08-25 (Tier 1 now): wired as
      `force_laneless` into `NGPDLAT`, feeding the same `ngpDlatUseLaneless`
      path DLAT's ordinary arbitration already uses.
-   - **Driver preference profile** (Tier 3) — only the speed-offset half has
-     a real effect (clamps `v_cruise`); the shock-detection half doesn't
-     connect to anything on this branch and shouldn't be ported alongside it
-     — see that row's own note for why the two halves are a different concept
-     from BRSC despite the surface-level shock/roughness similarity.
-   - **Adaptive personality/gap profile** (Tier 2) — real effect once wired,
-     but needs a new `adaptd` process added to `process_config.py` first,
-     not just a function call — its own decision, bigger than the others.
+   - ~~Driver preference profile~~ (Tier 3) — done, 2026-08-25 (Tier 1 now,
+     speed-offset half only): `_apply_speed_offset()` ported into
+     `longitudinal_planner.py`. The shock-detection half was correctly
+     scoped out — different concept from BRSC, doesn't connect to anything
+     on this branch. Deliberate divergence from EOP10 at the call site: the
+     offset is skipped while `force_slow_decel` is active, so a positive
+     offset can no longer add speed back on top of a forced-decel zero.
+     Traced EOP10's `v_cruise` clamps between the two sites and confirmed
+     EOP10 itself has no re-clamp, i.e. EOP10 really does exhibit that
+     behavior — but `force_slow_decel` is set by selfdrived for
+     driver-distraction/escalation events, and a user-set offset must not
+     undo that, so this branch does not copy it. `_apply_speed_offset()`
+     itself stays unconditional (matches EOP10's math exactly); the guard
+     is a one-line condition at the call site only.
+   - **Adaptive personality/gap profile** (Tier 2) — the one remaining item
+     from this list. Real effect once wired, but needs a new `adaptd`
+     process added to `process_config.py` first, not just a function call —
+     its own scope decision, bigger than everything else here, and belongs
+     to the user to make, not something to default into.
 
 Not recommending Tier 4 items be attempted at all on comma-3 — they're
 correctly out of scope, not just deprioritized. Tier 2.5 items aren't

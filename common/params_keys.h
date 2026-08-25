@@ -136,6 +136,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // nagaspilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
     // toggle, matching EOP10's EOPNSLCEnabled. Default off.
     {"ngp_lon_nslc", {PERSISTENT, BOOL, "0"}},
+    // Driver preference: constant kph offset applied to the final v_cruise
+    // (after all other limits), matching EOP10's EOPSpeedLimitOffset and its
+    // driver_prefs.py::get_speed_with_offset() application point. Default 0
+    // is a no-op, so this needs no separate enable flag. EOP10's
+    // driver_prefs.py also has a following_distance/get_time_gap() concept,
+    // but it's never actually called anywhere in EOP10's own
+    // longitudinal_planner.py -- dead code there too, not ported here.
+    {"ngp_lon_speed_offset_kph", {PERSISTENT, INT, "0"}},
     // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
     // using vision-only curvature (nagaspilot/controls/ngp_vtsc.py). Panel
     // toggle, matching EOP10's EOPVTSCEnabled. Default off.

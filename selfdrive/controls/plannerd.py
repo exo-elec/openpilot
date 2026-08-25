@@ -17,7 +17,12 @@ def main():
   cloudlog.info("plannerd got CarParams: %s", CP.brand)
 
   ldw = LaneDepartureWarning()
-  longitudinal_planner = LongitudinalPlanner(CP)
+  # Driver preference: constant kph offset applied to the final v_cruise,
+  # matching EOP10's EOPSpeedLimitOffset. Default 0 is a no-op; read once,
+  # matching this branch's other panel/non-panel toggles (see
+  # NGP10_FEATURE_MATRIX.md's "Live vs. next-drive toggles").
+  speed_offset_kph = int(params.get("ngp_lon_speed_offset_kph", return_default=True))
+  longitudinal_planner = LongitudinalPlanner(CP, speed_offset_kph=speed_offset_kph)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
   # NOTE: 'mapData' is deliberately NOT subscribed here. NGP10 has no MapData
   # struct/Event field in cereal/log.capnp, no 'mapData' entry in
