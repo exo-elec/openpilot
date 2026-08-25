@@ -12,6 +12,18 @@ ExoPilot 01M hardware move (see [[ngp10-purpose-and-scope]] in project
 memory) — HAL layers stay out of scope; this doc is about
 `selfdrive/`-level driving-policy features only.
 
+**Scope correction, 2026-08-25**: the goal of this doc is proving portable
+driving-policy *software*, not matching EOP10's feature list one-for-one.
+Tier 1 is the actual deliverable. Tier 2.5 and Tier 4 are not a backlog —
+they're evidence that a feature's *software* isn't the blocker, its missing
+*infrastructure* (a sensor, a daemon, a schema, a bus signal) is, and that
+infrastructure question is either already answered ("comma-3 doesn't have
+this sensor," "comma removed this upstream") or belongs to a different,
+larger decision than this doc scopes. Don't treat closing a Tier 2.5/4 row
+by porting new daemons or hardware interfaces as unfinished parity work —
+it's out of scope by design. This doc's job is to keep that boundary
+accurate as EOP10 changes, not to shrink Tier 2.5/4 to zero.
+
 ---
 
 ## Tier 1 — already wired, matches EOP10
@@ -195,3 +207,8 @@ items aren't recommended either, for a different reason: not hardware-gated,
 just missing infrastructure (a data source, or a consumer, or — for
 Adaptive personality/gap profile — both) this doc's scope (see the top of
 this file) doesn't cover building.
+
+Per the scope correction above: there is no next item to pick up from this
+list. Tier 1 is the proven set. Treat any future Tier 2.5/4 row the same
+way — verify the actual blocker before touching it, and if it's
+infrastructure rather than wiring, that's the answer, not a todo.
