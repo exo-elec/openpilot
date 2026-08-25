@@ -79,7 +79,7 @@ distance have not been validated on the BYD test car.
 |---|---|---|
 | DLAT | No effective path selection in its current integration | Reject current implementation |
 | DLON | Contextual longitudinal mode switching | Defer; consider hysteresis only after BYD longitudinal |
-| VTSC | Uses native model orientation prediction to reduce speed for curves | Ported as a selectable BYD openpilot-longitudinal feature |
+| VTSC | Uses native model orientation prediction to reduce speed for curves | Designed (see "Minimal VTSC disposition" below), **not implemented** -- see correction note under that heading |
 | TJA | Smooth start ramp and standstill hold timeout | Reimplement after longitudinal and standstill validation |
 | Lane-change lead handoff | Uses native camera leads for target-lane following | Experimental; defer until longitudinal and LCA are stable |
 | CAT | Wraps already learned `liveParameters` with another filter/persistence layer | Reject; retain upstream `paramsd` |
@@ -99,20 +99,38 @@ distance have not been validated on the BYD test car.
 3. Collect recorded routes and evaluate confidence signals without changing
    steering or acceleration.
 4. Design and validate BYD openpilot longitudinal as a separate safety project.
-5. Validate the selectable minimal VTSC independently; only then consider AEM
-   hysteresis, TJA, or camera lead handoff.
+5. Build, then validate, the selectable minimal VTSC described below; only
+   then consider AEM hysteresis, TJA, or camera lead handoff.
 
 ## Minimal VTSC disposition
 
-NagasPilot VTSC uses Sunnypilot SCC-V's state machine, driver override, p97
-model prediction, and smooth entering/turning/leaving acceleration policy. It
-retains the fixed mild/medium/sharp comfort buckets that EOP10 attributes to
-FrogPilot. It deliberately excludes EOP10 map handover, GPS curve databases,
-learned driver speeds, self-calibration, schema expansion, and adjustable
-comfort parameters.
+**Correction, 2026-08-26**: this section previously read as a status report
+("VTSC is user-selectable and defaults off...") and the Feature disposition
+table above previously said "Ported." Neither was true. Checked directly
+against the tree at this commit: no `vtsc`-named file, no `SCC`/curve-speed
+policy module, and no panel toggle anywhere in `dp_panel.cc` or elsewhere.
+`nagaspilot/docs/MIGRATION_PLAN.md`'s "Deferred Work" section (last touched
+2026-08-04, four days after this audit) correctly lists VTSC as not a next
+task, to be revisited only after the BYD passive/safety/longitudinal gates
+are complete -- that document is accurate; this one wasn't. Contrast with
+BRSC below, which really is implemented and tested
+(`nagaspilot/controls/ngp_brsc.py` + `nagaspilot/tests/test_ngp_brsc.py`
+both exist) -- the same "Ported" language was used for both entries in the
+table above despite only one being true. This is the exact failure mode
+"Audit evidence" below warns about ("a status label is not accepted as
+validation evidence"), and it happened inside the document that coined that
+rule. The design intent below is retained as a design, not a status:
 
-VTSC is user-selectable and defaults off. It is shown only for BYD with
-openpilot longitudinal selected. Factory BYD ACC never consumes its target.
+NagasPilot VTSC would use Sunnypilot SCC-V's state machine, driver override,
+p97 model prediction, and smooth entering/turning/leaving acceleration
+policy. It would retain the fixed mild/medium/sharp comfort buckets that
+EOP10 attributes to FrogPilot, and would deliberately exclude EOP10 map
+handover, GPS curve databases, learned driver speeds, self-calibration,
+schema expansion, and adjustable comfort parameters.
+
+If built, it should be user-selectable and default off, shown only for BYD
+with openpilot longitudinal selected, with factory BYD ACC never consuming
+its target -- none of this is built yet.
 
 ## BRSC disposition
 
