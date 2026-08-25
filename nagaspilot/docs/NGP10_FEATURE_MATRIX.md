@@ -4,6 +4,7 @@
 |---|---|---|---|
 | Longitudinal | DLON | `nagaspilot/controls/ngp_dlon.py` → longitudinal planner | Integrated, always-on automatic (no user-selectable mode) |
 | Lateral | DLAT | `nagaspilot/controls/ngp_dlat.py` → `controlsd.py` | Integrated, advisory (non-controlling), always-on automatic |
+| Lateral | DLP curve assist (pre-emptive laneless on predicted tight curve) | `NGPDLAT.update_model(curve_assist_enabled=...)` → `controlsd.py` | Integrated 2026-08-25, default on (`ngp_lat_dlp_curves`), panel toggle in Lateral Ctrl section. Forces laneless immediately (bypasses DLAT's hysteresis frame-counters), same as EOP10's `_predict_curve`/`force_laneless` |
 | Longitudinal | TJA gap/cut-in gate | `nagaspilot/controls/ngp_tja.py` → longitudinal planner | Integrated |
 | Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
 | Longitudinal | BRSC (Bumpy Road Speed Controller, vertical-IMU roughness) | `nagaspilot/controls/ngp_brsc.py` (pure policy, byte-identical across branches) → longitudinal planner | Integrated, default on (`ngp_lon_brsc`) |
@@ -134,8 +135,8 @@ deliberately not — see below for why:
 (`ngp_dlon.py::update_params()` polls them every 1s) since there's no mode
 param left to gate them behind. Every panel-exposed toggle (`ngp_lat_alcc`,
 `ngp_lat_lca_speed`, `ngp_lat_lca_auto_sec`, `ngp_lat_road_edge_detection`,
-`ngp_lon_brsc`, `ngp_lon_vtsc`) — plus the non-panel `ngp_lon_lc_lead_handoff`
-and `ngp_lon_nslc` — is read once at process start
+`ngp_lat_dlp_curves`, `ngp_lon_brsc`, `ngp_lon_vtsc`) — plus the non-panel
+`ngp_lon_lc_lead_handoff` and `ngp_lon_nslc` — is read once at process start
 (`plannerd.py`/`controlsd.py`/`modeld.py`, all before their `while True:`
 loop) — a change takes effect on the next onroad transition
 (these are `only_onroad`/car-gated processes in `process_config.py`, so this

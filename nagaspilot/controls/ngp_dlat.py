@@ -1,8 +1,12 @@
 """Comma 3-safe DLAT arbitration for the NGP10 proving line.
 
-This module deliberately has no controlsd or cereal integration.  It converts
-lane-line confidence into a stable *suggestion* that can be replay-tested
-before it is allowed to select a lateral path.
+This module itself has no Params or cereal access -- it converts lane-line
+confidence (plus, since 2026-08-25, DLP curve assist's pre-emptive override)
+into a stable *suggestion*, replay-testable in isolation. `controlsd.py`
+wires that suggestion into `ngpDlatUseLaneless`, which feeds DLON's
+lane-confidence trigger and the LCA initiation gate (see
+`EOP10_PARITY_CANDIDATES.md`'s Tier 1 DLAT entry) -- "non-controlling" means
+no curvature/steering authority, not "unconsumed."
 """
 
 from dataclasses import dataclass
@@ -112,8 +116,21 @@ class NGPDLAT:
     curvature = abs(rates[min(4, len(rates) - 1)]) / float(v_ego)
     return curvature > 0.055
 
-  def update(self, lane_line_probs):
-    """Update state at model cadence and return a non-controlling suggestion."""
+  def update(self, lane_line_probs, force_laneless=False):
+    """Update state at model cadence and return a suggestion.
+
+    ``force_laneless`` bypasses the *enter* hysteresis and switches to
+    laneless immediately, regardless of the low-confidence frame count --
+    this is DLP curve assist's pre-emptive override (EOP10's dlat.py
+    ``_predict_curve``/``force_laneless``). It deliberately does NOT affect
+    the exit path: EOP10's own ``DLATState.laneless`` branch checks lane
+    confidence and elapsed time only, ignoring ``curve_detected`` entirely
+    once already in laneless -- so ``_high_frames`` must keep accumulating
+    on every call regardless of ``force_laneless``, or a long, well-marked,
+    sustained curve (confidence high the whole time, ``curve_detected`` also
+    true the whole time) would latch laneless until the curve fully ends,
+    which EOP10 does not do.
+    """
     confidence = self.lane_confidence(lane_line_probs)
     if confidence < self.enter_threshold:
       self._low_frames += 1
@@ -125,7 +142,7 @@ class NGPDLAT:
       self._low_frames = 0
       self._high_frames = 0
 
-    if self.suggestion is DLATSuggestion.LANEFUL and self._low_frames >= self.enter_frames:
+    if self.suggestion is DLATSuggestion.LANEFUL and (force_laneless or self._low_frames >= self.enter_frames):
       self.suggestion = DLATSuggestion.LANELESS
       self._low_frames = 0
     elif self.suggestion is DLATSuggestion.LANELESS and self._high_frames >= self.exit_frames:
@@ -133,12 +150,21 @@ class NGPDLAT:
       self._high_frames = 0
     return self.suggestion
 
-  def update_model(self, model, v_ego=None):
-    """Adapt a v0.10.0 ``ModelDataV2`` sample into an advisory DLAT result.
+  def update_model(self, model, v_ego=None, curve_assist_enabled=True):
+    """Adapt a v0.10.0 ``ModelDataV2`` sample into a DLAT result.
 
     v0.10.0 exposes the laneless path as ``position`` and its uncertainty as
     ``position.yStd``; the EOP prototype's ``predictedPath`` fields do not
     exist in this schema.
+
+    ``curve_assist_enabled`` gates DLP curve assist (matches EOP10's
+    ``EOPDLPCurvesEnabled``, default on): when a tight curve is predicted
+    from ``orientationRate``, pre-emptively force laneless instead of
+    waiting on the ordinary lane-confidence hysteresis. When disabled,
+    curve detection is still computed and reported in the result (for
+    logging/replay) but never forces a switch -- matches EOP10's
+    ``_predict_curve()``, which returns False outright when its own toggle
+    is off.
     """
     lane_probs = self._values(model, "laneLineProbs")
     lane_confidence = self.lane_confidence(lane_probs)
@@ -147,10 +173,13 @@ class NGPDLAT:
     road_edge_confidence = self._confidence_from_stds(self._values(model, "roadEdgeStds"))
     model_confidence = max(0.0, min(1.0, 0.6 * lane_confidence + 0.4 * path_confidence))
     model_valid = len(lane_probs) >= 4 and bool(self._values(model, "position.y"))
+    curve_detected = self._curve_detected(model, v_ego)
+    force_laneless = curve_assist_enabled and curve_detected
 
     # Missing/partial model data deliberately resolves to the neutral 0.5
-    # confidence and therefore cannot push the arbiter into laneless mode.
-    suggestion = self.update(lane_probs if model_valid else ())
+    # confidence and therefore cannot push the arbiter into laneless mode
+    # (force_laneless can still do so, same as EOP10).
+    suggestion = self.update(lane_probs if model_valid else (), force_laneless=force_laneless)
     return DLATResult(
       suggestion=suggestion,
       lane_confidence=lane_confidence,
@@ -158,6 +187,6 @@ class NGPDLAT:
       model_confidence=model_confidence,
       path_deviation=self._path_deviation(model),
       road_edge_confidence=road_edge_confidence,
-      curve_detected=self._curve_detected(model, v_ego),
+      curve_detected=curve_detected,
       model_valid=model_valid,
     )

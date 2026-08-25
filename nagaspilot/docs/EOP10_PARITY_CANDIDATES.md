@@ -31,7 +31,8 @@ No action needed.
 | Lane Change Lead Handoff | `lc_lead_handoff.py`, `EOPLCAdjacentLeadHandoff` (opt-in, no panel toggle) | `ngp_lc_lead_handoff.py` (ported 2026-08-25), `ngp_lon_lc_lead_handoff` — wired into `longitudinal_planner.py` via `NGPFlags.LC_LEAD_HANDOFF`, no panel toggle (matches EOP10) |
 | VTSC (Vision Turn Speed Control, 0-250m) | `vtsc.py`, `EOPVTSCEnabled` (learned-speed DB + self-calibration) | `ngp_vtsc.py` (wired 2026-08-25), `ngp_lon_vtsc` — comma-3-safe vision-only slice (no learned DB/self-calibration, deliberately simpler than EOP10's), wired into `longitudinal_planner.py` via `NGPFlags.VTSC`, panel toggle in `NGPPanel`'s Longitudinal Ctrl section |
 | NSLC-equivalent (nav-source speed-limit enforcement) | `nslc.py`, `EOPNSLCEnabled` (no panel toggle either) — offset + `SpeedLimitConfirmation` debounce | `ngp_speed_policy.py` (wired 2026-08-25), `ngp_lon_nslc` — `SpeedLimitPolicy.NAVIGATION` only (no map source on this branch, no `driver_overriding`/offset/confirmation debounce — hard instant clamp), wired via `NGPFlags.NSLC` |
-| Adaptive accel limit (low-speed clamp + cruise ramp-off) | inline function `_apply_adaptive_accel_limit()` in `longitudinal_planner.py`, always-on, no toggle | Ported verbatim 2026-08-25, same placement (inside `mode == 'acc'`, right after `get_max_accel()`), always-on, no param, no schema change. 6 unit tests in `selfdrive/controls/tests/test_longitudinal_planner_adaptive_accel.py` |
+| Adaptive accel limit (low-speed clamp + cruise ramp-off) | inline function `_apply_adaptive_accel_limit()` in `longitudinal_planner.py`, always-on, no toggle | Ported verbatim 2026-08-25, same placement (inside `mode == 'acc'`, right after `get_max_accel()`), always-on, no param, no schema change. 7 unit tests in `selfdrive/controls/tests/test_longitudinal_planner_adaptive_accel.py` |
+| DLP curve assist (pre-emptive laneless for tight curves) | `dlat.py`'s `_predict_curve`/`force_laneless`, `EOPDLPCurvesEnabled` (default on) | Wired 2026-08-25 into `NGPDLAT.update()`/`update_model()` (`nagaspilot/controls/ngp_dlat.py`) as `force_laneless`, bypassing the hysteresis frame-counters entirely, matching EOP10. `ngp_lat_dlp_curves` (default on), panel toggle in Lateral Ctrl section, wired via `controlsd.py`'s `self.dlp_curves_enabled`. NGP10's `_curve_detected()` was already ported (same 0.055 curvature threshold, same fifth-model-horizon sample) but its result had no effect until this commit — see `test_ngp_dlat.py`'s renamed test for what changed. 3 new/changed unit tests. |
 
 Note: EOP10 also has a *separate*, camera-based "Lane Change Assistant (LCA)"
 toggle (`EOPLCAControllerEnabled`, multi-camera blind-spot detection) — don't
@@ -104,7 +105,6 @@ every 20 Hz frame that nothing on this branch reads, logs, or acts on.
 | Feature | EOP10 | Notes |
 |---|---|---|
 | Driver preference profile (speed-limit offset, following-distance choice) | `driver_prefs.py` | Mostly pure parameter logic ("No NPU impact" per its own docstring); the "shock/obstacle awareness" part of it uses IMU shock detection (`EOPShockDetection` etc.) which is a *different* concept from BRSC (impact/curb-hit event detection+recording vs. BRSC's sustained-roughness speed policy) — don't conflate the two if porting this. Only the speed-offset half has a real effect (clamps `v_cruise`); port that half only. |
-| DLP curve assist (pre-emptive laneless for tight curves) | `EOPDLPCurvesEnabled` | Separate from DLAT's Laneful/Laneless *mode selection* — this is a curve-specific override on top of whatever DLAT picks. Depends on DLAT existing first. |
 
 ---
 
@@ -151,8 +151,9 @@ assumed from the feature name:
    - ~~Adaptive accel limit~~ (Tier 3) — done, 2026-08-25 (Tier 1 now):
      `_apply_adaptive_accel_limit()` ported verbatim into
      `longitudinal_planner.py`, no new module, no schema change, always-on.
-   - **DLP curve assist** (Tier 3) — feeds DLAT's Laneful/Laneless choice,
-     which `controlsd.py` already consumes.
+   - ~~DLP curve assist~~ (Tier 3) — done, 2026-08-25 (Tier 1 now): wired as
+     `force_laneless` into `NGPDLAT`, feeding the same `ngpDlatUseLaneless`
+     path DLAT's ordinary arbitration already uses.
    - **Driver preference profile** (Tier 3) — only the speed-offset half has
      a real effect (clamps `v_cruise`); the shock-detection half doesn't
      connect to anything on this branch and shouldn't be ported alongside it

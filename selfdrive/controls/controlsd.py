@@ -61,12 +61,15 @@ class Controls:
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
     self.alcc_active = False
 
-    # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling).
-    # Always automatic -- a default behavior of this branch, no user-selectable
-    # mode and no panel control.
+    # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling
+    # in the curvature/steering sense). Always automatic -- a default behavior
+    # of this branch, no user-selectable mode and no panel control for the
+    # mode itself. DLP curve assist (ngp_lat_dlp_curves) is a separate,
+    # panel-exposed pre-emptive override on top of that arbitration.
     self.dlat = NGPDLAT()
     self.dlat_use_laneless = False
     self.dlat_lane_confidence = 1.0
+    self.dlp_curves_enabled = self.params.get_bool("ngp_lat_dlp_curves")
 
   def update(self):
     self.sm.update(15)
@@ -128,8 +131,10 @@ class Controls:
     actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits))
 
     # DLAT: automatic Laneful/Laneless confidence arbitration, a default
-    # always-on behavior of this branch -- no user-selectable mode.
-    dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo)
+    # always-on behavior of this branch -- no user-selectable mode. DLP curve
+    # assist (ngp_lat_dlp_curves) pre-emptively forces laneless on a
+    # predicted tight curve, ahead of the ordinary confidence hysteresis.
+    dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo, curve_assist_enabled=self.dlp_curves_enabled)
     self.dlat_lane_confidence = dlat_result.lane_confidence
     self.dlat_use_laneless = dlat_result.suggestion is DLATSuggestion.LANELESS
 

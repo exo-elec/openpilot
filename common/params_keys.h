@@ -94,6 +94,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
+    // DLP curve assist: pre-emptively force laneless on a predicted tight
+    // curve (NGPDLAT.update_model()'s curve_assist_enabled), ahead of the
+    // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
+    // including its default-on.
+    {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
     // Edge guard: vision-only curvature nudge away from a close, high-
     // confidence road edge. NGP10-only -- not a port of EOP10's red.py
     // (which fuses stereo+YOLO). Unvalidated on road; default off.
