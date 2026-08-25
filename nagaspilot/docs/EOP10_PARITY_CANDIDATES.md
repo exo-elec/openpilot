@@ -56,9 +56,10 @@ toggle. No hardware blocker, no new policy design — see
 [[brsc-feature-cross-branch]] for what that wiring pattern looks like end to
 end.
 
-| Feature | EOP10 module | NGP10 module (unwired) | What it'd need on NGP10 |
-|---|---|---|---|
-| Adaptive personality/gap profile | `adaptd` daemon (real process on EOP10) | `selfdrive/adaptd/ngp_profile.py` — exists, zero importers, `adaptd` isn't even a registered process in NGP10's `process_config.py` | Would need adding `adaptd` as an actual process, not just wiring a function call — bigger than the others in this tier |
+Empty as of 2026-08-25: Adaptive personality/gap profile (the last item that
+was here) was checked against actual NGP10 state and moved to Tier 2.5 below
+— it isn't a wiring task, it's blocked on infrastructure that doesn't exist
+on this branch at all. See that entry for the four-part verification.
 
 **Corrected 2026-08-25**: three items previously listed here (Collision-risk
 advisory, Traffic-light/stop-sign approach, Normalized radar/zones) moved to
@@ -84,6 +85,7 @@ are missing one end or the other.
 |---|---|---|---|
 | MTSC (Map Turn Speed Control, 250-500m) | `mtsc.py`, `EOPMTSCEnabled` | `ngp_mtsc.py` — pure `update([(distance_m, curvature_1_per_m), ...])`, no map API access of its own (same "comma-3-safe" pattern as `ngp_vtsc.py`) | **Confirmed 2026-08-25, not just an open question**: NGP10's `cereal/log.capnp` has no `MapData` struct/Event field at all (EOP10 has both), `cereal/services.py` has no `'mapData'` entry, and no process anywhere in this tree publishes it. A prior session's `mapData` subscription in `plannerd.py` actually crashed `SubMaster.__init__` with `KeyError('mapData')` on every start — see `NGP10_FEATURE_MATRIX.md`'s "Correction (2026-08-25)" note and the fix commit. `ngp_mtsc.py` itself is ready; no *pre-computed* curvature-tuple source exists to feed it without porting EOP10's map-data infrastructure (new cereal schema, a `mapd`-equivalent daemon, OSM pipeline) — not attempted here. One narrower option not evaluated: `navRoute` *is* a registered service on NGP10 (`cereal/services.py` has it) and carries raw `[(latitude, longitude), ...]` route coordinates (`struct NavRoute` in `log.capnp`) — deriving `(distance, curvature)` tuples from that geometry directly, without EOP10's map-data port, might be a smaller, NGP10-native path. Not checked whether the precision/update rate is usable for this, and no curvature-from-polyline code exists yet either way — noted as an option for a future session to evaluate, not ruled out. |
 | Traffic-light/stop-sign approach | `tlsc.py` (needs `stereoObjects` from `gridd` — **not portable as-is**, see Tier 4) | `ngp_traffic_control.py` — "Non-controlling traffic-light/stop-sign approach proposal" | **Corrected 2026-08-25**: `ngp_traffic_control.py`'s `evaluate()` needs `TrafficControlObservation` (light/sign state, distance, confidence) as input — a real traffic-light/stop-sign classifier. Comma-3 stock openpilot has no such perception output on this branch, so unlike collision/radar below, this one is blocked on *both* ends: no input source, and `TrafficControlResult.control_authority` is `False` by design, same as collision, so there'd be nothing to consume the output either even if the input existed. NGP10's DLON already covers the same real-world case with a simpler heuristic (`detect_traffic_control()`: stop + no lead + low speed), so this isn't a functional gap in practice. |
+| Adaptive personality/gap profile | `adaptd` daemon — a real process on EOP10, consuming `ncpVehicleData` (from `bluetoothd`, sourced by NavPilot over BLE from vehicle OBD-II Mode 22 PIDs) and `obdState` (from `obd2d`, basic Mode 01 PIDs as fallback), publishing `adaptiveDrivingState` | `selfdrive/adaptd/ngp_profile.py` — pure `NGPAdaptiveProfile.update(VehicleTelemetry, now)`, correctly input-agnostic, but its only importer on this branch is its own unit test (`test_ngp_additional.py`) | **Checked 2026-08-25, not just re-tiered on suspicion**: blocked on *both* ends, the only item in this document that is. No input: `cereal/services.py` has no `ncpVehicleData`/`obdState` entry, `cereal/custom.capnp` has no `NcpVehicleData` struct, and neither `obd2d` nor `bluetoothd` exist as source on this branch (only stale `.mypy_cache/.../obd2d`, `.../bluetoothd` JSON files remain from a prior EOP10-shaped tree — these are build cache artifacts, not source, and would make a casual `find`/`grep` for these names look like the processes exist when they don't). No consumer: nothing in NGP10's `controlsd.py` or `longitudinal_planner.py` reads an `adaptiveDrivingState`-equivalent message, and `adaptd` isn't a registered process in `system/manager/process_config.py`. Registering `adaptd` with a `SubMaster(['ncpVehicleData', 'obdState'])` today would reproduce the exact `KeyError('mapData')`-class crash the 2026-08-08 `plannerd` bug was (see `NGP10_FEATURE_MATRIX.md`'s "Correction" note) — `SubMaster.__init__` does a bare `cereal.services.SERVICE_LIST` lookup on every literal service name before any socket is created, and neither of these two names is in it. Completing this for real needs, in order: a `NcpVehicleData`/`obdState`-equivalent capnp struct, matching `cereal/services.py` entries, a port (or NGP10-native replacement) of `obd2d`'s OBD-II PID polling and/or `bluetoothd`'s BLE transport, `adaptd` itself registered in `process_config.py`, and a consumer wire-up in `controlsd`/`longitudinal_planner` reading the published profile — new hardware-interface daemons and a schema change, not a wiring task, and not attempted here. |
 
 ### No consumer for the output
 
@@ -173,14 +175,23 @@ assumed from the feature name:
      undo that, so this branch does not copy it. `_apply_speed_offset()`
      itself stays unconditional (matches EOP10's math exactly); the guard
      is a one-line condition at the call site only.
-   - **Adaptive personality/gap profile** (Tier 2) — the one remaining item
-     from this list. Real effect once wired, but needs a new `adaptd`
-     process added to `process_config.py` first, not just a function call —
-     its own scope decision, bigger than everything else here, and belongs
-     to the user to make, not something to default into.
+   - ~~Adaptive personality/gap profile~~ — **checked 2026-08-25, moved to
+     Tier 2.5, not completed**: this was listed here as "needs a new
+     `adaptd` process, bigger scope decision" — checking that against
+     actual NGP10 state found it's not a scope decision at all, it's blocked
+     on infrastructure that plainly doesn't exist on this branch (see the
+     Tier 2.5 entry for the four-part verification: no cereal service
+     entries, no capnp struct, no `obd2d`/`bluetoothd` source, no consumer).
+     Registering `adaptd` today would crash `plannerd`-style with
+     `KeyError` on `SERVICE_LIST`, the same bug class fixed earlier this
+     session. Not attempted — would require new hardware-interface daemons
+     and a schema change, out of this document's scope.
 
-Not recommending Tier 4 items be attempted at all on comma-3 — they're
-correctly out of scope, not just deprioritized. Tier 2.5 items aren't
-recommended either, for a different reason: not hardware-gated, just missing
-infrastructure (a data source, or a consumer) this doc's scope (see the top
-of this file) doesn't cover building.
+This list is now fully resolved: every item is either done (Tier 1, this
+session) or verified-blocked on missing infrastructure (Tier 2.5), not
+pending a decision. Not recommending Tier 4 items be attempted at all on
+comma-3 — they're correctly out of scope, not just deprioritized. Tier 2.5
+items aren't recommended either, for a different reason: not hardware-gated,
+just missing infrastructure (a data source, or a consumer, or — for
+Adaptive personality/gap profile — both) this doc's scope (see the top of
+this file) doesn't cover building.

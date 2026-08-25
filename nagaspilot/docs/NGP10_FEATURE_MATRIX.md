@@ -33,13 +33,18 @@ executed on this branch during that window, not just "unvalidated on road" —
 `longitudinalPlan` itself was never published. Fixed 2026-08-25; still no on-road
 validation of any of them as of this fix.
 
-**Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`,
-`ngp_collision.py`, `ngp_road_condition.py`, `ngp_traffic_control.py`,
-`ngp_speed_policy.py`, `ngp_radar.py`, `ngp_alcc.py`, `ngp_lca.py`,
-`selfdrive/adaptd/ngp_profile.py`) are deliberately not listed as
-"Integrated" above — see `EOP10_PARITY_CANDIDATES.md` in this same directory
-for the full EOP10-vs-NGP10 comparison, portability assessment per feature,
-and a suggested wiring order.
+**Written-but-unwired modules** (`ngp_mtsc.py`, `ngp_collision.py`,
+`ngp_road_condition.py`, `ngp_traffic_control.py`, `ngp_radar.py`,
+`ngp_alcc.py`, `ngp_lca.py`, `selfdrive/adaptd/ngp_profile.py`) are
+deliberately not listed as "Integrated" above — see
+`EOP10_PARITY_CANDIDATES.md` in this same directory for the full
+EOP10-vs-NGP10 comparison, portability assessment per feature, and current
+status. `ngp_vtsc.py` and `ngp_speed_policy.py` were removed from this list
+2026-08-25 — both wired this session (see the VTSC and NSLC-equivalent rows
+above). `selfdrive/adaptd/ngp_profile.py` differs from the rest of this
+list: it isn't just unwired, both its input source (vehicle
+telemetry/OBD-BLE pipeline) and its consumer are entirely absent from this
+branch — see `EOP10_PARITY_CANDIDATES.md`'s Tier 2.5 entry.
 
 **BRSC note (2026-08-04):** the pure policy module was ported first (commit
 `822986441`), then this worktree's pre-existing uncommitted `ngp_*` →
