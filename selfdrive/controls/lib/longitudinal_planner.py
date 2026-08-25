@@ -61,6 +61,25 @@ BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floo
 def get_max_accel(v_ego):
   return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
 
+
+# Adaptive acceleration -- merged from FrogPilot via EOP10's identical
+# _apply_adaptive_accel_limit(). Clamps max accel at low speeds and ramps it
+# off near the cruise setpoint for a more natural, less robotic feel.
+# Always-on, no param, no schema change -- pure v_cruise/v_ego math, ported
+# verbatim (EOP10_PARITY_CANDIDATES.md Tier 3).
+ADAPTIVE_ACCEL_CITY_SPEED_LIMIT = 13.9  # m/s (~50 km/h)
+
+
+def _apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: float) -> float:
+  """Reduce max acceleration at low speeds and near cruise speed."""
+  # Low-speed clamp: quarter max at standstill, half at 25 km/h, full at 50 km/h
+  low_speed_limit = np.interp(v_ego, [0.0, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT / 2, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT],
+                               [raw_max_accel / 4, raw_max_accel / 2, raw_max_accel])
+  # Ramp-off near setpoint: reduce accel as we approach cruise speed
+  ramp_off = np.interp(v_cruise - v_ego, [0.0, 1.0, 5.0], [0.0, 0.5, raw_max_accel])
+  return min(raw_max_accel, low_speed_limit, ramp_off)
+
+
 def get_coast_accel(pitch):
   return np.sin(pitch) * -5.65 - 0.3  # fitted from data using xx/projects/allow_throttle/compute_coast_accel.py
 
@@ -182,7 +201,9 @@ class LongitudinalPlanner:
     prev_accel_constraint = not (reset_state or sm['carState'].standstill)
 
     if mode == 'acc':
-      accel_clip = [ACCEL_MIN, get_max_accel(v_ego)]
+      max_accel = get_max_accel(v_ego)
+      max_accel = _apply_adaptive_accel_limit(max_accel, v_cruise, v_ego)
+      accel_clip = [ACCEL_MIN, max_accel]
       steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
       accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP)
     else:
