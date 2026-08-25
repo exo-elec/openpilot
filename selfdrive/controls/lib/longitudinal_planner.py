@@ -202,12 +202,18 @@ class LongitudinalPlanner:
 
     # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
     # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
-    # otherwise, matching TJA/BRSC's "only ever tightens" contract.
+    # otherwise, matching TJA/BRSC's "only ever tightens" contract. No speed
+    # floor here -- checked against EOP10's own application site
+    # (longitudinal_planner.py's `if self.vtsc_v_target < v_cruise: v_cruise =
+    # self.vtsc_v_target`), which has none either; this matches parity rather
+    # than being a gap relative to it.
     vtsc_enabled = bool(ngp_flags & NGPFlags.VTSC)
-    self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
-    self.vtsc_v_target = self.vtsc_result.target_speed
-    if self.vtsc_v_target is not None:
-      v_cruise = min(v_cruise, self.vtsc_v_target)
+    self.vtsc_v_target = None
+    if sm.valid.get('modelV2', False):
+      self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
+      self.vtsc_v_target = self.vtsc_result.target_speed
+      if self.vtsc_v_target is not None:
+        v_cruise = min(v_cruise, self.vtsc_v_target)
 
     if force_slow_decel:
       v_cruise = 0.0
