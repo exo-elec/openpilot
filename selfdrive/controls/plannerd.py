@@ -19,10 +19,16 @@ def main():
   ldw = LaneDepartureWarning()
   longitudinal_planner = LongitudinalPlanner(CP)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
+  # NOTE: 'mapData' is deliberately NOT subscribed here. NGP10 has no MapData
+  # struct/Event field in cereal/log.capnp, no 'mapData' entry in
+  # cereal/services.py, and no process publishes it -- subscribing crashed
+  # SubMaster.__init__ with KeyError('mapData') on cereal.services.SERVICE_LIST
+  # (a prior session ported this from EOP10, which does have the service).
+  # See ngp_dlon.py::detect_speed_limit_trigger()'s docstring.
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'mapData', 'navInstruction', 'accelerometer'],
+                            'navInstruction', 'accelerometer'],
                            poll='modelV2',
-                           ignore_alive=['mapData', 'navInstruction', 'accelerometer'])
+                           ignore_alive=['navInstruction', 'accelerometer'])
 
   # DLON runs unconditionally -- a default, always-on behavior of this
   # branch, not a user-selectable feature.

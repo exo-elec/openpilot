@@ -21,6 +21,14 @@
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
 
+**2026-08-08 to 2026-08-25, `plannerd` could not start at all** (`SubMaster.__init__`
+raised `KeyError('mapData')` — see the "Correction (2026-08-25)" note further down).
+Every row above whose runtime path is "longitudinal planner" (DLON, TJA, BRSC,
+Lane Change Lead Handoff, VTSC) ran through that same process and therefore never
+executed on this branch during that window, not just "unvalidated on road" —
+`longitudinalPlan` itself was never published. Fixed 2026-08-25; still no on-road
+validation of any of them as of this fix.
+
 **Written-but-unwired modules** (`ngp_vtsc.py`, `ngp_mtsc.py`,
 `ngp_collision.py`, `ngp_road_condition.py`, `ngp_traffic_control.py`,
 `ngp_speed_policy.py`, `ngp_radar.py`, `ngp_alcc.py`, `ngp_lca.py`,
@@ -91,18 +99,26 @@ deliberately not — see below for why:
   Root cause was that the trigger itself had never been implemented, not
   that the toggle was meant to be permanently inert. Implemented the real
   trigger the same day: `detect_speed_limit_trigger()` in `ngp_dlon.py`
-  reads `mapData.speedLimit` (km/h, preferred) falling back to
-  `navInstruction.speedLimit` (m/s) — same source preference and unit
-  handling as `dev/EOP10`'s `nslc.py` — and fires when that limit is more
+  reads `navInstruction.speedLimit` (m/s) and fires when that limit is more
   than `SPEED_LIMIT_TRIGGER_MARGIN_MS` (2 m/s) below current speed, on the
   theory that E2E's smoother deceleration profile handles the transition
   into a lower posted limit better than stock ACC (same rationale as the
   existing `navigation` trigger, which uses `navInstruction.maneuverDistance`
-  for the analogous "upcoming route event" case). `plannerd.py`'s
-  `SubMaster` gained a `mapData` subscription (was missing entirely) and
-  `navInstruction` moved into `ignore_alive` (both optional/intermittent
-  services, matching EOP10's existing pattern) so the new trigger actually
-  has data to read.
+  for the analogous "upcoming route event" case).
+  **Correction (2026-08-25):** the original version of this entry also had
+  `detect_speed_limit_trigger()` reading `mapData.speedLimit` (km/h,
+  preferred over nav) to match `dev/EOP10`'s `nslc.py` source preference, and
+  had `plannerd.py`'s `SubMaster` subscribe to `'mapData'`. That subscription
+  crashed: NGP10's `cereal/log.capnp` has no `MapData` struct/Event field and
+  `cereal/services.py` has no `'mapData'` entry (EOP10 has both), so
+  `SubMaster.__init__`'s `SERVICE_LIST[s]` lookup raised `KeyError('mapData')`
+  on every `plannerd` start — confirmed by reproducing the lookup directly
+  and by confirming no process anywhere in this tree publishes `mapData`.
+  Fixed by dropping the `mapData` subscription and the map branch entirely;
+  `detect_speed_limit_trigger()` is nav-only until NGP10 gets a real
+  map-data source. This also answers `EOP10_PARITY_CANDIDATES.md`'s MTSC
+  entry's open question about whether `mapData` carries OSM curvature data —
+  it doesn't exist on this branch at all, so MTSC has moved out of Tier 2.
   TJA has no backing param on
   any branch (always active, not user-toggleable), so it was never a panel
   candidate.
