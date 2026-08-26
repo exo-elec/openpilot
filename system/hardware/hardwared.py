@@ -59,7 +59,18 @@ class PowerRail:
 
 
 class HardwareD:
-    """Hardware management daemon for RK3588 platforms."""
+    """Hardware management daemon for RK3588 platforms.
+
+    REGULATORS below and the devfreq governor paths in _init_hardware() are
+    RK3588-specific (RK806S PMIC rail names, RK3588's `ffa30000.npu` devfreq
+    device-tree address). Both fail closed on RK3576 rather than crash
+    (_set_governor no-ops if the sysfs path doesn't exist; REGULATORS just
+    tracks whatever names are listed), but neither has real RK3576 PMIC/
+    devfreq data yet — see docs/eop/RK3576_02M_SUPPORT.md. Power-rail
+    under-voltage detection and NPU/DMC performance-governor forcing are
+    effectively no-ops on RK3576 until this is confirmed against real
+    hardware.
+    """
 
     # RK806S regulator definitions for RK3588
     REGULATORS: list[tuple[str, float]] = [

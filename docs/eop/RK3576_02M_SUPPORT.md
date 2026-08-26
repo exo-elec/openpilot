@@ -110,6 +110,50 @@ as everything else here.
   validation against a schematic or real hardware before relying on it.
 - **NPU per-task core allocation**: needs real tuning data for RK3576's
   2-core topology in `hal.tuning.npu` (currently RK3588-only).
+- **Thermal/fan management and PMIC power-rail monitoring**:
+  `system/hardware/hardwared.py` (RK806S PMIC rail names/nominal voltages),
+  `system/thermald/thermald.py`/`fan_control.py`/`thermal_zones.py`
+  (devfreq governor paths like `/sys/class/devfreq/ffa30000.npu/governor`,
+  `hal.platform.rk3588_thermal` import) are all RK3588-specific — device-tree
+  addresses, PMIC wiring, and `hal.platform.rk3576_thermal` doesn't exist
+  yet. All fail closed on RK3576 (checked: `_set_governor()` no-ops if the
+  sysfs path is absent, same pattern throughout) rather than crash, so
+  running on RK3576 today just means NPU/GPU/DMC performance-governor
+  forcing and PMIC under-voltage detection are silent no-ops, not broken.
+  Needs real RK3576 devfreq/PMIC data before these do anything there.
+
+## Corrected while auditing for "clean dual support" (2026-08-26)
+
+Found by grepping for actual conditional branching on `rk3588` (not just
+comments/docstrings) across the whole tree — three real gaps beyond Phase A's
+original scope:
+
+- **`system/hardware/__init__.py`'s `ROCKCHIP`/`TICI` flags were RK3588-only**:
+  `ROCKCHIP = RK3588` (not `RK3588 or RK3576`), so on real RK3576 hardware
+  these would have silently evaluated `False`. Both flags gate real behavior
+  in `selfdrive/ui/onroad/cameraview.py` (EGL zero-copy rendering, shader
+  setup), `selfdrive/recordd/recordd.py` (encoding path), `system/updated.py`,
+  and `conftest.py`'s test-skipping — all of which would have silently
+  treated RK3576 as a PC/dev build. Fixed via
+  `ROCKCHIP = isinstance(HARDWARE, RK3588Hardware)`, which covers
+  `RK3576Hardware` through its subclass relationship and any future
+  Rockchip platform automatically, rather than an enumerated list that
+  would need updating again for a third platform. Also added the missing
+  `RK3576`/`RK3576_DETECTED`/`RK3576Hardware` exports (only `RK3588`'s
+  existed).
+- **`selfdrive/controls/lib/eop_utils.py::detect_exopilot_platform()`**:
+  docstring said RK3588 was "the only platform openpilot supports" even
+  though the function's own code already correctly returned `'exopilot02m'`
+  for an RK3576 device tree — the code was ahead of the docs even before
+  this session's changes. Corrected the docstring, and added the same
+  `HARDWARE` env-var override `PlatformRegistry.detect()` already supports,
+  since this function previously had no way to exercise the RK3576 branch
+  without a real device tree.
+- **`common/realtime.py`'s `BIG_CORES`/`LITTLE_CORES` comment** said "RK3588
+  CPU cores" — the actual index arrays (`[0,1,2,3]`/`[4,5,6,7]`) are correct
+  for RK3576 too (same 4-big+4-little topology, A72 instead of A76), just
+  the comment was misleadingly platform-specific. Comment corrected, no
+  logic change.
 
 ## Verification performed
 
