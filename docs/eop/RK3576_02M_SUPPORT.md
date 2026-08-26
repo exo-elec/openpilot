@@ -155,6 +155,39 @@ original scope:
   the comment was misleadingly platform-specific. Comment corrected, no
   logic change.
 
+## Found in a second pass, more serious: v4l2d could mislabel cameras on RK3576
+
+`system/v4l2d/v4l2d.py` unconditionally imports
+`hal.platform.rk3588_camera_paths` and hardcodes 01M's 4-camera MIPI list
+(road/wide_road/stereo_left/stereo_right) — confirmed by diffing
+`~/pilot/exopilot/hal/hal/platform/`'s `rk3588_*` vs `rk3576_*` module
+coverage: RK3588 has `camera_paths`/`init`/`sensors`/`thermal` modules that
+RK3576 has none of. `device_type` was already being detected in `main()`
+but only used for a log line — the actual camera list was built regardless
+of platform, matching `/dev/videoN` existence against 01M's fallback path
+lists. On real RK3576 hardware, this wouldn't just fail to work (which
+would be an acceptable Phase B gap) — it would find *some* `/dev/videoN`
+nodes for 02M's differently-wired sensors and mislabel them as 01M's
+road/wide_road/stereo_left/stereo_right, publishing wrong camera identities
+on the VisionIPC bus. That's a real risk on a driving-relevant pipeline, not
+just an incomplete feature.
+
+Fixed with a platform guard in `main()`: refuses to start (`return 1`,
+clear error log) on any platform other than `rk3588`/`pc`/undetected,
+rather than silently proceeding with the wrong camera identities. Does not
+attempt to build real RK3576 camera support (still needs
+`hal.platform.rk3576_camera_paths`, real device-path data, and the
+5-camera list this guard doesn't have — see the Camera capture item above).
+4 regression tests in `system/v4l2d/tests/test_v4l2d_platform_guard.py`
+confirm `V4L2D()` is never constructed for a rejected platform, and that
+`rk3588`/`pc` still work exactly as before.
+
+The same class of issue was checked for and *not* found in `uvcd.py`/
+`sided.py` — both already delegate camera detection to the polymorphic
+`HARDWARE.get_camera_config()`/`has_side_cameras()`/`has_rear_camera()`
+methods (fixed in Phase A) rather than importing `hal.platform.rk3588_*`
+directly, so they don't have this bug.
+
 ## Verification performed
 
 Host-side only, no hardware:
