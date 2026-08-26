@@ -188,6 +188,54 @@ The same class of issue was checked for and *not* found in `uvcd.py`/
 methods (fixed in Phase A) rather than importing `hal.platform.rk3588_*`
 directly, so they don't have this bug.
 
+Also confirmed and fixed: `RK3576Hardware.has_side_cameras()` previously
+only did direct device-path detection, with a comment saying 02M's USB hub
+chip was unconfirmed. `exopilot/scripts/install/setup_rk3576.sh`'s USB
+topology comment and DT overlay (`exopilot02m-usbhub-rts5411.dtbo`) confirm
+it's the same RTS5411S hub as 01M (side_left/side_right on hub ports 1/2) —
+now probes the hub too, matching `RK3588Hardware`. `CLAUDE.md`'s
+Prerequisites section also gained the `setup_rk3576.sh` BSP install step,
+which already existed (written for VisionPilot) but wasn't referenced from
+openpilot's own setup instructions.
+
+## Found in a third pass: DEVICE_CAMERAS had no RK3576 entries at all
+
+`common/transformations/camera.py`'s `get_device_camera_config()` — used
+across calibration and perception, not just camera capture — looks up
+`DEVICE_CAMERAS[(device_type, camera_type)]`. This dict had `("rk3588",
+...)` entries but no `("rk3576", ...)` entries at all, so a lookup on
+RK3576 would miss the dict entirely and silently fall back to **stock
+comma-3's `_ar_ox_config`** (1928×1208, focal length 2648.0/567.0) — not
+even RK3588's numbers, completely unrelated hardware. Worse than the
+v4l2d issue in one sense (this module is used by calibration/perception
+code, not just capture) and lower urgency in another (RK3576 camera
+capture doesn't produce real frames yet, so nothing feeds this path with
+real RK3576 images today) — fixed anyway since the data needed already
+exists and captures this exact class of dual-platform bug precisely.
+
+Added `("rk3576", "ox03c10"/"gc4653"/"unknown")` entries sourced from
+`hal.platform.rk3576_camera_geometry`'s already-existing `FOCAL_PX`/
+`IMAGE_SIZE_PX` data (same pattern as RK3588's entries, refactored into a
+shared `_load_eop_config()` helper instead of duplicating the loader body).
+Confirmed by reading `rk3576_camera_geometry.py` directly: `mono_narrow`/
+`mono_wide` use the identical lens/sensor specs as RK3588's `road`/
+`wide_road` (8.0mm/1.7mm OX03C10), so RK3576's fcam/ecam values come out
+numerically identical to RK3588's — not a coincidence to be suspicious of,
+confirmed against the source data. `mono_tele` (02M's third road-facing
+camera, 16.0mm) has no fcam/dcam/ecam slot in this 3-camera dataclass and
+isn't wired to anything — an open design question for whenever real 02M
+camera capture exists, not something to guess at here.
+
+Also fixed a comment (`get_device_camera_config()`'s "Fall back to rk3588
+ox03c10 config") that was already wrong before this session touched RK3576
+at all — the actual fallback is `_ar_ox_config` (stock comma), never an
+rk3588 config.
+
+5 new regression tests in `common/transformations/tests/test_eop_camera_config.py`,
+including an end-to-end check (subprocess-per-platform, since `HARDWARE`
+is a singleton computed at import time) confirming RK3576 no longer falls
+through to the stock comma-3 config.
+
 ## Verification performed
 
 Host-side only, no hardware:

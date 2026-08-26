@@ -65,29 +65,52 @@ _eop_ox03c10_config = DeviceCameraConfig(
 )
 
 
-def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
-  """Load RK3588 camera geometry from exopilot HAL; fall back to public defaults.
+def _load_eop_config(platform: str, road_cam: str, wide_cam: str, fallback: DeviceCameraConfig) -> DeviceCameraConfig:
+  """Load camera geometry for an ExoPilot Rockchip platform from exopilot HAL.
 
-  EOP10 uses the same OX03C10 sensor and lens stack as the reference platform.
-  The native readout is 1920x1280, close to the reference's 1928x1208. Focal
-  length in pixels is a physical property of the lens and sensor pixel pitch,
-  so it stays ~2667/567 regardless of the exact output resolution. The HAL owns
-  the canonical values.
+  `road_cam`/`wide_cam` are the camera-geometry names (from
+  hal.platform.<platform>_camera_geometry) that map onto this file's
+  fcam/ecam roles. Focal length in pixels is a physical property of the
+  lens and sensor pixel pitch, independent of exact output resolution.
   """
   try:
-    from hal.platform.rk3588_camera_geometry import FOCAL_PX, IMAGE_SIZE_PX
+    module = __import__(f"hal.platform.{platform}_camera_geometry", fromlist=["FOCAL_PX", "IMAGE_SIZE_PX"])
     def _cfg(name: str) -> CameraConfig:
-      w, h = IMAGE_SIZE_PX[name]
-      fx, _fy = FOCAL_PX[name]
+      w, h = module.IMAGE_SIZE_PX[name]
+      fx, _fy = module.FOCAL_PX[name]
       return CameraConfig(w, h, fx)
     return DeviceCameraConfig(
-      fcam=_cfg("road"),
+      fcam=_cfg(road_cam),
       dcam=_NoneCameraConfig(),
-      ecam=_cfg("wide_road"),
+      ecam=_cfg(wide_cam),
     )
   except Exception:
     # HAL not installed or geometry incomplete — use the public fallback.
-    return _eop_ox03c10_config
+    return fallback
+
+
+def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  """Load RK3588 camera geometry; fall back to public defaults.
+
+  EOP10 uses the same OX03C10 sensor and lens stack as the reference platform.
+  The native readout is 1920x1280, close to the reference's 1928x1208.
+  """
+  return _load_eop_config("rk3588", "road", "wide_road", _eop_ox03c10_config)
+
+
+def _load_eop_rk3576_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  """Load RK3576 (ExoPilot 02M) camera geometry; fall back to public defaults.
+
+  mono_narrow/mono_wide use the identical lens specs as RK3588's road/
+  wide_road (8.0mm/1.7mm, same OX03C10 sensor) -- confirmed against
+  hal.platform.rk3576_camera_geometry.py directly, not assumed. 02M's third
+  road-facing camera, mono_tele (16.0mm), has no fcam/dcam/ecam slot in this
+  3-camera model and isn't wired to anything yet -- camera *capture* for
+  RK3576 doesn't exist yet either (see docs/eop/RK3576_02M_SUPPORT.md's
+  Phase B), so this only matters once that's built, at which point
+  mono_tele's model-input role is an open design question, not a bug here.
+  """
+  return _load_eop_config("rk3576", "mono_narrow", "mono_wide", _eop_ox03c10_config)
 
 
 DEVICE_CAMERAS = {
@@ -111,6 +134,16 @@ DEVICE_CAMERAS = {
   ("rk3588", "ox03c10"): _load_eop_rk3588_config("ox03c10"),
   ("rk3588", "gc4653"): _load_eop_rk3588_config("gc4653"),
   ("rk3588", "unknown"): _load_eop_rk3588_config("ox03c10"),
+
+  # ExoPilot 02M (RK3576) - mono_narrow/mono_wide are OX03C10, stereo is
+  # GC4653, mono_tele has no slot yet (see _load_eop_rk3576_config). Without
+  # these entries, a lookup for ("rk3576", ...) would miss this dict
+  # entirely and fall back to stock comma-3's _ar_ox_config (wrong
+  # resolution and focal length, not just "less precise than RK3588's") --
+  # added 2026-08-26 during the dual-platform audit.
+  ("rk3576", "ox03c10"): _load_eop_rk3576_config("ox03c10"),
+  ("rk3576", "gc4653"): _load_eop_rk3576_config("gc4653"),
+  ("rk3576", "unknown"): _load_eop_rk3576_config("ox03c10"),
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})
@@ -127,7 +160,11 @@ def get_device_camera_config(camera_type: str = "ox03c10") -> DeviceCameraConfig
   from openpilot.system.hardware import HARDWARE
   device_type = HARDWARE.get_device_type()
 
-  # Fall back to rk3588 ox03c10 config as it is the primary supported platform
+  # Comment corrected 2026-08-26: this actually falls back to stock comma-3's
+  # _ar_ox_config (not an rk3588 config, despite what this comment used to
+  # say) if (device_type, camera_type) isn't in DEVICE_CAMERAS -- e.g. an
+  # unregistered platform. Both rk3588 and rk3576 are registered above, so
+  # this fallback should not be hit for either in practice.
   return DEVICE_CAMERAS.get((device_type, camera_type), _ar_ox_config)
 
 # device/mesh : x->forward, y-> right, z->down
