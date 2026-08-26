@@ -50,6 +50,16 @@ class RK3588Hardware(HardwareBase):
     except ImportError:
         _cam_geo = None
 
+    # Platform identity + camera-array shape, factored out of
+    # get_camera_array_config()/get_stereo_baseline_mm() below so a subclass
+    # (e.g. RK3576Hardware) only needs to override these class attributes and
+    # `_cam_geo`/`_usb_cameras` above, not reimplement the two methods.
+    PLATFORM_NAME = "ExoPilot 01M"
+    SOC_NAME = "RK3588"
+    MIPI_CAMERA_NAMES = ("road", "wide_road", "stereo_left", "stereo_right")
+    HAS_TELE_ROAD = False
+    _usb_cameras = camera_config.USB_CAMERAS
+
     @staticmethod
     def get_cellular_interface() -> str:
         """Return active cellular modem interface for EC25.
@@ -239,9 +249,12 @@ class RK3588Hardware(HardwareBase):
         return []
 
     def get_camera_array_config(self) -> dict:
-        """ExoPilot 01M: 4 MIPI cameras + up to 3 USB cameras via hub.
+        """MIPI cameras (per-platform, `MIPI_CAMERA_NAMES`) + up to 3 USB
+        cameras via hub. Shared by every Rockchip platform subclass — only
+        `_cam_geo`, `_usb_cameras`, `MIPI_CAMERA_NAMES`, `PLATFORM_NAME`,
+        `SOC_NAME`, and `HAS_TELE_ROAD` differ per platform.
 
-        Mounting positions/lens data come from hal.platform.rk3588_camera_geometry
+        Mounting positions/lens data come from hal.platform.<soc>_camera_geometry
         (the same source selfdrive/gridd/camera_geometry.py uses) so this stays
         consistent with the actual calibration/perception geometry rather than
         carrying its own separate copy.
@@ -249,8 +262,7 @@ class RK3588Hardware(HardwareBase):
         USB hub cameras (side/rear) are enabled on hardware revisions with
         the USB 3.0 hub populated.
         """
-        cam_geo = RK3588Hardware._cam_geo
-        _mipi_names = ("road", "wide_road", "stereo_left", "stereo_right")
+        cam_geo = self._cam_geo
         if cam_geo is not None:
             mipi_cams = [
                 {
@@ -260,7 +272,7 @@ class RK3588Hardware(HardwareBase):
                     "y_offset_mm": cam_geo.POSITIONS_M[name][1] * 1000.0,
                     "fov_deg": cam_geo.FOV_DEG[name],
                 }
-                for name in _mipi_names
+                for name in self.MIPI_CAMERA_NAMES
             ]
             stereo_baseline_mm = cam_geo.STEREO_BASELINE_M * 1000.0
         else:
@@ -269,19 +281,19 @@ class RK3588Hardware(HardwareBase):
         usb_cams = [
             {"name": c.name, "sensor": c.sensor.value, "lens_mm": 0.0,
              "y_offset_mm": c.y_offset_mm, "fov_deg": c.fov_deg}
-            for c in camera_config.USB_CAMERAS
+            for c in self._usb_cameras
         ]
         return {
-            "platform": "ExoPilot 01M",
-            "soc": "RK3588",
+            "platform": self.PLATFORM_NAME,
+            "soc": self.SOC_NAME,
             "num_cameras": len(mipi_cams) + len(usb_cams),
             "stereo_baseline_mm": stereo_baseline_mm,
-            "has_tele_road": False,
+            "has_tele_road": self.HAS_TELE_ROAD,
             "cameras": mipi_cams + usb_cams,
         }
 
     def get_stereo_baseline_mm(self) -> float:
-        cam_geo = RK3588Hardware._cam_geo
+        cam_geo = self._cam_geo
         return cam_geo.STEREO_BASELINE_M * 1000.0 if cam_geo is not None else 0.0
 
     def get_capabilities(self) -> set:

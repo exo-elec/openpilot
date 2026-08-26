@@ -13,33 +13,7 @@ The 4× MIPI CSI cameras (road, wide_road, stereo_left, stereo_right) are
 configured in system.v4l2d and are unchanged by this addition.
 """
 
-from dataclasses import dataclass
-from enum import Enum
-
-
-class CameraSensor(Enum):
-  UVC = "uvc"  # USB Video Class interface (used for AHD cameras converted to USB)
-
-
-class HDRMode(Enum):
-  SDR = "sdr"
-
-
-@dataclass(frozen=True)
-class CameraConfig:
-  name: str
-  sensor: CameraSensor
-  width: int
-  height: int
-  fps: int
-  hdr: HDRMode
-  fov_deg: float
-  y_offset_mm: float         # lateral offset from vehicle centerline (+ = left)
-  v4l2_subdev: str           # empty for UVC
-  v4l2_mainpath: str         # e.g. "/dev/video-rear"
-  sensor_i2c_addr: int       # 0 for UVC
-  orientation: str           # "left", "right", "rear"
-  lens_type: str             # e.g. "ahd_120deg"
+from openpilot.system.hardware.camera_types import CameraSensor, HDRMode, CameraConfig, find_camera
 
 
 # USB cameras via hub (ExoPilot 01M hardware revision). Physical mounting data
@@ -74,7 +48,4 @@ except ImportError:
 
 def get_camera(name: str) -> CameraConfig | None:
   """Return USB camera configuration by name."""
-  for cam in USB_CAMERAS:
-    if cam.name == name:
-      return cam
-  return None
+  return find_camera(USB_CAMERAS, name)

@@ -1,11 +1,20 @@
-"""RKNN Platform Detection and NPU Core Allocation for RK3588.
+"""RKNN Platform Detection and NPU Core Allocation for RK3588 and RK3576.
 
-This module provides NPU core mask allocation for RK3588 (3 NPU cores).
+This module provides NPU core mask allocation for RK3588 (3 NPU cores) and,
+as of 2026-08-26, RK3576 (2 NPU cores) — see docs/eop/RK3576_02M_SUPPORT.md.
 
 RK3588: 6 TOPS = 3 NPU cores × 2 TOPS/core, 85% budget = 1.7 TOPS/core
+RK3576: 6 TOPS = 2 NPU cores × 3 TOPS/core, 85% budget = 2.55 TOPS/core
 
 Strategy: Maximize NPU utilization up to 85% safety limit per core.
 Core 0 is not exclusive - models can share if budget permits.
+
+RK3576's per-task core allocation (which core modeld/stereod/monod/etc. run
+on) is not yet populated in hal.tuning.npu — that module only has RK3588
+data today. NPU_ALLOCATION_MAP[PlatformType.RK3576] is therefore an empty
+dict, so get_core_mask() falls back to core 1 for every task on RK3576 until
+real per-task tuning data exists for it. Core *count* (get_core_count) is
+correct regardless.
 
 Usage:
     from openpilot.selfdrive.modeld.runners.rknn_platform import get_platform_npu_config
@@ -47,13 +56,17 @@ except ImportError:
 class PlatformType(Enum):
     """Supported Rockchip platforms."""
     RK3588 = "rk3588"      # 3 NPU cores × 2 TOPS (RK3588 and RK3588S2 share same NPU)
+    RK3576 = "rk3576"      # 2 NPU cores × 3 TOPS
     UNKNOWN = "unknown"
 
 
 # Model-to-core allocation lives in the closed hal package (hal.tuning.npu) —
-# this is ExoPilot's model-set-specific tuning, not generic RK3588 platform logic.
+# this is ExoPilot's model-set-specific tuning, not generic platform logic.
+# RK3576 has no per-task allocation data yet (see module docstring) — empty
+# dict means get_core_mask() falls back to core 1 for every task on it.
 NPU_ALLOCATION_MAP: dict[PlatformType, dict[str, int]] = {
     PlatformType.RK3588: npu_tuning.CORE_ALLOCATION,
+    PlatformType.RK3576: {},
 }
 
 
@@ -67,6 +80,8 @@ def detect_platform() -> PlatformType:
     env_platform = os.environ.get('VISIONPILOT_PLATFORM', '').lower()
     if 'rk3588' in env_platform:
         return PlatformType.RK3588
+    if 'rk3576' in env_platform:
+        return PlatformType.RK3576
 
     # Check device tree
     compat_path = Path('/proc/device-tree/compatible')
@@ -75,6 +90,8 @@ def detect_platform() -> PlatformType:
             compat = compat_path.read_bytes().decode('utf-8', errors='ignore').lower()
             if 'rk3588' in compat:
                 return PlatformType.RK3588
+            if 'rk3576' in compat:
+                return PlatformType.RK3576
         except Exception:
             pass
 
@@ -85,6 +102,7 @@ def get_core_count(platform: PlatformType) -> int:
     """Get NPU core count for platform."""
     core_counts = {
         PlatformType.RK3588: 3,
+        PlatformType.RK3576: 2,
         PlatformType.UNKNOWN: 3,  # Default to 3 for safety
     }
     return core_counts.get(platform, 3)

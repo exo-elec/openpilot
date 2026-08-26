@@ -18,10 +18,18 @@ Or manually:
     set_core_type(DAEMON_CORE_TYPE["soundd"])  # or use CORE_BIG/CORE_LITTLE directly
 
 Platform Support:
-    - RK3588: Full OpenPilot support (ExoPilot 01M, the only supported platform)
+    - RK3588: Full OpenPilot support (ExoPilot 01M)
+    - RK3576: OpenPilot support as of 2026-08-26 (ExoPilot 02M) — platform
+      registration and NPU-topology plumbing are in; see
+      docs/eop/RK3576_02M_SUPPORT.md for what's still pending real hardware.
+      Same 4 big + 4 little CPU topology as RK3588 (A72 instead of A76), so
+      the CORE_BIG/CORE_LITTLE core-index assignments below are expected to
+      carry over unchanged, but this has not been verified on real RK3576
+      hardware.
 
-Note: ExoPilot 02M (RK3576) and 03M (RK3688) are NOT supported by OpenPilot —
-see VisionPilot / DoraPilot respectively.
+Note: ExoPilot 03M (RK3688) is NOT supported by OpenPilot — see DoraPilot.
+VisionPilot (ROS2) is a separate stack that also targets RK3576 (02M);
+that's additional, not exclusive — both can run on 02M hardware.
 """
 
 from openpilot.common.realtime import CORE_BIG, CORE_LITTLE, set_core_type

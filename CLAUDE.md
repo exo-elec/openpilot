@@ -7,8 +7,13 @@ Guidance for Claude Code when working on this openpilot fork.
 **ExoPilot (EOP)** — Advanced ADAS for Rockchip RK3588.
 
 - **Codebase**: OpenPilot fork + EOP-specific daemons, controllers, UI
-- **Platform**: RK3588 (ExoPilot 01L / 01M) — the only platform openpilot supports. ExoPilot 02M (RK3576) is VisionPilot's; ExoRobot 01H (RK3588 16GB, HumRobot) is in `~/robot/exorobot`
-- **Suffix = RAM**: L=4GB / M=8GB / H=16GB; PCIe accel (camera-tier Hailo-8/DX-M1 only) is a runtime-detected plug-in
+- **Platform**: RK3588 (ExoPilot 01L / 01M) and, as of 2026-08-26, RK3576
+  (ExoPilot 02M) — both openpilot-supported; see
+  `docs/eop/RK3576_02M_SUPPORT.md` for what's actually implemented on 02M vs.
+  still pending real hardware. VisionPilot (ROS2) also targets 02M
+  separately — the two are additional to each other, not exclusive; see that
+  doc for why. ExoRobot 01H (RK3588 16GB, HumRobot) is in `~/robot/exorobot`
+- **Suffix = RAM**: L=4GB / M=8GB / H=16GB; PCIe accel (camera-tier Hailo-8/DX-M1 only) is a runtime-detected plug-in, works unchanged on either SoC
 - **Status**: In development — dev PC testing phase (not hardware-deployed)
 
 ## Prerequisites (on real hardware)

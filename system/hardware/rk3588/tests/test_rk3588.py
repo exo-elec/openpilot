@@ -73,8 +73,15 @@ def test_hardware_creation() -> None:
     assert cfg["num_cameras"] == 7, f"expected 7 cameras, got {cfg['num_cameras']}"
     assert cfg["stereo_baseline_mm"] == 80.0
     assert cfg["has_tele_road"] is False
-    assert hw.has_side_cameras() is True
-    assert hw.has_rear_camera() is True
+    # has_side_cameras()/has_rear_camera() probe real device files (/dev/video-*)
+    # and lsusb output — these depend on physical hardware being present, not
+    # just hal's camera-geometry *data* being on the path. This is a host-side,
+    # no-hardware test (see module docstring), so only check these are callable
+    # and return a bool, not that they detect hardware that isn't there. Bug
+    # found 2026-08-26: this used to assert `is True` unconditionally here,
+    # which fails on any dev PC that happens to have hal installed.
+    assert isinstance(hw.has_side_cameras(), bool)
+    assert isinstance(hw.has_rear_camera(), bool)
   else:
     # Without the hal package only the platform metadata is available.
     assert cfg["num_cameras"] == 0
