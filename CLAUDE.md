@@ -21,7 +21,14 @@ Guidance for Claude Code when working on this openpilot fork.
 ExoPilot BSP must be installed first before openpilot:
 ```bash
 sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilot 01L/01M
+sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh && sudo reboot   # ExoPilot 02M
 ```
+`setup_rk3576.sh`'s own header says it prepares the hardware layer "so
+VisionPilot works correctly" — it predates openpilot's 02M support and was
+written with only that consumer in mind, but the setup itself (kernel USB
+hub driver, RTS5411S DT overlay, udev rules) is consumer-agnostic hardware
+bring-up, not VisionPilot-specific software. Not verified against real
+02M hardware from the openpilot side.
 
 ---
 

@@ -165,15 +165,18 @@ class RK3576Hardware(RK3588Hardware):
         return True
 
     def has_side_cameras(self) -> bool:
-        """Detect side cameras at runtime (UVC).
+        """Detect side cameras at runtime (UVC via RTS5411S USB hub).
 
-        Unlike RK3588Hardware, does not also probe for an RTS5411S USB hub —
-        02M's USB hub chip (if any) has not been confirmed in boards.py, so
-        only direct device-path detection is used here.
+        Same RTS5411S hub as RK3588Hardware, confirmed by
+        exopilot/scripts/install/setup_rk3576.sh's USB topology comment and
+        DT overlay (`exopilot02m-usbhub-rts5411.dtbo`) -- side_left/
+        side_right are hub ports 1/2. `boards.py`'s `BOARD_DATA` doesn't
+        name the hub chip, but this install script does.
         """
         left = self._detect_uvc_device("/dev/video-side-left")
         right = self._detect_uvc_device("/dev/video-side-right")
-        return left or right
+        hub = self._detect_usb_hub()
+        return left or right or hub
 
     def get_max_reliable_depth_m(self) -> float:
         """RK3576's wider 160mm stereo baseline (vs. 01M's 80mm) roughly
