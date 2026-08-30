@@ -1,10 +1,42 @@
 #include "selfdrive/ui/qt/qt_window.h"
 
+#include <cmath>
+
+namespace {
+// ExoPilot panel geometry, as given 2026-08-30: both panels are ~600px tall;
+// only width differs -- ~1080 is the 7" (01) baseline, ~1600 the 9" (02)
+// panel this telemetry feature adds width for. This is a distinct hardware
+// family from comma three's 2160x1080 (DEVICE_SCREEN_SIZE), not a scaled
+// variant of it, and this tree has zero SCALE= usage in any launch script,
+// so production always requests a fixed 2160x1080 window today regardless
+// of the real panel -- meaning something outside this Qt code (a display
+// bridge/scaler, or the compositor) may already be remapping that fixed
+// canvas onto the true ExoPilot panel. Whether QGuiApplication actually
+// reports ExoPilot's true physical pixels here, or that same remapped
+// 2160x1080 canvas, has NOT been verified against real hardware. So rather
+// than compare against an assumed baseline, this only acts when the
+// detected size matches the confirmed 9" (02) signature within a small
+// tolerance; anything else -- including comma three, PC, or a 2160x1080
+// report from ExoPilot's own scaler -- safely falls back to zero extra
+// width (device-01 behavior, unchanged).
+const QSize kExoPilot01Size(1080, 600);
+const QSize kExoPilot02Size(1600, 600);
+constexpr int kToleranceHalfPx = 20;
+
+bool matchesSize(const QSize &detected, const QSize &known) {
+  return std::abs(detected.width() - known.width()) <= kToleranceHalfPx &&
+         std::abs(detected.height() - known.height()) <= kToleranceHalfPx;
+}
+}  // namespace
+
 int getTelemetryPanelWidth() {
   static const int width = [] {
     if (Hardware::PC()) return 0;
     const QSize detected = QGuiApplication::primaryScreen()->size();
-    return detected.width() > DEVICE_SCREEN_SIZE.width() ? detected.width() - DEVICE_SCREEN_SIZE.width() : 0;
+    if (matchesSize(detected, kExoPilot02Size)) {
+      return kExoPilot02Size.width() - kExoPilot01Size.width();
+    }
+    return 0;
   }();
   return width;
 }

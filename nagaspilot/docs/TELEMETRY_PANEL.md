@@ -47,30 +47,62 @@ route accuracy evidence.
 There is no board-ID or panel-name probing in this codebase (verified: no
 `exopilot`/`EOP10` string appears anywhere except planning docs, and
 `get_device_type()` only distinguishes stock comma tici/tizi/mici via
-`/sys/firmware/devicetree/base/model`). Rather than invent a sysfs path or a
-provisioning-time param for hardware neither spec nor device is available to
-verify against, detection uses the real panel size Qt's own display backend
-(EGLFS/DRM) already probes at boot, via `QGuiApplication::primaryScreen()`:
+`/sys/firmware/devicetree/base/model`).
 
-- `getTelemetryPanelWidth()` (`qt_window.h`/`.cc`) returns
-  `detected_width - 2160` when the real screen is wider than baseline, else
-  `0`.
-- `setMainWindow()` now sizes the app window to `DEVICE_SCREEN_SIZE +
-  (extra, 0)` instead of unconditionally forcing 2160x1080 on real hardware.
-- `HomeWindow` (`home.cc`) only constructs `TelemetryWidget` when that extra
-  width is nonzero, and gives it exactly that width. `Sidebar` and
-  `OnroadWindow` are untouched -- neither their code nor their geometry
-  changes -- so a 2160x1080 panel (device 01) renders identically to before,
-  and PC dev builds are unaffected (`getTelemetryPanelWidth()` returns 0 on
-  `Hardware::PC()`).
-- **Known limitation**: because `MainWindow` is sized as a whole, the
-  offroad/settings/onboarding screens (which share the same `QStackedLayout`)
-  also become wider on device 02, gaining unused right-hand space. Only the
-  onroad screen was in scope for this change; revisit if that looks wrong in
-  practice.
+**Confirmed panel geometry (given 2026-08-30, not yet cross-checked against
+a running device)**: ExoPilot 01 (7") is 1080x600; ExoPilot 02 (9") is
+1600x600 -- both 600px tall, only width differs. This is a *different*
+hardware family from comma three's 2160x1080 (`DEVICE_SCREEN_SIZE`), not a
+scaled variant of it.
 
-If ExoPilot 02 turns out to need a *different* baseline width for the main
-driving view rather than the same 2160px region plus new panel, that's a
-different design (shrink/rescale `nvg` itself) and this file's approach does
-not do that -- it strictly preserves the existing 2160-wide region and adds
-new panel width beside it.
+`getTelemetryPanelWidth()` (`qt_window.h`/`.cc`) reads
+`QGuiApplication::primaryScreen()->size()` and only acts when it matches the
+confirmed 1600x600 (02) signature within a small tolerance, returning
+`1600 - 1080 = 520`. Any other detected size -- comma three, PC, an
+unrecognized ExoPilot variant -- safely returns `0`, i.e. exactly today's
+behavior. This is deliberately a signature match, not a "wider than X"
+threshold, because of the open question below.
+
+**Open question, not resolved by this change**: this tree has no `SCALE=`
+set in any launch script (checked: `launch_env.sh` and all other `*.sh`),
+so production has always requested a fixed 2160x1080 window on real hardware
+regardless of what the physical panel actually is. That means one of two
+things must already be true on ExoPilot, and this hasn't been confirmed
+either way:
+
+1. A display bridge/scaler chip presents a virtual 2160x1080 mode to the
+   Linux/EGLFS side and internally scales to the real 1080x600 / 1600x600
+   panel -- in which case `QGuiApplication::primaryScreen()->size()` would
+   report 2160x1080 on *both* ExoPilot variants, and this detection
+   mechanism cannot distinguish them at all; or
+2. The GPU/DRM side genuinely reports the true panel resolution (1080x600 /
+   1600x600), and something else (compositor, or the existing UI simply not
+   fitting the smaller panel today) accounts for the mismatch with
+   `DEVICE_SCREEN_SIZE`.
+
+This code assumes (2). **Before trusting that the panel actually appears on
+ExoPilot 02 hardware, confirm what `QGuiApplication::primaryScreen()->size()`
+(or `xrandr` / `/sys/class/graphics/fb0/virtual_size`) actually reports on a
+real device.** If it turns out to be (1), screen-size detection cannot work
+at all and a different signal is needed (a device-tree property, a
+provisioning-time param, or a build-time flag) -- this file's approach does
+not attempt that.
+
+`setMainWindow()` sizes the app's fixed window to `DEVICE_SCREEN_SIZE +
+(extra, 0)` when the extra width is nonzero -- i.e. it grows the *existing*
+2160x1080 logical canvas rather than resizing it to ExoPilot's real pixel
+count. Whether that larger logical canvas maps correctly onto a 1600x600
+physical panel depends entirely on whatever external scaling explains point
+(1) or (2) above, and has not been verified.
+
+`HomeWindow` (`home.cc`) only constructs `TelemetryWidget` when
+`getTelemetryPanelWidth()` is nonzero, and gives it exactly that width.
+`Sidebar` and `OnroadWindow` are untouched -- neither their code nor their
+geometry changes -- so device 01 (and anything not matching the confirmed
+02 signature) renders identically to before this change, and PC dev builds
+are unaffected (`getTelemetryPanelWidth()` returns 0 on `Hardware::PC()`).
+
+**Known limitation**: because `MainWindow` is sized as a whole, the
+offroad/settings/onboarding screens (which share the same `QStackedLayout`)
+also become wider whenever the panel is active, gaining unused right-hand
+space. Only the onroad screen was in scope for this change.
