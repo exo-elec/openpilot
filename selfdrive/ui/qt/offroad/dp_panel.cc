@@ -299,22 +299,15 @@ void DPPanel::add_ui_toggles() {
     if (param == "dp_ui_radar_tracks" && !vehicle_has_long_ctrl) {
       continue;
     }
-    if (param == "dp_ui_exopilot_wide_screen") {
-      has_toggle = true;
-      auto toggle = new ParamControl(param, title, desc, "", this);
-      bool locked = params.getBool((param + "Lock").toStdString());
-      toggle->setEnabled(!locked);
-      addItem(toggle);
-      addItem(telemetry_panel_width);
-      toggles[param.toStdString()] = toggle;
-      continue;
-    }
 
     has_toggle = true;
     auto toggle = new ParamControl(param, title, desc, "", this);
     bool locked = params.getBool((param + "Lock").toStdString());
     toggle->setEnabled(!locked);
     addItem(toggle);
+    if (param == "dp_ui_exopilot_wide_screen") {
+      addItem(telemetry_panel_width);
+    }
     toggles[param.toStdString()] = toggle;
   }
 

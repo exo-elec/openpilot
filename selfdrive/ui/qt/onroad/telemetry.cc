@@ -25,6 +25,7 @@ void TelemetryGridPage::updateState(const UIState &s) {
   const SubMaster &sm = *(s.sm);
   if (sm.rcv_frame("carState") < s.scene.started_frame) {
     leftBlindspot = rightBlindspot = leadOneValid = false;
+    update();
     return;
   }
 
@@ -110,6 +111,9 @@ void TelemetryStatsPage::updateState(const UIState &s) {
   is_metric = s.scene.is_metric;
   const SubMaster &sm = *(s.sm);
   if (sm.rcv_frame("carState") < s.scene.started_frame) {
+    vEgo = steeringAngleDeg = 0;
+    leadOneValid = false;
+    update();
     return;
   }
 
