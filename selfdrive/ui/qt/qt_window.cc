@@ -1,42 +1,39 @@
 #include "selfdrive/ui/qt/qt_window.h"
 
-#include <cmath>
+#include <algorithm>
 
-namespace {
-// ExoPilot panel geometry, as given 2026-08-30: both panels are ~600px tall;
-// only width differs -- ~1080 is the 7" (01) baseline, ~1600 the 9" (02)
-// panel this telemetry feature adds width for. This is a distinct hardware
-// family from comma three's 2160x1080 (DEVICE_SCREEN_SIZE), not a scaled
-// variant of it, and this tree has zero SCALE= usage in any launch script,
-// so production always requests a fixed 2160x1080 window today regardless
-// of the real panel -- meaning something outside this Qt code (a display
-// bridge/scaler, or the compositor) may already be remapping that fixed
-// canvas onto the true ExoPilot panel. Whether QGuiApplication actually
-// reports ExoPilot's true physical pixels here, or that same remapped
-// 2160x1080 canvas, has NOT been verified against real hardware. So rather
-// than compare against an assumed baseline, this only acts when the
-// detected size matches the confirmed 9" (02) signature within a small
-// tolerance; anything else -- including comma three, PC, or a 2160x1080
-// report from ExoPilot's own scaler -- safely falls back to zero extra
-// width (device-01 behavior, unchanged).
-const QSize kExoPilot01Size(1080, 600);
-const QSize kExoPilot02Size(1600, 600);
-constexpr int kToleranceHalfPx = 20;
+#include "common/params.h"
 
-bool matchesSize(const QSize &detected, const QSize &known) {
-  return std::abs(detected.width() - known.width()) <= kToleranceHalfPx &&
-         std::abs(detected.height() - known.height()) <= kToleranceHalfPx;
-}
-}  // namespace
-
+// Real ExoPilot 01/02 panel pixel dimensions were asked for three times in
+// this feature's development and came back different (and reportedly wrong)
+// each time, with no spec sheet, part number, or on-device readout ever
+// provided to check against. Rather than keep guessing a screen-size
+// signature to autodetect against -- especially since production sets no
+// SCALE= anywhere, so it's unverified whether QGuiApplication even reports
+// ExoPilot's true physical pixels or a display-bridge/scaler's virtual
+// 2160x1080 canvas (see nagaspilot/docs/TELEMETRY_PANEL.md) -- this is
+// instead an explicit opt-in the installer sets once per physical unit,
+// based on hardware only they can see and measure:
+//   dp_ui_exopilot_wide_screen (bool): set on a 9" (02) unit, left off (the
+//     default) on a 7" (01) unit or anything else -- so an unconfigured
+//     device renders exactly as before this feature existed.
+//   dp_ui_telemetry_panel_width (int, px): how much extra width that unit's
+//     panel actually has beyond its 01 counterpart. No default is assumed
+//     safe here either -- an installer who enables the toggle without
+//     setting a real width gets a 0px (invisible, harmless) panel rather
+//     than a guessed size.
 int getTelemetryPanelWidth() {
   static const int width = [] {
     if (Hardware::PC()) return 0;
-    const QSize detected = QGuiApplication::primaryScreen()->size();
-    if (matchesSize(detected, kExoPilot02Size)) {
-      return kExoPilot02Size.width() - kExoPilot01Size.width();
+    Params params;
+    if (!params.getBool("dp_ui_exopilot_wide_screen")) return 0;
+    int px = 0;
+    try {
+      px = std::stoi(params.get("dp_ui_telemetry_panel_width"));
+    } catch (const std::exception &) {
+      px = 0;
     }
-    return 0;
+    return std::max(0, px);
   }();
   return width;
 }

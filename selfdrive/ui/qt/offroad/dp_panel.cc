@@ -263,6 +263,13 @@ void DPPanel::add_ui_toggles() {
       tr("Rainbow Driving Path like Tesla"),
       tr("Why not?"),
     },
+    {
+      "dp_ui_exopilot_wide_screen",
+      tr("ExoPilot 02 Wide Screen Telemetry Panel"),
+      tr("Enable only on a 9\" ExoPilot 02 unit -- adds a swipeable telemetry "
+         "panel using the screen width beyond the 7\" ExoPilot 01 panel. Set "
+         "the exact extra width below. Takes effect after a UI restart."),
+    },
   };
   std::vector<QString> display_off_mode_texts{tr("Std."), tr("MAIN+"), tr("OP+"), tr("MAIN-"), tr("OP-")};
   ButtonParamControl* display_off_mode_setting = new ButtonParamControl("dp_ui_display_mode", tr("Display Mode"),
@@ -270,6 +277,11 @@ void DPPanel::add_ui_toggles() {
                                           "",
                                           display_off_mode_texts, 200);
   auto hide_hud = new ParamSpinBoxControl("dp_ui_hide_hud_speed_kph", tr("Hide HUD When Moves above:"), tr("To prevent screen burn-in, hide Speed, MAX Speed, and Steering/DM Icons when the car moves.\nOff = Stock Behavior\n1 km/h ≈ 0.6 mph"), "", 0, 120, 5, tr(" km/h"), tr("Off"));
+  auto telemetry_panel_width = new ParamSpinBoxControl("dp_ui_telemetry_panel_width", tr("Telemetry Panel Width:"),
+                                          tr("How much extra screen width this unit's panel actually has beyond a "
+                                             "7\" ExoPilot 01 panel. Measure your own hardware -- there is no safe "
+                                             "guessed default. Ignored unless the toggle above is on."),
+                                          "", 0, 800, 10, tr(" px"), tr("0"));
 
   QWidget *label = nullptr;
   bool has_toggle = false;
@@ -285,6 +297,16 @@ void DPPanel::add_ui_toggles() {
       continue;
     }
     if (param == "dp_ui_radar_tracks" && !vehicle_has_long_ctrl) {
+      continue;
+    }
+    if (param == "dp_ui_exopilot_wide_screen") {
+      has_toggle = true;
+      auto toggle = new ParamControl(param, title, desc, "", this);
+      bool locked = params.getBool((param + "Lock").toStdString());
+      toggle->setEnabled(!locked);
+      addItem(toggle);
+      addItem(telemetry_panel_width);
+      toggles[param.toStdString()] = toggle;
       continue;
     }
 
