@@ -1,15 +1,25 @@
 #include "selfdrive/ui/qt/qt_window.h"
 
+int getTelemetryPanelWidth() {
+  static const int width = [] {
+    if (Hardware::PC()) return 0;
+    const QSize detected = QGuiApplication::primaryScreen()->size();
+    return detected.width() > DEVICE_SCREEN_SIZE.width() ? detected.width() - DEVICE_SCREEN_SIZE.width() : 0;
+  }();
+  return width;
+}
+
 void setMainWindow(QWidget *w) {
   const float scale = util::getenv("SCALE", 1.0f);
   const QSize sz = QGuiApplication::primaryScreen()->size();
+  const QSize fixedSize = DEVICE_SCREEN_SIZE + QSize(getTelemetryPanelWidth(), 0);
 
   if (Hardware::PC() && scale == 1.0 && !(sz - DEVICE_SCREEN_SIZE).isValid()) {
     w->setMinimumSize(QSize(640, 480)); // allow resize smaller than fullscreen
     w->setMaximumSize(DEVICE_SCREEN_SIZE);
     w->resize(sz);
   } else {
-    w->setFixedSize(DEVICE_SCREEN_SIZE * scale);
+    w->setFixedSize(fixedSize * scale);
   }
   w->show();
 
