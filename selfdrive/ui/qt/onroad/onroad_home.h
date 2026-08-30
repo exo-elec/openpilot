@@ -18,6 +18,11 @@ public:
 
 private:
   void paintEvent(QPaintEvent *event);
+  // Presence-only lane-change aid: BSM gives no distance/speed, so this draws
+  // a fixed car glyph near the mirror position rather than a scaled/placed
+  // object -- see nagaspilot/docs/TELEMETRY_PANEL.md's deferred-LCA-preview
+  // note for why nothing richer (distance, closing speed) is drawn here yet.
+  void drawAdjacentVehicleIcon(QPainter &p, bool onLeft);
   OnroadAlerts *alerts;
   AnnotatedCameraWidget *nvg;
   QColor bg = bg_colors[STATUS_DISENGAGED];

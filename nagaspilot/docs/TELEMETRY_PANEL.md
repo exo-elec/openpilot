@@ -37,10 +37,15 @@ live corner/side view is future work gated on that detector actually
 existing and publishing validated data, per this project's evidence rules.
 
 The lane-change (LCA/ALC) "sneak preview of the adjacent lane" idea raised
-alongside this request is explicitly deferred, not part of this change --
-there is no real adjacent-lane object data to preview yet (see the gridd
-study doc's activation gates). Revisit once a shadow detector has recorded-
-route accuracy evidence.
+alongside this request has no real adjacent-lane object data to preview from
+yet (see the gridd study doc's activation gates) -- a full camera-based
+preview is still out of scope. As an interim, presence-only step,
+`OnroadWindow::drawAdjacentVehicleIcon()` (`onroad_home.h`/`.cc`) now draws a
+fixed car glyph near the mirror position, on both device 01 and 02, gated on
+the same real `leftBlindspot`/`rightBlindspot` booleans already driving the
+existing full-screen BSM flash -- no distance, closing speed, or fabricated
+camera feed, since none of that data exists. Revisit for anything richer
+once a shadow detector has recorded-route accuracy evidence.
 
 ## Hardware detection
 
