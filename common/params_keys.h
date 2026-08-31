@@ -352,6 +352,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPSurfaceGridWidth", {PERSISTENT, FLOAT, "30.0"}},
     {"EOPSurfaceLongHorizon", {PERSISTENT, BOOL, "1"}},
     {"EOPSurfaceLongRange", {PERSISTENT, FLOAT, "100.0"}},
+    // Extra px width of the ExoPilot 02M (RK3576) telemetry side panel beyond
+    // the ExoPilot 01M 1024x600 baseline. Installer-set: RK3576 detection is
+    // real (device-tree), but the true panel resolution isn't recorded
+    // anywhere in this tree yet. See getTelemetryPanelWidth() in qt_window.cc.
+    {"EOPTelemetryPanelWidth", {PERSISTENT, INT, "0"}},
     {"EOPTJAEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPTJAMaxHoldMinutes", {PERSISTENT, INT, "10"}},
     {"EOPTLSCEnabled", {PERSISTENT, BOOL, "0"}},

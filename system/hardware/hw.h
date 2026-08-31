@@ -42,19 +42,36 @@ public:
     return false;
   }
 
+  // Check if running on RK3576 (ExoPilot 02M). Mirrors
+  // system/hardware/registry.py's PlatformRegistry.detect(), which already
+  // aliases 'rk3576' to 'exopilot02m' on the Python side -- this brings the
+  // C++ side (previously RK3588-only) in line with it.
+  static bool RK3576() {
+    const char* platform = std::getenv("EOP_PLATFORM");
+    if (platform && std::string(platform) == "rk3576") {
+      return true;
+    }
+    std::string compat = util::read_file("/proc/device-tree/compatible");
+    if (compat.find("rk3576") != std::string::npos) {
+      return true;
+    }
+    return false;
+  }
+
   // Generic Rockchip detection
   static bool ROCKCHIP() {
-    return RK3588();
+    return RK3588() || RK3576();
   }
 
   // Device name for logging
   static std::string get_name() {
     if (RK3588()) return "rk3588";
+    if (RK3576()) return "rk3576";
     return "pc";
   }
 
   static cereal::InitData::DeviceType get_device_type() {
-    if (RK3588()) return cereal::InitData::DeviceType::TICI;
+    if (RK3588() || RK3576()) return cereal::InitData::DeviceType::TICI;
     return cereal::InitData::DeviceType::PC;
   }
 

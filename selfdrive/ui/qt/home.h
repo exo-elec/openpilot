@@ -10,6 +10,7 @@
 #include "common/params.h"
 #include "selfdrive/ui/qt/body.h"
 #include "selfdrive/ui/qt/onroad/onroad_home.h"
+#include "selfdrive/ui/qt/onroad/telemetry_panel.h"
 #include "selfdrive/ui/qt/sidebar.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/offroad_alerts.h"
@@ -66,6 +67,7 @@ private:
   OnroadWindow *onroad;
   BodyWindow *body;
   QStackedLayout *slayout;
+  TelemetryPanel *telemetry = nullptr;  // only on ExoPilot 02M (RK3576)
 
 private slots:
   void updateState(const UIState &s);

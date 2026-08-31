@@ -1,6 +1,23 @@
 #include "selfdrive/ui/qt/qt_window.h"
 
+#include <algorithm>
+
+#include "common/params.h"
 #include "common/util.h"
+
+int getTelemetryPanelWidth() {
+  static const int width = [] {
+    if (!Hardware::RK3576()) return 0;
+    int px = 0;
+    try {
+      px = std::stoi(Params().get("EOPTelemetryPanelWidth"));
+    } catch (const std::exception &) {
+      px = 0;
+    }
+    return std::max(0, px);
+  }();
+  return width;
+}
 
 void setMainWindow(QWidget *w) {
   const float scale = util::getenv("SCALE", 1.0f);

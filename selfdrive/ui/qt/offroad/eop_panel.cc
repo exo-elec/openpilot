@@ -777,6 +777,17 @@ void EopPanel::add_safety_toggles() {
       tr("Top-down view of vehicle and surrounding objects on the driving screen."),
       "", this);
   addItem(bev_toggle);
+
+  // ExoPilot 02M (RK3576) telemetry side panel width. Real RK3576 detection
+  // gates whether the panel appears at all; the exact width isn't known for
+  // any physical unit yet, so it has no safe guessed default -- measure your
+  // own hardware. No-op on ExoPilot 01M/PC. Takes effect after a UI restart.
+  auto telemetry_panel_width = new ParamSpinBoxControl(
+      "EOPTelemetryPanelWidth", tr("Telemetry Panel Width (ExoPilot 02M):"),
+      tr("Extra screen width this ExoPilot 02M unit's panel has beyond the "
+         "1024x600 ExoPilot 01M baseline. Ignored on ExoPilot 01M and PC."),
+      "", 0, 800, 10, tr(" px"), tr("0"));
+  addItem(telemetry_panel_width);
 }
 
 void EopPanel::add_voice_ai_toggles() {

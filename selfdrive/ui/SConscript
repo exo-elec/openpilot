@@ -35,7 +35,7 @@ qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
           "qt/offroad/openblt_update_widget.cc",
           "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
           "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/hud.cc",
-          "qt/onroad/bev_widget.cc"]
+          "qt/onroad/bev_widget.cc", "qt/onroad/telemetry_panel.cc"]
 
 # build translation files
 with open(File("translations/languages.json").abspath) as f:
