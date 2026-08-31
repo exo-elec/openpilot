@@ -136,11 +136,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"dp_device_beep", {PERSISTENT, BOOL, "0"}},
     {"dp_lat_alka", {PERSISTENT, BOOL, "0"}},
     {"dp_ui_display_mode", {PERSISTENT, BOOL, "0"}},
-    // Explicit per-unit installer opt-in for the ExoPilot 02 (9") telemetry
-    // side panel -- see getTelemetryPanelWidth() in selfdrive/ui/qt/qt_window.cc
-    // for why this isn't autodetected from screen size.
-    {"dp_ui_exopilot_wide_screen", {PERSISTENT, BOOL, "0"}},
-    {"dp_ui_telemetry_panel_width", {PERSISTENT, INT, "0"}},
     {"dp_device_model_selected", {PERSISTENT, STRING}},
     {"dp_device_model_list", {PERSISTENT, STRING}},
     {"dp_lat_lca_speed", {PERSISTENT, INT, "20"}},

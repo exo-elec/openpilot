@@ -6,7 +6,6 @@
 #include <QVBoxLayout>
 
 #include "selfdrive/ui/qt/offroad/experimental_mode.h"
-#include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/qt/widgets/prime.h"
 
@@ -39,15 +38,6 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
     showDriverView(false);
   });
   slayout->addWidget(driver_view);
-
-  const int telemetryWidth = getTelemetryPanelWidth();
-  if (telemetryWidth > 0) {
-    telemetry = new TelemetryWidget(this);
-    telemetry->setFixedWidth(telemetryWidth);
-    telemetry->setVisible(false);
-    main_layout->addWidget(telemetry);
-  }
-
   setAttribute(Qt::WA_NoSystemBackground);
   QObject::connect(uiState(), &UIState::uiUpdate, this, &HomeWindow::updateState);
   QObject::connect(uiState(), &UIState::offroadTransition, this, &HomeWindow::offroadTransition);
@@ -71,7 +61,6 @@ void HomeWindow::updateState(const UIState &s) {
 void HomeWindow::offroadTransition(bool offroad) {
   body->setEnabled(false);
   sidebar->setVisible(offroad);
-  if (telemetry) telemetry->setVisible(!offroad);
   if (offroad) {
     slayout->setCurrentWidget(home);
   } else {
@@ -87,7 +76,6 @@ void HomeWindow::showDriverView(bool show) {
     slayout->setCurrentWidget(home);
   }
   sidebar->setVisible(show == false);
-  if (telemetry) telemetry->setVisible(false);
 }
 
 void HomeWindow::mousePressEvent(QMouseEvent* e) {

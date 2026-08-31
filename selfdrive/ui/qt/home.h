@@ -11,7 +11,6 @@
 #include "selfdrive/ui/qt/offroad/driverview.h"
 #include "selfdrive/ui/qt/body.h"
 #include "selfdrive/ui/qt/onroad/onroad_home.h"
-#include "selfdrive/ui/qt/onroad/telemetry.h"
 #include "selfdrive/ui/qt/sidebar.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/offroad_alerts.h"
@@ -68,7 +67,6 @@ private:
   BodyWindow *body;
   DriverViewWindow *driver_view;
   QStackedLayout *slayout;
-  TelemetryWidget *telemetry = nullptr;  // only on screens wider than the baseline comma-three panel
 
 private slots:
   void updateState(const UIState &s);

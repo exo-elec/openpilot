@@ -91,41 +91,9 @@ void OnroadWindow::offroadTransition(bool offroad) {
   alerts->clear();
 }
 
-void OnroadWindow::drawAdjacentVehicleIcon(QPainter &p, bool onLeft) {
-  const int iconW = 90, iconH = 150;
-  const int margin = 24;
-  const int x = onLeft ? margin : width() - margin - iconW;
-  const int y = height() - iconH - 140;  // roughly mirror height, above the BSM edge flash
-
-  p.setRenderHint(QPainter::Antialiasing);
-  p.setPen(Qt::NoPen);
-  p.setBrush(QColor(0, 0, 0, 140));
-  p.drawRoundedRect(QRect(x - 10, y - 10, iconW + 20, iconH + 20), 12, 12);
-
-  p.setBrush(DP_INDICATOR_COLOR_BSM);
-  p.drawRoundedRect(QRect(x, y, iconW, iconH), 16, 16);
-  // windshield notch -- just enough to read as "car" at a glance
-  p.setBrush(QColor(0, 0, 0, 140));
-  p.drawRoundedRect(QRect(x + iconW * 0.15, y + iconH * 0.2, iconW * 0.7, iconH * 0.25), 6, 6);
-
-  p.setPen(Qt::white);
-  p.setFont(QFont("Inter", 13, QFont::DemiBold));
-  p.drawText(QRect(x - 10, y + iconH + 14, iconW + 20, 24), Qt::AlignHCenter, tr("VEHICLE"));
-}
-
 void OnroadWindow::paintEvent(QPaintEvent *event) {
   QPainter p(this);
   p.fillRect(rect(), QColor(bg.red(), bg.green(), bg.blue(), 180));
   if (dp_indicator_show_left) p.fillRect(QRect(0, 0, width() * 0.2, height()), dp_indicator_color_left);
   if (dp_indicator_show_right) p.fillRect(QRect(width() * 0.8, 0, width() * 0.2, height()), dp_indicator_color_right);
-
-  // Lane-change aid: only the real BSM boolean (presence, no distance/speed)
-  // gates this -- not the blinker-only blink state -- so it only appears
-  // when there's actually a detected vehicle in that blind spot.
-  if (dp_indicator_show_left && dp_indicator_color_left == DP_INDICATOR_COLOR_BSM) {
-    drawAdjacentVehicleIcon(p, true);
-  }
-  if (dp_indicator_show_right && dp_indicator_color_right == DP_INDICATOR_COLOR_BSM) {
-    drawAdjacentVehicleIcon(p, false);
-  }
 }
