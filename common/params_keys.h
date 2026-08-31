@@ -352,13 +352,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPSurfaceGridWidth", {PERSISTENT, FLOAT, "30.0"}},
     {"EOPSurfaceLongHorizon", {PERSISTENT, BOOL, "1"}},
     {"EOPSurfaceLongRange", {PERSISTENT, FLOAT, "100.0"}},
-    // Extra px width of the ExoPilot 02M (RK3576) telemetry side panel beyond
-    // the ExoPilot 01M 1024x600 baseline (deviceScreenSize() in qt_window.h).
-    // Default 576 = 1600 - 1024, i.e. a 1600x600 02M panel; adjustable
-    // without a rebuild if a given unit's real panel differs. Only takes
-    // effect on RK3576 (see getTelemetryPanelWidth() in qt_window.cc) -- 0
-    // here would be a no-op on every other platform anyway.
-    {"EOPTelemetryPanelWidth", {PERSISTENT, INT, "576"}},
     {"EOPTJAEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPTJAMaxHoldMinutes", {PERSISTENT, INT, "10"}},
     {"EOPTLSCEnabled", {PERSISTENT, BOOL, "0"}},
@@ -371,6 +364,13 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPTTSVolume", {PERSISTENT, FLOAT, "1.0"}},
     {"EOPTeleEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPTeleHDR", {PERSISTENT, STRING, "hdr4"}},
+    // Extra px width of the ExoPilot 02M (RK3576) telemetry side panel beyond
+    // the ExoPilot 01M 1024x600 baseline (deviceScreenSize() in qt_window.h).
+    // Default 576 = 1600 - 1024, i.e. a 1600x600 02M panel; adjustable
+    // without a rebuild if a given unit's real panel differs. Only takes
+    // effect on RK3576 (see getTelemetryPanelWidth() in qt_window.cc) -- 0
+    // here would be a no-op on every other platform anyway.
+    {"EOPTelemetryPanelWidth", {PERSISTENT, INT, "576"}},
     {"EOPTileLastUpdate", {PERSISTENT, INT, "0"}},
     {"EOPTouchEventNode", {PERSISTENT, STRING, ""}},
     {"EOPTrackEnabled", {PERSISTENT, BOOL, "1"}},

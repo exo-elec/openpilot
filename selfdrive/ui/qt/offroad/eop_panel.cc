@@ -14,6 +14,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 
+#include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
@@ -780,15 +781,24 @@ void EopPanel::add_safety_toggles() {
 
   // ExoPilot 02M (RK3576) telemetry side panel width. Real RK3576 detection
   // gates whether the panel appears at all; default assumes a 1600x600 02M
-  // panel (576 = 1600 - 1024), adjustable per-unit without a rebuild if a
-  // given unit's real panel differs. No-op on ExoPilot 01M/PC. Takes effect
-  // after a UI restart.
+  // panel, adjustable per-unit without a rebuild if a given unit's real
+  // panel differs. No-op on ExoPilot 01M/PC. Takes effect after a UI restart.
+  // default_value (EOP_TELEMETRY_PANEL_DEFAULT_WIDTH) has to be spelled out
+  // here too, matching params_keys.h's EOPTelemetryPanelWidth default and
+  // getTelemetryPanelWidth()'s own fallback (qt_window.cc) -- all three
+  // share the same constant so they can't drift to different numbers for
+  // the same "param not actually set" case. ParamSpinBoxControl only falls
+  // back to this when the param has never been written at all (empty
+  // string from Params::get()), which normally can't happen once
+  // manager_init() has seeded every declared key, but can if this settings
+  // UI is ever opened against a params store that hasn't been through
+  // manager_init (e.g. testing the UI binary standalone).
   auto telemetry_panel_width = new ParamSpinBoxControl(
       "EOPTelemetryPanelWidth", tr("Telemetry Panel Width (ExoPilot 02M):"),
       tr("Extra screen width this ExoPilot 02M unit's panel has beyond the "
          "1024x600 ExoPilot 01M baseline. Default assumes a 1600x600 panel. "
          "Ignored on ExoPilot 01M and PC."),
-      "", 0, 800, 10, tr(" px"), tr("0"));
+      "", 0, EOP_TELEMETRY_PANEL_MAX_WIDTH, 10, tr(" px"), tr("0"), EOP_TELEMETRY_PANEL_DEFAULT_WIDTH);
   addItem(telemetry_panel_width);
 }
 

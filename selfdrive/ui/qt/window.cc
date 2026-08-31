@@ -2,68 +2,83 @@
 
 #include <QFontDatabase>
 #include <QHBoxLayout>
+#include <QPainter>
 
 #include "selfdrive/ui/qt/qt_window.h"
 #include "system/hardware/hw.h"
 
-namespace {
-// Wraps `content` in a QHBoxLayout that holds it at the ExoPilot 01M
-// baseline width (left-aligned, stretch fills any extra width) instead of
-// whatever the caller's QStackedLayout would otherwise force it to.
-QWidget *wrapAtBaselineWidth(QWidget *content, QWidget *parent) {
-  // Fixed, not just maximum: a plain QWidget defaults to a Preferred
-  // horizontal size policy, so QHBoxLayout would size it to its own
-  // sizeHint() (whatever that happens to be, unconstrained below 1024) and
-  // hand the rest to the trailing stretch -- not what we want on any
-  // platform. Pin it exactly, matching the full width QStackedLayout used
-  // to force on it before this wrapper existed.
-  content->setFixedWidth(EOP_01M_WIDTH);
-  QWidget *wrapper = new QWidget(parent);
-  wrapper->setAttribute(Qt::WA_StyledBackground);  // plain QWidget needs this for stylesheet backgrounds to paint
-  wrapper->setStyleSheet("background-color: black;");  // matches OffroadHome's own background
-  QHBoxLayout *layout = new QHBoxLayout(wrapper);
-  layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(0);
-  layout->addWidget(content);
-  layout->addStretch();
-  return wrapper;
-}
-}  // namespace
-
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
-  main_layout = new QStackedLayout(this);
-  main_layout->setMargin(0);
+  QHBoxLayout *main_layout = new QHBoxLayout(this);
+  main_layout->setContentsMargins(0, 0, 0, 0);
+  main_layout->setSpacing(0);
+
+  // Everything that used to be MainWindow's direct QStackedLayout content
+  // now lives inside stack_wrapper instead, so that widget -- not
+  // MainWindow itself -- is what telemetry sits beside. The QHBoxLayout
+  // gives stack_wrapper exactly (MainWindow's width - telemetry's width),
+  // which by construction is always the ExoPilot 01M baseline
+  // (deviceScreenSize() in qt_window.h defines MainWindow's width as
+  // exactly EOP_01M_WIDTH + telemetry's width) -- so stack_layout keeps
+  // forcing its children to fill that baseline exactly, on every platform,
+  // with no widget inside it (including settingsWindow/onboardingWindow)
+  // needing to know ExoPilot 02M exists. This depends on telemetry's
+  // reserved width surviving even while it's hidden offroad -- see
+  // setRetainSizeWhenHidden() below, without which QHBoxLayout collapses a
+  // hidden widget to zero width and hands stack_wrapper the full window
+  // instead. See nagaspilot/docs/TELEMETRY_PANEL.md.
+  QWidget *stack_wrapper = new QWidget(this);
+  main_layout->addWidget(stack_wrapper, 1);
+  stack_layout = new QStackedLayout(stack_wrapper);
+  stack_layout->setContentsMargins(0, 0, 0, 0);
 
   homeWindow = new HomeWindow(this);
-  main_layout->addWidget(homeWindow);
+  stack_layout->addWidget(homeWindow);
   QObject::connect(homeWindow, &HomeWindow::openSettings, this, &MainWindow::openSettings);
   QObject::connect(homeWindow, &HomeWindow::closeSettings, this, &MainWindow::closeSettings);
 
   settingsWindow = new SettingsWindow(this);
-  settingsWrapper = wrapAtBaselineWidth(settingsWindow, this);
-  main_layout->addWidget(settingsWrapper);
+  stack_layout->addWidget(settingsWindow);
   QObject::connect(settingsWindow, &SettingsWindow::closeSettings, this, &MainWindow::closeSettings);
   QObject::connect(settingsWindow, &SettingsWindow::reviewTrainingGuide, [=]() {
     onboardingWindow->showTrainingGuide();
-    main_layout->setCurrentWidget(onboardingWrapper);
+    stack_layout->setCurrentWidget(onboardingWindow);
   });
   onboardingWindow = new OnboardingWindow(this);
-  onboardingWrapper = wrapAtBaselineWidth(onboardingWindow, this);
-  main_layout->addWidget(onboardingWrapper);
+  stack_layout->addWidget(onboardingWindow);
   QObject::connect(onboardingWindow, &OnboardingWindow::onboardingDone, [=]() {
-    main_layout->setCurrentWidget(homeWindow);
+    stack_layout->setCurrentWidget(homeWindow);
   });
   if (!onboardingWindow->completed()) {
-    main_layout->setCurrentWidget(onboardingWrapper);
+    stack_layout->setCurrentWidget(onboardingWindow);
   }
 
+  const int telemetryWidth = getTelemetryPanelWidth();
+  if (telemetryWidth > 0) {
+    telemetry = new TelemetryPanel(this);
+    telemetry->setFixedWidth(telemetryWidth);
+    // QBoxLayout treats a hidden widget as zero-size by default
+    // (QWidgetItem::isEmpty() == widget->isHidden(), unless this is set) --
+    // without it, stack_wrapper above would get the *entire* MainWindow
+    // width instead of the ExoPilot 01M baseline for as long as telemetry
+    // is hidden offroad, silently reintroducing the "offroad screens
+    // stretch on 02M" bug this feature already fixed once, just now
+    // limited to (most of) the time the car is parked instead of always.
+    QSizePolicy sp = telemetry->sizePolicy();
+    sp.setRetainSizeWhenHidden(true);
+    telemetry->setSizePolicy(sp);
+    telemetry->setVisible(false);  // onroad-only; see the offroadTransition connection below
+    main_layout->addWidget(telemetry);
+  }
+
+  QObject::connect(uiState(), &UIState::uiUpdate, this, &MainWindow::updateState);
   QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
+    if (telemetry) telemetry->setVisible(!offroad);
     if (!offroad) {
       closeSettings();
     }
   });
   QObject::connect(device(), &Device::interactiveTimeout, [=]() {
-    if (main_layout->currentWidget() == settingsWrapper) {
+    if (stack_layout->currentWidget() == settingsWindow) {
       closeSettings();
     }
   });
@@ -89,13 +104,22 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   setAttribute(Qt::WA_NoSystemBackground);
 }
 
+void MainWindow::updateState(const UIState &s) {
+  if (telemetry) telemetry->updateState(s);
+}
+
+void MainWindow::paintEvent(QPaintEvent *event) {
+  QPainter p(this);
+  p.fillRect(rect(), Qt::black);
+}
+
 void MainWindow::openSettings(int index, const QString &param) {
-  main_layout->setCurrentWidget(settingsWrapper);
+  stack_layout->setCurrentWidget(settingsWindow);
   settingsWindow->setCurrentPanel(index, param);
 }
 
 void MainWindow::closeSettings() {
-  main_layout->setCurrentWidget(homeWindow);
+  stack_layout->setCurrentWidget(homeWindow);
 
   if (uiState()->scene.started) {
     homeWindow->showSidebar(false);

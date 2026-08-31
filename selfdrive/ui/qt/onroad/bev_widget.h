@@ -6,11 +6,17 @@
 
 /**
  * BEVWidget - Bird's Eye View visualization widget
- * 
+ *
  * Top-down view of vehicle and surrounding objects.
  * Uses modelV2 lane lines, road edges, and radarState leads.
- * 
- * Displayed as a small overlay in the corner of the onroad UI.
+ *
+ * Reused at two sizes: a small corner overlay in AnnotatedCameraWidget, and
+ * full panel size as TelemetryPanel's default page. Takes no opinion on its
+ * own size (callers size it, e.g. via setFixedSize()) or visibility --
+ * isShowing() reports whether there's anything meaningful to show, and each
+ * caller decides what to do with that (AnnotatedCameraWidget hides itself;
+ * TelemetryPanel's page-switching already owns visibility, so it just draws
+ * an empty grid when this is false).
  */
 class BEVWidget : public QWidget {
   Q_OBJECT
@@ -18,6 +24,7 @@ class BEVWidget : public QWidget {
 public:
   explicit BEVWidget(QWidget *parent = nullptr);
   void updateState(const UIState &s);
+  bool isShowing() const { return enabled && data_valid; }
 
 protected:
   void paintEvent(QPaintEvent *event) override;

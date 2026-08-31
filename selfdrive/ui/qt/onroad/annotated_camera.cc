@@ -27,6 +27,12 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
   if (getTelemetryPanelWidth() == 0) {
     bev_widget = new BEVWidget(this);
     bev_widget->setParent(this);
+    // This corner-overlay placement is this call site's own choice -- size,
+    // position, and click-through are specific to floating over the camera
+    // view, not something BEVWidget assumes for its other (full telemetry-
+    // panel page) use.
+    bev_widget->setFixedSize(130, 180);
+    bev_widget->setAttribute(Qt::WA_TransparentForMouseEvents);
     bev_widget->move(width() - 145, height() - 200);
   }
 }
@@ -34,8 +40,14 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
-  // Update BEV widget
-  if (bev_widget) bev_widget->updateState(s);
+  // Update BEV widget -- visibility is this call site's decision now (see
+  // BEVWidget::isShowing()): hide the corner overlay entirely when there's
+  // nothing valid to show, rather than drawing an empty grid over the
+  // camera feed the way TelemetryPanel's dedicated page does.
+  if (bev_widget) {
+    bev_widget->updateState(s);
+    bev_widget->setVisible(bev_widget->isShowing());
+  }
 }
 
 void AnnotatedCameraWidget::initializeGL() {

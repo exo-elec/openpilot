@@ -30,33 +30,13 @@ public:
   }
 
   // Check if running on RK3588 (ExoPilot 01M)
-  static bool RK3588() {
-    const char* platform = std::getenv("EOP_PLATFORM");
-    if (platform && std::string(platform) == "rk3588") {
-      return true;
-    }
-    std::string compat = util::read_file("/proc/device-tree/compatible");
-    if (compat.find("rk3588") != std::string::npos) {
-      return true;
-    }
-    return false;
-  }
+  static bool RK3588() { return matchesPlatform("rk3588"); }
 
   // Check if running on RK3576 (ExoPilot 02M). Mirrors
   // system/hardware/registry.py's PlatformRegistry.detect(), which already
   // aliases 'rk3576' to 'exopilot02m' on the Python side -- this brings the
   // C++ side (previously RK3588-only) in line with it.
-  static bool RK3576() {
-    const char* platform = std::getenv("EOP_PLATFORM");
-    if (platform && std::string(platform) == "rk3576") {
-      return true;
-    }
-    std::string compat = util::read_file("/proc/device-tree/compatible");
-    if (compat.find("rk3576") != std::string::npos) {
-      return true;
-    }
-    return false;
-  }
+  static bool RK3576() { return matchesPlatform("rk3576"); }
 
   // Generic Rockchip detection
   static bool ROCKCHIP() {
@@ -112,6 +92,27 @@ public:
   static void set_ssh_enabled(bool enabled) {
     // No-op for now
     (void)enabled;
+  }
+
+ private:
+  // Shared by RK3588()/RK3576(): an EOP_PLATFORM env var override (for
+  // testing) checked first, then a substring match against the device
+  // tree's compatible string, read from disk once and cached -- the
+  // physical SoC can't change at runtime, so re-reading it on every call
+  // (both of these are checked from get_name()/get_device_type()/
+  // ROCKCHIP(), none of them hot-path today, but no reason to redo I/O
+  // that can only ever have one answer per process) is pure waste.
+  static bool matchesPlatform(const char *name) {
+    const char *platform = std::getenv("EOP_PLATFORM");
+    if (platform && std::string(platform) == name) {
+      return true;
+    }
+    return deviceTreeCompatible().find(name) != std::string::npos;
+  }
+
+  static const std::string &deviceTreeCompatible() {
+    static const std::string compat = util::read_file("/proc/device-tree/compatible");
+    return compat;
   }
 };
 

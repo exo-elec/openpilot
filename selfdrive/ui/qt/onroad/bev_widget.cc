@@ -4,8 +4,11 @@
 #include <algorithm>
 
 BEVWidget::BEVWidget(QWidget *parent) : QWidget(parent) {
-  setFixedSize(130, 180);
-  setAttribute(Qt::WA_TransparentForMouseEvents);
+  // No default size or mouse-transparency here -- both are presentation
+  // choices specific to how each caller places this widget (a small
+  // click-through corner overlay vs. a full telemetry-panel page that
+  // needs mouse events for swipe gestures), not something this widget
+  // should assume. See callers: AnnotatedCameraWidget, TelemetryPanel.
 }
 
 void BEVWidget::updateState(const UIState &s) {
@@ -14,13 +17,17 @@ void BEVWidget::updateState(const UIState &s) {
   enabled = Params().getBool("EOPBEVWidgetEnabled");
   if (!enabled) {
     data_valid = false;
+    update();  // repaint to reflect the now-invalid state -- this widget no
+               // longer self-hides, so a caller showing it needs a fresh
+               // "nothing to show" paint, not stale content left on screen.
     return;
   }
-  
+
   // Check if model data is available
   if (sm.rcv_frame("modelV2") < s.scene.started_frame ||
       sm.rcv_frame("radarState") < s.scene.started_frame) {
     data_valid = false;
+    update();
     return;
   }
   
@@ -80,20 +87,41 @@ void BEVWidget::updateState(const UIState &s) {
   leads[1].pos = QPointF(center.x() - leads[1].yRel * scale,
                          center.y() - leads[1].dRel * scale);
   
-  // Update blind spot state from controlsState + carState (fused)
+  // Update blind spot state from controlsState + carState (fused).
+  // leftBlindSpot/rightBlindSpot are Int8 severity (0=off, 1=caution,
+  // 2=warning, per cereal/log.capnp) -- preserve that, not just presence,
+  // so drawBlindSpots()'s severity-2 flashing-warning-triangle branch can
+  // actually trigger. carState's leftBlindspot/rightBlindspot are plain
+  // bools with no severity of their own, so fusing them in can only raise
+  // the severity to at least "caution", never suppress a real "warning"
+  // from controlsState.
+  //
+  // Read each source into a local first, defaulting to 0 when that source
+  // isn't valid right now, rather than assigning straight into
+  // left_blind_spot/right_blind_spot conditionally -- the latter would let
+  // a stale-but-still-severity-2 value from a past controlsState drop
+  // survive indefinitely (std::max can only raise a value, never lower it)
+  // if controlsState alone went stale while carState/modelV2/radarState
+  // stayed valid, leaving a phantom warning-triangle on screen with no way
+  // to clear itself.
+  int ctrl_left = 0, ctrl_right = 0;
   if (sm.valid("controlsState")) {
     const auto &ctrl = sm["controlsState"].getControlsState();
-    left_blind_spot = ctrl.getLeftBlindSpot() > 0;
-    right_blind_spot = ctrl.getRightBlindSpot() > 0;
+    ctrl_left = ctrl.getLeftBlindSpot();
+    ctrl_right = ctrl.getRightBlindSpot();
   }
+  int car_left = 0, car_right = 0;
   if (sm.valid("carState")) {
     const auto &cs = sm["carState"].getCarState();
-    left_blind_spot = left_blind_spot || cs.getLeftBlindspot();
-    right_blind_spot = right_blind_spot || cs.getRightBlindspot();
+    car_left = cs.getLeftBlindspot() ? 1 : 0;
+    car_right = cs.getRightBlindspot() ? 1 : 0;
   }
+  left_blind_spot = std::max(ctrl_left, car_left);
+  right_blind_spot = std::max(ctrl_right, car_right);
   
-  setVisible(enabled && data_valid);
-  if (enabled && data_valid) update();
+  // Visibility is the caller's decision now (see isShowing() in the
+  // header) -- this widget only draws itself.
+  update();
 }
 
 void BEVWidget::paintEvent(QPaintEvent *event) {
@@ -108,21 +136,23 @@ void BEVWidget::paintEvent(QPaintEvent *event) {
   
   // Draw grid
   drawGrid(p);
-  
-  // Draw road edges
-  drawRoadEdges(p);
-  
-  // Draw lane lines
-  drawLaneLines(p);
-  
-  // Draw leads
-  drawLeads(p);
-  
+
+  // The rest reflects live model/radar data -- draw it only while that data
+  // is actually valid. Previously this widget self-hid via setVisible()
+  // whenever !data_valid, which masked that the point/lead arrays below are
+  // never cleared on the invalid path (they just hold their last values);
+  // now that a caller can keep it visible while disabled/invalid (e.g.
+  // TelemetryPanel, mid-swipe or with EOPBEVWidgetEnabled off), that would
+  // otherwise paint stale lane lines/leads instead of an empty grid.
+  if (data_valid) {
+    drawRoadEdges(p);
+    drawLaneLines(p);
+    drawLeads(p);
+    drawBlindSpots(p);
+  }
+
   // Draw vehicle
   drawVehicle(p);
-  
-  // Draw blind spot indicators
-  drawBlindSpots(p);
   
   // Border
   p.setPen(QPen(QColor(255, 255, 255, 100), 1));

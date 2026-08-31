@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 
 #include "common/util.h"
+#include "selfdrive/ui/qt/util.h"
 
 namespace {
 const QColor kPanelBg(0, 0, 0, 200);
@@ -23,24 +24,41 @@ void TelemetryStatsPage::updateState(const UIState &s) {
   if (sm.rcv_frame("carState") < s.scene.started_frame) {
     vEgo = steeringAngleDeg = 0;
     leadOneValid = false;
-    update();
-    return;
-  }
+  } else {
+    const auto &car_state = sm["carState"].getCarState();
+    vEgo = std::max<float>(0.0f, car_state.getVEgo() * (is_metric ? MS_TO_KPH : MS_TO_MPH));
+    steeringAngleDeg = car_state.getSteeringAngleDeg();
 
-  const auto &car_state = sm["carState"].getCarState();
-  vEgo = std::max<float>(0.0f, car_state.getVEgo() * (is_metric ? MS_TO_KPH : MS_TO_MPH));
-  steeringAngleDeg = car_state.getSteeringAngleDeg();
-
-  leadOneValid = false;
-  if (sm.alive("radarState")) {
-    const auto &lead_one = sm["radarState"].getRadarState().getLeadOne();
-    leadOneValid = lead_one.getStatus();
-    if (leadOneValid) {
-      leadOneDRel = lead_one.getDRel();
-      leadOneVRel = lead_one.getVRel();
+    leadOneValid = false;
+    if (sm.alive("radarState")) {
+      const auto &lead_one = sm["radarState"].getRadarState().getLeadOne();
+      leadOneValid = lead_one.getStatus();
+      if (leadOneValid) {
+        leadOneDRel = lead_one.getDRel();
+        leadOneVRel = lead_one.getVRel();
+      }
     }
   }
-  update();
+
+  // Skip the repaint (font switches, several drawText calls) when nothing
+  // displayed here actually changed -- e.g. steady cruise with no lead,
+  // ticking at UI_FREQ with identical numbers every frame. is_metric has to
+  // be part of this comparison too: toggling units while stopped (vEgo == 0
+  // either way) with no lead would otherwise leave the wrong km/h/mph label
+  // on screen indefinitely, since nothing else displayed would have changed.
+  const bool changed = !has_prev || is_metric != prevIsMetric || vEgo != prevVEgo ||
+                        steeringAngleDeg != prevSteeringAngleDeg || leadOneValid != prevLeadOneValid ||
+                        (leadOneValid && (leadOneDRel != prevLeadOneDRel || leadOneVRel != prevLeadOneVRel));
+  if (changed) {
+    prevIsMetric = is_metric;
+    prevVEgo = vEgo;
+    prevSteeringAngleDeg = steeringAngleDeg;
+    prevLeadOneValid = leadOneValid;
+    prevLeadOneDRel = leadOneDRel;
+    prevLeadOneVRel = leadOneVRel;
+    has_prev = true;
+    update();
+  }
 }
 
 void TelemetryStatsPage::paintEvent(QPaintEvent *event) {
@@ -49,14 +67,14 @@ void TelemetryStatsPage::paintEvent(QPaintEvent *event) {
   p.fillRect(rect(), kPanelBg);
 
   p.setPen(Qt::white);
-  p.setFont(QFont("Inter", 18, QFont::DemiBold));
+  p.setFont(InterFont(18, QFont::DemiBold));
   p.drawText(QRect(0, 12, width(), 30), Qt::AlignHCenter, tr("STATS"));
 
   auto drawRow = [&](int y, const QString &label, const QString &value) {
-    p.setFont(QFont("Inter", 14));
+    p.setFont(InterFont(14));
     p.setPen(QColor(255, 255, 255, 150));
     p.drawText(QRect(20, y, width() - 40, 24), Qt::AlignLeft, label);
-    p.setFont(QFont("Inter", 26, QFont::DemiBold));
+    p.setFont(InterFont(26, QFont::DemiBold));
     p.setPen(Qt::white);
     p.drawText(QRect(20, y + 22, width() - 40, 40), Qt::AlignLeft, value);
   };
@@ -79,14 +97,26 @@ TelemetryPanel::TelemetryPanel(QWidget *parent) : QWidget(parent) {
   main_layout->setSpacing(0);
 
   pages = new QStackedWidget(this);
+  // BEVWidget takes no opinion on its own size (see bev_widget.h) -- as a
+  // QStackedWidget page it's simply resized to fill the page area, same as
+  // any other page here.
   bevPage = new BEVWidget(this);
-  // BEVWidget's constructor fixes it at 130x180 for its existing small
-  // corner-overlay use in AnnotatedCameraWidget; undo that here so it fills
-  // this panel's page area instead. bev_widget.cc/h are untouched -- the
-  // existing corner overlay instance is unaffected.
-  bevPage->setMinimumSize(0, 0);
-  bevPage->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
   statsPage = new TelemetryStatsPage(this);
+  // Mouse-transparent, same technique (and reason) as dotsSpacer below and
+  // OnroadWindow's own `alerts` overlay (onroad_home.cc): Qt delivers mouse
+  // press/release to the topmost widget under the cursor and does not
+  // bubble an unaccepted one up to the parent on its own, so without this,
+  // TelemetryPanel::mousePressEvent/mouseReleaseEvent below would never
+  // fire for a swipe anywhere over these pages -- only over the thin dots
+  // strip. Neither page has its own interactive content that needs real
+  // mouse events. `pages` itself needs the same attribute, not just its
+  // two children -- it's a plain QStackedWidget with no mouse handling of
+  // its own, so once bevPage/statsPage stop absorbing the event, `pages`
+  // (the direct child of this panel's layout) would just absorb it
+  // instead, one container short of actually reaching TelemetryPanel.
+  bevPage->setAttribute(Qt::WA_TransparentForMouseEvents);
+  statsPage->setAttribute(Qt::WA_TransparentForMouseEvents);
+  pages->setAttribute(Qt::WA_TransparentForMouseEvents);
   pages->addWidget(bevPage);  // index 0: default BEV top-down view
   pages->addWidget(statsPage);
   main_layout->addWidget(pages, 1);
@@ -102,21 +132,33 @@ TelemetryPanel::TelemetryPanel(QWidget *parent) : QWidget(parent) {
 
 void TelemetryPanel::updateState(const UIState &s) {
   if (!s.scene.started) return;
-  bevPage->updateState(s);
-  // BEVWidget::updateState() calls setVisible(enabled && data_valid) on
-  // itself for its other (small corner-overlay) use in AnnotatedCameraWidget.
-  // That fights this panel's QStackedWidget: reassert visibility so page
-  // switching here stays the sole authority over what's shown, instead of
-  // the page silently going blank whenever EOPBEVWidgetEnabled is off or
-  // modelV2/radarState haven't arrived yet.
-  bevPage->setVisible(true);
-  statsPage->updateState(s);
-  update();
+  // Only the current page: the other one isn't drawn (QStackedWidget), so
+  // walking modelV2/radarState to populate it every ~UI_FREQ tick regardless
+  // of which page is showing would be pure waste. Whichever page a swipe
+  // lands on picks up fresh data on the very next tick -- an imperceptible
+  // delay at UI_FREQ, not a staleness problem.
+  //
+  // BEVWidget no longer manages its own visibility (see bev_widget.h) --
+  // this panel's QStackedWidget page-switching is already the sole
+  // authority over what's shown, so no extra visibility handling is needed
+  // here; bevPage draws an empty grid on its own when disabled/invalid.
+  QWidget *current = pages->currentWidget();
+  if (current == bevPage) {
+    bevPage->updateState(s);
+  } else if (current == statsPage) {
+    statsPage->updateState(s);
+  }
+  // No unconditional update() here: bevPage/statsPage each call their own
+  // update() only when something they draw actually changed, and this
+  // panel's own paintEvent (the page-dot indicator) only depends on the
+  // current page index, which goToPage() below already repaints on change.
 }
 
 void TelemetryPanel::goToPage(int index) {
   const int count = pages->count();
-  pages->setCurrentIndex(((index % count) + count) % count);
+  const int wrapped = ((index % count) + count) % count;
+  if (wrapped == pages->currentIndex()) return;
+  pages->setCurrentIndex(wrapped);
   update();
 }
 

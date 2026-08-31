@@ -24,6 +24,17 @@ private:
   bool leadOneValid = false;
   float leadOneDRel = 0;
   float leadOneVRel = 0;
+
+  // Previous frame's values, so updateState() can skip update() (and the
+  // repaint that costs) when nothing this page displays actually changed --
+  // e.g. holding a steady cruise speed with no lead.
+  bool has_prev = false;
+  bool prevIsMetric = false;
+  float prevVEgo = 0;
+  float prevSteeringAngleDeg = 0;
+  bool prevLeadOneValid = false;
+  float prevLeadOneDRel = 0;
+  float prevLeadOneVRel = 0;
 };
 
 // Right-side panel that only exists on ExoPilot 02M (RK3576), using the

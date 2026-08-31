@@ -9,7 +9,6 @@
 #include "common/params.h"
 #include "selfdrive/ui/qt/offroad/experimental_mode.h"
 #include "selfdrive/ui/qt/offroad/safety_panel.h"
-#include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/qt/widgets/drive_stats.h"
 
@@ -37,14 +36,6 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
   body = new BodyWindow(this);
   slayout->addWidget(body);
 
-  const int telemetryWidth = getTelemetryPanelWidth();
-  if (telemetryWidth > 0) {
-    telemetry = new TelemetryPanel(this);
-    telemetry->setFixedWidth(telemetryWidth);
-    telemetry->setVisible(false);
-    main_layout->addWidget(telemetry);
-  }
-
   setAttribute(Qt::WA_NoSystemBackground);
   QObject::connect(uiState(), &UIState::uiUpdate, this, &HomeWindow::updateState);
   QObject::connect(uiState(), &UIState::offroadTransition, this, &HomeWindow::offroadTransition);
@@ -63,14 +54,11 @@ void HomeWindow::updateState(const UIState &s) {
     body->setEnabled(true);
     slayout->setCurrentWidget(body);
   }
-
-  if (telemetry) telemetry->updateState(s);
 }
 
 void HomeWindow::offroadTransition(bool offroad) {
   body->setEnabled(false);
   sidebar->setVisible(offroad);
-  if (telemetry) telemetry->setVisible(!offroad);
   if (offroad) {
     slayout->setCurrentWidget(home);
   } else {
