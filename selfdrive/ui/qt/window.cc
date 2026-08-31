@@ -1,8 +1,34 @@
 #include "selfdrive/ui/qt/window.h"
 
 #include <QFontDatabase>
+#include <QHBoxLayout>
 
+#include "selfdrive/ui/qt/qt_window.h"
 #include "system/hardware/hw.h"
+
+namespace {
+// Wraps `content` in a QHBoxLayout that holds it at the ExoPilot 01M
+// baseline width (left-aligned, stretch fills any extra width) instead of
+// whatever the caller's QStackedLayout would otherwise force it to.
+QWidget *wrapAtBaselineWidth(QWidget *content, QWidget *parent) {
+  // Fixed, not just maximum: a plain QWidget defaults to a Preferred
+  // horizontal size policy, so QHBoxLayout would size it to its own
+  // sizeHint() (whatever that happens to be, unconstrained below 1024) and
+  // hand the rest to the trailing stretch -- not what we want on any
+  // platform. Pin it exactly, matching the full width QStackedLayout used
+  // to force on it before this wrapper existed.
+  content->setFixedWidth(EOP_01M_WIDTH);
+  QWidget *wrapper = new QWidget(parent);
+  wrapper->setAttribute(Qt::WA_StyledBackground);  // plain QWidget needs this for stylesheet backgrounds to paint
+  wrapper->setStyleSheet("background-color: black;");  // matches OffroadHome's own background
+  QHBoxLayout *layout = new QHBoxLayout(wrapper);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(0);
+  layout->addWidget(content);
+  layout->addStretch();
+  return wrapper;
+}
+}  // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   main_layout = new QStackedLayout(this);
@@ -14,19 +40,21 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   QObject::connect(homeWindow, &HomeWindow::closeSettings, this, &MainWindow::closeSettings);
 
   settingsWindow = new SettingsWindow(this);
-  main_layout->addWidget(settingsWindow);
+  settingsWrapper = wrapAtBaselineWidth(settingsWindow, this);
+  main_layout->addWidget(settingsWrapper);
   QObject::connect(settingsWindow, &SettingsWindow::closeSettings, this, &MainWindow::closeSettings);
   QObject::connect(settingsWindow, &SettingsWindow::reviewTrainingGuide, [=]() {
     onboardingWindow->showTrainingGuide();
-    main_layout->setCurrentWidget(onboardingWindow);
+    main_layout->setCurrentWidget(onboardingWrapper);
   });
   onboardingWindow = new OnboardingWindow(this);
-  main_layout->addWidget(onboardingWindow);
+  onboardingWrapper = wrapAtBaselineWidth(onboardingWindow, this);
+  main_layout->addWidget(onboardingWrapper);
   QObject::connect(onboardingWindow, &OnboardingWindow::onboardingDone, [=]() {
     main_layout->setCurrentWidget(homeWindow);
   });
   if (!onboardingWindow->completed()) {
-    main_layout->setCurrentWidget(onboardingWindow);
+    main_layout->setCurrentWidget(onboardingWrapper);
   }
 
   QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
@@ -35,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
     }
   });
   QObject::connect(device(), &Device::interactiveTimeout, [=]() {
-    if (main_layout->currentWidget() == settingsWindow) {
+    if (main_layout->currentWidget() == settingsWrapper) {
       closeSettings();
     }
   });
@@ -62,7 +90,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
 }
 
 void MainWindow::openSettings(int index, const QString &param) {
-  main_layout->setCurrentWidget(settingsWindow);
+  main_layout->setCurrentWidget(settingsWrapper);
   settingsWindow->setCurrentPanel(index, param);
 }
 

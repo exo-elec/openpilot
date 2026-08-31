@@ -13,6 +13,12 @@
 
 const QString ASSET_PATH = ":/";
 
+// ExoPilot 01M baseline panel size. Shared by deviceScreenSize() below and
+// by MainWindow's settings/onboarding width constraint (window.cc), so both
+// stay in sync instead of duplicating the literal 1024x600.
+constexpr int EOP_01M_WIDTH = 1024;
+constexpr int EOP_01M_HEIGHT = 600;
+
 // Width in px of the extra screen area beyond the ExoPilot 01M baseline
 // (1024x600) for the ExoPilot 02M (RK3576) wide-screen telemetry panel.
 // Defaults to 576 (1600 - 1024, a 1600x600 02M panel), overridable per-unit
@@ -26,9 +32,9 @@ const QString ASSET_PATH = ":/";
 int getTelemetryPanelWidth();
 
 inline QSize deviceScreenSize() {
-  if (Hardware::RK3588()) return {1024, 600};  // ExoPilot 01M / 01L
-  if (Hardware::RK3576()) return {1024 + getTelemetryPanelWidth(), 600};  // ExoPilot 02M
-  return {1024, 600};  // default (PC dev)
+  if (Hardware::RK3588()) return {EOP_01M_WIDTH, EOP_01M_HEIGHT};  // ExoPilot 01M / 01L
+  if (Hardware::RK3576()) return {EOP_01M_WIDTH + getTelemetryPanelWidth(), EOP_01M_HEIGHT};  // ExoPilot 02M
+  return {EOP_01M_WIDTH, EOP_01M_HEIGHT};  // default (PC dev)
 }
 
 void setMainWindow(QWidget *w);

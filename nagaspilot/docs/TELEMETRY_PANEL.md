@@ -110,10 +110,10 @@ a real unit's panel doesn't match.
   correctly onto ExoPilot 02M's real physical panel has not been verified --
   there is no scons/capnp build available in this environment. Confirm on
   real 02M hardware.
-- `MainWindow`'s settings/onboarding screens share the same top-level
+- ~~`MainWindow`'s settings/onboarding screens share the same top-level
   `QStackedLayout` as `HomeWindow` and will also render at the wider window
-  size when the panel is active, gaining unused right-hand space. Only the
-  onroad screen was in scope for this change.
+  size when the panel is active, gaining unused right-hand space.~~ Fixed:
+  see "Settings/onboarding no longer stretch on 02M" below.
 - `BEVWidget::updateState()` calls `setVisible(enabled && data_valid)` on
   itself, for its other (small corner-overlay) use in
   `AnnotatedCameraWidget`. Left alone, that would fight this panel's
@@ -139,3 +139,38 @@ default page. `AnnotatedCameraWidget::AnnotatedCameraWidget()`
 null check added at its one other use site (`updateState()`). 01M is
 completely unaffected: it never had a telemetry panel to duplicate against,
 so this is a no-op there.
+
+## Settings/onboarding no longer stretch on 02M
+
+`MainWindow`'s `main_layout` is a `QStackedLayout` holding `homeWindow`,
+`settingsWindow`, and `onboardingWindow` as siblings -- `QStackedLayout`
+forces its current widget to fill the *entire* `MainWindow` rect regardless
+of size policy or `maximumSize`, so on 02M (a wider `MainWindow`) the
+settings/onboarding screens used to stretch to the full extra width, since
+neither is nested inside `HomeWindow`'s own sidebar/telemetry carve-out.
+
+Fixed with `wrapAtBaselineWidth()` (`window.cc`, anonymous namespace):
+`settingsWindow`/`onboardingWindow` are each `setFixedWidth(EOP_01M_WIDTH)`
+(not just a maximum -- a plain `QWidget` defaults to a `Preferred` size
+policy, so a `QHBoxLayout` would otherwise size it to its own `sizeHint()`
+and hand the leftover space to the trailing stretch, shrinking it on *every*
+platform, not just leaving unused space on 02M) and placed inside a small
+`QHBoxLayout` wrapper (`settingsWrapper`/`onboardingWrapper`, new
+`MainWindow` members) with a trailing stretch to absorb any extra width.
+`main_layout->addWidget(...)` now adds the wrappers instead of the raw
+windows, and every `setCurrentWidget`/`currentWidget() ==` call in
+`window.cc` was updated to target them -- `settingsWindow`/
+`onboardingWindow` themselves are still used directly for their own method
+calls (`setCurrentPanel()`, `showTrainingGuide()`, `completed()`) and signal
+connections, which don't care about reparenting.
+
+`EOP_01M_WIDTH`/`EOP_01M_HEIGHT` (`qt_window.h`) were pulled out of
+`deviceScreenSize()`'s three duplicated `{1024, 600}` literals into shared
+constants, so this fix and `deviceScreenSize()` can't drift apart.
+
+On ExoPilot 01M and PC (`MainWindow` already exactly `1024` wide), this is
+a genuine no-op: the fixed-width content plus a zero-width stretch exactly
+reproduces what `QStackedLayout` used to force directly. Verified by code
+review (two passes: the first caught the `sizeHint()`-shrinking bug above
+before it shipped), not by an actual build/run -- still needs on-device
+confirmation like the rest of this feature.
