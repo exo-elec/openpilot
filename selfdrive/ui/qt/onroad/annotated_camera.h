@@ -20,7 +20,10 @@ private:
   ExperimentalButton *experimental_btn;
   HudRenderer hud;
   ModelRenderer model;
-  BEVWidget *bev_widget;
+  // Small corner overlay -- only constructed when there's no dedicated
+  // TelemetryPanel to hold a full-size BEVWidget instead (ExoPilot 01M/PC).
+  // See getTelemetryPanelWidth() in qt_window.h.
+  BEVWidget *bev_widget = nullptr;
   std::unique_ptr<PubMaster> pm;
 
   int skip_frame_count = 0;

@@ -125,3 +125,17 @@ a real unit's panel doesn't match.
   page-switching stays the sole visibility authority; when BEV is disabled
   or data isn't ready yet, the page still renders (grid/vehicle icon, no
   dynamic content) rather than going blank.
+
+## BEV corner overlay merged into the panel on 02M
+
+Initially `AnnotatedCameraWidget` always constructed its own small
+(130x180) `BEVWidget` corner overlay regardless of platform, so on ExoPilot
+02M a driver would see the same top-down view twice -- once small in the
+corner of the main camera view, once full-size as the telemetry panel's
+default page. `AnnotatedCameraWidget::AnnotatedCameraWidget()`
+(`annotated_camera.cc`) now only constructs the corner `bev_widget` when
+`getTelemetryPanelWidth() == 0` (ExoPilot 01M, PC, or an unconfigured
+02M unit) -- `bev_widget` stays `nullptr` on a configured 02M unit, with a
+null check added at its one other use site (`updateState()`). 01M is
+completely unaffected: it never had a telemetry panel to duplicate against,
+so this is a no-op there.

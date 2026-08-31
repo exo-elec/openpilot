@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "common/swaglog.h"
+#include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
 
 // Window that shows camera view and variety of info drawn on top
@@ -20,17 +21,21 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
   experimental_btn = new ExperimentalButton(this);
   main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
   
-  // BEV Widget (Bird's Eye View)
-  bev_widget = new BEVWidget(this);
-  bev_widget->setParent(this);
-  bev_widget->move(width() - 145, height() - 200);
+  // BEV Widget (Bird's Eye View) -- only as a small corner overlay when
+  // there's no dedicated wide-screen TelemetryPanel to show it at full size
+  // instead (ExoPilot 02M). Avoids showing the same top-down view twice.
+  if (getTelemetryPanelWidth() == 0) {
+    bev_widget = new BEVWidget(this);
+    bev_widget->setParent(this);
+    bev_widget->move(width() - 145, height() - 200);
+  }
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
   // Update BEV widget
-  bev_widget->updateState(s);
+  if (bev_widget) bev_widget->updateState(s);
 }
 
 void AnnotatedCameraWidget::initializeGL() {
