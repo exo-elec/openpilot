@@ -64,20 +64,22 @@ lane preview already existed and are reused, not reimplemented.
 - **`getTelemetryPanelWidth()`** (`qt_window.h`/`.cc`): returns `0` unless
   `Hardware::RK3576()` is true (real chip detection, not guessed screen
   size), in which case it returns the installer-set `EOPTelemetryPanelWidth`
-  param (default `0`, so an unconfigured 02M unit still renders exactly
-  like 01M until someone measures and sets the real width). This mirrors
-  EDP10's installer-toggle design, but the *gate* is now genuine hardware
-  identity instead of an extra manual on/off toggle -- one fewer thing an
-  installer can get wrong, since RK3576 vs RK3588 isn't a judgment call.
+  param. This mirrors EDP10's installer-toggle design, but the *gate* is now
+  genuine hardware identity instead of an extra manual on/off toggle -- one
+  fewer thing an installer can get wrong, since RK3576 vs RK3588 isn't a
+  judgment call.
 - **`deviceScreenSize()`** (`qt_window.h`): unchanged for RK3588/PC/default
   (still exactly `{1024, 600}`); RK3576 now returns
   `{1024 + getTelemetryPanelWidth(), 600}`.
-- **`EOPTelemetryPanelWidth`** (`common/params_keys.h`, `INT`, default `0`):
-  the one fact nobody has recorded anywhere in this tree yet -- ExoPilot
-  02M's true panel resolution. Exposed in `eop_panel.cc`'s
-  `add_safety_toggles()` (next to the existing BEV toggle, since the
-  panel's default page reuses `BEVWidget`) via `ParamSpinBoxControl`, so
-  setting it doesn't require SSH/`param_set`.
+- **`EOPTelemetryPanelWidth`** (`common/params_keys.h`, `INT`, default
+  `576` = `1600 - 1024`): assumes a 1600x600 02M panel. This default was
+  set after the fact (see "Default width" below) -- 01M's 1024x600 is
+  confirmed by existing shipped code (`deviceScreenSize()` itself, unrelated
+  to this feature); the `1600` half is not independently verified against
+  a physical 02M panel or spec sheet in this tree. Overridable per-unit via
+  `eop_panel.cc`'s `add_safety_toggles()` (next to the existing BEV toggle,
+  since the panel's default page reuses `BEVWidget`) via
+  `ParamSpinBoxControl`, so correcting it doesn't require SSH/`param_set`.
 - **`selfdrive/ui/qt/onroad/telemetry_panel.{h,cc}` (`TelemetryPanel`)**: a
   swipeable right-side panel, default page reuses the *existing* `BEVWidget`
   class (a second instance, resized to fill the panel instead of the small
@@ -87,13 +89,27 @@ lane preview already existed and are reused, not reimplemented.
   untouched `Sidebar`/`OnroadWindow` -- so ExoPilot 01M, PC, and any
   unconfigured 02M unit are byte-for-byte unaffected.
 
+## Default width (576 = 1600 - 1024)
+
+`EOPTelemetryPanelWidth` originally defaulted to `0` (panel present but
+invisible until an installer measured their unit and set a real number),
+because every screen-size figure given for this feature earlier in its
+development turned out wrong on a later check. `1024` for 01M isn't in that
+category -- it's the literal value already in `deviceScreenSize()`, shipped
+and unrelated to this feature. Once that number was the one in play (rather
+than an EDP10-era 1080 baseline), `1600` was reasserted for 02M, so the
+default was changed to `576` on that basis. This is still not independently
+cross-checked against a spec sheet or a running 02M unit -- it's a stronger
+starting point than before, not a verified one. Adjust
+`EOPTelemetryPanelWidth` (no rebuild needed, just a param + UI restart) if
+a real unit's panel doesn't match.
+
 ## Known limitations (carried over from the EDP10 design)
 
 - Whether `deviceScreenSize()`'s resulting wider fixed window actually maps
   correctly onto ExoPilot 02M's real physical panel has not been verified --
   there is no scons/capnp build available in this environment. Confirm on
-  real 02M hardware, and adjust `EOPTelemetryPanelWidth` (no rebuild needed,
-  just a param + UI restart) if it doesn't fit.
+  real 02M hardware.
 - `MainWindow`'s settings/onboarding screens share the same top-level
   `QStackedLayout` as `HomeWindow` and will also render at the wider window
   size when the panel is active, gaining unused right-hand space. Only the

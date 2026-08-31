@@ -14,16 +14,15 @@
 const QString ASSET_PATH = ":/";
 
 // Width in px of the extra screen area beyond the ExoPilot 01M baseline
-// (1024x600) for the ExoPilot 02M (RK3576) wide-screen telemetry panel. This
-// is NOT a guessed/autodetected pixel value -- ExoPilot 02M's true panel
-// resolution isn't recorded anywhere in this tree yet (system/hardware/rk3576/
-// has real RK3576 SoC/camera support, but no display-size constant). Gating
-// is the real, verified Hardware::RK3576() device-tree check; the exact
-// extra width is an installer-set param (EOPTelemetryPanelWidth) since only
-// whoever has the physical unit can measure it. See qt_window.cc for the
+// (1024x600) for the ExoPilot 02M (RK3576) wide-screen telemetry panel.
+// Defaults to 576 (1600 - 1024, a 1600x600 02M panel), overridable per-unit
+// via the EOPTelemetryPanelWidth param without a rebuild if a given unit's
+// real panel differs -- system/hardware/rk3576/ has real RK3576 SoC/camera
+// support but no display-size constant, so this default is not yet
+// cross-checked against a physical panel. Gating is the real, verified
+// Hardware::RK3576() device-tree check. See qt_window.cc for the
 // implementation and nagaspilot/docs/TELEMETRY_PANEL.md for the full design
-// note, including why guessing this from screen-size detection was
-// abandoned on the sibling dev/EDP10 branch.
+// note, including why this was originally zero-defaulted.
 int getTelemetryPanelWidth();
 
 inline QSize deviceScreenSize() {

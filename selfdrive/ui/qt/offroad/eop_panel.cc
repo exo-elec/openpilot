@@ -779,13 +779,15 @@ void EopPanel::add_safety_toggles() {
   addItem(bev_toggle);
 
   // ExoPilot 02M (RK3576) telemetry side panel width. Real RK3576 detection
-  // gates whether the panel appears at all; the exact width isn't known for
-  // any physical unit yet, so it has no safe guessed default -- measure your
-  // own hardware. No-op on ExoPilot 01M/PC. Takes effect after a UI restart.
+  // gates whether the panel appears at all; default assumes a 1600x600 02M
+  // panel (576 = 1600 - 1024), adjustable per-unit without a rebuild if a
+  // given unit's real panel differs. No-op on ExoPilot 01M/PC. Takes effect
+  // after a UI restart.
   auto telemetry_panel_width = new ParamSpinBoxControl(
       "EOPTelemetryPanelWidth", tr("Telemetry Panel Width (ExoPilot 02M):"),
       tr("Extra screen width this ExoPilot 02M unit's panel has beyond the "
-         "1024x600 ExoPilot 01M baseline. Ignored on ExoPilot 01M and PC."),
+         "1024x600 ExoPilot 01M baseline. Default assumes a 1600x600 panel. "
+         "Ignored on ExoPilot 01M and PC."),
       "", 0, 800, 10, tr(" px"), tr("0"));
   addItem(telemetry_panel_width);
 }
