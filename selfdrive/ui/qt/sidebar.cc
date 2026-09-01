@@ -63,10 +63,9 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (onroad && home_btn.contains(event->pos())) {
-    // EOP: bookmarkButton not in Event union
-    // MessageBuilder msg;
-    // msg.initEvent().initBookmarkButton();
-    // pm->send("bookmarkButton", msg);
+    MessageBuilder msg;
+    msg.initEvent().initBookmarkButton();
+    pm->send("bookmarkButton", msg);
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
@@ -147,11 +146,17 @@ void Sidebar::updateState(const UIState &s) {
   std::string pairing_pin = params.get("BluetoothPairingPin");
   bool pairing_active = params.get("BluetoothPairingActive") == "1";
   bool spp_connected = params.get("EOPSPPPairedDevice").length() > 0;
+  // BLE GATT (NavPilot's primary, exclusive companion-app transport per
+  // docs/eop/04_Integration/BLE_DESIGN.md) -- EOPSPPPairedDevice only
+  // reflects the separate classic-SPP path (legacy OBD scanners), so
+  // without this the sidebar showed "BLE OFF" for the entire time a phone
+  // was connected over its actual primary transport.
+  bool gatt_connected = params.getBool("EOPNavPilotPaired");
 
   ItemStatus bleStatus;
   if (pairing_active && !pairing_pin.empty()) {
     bleStatus = {{tr("BLE"), tr("PAIRING")}, warning_color};
-  } else if (spp_connected) {
+  } else if (gatt_connected || spp_connected) {
     bleStatus = {{tr("BLE"), tr("ON")}, good_color};
   } else {
     bleStatus = {{tr("BLE"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QMouseEvent>
 #include <QStackedWidget>
 #include <QWidget>
 
@@ -26,6 +27,13 @@ public:
 
 signals:
   void openSettings(int index = 0, const QString &param = "");
+
+protected:
+  // Upstream emitted openSettings() via the embedded WiFiPromptWidget this
+  // fork's rewrite removed; this keeps the widget clickable (home.cc still
+  // wires openSettings to OffroadHome::openSettings) instead of leaving it
+  // inert with no way to ever fire the signal it still declares.
+  void mousePressEvent(QMouseEvent *event) override;
 
 private:
   QStackedWidget *mainLayout;

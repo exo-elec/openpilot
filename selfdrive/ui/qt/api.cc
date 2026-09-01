@@ -63,7 +63,7 @@ HttpRequest::HttpRequest(QObject *parent, bool create_jwt, int timeout) : create
 }
 
 bool HttpRequest::active() const {
-  return reply != nullptr;
+  return reply != nullptr || eop_request_pending;
 }
 
 bool HttpRequest::timeout() const {
@@ -74,7 +74,10 @@ void HttpRequest::sendRequest(const QString &requestURL, const HttpRequest::Meth
   // EOP: No cloud requests. Immediately emit failure.
   Q_UNUSED(requestURL)
   Q_UNUSED(method)
+  if (eop_request_pending) return;
+  eop_request_pending = true;
   QTimer::singleShot(0, [this]() {
+    eop_request_pending = false;
     emit requestDone("EOP: Cloud requests disabled", false, QNetworkReply::HostNotFoundError);
   });
 }

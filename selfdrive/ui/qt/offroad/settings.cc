@@ -217,6 +217,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
         {"main_pt-BR", "pt"}, {"main_es", "es"}, {"main_tr", "tr"},
         {"main_ar", "ar"}, {"main_nl", "nl"}, {"main_pl", "pl"},
         {"main_zh-CHS", "zh"}, {"main_zh-CHT", "zh"},
+        {"main_ja", "ja"}, {"main_ko", "ko"}, {"main_th", "th"},
       };
       QString langFile = langs[selection];
       QString eopLang = langToEop.value(langFile, "en");
@@ -370,6 +371,17 @@ void SettingsWindow::setCurrentPanel(int index, const QString &param) {
         }
       }
     } else {
+      // A toggle param name (not a "*Panel" name) always means "go to the
+      // Toggles panel and scroll to this entry" -- resolve the index by
+      // name instead of trusting the caller's raw `index`, so inserting or
+      // reordering a panel here (e.g. Bluetooth) can't silently misroute an
+      // openSettings(<stale index>, "SomeToggle") caller to the wrong panel.
+      for (int i = 0; i < nav_btns->buttons().size(); i++) {
+        if (nav_btns->buttons()[i]->text() == tr("Toggles")) {
+          index = i;
+          break;
+        }
+      }
       emit expandToggleDescription(param);
       emit scrollToToggle(param);
     }

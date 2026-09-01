@@ -302,8 +302,9 @@ public:
     )");
     hlayout->addWidget(spin);
 
+    default_val = default_value;
     std::string param_val = params.get(key);
-    int value = param_val.empty() ? default_value : atoi(param_val.c_str());
+    int value = param_val.empty() ? default_val : atoi(param_val.c_str());
     spin->setValue(std::clamp(value, min, max));
 
     QObject::connect(spin, QOverload<int>::of(&QSpinBox::valueChanged), [=](int v) {
@@ -312,8 +313,9 @@ public:
   }
 
   void refresh() {
-    int value = atoi(params.get(key).c_str());
-    spin->setValue(value);
+    std::string param_val = params.get(key);
+    int value = param_val.empty() ? default_val : atoi(param_val.c_str());
+    spin->setValue(std::clamp(value, spin->minimum(), spin->maximum()));
   }
 
   void showEvent(QShowEvent *event) override {
@@ -324,6 +326,7 @@ private:
   std::string key;
   Params params;
   QSpinBox *spin;
+  int default_val = 0;
 };
 
 class ParamDoubleSpinBoxControl : public AbstractControl {
@@ -351,8 +354,9 @@ public:
     )");
     hlayout->addWidget(spin);
 
+    default_val = default_value;
     std::string param_val = params.get(key);
-    double value = param_val.empty() ? default_value : atof(param_val.c_str());
+    double value = param_val.empty() ? default_val : atof(param_val.c_str());
     spin->setValue(std::clamp(value, min, max));
 
     QObject::connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [=](double v) {
@@ -361,8 +365,9 @@ public:
   }
 
   void refresh() {
-    double value = atof(params.get(key).c_str());
-    spin->setValue(value);
+    std::string param_val = params.get(key);
+    double value = param_val.empty() ? default_val : atof(param_val.c_str());
+    spin->setValue(std::clamp(value, spin->minimum(), spin->maximum()));
   }
 
   void showEvent(QShowEvent *event) override {
@@ -373,6 +378,7 @@ private:
   std::string key;
   Params params;
   QDoubleSpinBox *spin;
+  double default_val = 0.0;
 };
 
 class ListWidget : public QWidget {

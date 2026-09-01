@@ -55,6 +55,10 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
     }
   )");
   pairing_overlay_->hide();
+  // Same reasoning as the camera overlays above -- this is a status label,
+  // not an interactive control, so it shouldn't block clicks to whatever's
+  // underneath (e.g. ExperimentalButton) while a pairing PIN is shown.
+  pairing_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
   stacked_layout->addWidget(pairing_overlay_);
 
   // setup stacking order
@@ -73,6 +77,10 @@ void OnroadWindow::createOverlays() {
   rear_overlay_->setBorderWidth(3);
   rear_overlay_->setCornerRadius(12);
   rear_overlay_->hide();
+  // Purely informational PIP, same as `alerts` below -- let clicks pass
+  // through to whatever's underneath (e.g. ExperimentalButton, bev_widget)
+  // instead of this overlay silently swallowing them while shown.
+  rear_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
 
   // Left side camera overlay (BGR from uvcd)
   left_overlay_ = new OverlayCameraWidget("uvcd", VISION_STREAM_SIDE_LEFT, this);
@@ -80,6 +88,7 @@ void OnroadWindow::createOverlays() {
   left_overlay_->setBorderWidth(3);
   left_overlay_->setCornerRadius(12);
   left_overlay_->hide();
+  left_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
 
   // Right side camera overlay (BGR from uvcd)
   right_overlay_ = new OverlayCameraWidget("uvcd", VISION_STREAM_SIDE_RIGHT, this);
@@ -87,6 +96,7 @@ void OnroadWindow::createOverlays() {
   right_overlay_->setBorderWidth(3);
   right_overlay_->setCornerRadius(12);
   right_overlay_->hide();
+  right_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 void OnroadWindow::resizeEvent(QResizeEvent *event) {

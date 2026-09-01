@@ -27,7 +27,5 @@ signals:
   void changed(PrimeState::Type prime_type);
 
 private:
-  void handleReply(const QString &response, bool success);
-
   PrimeState::Type prime_type = PrimeState::PRIME_TYPE_UNKNOWN;
 };

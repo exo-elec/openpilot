@@ -99,3 +99,10 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   sp_retain.setRetainSizeWhenHidden(true);
   setSizePolicy(sp_retain);
 }
+
+void SetupWidget::mousePressEvent(QMouseEvent *event) {
+  // "ExoPilotPanel" resolves by name via SettingsWindow::setCurrentPanel(),
+  // not a hardcoded index, so this keeps working regardless of where the
+  // ExoPilot panel sits in the settings panel list.
+  emit openSettings(0, "ExoPilotPanel");
+}

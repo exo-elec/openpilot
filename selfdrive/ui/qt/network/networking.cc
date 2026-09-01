@@ -49,6 +49,10 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
   connect(an, &AdvancedNetworking::backPress, [=]() { main_layout->setCurrentWidget(wifiScreen); });
   connect(an, &AdvancedNetworking::requestWifiScreen, [=]() { main_layout->setCurrentWidget(wifiScreen); });
   main_layout->addWidget(an);
+  // EOP: no Prime subscription tiers, so there's no PrimeState::changed
+  // signal to drive setPrimeType() from -- apply its "always show GSM"
+  // intent directly, once, now that `an`/`wifi` exist.
+  setPrimeType(PrimeState::Type::PRIME_TYPE_UNKNOWN);
 
   QPalette pal = palette();
   pal.setColor(QPalette::Window, QColor(0x29, 0x29, 0x29));
