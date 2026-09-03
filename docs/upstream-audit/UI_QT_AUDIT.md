@@ -3,7 +3,7 @@
 **Scope:** `selfdrive/ui/qt/` — all files that differ from upstream `v0.10.0`
 **Reviewer:** Claude Code
 **Date:** 2026-09-01
-**Status:** 🟠 HIGH findings fixed; all findings resolved or explicitly deferred below
+**Status:** ✅ All findings fixed
 
 ---
 
@@ -84,23 +84,25 @@ Panel list gained a new "Bluetooth" panel between "WiFi" and "Toggles", shifting
 
 ### B3. `selfdrive/ui/qt/sidebar.cc`
 
-**Verdict:** MIXED → fixed (2 of 3 findings), 1 deferred
+**Verdict:** MIXED → fixed (3 of 3 findings)
 Replaces the comma "CONNECT" (Athena) metric with WIFI/ETH + a new BLE pairing-status metric; layout resized for the smaller EOP sidebar.
 
 - 🟠 HIGH — BLE sidebar indicator only checked classic SPP pairing (`EOPSPPPairedDevice`), never `EOPNavPilotPaired` — the param `ncp_session.py` sets when a BLE GATT session (the fork's primary, exclusive companion-app transport per `docs/eop/04_Integration/BLE_DESIGN.md`) connects. Result: sidebar showed "BLE OFF" the entire time a phone was actually connected via BLE GATT.
   - **Fix applied:** added `gatt_connected = params.getBool("EOPNavPilotPaired")`, OR'd into the "ON" condition alongside `spp_connected`.
 - 🟢 LOW — the onroad bookmark-button tap handler was commented out with a stale/incorrect comment claiming `bookmarkButton` "not in Event union" — it is (`cereal/log.capnp:3854`, registered in `cereal/services.py`).
   - **Fix applied:** restored the `initBookmarkButton()`/`pm->send()` call; the `PubMaster` for `"bookmarkButton"` was already being constructed unconditionally, so this now actually uses it.
-- 🟡 MEDIUM (deferred) — three `Params()` disk reads happen unconditionally in `updateState()`, which runs at `UI_FREQ` (20 Hz), instead of being cached/event-driven via this fork's own `ParamWatcher` (`selfdrive/ui/qt/util.h`, `QFileSystemWatcher`-based). Real but perf-only (not a correctness bug), and the same pattern pre-exists elsewhere in this fork (`onroad_home.cc`, see B4) — **not fixed in this pass**; flagged for a follow-up that converts both sites to `ParamWatcher` together, since building/testing an event-driven refactor isn't verifiable without a working build/hardware environment.
+- 🟡 MEDIUM — three `Params()` disk reads happened unconditionally in `updateState()`, which runs at `UI_FREQ` (20 Hz), instead of being cached/event-driven via this fork's own `ParamWatcher` (`selfdrive/ui/qt/util.h`, `QFileSystemWatcher`-based). Real but perf-only (not a correctness bug); the same pattern also existed in `onroad_home.cc` (see B4) and both were converted together.
+  - **Fix applied:** added a `ble_watch` `ParamWatcher` member watching `BluetoothPairingPin`/`BluetoothPairingActive`/`EOPSPPPairedDevice`/`EOPNavPilotPaired`; `updateState()` now reads four cached member variables (`cached_pairing_pin`/`cached_pairing_active`/`cached_spp_connected`/`cached_gatt_connected`), refreshed only on `paramChanged` (i.e. only when the underlying param file actually changes) instead of every 20 Hz tick.
 
 ### B4. `selfdrive/ui/qt/onroad/onroad_home.cc` / `.h`
 
-**Verdict:** MIXED → fixed (1 of 2 findings), 1 deferred + 1 not fixed (cosmetic)
+**Verdict:** MIXED → fixed (2 of 2 findings), 1 not fixed (cosmetic)
 Adds three PIP camera overlays (`rear_overlay_`/`left_overlay_`/`right_overlay_`, reverse gear / turn-signal triggered) and a Bluetooth-pairing-PIN overlay (`pairing_overlay_`), all added to the same `QStackedLayout::StackAll` stack `alerts` lives in.
 
 - 🟠 HIGH — unlike `alerts` (which is explicitly `Qt::WA_TransparentForMouseEvents`), none of the four new overlay widgets had that attribute, so whenever visible they sat on top of `nvg` in Z-order and swallowed mouse events. Concretely: `right_overlay_` (top-right 28%×62%) and `pairing_overlay_` both overlap `ExperimentalButton` (`annotated_camera.cc`, also top-right) — turning on the right blinker or pairing Bluetooth silently blocked the Experimental Mode toggle. `rear_overlay_` (bottom strip) could similarly block `bev_widget`.
   - **Fix applied:** added `Qt::WA_TransparentForMouseEvents` to all three `OverlayCameraWidget`s (in `createOverlays()`) and to `pairing_overlay_` (right after construction), mirroring the existing `alerts` pattern.
-- 🟡 MEDIUM (deferred) — `updatePairingOverlay()` calls `Params().get()` twice, unthrottled, every UI frame (20 Hz) — a blocking synchronous file read on the Qt GUI thread for the entire onroad session, not just while pairing. Same `ParamWatcher`-based fix as B3's sidebar finding, deferred for the same reason (best done as one combined follow-up, unverifiable without a build).
+- 🟡 MEDIUM — `updatePairingOverlay()` called `Params().get()` twice, unthrottled, every UI frame (20 Hz) — a blocking synchronous file read on the Qt GUI thread for the entire onroad session, not just while pairing.
+  - **Fix applied:** same pattern as B3 — added a `pairing_watch_` `ParamWatcher` member watching the same two params, with `cached_pairing_pin_`/`cached_pairing_active_` members refreshed only on actual file change; `updatePairingOverlay()` now reads the cache instead of calling `Params().get()` itself.
 - 🟢 LOW (not fixed, cosmetic) — a no-op `mousePressEvent(QMouseEvent*)` override that just forwards to the base class. Harmless dead stub; left as-is.
 
 ### B5. `selfdrive/ui/qt/widgets/prime.cc` / `.h`
@@ -136,9 +138,9 @@ Removes Athena/comma-cloud device polling; emits the locally-stored `PrimeType` 
 
 ### B9. `selfdrive/ui/qt/offroad/firehose.cc` / `.h`
 
-**Verdict:** KEEP (not fixed — dead code, no user-visible impact)
-Firehose Mode's comma-account upload UI was gutted to a static "not available — offline-first system" message; the panel and its nav button were removed entirely from `settings.cc`'s panel list, making `FirehosePanel` (and its orphaned `refresh()` slot) unreachable dead code. A related dangling reference (`widgets/wifi.cc:24`'s `openSettings(1, "FirehosePanel")`) is also currently unreachable, since nothing instantiates `WiFiPromptWidget` in this fork.
-- 🟢 LOW — flagged for a future cleanup pass (delete `FirehosePanel` class + header) rather than fixed now, since it has no runtime effect.
+**Verdict:** deleted
+Firehose Mode's comma-account upload UI was gutted to a static "not available — offline-first system" message; the panel and its nav button were removed entirely from `settings.cc`'s panel list, making `FirehosePanel` (and its orphaned `refresh()` slot) unreachable dead code.
+- 🟢 LOW — **Fix applied:** deleted `firehose.cc`/`.h` outright, removed `qt/offroad/firehose.cc` from `selfdrive/ui/SConscript`'s source list, and removed the now-unused `class FirehosePanel;` forward declaration from `settings.h` (its only reference). `widgets/wifi.cc:24`'s `openSettings(1, "FirehosePanel")` was left as-is: it's inside `WiFiPromptWidget`, which nothing in this fork instantiates (confirmed in Group B core/network review), so the string no longer resolving to a real panel name is a no-op, same as its pre-existing behavior — fixing it would mean touching otherwise-unreachable code outside this audit's scope.
 
 ### B10. `selfdrive/ui/qt/util.cc`
 
@@ -162,11 +164,11 @@ Firehose Mode's comma-account upload UI was gutted to a static "not available �
 | P1 | B1: `langToEop` missing ja/ko/th | ✅ Fixed |
 | P1 | B5: `SetupWidget::openSettings` never emitted | ✅ Fixed |
 | P1 | B6: `Networking::setPrimeType()` dead code | ✅ Fixed |
-| P1 | B3/B4: unthrottled 20 Hz `Params().get()` reads (sidebar + onroad_home) | ⏸ Deferred — needs a `ParamWatcher`-based refactor across both files, best done together and verified on real hardware/build |
+| P1 | B3/B4: unthrottled 20 Hz `Params().get()` reads (sidebar + onroad_home) | ✅ Fixed — converted both to `ParamWatcher` |
 | P2 | B3: stale bookmarkButton comment | ✅ Fixed (restored the publish) |
 | P2 | B7: `HttpRequest::active()` always false | ✅ Fixed |
 | P2 | B8: dead `handleReply()` declaration | ✅ Fixed |
-| P2 | B9: `FirehosePanel` dead code cleanup | ⏸ Deferred — no runtime impact, low value under time pressure |
+| P2 | B9: `FirehosePanel` dead code cleanup | ✅ Fixed — deleted `firehose.cc/.h`, `SConscript` entry, forward declaration |
 | — | B10: `hasLongitudinalControl()` alpha-longitudinal check dropped | Informational only, no action needed under current single-vehicle scope |
 
 ## Fix tracking checklist
@@ -181,8 +183,8 @@ Firehose Mode's comma-account upload UI was gutted to a static "not available �
 - [x] `network/networking.cc`: `setPrimeType()`'s intent applied directly from the constructor
 - [x] `api.cc/.h`: `HttpRequest::active()` reflects a pending synthetic request
 - [x] `prime_state.h`: removed dead `handleReply()` declaration
-- [ ] `sidebar.cc` + `onroad_home.cc`: convert unthrottled per-frame `Params().get()` reads to `ParamWatcher` (deferred — needs a build/hardware environment to verify)
-- [ ] `offroad/firehose.cc/.h`: delete the now-fully-unreachable `FirehosePanel` class (deferred — cosmetic cleanup, no runtime impact)
+- [x] `sidebar.cc` + `onroad_home.cc`: converted unthrottled per-frame `Params().get()` reads to `ParamWatcher`
+- [x] `offroad/firehose.cc/.h`: deleted the now-fully-unreachable `FirehosePanel` class
 
 ## Known limitation
 

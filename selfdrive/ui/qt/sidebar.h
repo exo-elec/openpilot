@@ -7,6 +7,7 @@
 
 #include "selfdrive/ui/ui.h"
 #include "selfdrive/ui/qt/network/networking.h"
+#include "selfdrive/ui/qt/util.h"
 
 typedef QPair<QPair<QString, QString>, QColor> ItemStatus;
 Q_DECLARE_METATYPE(ItemStatus);
@@ -65,4 +66,14 @@ protected:
 private:
   std::unique_ptr<PubMaster> pm;
   Networking *networking = nullptr;
+
+  // BLE pairing status, cached from ParamWatcher instead of a synchronous
+  // Params().get() on every updateState() tick (UI_FREQ = 20 Hz) -- see
+  // eop_panel.cc for the same pattern.
+  ParamWatcher *ble_watch = nullptr;
+  std::string cached_pairing_pin;
+  bool cached_pairing_active = false;
+  bool cached_spp_connected = false;
+  bool cached_gatt_connected = false;
+  void refreshBleCache();
 };

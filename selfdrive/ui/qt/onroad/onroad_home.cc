@@ -68,6 +68,20 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   setAttribute(Qt::WA_OpaquePaintEvent);
   QObject::connect(uiState(), &UIState::uiUpdate, this, &OnroadWindow::updateState);
   QObject::connect(uiState(), &UIState::offroadTransition, this, &OnroadWindow::offroadTransition);
+
+  pairing_watch_ = new ParamWatcher(this);
+  pairing_watch_->addParam("BluetoothPairingPin");
+  pairing_watch_->addParam("BluetoothPairingActive");
+  QObject::connect(pairing_watch_, &ParamWatcher::paramChanged, [=](const QString &, const QString &) {
+    refreshPairingCache();
+  });
+  refreshPairingCache();
+}
+
+void OnroadWindow::refreshPairingCache() {
+  auto params = Params();
+  cached_pairing_pin_ = params.get("BluetoothPairingPin");
+  cached_pairing_active_ = params.get("BluetoothPairingActive") == "1";
 }
 
 void OnroadWindow::createOverlays() {
@@ -189,9 +203,8 @@ void OnroadWindow::updateState(const UIState &s) {
 }
 
 void OnroadWindow::updatePairingOverlay() {
-  auto params = Params();
-  std::string pin = params.get("BluetoothPairingPin");
-  bool active = params.get("BluetoothPairingActive") == "1";
+  const std::string &pin = cached_pairing_pin_;
+  bool active = cached_pairing_active_;
 
   if (active && !pin.empty()) {
     pairing_overlay_->setText(QString("PIN: %1").arg(QString::fromStdString(pin)));

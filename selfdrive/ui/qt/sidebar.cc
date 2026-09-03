@@ -42,6 +42,26 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
   QObject::connect(uiState(), &UIState::uiUpdate, this, &Sidebar::updateState);
 
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"bookmarkButton"});
+
+  // Cache BLE pairing status via QFileSystemWatcher instead of a
+  // synchronous Params().get() on every updateState() tick (UI_FREQ =
+  // 20 Hz) -- same pattern as eop_panel.cc's fs_watch.
+  ble_watch = new ParamWatcher(this);
+  for (const char *p : {"BluetoothPairingPin", "BluetoothPairingActive", "EOPSPPPairedDevice", "EOPNavPilotPaired"}) {
+    ble_watch->addParam(p);
+  }
+  QObject::connect(ble_watch, &ParamWatcher::paramChanged, [=](const QString &, const QString &) {
+    refreshBleCache();
+  });
+  refreshBleCache();
+}
+
+void Sidebar::refreshBleCache() {
+  auto params = Params();
+  cached_pairing_pin = params.get("BluetoothPairingPin");
+  cached_pairing_active = params.get("BluetoothPairingActive") == "1";
+  cached_spp_connected = params.get("EOPSPPPairedDevice").length() > 0;
+  cached_gatt_connected = params.getBool("EOPNavPilotPaired");
 }
 
 void Sidebar::mousePressEvent(QMouseEvent *event) {
@@ -141,22 +161,18 @@ void Sidebar::updateState(const UIState &s) {
   }
   setProperty("pandaStatus", QVariant::fromValue(pandaStatus));
 
-  // NavPilot / Bluetooth pairing status
-  auto params = Params();
-  std::string pairing_pin = params.get("BluetoothPairingPin");
-  bool pairing_active = params.get("BluetoothPairingActive") == "1";
-  bool spp_connected = params.get("EOPSPPPairedDevice").length() > 0;
-  // BLE GATT (NavPilot's primary, exclusive companion-app transport per
-  // docs/eop/04_Integration/BLE_DESIGN.md) -- EOPSPPPairedDevice only
-  // reflects the separate classic-SPP path (legacy OBD scanners), so
-  // without this the sidebar showed "BLE OFF" for the entire time a phone
-  // was connected over its actual primary transport.
-  bool gatt_connected = params.getBool("EOPNavPilotPaired");
-
+  // NavPilot / Bluetooth pairing status -- read from ble_watch's cache
+  // (refreshed only on actual param-file change), not a fresh Params()
+  // disk read every tick. GATT (BLE) is checked alongside SPP since
+  // NavPilot's primary, exclusive companion-app transport per
+  // docs/eop/04_Integration/BLE_DESIGN.md is BLE GATT, not classic SPP
+  // (that's reserved for legacy OBD scanners) -- without it the sidebar
+  // showed "BLE OFF" for the entire time a phone was connected over its
+  // actual primary transport.
   ItemStatus bleStatus;
-  if (pairing_active && !pairing_pin.empty()) {
+  if (cached_pairing_active && !cached_pairing_pin.empty()) {
     bleStatus = {{tr("BLE"), tr("PAIRING")}, warning_color};
-  } else if (gatt_connected || spp_connected) {
+  } else if (cached_gatt_connected || cached_spp_connected) {
     bleStatus = {{tr("BLE"), tr("ON")}, good_color};
   } else {
     bleStatus = {{tr("BLE"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
