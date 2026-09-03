@@ -9,11 +9,61 @@ Radar supplies range and Doppler; cameras supply class and visual continuity.
 This remains advisory-only. It does not feed longitudinal actuation or AEB.
 """
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.radar_corner_geometry import corner_id_from_track_id, is_corner_track_id
+
+# ISO 17387 (Lane change decision aid systems) sets the closing-vehicle-warning
+# criterion at these TTC values, selected by subject-vehicle speed. Recorded
+# here so the numbers are traceable to the standard rather than invented; the
+# zone geometry below already matches the standard's adjacent-zone lines
+# (REAR_D_MIN -30 m = line A, REAR_D_MAX -3 m = line B).
+# NOTE: only the middle value is currently applied, as TTC_WARNING_S. Actually
+# SELECTING among the three needs carstate.vEgo threaded into
+# _collision_state()/_cross_state(), which today receive objects only — a
+# signature change across their callers, deliberately left as its own change
+# rather than half-wired here.
+ISO17387_CLOSING_TTC_S = (2.5, 3.0, 3.5)
+
+
+def corner_ttc_s(obj: dict, fallback: float) -> float:
+    """Best available time-to-collision for one fused object, in seconds.
+
+    Prefers the ESP32 corner node's own trajectory TTC (`ttcS`, plumbed through
+    gridd's _fuse_radar2d_objects) over any locally-derived value, because the
+    two are not equivalent: a local estimate divides longitudinal `dRel` by
+    RADIAL `vRel`, and radial rate cannot tell an object converging on us from
+    one merely crossing our line of sight — so it over-alarms on passing
+    traffic. Only the node holds the Cartesian [vx,vy] from its Kalman tracker
+    that separates those cases, and it does not transmit them.
+
+    `ttcValid` (wire flag bit2) is what makes "no TTC" actionable, and the
+    distinction is the whole point of the flag:
+
+      * ttcValid set, ttcS finite   → use it.
+      * ttcValid set, ttcS NaN/<=0  → the node EVALUATED this object and
+        cleared it as non-closing. Return +inf, i.e. no threat. Falling back
+        here would re-alarm, with the very estimate this exists to replace,
+        exactly the crossing traffic the node just correctly dismissed.
+      * ttcValid clear              → sender predates TTC (or is not a corner
+        node) and has no opinion; keep the caller's own estimate so legacy
+        behaviour is untouched.
+
+    An unset capnp field arrives as 0.0 rather than NaN, so <=0 is treated the
+    same as NaN throughout.
+    """
+    if not obj.get('ttcValid', False):
+        return fallback
+    ttc = obj.get('ttcS')
+    if ttc is None:
+        return fallback
+    ttc = float(ttc)
+    if math.isnan(ttc) or ttc <= 0.0:
+        return float('inf')  # node says: not closing
+    return ttc
 
 # LaneZone integer constants — must match CameraObject.LaneZone in log.capnp
 _LZ_UNKNOWN        = 0
@@ -405,7 +455,8 @@ class RadarZoneMonitor:
             if confidence < self.MIN_CONFIDENCE:
                 continue
             v_rel = obj.get('vRel', 0.0)
-            ttc = abs(obj['dRel']) / abs(v_rel) if v_rel < -0.1 else float('inf')
+            ttc = corner_ttc_s(
+                obj, abs(obj['dRel']) / abs(v_rel) if v_rel < -0.1 else float('inf'))
             score = ttc if ttc != float('inf') else 1000.0 + abs(obj['dRel'])
             if best is None or score < best[0]:
                 best = (score, obj, confidence, ttc)
@@ -530,12 +581,18 @@ class RadarZoneMonitor:
 
             if abs(d) <= 15.0:
                 ttc = 0.0                           # immediate zone → always block
-            elif d < 0 and v < -0.1:
-                ttc = abs(d) / abs(v)               # behind, closing from rear
-            elif d > 0 and v > 0.1:
-                ttc = d / v                         # ahead, ego closing on them
+                # Deliberately NOT overridden by the node's TTC below: this is a
+                # proximity guard, not an estimate, and a node reporting "not
+                # closing" for something already alongside must not unblock it.
             else:
-                ttc = float('inf')
+                if d < 0 and v < -0.1:
+                    ttc = abs(d) / abs(v)           # behind, closing from rear
+                elif d > 0 and v > 0.1:
+                    ttc = d / v                     # ahead, ego closing on them
+                else:
+                    ttc = float('inf')
+                if isinstance(o, dict):
+                    ttc = corner_ttc_s(o, ttc)
 
             if ttc < self.LCA_TTC_S:
                 if y > 0:
@@ -574,17 +631,22 @@ class RadarZoneMonitor:
                 continue
             threat = (abs(v) * 2.0 if v < 0 else 0.0) + (max(0.0, 5.0 - abs(d)) * 3.0)
             if threat > best_threat:
-                best_threat, best = threat, (d, v, conf)
+                # Carry the object itself so the node's own TTC survives to the
+                # TTC computation below (corner_ttc_s()); d/v alone cannot
+                # reconstruct it.
+                best_threat, best = threat, (d, v, conf, o)
 
         if best is None:
             return ZoneState.empty(side)
 
-        d_rel, v_rel, conf = best
+        d_rel, v_rel, conf, best_obj = best
         if v_rel < -0.1:
             ttc = abs(d_rel) / abs(v_rel) if d_rel != 0 else float('inf')
             ttc = min(ttc, 999.0)
         else:
             ttc = float('inf')
+        if isinstance(best_obj, dict):
+            ttc = min(corner_ttc_s(best_obj, ttc), 999.0)
 
         is_warning = (v_rel < self.FAST_APPROACH_MS) or (ttc < self.TTC_WARNING_S and v_rel < 0)
         level = ZoneAlertLevel.WARNING if is_warning else ZoneAlertLevel.CAUTION

@@ -1171,6 +1171,35 @@ struct Radar2DObject @0xc4d5e6f7a8092131 {
   dynProp       @9 :UInt8;    # ARS-style: 0=stationary, 1=moving, 2=stopped
   lengthM       @10 :Float32; # estimated object length (m), forward axis
   widthM        @11 :Float32; # estimated object width (m), lateral axis
+  ttcS          @12 :Float32; # node-computed time-to-collision (s), NaN if unavailable.
+                              # The NODE computes this, not us, and that is not an
+                              # arbitrary split: the fields above carry polar position
+                              # plus RADIAL Doppler only, and radial rate cannot separate
+                              # an object converging on us from one crossing harmlessly
+                              # past. That needs the full Cartesian [vx,vy] the node's
+                              # Kalman tracker holds and does not transmit, so the
+                              # trajectory judgement is made on-node and shipped.
+                              # Direction-agnostic by construction — a perpendicular
+                              # pass yields NaN, a diagonal cut-in yields a real TTC,
+                              # whatever bearing it arrives from — and independent of
+                              # mounting pose, which matters on an aftermarket install
+                              # whose yaw is not known.
+                              # NOT tiered: ISO 17387 sets the closing-vehicle-warning
+                              # criterion at 2.5/3.0/3.5 s TTC selected by ego speed, and
+                              # ego speed is authoritative HERE, not on the node (whose
+                              # vehicle_state input is optional and freshness-gated), so
+                              # threshold selection belongs to this side. See
+                              # selfdrive/controls/lib/radar_zones.py.
+                              # Constant-velocity extrapolation, inherited from the
+                              # node's KF: a warning signal, not a safety interlock.
+  ttcValid      @13 :Bool;    # true = the sender computes ttcS, so it is authoritative
+                              # INCLUDING an absent/NaN value, which then means "node
+                              # evaluated this object and it is NOT closing" rather than
+                              # "no opinion". A consumer must not substitute its own
+                              # range/radial-rate estimate in that case — that estimate
+                              # is what over-alarms on crossing traffic, so doing so
+                              # re-alarms precisely what the node just cleared.
+                              # false = sender predates TTC; keep the local estimate.
 }
 
 struct Radar2D @0xe3f4a5b6c7d80920 {

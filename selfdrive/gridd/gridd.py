@@ -658,6 +658,18 @@ class GridD:
                 'dynProp': int(obj_msg.dynProp),
                 'length': float(obj_msg.lengthM),
                 'width': float(obj_msg.widthM),
+                # Node-computed time-to-collision (NaN = none/unavailable).
+                # Carried through unchanged so downstream zone logic can use a
+                # real trajectory TTC instead of re-deriving one from
+                # dRel/vRel: vRel is RADIAL Doppler, so that division
+                # over-alarms on an object merely crossing our line of sight.
+                # Only the node holds the Cartesian [vx,vy] that tells the two
+                # apart. See radar_zones.corner_ttc_s().
+                'ttcS': float(obj_msg.ttcS),
+                # Whether that TTC is authoritative — see radar_zones.corner_ttc_s():
+                # with this true, an absent TTC means "node cleared it", not
+                # "unknown", and must NOT be replaced by a local estimate.
+                'ttcValid': bool(obj_msg.ttcValid),
             })
 
             if obj_msg.measured and self._active_costmap is not None:

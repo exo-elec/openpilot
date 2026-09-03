@@ -59,7 +59,9 @@ def encode_datagram(corner_id: int, seq: int, capture_time_us: int,
             int(round(o['snrDb'] * 10)),
             int(round(o['existenceProb'])),
             flags,
-            0,  # reserved
+            o.get('ttcMs', 0),  # ttc_ms; 0 = none/not computed, which is also
+                                # what a pre-TTC node zero-fills into this u16
+                                # (it used to be `reserved`)
         )
     return data
 
@@ -87,6 +89,29 @@ class TestDecodeObjectDatagram:
         assert obj['existenceProb'] == 95.0
         assert obj['measured'] is True
         assert obj['isStatic'] is False
+
+    def test_round_trip_ttc(self):
+        """TTC survives the round trip in seconds."""
+        objs = [{
+            'trackId': 5, 'rangM': 10.0, 'vRel': -5.0, 'azimuthDeg': 0.0,
+            'snrDb': 20.0, 'existenceProb': 90.0, 'measured': True,
+            'isStatic': False, 'ttcMs': 2000,
+        }]
+        frame = decode_object_datagram(encode_datagram(0, 1, 1, objs))
+        assert frame['objects'][0]['ttcS'] == 2.0
+
+    def test_round_trip_ttc_none_is_nan(self):
+        """A node reporting no closing trajectory (or a pre-TTC node, which
+        zero-fills the old reserved u16) must decode as NaN — never 0.0 s,
+        which would read as an imminent collision."""
+        import math
+        objs = [{
+            'trackId': 5, 'rangM': 10.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
+            'snrDb': 20.0, 'existenceProb': 90.0, 'measured': True,
+            'isStatic': False,  # no ttcMs -> encoder writes 0
+        }]
+        frame = decode_object_datagram(encode_datagram(0, 1, 1, objs))
+        assert math.isnan(frame['objects'][0]['ttcS'])
 
     def test_round_trip_max_objects(self):
         objs = [{

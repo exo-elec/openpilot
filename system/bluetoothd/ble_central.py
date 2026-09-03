@@ -31,8 +31,24 @@ Each notification carries ONE binary datagram, little-endian throughout:
         i16 snr_db_x10       snr * 10
         u8  existence_prob   0..100 (percent)
         u8  flags            bit0=measured (fresh detection, not coasted),
-                             bit1=is_static (stationary clutter)
-        u16 reserved         must be zero (record is 16 bytes: 4+2+2+2+2+1+1+2)
+                             bit1=is_static (stationary clutter),
+                             bit2=ttc_valid (sender computes ttc_ms, so it is
+                             authoritative INCLUDING 0 — see below)
+        u16 ttc_ms           node-computed time-to-collision, ms. 0 = no closing
+                             trajectory, 65535 = saturated (~65.5 s). Took over
+                             the u16 that was `reserved`, so the record is still
+                             16 bytes (4+2+2+2+2+1+1+2).
+                             The NODE computes this because we cannot: the fields
+                             above are polar position plus RADIAL Doppler, and
+                             radial rate cannot separate an object converging on
+                             us from one crossing harmlessly past. That needs the
+                             Cartesian [vx,vy] the node's Kalman tracker holds
+                             and does not transmit.
+                             ttc_valid is what makes 0 actionable: set, 0 means
+                             "node evaluated it, not closing" and we must NOT
+                             substitute our own range/rate estimate (that is the
+                             over-alarming estimate this field replaces); clear,
+                             the sender predates TTC and we keep our estimate.
 
 Max 12 objects per datagram → 8 + 12*16 = 200 bytes, fitting a 244-byte
 BLE 5 ATT MTU with margin. Fixed-point conventions (cm, deg×10, x100
@@ -713,6 +729,15 @@ class BLECentral:
             objects[i].dynProp = 0 if obj['isStatic'] else 1
             objects[i].lengthM = 0.0            # unknown — not carried on the datagram
             objects[i].widthM = 0.0
+            # Node-computed TTC (the node is the only side that can — see the
+            # ttcS comment in custom.capnp). NaN when the node reports no
+            # closing trajectory, and also when it predates the field: it
+            # zero-fills what was a reserved u16 and the hal decoder maps that
+            # zero to NaN rather than to 0.0 s, which would read as an imminent
+            # collision on every legacy frame. .get() additionally tolerates an
+            # older hal decoder that does not emit the key at all.
+            objects[i].ttcS = obj.get('ttcS', math.nan)
+            objects[i].ttcValid = bool(obj.get('ttcValid', False))
 
     def _publish(self) -> bool:
         """GLib timeout: publish merged radar2d at PUBLISH_HZ from latest frames."""

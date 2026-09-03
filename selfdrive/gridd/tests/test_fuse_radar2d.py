@@ -32,6 +32,11 @@ def _radar2d_msg(returns: list[dict] | None = None, objects: list[dict] | None =
         obj_out[i].dynProp = o.get('dynProp', 0)
         obj_out[i].lengthM = o.get('lengthM', 0.0)
         obj_out[i].widthM = o.get('widthM', 0.0)
+        # Unset leaves capnp's Float32 default of 0.0 (NOT NaN) — which is why
+        # radar_zones.corner_ttc_s() treats <=0 as "unavailable" as well as
+        # NaN. ble_central sets NaN explicitly; both must mean the same thing.
+        obj_out[i].ttcS = o.get('ttcS', 0.0)
+        obj_out[i].ttcValid = o.get('ttcValid', False)
     return msg.radar2d
 
 
@@ -87,6 +92,29 @@ class TestFuseRadar2DObjects:
         d, y, radius, _ = host._active_costmap.calls[0]
         assert abs(d - (1.8 + sqrt2)) < 1e-6
         assert abs(y - (0.8 + sqrt2)) < 1e-6
+
+    def test_node_ttc_is_carried_into_the_fused_object(self):
+        """The node's trajectory TTC must survive fusion — radar_zones prefers
+        it over its own dRel/vRel estimate, which cannot tell a converging
+        object from one crossing past."""
+        host = _FuseHost()
+        msg = _radar2d_msg(objects=[{
+            'corner': 0, 'rangM': 5.0, 'azimuthDeg': 0.0, 'vRel': -4.0,
+            'ttcS': 1.25,
+        }])
+        objects = host._fuse_radar2d([], msg)
+        assert objects[0]['ttcS'] == 1.25
+
+    def test_unset_ttc_arrives_as_capnp_default_not_a_real_value(self):
+        """An unset ttcS is capnp's 0.0 default, not a 0 s collision. It is
+        carried verbatim; radar_zones.corner_ttc_s() is what maps <=0 (and
+        NaN) back to "unavailable"."""
+        host = _FuseHost()
+        msg = _radar2d_msg(objects=[{
+            'corner': 0, 'rangM': 5.0, 'azimuthDeg': 0.0, 'vRel': -4.0,
+        }])
+        objects = host._fuse_radar2d([], msg)
+        assert objects[0]['ttcS'] == 0.0
 
     def test_object_radius_from_shape_when_sane(self):
         host = _FuseHost()
