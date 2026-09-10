@@ -1,6 +1,7 @@
 #pragma once
 
-// OverlayCameraWidget — Picture-in-Picture camera overlay for Qt onroad UI.
+// OverlayCameraWidget — camera overlay for the Qt onroad UI. Shown full
+// screen: side cameras on a single blinker, rear in reverse.
 // Supports both NV12 (rear camera) and BGR (side cameras) VisionIPC streams.
 // Renders via QPainter (NOT OpenGL) so it can be composited on top of
 // AnnotatedCameraWidget without GL context conflicts.
@@ -30,9 +31,15 @@ public:
   void start();
   void stop();
 
+  // Which screen edge this camera looks out of. A bar blinks on that edge
+  // while the overlay is up, so a full-screen image is never ambiguous
+  // about which camera the driver is looking through.
+  enum class SourceEdge { None, Left, Right, Bottom };
+
   void setCornerRadius(int radius);
   void setBorderColor(const QColor &color);
   void setBorderWidth(int width);
+  void setSourceEdge(SourceEdge edge);
 
 protected:
   void paintEvent(QPaintEvent *event) override;
@@ -40,6 +47,7 @@ protected:
 private:
   void vipcThread();
   void updateFrame(VisionBuf *buf);
+  void drawSourceEdge(QPainter &p);
 
   std::string server_name_;
   VisionStreamType stream_type_;
@@ -55,4 +63,5 @@ private:
   int corner_radius_ = 8;
   QColor border_color_ = QColor(255, 255, 255, 200);
   int border_width_ = 2;
+  SourceEdge source_edge_ = SourceEdge::None;
 };

@@ -29,36 +29,9 @@ const QColor WARNING_COLOR(255, 60, 60);
 
 }  // namespace
 
-BlindSpotIndicator::BlindSpotIndicator(QWidget *parent) : QWidget(parent) {
-  // Covers the camera feed, so it must never take input -- the driving
-  // screen's own tap handling has to keep reaching what's underneath (see
-  // onroad_home.cc).
-  setAttribute(Qt::WA_TransparentForMouseEvents);
-  setAttribute(Qt::WA_NoSystemBackground);
-  setAttribute(Qt::WA_TranslucentBackground);
-}
-
-void BlindSpotIndicator::updateState(const UIState &s) {
+BlindSpotSeverity getBlindSpotSeverity(const UIState &s) {
   const SubMaster &sm = *(s.sm);
 
-  enabled = Params().getBool("EOPBlindSpotIndicator");
-  if (!enabled) {
-    left_severity = right_severity = 0;
-    update();
-    return;
-  }
-
-  // Fuse controlsState + carState. controlsState carries a real Int8
-  // severity; carState's leftBlindspot/rightBlindspot are plain bools with
-  // no severity of their own, so fusing them in can only raise severity to
-  // at least "caution", never suppress a real "warning".
-  //
-  // Read each source into a local first, defaulting to 0 when that source
-  // isn't valid right now, rather than assigning conditionally into
-  // left_severity/right_severity -- the latter would let a stale severity-2
-  // value survive indefinitely (std::max only ever raises) if controlsState
-  // alone went stale while carState stayed valid, leaving a phantom warning
-  // on screen with no way to clear itself.
   int ctrl_left = 0, ctrl_right = 0;
   if (sm.valid("controlsState")) {
     const auto &ctrl = sm["controlsState"].getControlsState();
@@ -71,8 +44,37 @@ void BlindSpotIndicator::updateState(const UIState &s) {
     car_left = cs.getLeftBlindspot() ? 1 : 0;
     car_right = cs.getRightBlindspot() ? 1 : 0;
   }
-  left_severity = std::max(ctrl_left, car_left);
-  right_severity = std::max(ctrl_right, car_right);
+
+  BlindSpotSeverity out;
+  out.left = std::max(ctrl_left, car_left);
+  out.right = std::max(ctrl_right, car_right);
+  return out;
+}
+
+QColor blindSpotColor(int severity) {
+  return severity >= 2 ? WARNING_COLOR : CAUTION_COLOR;
+}
+
+BlindSpotIndicator::BlindSpotIndicator(QWidget *parent) : QWidget(parent) {
+  // Covers the camera feed, so it must never take input -- the driving
+  // screen's own tap handling has to keep reaching what's underneath (see
+  // onroad_home.cc).
+  setAttribute(Qt::WA_TransparentForMouseEvents);
+  setAttribute(Qt::WA_NoSystemBackground);
+  setAttribute(Qt::WA_TranslucentBackground);
+}
+
+void BlindSpotIndicator::updateState(const UIState &s) {
+  enabled = Params().getBool("EOPBlindSpotIndicator");
+  if (!enabled) {
+    left_severity = right_severity = 0;
+    update();
+    return;
+  }
+
+  const BlindSpotSeverity sev = getBlindSpotSeverity(s);
+  left_severity = sev.left;
+  right_severity = sev.right;
 
   pulse_frame = (pulse_frame + 1) % PULSE_PERIOD_FRAMES;
 
@@ -92,11 +94,10 @@ void BlindSpotIndicator::paintEvent(QPaintEvent *event) {
 }
 
 void BlindSpotIndicator::drawEdge(QPainter &p, bool left, int severity) {
-  QColor color = CAUTION_COLOR;
+  QColor color = blindSpotColor(severity);
   int alpha = CAUTION_ALPHA;
 
   if (severity >= 2) {
-    color = WARNING_COLOR;
     // Raised cosine over the pulse period, so the warning breathes rather
     // than blinking. A hard on/off this far into peripheral vision reads as
     // a distraction; a smooth ramp still draws the eye without startling.

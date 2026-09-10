@@ -35,12 +35,34 @@ void OverlayCameraWidget::setCornerRadius(int radius) {
   corner_radius_ = radius;
 }
 
+namespace {
+// Half-period of the source-edge blink, ms. ~1.25 Hz, close to an
+// automotive turn-signal cadence so it reads as "this side" rather than as
+// an alert.
+constexpr int SOURCE_BLINK_MS = 400;
+// Thickness of the source-edge bar, px.
+constexpr int SOURCE_BAR_PX = 14;
+}  // namespace
+
+
 void OverlayCameraWidget::setBorderColor(const QColor &color) {
+  // Guarded so the per-frame calls from OnroadWindow::updateOverlayVisibility
+  // only invalidate on an actual change.
+  if (border_color_ == color) return;
   border_color_ = color;
+  update();
 }
 
 void OverlayCameraWidget::setBorderWidth(int width) {
+  if (border_width_ == width) return;
   border_width_ = width;
+  update();
+}
+
+void OverlayCameraWidget::setSourceEdge(SourceEdge edge) {
+  if (source_edge_ == edge) return;
+  source_edge_ = edge;
+  update();
 }
 
 void OverlayCameraWidget::vipcThread() {
@@ -149,4 +171,40 @@ void OverlayCameraWidget::paintEvent(QPaintEvent *event) {
                                  -border_width_ / 2, -border_width_ / 2),
                       corner_radius_, corner_radius_);
   }
+
+  drawSourceEdge(p);
+}
+
+void OverlayCameraWidget::drawSourceEdge(QPainter &p) {
+  if (source_edge_ == SourceEdge::None) return;
+
+  // Blink phase comes from the wall clock, not a frame counter: this widget
+  // repaints when VisionIPC delivers a frame, so a counter would tie the
+  // cadence to camera FPS and drift between the three overlays.
+  const auto now = std::chrono::steady_clock::now().time_since_epoch();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+  if ((ms % (SOURCE_BLINK_MS * 2)) >= SOURCE_BLINK_MS) return;
+
+  // Same colour as the border, so the bar carries two things at once: which
+  // camera this is, and (when the border has gone amber/red for a blind
+  // spot) that there is something in it.
+  QColor c = border_color_;
+  c.setAlpha(255);
+
+  const QRect r = rect();
+  QRect bar;
+  switch (source_edge_) {
+    case SourceEdge::Left:
+      bar = QRect(0, 0, SOURCE_BAR_PX, r.height());
+      break;
+    case SourceEdge::Right:
+      bar = QRect(r.width() - SOURCE_BAR_PX, 0, SOURCE_BAR_PX, r.height());
+      break;
+    case SourceEdge::Bottom:
+      bar = QRect(0, r.height() - SOURCE_BAR_PX, r.width(), SOURCE_BAR_PX);
+      break;
+    case SourceEdge::None:
+      return;
+  }
+  p.fillRect(bar, c);
 }

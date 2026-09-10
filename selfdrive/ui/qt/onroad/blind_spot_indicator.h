@@ -1,8 +1,33 @@
 #pragma once
 
+#include <QColor>
 #include <QWidget>
 
 #include "selfdrive/ui/ui.h"
+
+// Fused blind-spot severity, per side: 0 = clear, 1 = caution, 2 = warning.
+struct BlindSpotSeverity {
+  int left = 0;
+  int right = 0;
+};
+
+// controlsState carries a real Int8 severity; carState's leftBlindspot/
+// rightBlindspot are plain bools with no severity of their own, so fusing
+// them in can only raise severity to at least "caution", never suppress a
+// real "warning".
+//
+// Each source is read into a local defaulting to 0 when that source isn't
+// valid right now, rather than assigned conditionally -- the latter would
+// let a stale severity-2 survive indefinitely (std::max only ever raises)
+// if controlsState alone went stale while carState stayed valid, leaving a
+// phantom warning on screen with no way to clear itself.
+//
+// Shared so the edge bands and the side-camera PIP border (onroad_home.cc)
+// cannot disagree about whether a blind spot is occupied.
+BlindSpotSeverity getBlindSpotSeverity(const UIState &s);
+
+// Band and border colour for a severity. Callers override alpha as needed.
+QColor blindSpotColor(int severity);
 
 /**
  * BlindSpotIndicator - edge blind-spot warning

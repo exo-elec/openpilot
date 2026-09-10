@@ -28,7 +28,10 @@ private:
   QColor bg = bg_colors[STATUS_DISENGAGED];
   QHBoxLayout* split;
 
-  // Camera overlays (PIP)
+  // Full-screen camera overlays: a side camera on a single blinker, rear in
+  // reverse. All three are sized to the full rect, so their geometry depends
+  // only on the window size -- resizeEvent() is the only thing that needs to
+  // touch it.
   OverlayCameraWidget *rear_overlay_ = nullptr;
   OverlayCameraWidget *left_overlay_ = nullptr;
   OverlayCameraWidget *right_overlay_ = nullptr;

@@ -7,6 +7,15 @@
 
 #include "selfdrive/ui/qt/util.h"
 
+namespace {
+// Resting border for the side-camera PIPs. Replaced by the blind-spot
+// colour while that side is occupied -- see updateOverlayVisibility().
+const QColor SIDE_OVERLAY_BORDER(0, 200, 255, 220);
+constexpr int SIDE_OVERLAY_BORDER_PX = 3;
+constexpr int BLIND_SPOT_BORDER_PX = 12;
+}  // namespace
+
+
 OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   QVBoxLayout *main_layout  = new QVBoxLayout(this);
   main_layout->setMargin(UI_BORDER_SIZE);
@@ -88,6 +97,7 @@ void OnroadWindow::createOverlays() {
   // Rear camera overlay (NV12 from uvcd)
   rear_overlay_ = new OverlayCameraWidget("uvcd", VISION_STREAM_REAR, this);
   rear_overlay_->setBorderColor(QColor(255, 255, 255, 220));
+  rear_overlay_->setSourceEdge(OverlayCameraWidget::SourceEdge::Bottom);
   rear_overlay_->setBorderWidth(3);
   rear_overlay_->setCornerRadius(12);
   rear_overlay_->hide();
@@ -98,7 +108,8 @@ void OnroadWindow::createOverlays() {
 
   // Left side camera overlay (BGR from uvcd)
   left_overlay_ = new OverlayCameraWidget("uvcd", VISION_STREAM_SIDE_LEFT, this);
-  left_overlay_->setBorderColor(QColor(0, 200, 255, 220));
+  left_overlay_->setBorderColor(SIDE_OVERLAY_BORDER);
+  left_overlay_->setSourceEdge(OverlayCameraWidget::SourceEdge::Left);
   left_overlay_->setBorderWidth(3);
   left_overlay_->setCornerRadius(12);
   left_overlay_->hide();
@@ -106,7 +117,8 @@ void OnroadWindow::createOverlays() {
 
   // Right side camera overlay (BGR from uvcd)
   right_overlay_ = new OverlayCameraWidget("uvcd", VISION_STREAM_SIDE_RIGHT, this);
-  right_overlay_->setBorderColor(QColor(0, 200, 255, 220));
+  right_overlay_->setBorderColor(SIDE_OVERLAY_BORDER);
+  right_overlay_->setSourceEdge(OverlayCameraWidget::SourceEdge::Right);
   right_overlay_->setBorderWidth(3);
   right_overlay_->setCornerRadius(12);
   right_overlay_->hide();
@@ -123,15 +135,15 @@ void OnroadWindow::updateOverlayGeometry() {
   const int h = height();
   if (w <= 0 || h <= 0) return;
 
-  // Side overlays: 28% width, 62% height, upper portion (avoid rear strip)
-  const int side_w = static_cast<int>(w * 0.28);
-  const int side_h = static_cast<int>(h * 0.62);
-  left_overlay_->setGeometry(0, 0, side_w, side_h);
-  right_overlay_->setGeometry(w - side_w, 0, side_w, side_h);
-
-  // Rear overlay: full width, 35% height, bottom strip
-  const int rear_h = static_cast<int>(h * 0.35);
-  rear_overlay_->setGeometry(0, h - rear_h, w, rear_h);
+  // All three take the whole screen. When the driver signals, the side
+  // camera is the thing to look at -- the old 28% corner tile made them
+  // squint at the one image that mattered. Only one is ever up at a time
+  // (see updateOverlayVisibility): hazards show no camera at all, and
+  // reverse outranks a blinker.
+  const QRect full(0, 0, w, h);
+  left_overlay_->setGeometry(full);
+  right_overlay_->setGeometry(full);
+  rear_overlay_->setGeometry(full);
 }
 
 void OnroadWindow::updateOverlayVisibility(const UIState &s) {
@@ -143,6 +155,10 @@ void OnroadWindow::updateOverlayVisibility(const UIState &s) {
   bool left_blinker = cs.getLeftBlinker();
   bool right_blinker = cs.getRightBlinker();
 
+  // Both blinkers means hazards, not an intent to move sideways -- leave the
+  // road view alone. Only a single blinker opens a side camera.
+  bool hazards = left_blinker && right_blinker;
+
   // Rear overlay: visible in reverse gear
   bool show_rear = in_reverse;
   if (show_rear && !rear_overlay_->isVisible()) {
@@ -153,8 +169,9 @@ void OnroadWindow::updateOverlayVisibility(const UIState &s) {
     rear_overlay_->stop();
   }
 
-  // Left overlay: visible when left blinker active
-  bool show_left = left_blinker;
+  // Left overlay: single left blinker, and not while reversing -- the rear
+  // camera is the one that matters then.
+  bool show_left = left_blinker && !hazards && !in_reverse;
   if (show_left && !left_overlay_->isVisible()) {
     left_overlay_->show();
     left_overlay_->start();
@@ -163,8 +180,8 @@ void OnroadWindow::updateOverlayVisibility(const UIState &s) {
     left_overlay_->stop();
   }
 
-  // Right overlay: visible when right blinker active
-  bool show_right = right_blinker;
+  // Right overlay: single right blinker, same exclusions as left.
+  bool show_right = right_blinker && !hazards && !in_reverse;
   if (show_right && !right_overlay_->isVisible()) {
     right_overlay_->show();
     right_overlay_->start();
@@ -173,10 +190,28 @@ void OnroadWindow::updateOverlayVisibility(const UIState &s) {
     right_overlay_->stop();
   }
 
-  // Stack active overlays above alerts so they remain visible
-  if (show_rear) rear_overlay_->raise();
+  // Blind spot recolours the side overlay's border. BlindSpotIndicator's
+  // edge bands live inside nvg, and a full-screen side overlay covers nvg
+  // completely -- so exactly when the driver signals toward a car that is
+  // already alongside, the bands are hidden entirely. Putting the warning on
+  // the overlay's own border keeps it on the image being looked at, instead
+  // of leaving no signal at all at the worst possible moment. Severity comes
+  // from the same shared getBlindSpotSeverity(), so the bands and the border
+  // can never disagree.
+  const BlindSpotSeverity bs = getBlindSpotSeverity(s);
+  left_overlay_->setBorderColor(bs.left > 0 ? blindSpotColor(bs.left) : SIDE_OVERLAY_BORDER);
+  right_overlay_->setBorderColor(bs.right > 0 ? blindSpotColor(bs.right) : SIDE_OVERLAY_BORDER);
+  // Full screen turns a 3px frame into a thin line around a large image, so
+  // widen it when it is carrying a warning rather than just identifying the
+  // camera.
+  left_overlay_->setBorderWidth(bs.left > 0 ? BLIND_SPOT_BORDER_PX : SIDE_OVERLAY_BORDER_PX);
+  right_overlay_->setBorderWidth(bs.right > 0 ? BLIND_SPOT_BORDER_PX : SIDE_OVERLAY_BORDER_PX);
+
+  // Sides first, then rear, so reverse wins if both somehow apply; alerts
+  // stay above every camera -- a full-screen image must never bury one.
   if (show_left) left_overlay_->raise();
   if (show_right) right_overlay_->raise();
+  if (show_rear) rear_overlay_->raise();
   alerts->raise();
 }
 
