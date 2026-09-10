@@ -2,7 +2,7 @@
 
 #include <QVBoxLayout>
 #include <memory>
-#include "selfdrive/ui/qt/onroad/bev_widget.h"
+#include "selfdrive/ui/qt/onroad/blind_spot_indicator.h"
 #include "selfdrive/ui/qt/onroad/hud.h"
 #include "selfdrive/ui/qt/onroad/buttons.h"
 #include "selfdrive/ui/qt/onroad/model.h"
@@ -20,10 +20,10 @@ private:
   ExperimentalButton *experimental_btn;
   HudRenderer hud;
   ModelRenderer model;
-  // Small corner overlay floating over the camera view. Not in main_layout
-  // -- positioned manually by positionBevWidget() on every resize.
-  BEVWidget *bev_widget = nullptr;
-  void positionBevWidget();
+  // Edge blind-spot bands, drawn over the camera feed. Not in main_layout
+  // -- it covers the whole view rather than taking space in it, so it is
+  // sized manually on every resize.
+  BlindSpotIndicator *blind_spot = nullptr;
   std::unique_ptr<PubMaster> pm;
 
   int skip_frame_count = 0;

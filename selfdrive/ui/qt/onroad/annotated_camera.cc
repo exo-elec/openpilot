@@ -21,47 +21,35 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
   experimental_btn = new ExperimentalButton(this);
   main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
   
-  // BEV Widget (Bird's Eye View) -- a small corner overlay floating over the
-  // camera view.
-  bev_widget = new BEVWidget(this);
-  bev_widget->setParent(this);
-  // This corner-overlay placement is this call site's own choice -- size,
-  // position, and click-through are specific to floating over the camera
-  // view, not something BEVWidget assumes.
-  bev_widget->setFixedSize(130, 180);
-  bev_widget->setAttribute(Qt::WA_TransparentForMouseEvents);
-  // Position is set in resizeEvent(), not here: this widget has not been
-  // laid out yet at construction time, so width()/height() are still Qt's
-  // defaults rather than the real 1024x600 panel, and the overlay would be
-  // placed against those instead. It is not in main_layout (it floats over
-  // the camera rather than taking space in it), so nothing else would move
-  // it either.
-  positionBevWidget();
-}
-
-void AnnotatedCameraWidget::positionBevWidget() {
-  if (!bev_widget) return;
-  // Bottom-right, inset by the border main_layout reserves (UI_BORDER_SIZE)
-  // so the overlay sits inside the alert border ring rather than under it.
-  bev_widget->move(width() - bev_widget->width() - UI_BORDER_SIZE,
-                   height() - bev_widget->height() - UI_BORDER_SIZE);
+  // Blind-spot bands down the left and right edges of the camera view.
+  blind_spot = new BlindSpotIndicator(this);
+  // Below experimental_btn so a warning band never washes out a real
+  // control. It takes no input either way (WA_TransparentForMouseEvents),
+  // so this is purely about what stays legible.
+  blind_spot->lower();
+  // Geometry is set in resizeEvent(), not here: this widget has not been
+  // laid out yet at construction time, so rect() is still Qt's default
+  // rather than the real 1024x600 panel. It is not in main_layout, so
+  // nothing else would size it either.
 }
 
 void AnnotatedCameraWidget::resizeEvent(QResizeEvent *event) {
   CameraWidget::resizeEvent(event);
-  positionBevWidget();
+  if (blind_spot) {
+    blind_spot->setGeometry(rect());
+  }
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
-  // Update BEV widget -- visibility is this call site's decision (see
-  // BEVWidget::isShowing()): hide the corner overlay entirely when there's
-  // nothing valid to show, rather than drawing an empty grid over the
-  // camera feed.
-  if (bev_widget) {
-    bev_widget->updateState(s);
-    bev_widget->setVisible(bev_widget->isShowing());
+  // Blind-spot bands -- visibility is this call site's decision (see
+  // BlindSpotIndicator::isShowing()): hide it outright when neither side is
+  // flagged, rather than compositing a fully transparent overlay over every
+  // camera frame.
+  if (blind_spot) {
+    blind_spot->updateState(s);
+    blind_spot->setVisible(blind_spot->isShowing());
   }
 }
 

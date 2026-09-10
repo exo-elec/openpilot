@@ -92,7 +92,7 @@ void OnroadWindow::createOverlays() {
   rear_overlay_->setCornerRadius(12);
   rear_overlay_->hide();
   // Purely informational PIP, same as `alerts` below -- let clicks pass
-  // through to whatever's underneath (e.g. ExperimentalButton, bev_widget)
+  // through to whatever's underneath (e.g. ExperimentalButton)
   // instead of this overlay silently swallowing them while shown.
   rear_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
 

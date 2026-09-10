@@ -32,7 +32,7 @@ All 24 files are pure additions — no upstream behavior modified. Classificatio
 | `offroad/model_selector.cc/.h` | Driving-model selection UI |
 | `offroad/openblt_update_widget.cc/.h` | OpenBLT firmware update flow |
 | `offroad/safety_panel.cc/.h` | Safety-related settings panel |
-| `onroad/bev_widget.cc/.h` | Bird's-eye-view top-down widget (corner overlay and/or telemetry-panel page) |
+| `onroad/blind_spot_indicator.cc/.h` | Edge blind-spot bands over the camera view (replaced `bev_widget.cc/.h`, 2026-09-10) |
 | `widgets/assistant_card.cc/.h` | Voice-assistant status card |
 | `widgets/bluetooth.cc/.h` | Bluetooth pairing UI widgets |
 | `widgets/drive_stats.cc/.h` | Local (no-cloud) drive statistics widget, replaces comma Prime ad |

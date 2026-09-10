@@ -147,7 +147,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPAutoLaneChange", {PERSISTENT, BOOL, "0"}},
     {"EOPAutoTileEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPAutoTileWifiOnly", {PERSISTENT, BOOL, "1"}},
-    {"EOPBEVWidgetEnabled", {PERSISTENT, BOOL, "1"}},
+    {"EOPBlindSpotIndicator", {PERSISTENT, BOOL, "1"}},
     {"EOPBSDChimeEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPBSDEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPBSDMinSpeed", {PERSISTENT, FLOAT, "5.5"}},

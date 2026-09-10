@@ -771,13 +771,14 @@ void EopPanel::add_safety_toggles() {
       "", this);
   addItem(bsd_chime_toggle);
 
-  // BEV Widget toggle
-  auto bev_toggle = new ParamControl(
-      "EOPBEVWidgetEnabled",
-      tr("Bird's Eye View (BEV)"),
-      tr("Top-down view of vehicle and surrounding objects on the driving screen."),
+  // Blind-spot edge indicator toggle
+  auto blind_spot_toggle = new ParamControl(
+      "EOPBlindSpotIndicator",
+      tr("Blind Spot Edge Indicator"),
+      tr("Amber or red band down the side of the driving screen when a vehicle "
+         "is in the blind spot."),
       "", this);
-  addItem(bev_toggle);
+  addItem(blind_spot_toggle);
 
 }
 
