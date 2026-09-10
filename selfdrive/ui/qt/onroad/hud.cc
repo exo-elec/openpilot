@@ -4,6 +4,7 @@
 
 #include <QPainterPath>
 
+#include "selfdrive/ui/qt/onroad/blind_spot_indicator.h"
 #include "selfdrive/ui/qt/util.h"
 
 constexpr int SET_SPEED_NA = 255;
@@ -64,10 +65,14 @@ void HudRenderer::updateState(const UIState &s) {
   const auto &cs = car_state;
   left_blinker = cs.getLeftBlinker();
   right_blinker = cs.getRightBlinker();
-  // EOP: Fuse vehicle-native BSD with controlsState BSD (radar + Hailo camera)
-  const auto &ctrl = sm["controlsState"].getControlsState();
-  left_blindspot = cs.getLeftBlindspot() || ctrl.getLeftBlindSpot() > 0;
-  right_blindspot = cs.getRightBlindspot() || ctrl.getRightBlindSpot() > 0;
+  // EOP: vehicle-native BSD fused with controlsState BSD (radar + Hailo
+  // camera) by the shared getBlindSpotSeverity(), so this cannot disagree
+  // with the edge bands or the side-camera border. Collapsed to a bool
+  // because the HUD only draws presence, not severity. The shared helper
+  // also validity-checks controlsState, which this call site did not.
+  const BlindSpotSeverity bs = getBlindSpotSeverity(s);
+  left_blindspot = bs.left > 0;
+  right_blindspot = bs.right > 0;
   bsd_pulse += 0.08f;
   if (bsd_pulse > 1.0f) bsd_pulse = 0.0f;
 

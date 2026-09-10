@@ -1,5 +1,7 @@
 #include "selfdrive/ui/qt/onroad/model.h"
 
+#include "selfdrive/ui/qt/onroad/blind_spot_indicator.h"
+
 constexpr int CLIP_MARGIN = 500;
 constexpr float MIN_DRAW_DISTANCE = 10.0;
 constexpr float MAX_DRAW_DISTANCE = 100.0;
@@ -38,10 +40,15 @@ void ModelRenderer::draw(QPainter &painter, const QRect &surface_rect) {
     const auto &cs = sm["carState"].getCarState();
     left_blinker = cs.getLeftBlinker();
     right_blinker = cs.getRightBlinker();
-    // EOP: Fuse vehicle-native BSD with controlsState BSD (radar + Hailo camera)
-    const auto &ctrl = sm["controlsState"].getControlsState();
-    left_blindspot = cs.getLeftBlindspot() || ctrl.getLeftBlindSpot() > 0;
-    right_blindspot = cs.getRightBlindspot() || ctrl.getRightBlindSpot() > 0;
+    // EOP: vehicle-native BSD fused with controlsState BSD (radar + Hailo
+    // camera) by the shared getBlindSpotSeverity(), so this cannot disagree
+    // with the edge bands or the side-camera border. Collapsed to a bool
+    // because the path rendering only needs presence, not severity. The
+    // shared helper also validity-checks controlsState, which this call site
+    // did not.
+    const BlindSpotSeverity bs = getBlindSpotSeverity(*s);
+    left_blindspot = bs.left > 0;
+    right_blindspot = bs.right > 0;
   }
 
   update_model(model, lead_one);
