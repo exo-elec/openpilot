@@ -77,12 +77,12 @@ class PlaceholderCamera(QWidget):
 class OnroadView(QWidget):
   """Driving screen: camera, path, HUD and alerts inside a status border."""
 
-  def __init__(self, live_camera: bool = True, params=None, parent=None):
+  def __init__(self, live_camera: bool = True, store=None, parent=None):
     super().__init__(parent)
     self.setObjectName("onroadRoot")
     self.setAttribute(Qt.WA_OpaquePaintEvent, True)
 
-    self._params = params
+    self._store = store
     self._border = STATUS_COLORS[UIStatus.DISENGAGED]
 
     self.camera = create_camera_view(parent=self) if live_camera else PlaceholderCamera(self)
@@ -143,13 +143,10 @@ class OnroadView(QWidget):
       poll()
 
   def _refresh_pairing(self) -> None:
-    if self._params is None:
+    if self._store is None:
       return
     for key in PAIRING_KEYS:
-      raw = self._params.get(key)
-      if isinstance(raw, bytes):
-        raw = raw.decode(errors="replace")
-      self._pairing_state[key] = raw or ""
+      self._pairing_state[key] = self._store.get_text(key)
 
     pin = self._pairing_state["BluetoothPairingPin"]
     if self._pairing_state["BluetoothPairingActive"] == "1" and pin:

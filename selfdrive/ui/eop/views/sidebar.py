@@ -157,13 +157,13 @@ class Sidebar(QWidget):
   settings_clicked = Signal()
   home_clicked = Signal()
 
-  def __init__(self, params=None, parent=None):
+  def __init__(self, store=None, parent=None):
     super().__init__(parent)
     self.setObjectName("sidebar")
     self.setFixedWidth(SIDEBAR_W)
     self.setAttribute(Qt.WA_OpaquePaintEvent, True)
 
-    self._params = params
+    self._store = store
     self._onroad = False
     self._net_type = "none"
     self._net_strength = 0
@@ -199,13 +199,10 @@ class Sidebar(QWidget):
     self.update()
 
   def _refresh_ble(self) -> None:
-    if self._params is None:
+    if self._store is None:
       return
     for key in BLE_KEYS:
-      raw = self._params.get(key)
-      if isinstance(raw, bytes):
-        raw = raw.decode(errors="replace")
-      self._ble[key] = raw or ""
+      self._ble[key] = self._store.get_text(key)
 
   def showEvent(self, event):
     super().showEvent(event)

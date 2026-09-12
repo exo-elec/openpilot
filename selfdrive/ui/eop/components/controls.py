@@ -28,6 +28,15 @@ from openpilot.selfdrive.ui.eop.settings.descriptor import Control, Kind
 WRITE_DEBOUNCE_MS = 400
 
 
+# Params whose value is a serialised cereal Event, mapped to the union field
+# the value actually lives in.
+_LOG_FIELDS = {
+  "CalibrationParams": "liveCalibration",
+  "LiveDelay": "liveDelay",
+  "LiveTorqueParameters": "liveTorqueParameters",
+}
+
+
 class ParamStore:
   """Minimal interface the controls need. Wraps openpilot's Params."""
 
@@ -55,6 +64,73 @@ class ParamStore:
   def put_number(self, key: str, value: float) -> None:
     text = str(int(value)) if float(value).is_integer() else str(value)
     self._p.put(key, text)
+
+  # ---- text and removal -------------------------------------------------
+
+  def get_text(self, key: str) -> str:
+    """A string param, decoded. Params returns bytes for some keys and str
+    for others depending on how they were written, and a caller that gets the
+    wrong one silently renders b'abc' on screen -- the same mixed bytes/str
+    defect already fixed once in system/hardware/rk_device_id.py."""
+    raw = self._p.get(key)
+    if raw is None:
+      return ""
+    if isinstance(raw, bytes):
+      return raw.decode(errors="replace")
+    return str(raw)
+
+  def put_text(self, key: str, value: str) -> None:
+    self._p.put(key, value)
+
+  def remove(self, key: str) -> None:
+    self._p.remove(key)
+
+  # ---- capnp-valued params ----------------------------------------------
+
+  def _log_param(self, key: str, field: str):
+    """Deserialise a param whose value is a serialised cereal Event.
+
+    Several calibration params are stored this way. A corrupt or half-written
+    blob must not take the settings screen down, so a failure reads as
+    "no value yet" -- which is also what it means the first time the car is
+    driven.
+    """
+    raw = self._p.get(key)
+    if not raw:
+      return None
+    if isinstance(raw, str):
+      raw = raw.encode()
+    try:
+      from cereal import log
+      with log.Event.from_bytes(raw) as event:
+        return getattr(event, field)
+    except Exception:
+      return None
+
+  def get_calibration_angles(self) -> tuple[float, float] | None:
+    """(pitch, yaw) in degrees, or None while uncalibrated."""
+    import math
+    cal = self._log_param("CalibrationParams", "liveCalibration")
+    if cal is None or str(getattr(cal, "calStatus", "")) == "uncalibrated":
+      return None
+    rpy = list(getattr(cal, "rpyCalib", []) or [])
+    if len(rpy) < 3:
+      return None
+    return math.degrees(rpy[1]), math.degrees(rpy[2])
+
+  def get_calibration_percent(self, key: str) -> int | None:
+    value = self._log_param(key, _LOG_FIELDS.get(key, key))
+    if value is None:
+      return None
+    return int(getattr(value, "calPerc", 0))
+
+  def get_torque_percent(self) -> int | None:
+    """None for a car that does not use learned torque params, so the row
+    does not claim a calibration that will never run is 0% done."""
+    torque = self._log_param("LiveTorqueParameters", "liveTorqueParameters")
+    if torque is None or not getattr(torque, "useParams", False):
+      return None
+    return int(getattr(torque, "calPerc", 0))
 
 
 class ControlRow(QWidget):

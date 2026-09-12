@@ -103,7 +103,7 @@ procs = [
   PythonProcess("soundd", "selfdrive.soundd.soundd", only_onroad),
 
   # UI
-  NativeProcess("ui", "selfdrive/ui", ["./ui"], always_run, watchdog_max_dt=5),
+  PythonProcess("ui", "selfdrive.ui.eop.main", always_run, watchdog_max_dt=5),
 
   # Map and Navigation
   PythonProcess("mapd", "selfdrive.mapd.mapd", always_run),

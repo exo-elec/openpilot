@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local development gate for dev/EOP10.
+# Local development gate for dev/01M.
 # Runs the subset of CI checks that can pass on a dev PC without the closed
 # `hal` package. Use `./test.sh --full` to run the upstream lint gate as well.
 set -e
@@ -51,6 +51,7 @@ ruff check \
   selfdrive/locationd/locationd.py \
   selfdrive/modeld/modeld.py \
   selfdrive/selfdrived/selfdrived.py \
+  selfdrive/ui/eop \
   "$@"
 
 echo "==> Running shebang format check"
@@ -63,6 +64,17 @@ if [ "$FULL" -eq 1 ]; then
   echo "==> Running full upstream lint gate"
   bash scripts/lint/lint.sh "$@"
 fi
+
+# The UI suite needs neither msgq nor a display, so it runs even under
+# --no-pytest: it is the one part of the gate that covers the new Python UI,
+# and skipping it on a bare runner would leave the largest Python addition in
+# the tree untested. Its own pytest.ini keeps it independent of the repo's
+# xdist/asyncio plugins, and --noconftest keeps it off the compiled Params.
+echo "==> Running EOP UI tests"
+QT_QPA_PLATFORM=offscreen python3 -m pytest \
+  selfdrive/ui/eop/tests \
+  -c selfdrive/ui/eop/tests/pytest.ini \
+  --noconftest
 
 if [ "$NO_PYTEST" -eq 1 ]; then
   echo "==> Skipping host-side hardware tests (--no-pytest)"
