@@ -71,7 +71,6 @@ The 02M equivalent (`setup_rk3576.sh`) belongs with `dev/02M`.
 | `system/bluetoothd/ble_gatt.py` | BLE GATT server (Nordic UART, iOS + Android) |
 | `system/bluetoothd/spp.py` | Classic SPP server (RFCOMM, OBD scanners) |
 | `selfdrive/adaptd/adaptd.py` | Adaptive driving daemon (renamed from elm327d) |
-| `selfdrive/ui/eop/` | The UI — Qt Widgets in Python (PyQt5). Replaced the C++/Qt UI 2026-09-12 |
 
 ## Branch model
 
@@ -155,14 +154,61 @@ After rebasing, re-run `./test.sh` on each branch.
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
 | `radar3d.py` (camera+radar fusion) | `radard.py` | Renamed 2026-08-16 — matches upstream openpilot's name. `radar3d.py` is now the long-range UART radar *producer* daemon, not the fusion daemon; see New Features below |
 
+## Branch model
+
+`dev/EOP10` is the **foundation**. `dev/01M` and `dev/02M` are UI branches on
+top of it, and they take foundation improvements by **rebasing**, not by
+cherry-picking:
+
+```
+dev/EOP10 ──┬── dev/01M   classic openpilot UI, PyQt5, 1024x600 (RK3588)
+            └── dev/02M   nagasware-style UI, PyQt5, 1600x600 (RK3576)
+```
+
+- **`dev/EOP10` keeps the old C++/Qt UI.** That is deliberate: it is the
+  reference the Python UIs were ported from, and removing it there would
+  strand the comparison.
+- **A fix that is not about the UI belongs on `dev/EOP10`**, so both branches
+  inherit it. Daemons, cereal, params_keys.h, systemd units, SConstruct
+  outside the Qt block. If you fix it on 01M or 02M instead, the other branch
+  keeps the bug.
+- **A fix that is about the UI belongs on the branch it applies to.** Inside
+  `selfdrive/ui/eop/`, `views/` is the intended divergence; everything else
+  there (`qt.py`, `state.py`, `components/`, `views/panels/`) is kept
+  **byte-identical** across 01M and 02M so it cherry-picks between them
+  unchanged. Check that before editing one of those files.
+
+### Rebasing onto an improved EOP10
+
+```bash
+git fetch origin dev/EOP10
+git checkout dev/01M && git rebase origin/dev/EOP10
+git checkout dev/02M && git rebase origin/dev/EOP10
+```
+
+Both branches then need a force-with-lease push, since a rebase rewrites the
+commits.
+
+**Expect modify/delete conflicts.** The UI branches delete the whole C++ UI
+tree, and 02M additionally deletes `tools/systemd/openpilot-rk3588.service`.
+Any EOP10 commit touching a deleted file conflicts on every rebase. The
+resolution is almost always "the UI branch's deletion wins" — `git rm` the
+file and continue — but read the incoming change first: if it is a *backend*
+fix that happens to live in a file the UI branch deleted, it needs porting to
+the Python equivalent rather than dropping.
+
+After rebasing, re-run `./test.sh` on each branch and confirm the shared UI
+files are still identical between them.
+
 ## UI
 
 The C++/Qt UI is gone. `selfdrive/ui/eop/` is a Qt Widgets UI written in
 Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
 
 - **Design is unchanged on 01M.** Sidebar, offroad home, the left-nav settings
-  window and the onroad HUD all reproduce the C++ layout they replace. `dev/02M`
-  is where the new design lives (top-tab settings, swipeable side panels).
+  window and the onroad HUD all reproduce the C++ layout they replace.
+  `dev/02M` is where the new design lives (top-tab settings, swipeable side
+  panels, 1600x600 chrome).
 - **The split between the branches is only `views/`.** `qt.py`, `state.py`,
   `components/` and `views/panels/` are byte-identical on `dev/01M` and
   `dev/02M`, so a fix to any of them cherry-picks between branches unchanged.
@@ -324,11 +370,8 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 ---
 
-**Last updated**: 2026-09-12  
+**Last updated**: 2026-08-16  
 **Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
-
-`dev/EOP10` is kept as-is: it is the archive of the original C++/Qt UI, and
-nothing should be pushed to it.
 
 ---
 
