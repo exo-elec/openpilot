@@ -7,6 +7,7 @@ the contract and readable when it fails.
 
 import dataclasses
 import os
+import time
 
 import pytest
 
@@ -16,6 +17,8 @@ from openpilot.selfdrive.ui.eop.components.blind_spot import CAUTION, CLEAR, WAR
 from openpilot.selfdrive.ui.eop.qt import QApplication
 from openpilot.selfdrive.ui.eop.state import (
   PARAM_POLL_DIVISOR,
+  SELFDRIVE_GRACE_FRAMES,
+  SELFDRIVE_TIMEOUT_S,
   SET_SPEED_NA,
   Snapshot,
   UIState,
@@ -30,13 +33,27 @@ class Msg:
 
 
 class StubSM:
+  """Shaped like the real Python SubMaster: updated/recv_frame/recv_time are
+  dicts, not methods. That difference is exactly what _sm_lookup exists for,
+  so the double has to have it or the tests would not exercise it."""
+
   def __init__(self, **msgs):
     self._msgs = msgs
     self._valid = dict.fromkeys(msgs, True)
     self.update_calls = 0
+    self.frame = 0
+    self.updated = dict.fromkeys(msgs, True)
+    self.recv_frame = dict.fromkeys(msgs, 1)
+    self.recv_time = {k: time.monotonic() for k in msgs}
 
   def update(self, _timeout=0):
     self.update_calls += 1
+    self.frame += 1
+
+  def go_quiet(self, name, seconds):
+    """Stop marking `name` as updated and age its last receipt."""
+    self.updated[name] = False
+    self.recv_time[name] = time.monotonic() - seconds
 
   def valid(self, name):
     return self._valid.get(name, False)
@@ -338,6 +355,97 @@ class TestUIState:
     assert Snapshot(v_ego=10.0, is_metric=True).speed_display == pytest.approx(36.0)
     assert Snapshot(v_ego=10.0, is_metric=False).speed_display == pytest.approx(22.36936)
     assert Snapshot(is_metric=False).speed_unit == "mph"
+
+  # ---- selfdrived-timeout alerts (alerts.cc getAlert) --------------------
+
+  def _onroad_for(self, st, sm, frames):
+    """Drive the state machine far enough past the start grace period that
+    the timeout checks are armed."""
+    for _ in range(frames):
+      st.update()
+
+  def test_no_timeout_alert_during_the_startup_grace_period(self, app):
+    # selfdrived legitimately takes a moment to come up after ignition. The
+    # UI must not call that a fault.
+    sm = StubSM(deviceState=device(started=True))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, 3)
+    assert st.snapshot.alert_size == "none"
+
+  def test_selfdrived_never_seen_says_waiting_to_start(self, app):
+    sm = StubSM(deviceState=device(started=True))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    assert st.snapshot.alert_text1 == "openpilot Unavailable"
+    assert st.snapshot.alert_text2 == "Waiting to start"
+    assert st.snapshot.alert_size == "mid"
+
+  def test_engaged_and_unresponsive_demands_the_driver_take_over(self, app):
+    # The one alert that outranks everything: openpilot is engaged and the
+    # process doing the driving has stopped reporting.
+    sm = StubSM(deviceState=device(started=True),
+                selfdriveState=selfdrive(enabled=True, state="enabled"))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    assert st.snapshot.alert_size == "none"    # healthy so far
+
+    sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S + 1)
+    st.update()
+    assert st.snapshot.alert_text1 == "TAKE CONTROL IMMEDIATELY"
+    assert st.snapshot.alert_severity == "critical"
+    assert st.snapshot.alert_size == "full"
+
+  def test_disengaged_and_unresponsive_asks_for_a_reboot(self, app):
+    sm = StubSM(deviceState=device(started=True),
+                selfdriveState=selfdrive(enabled=False))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S + 1)
+    st.update()
+    assert st.snapshot.alert_text1 == "System Unresponsive"
+    assert st.snapshot.alert_text2 == "Reboot Device"
+
+  def test_a_brief_gap_is_not_a_timeout(self, app):
+    sm = StubSM(deviceState=device(started=True),
+                selfdriveState=selfdrive(enabled=True, state="enabled"))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S - 1)
+    st.update()
+    assert st.snapshot.alert_size == "none"
+
+  def test_offroad_never_raises_a_timeout_alert(self, app):
+    sm = StubSM(deviceState=device(started=False),
+                selfdriveState=selfdrive(enabled=False))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S + 60)
+    st.update()
+    assert st.snapshot.alert_size == "none"
+
+  def test_a_normal_alert_carries_its_size_through(self, app):
+    sm = onroad_sm(selfdriveState=selfdrive(
+      enabled=True, state="enabled", alertText1="Speed too low",
+      alertText2="", alertStatus="userPrompt", alertSize="small"))
+    snap = ui_state(sm, EOPIgnitionOn=True)._read()
+    assert snap.alert_severity == "warning" and snap.alert_size == "small"
+
+  def test_submaster_tables_may_be_dicts_or_methods(self, app):
+    # The real Python SubMaster uses dicts; the C++ this was ported from uses
+    # methods. Reading one as the other is a TypeError that would only fire
+    # the first time selfdrived went quiet, which is the worst possible time.
+    class MethodSM(StubSM):
+      def __init__(self, **msgs):
+        super().__init__(**msgs)
+        tables = self.updated, self.recv_frame, self.recv_time
+        self.updated = lambda n, t=tables[0]: t.get(n, False)
+        self.recv_frame = lambda n, t=tables[1]: t.get(n, 0)
+        self.recv_time = lambda n, t=tables[2]: t.get(n, 0.0)
+
+    sm = MethodSM(deviceState=device(started=True))
+    st = ui_state(sm, EOPIgnitionOn=True)
+    self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
+    assert st.snapshot.alert_text1 == "openpilot Unavailable"
 
   def test_snapshot_is_immutable(self, app):
     st = ui_state(StubSM(carState=car()))

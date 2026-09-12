@@ -68,14 +68,10 @@ def severity_color(severity: int) -> str:
 class BlindSpotBands(QWidget):
   """Left and right edge bands over the road view.
 
-  Warning severity blinks
-  caution is solid. On dev/01M the warning level
-  breathes on a raised cosine instead, which is nicer, but it needs a
-  per-frame alpha this widget does not drive -- BorderOverlay's shared clock
-  is a toggle. Blink is the honest equivalent here
-  upgrading it means giving
-  BorderOverlay an animated alpha, which is worth doing only if it looks
-  worse on real hardware than it reads on paper.
+  Caution is solid; warning breathes on a raised cosine. The breathe is the
+  behaviour 01M's C++ indicator has always had, on the reasoning that a hard
+  on/off this deep into peripheral vision reads as a distraction while a
+  smooth ramp still draws the eye -- see BorderOverlay.Mode.BREATHE.
   """
 
   def __init__(self, parent: QWidget | None = None):
@@ -93,7 +89,7 @@ class BlindSpotBands(QWidget):
       band.set_enabled(level > CLEAR)
       if level > CLEAR:
         band.set_color(severity_color(level))
-        band.set_mode(Mode.BLINK if level >= WARNING else Mode.SOLID)
+        band.set_mode(Mode.BREATHE if level >= WARNING else Mode.SOLID)
 
   def _layout_bands(self) -> None:
     w = max(1, int(self.width() * _BAND_FRACTION))

@@ -21,7 +21,17 @@ from openpilot.selfdrive.ui.eop.components.blind_spot import (
   fuse_blind_spot,
   severity_color,
 )
-from openpilot.selfdrive.ui.eop.components.border_overlay import Mode
+from openpilot.selfdrive.ui.eop.components.border_overlay import (
+  _BREATHE_FLOOR as BREATHE_FLOOR,
+)
+from openpilot.selfdrive.ui.eop.components.border_overlay import (
+  _BREATHE_PERIOD_MS as BREATHE_PERIOD_MS,
+)
+from openpilot.selfdrive.ui.eop.components.border_overlay import (
+  BorderOverlay,
+  Mode,
+  Side,
+)
 
 
 @pytest.fixture(scope="module")
@@ -94,11 +104,14 @@ class TestBands:
     b.set_severity(BlindSpotSeverity(left=CAUTION))
     assert b._left.is_enabled() and not b._right.is_enabled()
 
-  def test_warning_blinks_caution_is_solid(self, app):
+  def test_warning_breathes_caution_is_solid(self, app):
+    # 01M's C++ indicator ramps alpha on a raised cosine rather than blinking,
+    # on the reasoning that a hard on/off this deep into peripheral vision
+    # reads as a distraction. Reproducing 01M's design means reproducing that.
     b = self._bands(app)
     b.set_severity(BlindSpotSeverity(left=CAUTION, right=WARNING))
     assert b._left.mode is Mode.SOLID
-    assert b._right.mode is Mode.BLINK
+    assert b._right.mode is Mode.BREATHE
 
   def test_bands_hug_the_edges_at_1600x600(self, app):
     b = self._bands(app, 1600, 600)
@@ -121,3 +134,72 @@ class TestBands:
     b.set_severity(BlindSpotSeverity(left=WARNING, right=WARNING))
     b.set_severity(BlindSpotSeverity())
     assert not b._left.is_enabled() and not b._right.is_enabled()
+
+
+class TestBreathe:
+  """The raised-cosine ramp itself, on BorderOverlay rather than through the
+  bands, so a failure points at the arithmetic and not the widget."""
+
+  def _band(self, app, mode):
+    b = BorderOverlay(Side.LEFT, "warning", mode)
+    b.set_enabled(True)
+    return b
+
+  def test_solid_is_always_fully_painted(self, app):
+    b = self._band(app, Mode.SOLID)
+    for phase in (0, 300, 600, 1199):
+      BorderOverlay._phase_ms = phase
+      assert b._alpha_scale() == 1.0
+
+  def test_breathe_never_goes_dark(self, app):
+    # A band that blinks off entirely stops reading as one continuous signal.
+    b = self._band(app, Mode.BREATHE)
+    for phase in range(0, 2400, 25):
+      BorderOverlay._phase_ms = phase
+      assert b._alpha_scale() > 0.0
+
+  def test_breathe_spans_the_intended_range(self, app):
+    b = self._band(app, Mode.BREATHE)
+    seen = []
+    for phase in range(0, 1200, 10):
+      BorderOverlay._phase_ms = phase
+      seen.append(b._alpha_scale())
+    assert min(seen) == pytest.approx(BREATHE_FLOOR, abs=1e-3)
+    assert max(seen) == pytest.approx(1.0, abs=1e-3)
+
+  def test_breathe_peaks_mid_cycle(self, app):
+    b = self._band(app, Mode.BREATHE)
+    BorderOverlay._phase_ms = 0
+    at_start = b._alpha_scale()
+    BorderOverlay._phase_ms = BREATHE_PERIOD_MS // 2
+    at_peak = b._alpha_scale()
+    assert at_peak > at_start
+
+  def test_blink_still_toggles_fully_off(self, app):
+    b = self._band(app, Mode.BLINK)
+    BorderOverlay._phase_ms = 0
+    assert b._alpha_scale() == 1.0
+    BorderOverlay._phase_ms = b._blink_interval_ms
+    assert b._alpha_scale() == 0.0
+
+  def test_the_clock_stops_when_nothing_is_animating(self, app):
+    # The clock is shared class state, so bands built by earlier tests in
+    # this module may still be animating. Quiet every live instance first --
+    # what is under test is that the tick stands the timer down once nothing
+    # needs it, not that this one band is the only one that ever existed.
+    for inst in BorderOverlay._live():
+      inst.set_enabled(False)
+
+    b = self._band(app, Mode.BREATHE)
+    assert BorderOverlay._timer is not None, "enabling a breathing band starts the clock"
+
+    b.set_enabled(False)
+    BorderOverlay._tick()          # the tick notices and stands itself down
+    assert BorderOverlay._timer is None
+
+  def test_the_clock_restarts_on_demand(self, app):
+    # Follows the test above, which leaves the clock stopped: enabling a band
+    # has to bring it back rather than leaving a permanently frozen band.
+    band = self._band(app, Mode.BREATHE)
+    assert BorderOverlay._timer is not None
+    band.set_enabled(False)

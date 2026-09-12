@@ -71,19 +71,50 @@ if not BINDING:
 Qt = QtCore.Qt
 Signal = _Signal
 Slot = _Slot
-QTimer = QtCore.QTimer
-QColor = QtGui.QColor
-QPainter = QtGui.QPainter
-QLinearGradient = QtGui.QLinearGradient
+
+# QtCore
 QObject = QtCore.QObject
-QWidget = QtWidgets.QWidget
+QTimer = QtCore.QTimer
+QPoint = QtCore.QPoint
+QPointF = QtCore.QPointF
+QRect = QtCore.QRect
+QRectF = QtCore.QRectF
+QSize = QtCore.QSize
+
+# QtGui
+QBrush = QtGui.QBrush
+QColor = QtGui.QColor
+QFont = QtGui.QFont
+QFontDatabase = QtGui.QFontDatabase
+QFontMetrics = QtGui.QFontMetrics
+QImage = QtGui.QImage
+QLinearGradient = QtGui.QLinearGradient
+QPainter = QtGui.QPainter
+QPainterPath = QtGui.QPainterPath
+QPen = QtGui.QPen
+QPixmap = QtGui.QPixmap
+QPolygonF = QtGui.QPolygonF
+QRadialGradient = QtGui.QRadialGradient
+
+# QtWidgets
 QApplication = QtWidgets.QApplication
+QWidget = QtWidgets.QWidget
 
 __all__ = [
-  "BINDING", "QtCore", "QtGui", "QtWidgets", "Qt", "Signal", "Slot", "QTimer",
-  "QColor", "QPainter", "QLinearGradient", "QObject", "QWidget", "QApplication",
-  "QOpenGLWidget", "run_app",
+  "BINDING", "QtCore", "QtGui", "QtWidgets", "Qt", "Signal", "Slot",
+  "QObject", "QTimer", "QPoint", "QPointF", "QRect", "QRectF", "QSize",
+  "QBrush", "QColor", "QFont", "QFontDatabase", "QFontMetrics", "QImage",
+  "QLinearGradient", "QPainter", "QPainterPath", "QPen", "QPixmap",
+  "QPolygonF", "QRadialGradient",
+  "QApplication", "QWidget", "QOpenGLWidget", "run_app", "text_width",
 ]
+
+
+def text_width(metrics, text: str) -> int:
+  """QFontMetrics.horizontalAdvance(), which is what both Qt5.11+ and Qt6
+  spell it. Wrapped so a future PySide2 on an older Qt5 has one place to fall
+  back to width() rather than a call site per HUD element."""
+  return metrics.horizontalAdvance(text)
 
 
 def run_app(app) -> int:
