@@ -167,11 +167,14 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
   `components/` and `views/panels/` are byte-identical on `dev/01M` and
   `dev/02M`, so a fix to any of them cherry-picks between branches unchanged.
   Check that before editing one of those files.
-- **Binding**: PyQt5 by default, resolved through `selfdrive/ui/eop/qt.py`.
-  Write `Signal`, never `pyqtSignal`; take `QOpenGLWidget` from the shim.
-  `EOP_QT_BINDING=pyqt5|pyside2|pyside6` forces one, and the tests run under
-  PyQt5 and PySide6 to prove the code stays neutral. PySide2 (LGPL) is the
-  pre-ship target — PyQt5 is GPLv3 and openpilot is MIT.
+- **Binding**: **PyQt5 only**. There is no PySide fallback — carrying one
+  meant checking every spelling against two bindings, and it leaked anyway
+  (scoped vs unscoped QDBus enums, QSpinBox float coercion). Import Qt names
+  from `selfdrive/ui/eop/qt.py` rather than from `PyQt5` directly: it is the
+  one place a future Qt move gets edited. Write `Signal`, not `pyqtSignal`.
+  Note PyQt5 is GPLv3 or a paid Riverbank licence while openpilot is MIT, so
+  the licence question has to be settled before anything is distributed —
+  a recorded choice for a research project, not an oversight.
 - **Run it**: `PYTHONPATH=. python3 -m openpilot.selfdrive.ui.eop.main --demo`
 - **Test it**: `./test.sh` now includes the UI suite, or directly with
   `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/eop/tests

@@ -1,8 +1,8 @@
 """Blind-spot severity and its on-screen presentation.
 
 Behaviour is specified in docs/eop10/EOP10_PORT_PLAN.md section 5.7 and was
-settled on dev/01M, where it exists in C++. This is the PySide6 side of the
-same design, not a new one.
+settled on dev/01M, where it existed in C++ first. This is the Python side of
+the same design, not a new one.
 
 Severity is deliberately a plain dataclass computed by a free function taking
 already-extracted values, with no cereal import anywhere in this module. That

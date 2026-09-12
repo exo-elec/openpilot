@@ -18,12 +18,10 @@ from dataclasses import dataclass
 from openpilot.selfdrive.ui.eop.qt import (
   QDBusConnection,
   QDBusInterface,
+  QDBusMessage,
 )
 
-# QDBusMessage.ErrorMessage. Hard-coded rather than imported because the two
-# bindings disagree on whether the enum is scoped, and the wire value is
-# fixed by the DBus specification.
-_ERROR_MESSAGE = 3
+_ERROR_MESSAGE = int(QDBusMessage.ErrorMessage)
 
 SERVICE = "org.freedesktop.NetworkManager"
 PATH = "/org/freedesktop/NetworkManager"
@@ -127,10 +125,7 @@ class NetworkManager:
     if not obj.isValid():
       return None
     reply = obj.call(method, *args)
-    # PyQt5 exposes the enum unscoped and PySide6 as a Python enum whose
-    # members compare unequal to ints, so the numeric value is compared
-    # rather than the member -- ErrorMessage is 3 in both.
-    if int(getattr(reply.type(), "value", reply.type())) == _ERROR_MESSAGE:
+    if reply.type() == _ERROR_MESSAGE:
       return None
     args_out = reply.arguments()
     if not args_out:
@@ -281,8 +276,8 @@ def _as_int(value, default: int = 0) -> int:
 
 
 def _path_str(value) -> str:
-  """Object paths come back as QDBusObjectPath from one binding and as a
-  plain string from another, so both are accepted."""
+  """An object path as a plain string. QDBus hands back QDBusObjectPath for a
+  typed reply and a bare string for an untyped one, so both are accepted."""
   if value is None:
     return ""
   path = getattr(value, "path", None)

@@ -86,7 +86,8 @@ class TestBands:
     bands.resize(w, h)
     # A hidden widget never receives resizeEvent at all -- not queued,
     # not delivered by processEvents(), simply not sent. Verified against
-    # PySide6 6.11: geometry stays at the default 100x30 until first show.
+    # Qt queues resize events for a widget that has never been shown, so
+    # geometry stays at the default 100x30 until the first show.
     # So show the host, which is also what BlindSpotBands.showEvent() exists
     # to cover in production.
     host.show()

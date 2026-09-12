@@ -177,8 +177,8 @@ class ControlRow(QWidget):
 
     if c.kind is Kind.SPINBOX:
       integral = float(c.step).is_integer() and float(c.min).is_integer()
-      # QSpinBox takes ints only, and PyQt5 enforces that strictly where
-      # PySide would coerce -- so cast rather than relying on the binding.
+      # QSpinBox takes ints only and PyQt5 enforces that strictly, so the
+      # descriptor's floats are cast rather than passed through.
       cast = int if integral else float
       w = QtWidgets.QSpinBox() if integral else QtWidgets.QDoubleSpinBox()
       w.setRange(cast(c.min), cast(c.max))

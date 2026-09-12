@@ -55,8 +55,8 @@ class _Dialog(QtWidgets.QDialog):
 
 
 def _exec(dialog: QtWidgets.QDialog) -> int:
-  """Qt5 bindings spell it exec_(); PySide6 exec()."""
-  return dialog.exec_() if hasattr(dialog, "exec_") else dialog.exec()
+  """Run the dialog modally."""
+  return dialog.exec_()
 
 
 def confirm_dialog(text: str, confirm_text: str = "Ok",
