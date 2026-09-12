@@ -43,6 +43,12 @@ SET_SPEED_NA = 255
 # Re-read Params every Nth tick rather than every tick. See update().
 PARAM_POLL_DIVISOR = 5
 
+# deviceState.networkStrength as a 0..4 level. The sidebar draws strength+1
+# dots, so "unknown" has to be 0 and not merely low.
+NETWORK_STRENGTH = {
+  "unknown": 0, "poor": 1, "moderate": 2, "good": 3, "great": 4,
+}
+
 # ui.h's FCAM_INTRINSIC_MATRIX and VIEW_FROM_DEVICE. The intrinsics are the
 # road camera's; VIEW_FROM_DEVICE reorders the device frame (x forward,
 # y right, z down) into the camera's (x right, y down, z forward), which is
@@ -264,8 +270,9 @@ def _idx_for_distance(line_x, distance: float) -> int:
 def _sm_lookup(sm, attr: str, name: str, default):
   """Read one of SubMaster's per-service tables.
 
-  Python's SubMaster exposes `updated`, `recv_frame` and `recv_time` as plain
-  dicts keyed by service, where the C++ one exposes methods of the same names.
+  Python's SubMaster exposes `valid`, `updated`, `recv_frame` and `recv_time`
+  as plain dicts keyed by service, where the C++ one exposes methods of the
+  same names.
   Anything ported from the C++ side reads like a call, so this accepts either
   shape rather than leaving a TypeError waiting at the one moment the code
   runs -- selfdrived having gone quiet mid-drive.
@@ -279,6 +286,30 @@ def _sm_lookup(sm, attr: str, name: str, default):
     return table[name]
   except (KeyError, TypeError):
     return default
+
+
+def _enum_name(value, default: str) -> str:
+  """The member name of a capnp enum, as a plain str.
+
+  capnp hands back a _DynamicEnum, which str()s to its name but raises on
+  int(). Anything falsy or unreadable falls back to `default` so a service
+  that has never arrived reads as its resting state rather than "None".
+  """
+  if value is None:
+    return default
+  name = str(value)
+  return name if name else default
+
+
+def _sm_valid(sm, name: str) -> bool:
+  """Whether `name` currently holds a valid message.
+
+  Like updated/recv_frame/recv_time, Python's SubMaster exposes `valid` as a
+  dict where the C++ exposes a method. Calling the dict is a TypeError on the
+  very first tick against a real SubMaster -- which is exactly what happened,
+  because the test double had it as a method and hid the difference.
+  """
+  return bool(_sm_lookup(sm, "valid", name, False))
 
 
 def _sm_updated(sm, name: str) -> bool:
@@ -383,12 +414,16 @@ class UIState(QObject):
     # engaged". Deriving it from selfdriveState.enabled, as this module used
     # to, left the offroad home screen up for the whole of any drive where
     # the driver never engaged.
-    started = False
-    if sm.valid("deviceState"):
-      started = bool(getattr(sm["deviceState"], "started", False)) and self._ignition
+    # Deliberately not gated on validity, matching ui.cc. Whether the car is
+    # on is not something to suppress because some other field in deviceState
+    # is degraded, and SubMaster hands back a default-initialised message for
+    # a service it has never received -- so this reads False rather than
+    # raising when deviceState is absent entirely. Everything below does gate
+    # on validity, because a stale value there is worse than no value.
+    started = bool(getattr(sm["deviceState"], "started", False)) and self._ignition
 
     status = UIStatus.DISENGAGED
-    if sm.valid("selfdriveState"):
+    if _sm_valid(sm, "selfdriveState"):
       ss = sm["selfdriveState"]
       # PRE_ENABLED and OVERRIDING are both "openpilot is up but the driver
       # is in charge", which is what the amber border means. overrideLateral,
@@ -400,7 +435,7 @@ class UIState(QObject):
       elif bool(ss.enabled):
         status = UIStatus.ENGAGED
 
-    if status is UIStatus.DISENGAGED and sm.valid("alccState"):
+    if status is UIStatus.DISENGAGED and _sm_valid(sm, "alccState"):
       if bool(getattr(sm["alccState"], "active", False)):
         status = UIStatus.ALCC
 
@@ -410,7 +445,7 @@ class UIState(QObject):
     gear = "unknown"
     left_blinker = right_blinker = in_reverse = False
     car_left = car_right = False
-    if sm.valid("carState"):
+    if _sm_valid(sm, "carState"):
       cs = sm["carState"]
       # vEgoCluster is what the car's own cluster shows; it is 0 on platforms
       # that do not report it, in which case vEgo is the only thing there is.
@@ -426,7 +461,7 @@ class UIState(QObject):
       car_right = bool(cs.rightBlindspot)
 
       raw_set = float(getattr(cs, "vCruiseCluster", 0.0))
-      if raw_set == 0.0 and sm.valid("controlsState"):
+      if raw_set == 0.0 and _sm_valid(sm, "controlsState"):
         raw_set = float(getattr(sm["controlsState"], "vCruiseDEPRECATED", 0.0))
       cruise_available = raw_set != -1
       cruise_set = 0 < raw_set != SET_SPEED_NA
@@ -434,7 +469,7 @@ class UIState(QObject):
       set_speed = raw_set * (1.0 if self._is_metric else KPH_TO_MPH) if cruise_set else 0.0
 
     lead_valid, lead_d = False, 0.0
-    if sm.valid("radarState"):
+    if _sm_valid(sm, "radarState"):
       lead = getattr(sm["radarState"], "leadOne", None)
       if lead is not None:
         lead_valid = bool(getattr(lead, "status", False))
@@ -444,19 +479,23 @@ class UIState(QObject):
     network_type = "none"
     network_strength = 0
     thermal_status = "green"
-    if sm.valid("deviceState"):
+    if _sm_valid(sm, "deviceState"):
       ds = sm["deviceState"]
       temps = list(getattr(ds, "cpuTempC", []) or [])
       cpu_temp = max(temps) if temps else 0.0
       mem_pct = float(getattr(ds, "memoryUsagePercent", 0.0))
       free_gb = float(getattr(ds, "freeSpacePercent", 0.0))
-      network_type = str(getattr(ds, "networkType", "none") or "none")
-      network_strength = int(getattr(ds, "networkStrength", 0) or 0)
-      thermal_status = str(getattr(ds, "thermalStatus", "green") or "green")
+      # These three are capnp enums, not ints or strings. int() on a
+      # _DynamicEnum raises, and str() gives the member name -- so the name is
+      # what is carried, and the one numeric one is mapped explicitly.
+      network_type = _enum_name(getattr(ds, "networkType", None), "none")
+      network_strength = NETWORK_STRENGTH.get(
+        _enum_name(getattr(ds, "networkStrength", None), "unknown"), 0)
+      thermal_status = _enum_name(getattr(ds, "thermalStatus", None), "green")
 
     # pandaStates is a list; the UI only cares whether any panda is talking.
     panda_connected = False
-    if sm.valid("pandaStates"):
+    if _sm_valid(sm, "pandaStates"):
       for ps in sm["pandaStates"]:
         if str(getattr(ps, "pandaType", "unknown")) != "unknown":
           panda_connected = True
@@ -469,17 +508,17 @@ class UIState(QObject):
     # road the car is on, where navInstruction's is the limit for the route
     # step, which lags at the moment the limit actually changes.
     speed_limit_ms = 0.0
-    if sm.valid("mapData"):
+    if _sm_valid(sm, "mapData"):
       osm_kph = float(getattr(sm["mapData"], "speedLimit", 0.0))
       if osm_kph > 0:
         speed_limit_ms = osm_kph / MS_TO_KPH
-    if speed_limit_ms == 0.0 and sm.valid("navInstruction"):
+    if speed_limit_ms == 0.0 and _sm_valid(sm, "navInstruction"):
       nav_ms = float(getattr(sm["navInstruction"], "speedLimit", 0.0))
       if nav_ms > 0:
         speed_limit_ms = nav_ms
 
     warnings: list[str] = []
-    if sm.valid("carState"):
+    if _sm_valid(sm, "carState"):
       cs = sm["carState"]
       if getattr(cs, "doorOpen", False):
         warnings.append("door_open")
@@ -491,7 +530,7 @@ class UIState(QObject):
         warnings.append("steering_fault")
       if getattr(cs, "canError", False):
         warnings.append("can_fault")
-    if sm.valid("liveCalibration"):
+    if _sm_valid(sm, "liveCalibration"):
       cal = str(getattr(sm["liveCalibration"], "calStatus", "") or "")
       if cal and cal != "calibrated":
         warnings.append("calibration_required")
@@ -499,7 +538,7 @@ class UIState(QObject):
     alert1, alert2, severity, alert_size = self._read_alert(sm, started)
 
     ctrl_left = ctrl_right = 0
-    if sm.valid("controlsState"):
+    if _sm_valid(sm, "controlsState"):
       ctrl = sm["controlsState"]
       ctrl_left = int(getattr(ctrl, "leftBlindSpot", 0))
       ctrl_right = int(getattr(ctrl, "rightBlindSpot", 0))
@@ -557,7 +596,7 @@ class UIState(QObject):
     projected point lands roughly twice as far from the origin as it should.
     """
     sm = self._sm
-    if not (sm.valid("modelV2") and sm.valid("liveCalibration")):
+    if not (_sm_valid(sm, "modelV2") and _sm_valid(sm, "liveCalibration")):
       return ModelFrame()
 
     transform = self._car_space_transform(sm, view_w, view_h)
@@ -577,12 +616,12 @@ class UIState(QObject):
     leads, lead_valid, lead_d = self._read_leads(sm, position)
 
     experimental = longitudinal = False
-    if sm.valid("selfdriveState"):
+    if _sm_valid(sm, "selfdriveState"):
       experimental = bool(getattr(sm["selfdriveState"], "experimentalMode", False))
-    if sm.valid("carParams"):
+    if _sm_valid(sm, "carParams"):
       longitudinal = bool(getattr(sm["carParams"], "openpilotLongitudinalControl", False))
     allow_throttle = True
-    if sm.valid("longitudinalPlan"):
+    if _sm_valid(sm, "longitudinalPlan"):
       allow_throttle = bool(getattr(sm["longitudinalPlan"], "allowThrottle", True))
 
     return ModelFrame(
@@ -605,7 +644,7 @@ class UIState(QObject):
 
   @staticmethod
   def _calibration_height(sm) -> float:
-    height = getattr(sm["liveCalibration"], "height", None) if sm.valid("liveCalibration") else None
+    height = getattr(sm["liveCalibration"], "height", None) if _sm_valid(sm, "liveCalibration") else None
     try:
       return float(height[0])
     except (TypeError, IndexError):
@@ -637,7 +676,7 @@ class UIState(QObject):
   def _read_leads(sm, position):
     """leadOne, and leadTwo when it is far enough from leadOne to be worth a
     second marker rather than a smear on top of the first."""
-    if not sm.valid("radarState"):
+    if not _sm_valid(sm, "radarState"):
       return (), False, 0.0
     rs = sm["radarState"]
     one = getattr(rs, "leadOne", None)
@@ -675,7 +714,7 @@ class UIState(QObject):
     severity = "none"
     size = "none"
 
-    if sm.valid("selfdriveState"):
+    if _sm_valid(sm, "selfdriveState"):
       ss = sm["selfdriveState"]
       alert1 = str(getattr(ss, "alertText1", "") or "")
       alert2 = str(getattr(ss, "alertText2", "") or "")
@@ -706,7 +745,7 @@ class UIState(QObject):
     if missing_s <= SELFDRIVE_TIMEOUT_S:
       return alert1, alert2, severity, size
 
-    engaged = bool(getattr(sm["selfdriveState"], "enabled", False)) if sm.valid("selfdriveState") else False
+    engaged = bool(getattr(sm["selfdriveState"], "enabled", False)) if _sm_valid(sm, "selfdriveState") else False
     if engaged and (missing_s - SELFDRIVE_TIMEOUT_S) < 10:
       # Engaged and the thing doing the driving has gone quiet. Nothing else
       # the UI can show matters more than this.
@@ -719,13 +758,13 @@ class UIState(QObject):
     Either may be absent -- the steering-based monitor runs without a camera."""
     valid = False
     attention = 0.0
-    if sm.valid("driverPoseState"):
+    if _sm_valid(sm, "driverPoseState"):
       valid = True
       attention = float(getattr(sm["driverPoseState"], "attentionProb", 0.0))
 
     detected = forward = False
     fx = fy = yaw = pitch = 0.0
-    if sm.valid("driverStatus"):
+    if _sm_valid(sm, "driverStatus"):
       valid = True
       fs = sm["driverStatus"]
       detected = bool(getattr(fs, "faceDetected", False))
@@ -741,7 +780,7 @@ class UIState(QObject):
 
   @staticmethod
   def _read_nav(sm) -> NavManeuver:
-    if not sm.valid("navInstruction"):
+    if not _sm_valid(sm, "navInstruction"):
       return NavManeuver()
     n = sm["navInstruction"]
     kind = str(getattr(n, "maneuverType", "") or "")

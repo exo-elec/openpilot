@@ -9,6 +9,7 @@ detail when one is tapped.
 from __future__ import annotations
 
 import json
+import pathlib
 from datetime import datetime
 
 from openpilot.selfdrive.ui.eop.components.controls import ParamStore
@@ -48,34 +49,90 @@ QPushButton#experimentalBtn:pressed { background-color: #3B3B3B; }
 PAGE_HOME, PAGE_UPDATE, PAGE_ALERTS = 0, 1, 2
 
 
-def format_stat(metres: float, is_metric: bool) -> str:
-  if is_metric:
-    return f"{metres / 1000.0:.0f}"
-  return f"{metres / 1609.34:.0f}"
+M_TO_KM = 1 / 1000.0
+M_TO_MILE = 0.000621371
+
+# The fork keeps its own trip counters in Params -- it has no drive-stats API
+# cache. Distances are metres, times are seconds, ratios are percentages.
+TRIP_DISTANCE = "EOPTripTotalDistance"
+TRIP_ONROAD_TIME = "EOPTripUptimeOnroad"
+TRIP_DRIVES = "EOPTripTotalDrives"
+TRIP_ENGAGEMENT = "EOPTripLifetimeEngagementRatio"
+
+# Offroad alerts are one param per alert, each holding a JSON object, and the
+# catalogue of which alerts exist is a file shipped with selfdrived. That is
+# how offroad_alerts.cc reads them; there is no aggregate key.
+ALERTS_CATALOGUE = "selfdrive/selfdrived/alerts_offroad.json"
+
+
+def _as_float(raw: str) -> float:
+  try:
+    return float(raw)
+  except (TypeError, ValueError):
+    return 0.0
+
+
+def _as_int(raw: str) -> int:
+  try:
+    return int(float(raw))
+  except (TypeError, ValueError):
+    return 0
 
 
 def read_drive_stats(store: ParamStore, is_metric: bool) -> list[tuple[str, str]]:
   """(value, label) pairs for the drive summary card.
 
-  Reads the same CompletedTrainingVersion-adjacent stats blob the C++ used.
-  A missing or malformed blob shows zeros rather than an empty card, because
-  a brand-new device legitimately has no drives yet and that is not an error.
+  Reads the EOPTrip* counters the trip daemon maintains. A device that has
+  never been driven reads zeros, which is correct rather than an error.
   """
-  raw = store.get_text("ApiCache_DriveStats")
-  unit = "km" if is_metric else "mi"
-  try:
-    stats = json.loads(raw) if raw else {}
-  except ValueError:
-    stats = {}
+  distance_m = _as_float(store.get_text(TRIP_DISTANCE))
+  onroad_s = _as_float(store.get_text(TRIP_ONROAD_TIME))
+  drives = _as_int(store.get_text(TRIP_DRIVES))
+  engagement = _as_float(store.get_text(TRIP_ENGAGEMENT))
 
-  all_time = stats.get("all", {}) if isinstance(stats, dict) else {}
-  week = stats.get("week", {}) if isinstance(stats, dict) else {}
+  scale, unit = (M_TO_KM, "km") if is_metric else (M_TO_MILE, "mi")
   return [
-    (str(all_time.get("routes", 0)), "drives"),
-    (format_stat(float(all_time.get("distance", 0.0)), is_metric), f"{unit} total"),
-    (format_stat(float(week.get("distance", 0.0)), is_metric), f"{unit} this week"),
-    (f"{float(all_time.get('minutes', 0.0)) / 60:.0f}", "hours"),
+    (str(drives), "drives"),
+    (f"{distance_m * scale:.0f}", unit),
+    (f"{onroad_s / 3600.0:.0f}", "hours"),
+    (f"{engagement:.0f}", "% engaged"),
   ]
+
+
+def alert_catalogue() -> dict:
+  """Which Offroad_* params carry an alert, and the text for each."""
+  path = pathlib.Path(__file__).resolve().parents[3] / ALERTS_CATALOGUE
+  try:
+    return json.loads(path.read_text())
+  except (OSError, ValueError):
+    # A missing catalogue means no alerts can be shown, which is worse than
+    # useless but still better than the home screen failing to load.
+    return {}
+
+
+def read_offroad_alerts(store: ParamStore, catalogue: dict | None = None) -> list[str]:
+  """Text of every offroad alert currently raised.
+
+  Each Offroad_* param holds a JSON object with the extra text to splice into
+  the catalogue's template, so an alert is "raised" when its param is
+  non-empty. The template's %1 placeholder takes that extra text.
+  """
+  entries = catalogue if catalogue is not None else alert_catalogue()
+  out = []
+  for key, spec in entries.items():
+    raw = store.get_text(key)
+    if not raw:
+      continue
+    text = str(spec.get("text", "")) if isinstance(spec, dict) else str(spec)
+    extra = ""
+    try:
+      parsed = json.loads(raw)
+      if isinstance(parsed, dict):
+        extra = str(parsed.get("extra", "") or "")
+    except ValueError:
+      extra = raw
+    out.append(text.replace("%1", extra) if extra else text.replace("%1", "").strip())
+  return out
 
 
 class StatCard(QWidget):
@@ -119,6 +176,8 @@ class OffroadHome(QWidget):
     self.setStyleSheet(HOME_STYLE)
     self._store = store if store is not None else ParamStore()
     self._is_metric = True
+    # Read once: it is a file shipped with the release, not device state.
+    self._alert_catalogue = alert_catalogue()
 
     root = QtWidgets.QVBoxLayout(self)
     root.setContentsMargins(20, 20, 20, 20)
@@ -263,17 +322,4 @@ class OffroadHome(QWidget):
       self._show_page(PAGE_HOME)
 
   def _alert_texts(self) -> list[str]:
-    raw = self._store.get_text("OffroadAlerts")
-    if not raw:
-      # Each alert is also published under its own key by the daemon that
-      # raised it; the aggregate key is the newer form.
-      return []
-    try:
-      parsed = json.loads(raw)
-    except ValueError:
-      return []
-    if isinstance(parsed, dict):
-      return [str(v) for v in parsed.values() if v]
-    if isinstance(parsed, list):
-      return [str(v) for v in parsed if v]
-    return []
+    return read_offroad_alerts(self._store, self._alert_catalogue)

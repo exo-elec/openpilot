@@ -32,16 +32,25 @@ class Msg:
     self.__dict__.update(fields)
 
 
+# What SubMaster hands back for a service it has never received.
+_EMPTY = Msg()
+
+
 class StubSM:
-  """Shaped like the real Python SubMaster: updated/recv_frame/recv_time are
-  dicts, not methods. That difference is exactly what _sm_lookup exists for,
-  so the double has to have it or the tests would not exercise it."""
+  """Shaped like the real Python SubMaster.
+
+  valid/updated/recv_frame/recv_time are dicts, not methods -- that is what
+  the real one does, and the C++ SubMaster this code was ported from exposes
+  methods of the same names. This double used to have `valid` as a method,
+  which hid a TypeError that fired on the very first tick against a real
+  SubMaster. Keeping the double honest is the whole point of it.
+  """
 
   def __init__(self, **msgs):
     self._msgs = msgs
-    self._valid = dict.fromkeys(msgs, True)
     self.update_calls = 0
     self.frame = 0
+    self.valid = dict.fromkeys(msgs, True)
     self.updated = dict.fromkeys(msgs, True)
     self.recv_frame = dict.fromkeys(msgs, 1)
     self.recv_time = {k: time.monotonic() for k in msgs}
@@ -55,14 +64,15 @@ class StubSM:
     self.updated[name] = False
     self.recv_time[name] = time.monotonic() - seconds
 
-  def valid(self, name):
-    return self._valid.get(name, False)
-
   def invalidate(self, name):
-    self._valid[name] = False
+    self.valid[name] = False
 
   def __getitem__(self, name):
-    return self._msgs[name]
+    # The real SubMaster pre-populates `data` with a default-initialised
+    # message for every subscribed service, so indexing one that has never
+    # arrived gives an empty message rather than raising. A double that
+    # raised KeyError instead would fail tests that the real thing passes.
+    return self._msgs.get(name, _EMPTY)
 
 
 def car(**kw):
@@ -80,10 +90,29 @@ def selfdrive(enabled=False, state="disabled", **kw):
   return Msg(enabled=enabled, state=state, **kw)
 
 
+class FakeEnum:
+  """Stands in for capnp's _DynamicEnum: str() gives the member name, and
+  int() raises exactly as the real one does. That int() raising is the whole
+  point -- reading these as ints is what broke the first live run."""
+
+  def __init__(self, name):
+    self._name = name
+
+  def __str__(self):
+    return self._name
+
+  def __int__(self):
+    raise TypeError("int() argument must be a real number, not 'FakeEnum'")
+
+  def __bool__(self):
+    return True
+
+
 def device(started=False, **kw):
   base = dict(started=started, cpuTempC=[], memoryUsagePercent=0.0,
-              freeSpacePercent=0.0, networkType="none", networkStrength=0,
-              thermalStatus="green")
+              freeSpacePercent=0.0, networkType=FakeEnum("none"),
+              networkStrength=FakeEnum("unknown"),
+              thermalStatus=FakeEnum("green"))
   base.update(kw)
   return Msg(**base)
 
@@ -432,20 +461,67 @@ class TestUIState:
 
   def test_submaster_tables_may_be_dicts_or_methods(self, app):
     # The real Python SubMaster uses dicts; the C++ this was ported from uses
-    # methods. Reading one as the other is a TypeError that would only fire
-    # the first time selfdrived went quiet, which is the worst possible time.
+    # methods. Reading one as the other is a TypeError -- for `valid` it fired
+    # on the first tick against a real SubMaster, and for the rest it would
+    # have waited until selfdrived went quiet, which is the worst possible
+    # time to find out.
     class MethodSM(StubSM):
       def __init__(self, **msgs):
         super().__init__(**msgs)
-        tables = self.updated, self.recv_frame, self.recv_time
-        self.updated = lambda n, t=tables[0]: t.get(n, False)
-        self.recv_frame = lambda n, t=tables[1]: t.get(n, 0)
-        self.recv_time = lambda n, t=tables[2]: t.get(n, 0.0)
+        tables = self.valid, self.updated, self.recv_frame, self.recv_time
+        self.valid = lambda n, t=tables[0]: t.get(n, False)
+        self.updated = lambda n, t=tables[1]: t.get(n, False)
+        self.recv_frame = lambda n, t=tables[2]: t.get(n, 0)
+        self.recv_time = lambda n, t=tables[3]: t.get(n, 0.0)
 
     sm = MethodSM(deviceState=device(started=True))
     st = ui_state(sm, EOPIgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     assert st.snapshot.alert_text1 == "openpilot Unavailable"
+
+  # ---- capnp enums --------------------------------------------------------
+
+  def test_device_enums_are_read_by_name_not_by_int(self, app):
+    # networkType, networkStrength and thermalStatus are capnp enums. int()
+    # on one raises, which took the whole _read() down on the first tick
+    # against a real SubMaster.
+    sm = onroad_sm(deviceState=device(started=True,
+                                      networkType=FakeEnum("wifi"),
+                                      networkStrength=FakeEnum("good"),
+                                      thermalStatus=FakeEnum("yellow")))
+    snap = ui_state(sm, EOPIgnitionOn=True)._read()
+    assert snap.network_type == "wifi"
+    assert snap.network_strength == 3
+    assert snap.thermal_status == "yellow"
+
+  @pytest.mark.parametrize("name,level", [
+    ("unknown", 0), ("poor", 1), ("moderate", 2), ("good", 3), ("great", 4),
+  ])
+  def test_every_network_strength_maps_to_a_level(self, app, name, level):
+    sm = onroad_sm(deviceState=device(started=True,
+                                      networkStrength=FakeEnum(name)))
+    assert ui_state(sm, EOPIgnitionOn=True)._read().network_strength == level
+
+  def test_an_unrecognised_strength_reads_as_no_signal(self, app):
+    # Better to draw no bars than to draw a full set for something the
+    # schema grew after this table was written.
+    sm = onroad_sm(deviceState=device(started=True,
+                                      networkStrength=FakeEnum("cell6G")))
+    assert ui_state(sm, EOPIgnitionOn=True)._read().network_strength == 0
+
+  def test_started_does_not_require_deviceState_to_be_valid(self, app):
+    # ui.cc reads deviceState.started ungated. Whether the car is on is not
+    # something to suppress because another field in deviceState is degraded.
+    sm = StubSM(deviceState=device(started=True))
+    sm.invalidate("deviceState")
+    st = ui_state(sm, EOPIgnitionOn=True)
+    st.update()
+    assert st.snapshot.started
+
+  def test_a_never_seen_deviceState_is_offroad_not_a_crash(self, app):
+    st = ui_state(StubSM(), EOPIgnitionOn=True)
+    st.update()
+    assert not st.snapshot.started
 
   def test_snapshot_is_immutable(self, app):
     st = ui_state(StubSM(carState=car()))

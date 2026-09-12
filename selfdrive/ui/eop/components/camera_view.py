@@ -39,12 +39,29 @@ from openpilot.selfdrive.ui.eop.qt import (
 FORCE = os.environ.get("EOP_UI_CAMERA", "").strip().lower()
 
 
-def _vision_client(stream_name: str):
+def _vision_client(stream_name: str, publisher: str = "camerad"):
   """Import VisionIPC lazily -- it is a compiled extension, and the UI must
-  stay importable on a machine without a built tree."""
+  stay importable on a machine without a built tree.
+
+  `publisher` is not always camerad: the road camera comes from camerad, but
+  the side and rear USB cameras are published by uvcd.
+  """
   from msgq.visionipc import VisionIpcClient, VisionStreamType
   stream = getattr(VisionStreamType, stream_name)
-  return VisionIpcClient("camerad", stream, conflate=True), stream
+  return VisionIpcClient(publisher, stream, conflate=True), stream
+
+
+def bgr_to_rgb(buf: np.ndarray, width: int, height: int, stride: int) -> np.ndarray:
+  """BGR888 -> RGB888.
+
+  The USB side and rear cameras hand over packed BGR rather than NV12 -- they
+  are ordinary UVC devices, not the ISP pipeline camerad drives. A stride
+  wider than the row is cropped rather than reshaped, because the padding is
+  not image data.
+  """
+  rows = buf[: stride * height].reshape(height, stride)
+  packed = rows[:, : width * 3].reshape(height, width, 3)
+  return packed[:, :, ::-1]
 
 
 def nv12_to_rgb(buf: np.ndarray, width: int, height: int, stride: int) -> np.ndarray:
@@ -93,9 +110,11 @@ def _nv12_to_rgb_numpy(buf: np.ndarray, width: int, height: int, stride: int) ->
 class CpuCameraView(QWidget):
   """VisionIPC -> numpy -> QImage. Works anywhere, costs a copy per frame."""
 
-  def __init__(self, stream_name: str = "VISION_STREAM_ROAD", parent=None):
+  def __init__(self, stream_name: str = "VISION_STREAM_ROAD",
+               publisher: str = "camerad", parent=None):
     super().__init__(parent)
     self.stream_name = stream_name
+    self.publisher = publisher
     self.setAttribute(Qt.WA_OpaquePaintEvent, True)
     self._client = None
     self._image: QtGui.QImage | None = None
@@ -103,7 +122,7 @@ class CpuCameraView(QWidget):
 
   def connect(self) -> bool:
     try:
-      self._client, _ = _vision_client(self.stream_name)
+      self._client, _ = _vision_client(self.stream_name, self.publisher)
       self._connected = bool(self._client.connect(False))
     except Exception:
       self._connected = False
@@ -123,7 +142,7 @@ class CpuCameraView(QWidget):
     if buf is None:
       return
     arr = np.frombuffer(buf.data, dtype=np.uint8)
-    rgb = nv12_to_rgb(arr, buf.width, buf.height, buf.stride)
+    rgb = _to_rgb(arr, buf)
     # QImage does not copy, so keep the array alive on the instance.
     self._rgb = np.ascontiguousarray(rgb)
     self._image = QtGui.QImage(self._rgb.data, buf.width, buf.height,
@@ -205,9 +224,11 @@ class GlCameraView(QOpenGLWidget):
   back to the CPU path rather than taking the UI down.
   """
 
-  def __init__(self, stream_name: str = "VISION_STREAM_ROAD", parent=None):
+  def __init__(self, stream_name: str = "VISION_STREAM_ROAD",
+               publisher: str = "camerad", parent=None):
     super().__init__(parent)
     self.stream_name = stream_name
+    self.publisher = publisher
     self._client = None
     self._egl_ready = False
     self._program = None
@@ -262,7 +283,7 @@ class GlCameraView(QOpenGLWidget):
 
   def connect(self) -> bool:
     try:
-      self._client, _ = _vision_client(self.stream_name)
+      self._client, _ = _vision_client(self.stream_name, self.publisher)
       return bool(self._client.connect(False))
     except Exception:
       return False
@@ -334,17 +355,44 @@ class GlCameraView(QOpenGLWidget):
     self.cleanup()
 
 
+def _to_rgb(arr: np.ndarray, buf) -> np.ndarray:
+  """Convert whichever format this stream carries.
+
+  camerad publishes NV12 from the ISP; uvcd publishes packed BGR from
+  ordinary UVC devices. The buffer says which: a VisionBuf with y/uv plane
+  pointers is NV12, one without is packed. The C++ overlay made the same
+  distinction the same way.
+  """
+  if getattr(buf, "uv_offset", 0) or getattr(buf, "y", None) is not None:
+    return nv12_to_rgb(arr, buf.width, buf.height, buf.stride)
+  # A packed 3-byte-per-pixel buffer is exactly height*stride with
+  # stride >= width*3; anything else is NV12-shaped (height*3/2 rows).
+  if arr.size >= buf.stride * buf.height and buf.stride >= buf.width * 3:
+    return bgr_to_rgb(arr, buf.width, buf.height, buf.stride)
+  return nv12_to_rgb(arr, buf.width, buf.height, buf.stride)
+
+
 def create_camera_view(stream_name: str = "VISION_STREAM_ROAD",
-                       parent=None) -> QWidget:
-  """Pick a path. Falls back to CPU rather than failing the UI."""
+                       publisher: str = "camerad", parent=None) -> QWidget:
+  """Pick a path. Falls back to CPU rather than failing the UI.
+
+  The side and rear overlays always take the CPU path. They are only up while
+  a blinker is on or the car is reversing, and EGLFS permits one fullscreen
+  GL surface -- a second QOpenGLWidget appearing mid-drive is precisely the
+  case plan section 12.2 flags as terminating the application. A view that is
+  briefly on screen is not worth that risk, and at these resolutions the cv2
+  conversion is well inside budget.
+  """
+  if publisher != "camerad":
+    return CpuCameraView(stream_name, publisher, parent)
   if FORCE == "cpu":
-    return CpuCameraView(stream_name, parent)
+    return CpuCameraView(stream_name, publisher, parent)
   if FORCE == "gl":
-    return GlCameraView(stream_name, parent)
+    return GlCameraView(stream_name, publisher, parent)
   try:
     from openpilot.system.hardware import ROCKCHIP
     if ROCKCHIP:
-      return GlCameraView(stream_name, parent)
+      return GlCameraView(stream_name, publisher, parent)
   except Exception:
     pass
-  return CpuCameraView(stream_name, parent)
+  return CpuCameraView(stream_name, publisher, parent)
