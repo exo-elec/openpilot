@@ -71,6 +71,7 @@ The 02M equivalent (`setup_rk3576.sh`) belongs with `dev/02M`.
 | `system/bluetoothd/ble_gatt.py` | BLE GATT server (Nordic UART, iOS + Android) |
 | `system/bluetoothd/spp.py` | Classic SPP server (RFCOMM, OBD scanners) |
 | `selfdrive/adaptd/adaptd.py` | Adaptive driving daemon (renamed from elm327d) |
+| `selfdrive/ui/eop/` | The UI — Qt Widgets in Python (PyQt5). Replaced the C++/Qt UI 2026-09-12 |
 
 ## Branch model
 
@@ -153,6 +154,30 @@ After rebasing, re-run `./test.sh` on each branch.
 |----------|----------|------|
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
 | `radar3d.py` (camera+radar fusion) | `radard.py` | Renamed 2026-08-16 — matches upstream openpilot's name. `radar3d.py` is now the long-range UART radar *producer* daemon, not the fusion daemon; see New Features below |
+
+## UI
+
+The C++/Qt UI is gone. `selfdrive/ui/eop/` is a Qt Widgets UI written in
+Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
+
+- **Design is unchanged on 01M.** Sidebar, offroad home, the left-nav settings
+  window and the onroad HUD all reproduce the C++ layout they replace. `dev/02M`
+  is where the new design lives (top-tab settings, swipeable side panels).
+- **The split between the branches is only `views/`.** `qt.py`, `state.py`,
+  `components/` and `views/panels/` are byte-identical on `dev/01M` and
+  `dev/02M`, so a fix to any of them cherry-picks between branches unchanged.
+  Check that before editing one of those files.
+- **Binding**: PyQt5 by default, resolved through `selfdrive/ui/eop/qt.py`.
+  Write `Signal`, never `pyqtSignal`; take `QOpenGLWidget` from the shim.
+  `EOP_QT_BINDING=pyqt5|pyside2|pyside6` forces one, and the tests run under
+  PyQt5 and PySide6 to prove the code stays neutral. PySide2 (LGPL) is the
+  pre-ship target — PyQt5 is GPLv3 and openpilot is MIT.
+- **Run it**: `PYTHONPATH=. python3 -m openpilot.selfdrive.ui.eop.main --demo`
+- **Test it**: `./test.sh` now includes the UI suite, or directly with
+  `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/eop/tests
+  -c selfdrive/ui/eop/tests/pytest.ini --noconftest`
+- **Not yet verified on hardware**: the VisionIPC/EGL camera path and which Qt
+  platform plugin the device runs. See `docs/eop10/EOP10_PORT_PLAN.md` P1.
 
 ## New Features
 
@@ -296,8 +321,11 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 ---
 
-**Last updated**: 2026-08-16  
+**Last updated**: 2026-09-12  
 **Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
+
+`dev/EOP10` is kept as-is: it is the archive of the original C++/Qt UI, and
+nothing should be pushed to it.
 
 ---
 
