@@ -263,3 +263,85 @@ Host-side only, no hardware:
   and fails on any dev PC that happens to have `hal` on the path. Changed
   to assert the methods are callable and return a `bool`, not a specific
   value, matching this file's own "host-side, no hardware required" scope.
+
+## WiFi/BT/GPS hardware port + BGT60TR13C retirement (2026-09-13)
+
+02M genuinely differs from 01M in WiFi/BT silicon (AP6398S/SDIO vs
+RTL8822CE/PCIe+USB) and GNSS module (ZED-F9P, RTK-capable, vs NEO-M8U) —
+confirmed against `kernel/dts/rk3576-rpdzkj-exp02.dts`. Neither was in
+`hal.platform.rk3576_pins` before this pass; `RK3576Hardware` had a
+standing comment saying exactly that ("WiFi/BT chip data has not been
+ported yet").
+
+**HAL data added** (`~/pilot/exopilot`, `hal/hal/platform/rk3576_pins.py`
++ `boards.py`): `WIFI_CHIP`/`WIFI_INTERFACE`/`WIFI_TYPE`, `BT_CHIP`/
+`BT_TYPE`/`BT_HCI`, `UART["GPS"]` (uart2, ZED-F9P), `GPS_PPS` GPIO (the only
+GPS pin the DTS actually wires — no PWR_EN/RST_N/SAFEBOOT_N like 01M's
+NEO-M8U, so none invented), `wifi_chip_type="ap6398s"` on `boards.py`'s
+`exopilot02m` entry.
+
+**Real bug found and fixed**: `hal/hal/drivers/gps/ublox.py`'s
+`_platform_pins()` unconditionally imported `rk3588_pins` regardless of
+board — same bug class as the v4l2d/DEVICE_CAMERAS issues above, just in
+the GPS driver instead of camera. On 02M this silently returned `{}`, so
+`get_gps_device()` fell back to 01M's `/dev/ttyS7` and GPS power-cycle GPIO
+silently no-op'd. Now board-detects via `/proc/device-tree/compatible`,
+same convention `RK3576Hardware.detect()` already uses. Added
+`send_rtcm()` (a raw UART write — u-blox auto-detects RTCM3 framing
+alongside UBX on the same port) as the write-side primitive for whenever
+an RTCM correction source exists; none does yet, so nothing calls it.
+
+**`RK3576Hardware` (this repo)**: `WIFI_CHIP`/`BT_CHIP`/`UART` now pulled
+through from the HAL the same way `GPIO`/`CELLULAR` already were.
+`get_capabilities()` gained `WIFI`/`BLUETOOTH`/`GPS`/`CELLULAR` — **not**
+`RTK`, deliberately: no RTCM correction path exists (no NTRIP client), so
+claiming it would let `coordinationd/fusion.py`'s `is_rtk` branch trust an
+uncorrected 50m fix as centimeter-accurate.
+
+**BGT60TR13C (SPI2, radar4d) is retired on 02M** — the physical sensor
+connection no longer exists (confirmed directly by the hardware owner, not
+inferred). radar4d's close-range/corner-sensing role moves to the
+ESP32_RADAR WiFi/UDP corner nodes instead — already built for this board,
+see `docs/02-HARDWARE/wifi_corner_nodes.md` in `~/pilot/exopilot`, same
+mechanism 01M already uses. `&spi2` disabled in the DTS; the SPI/GPIO
+entries removed from `rk3576_pins.py`; the dead BGT60TR13C spidev/gpiod
+install and spidev-bufsiz-tuning steps removed from `setup_rk3576.sh`.
+Replaced with `UART["RADAR3D"]` — the NanoRadarCore 77GHz long-range
+sensor, confirmed used fleet-wide on both 01M and 02M (mirrors
+`rk3588_pins.py`'s existing, already-working entry; same USB-UART-dongle
+pattern, not a native SoC pin).
+
+**Two shared fixes landed on `dev/EOP10` too** (and `dev/01M` picked them
+up via a clean rebase, no conflicts): `eop_utils.py`'s
+`GPS_TOLERANCE_M`/`get_gps_tolerance()` comments claimed ExoPilot has no
+RTK at all, contradicting 02M's RTK-capable hardware and the existing
+`EOPRTKEnabled`/`EOPNTRIPEnabled` UI toggles (both UI-only today — the
+tolerance value itself, 50.0, is unchanged, since no correction path
+actually flows yet); `radar3d.py`'s docstring said "ExoPilot
+(RK3588/openpilot)" even though the daemon already resolved its UART port
+generically via `HARDWARE.hal_module("pins")` and runs on both boards.
+Also removed a duplicate `EOPNTRIPEnabled`/`EOPRTKEnabled` pair in this
+branch's `params_keys.h` (local to `dev/02M`, not inherited from EOP10).
+
+**Deferred on purpose, not half-built**: an actual NTRIP client daemon.
+`EOPRTKEnabled`/`EOPNTRIPEnabled` are UI toggles with no backend consumer
+today — building one is a new daemon + credential storage +
+`process_config.py` gating, a feature rather than a hardware port, and
+needs real caster host/mountpoint/credentials this session doesn't have.
+
+**Not confirmed, flagged rather than guessed**:
+- `UART["GPS"]`'s baud (460800, from the DTS) conflicts with
+  `selfdrive/ui/settings/descriptor.py`'s `EOPRTKEnabled` copy, which
+  describes negotiating 38400 (F9P factory default) up to 115200. Left
+  both in place rather than silently picking one — needs the team to
+  resolve which is actually right.
+- `BT_TYPE`/`UART["BT"]` are inferred from uart1's cts/rts flow-control
+  pins (the standard wiring for a Broadcom combo chip's BT-over-UART HCI
+  transport), not confirmed by any `bluetooth` DTS node or real hardware.
+  `setup_rk3576.sh` gained a best-effort `btattach` step on this
+  placeholder port/baud.
+- `UART["RADAR3D"]`'s device path is copied verbatim from 01M's confirmed
+  value, not independently confirmed for 02M's own USB enumeration.
+
+None of this has been run on real RK3576 hardware — same standing caveat
+as the rest of this document.
