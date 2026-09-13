@@ -281,8 +281,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPRelaxedJerk", {PERSISTENT, FLOAT, "1.0"}},
     {"EOPRightCameraEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPRoadHDR", {PERSISTENT, STRING, "hdr4"}},
-    {"EOPNTRIPEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPRTKEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPSGMConfidenceThreshold", {PERSISTENT, FLOAT, "0.7"}},
     {"EOPSGMLocalizerEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPSGMMapPath", {PERSISTENT, STRING, "/data/maps/sgm"}},

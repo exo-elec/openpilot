@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-radar3d — long-range UART radar producer — ExoPilot (RK3588/openpilot)
+radar3d — long-range UART radar producer (ExoPilot, board-generic)
 
 Publishes car.RadarData to cereal 'radar3d' at 20Hz. Replaces the old,
 never-wired Continental ARS4-B/BrownPanda CAN radar path that used to be
 produced from card.py — this vehicle has no forward OEM radar, only a 2D
 blind-spot corner radar (radar2d, untouched by this daemon).
+
+Runs on any board with a `UART["RADAR3D"]` entry in its hal.platform pins
+module — resolved generically through HARDWARE.hal_module("pins"), not
+board-specific. Same NanoRadarCore 77GHz sensor and driver on ExoPilot 01M
+and 02M; only the pins module differs (rk3588_pins.py / rk3576_pins.py).
+BGT60TR13C's former close-range/corner role (radar4d) is retired
+fleet-wide in favor of the ESP32_RADAR WiFi/UDP corner nodes on both boards.
 
 Consumers (unchanged, schema-compatible — this is a drop-in producer swap):
   selfdrive/controls/radard.py (RadarD)     -> radarState -> controlsd/ACC
@@ -13,9 +20,9 @@ Consumers (unchanged, schema-compatible — this is a drop-in producer swap):
     dRel > 12m, ego-lane skipped since ACC already owns that via radarState)
 
 Hardware driver: hal.drivers.radar.radar3d (Radar3D class). Lives in the
-`exopilot` repo's `hal` package, shared with the rest of the radar HAL
-(BGT60TR13C, etc) — low-level sensor porting cannot live in this repo since
-openpilot is a public repository and `exopilot` is not. Dev PC:
+`exopilot` repo's `hal` package — low-level sensor porting cannot live in
+this repo since openpilot is a public repository and `exopilot` is not,
+same ownership split as the rest of the radar HAL. Dev PC:
 `pip3 install -e ../exopilot/hal`. On-device: the first-boot setup script
 (exopilot/scripts/install/setup_rk3588.sh) installs it. This daemon only
 owns the cereal producer loop and the RadarPoint conversion below; if `hal`

@@ -26,11 +26,11 @@ class RK3576Hardware(RockchipHardware):
     """RK3576 platform hardware (ExoPilot 02M).
 
     Board bring-up data (GPIO/UART/I2C/cellular pin assignments) ships from
-    the closed exopilot hal package, same as RK3588Hardware. As of
-    2026-08-26 only the BGT60TR13C radar SPI/GPIO and EC25 cellular GPIO are
-    populated in hal.platform.rk3576_pins — WiFi/BT chip data has not been
-    ported yet, so those attributes stay empty here (graceful degradation,
-    same as RK3588Hardware without hal at all).
+    the closed exopilot hal package, same as RK3588Hardware. WiFi/BT chip
+    identity (AP6398S) and GPS UART (ZED-F9P, uart2) are now populated in
+    hal.platform.rk3576_pins; I2C/USB topology data is still unported, so
+    those two stay empty here (graceful degradation, same as
+    RK3588Hardware without hal at all).
     """
 
     HAL_PREFIX = "rk3576"
@@ -39,12 +39,18 @@ class RK3576Hardware(RockchipHardware):
         from hal.platform import rk3576_pins
         GPIO = rk3576_pins.GPIO
         CELLULAR = rk3576_pins.CELLULAR
+        UART = rk3576_pins.UART
+        WIFI_CHIP = rk3576_pins.WIFI_CHIP
+        WIFI_INTERFACE = rk3576_pins.WIFI_INTERFACE
+        WIFI_TYPE = rk3576_pins.WIFI_TYPE
+        BT_CHIP = rk3576_pins.BT_CHIP
+        BT_TYPE = rk3576_pins.BT_TYPE
+        BT_HCI = rk3576_pins.BT_HCI
     except ImportError:
         GPIO = {}
         CELLULAR = {}
-    # Not yet ported into hal.platform.rk3576_pins (see class docstring).
-    WIFI_CHIP = WIFI_INTERFACE = WIFI_TYPE = BT_CHIP = BT_TYPE = BT_HCI = ""
-    UART = {}
+        UART = {}
+        WIFI_CHIP = WIFI_INTERFACE = WIFI_TYPE = BT_CHIP = BT_TYPE = BT_HCI = ""
     I2C = {}
     USB = {}
 
@@ -140,6 +146,18 @@ class RK3576Hardware(RockchipHardware):
             HardwareCapability.PCIE,
             HardwareCapability.MICROPHONE,
             HardwareCapability.VOICE_INPUT,
+            # WiFi (AP6398S/SDIO), BT (AP6398S/UART, unconfirmed transport —
+            # see hal.platform.rk3576_pins), GPS (ZED-F9P) and cellular
+            # (EC25) are all present on this board. RTK is deliberately not
+            # claimed here: no RTCM correction path exists yet (no NTRIP
+            # client), so the module has RTK-capable silicon but nothing
+            # feeds it corrections — see coordinationd/fusion.py's is_rtk
+            # noise branch, which would start trusting an uncorrected fix as
+            # centimeter-accurate if this capability were claimed early.
+            HardwareCapability.WIFI,
+            HardwareCapability.BLUETOOTH,
+            HardwareCapability.GPS,
+            HardwareCapability.CELLULAR,
         }
 
     def has_speaker(self) -> bool:
