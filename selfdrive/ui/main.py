@@ -134,7 +134,10 @@ def main(argv: list[str] | None = None) -> int:
 
   window = MainWindow(store, live_camera=not args.demo)
   window.setWindowTitle("ExoPilot 01M")
-  window.resize(SCREEN_W, SCREEN_H)
+  # Fixed, not resize(): every coordinate in the onroad view is absolute
+  # against SCREEN_W x SCREEN_H, so a window the WM can reshape draws wrong
+  # rather than adapting. Matches what the C++ UI does on dev/EOP10.
+  window.setFixedSize(SCREEN_W, SCREEN_H)
   window.show()
 
   if args.demo:

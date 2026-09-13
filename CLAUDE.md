@@ -154,52 +154,6 @@ After rebasing, re-run `./test.sh` on each branch.
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
 | `radar3d.py` (camera+radar fusion) | `radard.py` | Renamed 2026-08-16 — matches upstream openpilot's name. `radar3d.py` is now the long-range UART radar *producer* daemon, not the fusion daemon; see New Features below |
 
-## Branch model
-
-`dev/EOP10` is the **foundation**. `dev/01M` and `dev/02M` are UI branches on
-top of it, and they take foundation improvements by **rebasing**, not by
-cherry-picking:
-
-```
-dev/EOP10 ──┬── dev/01M   classic openpilot UI, PyQt5, 1024x600 (RK3588)
-            └── dev/02M   nagasware-style UI, PyQt5, 1600x600 (RK3576)
-```
-
-- **`dev/EOP10` keeps the old C++/Qt UI.** That is deliberate: it is the
-  reference the Python UIs were ported from, and removing it there would
-  strand the comparison.
-- **A fix that is not about the UI belongs on `dev/EOP10`**, so both branches
-  inherit it. Daemons, cereal, params_keys.h, systemd units, SConstruct
-  outside the Qt block. If you fix it on 01M or 02M instead, the other branch
-  keeps the bug.
-- **A fix that is about the UI belongs on the branch it applies to.** Inside
-  `selfdrive/ui/`, `views/` is the intended divergence; everything else
-  there (`qt.py`, `state.py`, `components/`, `views/panels/`) is kept
-  **byte-identical** across 01M and 02M so it cherry-picks between them
-  unchanged. Check that before editing one of those files.
-
-### Rebasing onto an improved EOP10
-
-```bash
-git fetch origin dev/EOP10
-git checkout dev/01M && git rebase origin/dev/EOP10
-git checkout dev/02M && git rebase origin/dev/EOP10
-```
-
-Both branches then need a force-with-lease push, since a rebase rewrites the
-commits.
-
-**Expect modify/delete conflicts.** The UI branches delete the whole C++ UI
-tree, and 02M additionally deletes `tools/systemd/openpilot-rk3588.service`.
-Any EOP10 commit touching a deleted file conflicts on every rebase. The
-resolution is almost always "the UI branch's deletion wins" — `git rm` the
-file and continue — but read the incoming change first: if it is a *backend*
-fix that happens to live in a file the UI branch deleted, it needs porting to
-the Python equivalent rather than dropping.
-
-After rebasing, re-run `./test.sh` on each branch and confirm the shared UI
-files are still identical between them.
-
 ## UI
 
 The C++/Qt UI is gone. `selfdrive/ui/` is a Qt Widgets UI written in
@@ -209,10 +163,15 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
   window and the onroad HUD all reproduce the C++ layout they replace.
   `dev/02M` is where the new design lives (top-tab settings, swipeable side
   panels, 1600x600 chrome).
-- **The split between the branches is only `views/`.** `qt.py`, `state.py`,
-  `components/` and `views/panels/` are byte-identical on `dev/01M` and
-  `dev/02M`, so a fix to any of them cherry-picks between branches unchanged.
-  Check that before editing one of those files.
+- **`views/` and `main.py` are the intended divergence** between 01M and 02M.
+  Within `components/` each branch also owns the files that *are* its layout:
+  `alerts.py`, `hud.py` and `theme.py` exist only here; `chrome.py`,
+  `panels.py`, `panel_widgets.py` and `factory.py` only on 02M. Every file
+  that exists on **both** branches — `qt.py`, `state.py`, the common
+  `components/`, `settings/`, `styles/`, `views/panels/` — is kept
+  **byte-identical**, so a fix cherry-picks between them unchanged. Check
+  that before editing one of those files, and check it both ways: a
+  one-directional diff misses a file that exists only on the other branch.
 - **Binding**: **PyQt5 only**. There is no PySide fallback — carrying one
   meant checking every spelling against two bindings, and it leaked anyway
   (scoped vs unscoped QDBus enums, QSpinBox float coercion). Import Qt names
