@@ -16,8 +16,12 @@ from typing import cast
 
 from openpilot.common.params import Params
 
-# GPS tolerance — all platforms use the same standard GPS (NEO-M8U / ZED-F9P)
-# RTK is VisionPilot-only. ExoPilot uses standard GPS with 50m tolerance.
+# GPS tolerance for curve-speed DB lookups (CSLB/MTSC/VTSC). ExoPilot 02M's
+# ZED-F9P is RTK-capable hardware, but no RTCM correction path exists yet
+# (no NTRIP client) — see selfdrive/ui/settings/descriptor.py's
+# EOPRTKEnabled/EOPNTRIPEnabled toggles, which are UI-only today. Until
+# corrections actually flow, every ExoPilot platform's fix is uncorrected
+# standard GPS, so 50m stays the right tolerance regardless of module.
 GPS_TOLERANCE_M: float = 50.0
 
 
@@ -58,7 +62,8 @@ class SmoothEMA:
 def get_gps_tolerance() -> float:
   """Return GPS tolerance in meters.
 
-  All ExoPilot platforms use standard GPS (no RTK).
+  All ExoPilot platforms use uncorrected GPS today (RTK-capable hardware
+  exists on 02M, but no RTCM correction path is wired up yet).
   Previously had pointless per-platform mapping that all returned 50.0.
   """
   return GPS_TOLERANCE_M
