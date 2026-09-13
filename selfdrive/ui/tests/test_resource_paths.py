@@ -17,6 +17,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 UI = Path(__file__).resolve().parents[1]
@@ -35,10 +37,15 @@ def test_params_header_resolves():
 
 
 def test_alert_catalogue_actually_resolves():
+  # The offroad home screen with its alert chips is dev/01M's; dev/02M puts
+  # the descriptor pages straight into tabs and has no equivalent. Skip
+  # rather than assert, so this file stays identical on both branches.
+  views = pytest.importorskip(
+    "openpilot.selfdrive.ui.views.home",
+    reason="this branch has no offroad home screen")
   # Returns {} on a bad path, which is indistinguishable from "no alerts
   # configured" -- so assert on content, not on the call succeeding.
-  from openpilot.selfdrive.ui.views.home import alert_catalogue
-  catalogue = alert_catalogue()
+  catalogue = views.alert_catalogue()
   assert catalogue, "offroad alert catalogue read as empty"
   assert all(k.startswith("Offroad_") for k in catalogue)
 

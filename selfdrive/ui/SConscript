@@ -1,8 +1,9 @@
-# The C++/Qt UI is gone on dev/01M -- this branch's UI is selfdrive/ui/eop,
+# The C++/Qt UI is gone on both UI branches -- the UI is selfdrive/ui itself,
 # a Qt Widgets UI in Python. Nothing here builds a
-# `ui` binary any more, so qt_env, the widget/util libraries, the .ts ->
-# .qm lrelease step and the assets.qrc -> assets.cc resource compile are all
-# unused; the Python UI reads assets from disk.
+# `ui` binary any more, so qt_env, the widget/util libraries and the
+# assets.qrc -> assets.cc resource compile are all unused; the Python UI
+# reads assets from disk. The .ts -> .qm lrelease step below is still needed:
+# QTranslator loads the compiled .qm at startup (see main.load_translation).
 #
 # The installers survive: they are separate raylib programs that have nothing
 # to do with the driving UI.
