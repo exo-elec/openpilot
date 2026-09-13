@@ -51,7 +51,7 @@ ruff check \
   selfdrive/locationd/locationd.py \
   selfdrive/modeld/modeld.py \
   selfdrive/selfdrived/selfdrived.py \
-  selfdrive/ui/eop \
+  selfdrive/ui \
   "$@"
 
 echo "==> Running shebang format check"
@@ -72,8 +72,8 @@ fi
 # xdist/asyncio plugins, and --noconftest keeps it off the compiled Params.
 echo "==> Running EOP UI tests"
 QT_QPA_PLATFORM=offscreen python3 -m pytest \
-  selfdrive/ui/eop/tests \
-  -c selfdrive/ui/eop/tests/pytest.ini \
+  selfdrive/ui/tests \
+  -c selfdrive/ui/tests/pytest.ini \
   --noconftest
 
 if [ "$NO_PYTEST" -eq 1 ]; then

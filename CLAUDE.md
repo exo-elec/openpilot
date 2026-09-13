@@ -126,7 +126,7 @@ dev/EOP10 ──┬── dev/01M   PyQt5 UI, classic openpilot layout, RK3588 /
   it. Daemons, cereal, params_keys.h, systemd units, SConstruct outside the
   Qt block. Fixing it on 01M or 02M instead leaves the other branch broken.
 - **UI fixes belong on the branch they apply to.** The C++ UI is this
-  branch's; `selfdrive/ui/eop/` is theirs.
+  branch's; `selfdrive/ui/` is theirs.
 
 ### Rebasing the UI branches onto an improved EOP10
 
@@ -173,7 +173,7 @@ dev/EOP10 ──┬── dev/01M   classic openpilot UI, PyQt5, 1024x600 (RK358
   outside the Qt block. If you fix it on 01M or 02M instead, the other branch
   keeps the bug.
 - **A fix that is about the UI belongs on the branch it applies to.** Inside
-  `selfdrive/ui/eop/`, `views/` is the intended divergence; everything else
+  `selfdrive/ui/`, `views/` is the intended divergence; everything else
   there (`qt.py`, `state.py`, `components/`, `views/panels/`) is kept
   **byte-identical** across 01M and 02M so it cherry-picks between them
   unchanged. Check that before editing one of those files.
@@ -202,7 +202,7 @@ files are still identical between them.
 
 ## UI
 
-The C++/Qt UI is gone. `selfdrive/ui/eop/` is a Qt Widgets UI written in
+The C++/Qt UI is gone. `selfdrive/ui/` is a Qt Widgets UI written in
 Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
 
 - **Design is unchanged on 01M.** Sidebar, offroad home, the left-nav settings
@@ -216,15 +216,15 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
 - **Binding**: **PyQt5 only**. There is no PySide fallback — carrying one
   meant checking every spelling against two bindings, and it leaked anyway
   (scoped vs unscoped QDBus enums, QSpinBox float coercion). Import Qt names
-  from `selfdrive/ui/eop/qt.py` rather than from `PyQt5` directly: it is the
+  from `selfdrive/ui/qt.py` rather than from `PyQt5` directly: it is the
   one place a future Qt move gets edited. Write `Signal`, not `pyqtSignal`.
   Note PyQt5 is GPLv3 or a paid Riverbank licence while openpilot is MIT, so
   the licence question has to be settled before anything is distributed —
   a recorded choice for a research project, not an oversight.
-- **Run it**: `PYTHONPATH=. python3 -m openpilot.selfdrive.ui.eop.main --demo`
+- **Run it**: `PYTHONPATH=. python3 -m openpilot.selfdrive.ui.main --demo`
 - **Test it**: `./test.sh` now includes the UI suite, or directly with
-  `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/eop/tests
-  -c selfdrive/ui/eop/tests/pytest.ini --noconftest`
+  `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/tests
+  -c selfdrive/ui/tests/pytest.ini --noconftest`
 - **Not yet verified on hardware**: the VisionIPC/EGL camera path and which Qt
   platform plugin the device runs. See `docs/eop10/EOP10_PORT_PLAN.md` P1.
 

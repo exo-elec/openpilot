@@ -8,6 +8,20 @@
 # to do with the driving UI.
 Import('env', 'arch', 'common')
 
+# Compile translations. The Python UI reads .qm files from disk rather than
+# from a Qt resource, so this is just lrelease over the .ts sources -- no
+# qt_env, no rcc, no moc. lrelease ships in qttools5-dev-tools.
+import json
+with open(File("translations/languages.json").abspath) as f:
+  languages = json.load(f)
+
+ts_files = [f"#selfdrive/ui/translations/{stem}.ts" for stem in languages.values()]
+qm_files = [src.replace(".ts", ".qm") for src in ts_files]
+translations = env.Command(qm_files, ts_files, "lrelease -silent $SOURCES")
+env.NoClean(ts_files)
+env.Precious(ts_files)
+env.Alias('translations', translations)
+
 if GetOption('extras') and arch != "Darwin":
   raylib_env = env.Clone()
   raylib_env['LIBPATH'] += ['#third_party/raylib/build/raylib']
