@@ -3,8 +3,10 @@
 
 This module is the BLE CENTRAL counterpart to ble_gatt.py (which is the
 PERIPHERAL for the NavPilot phone app). It connects to up to 4 ESP32-S3
-corner radar nodes, each of which runs an on-node tracker and streams an
-ARS408-style tracked-object list over GATT notifications. Cross-repo
+corner radar nodes, each of which runs an on-node Kalman tracker with
+occlusion coasting and streams the resulting tracked-object list over GATT
+notifications, in a wire shape strictly matching the real NanoRadarCore
+Radar3D vendor protocol (id/range/velocity/azimuth/elevation/SNR). Cross-repo
 reference: ESP32_RADAR/docs/ble-tracked-objects.md.
 
 GATT CONTRACT (the ESP32 firmware stage-2 BLE server implements against this)
@@ -23,34 +25,32 @@ Each notification carries ONE binary datagram, little-endian throughout:
                              monotonic per node, NOT wall-clock, NOT synced
                              across corners
 
-    Object record (16 bytes) × count:
-        u32 track_id         stable across frames, no reuse within a boot
-        i16 range_cm         range_m * 100
-        i16 vel_mps_x100     vRel * 100, NEGATIVE = approaching
-        i16 azimuth_deg_x10  azimuth * 10, 0=forward, +left
+    Object record (14 bytes) × count — 2026-09-16 redesign, strictly
+    vendor-alike (matches the real NanoRadarCore Radar3D protocol's own
+    id/P/R/V/A/E fields exactly, see ESP32_RADAR's wire_format.h):
+        u32 track_id         Kalman-confirmed, stable within a boot
+        i16 range_cm         range_m * 100 — true leveled 3D range, NOT
+                             ground-flattened
+        i16 vel_mps_x100     vRel * 100, NEGATIVE = approaching (radial only)
+        i16 azimuth_deg_x10  azimuth * 10, 0=forward, +left, LEVELED
+        i16 elevation_deg_x10 elevation * 10, 0=boresight, +up, LEVELED
         i16 snr_db_x10       snr * 10
-        u8  existence_prob   0..100 (percent)
-        u8  flags            bit0=measured (fresh detection, not coasted),
-                             bit1=is_static (stationary clutter),
-                             bit2=ttc_valid (sender computes ttc_ms, so it is
-                             authoritative INCLUDING 0 — see below)
-        u16 ttc_ms           node-computed time-to-collision, ms. 0 = no closing
-                             trajectory, 65535 = saturated (~65.5 s). Took over
-                             the u16 that was `reserved`, so the record is still
-                             16 bytes (4+2+2+2+2+1+1+2).
-                             The NODE computes this because we cannot: the fields
-                             above are polar position plus RADIAL Doppler, and
-                             radial rate cannot separate an object converging on
-                             us from one crossing harmlessly past. That needs the
-                             Cartesian [vx,vy] the node's Kalman tracker holds
-                             and does not transmit.
-                             ttc_valid is what makes 0 actionable: set, 0 means
-                             "node evaluated it, not closing" and we must NOT
-                             substitute our own range/rate estimate (that is the
-                             over-alarming estimate this field replaces); clear,
-                             the sender predates TTC and we keep our estimate.
 
-Max 12 objects per datagram → 8 + 12*16 = 200 bytes, fitting a 244-byte
+    existence_prob/flags(measured/is_static/ttc_valid)/ttc_ms are GONE as of
+    2026-09-16 — the on-node Kalman filter + occlusion coasting that
+    produces track_id/range/azimuth/elevation/velocity is unchanged (still
+    the most reliable data the node can deliver), but those wire-level
+    value-adds had no equivalent in the real sensor's own protocol and were
+    removed as dead code. TTC specifically has NO replacement: it needed the
+    Cartesian [vx,vy] the node's Kalman tracker holds, which was never on
+    the wire either and cannot be reconstructed from radial velocity alone
+    — see _fill_objects()'s and _publish()'s comments below for how this
+    module degrades (existenceProb/ttcS -> NaN, ttcValid -> False, measured
+    -> True, dynProp -> assume-moving; downstream safetyd consumers fall
+    back to their distance-only zone, the same path already built for a
+    pre-TTC node).
+
+Max 12 objects per datagram → 8 + 12*14 = 176 bytes, fitting a 244-byte
 BLE 5 ATT MTU with margin. Fixed-point conventions (cm, deg×10, x100
 scalings) deliberately mirror ESP32_RADAR/00_common/wire_format so both
 repositories share one house convention.
@@ -720,24 +720,35 @@ class BLECentral:
             objects[i].corner = corner
             objects[i].rangM = obj['rangM']
             objects[i].azimuthDeg = obj['azimuthDeg']
+            objects[i].elevationDeg = obj['elevationDeg']  # NEW 2026-09-16 --
+                 # always real now, was previously dropped here even when the
+                 # (then-optional) wire field existed. See custom.capnp's
+                 # elevationDeg comment.
             objects[i].vRel = obj['vRel']
             objects[i].aRel = math.nan          # not carried on the BLE datagram
             objects[i].snrDb = obj['snrDb']
-            objects[i].existenceProb = obj['existenceProb']
-            objects[i].measured = obj['measured']
-            # ARS-style dynProp: 0=stationary, 1=moving — derived from is_static
-            objects[i].dynProp = 0 if obj['isStatic'] else 1
+            # existenceProb/measured/dynProp/ttcS/ttcValid all lost their wire
+            # source 2026-09-16: the BLE record was simplified to strictly
+            # match the real NanoRadarCore Radar3D vendor protocol (id/range/
+            # velocity/azimuth/elevation/SNR only — see hal's radar2d.py
+            # header comment) with existence-probability/measured-vs-coasted/
+            # TTC removed as tracker-derived value-adds no vendor sensor
+            # carries. The on-node Kalman tracker + occlusion coasting still
+            # produces confirmed, quality-filtered tracks (unchanged) — only
+            # these five DERIVED fields are now unavailable. Defaults below
+            # are the most honest "we don't know" values this Bool/UInt8
+            # schema can represent (Float32 fields use NaN like aRel above;
+            # measured/dynProp can't be NaN, so default toward NOT
+            # suppressing the safety zone rather than silently going blind —
+            # see _publish()'s matching change below).
+            objects[i].existenceProb = math.nan
+            objects[i].measured = True
+            objects[i].dynProp = 1  # ARS-style: assume moving (safer default
+                                     # for a proximity gate than stationary)
             objects[i].lengthM = 0.0            # unknown — not carried on the datagram
             objects[i].widthM = 0.0
-            # Node-computed TTC (the node is the only side that can — see the
-            # ttcS comment in custom.capnp). NaN when the node reports no
-            # closing trajectory, and also when it predates the field: it
-            # zero-fills what was a reserved u16 and the hal decoder maps that
-            # zero to NaN rather than to 0.0 s, which would read as an imminent
-            # collision on every legacy frame. .get() additionally tolerates an
-            # older hal decoder that does not emit the key at all.
-            objects[i].ttcS = obj.get('ttcS', math.nan)
-            objects[i].ttcValid = bool(obj.get('ttcValid', False))
+            objects[i].ttcS = math.nan
+            objects[i].ttcValid = False
 
     def _publish(self) -> bool:
         """GLib timeout: publish merged radar2d at PUBLISH_HZ from latest frames."""
@@ -756,15 +767,26 @@ class BLECentral:
         self._fill_objects(r2d, entries)
 
         # Legacy returns: one per cereal side, derived from live corners.
-        # present = any measured object from that corner;
-        # vRel = strongest approaching (most negative vRel) measured object.
+        # present = any confirmed tracked object from that corner;
+        # vRel = strongest approaching (most negative vRel) object.
+        #
+        # Previously filtered to `measured` objects only (fresh detection,
+        # not coasted) -- that distinction no longer exists on the wire
+        # (2026-09-16, see _fill_objects()'s comment above): every object
+        # in `objects` is now an on-node Kalman-confirmed track, whether
+        # freshly re-detected or currently coasting through a brief
+        # occlusion, with no way to tell which host-side. Using the full
+        # set errs toward NOT going blind (a coasted object still counts
+        # as present) rather than the alternative of filtering on an
+        # always-True/False placeholder, which would make this either a
+        # no-op filter or silence the zone entirely.
         returns = r2d.init('returns', len(CORNER_TO_SIDE))
         for corner, side in sorted(CORNER_TO_SIDE.items(), key=lambda kv: kv[1]):
             ret = returns[side]
             ret.side = side
-            measured = [o for o in live.get(corner, {}).get('objects', []) if o['measured']]
-            ret.present = bool(measured)
-            approaching = [o['vRel'] for o in measured if o['vRel'] < 0.0]
+            corner_objects = live.get(corner, {}).get('objects', [])
+            ret.present = bool(corner_objects)
+            approaching = [o['vRel'] for o in corner_objects if o['vRel'] < 0.0]
             ret.vRel = min(approaching) if approaching else math.nan
         self._pm.send('radar2d', msg)
         return True
