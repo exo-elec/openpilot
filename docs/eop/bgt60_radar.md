@@ -33,11 +33,17 @@ from the BGT60 era):
 ```
 ../exopilot/hal/hal/drivers/radar/radar4d.py      ← UDP wire decode (RadarCornerReceiver,
                                                       CornerFrame, decode_corner_packet)
-../exopilot/hal/hal/drivers/radar/bgt60tr13c.py   ← shared RadarDetection dataclass
+../exopilot/hal/hal/drivers/radar/detection.py    ← shared RadarDetection dataclass
                                                       (range_m, vel_mps, azimuth_deg,
                                                       elevation_deg, snr_db, is_static, track_id)
+                                                      + compensate_ego_velocity()/
+                                                      threshold_filter()/filter_crossing_noise()
+                                                      (generic) -- relocated 2026-09-15 when
+                                                      bgt60tr13c.py/dsp.py (BGT60 direct-SPI
+                                                      driver + raw-ADC FFT/CFAR/AoA pipeline,
+                                                      retired now that BGT60 lives only on
+                                                      ESP32 corner nodes) were deleted
 ../exopilot/hal/hal/drivers/radar/ego_velocity.py ← RANSAC/GNC ego-speed estimation (generic)
-../exopilot/hal/hal/drivers/radar/dsp.py          ← compensate_ego_velocity() (generic)
 
 selfdrive/controls/radar4d.py           ← cereal daemon (Radar4DD, process name "radar4d")
 selfdrive/controls/radar4d_tracker.py   ← KalmanTrackManager (EKF + occlusion coasting)
