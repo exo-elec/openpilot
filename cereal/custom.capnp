@@ -1161,45 +1161,65 @@ struct Radar2DObject @0xc4d5e6f7a8092131 {
   # per-corner mounting pose.
   trackId       @0 :UInt64;   # stable track ID from the on-node tracker
   corner        @1 :UInt8;    # 0=FL, 1=FR, 2=RL, 3=RR — matches ESP32_RADAR radar_corner_id_t
-  rangM         @2 :Float32;  # radial distance to object center (m)
-  azimuthDeg    @3 :Float32;  # deg, 0=sensor boresight, +left, -right
+  rangM         @2 :Float32;  # radial distance to object center (m) — true leveled
+                              # 3D range, NOT ground-flattened (2026-09-16); a
+                              # ground-only distance is rangM * cos(elevationDeg)
+  azimuthDeg    @3 :Float32;  # deg, 0=sensor boresight, +left, -right, LEVELED
+                              # (roll/pitch-corrected on-node)
   vRel          @4 :Float32;  # Doppler relative velocity (m/s), NEGATIVE = approaching
   aRel          @5 :Float32;  # relative acceleration (m/s^2), NaN if unavailable
   snrDb         @6 :Float32;  # peak SNR dB — proxy for radar cross section (RCS)
-  existenceProb @7 :Float32;  # 0-100, from tracker confirm hit-streak (same convention as Radar4DObject)
-  measured      @8 :Bool;     # false = coasted through occlusion, predict-only this frame
-  dynProp       @9 :UInt8;    # ARS-style: 0=stationary, 1=moving, 2=stopped
+  existenceProb @7 :Float32;  # ALWAYS NaN as of 2026-09-16 -- the BLE wire record
+                              # was simplified to strictly match the real
+                              # NanoRadarCore Radar3D vendor protocol (id/range/
+                              # velocity/azimuth/elevation/SNR only); no vendor
+                              # equivalent exists, so this tracker-derived value-add
+                              # was removed as dead code. Field kept (not removed)
+                              # for wire/schema stability; NaN is this schema's
+                              # existing "unavailable" convention, same as aRel.
+  measured      @8 :Bool;     # ALWAYS true as of 2026-09-16 -- the fresh-vs-coasted
+                              # distinction no longer exists on the wire (same
+                              # removal as existenceProb above); every object here
+                              # is still an on-node Kalman-confirmed track, just
+                              # without that finer distinction available host-side.
+  dynProp       @9 :UInt8;    # ALWAYS 1 (assume moving) as of 2026-09-16 -- was
+                              # derived from an is_static flag no longer on the
+                              # wire (same removal as existenceProb above); assumed
+                              # moving rather than stationary as the safer default
+                              # for a proximity-safety consumer.
   lengthM       @10 :Float32; # estimated object length (m), forward axis
   widthM        @11 :Float32; # estimated object width (m), lateral axis
-  ttcS          @12 :Float32; # node-computed time-to-collision (s), NaN if unavailable.
-                              # The NODE computes this, not us, and that is not an
-                              # arbitrary split: the fields above carry polar position
-                              # plus RADIAL Doppler only, and radial rate cannot separate
-                              # an object converging on us from one crossing harmlessly
-                              # past. That needs the full Cartesian [vx,vy] the node's
-                              # Kalman tracker holds and does not transmit, so the
-                              # trajectory judgement is made on-node and shipped.
-                              # Direction-agnostic by construction — a perpendicular
-                              # pass yields NaN, a diagonal cut-in yields a real TTC,
-                              # whatever bearing it arrives from — and independent of
-                              # mounting pose, which matters on an aftermarket install
-                              # whose yaw is not known.
-                              # NOT tiered: ISO 17387 sets the closing-vehicle-warning
-                              # criterion at 2.5/3.0/3.5 s TTC selected by ego speed, and
-                              # ego speed is authoritative HERE, not on the node (whose
-                              # vehicle_state input is optional and freshness-gated), so
-                              # threshold selection belongs to this side. See
-                              # selfdrive/controls/lib/radar_zones.py.
+  ttcS          @12 :Float32; # ALWAYS NaN as of 2026-09-16 -- the node no longer
+                              # computes or ships this (same wire simplification as
+                              # existenceProb above): it needed the Cartesian
+                              # [vx,vy] the Kalman tracker holds, which was never on
+                              # the wire either and cannot be reconstructed from
+                              # radial velocity alone. ttcValid below is always
+                              # false to match -- consumers (e.g. openrobot's
+                              # safetyd) fall back to their distance-only zone, the
+                              # same path already built for a pre-TTC node.
+                              # (Historical, while this was live: NOT tiered here --
+                              # ISO 17387 sets the closing-vehicle-warning criterion
+                              # at 2.5/3.0/3.5 s TTC selected by ego speed, and ego
+                              # speed is authoritative on this side, not the node
+                              # (whose vehicle_state input is optional and
+                              # freshness-gated), so threshold selection belonged
+                              # here — see selfdrive/controls/lib/radar_zones.py.
                               # Constant-velocity extrapolation, inherited from the
-                              # node's KF: a warning signal, not a safety interlock.
-  ttcValid      @13 :Bool;    # true = the sender computes ttcS, so it is authoritative
-                              # INCLUDING an absent/NaN value, which then means "node
-                              # evaluated this object and it is NOT closing" rather than
-                              # "no opinion". A consumer must not substitute its own
-                              # range/radial-rate estimate in that case — that estimate
-                              # is what over-alarms on crossing traffic, so doing so
-                              # re-alarms precisely what the node just cleared.
-                              # false = sender predates TTC; keep the local estimate.
+                              # node's KF: a warning signal, not a safety interlock.)
+  ttcValid      @13 :Bool;    # ALWAYS false as of 2026-09-16, matching ttcS above --
+                              # true meant the sender computes ttcS, so it is
+                              # authoritative INCLUDING an absent/NaN value ("node
+                              # evaluated this object and it is NOT closing" rather
+                              # than "no opinion"); false means keep the local
+                              # estimate, which is what every consumer now does.
+  elevationDeg  @14 :Float32; # deg, 0=sensor boresight, +up, LEVELED
+                              # (roll/pitch-corrected on-node). NEW 2026-09-16 --
+                              # always real now (was previously unavailable);
+                              # the vendor protocol's own "E" field. Ground-only
+                              # distance from rangM is rangM * cos(elevationDeg)
+                              # (see rangM's comment above) -- not done here,
+                              # left to the consumer that needs it.
 }
 
 struct Radar2D @0xe3f4a5b6c7d80920 {
