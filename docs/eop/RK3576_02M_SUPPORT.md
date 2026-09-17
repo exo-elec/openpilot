@@ -293,6 +293,22 @@ an RTCM correction source exists; none does yet, so nothing calls it.
 
 **`RK3576Hardware` (this repo)**: `WIFI_CHIP`/`BT_CHIP`/`UART` now pulled
 through from the HAL the same way `GPIO`/`CELLULAR` already were.
+
+**Correction (2026-09-17, user-directed)**: the "AP6398S" identity recorded
+above never matched the real trial board — it was a paper/planned spec
+that was never actually populated. The physical board has always had
+**AP6256** (single-antenna WiFi5). This was a real functional bug, not
+just stale prose: exopilot's DTS `wifi_chip_type = "ap6398s"` would have
+made brcmfmac try to load BCM4359 firmware onto real BCM43456 (AP6256)
+silicon and fail to bring WiFi up entirely. Fixed throughout exopilot
+(DTS, hal/platform/{rk3576_pins,boards}.py, docs) and here. Separately,
+the team has decided to revise the board to **AP6275S** (WiFi6, DBDC —
+genuine concurrent 2.4GHz AP + 5GHz STA on one radio, unlike AP6256/
+AP6398S which are both same-band-only) — see exopilot's
+`docs/02-HARDWARE/wifi_corner_nodes.md` for the full writeup. This is a
+PCB footprint change (different package family from AP6256), not yet
+built. WiFi-based `radar4d` (ESP32_RADAR corner nodes) remains scoped to
+this branch (`dev/02M`) only — `dev/EOP10`/`dev/01M` do not support it.
 `get_capabilities()` gained `WIFI`/`BLUETOOTH`/`GPS`/`CELLULAR` — **not**
 `RTK`, deliberately: no RTCM correction path exists (no NTRIP client), so
 claiming it would let `coordinationd/fusion.py`'s `is_rtk` branch trust an
