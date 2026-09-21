@@ -251,7 +251,11 @@ VEHICLE_PIDS: dict[VehicleType, dict[str, tuple]] = {
 }
 
 
-# VIN WMI to vehicle type mapping
+# VIN WMI to vehicle type mapping.
+# Single source of truth: system/bluetoothd/protocol.py imports this rather than
+# keeping its own copy. The two had drifted apart in their fallback (see
+# detect_vehicle_type_from_wmi below), which gave the same VIN a different PID
+# table over BLE than over OBD.
 VEHICLE_WMI_MAP = {
     'LGX': ('byd', 'BYD'),
     'SGS': ('mg', 'MG'),
@@ -261,6 +265,25 @@ VEHICLE_WMI_MAP = {
     'LB3': ('geely', 'GEELY'),
     'LVV': ('chery', 'CHERY'),
 }
+
+
+def detect_vehicle_type_from_wmi(vin: str) -> tuple[str, str]:
+    """Detect (vehicle_type, make) from a VIN's 3-character WMI alone.
+
+    Returns the value strings, not the enum, because the BLE capability
+    handshake reports them as strings. An unlisted 'L' WMI is a Chinese
+    manufacturer we do not have a PID table for, so it gets the generic EV
+    table rather than the generic ICE one.
+    """
+    if not vin or len(vin) < 3:
+        return ('generic_ice', 'Unknown')
+
+    wmi = vin[:3].upper()
+    if wmi in VEHICLE_WMI_MAP:
+        return VEHICLE_WMI_MAP[wmi]
+    if wmi.startswith('L'):
+        return (VehicleType.GENERIC_EV.value, 'Unknown')
+    return (VehicleType.GENERIC_ICE.value, 'Unknown')
 
 
 def detect_vehicle_type(vin: str, vehicle_info: dict | None = None) -> VehicleType:
@@ -317,6 +340,12 @@ def detect_vehicle_type(vin: str, vehicle_info: dict | None = None) -> VehicleTy
         return VehicleType.GENERIC_ICE
     elif vin_upper.startswith('J'):
         return VehicleType.GENERIC_ICE
+
+    # Unlisted Chinese manufacturer: same call detect_vehicle_type_from_wmi makes.
+    # This branch used to be missing here and present only in the BLE path, so an
+    # unlisted 'L' VIN got the EV PID table over BLE and the ICE one over OBD.
+    elif vin_upper.startswith('L'):
+        return VehicleType.GENERIC_EV
 
     # Default fallback
     return VehicleType.GENERIC_ICE

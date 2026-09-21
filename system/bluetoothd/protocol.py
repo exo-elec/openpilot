@@ -56,6 +56,7 @@ import json
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
+from openpilot.selfdrive.obd2d.vehicle_db import detect_vehicle_type_from_wmi
 from openpilot.system.hardware import HARDWARE
 
 PROTOCOL_VERSION = "4.1.0"
@@ -353,41 +354,10 @@ def parse_navigate_command(payload: dict) -> tuple[float, float, str | None, str
 # Vehicle Type Detection Helpers
 # ---------------------------------------------------------------------------
 
-VEHICLE_WMI_MAP = {
-    'LGX': ('byd', 'BYD'),
-    'SGS': ('mg', 'MG'),
-    'LWV': ('gac', 'GAC'),
-    'LS5': ('changan', 'CHANGAN'),
-    'LGW': ('gwm', 'GWM'),
-    'LB3': ('geely', 'GEELY'),
-    'LVV': ('chery', 'CHERY'),
-}
-
-
-def detect_vehicle_type_from_vin(vin: str) -> tuple[str, str]:
-    """Detect vehicle type and make from VIN.
-
-    Args:
-        vin: Vehicle Identification Number (17 characters)
-
-    Returns:
-        (vehicle_type, make) tuple
-    """
-    if not vin or len(vin) < 3:
-        return ('generic_ice', 'Unknown')
-
-    wmi = vin[:3].upper()
-
-    if wmi in VEHICLE_WMI_MAP:
-        return VEHICLE_WMI_MAP[wmi]
-
-    # Chinese manufacturer = likely EV
-    if wmi.startswith('L'):
-        return ('generic_ev', 'Unknown')
-
-    return ('generic_ice', 'Unknown')
-
-
-def is_chinese_ev(vehicle_type: str) -> bool:
-    """Check if vehicle type uses Mode 22 PIDs."""
-    return vehicle_type in ('byd', 'mg', 'gac', 'changan', 'gwm', 'geely', 'chery')
+# VEHICLE_WMI_MAP, detect_vehicle_type_from_vin and is_chinese_ev used to be
+# defined here as a second copy of the tables in selfdrive/obd2d/vehicle_db.py.
+# The maps stayed identical but the fallbacks drifted: this module returned
+# 'generic_ev' for an unlisted 'L' WMI while vehicle_db returned 'generic_ice',
+# so the same VIN selected a different PID table over BLE than over OBD.
+# vehicle_db owns them now; both paths agree on the EV fallback.
+detect_vehicle_type_from_vin = detect_vehicle_type_from_wmi
