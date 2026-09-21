@@ -231,6 +231,27 @@ After rebasing, re-run `./test.sh` on each branch.
 
 ## Recent Bug Fixes
 
+**`opendbc_repo` pin predated the BYD port — submodule (2026-09-21):**
+- The `opendbc_repo` gitlink sat at `49d4849` (2026-08-23), 56 commits behind
+  `exo-elec/opendbc` master and *before* `2236aeb`, the commit that adds BYD. At that
+  pin the submodule has no `opendbc/car/byd/`, no `byd_*.dbc` and no
+  `safety/modes/byd.h`, so none of the BYD protocol work was reachable from an
+  openpilot build — the car simply did not exist as far as this tree was concerned.
+  Bumped to `6c0fbcd`. `49d4849` is an ancestor, so it was a stale pin, not a divergence.
+- Found by a cross-repo protocol audit covering `BYD_Atto3`, `opendbc` and this tree;
+  see `opendbc/docs/BYD_ATTO3_QZWF_REFERENCE_PORT.md` and
+  `BYD_Atto3/DOC/protocol_consistency_audit.md`. **When changing anything that depends
+  on an opendbc car port, check the gitlink is recent enough to contain it.**
+
+**Duplicated vehicle-identification tables drifted — obd2d/bluetoothd (2026-09-21):**
+- `VEHICLE_WMI_MAP`, the VIN→type lookup and `is_chinese_ev()` were defined twice, in
+  `selfdrive/obd2d/vehicle_db.py` and `system/bluetoothd/protocol.py`. The maps stayed
+  identical but the *fallbacks* diverged: `protocol.py` returned `generic_ev` for an
+  unlisted `L` WMI where `vehicle_db.py` returned `generic_ice`, so the same VIN
+  selected a different Mode 22 PID table over BLE than over OBD.
+- `vehicle_db.py` owns them now (`detect_vehicle_type_from_wmi()`), `protocol.py`
+  imports, and the EV fallback applies on both paths.
+
 **`_FuseHost` test double out of sync with `GridD` — gridd (2026-08-10):**
 - `fix(gridd): wire up load_corner_poses()` (c9b5df77f) moved
   `_fuse_radar2d_objects`'s corner-pose lookup from the `_R2D_CORNER_POSE`
@@ -296,7 +317,7 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 ---
 
-**Last updated**: 2026-08-16  
+**Last updated**: 2026-09-21  
 **Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
 
 ---
