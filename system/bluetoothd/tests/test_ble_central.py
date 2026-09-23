@@ -47,21 +47,19 @@ class FakeParams:
 
 def encode_datagram(corner_id: int, seq: int, capture_time_us: int,
                     objects: list[dict]) -> bytes:
-    """Test-side encoder mirroring the ESP32 wire format (see ble_central docstring)."""
+    """Test-side encoder mirroring the ESP32 wire format (see ble_central
+    docstring): 8-byte header + 14-byte records (track_id, range_cm,
+    vel_mps_x100, azimuth_deg_x10, elevation_deg_x10, snr_db_x10) -- the
+    2026-09-16 vendor-alike layout, no existence/flags/ttc fields."""
     data = HEADER_STRUCT.pack(corner_id, len(objects), seq, capture_time_us)
     for o in objects:
-        flags = (0x01 if o.get('measured', False) else 0) | (0x02 if o.get('isStatic', False) else 0)
         data += OBJECT_STRUCT.pack(
             o['trackId'],
             int(round(o['rangM'] * 100)),
             int(round(o['vRel'] * 100)),
             int(round(o['azimuthDeg'] * 10)),
+            int(round(o.get('elevationDeg', 0.0) * 10)),
             int(round(o['snrDb'] * 10)),
-            int(round(o['existenceProb'])),
-            flags,
-            o.get('ttcMs', 0),  # ttc_ms; 0 = none/not computed, which is also
-                                # what a pre-TTC node zero-fills into this u16
-                                # (it used to be `reserved`)
         )
     return data
 
@@ -72,7 +70,7 @@ class TestDecodeObjectDatagram:
     def test_round_trip_single_object(self):
         objs = [{
             'trackId': 42, 'rangM': 12.34, 'vRel': -3.21, 'azimuthDeg': 25.5,
-            'snrDb': 18.7, 'existenceProb': 95.0, 'measured': True, 'isStatic': False,
+            'elevationDeg': -4.5, 'snrDb': 18.7,
         }]
         frame = decode_object_datagram(encode_datagram(0, 7, 123456, objs))
         assert frame is not None
@@ -85,39 +83,28 @@ class TestDecodeObjectDatagram:
         assert obj['rangM'] == 12.34
         assert obj['vRel'] == -3.21
         assert obj['azimuthDeg'] == 25.5
+        assert obj['elevationDeg'] == -4.5
         assert obj['snrDb'] == 18.7
-        assert obj['existenceProb'] == 95.0
-        assert obj['measured'] is True
-        assert obj['isStatic'] is False
 
-    def test_round_trip_ttc(self):
-        """TTC survives the round trip in seconds."""
-        objs = [{
-            'trackId': 5, 'rangM': 10.0, 'vRel': -5.0, 'azimuthDeg': 0.0,
-            'snrDb': 20.0, 'existenceProb': 90.0, 'measured': True,
-            'isStatic': False, 'ttcMs': 2000,
-        }]
-        frame = decode_object_datagram(encode_datagram(0, 1, 1, objs))
-        assert frame['objects'][0]['ttcS'] == 2.0
+    def test_record_is_14_bytes(self):
+        """2026-09-16 vendor-alike record: id/range/velocity/azimuth/elevation/SNR."""
+        assert OBJECT_STRUCT.size == 14
+        assert HEADER_STRUCT.size == 8
 
-    def test_round_trip_ttc_none_is_nan(self):
-        """A node reporting no closing trajectory (or a pre-TTC node, which
-        zero-fills the old reserved u16) must decode as NaN — never 0.0 s,
-        which would read as an imminent collision."""
-        import math
-        objs = [{
-            'trackId': 5, 'rangM': 10.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
-            'snrDb': 20.0, 'existenceProb': 90.0, 'measured': True,
-            'isStatic': False,  # no ttcMs -> encoder writes 0
-        }]
-        frame = decode_object_datagram(encode_datagram(0, 1, 1, objs))
-        assert math.isnan(frame['objects'][0]['ttcS'])
+    def test_removed_fields_absent(self):
+        """existenceProb/measured/isStatic/ttc left the wire 2026-09-16 --
+        the decoder must not invent them (ble_central fills its own
+        honest defaults at publish time)."""
+        objs = [{'trackId': 5, 'rangM': 10.0, 'vRel': -5.0, 'azimuthDeg': 0.0,
+                 'snrDb': 20.0}]
+        obj = decode_object_datagram(encode_datagram(0, 1, 1, objs))['objects'][0]
+        for gone in ('existenceProb', 'measured', 'isStatic', 'ttcS'):
+            assert gone not in obj
 
     def test_round_trip_max_objects(self):
         objs = [{
             'trackId': 1000 + i, 'rangM': 1.0 + i, 'vRel': 0.0, 'azimuthDeg': -45.0,
-            'snrDb': 10.0, 'existenceProb': 50.0, 'measured': i % 2 == 0,
-            'isStatic': i % 2 == 1,
+            'elevationDeg': float(i), 'snrDb': 10.0,
         } for i in range(MAX_OBJECTS_PER_DATAGRAM)]
         raw = encode_datagram(3, 65535, 0, objs)
         assert len(raw) == HEADER_STRUCT.size + MAX_OBJECTS_PER_DATAGRAM * OBJECT_STRUCT.size
@@ -127,8 +114,8 @@ class TestDecodeObjectDatagram:
         assert frame['count'] == MAX_OBJECTS_PER_DATAGRAM
         assert frame['seq'] == 65535
         assert [o['trackId'] for o in frame['objects']] == [1000 + i for i in range(MAX_OBJECTS_PER_DATAGRAM)]
-        assert frame['objects'][0]['measured'] is True
-        assert frame['objects'][1]['isStatic'] is True
+        assert [o['elevationDeg'] for o in frame['objects']] == \
+            [float(i) for i in range(MAX_OBJECTS_PER_DATAGRAM)]
 
     def test_empty_frame(self):
         frame = decode_object_datagram(encode_datagram(2, 0, 42, []))
@@ -136,17 +123,18 @@ class TestDecodeObjectDatagram:
         assert frame['count'] == 0
         assert frame['objects'] == []
 
-    def test_flags_bit_packing(self):
+    def test_elevation_sign(self):
+        """Elevation is always on the wire now; +up / -down must survive."""
         objs = [{'trackId': 1, 'rangM': 1.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
-                 'snrDb': 0.0, 'existenceProb': 0.0, 'measured': True, 'isStatic': True}]
+                 'elevationDeg': 12.3, 'snrDb': 0.0},
+                {'trackId': 2, 'rangM': 1.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
+                 'elevationDeg': -12.3, 'snrDb': 0.0}]
         frame = decode_object_datagram(encode_datagram(1, 1, 1, objs))
-        assert frame['objects'][0]['measured'] is True
-        assert frame['objects'][0]['isStatic'] is True
+        assert [o['elevationDeg'] for o in frame['objects']] == [12.3, -12.3]
 
     def test_i16_saturation_values(self):
         objs = [{'trackId': 0xFFFFFFFF, 'rangM': 327.67, 'vRel': -327.68,
-                 'azimuthDeg': -3276.8, 'snrDb': 3276.7, 'existenceProb': 100.0,
-                 'measured': False, 'isStatic': False}]
+                 'azimuthDeg': -3276.8, 'elevationDeg': 3276.7, 'snrDb': 3276.7}]
         frame = decode_object_datagram(encode_datagram(0, 0, 0, objs))
         obj = frame['objects'][0]
         assert obj['trackId'] == 0xFFFFFFFF
@@ -169,7 +157,7 @@ class TestMalformedDatagrams:
     def test_length_count_mismatch_short(self):
         # count=2 but only 1 record present
         objs = [{'trackId': 1, 'rangM': 1.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
-                 'snrDb': 0.0, 'existenceProb': 0.0}]
+                 'snrDb': 0.0}]
         raw = bytearray(encode_datagram(0, 0, 0, objs))
         raw[1] = 2
         assert decode_object_datagram(bytes(raw)) is None
@@ -181,7 +169,7 @@ class TestMalformedDatagrams:
 
     def test_truncated_record(self):
         objs = [{'trackId': 1, 'rangM': 1.0, 'vRel': 0.0, 'azimuthDeg': 0.0,
-                 'snrDb': 0.0, 'existenceProb': 0.0}]
+                 'snrDb': 0.0}]
         raw = encode_datagram(0, 0, 0, objs)[:-1]
         assert decode_object_datagram(raw) is None
 
@@ -367,7 +355,7 @@ class TestFramePathAuthorization:
     def _feed(self, central: BLECentral, corner: int = 0, path: str | None = None):
         raw = encode_datagram(corner, 1, 100, [{
             'trackId': 7, 'rangM': 5.0, 'vRel': -1.0, 'azimuthDeg': 10.0,
-            'snrDb': 20.0, 'existenceProb': 90.0, 'measured': True,
+            'snrDb': 20.0,
         }])
         central._on_properties_changed(
             GATT_CHAR_IFACE, {'Value': raw}, [], path=path or self.PATH)
