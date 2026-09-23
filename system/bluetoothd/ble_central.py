@@ -124,7 +124,8 @@ unit additionally requires these eligibility factors:
        carries manufacturer data [u16 LE company id 0x02E5 (Espressif)]
        [6-byte WiFi STA MAC]; the claimed MAC must be in OUR vehicle's
        roster: the WiFi MAC ACL (/etc/hostapd/ap0.accept, maintained by
-       pair_corner_nodes.sh) UNION the BLERadarRoster param. The param
+       pair_corner_nodes.sh; 02M only, the only hardware with the
+       corner-node WiFi antenna) UNION the BLERadarRoster param. The param
        exists for BLE-only nodes (ESP32_RADAR dev/v1 has no WiFi, so it
        never joins the AP and pair_corner_nodes.sh cannot learn it): the
        operator enters the factory WiFi STA MAC from the unit's label /
@@ -144,7 +145,7 @@ re-qualification: it proved its identity when it was learned.
 
 MSGQ SINGLE-PUBLISHER WARNING: msgq allows exactly ONE publisher per
 service. When EOPBluetoothRadarEnabled is set, THIS module owns `radar2d`.
-Any WiFi/UDP corner-radar daemon (visionpilot's radar_corner_node path)
+Any other corner-radar daemon (e.g. a WiFi/UDP point-cloud receiver)
 MUST NOT publish `radar2d` at the same time or msgq will reject one of them.
 """
 from __future__ import annotations
