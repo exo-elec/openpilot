@@ -1,5 +1,11 @@
 # EOP10 on VisionPilot — Port Plan & Linkage Analysis
 
+> **History record (2026-09-23).** VisionPilot, the ROS 2 stack this document
+> compares against and ports from, is no longer developed. openpilot is the
+> only stack: `dev/01M`/`dev/EOP10` on 01M, `dev/02M` on 02M. The VisionPilot
+> references below record where the ported code came from; they are not a
+> current dependency or target.
+
 **Goal**: `dev/02M` — the ExoPilot 02M line. Same proven openpilot backend as
 `dev/01M`, no ROS 2 anywhere, and a new UI built from the Nagasware and
 VisionPilot design language in place of openpilot's C++/Qt UI — onroad *and*
@@ -724,16 +730,12 @@ regularly is not counted as project time but is not optional either (§1).
 ## 7. Real gaps — things openpilot `dev/EOP10` does not have
 
 ### 7.1 Corner radar / 4D point cloud
-`../visionpilot/src/sensing/radar4d` (BGT60TR13C + Kalman tracker + LiDAR-style output) and
-`../visionpilot/src/sensing/radar_corner` (ESP32-S3, pose calibration, wire format, link store)
-have no openpilot equivalent. openpilot's CLAUDE.md explicitly scopes this
-*to VisionPilot*: *"OpenPilot no longer owns a `radar4d` runtime. Future ESP32
-corner-radar point-cloud work is scoped to VisionPilot."*
-
-This is a genuine architectural question the EOP10 line forces: if VisionPilot's
-ROS2 stack is retired on 02M, that scoping sentence has no home. Either port
-`radar4d`/`radar_corner` as cereal daemons publishing into the existing
-`radar2d` service, or accept that EOP10 ships without them. **Needs a decision.**
+**Decided (2026-09-23).** The ESP32 corner radars are BLE-first on every board:
+`ble_central.py` publishes their tracked objects as `radar2d` and writes ego
+speed/yaw to them. On 02M only (the one board with the antenna for the
+corner-node WiFi AP), ESP32_RADAR `dev/v2` adds a WiFi/UDP point cloud
+(port 47000, decoder `hal.drivers.radar.radar4d`). No openpilot daemon consumes
+that point cloud yet; it is the next add-on feature on `dev/02M`.
 
 ### 7.2 02M 5-camera MIPI capture (critical path)
 `system/v4l2d/_default_camera_configs()` hardcodes 01M's 4 MIPI cameras.

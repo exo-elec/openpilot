@@ -733,7 +733,7 @@ class GridD:
         lane_lines,
         img_shape: tuple,
     ) -> np.ndarray:
-        """Generate semantic costmap - VisionPilot-style fusion.
+        """Generate semantic costmap by fusion.
 
         Uses FusionCostmapGenerator with GPU-assigned compute.
 

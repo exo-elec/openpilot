@@ -20,7 +20,7 @@
 | Platform | SoC | NPU | Status |
 |----------|-----|-----|--------|
 | **ExoPilot 01M** | RK3588 | 6 TOPS (3×2) | 🧪 Design target, not yet hardware-validated — see [RK3588_HARDWARE_VALIDATION_CHECKLIST.md](RK3588_HARDWARE_VALIDATION_CHECKLIST.md) |
-| ExoPilot 02M | RK3576 | 6 TOPS (2×3) | ✗ Not supported by openpilot — VisionPilot only |
+| ExoPilot 02M | RK3576 | 6 TOPS (2×3) | openpilot `dev/02M` (camera capture not yet implemented) |
 
 ---
 
@@ -32,8 +32,7 @@
 | Multi-Camera | ✅ 4 MIPI + 3 USB side/rear |
 | Foxglove Logging | ✅ Parallel MCAP |
 | Offline Nav | ✅ Valhalla + on-device routing |
-| Driver Monitoring | ⚠️ VisionPilot only — not openpilot |
-| System Switching | ✅ Switch to VisionPilot via Settings → Device |
+| Driver Monitoring | ⚠️ Not implemented (no driver camera) |
 | Side Camera Video | ✅ USB UVC streams |
 | Side Camera AI BSD | ✅ Hailo-8 (no fallback policy without it) |
 | Voice Pipeline | ⚠️ Azure voice server — local alert tones only; no on-board mic/STT/TTS |
@@ -56,7 +55,6 @@ See **INFERENCED_INDEX.md** for:
 
 | Category | Location | Purpose |
 |----------|----------|---------|
-| **System Switching** | SYSTEM_SWITCHING.md | openpilot ↔ VisionPilot upgrade chain |
 | **InferenceD** | INFERENCED_INDEX.md | Compute HAL (RKNN, ACL, RGA, MPP) |
 | **Performance** | PHASE4_PERFORMANCE_REPORT.md | Benchmark results & metrics |
 | **Business** | SUBSCRIPTION_BUSINESS_MODEL.md | NavPilot monetization |

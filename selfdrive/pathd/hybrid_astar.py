@@ -6,7 +6,6 @@ Integrates with surfaced BEV drivable area grid to plan kinematically
 feasible paths using Hybrid A* search.
 
 Based on:
-- VisionPilot global_planner/hybrid_astar.py
 - Autoware Universe freespace_planner
 - "Practical Search Techniques in Path Planning for Autonomous Driving" (Dolgov et al.)
 """

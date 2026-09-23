@@ -149,7 +149,7 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     healthDegradedStop @110;  # System degraded, comfortable deceleration
     healthCriticalStop @111;    # System critical, immediate disengage
 
-    # EOP hardware fault events (mirrors VisionPilot fault state pattern)
+    # EOP hardware fault events
     # stereoFault: GPU SGM failed — stereo depth unavailable → IMMEDIATE_DISABLE + NO_ENTRY
     # inferenceFault: NPU/GPU backend unrecoverable — perception unavailable → IMMEDIATE_DISABLE + NO_ENTRY
     # monoFault: mono NPU failed — road/wide perception unavailable → IMMEDIATE_DISABLE + NO_ENTRY
@@ -1355,7 +1355,7 @@ struct LiveCalibrationData {
   }
 }
 
-# EOP: Calibration state for VisionPilot-style integration
+# EOP: Calibration state
 struct CalibrationState {
   status @0 :Status;
   quality @1 :Float32;        # 0.0-1.0 quality score
@@ -1386,7 +1386,7 @@ struct CalibrationState {
   }
 }
 
-# EOP: System state for VisionPilot-style integration
+# EOP: System state
 struct SystemState {
   state @0 :Status;
   calibrationQuality @1 :Float32;
@@ -3493,7 +3493,7 @@ struct Event {
     eopReserved3 @251 :Custom.CustomReserved10;
     eopReserved4 @252 :Custom.CustomReserved11;
     calibrationState @253 :CalibrationState;  # EOP: Multi-camera calibration state
-    systemState @254 :SystemState;             # EOP: VisionPilot-style system state
+    systemState @254 :SystemState;             # EOP: system state
     carState @22 :Car.CarState;
     carControl @23 :Car.CarControl;
     carOutput @127 :Car.CarOutput;

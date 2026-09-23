@@ -1,7 +1,6 @@
 """First-run onboarding.
 
-From VisionPilot's `widgets/onboarding/` -- Nagasware has no onboarding at
-all, so there is nothing to weigh here. Replaces openpilot's
+Nagasware has no onboarding at all, so this is written for EOP. Replaces openpilot's
 qt/offroad/onboarding.cc.
 
 Terms acceptance and training completion are recorded in Params, so the flow

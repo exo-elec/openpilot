@@ -24,7 +24,7 @@ and NCP structured messages simultaneously on the same socket.
 
 Protocol v4.1 Architecture:
 - Phone App (NavPilot, OBD2 Scan, Torque, Car Scanner, etc.) = BLE Client
-- OpenPilot/VisionPilot (Device) = BLE Server (Peripheral/Slave)
+- OpenPilot (Device) = BLE Server (Peripheral/Slave)
 
 Control Flow:
 1. App INITIATES connection to device

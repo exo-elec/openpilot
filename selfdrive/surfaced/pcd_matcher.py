@@ -3,7 +3,7 @@
 PCD Matcher - Point Cloud Registration for Long Horizon Fusion
 
 Aligns historical PCD with current sensor data using ICP (Iterative Closest Point)
-similar to VisionPilot and Autoware Universe implementation.
+similar to the Autoware Universe implementation.
 
 Key features:
 - Fast ICP with voxel grid downsampling

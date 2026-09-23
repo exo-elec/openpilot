@@ -43,8 +43,7 @@ Or download specific platform:
 
 SCRFD 2.5G (face detection for `driverd`'s DMS pipeline) was previously
 fetched here. Removed — this hardware has no driver-facing camera, and
-`driverd`'s face-DMS is VisionPilot-only anyway (it is *not implemented* in
-openpilot). Re-add `hailo8/scrfd_2.5g.hef` if a driver camera is ever fitted.
+`driverd`'s face-DMS is *not implemented* in openpilot. Re-add `hailo8/scrfd_2.5g.hef` if a driver camera is ever fitted.
 
 **Direct Download (Hailo-8):**
 ```bash

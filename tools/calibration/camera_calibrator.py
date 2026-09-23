@@ -28,7 +28,6 @@ Usage:
 Output:
     Creates YAML calibration files compatible with:
     - OpenPilot / EOP
-    - VisionPilot (for cross-compatibility)
 
 See Also:
     - OpenCV calibration tutorial: https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html

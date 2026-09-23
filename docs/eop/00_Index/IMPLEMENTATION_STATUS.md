@@ -69,13 +69,13 @@
 | **RCD** | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
 | **AEB** | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
 | **BSD** | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** — Standalone blind spot detection |
-| **WHISPER-STT** | N/A | N/A | N/A | N/A | N/A | **N/A** — Voice pipeline not in openpilot (VisionPilot only) |
-| **NLU** | N/A | N/A | N/A | N/A | N/A | **N/A** — Voice pipeline not in openpilot (VisionPilot only) |
+| **WHISPER-STT** | N/A | N/A | N/A | N/A | N/A | **N/A** — Voice pipeline not in openpilot |
+| **NLU** | N/A | N/A | N/A | N/A | N/A | **N/A** — Voice pipeline not in openpilot |
 | **PIPER-TTS** | ✅ | ✅ | N/A | ✅ | ✅ | **COMPLETE** — Local neural TTS in soundd (nav alerts only) |
 | **SPI-CAN (MCP2518FD)** | ❌ | N/A | N/A | N/A | N/A | **REMOVED** — SocketCAN native used directly; no SPI-CAN needed |
 | **SocketD Safety** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** |
-| **VRStreamD** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — Stereoscopic H264 UDP streaming to VR headset (shared with HumRobot/VisionPilot) |
-| **VRTeleop** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — UDP-based VR teleop → carControl (shared protocol with HumRobot/VisionPilot) |
+| **VRStreamD** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — Stereoscopic H264 UDP streaming to VR headset (shared with HumRobot) |
+| **VRTeleop** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — UDP-based VR teleop → carControl (shared protocol with HumRobot) |
 
 **Legend:** ✅ Done | ⬜ Not Started | ⚠️ Partial
 
@@ -92,14 +92,12 @@
 | **UI** | 3 | 3 | 0 | 0 |
 | **Hardware (RK3588)** | 4 | 4 | 0 | 0 |
 | **Integration** | 2 | 2 | 0 | 0 |
-| **VisionPilot Gaps** | 3 | 1 | 1 | 1 |
+| **Gap Tracking** | 3 | 1 | 1 | 1 |
 | **Total** | 53 | 51 | 1 | 1 |
 
 ---
 
-## VisionPilot Gap Tracking (2026-04-20)
-
-New gaps identified from VisionPilot v2.0 cross-analysis. See [VISIONPILOT_GAP_ANALYSIS.md](./VISIONPILOT_GAP_ANALYSIS.md).
+## Gap Tracking (2026-04-20)
 
 | Gap | Category | Status | Blocker | Target |
 |-----|----------|--------|---------|--------|
@@ -412,7 +410,7 @@ Phase 1/2/3 of REFACTOR_SURFACE.md complete:
 | **spkd** — I2S speaker output | `system/spkd/spkd.py` | ✅ Implemented |
 | **I2S1 Pin Assignment** | GPIO3_B4-C0 | ⏳ Pending RPDZKJ schematic verification |
 
-> **Note:** Full voice pipeline (waked/voiced/intentd/voice_assistant) is **VisionPilot only** — not part of openpilot.
+> **Note:** The full voice pipeline (waked/voiced/intentd/voice_assistant) is not part of openpilot.
 
 ---
 

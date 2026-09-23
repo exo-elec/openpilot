@@ -1,10 +1,10 @@
 # GPU Parallel Architecture
 
-This document explains how the GPU/Compute resources are shared between different daemons in VisionPilot.
+This document explains how the GPU/Compute resources are shared between different daemons in openpilot.
 
 ## Overview
 
-VisionPilot uses a **multi-process architecture** where different daemons run concurrently and share GPU/compute resources efficiently.
+openpilot uses a **multi-process architecture** where different daemons run concurrently and share GPU/compute resources efficiently.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

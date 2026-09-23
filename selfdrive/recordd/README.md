@@ -1,6 +1,6 @@
 # RecordD - Unified Recording Daemon
 
-Consolidates VisionPilot's loopd, impactd, and snapd into a single daemon.
+Loop recording, impact detection and snapshots in a single daemon.
 
 ## Features
 
@@ -106,22 +106,6 @@ get_clips()                     # Get recorded clips list
 │                   └─────────────┘                          │
 └─────────────────────────────────────────────────────────────┘
 ```
-
-## VisionPilot Feature Parity
-
-| Feature | VisionPilot | RecordD |
-|---------|-------------|---------|
-| Recording modes | 5 modes | ✅ 5 modes |
-| Quality presets | low/medium/high | ✅ low/medium/high |
-| Impact sensitivity | 0-100 scale | ✅ 0-100 scale |
-| Pre/post buffer | ✅ | ✅ |
-| Parking mode | ✅ | ✅ |
-| Timelapse | ✅ | ✅ |
-| Clip tracking | ✅ | ✅ |
-| Storage info | ✅ | ✅ |
-| Manual event mark | ✅ | ✅ |
-| IMU history in snap | ✅ | ✅ |
-| Auto-trigger snap | ✅ | ✅ |
 
 ## Dependencies
 

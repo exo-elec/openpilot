@@ -20,9 +20,6 @@ A foundational pillar of the Autoware ecosystem, managing packages that extend t
 ### [autoware_vision_pilot](../../autoware_vision_pilot/README.md)
 Advanced Driver Assistance Systems (ADAS) and self-driving vision pipeline implementation.
 
-### [visionpilot](../../visionpilot/README.md)
-**Enhanced Vision Pilot (EVP)**: A lightweight, vision-first adaptation of ROS 2 Autoware paradigms for embedded Rockchip hardware (RK3588/RK3576).
-
 ### [dragonpilot](../../dragonpilot/README.md)
 A fork of openpilot with additional features, customizations, and Chinese language support.
 

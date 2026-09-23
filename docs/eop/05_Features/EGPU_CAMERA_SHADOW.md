@@ -16,8 +16,8 @@ These are separate model sessions and validation streams. Left and right share
 one side model because they use the same camera class and mirrored mounting;
 the rear camera does not share that model or its scheduling state.
 
-The corner radars are owned by `../visionpilot`. They do not enter openpilot's
-eGPU camera path and are not part of these model inputs.
+The corner radars (BLE `radar2d`; WiFi point-cloud add-on on 02M only) do not
+enter openpilot's eGPU camera path and are not part of these model inputs.
 
 Planned sessions remain separate even when they reuse preprocessing code:
 
@@ -157,7 +157,7 @@ one eGPU job at a time with deadline and priority ordering:
 1. Preserve canonical openpilot driving-model deadlines on its assigned backend.
 2. Side/rear detection and segmentation safety-advisory deadlines.
 3. Front road/wide segmentation shadow comparisons.
-4. VisionPilot/Autoware reference experiments at a lower, rate-limited priority.
+4. Autoware VisionPilot reference experiments at a lower, rate-limited priority.
 
 One FP16 512x1024 RGB tensor is about 3.15 MB. At 10 Hz it consumes about
 31.5 MB/s before outputs and protocol overhead. Each segmentation view and each

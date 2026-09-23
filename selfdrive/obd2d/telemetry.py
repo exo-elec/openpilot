@@ -76,7 +76,7 @@ class VehicleTelemetry:
     def to_ncp_json(self) -> dict:
         """Convert to NCP telemetry payload.
 
-        Uses camelCase keys matching OpenPilot cereal and VisionPilot dataclass fields.
+        Uses camelCase keys matching OpenPilot cereal fields.
         """
         data = {
             "ncpVersion": "4.0.0",

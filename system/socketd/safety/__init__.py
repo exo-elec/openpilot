@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
 SocketD Safety Layer - 1st Layer Safety Check
-Shared between openpilot and visionpilot
 
 This module provides software-level safety enforcement for Tesla protocol.
 It acts as the first layer of safety, with TC275 providing the second layer.
 
 Architecture:
-    Layer 1 (Software): openpilot/visionpilot + socketd safety (this module)
+    Layer 1 (Software): openpilot + socketd safety (this module)
     Layer 2 (Hardware): TC275 gateway with tighter limits
 
 Safety Philosophy:

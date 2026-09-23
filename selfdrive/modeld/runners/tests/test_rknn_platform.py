@@ -1,6 +1,6 @@
 """Tests for rknn_platform.py's platform detection and NPU core allocation,
 covering RK3588. No hardware required — uses the
-VISIONPILOT_PLATFORM environment-variable override that detect_platform()
+RKNN_PLATFORM environment-variable override that detect_platform()
 already supports for testing.
 """
 
@@ -16,16 +16,16 @@ from openpilot.selfdrive.modeld.runners.rknn_platform import (
 
 @pytest.fixture(autouse=True)
 def _clear_platform_env():
-  old = os.environ.pop('VISIONPILOT_PLATFORM', None)
+  old = os.environ.pop('RKNN_PLATFORM', None)
   yield
   if old is not None:
-    os.environ['VISIONPILOT_PLATFORM'] = old
+    os.environ['RKNN_PLATFORM'] = old
   else:
-    os.environ.pop('VISIONPILOT_PLATFORM', None)
+    os.environ.pop('RKNN_PLATFORM', None)
 
 
 def test_detect_platform_rk3588_via_env():
-  os.environ['VISIONPILOT_PLATFORM'] = 'rk3588'
+  os.environ['RKNN_PLATFORM'] = 'rk3588'
   assert detect_platform() == PlatformType.RK3588
 
 

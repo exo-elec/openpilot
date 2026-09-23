@@ -54,10 +54,10 @@ def detect_platform() -> PlatformType:
     """Detect Rockchip SoC from device tree compatible string.
 
     Checks /proc/device-tree/compatible for platform identification.
-    Also supports VISIONPILOT_PLATFORM environment variable for testing.
+    Also supports the RKNN_PLATFORM environment variable for testing.
     """
     # Allow environment override for testing
-    env_platform = os.environ.get('VISIONPILOT_PLATFORM', '').lower()
+    env_platform = os.environ.get('RKNN_PLATFORM', '').lower()
     if 'rk3588' in env_platform:
         return PlatformType.RK3588
 

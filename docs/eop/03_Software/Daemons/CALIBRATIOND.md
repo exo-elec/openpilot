@@ -211,7 +211,7 @@ The EOP Settings panel provides:
 | Calibration storage bridge | ✅ Done | `calibration_storage.py` |
 | EOP UI integration | ✅ Done | Calibration section in settings |
 | Stereo calibration | ✅ Done | `calibrate_stereo.py` |
-| Cross-platform YAML export | ✅ Done | VisionPilot compatible |
+| Cross-platform YAML export | ✅ Done | EOP YAML format |
 
 ---
 

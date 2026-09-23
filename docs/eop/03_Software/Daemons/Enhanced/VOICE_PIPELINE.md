@@ -128,8 +128,8 @@ monitored centrally. Only non-language alert tones are synthesized locally.
 ## Hardware Requirements
 
 - **Platform:** RK3588 (ExoPilot 01M) — the only platform openpilot supports
-- **Microphones:** 2× INMP441 (I2S1) — ExoPilot 02M only (VisionPilot); not present on 01M
-- **Speaker:** MAX98357A 3.2W amplifier — ExoPilot 02M only (VisionPilot); not present on 01M
+- **Microphones:** 2× INMP441 (I2S1) — ExoPilot 02M only; not present on 01M
+- **Speaker:** MAX98357A 3.2W amplifier — ExoPilot 02M only; not present on 01M
 - **Network:** Active cellular/Wi-Fi link required for Azure voice server.
 
 **Note:** ExoPilot 01M (RK3588) has no microphone/speaker hardware. Voice
