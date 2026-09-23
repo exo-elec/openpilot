@@ -157,6 +157,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPBluetoothRadarEnabled", {PERSISTENT, BOOL, "0"}},
     {"BLECornerPairs", {PERSISTENT, STRING, ""}},
     {"BLERadarPairingOpen", {PERSISTENT, BOOL, "0"}},
+    {"BLERadarRoster", {PERSISTENT, STRING, ""}},  // extra ESP32 corner-radar WiFi STA MACs for BLE-only nodes (system/bluetoothd/ble_central.py)
     {"EOPCATEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPCATManualSR", {PERSISTENT, FLOAT, "0.0"}},
     {"EOPCATManualSREnabled", {PERSISTENT, BOOL, "0"}},
