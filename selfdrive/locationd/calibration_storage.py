@@ -3,7 +3,7 @@
 Unified Calibration Storage System
 ==================================
 
-Bridges OpenPilot's binary Cap'n Proto format with VisionPilot's YAML format.
+Bridges OpenPilot's binary Cap'n Proto format with the EOP YAML format.
 
 Storage Formats:
 ----------------
@@ -13,7 +13,6 @@ Storage Formats:
 
 2. Factory/External: YAML for human-readable calibration
    - Path: /data/params/calibration/camera_calibration.yaml
-   - Compatible with VisionPilot format
    - Can be imported to binary format
 
 3. Legacy: OpenCV YAML format
@@ -35,7 +34,6 @@ Usage:
 
 See Also:
     - OpenPilot: selfdrive/locationd/calibrationd.py (binary format)
-    - VisionPilot: camera_calibration.py (YAML format)
 """
 
 from __future__ import annotations
@@ -284,7 +282,7 @@ class CalibrationStorage:
     def load_from_yaml(cls, filepath: str | Path) -> MultiCameraCalibration | None:
         """Load calibration from YAML file.
 
-        Supports both VisionPilot and EOP formats.
+        EOP format (top-level `camera_array`).
         """
         filepath = Path(filepath)
         if not filepath.exists():
@@ -298,8 +296,6 @@ class CalibrationStorage:
             # Check format
             if 'camera_array' in data:
                 return cls._parse_eop_yaml(data)
-            elif any(k in data for k in ['cameras', 'intrinsics']):
-                return cls._parse_visionpilot_yaml(data)
             else:
                 cloudlog.error(f"Unknown YAML format in {filepath}")
                 return None
@@ -324,21 +320,6 @@ class CalibrationStorage:
         cameras_data = array_data.get('cameras', {})
         for cam_id, cam_data in cameras_data.items():
             calib.cameras[cam_id] = cls._parse_camera_yaml(cam_id, cam_data)
-
-        return calib
-
-    @classmethod
-    def _parse_visionpilot_yaml(cls, data: dict) -> MultiCameraCalibration:
-        """Parse VisionPilot YAML format."""
-        calib = MultiCameraCalibration(
-            platform='rk3576',
-            calibration_date=data.get('calibration', {}).get('date', '')
-        )
-
-        # VisionPilot uses different structure
-        if 'cameras' in data:
-            for cam_id, cam_data in data['cameras'].items():
-                calib.cameras[cam_id] = cls._parse_camera_yaml(cam_id, cam_data)
 
         return calib
 
@@ -463,7 +444,7 @@ class CalibrationStorage:
         """Import factory calibration and optionally save to params.
 
         This is the main entry point for factory calibration workflow:
-        1. Load from factory YAML (VisionPilot or EOP format)
+        1. Load from factory YAML (EOP format)
         2. Save to FactoryCalibrationParams (IMMUTABLE - intrinsics)
         3. Save to CalibrationParams (runtime - extrinsics can be refined)
 

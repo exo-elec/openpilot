@@ -37,7 +37,6 @@ from openpilot.selfdrive.navd.helpers import (
 )
 
 # OpenPilot: OFFLINE ONLY - No internet required
-# For online/cloud routing, use VisionPilot (successor)
 # Valhalla service runs locally on port 8002
 # Tiles stored at: /data/media/0/valhalla/
 LOCAL_VALHALLA_URL = "http://127.0.0.1:8002/route"
@@ -102,8 +101,7 @@ class NavD:
         if not self._is_local_valhalla_available():
             cloudlog.error(
                 "NavD: Local Valhalla not available. " +
-                "Install tiles: python selfdrive/navd/tile_manager.py ensure <region>\n" +
-                "For online/cloud routing, use VisionPilot (successor)"
+                "Install tiles: python selfdrive/navd/tile_manager.py ensure <region>\n"
             )
 
         return LOCAL_VALHALLA_URL

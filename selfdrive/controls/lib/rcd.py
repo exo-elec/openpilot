@@ -20,7 +20,7 @@ Integration:
   - Publishes speed limit via driverAssistance message
   - Longitudinal planner applies limit similar to VTSC/MTSC/SQSC
 
-Reference: VisionPilot Surface Analyzer (classical CV approach)
+Approach: classical-CV surface analysis
 """
 from __future__ import annotations
 

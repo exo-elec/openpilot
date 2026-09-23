@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tesla Safety Implementation - 1st Layer
-Compatible with both openpilot and visionpilot
+Used by openpilot
 
 Based on opendbc/safety/modes/tesla.h. BrownPanda v1/v2 remains the final
 hardware safety layer.

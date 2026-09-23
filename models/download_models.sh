@@ -210,12 +210,10 @@ if [ "$DOWNLOAD_TYPE" = "all" ] || [ "$DOWNLOAD_TYPE" = "hailo" ]; then
 
     # NOTE: SCRFD 2.5G (face detection for driver-monitoring/`driverd`) used to
     # be fetched here. Removed — this hardware has no driver-facing camera;
-    # `driverd`'s face-DMS pipeline is VisionPilot-only anyway (see
-    # models/README.md). Re-add if a driver camera is ever fitted.
+    # see models/README.md. Re-add if a driver camera is ever fitted.
 
-    # NOTE: whisper_base_5s_encoder.hef intentionally NOT fetched here. A
-    # .hef-compiled build exists in ../visionpilot, but hef/ is the
-    # CAMERA_INFERENCE tier and whisper is VOICE_INFERENCE (destined for
+    # NOTE: whisper_base_5s_encoder.hef intentionally NOT fetched here: hef/ is
+    # the CAMERA_INFERENCE tier and whisper is VOICE_INFERENCE (destined for
     # axmodel/, once an AX-M1 backend and .axmodel build exist) — wrong tier
     # for this folder's purpose. See MODEL_MANIFEST.md.
 fi

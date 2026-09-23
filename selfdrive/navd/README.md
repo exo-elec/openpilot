@@ -9,8 +9,6 @@ NavD provides turn-by-turn navigation without internet connectivity:
 - **Offline OSM tiles** stored on SD card (`/data/media/0/valhalla/`)
 - **No cloud dependency** - works in tunnels, remote areas
 
-> **Note:** For online/cloud routing with real-time traffic, use **VisionPilot** (successor).
-
 ## Architecture
 
 ```
@@ -182,18 +180,7 @@ python selfdrive/navd/tile_manager.py cleanup
 df -h /data/media/0/
 ```
 
-## Comparison with VisionPilot
-
-| Feature | OpenPilot (NavD) | VisionPilot |
-|---------|------------------|-------------|
-| **Routing** | Local/offline | Cloud/online |
-| **Traffic** | Historical only | Real-time |
-| **Tile Management** | Manual/Auto GPS | Automatic cloud |
-| **Internet** | Not required | Required |
-| **Best For** | Remote areas, privacy | City driving, traffic |
-
 ## References
 
 - [Valhalla Quick Start](../../docs/eop/VALHALLA_QUICK_START.md)
 - [Valhalla Offline Routing](../../docs/eop/VALHALLA_OFFLINE_ROUTING.md)
-- [VisionPilot Navigation](../../../visionpilot/docs/navigation/)

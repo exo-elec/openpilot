@@ -2,7 +2,7 @@
 """
 RecordD - Unified Recording Daemon (DVR + Impact + Snap)
 
-Consolidates VisionPilot's loopd, impactd, and snapd into a single daemon.
+Loop recording, impact detection and snapshots in a single daemon.
 
 Features:
   - Loop Recording: Continuous circular buffer with H264 hardware encoding (patent-free)
@@ -20,7 +20,7 @@ Recording Modes:
     - EVENT: High-quality recording after trigger
     - IMPACT: Emergency recording with pre/post buffer
 
-VisionPilot Feature Parity:
+Features:
     ✓ Sensitivity 0-100 scale with interpolation
     ✓ Pre/post buffer configuration
     ✓ Parking mode with duration limits
@@ -361,7 +361,7 @@ class PreImpactBuffer:
 
 class ImpactDetector:
     """
-    IMU-based impact detection with VisionPilot-compatible sensitivity.
+    IMU-based impact detection with 0-100 sensitivity.
     0-100 scale with interpolation between thresholds.
     """
 

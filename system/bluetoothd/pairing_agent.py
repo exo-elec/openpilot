@@ -3,7 +3,7 @@
 
 Architecture:
   - Phone user opens Android Bluetooth settings
-  - Taps "VisionPilot" or "OpenPilot" device to pair
+  - Taps the "OpenPilot" device to pair
   - BlueZ calls our agent's RequestPinCode / DisplayPinCode
   - We generate a 6-digit PIN, store it in Params
   - Qt/Python UI polls the param and shows the PIN on screen

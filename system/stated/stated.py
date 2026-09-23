@@ -42,7 +42,7 @@ class VehicleState(Enum):
 
 
 class SystemState(Enum):
-    """System operational states (VisionPilot-style integration)."""
+    """System operational states."""
     STARTUP = "startup"           # Booting, initializing
     CALIBRATING = "calibrating"   # Camera calibration in progress
     READY = "ready"               # Calibrated, ready for engagement
@@ -77,7 +77,7 @@ class StateD:
         self.pm = messaging.PubMaster(['vehicleState', 'systemState'])
         self.sm = messaging.SubMaster(['pandaStates', 'carState', 'calibrationState'])
 
-        # System state (VisionPilot-style)
+        # System state
         self.system_state = SystemState.STARTUP
         self.calibration_complete = False
         self.calibration_quality = 0
@@ -139,7 +139,7 @@ class StateD:
                          f"(quality={cs.quality:.2f}, cameras={len(cs.cameraCalibrations)})")
 
     def _update_system_state(self):
-        """Update system state (VisionPilot-style)."""
+        """Update system state."""
         # State machine based on vehicle state and calibration
         prev_system_state = self.system_state
 
@@ -205,7 +205,7 @@ class StateD:
             self.state = new_state
             self.last_state_change = time.monotonic()
 
-        # Update system state (VisionPilot-style)
+        # Update system state
         self._update_calibration_state()
         self._update_system_state()
 
@@ -222,7 +222,7 @@ class StateD:
 
         self.pm.send('vehicleState', msg)
 
-        # Publish system state (VisionPilot-style)
+        # Publish system state
         msg2 = messaging.new_message('systemState', valid=True)
         ss = msg2.systemState
         ss.state = self.system_state.value

@@ -66,15 +66,15 @@ This document describes the complete camera calibration pipeline for EnhancedOpe
 
 ## Storage Format Comparison
 
-| Aspect | OpenPilot Native | EOP Extension | VisionPilot |
-|--------|------------------|---------------|-------------|
-| **Format** | Binary (capnp) | Binary + YAML | YAML |
-| **Speed** | Fast (native) | Fast + readable | Readable |
-| **Use Case** | Runtime | Factory + Runtime | Factory |
-| **Compatibility** | OpenPilot only | OpenPilot + EOP | VisionPilot |
-| **Human Readable** | No | Yes (YAML) | Yes |
-| **Intrinsics** | No | Yes (protected) | Yes |
-| **Multi-camera** | Partial (2 cameras) | Full (5 cameras) | Full (5 cameras) |
+| Aspect | OpenPilot Native | EOP Extension |
+|--------|------------------|---------------|
+| **Format** | Binary (capnp) | Binary + YAML |
+| **Speed** | Fast (native) | Fast + readable |
+| **Use Case** | Runtime | Factory + Runtime |
+| **Compatibility** | OpenPilot only | OpenPilot + EOP |
+| **Human Readable** | No | Yes (YAML) |
+| **Intrinsics** | No | Yes (protected) |
+| **Multi-camera** | Partial (2 cameras) | Full (5 cameras) |
 
 ## Data Flow
 
@@ -214,7 +214,7 @@ camera_array:
       lens: 3.6mm
 ```
 
-### EXO2 (RK3576) - 5 Cameras — VisionPilot reference only, not supported by openpilot
+### EXO2 (RK3576) - 5 Cameras (openpilot `dev/02M`)
 
 ```yaml
 camera_array:
@@ -306,16 +306,6 @@ u, v = geometry.world_to_image('road', np.array([50.0, 2.0, 0.0]))
 CalibrationStorage.export_for_sharing('/data/share/my_calibration.yaml')
 ```
 
-### Cross-Platform Compatibility
-
-```python
-# Load VisionPilot calibration into EOP
-from selfdrive.locationd.calibration_storage import CalibrationStorage
-
-calib = CalibrationStorage.load_from_yaml('/visionpilot/calibration.yaml')
-CalibrationStorage.save_to_params(calib)
-```
-
 ## File Locations
 
 | File | Path | Purpose |
@@ -366,4 +356,3 @@ CalibrationStorage.save_to_params(calib)
 
 - [OpenCV Calibration Tutorial](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html)
 - [ChArUco Pattern](https://docs.opencv.org/4.x/df/d4a/tutorial_charuco_detection.html)
-- VisionPilot Camera Calibration

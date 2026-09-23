@@ -82,8 +82,8 @@ Priority 2: Vision-based physics calculation
 | Platform | GPS Module | Tolerance | Notes |
 |----------|-----------|-----------|-------|
 | RK3588 | NEO-M8U | **50m** | No RTK in OpenPilot |
-| RK3576 | ZED-F9P | **50m** | RTK only in VisionPilot |
-| RK3688 | ZED-F9P | **50m** | RTK only in VisionPilot |
+| RK3576 | ZED-F9P | **50m** | |
+| RK3688 | ZED-F9P | **50m** | |
 
 The database search uses a **3x3 grid** of neighboring cells to handle GPS inaccuracy.
 

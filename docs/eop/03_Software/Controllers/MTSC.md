@@ -133,8 +133,8 @@ Priority 2: OSM-based physics calculation
 | Platform | GPS Module | Tolerance | Notes |
 |----------|-----------|-----------|-------|
 | RK3588 | NEO-M8U | **50m** | No RTK in OpenPilot |
-| RK3576 | ZED-F9P | **50m** | RTK only in VisionPilot |
-| RK3688 | ZED-F9P | **50m** | RTK only in VisionPilot |
+| RK3576 | ZED-F9P | **50m** | |
+| RK3688 | ZED-F9P | **50m** | |
 
 **Learned Speed Integration:**
 ```python

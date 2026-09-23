@@ -7,7 +7,7 @@
 
 ## Overview
 
-openpilot supports teleoperation and stereoscopic camera streaming via the same unified protocol used by HumRobot and VisionPilot. A single headset APK (Pico / Meta Quest) can connect to any of the three platforms.
+openpilot supports teleoperation and stereoscopic camera streaming via the same unified protocol used by HumRobot. A single headset APK (Pico / Meta Quest) can connect to either platform.
 
 **Architecture change:** `vr_teleop` and `vr_streamd` have been merged into `steamd` as `UdpInput` and `UdpVideoStreamer`. SteamD remains the single source of external control authority.
 

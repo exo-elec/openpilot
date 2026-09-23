@@ -1008,7 +1008,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.WARNING: personality_changed_alert,
   },
 
-  # EOP: Stereo GPU fault — GPU SGM unavailable, no CPU fallback (VisionPilot fault pattern).
+  # EOP: Stereo GPU fault — GPU SGM unavailable, no CPU fallback.
   # Fires IMMEDIATE_DISABLE (same frame, no countdown) + NO_ENTRY to block re-engagement.
   # Clears when stereod reports fault=False (GPU recovers).
   EventName.stereoFault: {
@@ -1077,7 +1077,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   },
 
   # EOP: Health Monitor — graduated system degradation
-  # Merged from VisionPilot safety stack, adapted for L2:
+  # Adapted for L2:
   #   warning → alert driver to prepare
   #   comfortable stop → soft disable with gentle deceleration
   #   emergency stop → immediate disable (AEB fallback if available)

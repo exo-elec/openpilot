@@ -6,25 +6,11 @@ replacing the `EOP10` product-generation name:
 | Repo | Branch | Platform | Stack |
 |---|---|---|---|
 | `openpilot` (this repo) | `dev/01M` (was `dev/EOP10`) | ExoPilot 01M — RK3588 | openpilot, C++/Qt UI |
-| `visionpilot` | `dev/02M` | ExoPilot 02M — RK3576, 1600×600 | this backend, no ROS 2, new Qt Widgets UI |
-| `visionpilot` | `EVP09` | 02M | the ROS 2 stack (unchanged) |
+| `openpilot` (this repo) | `dev/02M` | ExoPilot 02M — RK3576, 1600×600 | openpilot backend, new Qt Widgets UI; ESP32 corner-radar WiFi add-on (only 02M has the antenna for it) |
 
-## What this repo keeps and loses
-
-This repo goes back to **01M / RK3588 only**. Not yet — the RK3576 code added
-on 2026-08-26 is still here and still works. It is removed once VisionPilot's
-`dev/02M` line runs on real 02M hardware, and not a moment before, for two
-reasons:
-
-1. This repo is currently the only stack that boots on 02M with a supported
-   backend, and `docs/eop/RK3576_02M_SUPPORT.md` names VisionPilot's camera
-   drivers as the reference for a capture path neither side has implemented.
-2. `switch.sh` lets an 02M device boot either stack and reboot between them.
-   Removing 02M here deletes that fallback.
-
-`launch_openpilot.sh` already hard-exits unless `/proc/device-tree/compatible`
-contains `rk3588`, so the branch name matches what that entry point enforces
-today.
+**Update, 2026-09-23.** The earlier plan to move 02M to a separate stack is
+dropped: 02M stays on openpilot `dev/02M`. The sections below describe
+`dev/01M` dropping its 02M code.
 
 ## Status
 
@@ -56,7 +42,7 @@ The platform half below is still pending, and waits on the sequencing above.
 
 Roughly 40 files carry `rk3576` / `02M` references. The split is:
 
-**Moves to VisionPilot** — `system/hardware/rk3576/`, `PlatformType.RK3576` and
+**Lives only on `dev/02M`** — `system/hardware/rk3576/`, `PlatformType.RK3576` and
 its NPU allocation map in `selfdrive/modeld/runners/rknn_platform.py`, the
 5-camera v4l2d config, `detect_exopilot_platform()`'s RK3576 branch, and the
 02M entries in `common/core_config.py`, `common/realtime.py`,
@@ -85,10 +71,10 @@ were improvements independent of that platform:
 1. Land the 02M removal above.
 2. Point the repo's default branch at `dev/01M`.
 3. Update any CI branch filters, systemd units and submodule pins that name
-   `dev/EOP10` — including VisionPilot's, if the submodule topology is chosen.
+   `dev/EOP10`.
 4. Only then delete `dev/EOP10`.
 
 ## Full plan
 
-The porting plan, backend linkage analysis and the reverse-migration ordering
-live in the VisionPilot repo at `docs/eop10/EOP10_PORT_PLAN.md` on `dev/02M`.
+The porting plan and backend linkage analysis are in
+`docs/eop10/EOP10_PORT_PLAN.md` on `dev/02M`.

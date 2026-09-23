@@ -106,7 +106,7 @@ CREATE TABLE curve_speeds (
 | Platform | SoC | Source Value | NPU TOPS | Description |
 |----------|-----|--------------|----------|-------------|
 | ExoPilot 01M | RK3588 | `exopilot01m` | 6 | Entry ADAS (openpilot) |
-| ExoPilot 02M | RK3576 | `exopilot02m` | 6 | Standard ADAS (openpilot/VisionPilot) |
+| ExoPilot 02M | RK3576 | `exopilot02m` | 6 | Standard ADAS (openpilot) |
 | ExoPilot 03M | RK3688 | `exopilot03m` | 12 | DoraPilot platform — different software |
 
 ## Schema Evolution

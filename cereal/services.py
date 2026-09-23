@@ -46,7 +46,7 @@ _services: dict[str, tuple] = {
   "errorLogMessage": (True, 0., 1),
   "liveCalibration": (True, 4., 4),
   "calibrationState": (True, 4., 4),  # EOP: Multi-camera calibration state
-  "systemState": (True, 10., 10),     # EOP: VisionPilot-style system state
+  "systemState": (True, 10., 10),     # EOP: system state
   "liveTorqueParameters": (True, 4., 1),
   "liveDelay": (True, 4., 1),
   "androidLog": (True, 0.),

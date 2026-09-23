@@ -106,7 +106,7 @@ class MockSource(SBUSource):
 class SemanticCANMapper:
     """Map application-layer semantic names to physical CAN interfaces.
 
-    ADAS naming (openpilot/visionpilot):
+    ADAS naming (openpilot):
       canmpc  → main processor camera (Bosch ADAS camera bus)
       canpwrt → powertrain bus
 

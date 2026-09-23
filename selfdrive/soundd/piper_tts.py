@@ -175,8 +175,7 @@ def resolve_voice(voice_param: str, language: str) -> str:
     return voice_param
   voice = LANGUAGE_TO_VOICE.get(language, FALLBACK_VOICE)
   if language not in LANGUAGE_TO_VOICE:
-    logger.warning('Language "%s" not in EOP10 20-language set; falling back to English. ' +
-                   'Use VisionPilot for extended language support.', language)
+    logger.warning('Language "%s" not in EOP10 20-language set; falling back to English.', language)
   return voice
 
 
@@ -209,7 +208,6 @@ class PiperTTS:
   """Piper Text-to-Speech engine for ExoPilot.
 
   20 languages supported (Piper ∩ Whisper, ≥20M speakers) + English fallback.
-  For additional languages upgrade to VisionPilot.
   """
 
   def __init__(self, voice_id: str = FALLBACK_VOICE):

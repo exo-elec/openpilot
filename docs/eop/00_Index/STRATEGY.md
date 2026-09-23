@@ -19,32 +19,6 @@
 
 ## 1. Competitive Analysis
 
-### 1.1 VisionPilot Gap Analysis (2026-04-20)
-
-After comprehensive cross-analysis of VisionPilot v2.0 documentation (~2,400 lines across 3 comparison documents), the following strategic gaps have been identified:
-
-| Priority | Gap | EOP Status | VisionPilot | Effort |
-|----------|-----|------------|-------------|--------|
-| 🔴 Critical | AEB Control Loop | ✅ Complete | ✅ Full | High |
-| 🔴 Critical | SceneSeg Integration | ✅ Complete | ✅ | High |
-| 🟡 Medium | BSD Standalone | ✅ Complete | ✅ | Low |
-| 🟡 Medium | Whisper STT / Voice Pipeline | ✅ Complete | ✅ Full | Medium |
-
-| 🟢 Lower | BEV Widget | ✅ Complete | ✅ | Low |
-| 🟢 Lower | Theme System | ✅ Complete (dark only) | ✅ | Low |
-
-**EOP Advantages to Maintain:**
-- Lazy BEV Reprojection (10× perf gain — VisionPilot wants to adopt)
-- DLAT State Machine with Hysteresis (VisionPilot item #3)
-- CSLB Curve Speed Learning (VisionPilot item #5)
-- CAT Adaptive Tuning (VisionPilot item #6)
-- RK3588 Support (VisionPilot dropped it)
-- Simpler architecture (~55K vs ~101K LOC)
-
-See [VISIONPILOT_GAP_ANALYSIS.md](./VISIONPILOT_GAP_ANALYSIS.md) for full analysis.
-
----
-
 ### 1.2 Feature Implementation Comparison: Reference Forks
 
 | Feature | FrogPilot | Sunnypilot | Dragonpilot | Carrotpilot | EOP Strategy |
@@ -216,18 +190,18 @@ navInstruction / navRoute cereal (5 Hz)
 - **File:** `selfdrive/controls/lib/red.py`
 - **Doc:** RED.md
 
-### Phase 6: VisionPilot Parity (Post-EOP10)
+### Phase 6: Remaining Gaps (Post-EOP10)
 
-**Goal:** Close critical gaps identified in VisionPilot cross-analysis.
+**Goal:** Close the remaining safety and voice gaps.
 
 #### P-VP1: SceneSeg + AEB/RCD Unblocking
-- **Why:** Single biggest safety gap vs VisionPilot
+- **Why:** Single biggest remaining safety gap
 - **Dependency:** PP-LiteSeg scene segmentation model on NPU
 - **Files:** `selfdrive/controls/lib/aeb.py`, new `selfdrive/safety/` *(not implemented)*
 - **Blocked by:** Safety validation protocol
 
 #### P-VP2: Voice Pipeline Completion
-- **Why:** VisionPilot has full STT→NLU→LLM→TTS; EOP has wake word only
+- **Why:** EOP has wake word only; no STT→NLU→LLM→TTS
 - **Components:**
   - Whisper STT integration in `voiced`
   - NLU intent classifier in `intentd`
@@ -235,7 +209,7 @@ navInstruction / navRoute cereal (5 Hz)
 - **Effort:** Medium (4-6 weeks total)
 
 #### P-VP3: BSD Standalone
-- **Why:** Low effort, improves safety parity
+- **Why:** Low effort, improves safety
 - **File:** `selfdrive/controls/lib/bsd.py` or new `bsdd.py`
 - **Effort:** Low (2-3 days)
 
@@ -298,7 +272,7 @@ Reference Fork Analysis
 - **AEB** - Requires safety validation
 - **RCD** - Requires SceneSeg integration
 
-### Next: VisionPilot Parity & AEB/RCD (⏸️ Blocked / Post-EOP10)
+### Next: AEB/RCD & Remaining Gaps (⏸️ Blocked / Post-EOP10)
 - **AEB** — safety validation and SceneSeg integration required
 - **RCD** — SceneSeg integration required
 - **Voice Pipeline** — Whisper STT + NLU + Piper TTS (4-6 weeks)
@@ -318,7 +292,7 @@ NAVD, MAP-PANEL, LatNudge, LonNudge, and all core features are implemented.
 
 ### Platform Strategy
 - EOP v1 targets RK3588 (LubanCat-5) exclusively
-- ExoPilot 02M (RK3576, RPDZKJ RongPin) is VisionPilot's platform (branch EVP09); it reuses proven EOP components (MAPD, NAVD, LatNudge, LonNudge, RTK stack)
+- ExoPilot 02M (RK3576, RPDZKJ RongPin) runs openpilot `dev/02M`, reusing the same EOP components (MAPD, NAVD, LatNudge, LonNudge, RTK stack)
 - MapLibre GL Native (QMapLibre) selected as map renderer — already in codebase
 
 ### Remaining Blocked
@@ -395,7 +369,6 @@ See IMPLEMENTATION_STATUS.md for detailed tracking.
 - [OVERVIEW.md](./OVERVIEW.md) - EOP architecture overview
 - [NAMING_CONVENTIONS.md](../01_Core/NAMING_CONVENTIONS.md) - Coding standards
 - IMPLEMENTATION_STATUS.md - Implementation status
-- [VISIONPILOT_GAP_ANALYSIS.md](./VISIONPILOT_GAP_ANALYSIS.md) - VisionPilot cross-analysis
 
 **Reference Forks:**
 - FrogPilot - Comprehensive features

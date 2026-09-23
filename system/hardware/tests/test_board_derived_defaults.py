@@ -27,12 +27,7 @@ ALLOWED = {
 
 # Deliberate exemptions: a board name that is correct because it describes
 # some *other* system, not the board this code runs on.
-EXEMPT = {
-  # Reads VisionPilot's calibration YAML. VisionPilot runs on RK3576, so the
-  # tag on a file in that format is a fact about the source, not a default
-  # for the running board.
-  ("selfdrive/locationd/calibration_storage.py", "_parse_visionpilot_yaml"),
-}
+EXEMPT: set[tuple[str, str]] = set()
 
 
 def _strip_prose(src: str) -> list[str]:

@@ -14,7 +14,7 @@ This document defines the camera pipeline architecture for ExoPilot, covering:
 - **How** mono cameras (road/wide_road/tele_road) use **RKISP + on-chip HDR @ 30Hz**
 - **How** stereo cameras (stereo_left/stereo_right) use **V4L2 SDR @ 20Hz** for sync accuracy
 - **Why** this hybrid approach is necessary for ADAS safety
-- **Step-by-step** implementation plan to close the gap vs. VisionPilot
+- **Step-by-step** implementation plan to reach the target state
 
 ### Current State (OpenPilot)
 
@@ -26,7 +26,7 @@ This document defines the camera pipeline architecture for ExoPilot, covering:
 | GC4653 stereo sync | ⚠️ Implicit | SDR enforced by lack of HDR config |
 | ISP 3A (AE/AWB) | ❌ Stubbed | `ISP_AVAILABLE = False` in v4l2d |
 
-### Target State (VisionPilot-Aligned)
+### Target State
 
 | Aspect | Target | Detail |
 |--------|--------|--------|
@@ -66,7 +66,7 @@ This document defines the camera pipeline architecture for ExoPilot, covering:
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-*(ExoPilot 02M array shown for reference only — VisionPilot's platform, not supported by openpilot.)*
+*(ExoPilot 02M array: openpilot `dev/02M`; camera capture not yet implemented.)*
 
 ### 2.2 Why Different HDR Strategies?
 
@@ -464,17 +464,11 @@ system/v4l2d/
 | Document | Purpose |
 |----------|---------|
 | HAL.md | Compute HAL architecture |
-| VISIONPILOT_FEATURE_COMPARISON.md | Feature parity analysis |
-| VISIONPILOT_SYSTEM_COMPARISON.md | System architecture comparison |
 
 ### External References
 
 | Document | Source | Purpose |
 |----------|--------|---------|
-| `HDR_STEREO_DEPTH_ANALYSIS.md` | VisionPilot | Quantitative HDR vs stereo accuracy |
-| `ISP_HDR_STEREO_IMPLEMENTATION_PLAN.md` | VisionPilot | Phase-by-phase implementation |
-| `hdr_mode_switching.md` | VisionPilot | OX03C10 on-chip HDR architecture |
-| `ox03c10_hdr_note.md` | VisionPilot | Why OX03C10 HDR is sensor-level |
 | GC4653 Datasheet | GalaxyCore | OTP memory map, register definitions |
 | OX03C10 Driver | NXP kernel | V4L2 control IDs |
 | RKIAQ v2.0.8 | rockchip-linux | C API documentation |
