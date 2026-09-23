@@ -50,6 +50,23 @@ Each notification carries ONE binary datagram, little-endian throughout:
     back to their distance-only zone, the same path already built for a
     pre-TTC node).
 
+HOST → NODE VEHICLE STATE (2026-09-23, ESP32_RADAR docs/ble-link.md)
+    Char:     35B582CD-D335-444B-8F38-715DCC5AFE85  (write / write-without-
+              response; the node requires an ENCRYPTED link and only accepts
+              writes from the connection that subscribed to objects)
+    10 bytes, little-endian: u8 seq, u8 flags (bit0 = valid),
+    i16 speed_mps_x100 (>= 0), i16 yaw_rate_mradps (+ = turning left, ISO
+    8855), u32 capture_time_us (host monotonic, not comparable to the node's
+    clock). Written by _send_vehicle_state() at VEHICLE_STATE_HZ to every
+    connected node: speed from carState.vEgo, yaw rate from locationd's
+    livePose (device frame, z down → negated). The node treats a record as
+    fresh for ~250 ms and falls back to its own IMU otherwise, so a record
+    with flags=0 (no trustworthy input) is the correct way to say "unknown".
+    BLE is the node's critical link: speed/yaw never go over WiFi.
+    (A command characteristic, B188013B-BE48-48C1-870D-0F4933F5049C, also
+    exists for params/calibration; this module does not use it — service
+    tooling does, see ESP32_RADAR tools/ble_bench.py.)
+
 Max 12 objects per datagram → 8 + 12*14 = 176 bytes, fitting a 244-byte
 BLE 5 ATT MTU with margin. Fixed-point conventions (cm, deg×10, x100
 scalings) deliberately mirror ESP32_RADAR/00_common/wire_format so both
@@ -105,16 +122,21 @@ unit additionally requires these eligibility factors:
        (TPMS auto-learn precedent: sustained presence before adoption.)
     2. IDENTITY (THE identity mechanism) — the node's BLE scan response
        carries manufacturer data [u16 LE company id 0x02E5 (Espressif)]
-       [6-byte WiFi STA MAC]; the claimed MAC must be in OUR vehicle's WiFi
-       roster (/etc/hostapd/ap0.accept, maintained by pair_corner_nodes.sh).
-       A neighbor's node claims a MAC in the NEIGHBOR's roster, not ours.
+       [6-byte WiFi STA MAC]; the claimed MAC must be in OUR vehicle's
+       roster: the WiFi MAC ACL (/etc/hostapd/ap0.accept, maintained by
+       pair_corner_nodes.sh) UNION the BLERadarRoster param. The param
+       exists for BLE-only nodes (ESP32_RADAR dev/v1 has no WiFi, so it
+       never joins the AP and pair_corner_nodes.sh cannot learn it): the
+       operator enters the factory WiFi STA MAC from the unit's label /
+       boot log. A neighbor's node claims a MAC in the NEIGHBOR's roster,
+       not ours.
     3. RSSI — ADVISORY ONLY, never a gate. BLE RSSI error is 1-10 m: a
        neighbor one parking slot over would pass any threshold, and an own
        node with an obstructed host antenna could fail one. RSSI is not
        distance. An eligible candidate with RSSI < PAIR_RSSI_DBM gets a
        rate-limited anomaly warning ("check antenna/placement") — the frame
        is NEVER held on RSSI alone.
-If the roster is absent/unreadable (dev PC!) the identity factor is skipped
+If both roster sources are absent/empty (dev PC!) the identity factor is skipped
 and eligibility degrades to dwell-only — ONE warning is logged at startup,
 because without the roster cross-vehicle protection is much weaker
 (presence-based only). An already-paired unit is trusted WITHOUT
@@ -131,6 +153,7 @@ import json
 import logging
 import math
 import re
+import struct
 import threading
 import time
 
@@ -166,6 +189,12 @@ logger = logging.getLogger('bluetoothd.ble_central')
 # ── GATT contract UUIDs (see module docstring — cross-repo contract) ──────────
 RADAR_SERVICE_UUID = '7dc4d9a1-e436-4a4f-a191-e7361e7c5f23'
 RADAR_OBJECTS_CHAR_UUID = 'd907c96a-e0de-400f-a0a3-b665e72d120f'
+RADAR_VEHICLE_STATE_CHAR_UUID = '35b582cd-d335-444b-8f38-715dcc5afe85'
+
+# ── Host → node vehicle state (see module docstring) ─────────────────────────
+VEHICLE_STATE_STRUCT = struct.Struct('<BBhhI')  # seq, flags, speed x100, yaw mrad/s, t_us
+VEHICLE_STATE_FLAG_VALID = 0x01
+VEHICLE_STATE_HZ = 10.0         # node staleness gate is ~250 ms → 2.5 periods
 
 # ── BlueZ / D-Bus interfaces ──────────────────────────────────────────────────
 BLUEZ_SVC       = 'org.bluez'
@@ -246,6 +275,56 @@ def load_wifi_roster(path: str = WIFI_PAIR_ROSTER_PATH) -> set[str] | None:
         return None
 
 
+def parse_roster_param(raw) -> set[str]:
+    """Parse the BLERadarRoster param: a JSON list of MACs, or MACs separated
+    by whitespace/commas ('#' comments allowed). Invalid entries are ignored.
+    Pure, D-Bus-free."""
+    if not raw:
+        return set()
+    text = raw.decode() if isinstance(raw, bytes) else str(raw)
+    try:
+        items = json.loads(text)
+        if not isinstance(items, list):
+            items = []
+    except ValueError:
+        items = re.split(r'[\s,]+', '\n'.join(l.split('#', 1)[0] for l in text.splitlines()))
+    return {str(m).strip().upper() for m in items if _MAC_RE.fullmatch(str(m).strip().upper())}
+
+
+def merge_rosters(file_roster: set[str] | None, param_roster: set[str]) -> set[str] | None:
+    """Effective identity roster = WiFi MAC ACL ∪ BLERadarRoster. None (degraded,
+    dwell-only) only when the file is unreadable AND the param is empty."""
+    if file_roster is None and not param_roster:
+        return None
+    return (file_roster or set()) | param_roster
+
+
+def encode_vehicle_state(seq: int, speed_mps: float, yaw_rate_radps: float,
+                         capture_time_us: int, valid: bool) -> bytes:
+    """Host → node vehicle-state record (module docstring). Values are
+    clamped to the wire's integer ranges; NaN/inf are encoded as 0 with the
+    valid flag cleared. Pure."""
+    if not (math.isfinite(speed_mps) and math.isfinite(yaw_rate_radps)):
+        speed_mps, yaw_rate_radps, valid = 0.0, 0.0, False
+    speed = max(0, min(32767, round(speed_mps * 100.0)))
+    yaw = max(-32768, min(32767, round(yaw_rate_radps * 1000.0)))
+    return VEHICLE_STATE_STRUCT.pack(seq & 0xFF, VEHICLE_STATE_FLAG_VALID if valid else 0,
+                                     speed, yaw, capture_time_us & 0xFFFFFFFF)
+
+
+def vehicle_state_inputs(car_state_ok: bool, v_ego: float,
+                         pose_ok: bool, ang_vel_device_z: float) -> tuple[float, float, bool]:
+    """(speed_mps, yaw_rate_radps, valid) from carState + livePose. openpilot's
+    device frame is x forward, y right, z DOWN, so vehicle yaw rate
+    (+ = turning left) is the NEGATED device-frame z angular velocity. Valid
+    only when both inputs are trustworthy — the node then prefers them over
+    its own IMU; otherwise flags=0 tells it to fall back. Pure."""
+    valid = bool(car_state_ok and pose_ok)
+    return (max(0.0, v_ego) if valid else 0.0,
+            -ang_vel_device_z if valid else 0.0,
+            valid)
+
+
 def check_learn_eligibility(candidate: dict | None, roster: set[str] | None,
                             now: float) -> tuple[bool, str]:
     """Eligibility for LEARNING a new unit (cross-vehicle protection — module
@@ -281,6 +360,7 @@ RECONNECT_SCAN_S = 5.0          # discovery/connect sweep period
 BACKOFF_INITIAL_S = 1.0         # per-node reconnect backoff…
 BACKOFF_MAX_S = 60.0            # …capped here (doubling)
 
+ROSTER_PARAM = 'BLERadarRoster'  # extra roster MACs for BLE-only nodes (docstring)
 PAIRING_OPEN_PARAM = 'BLERadarPairingOpen'  # pairing window — NOT the phone's
                                             # EOPBluetoothPairWindow (docstring)
 PAIRING_OPEN_TTL_S = 2.0        # param re-read interval — toggles take effect
@@ -419,14 +499,20 @@ class BLECentral:
         # Cross-vehicle learn eligibility: WiFi roster (None = degraded mode,
         # dwell-only — logged once here, not per candidate) + per-address
         # advertising observation state: {'first_seen','last_seen','rssi','wifi_mac'}
-        self._wifi_roster = load_wifi_roster()
+        self._wifi_roster = merge_rosters(
+            load_wifi_roster(),
+            parse_roster_param(self.params.get(ROSTER_PARAM) if self.params else None))
         if self._wifi_roster is None:
-            logger.warning('BLE central: %s unreadable — cross-vehicle protection ' +
-                           'degraded to dwell-only (no identity check)',
-                           WIFI_PAIR_ROSTER_PATH)
+            logger.warning('BLE central: %s unreadable and %s empty — cross-vehicle ' +
+                           'protection degraded to dwell-only (no identity check)',
+                           WIFI_PAIR_ROSTER_PATH, ROSTER_PARAM)
         self._candidates: dict[str, dict] = {}
 
         self._has_objects_field: bool | None = None  # detected on first publish
+
+        # Host → node vehicle state (start() creates the SubMaster)
+        self._sm = None
+        self._vs_seq = 0
 
     # ── Authorization (paired / bootstrap / pairing window — see docstring) ───
 
@@ -611,12 +697,25 @@ class BLECentral:
                 continue
             char_proxy = self._bus.get_object(BLUEZ_SVC, cpath)
             dbus.Interface(char_proxy, GATT_CHAR_IFACE).StartNotify()
+            vs_char = self._find_char(path, RADAR_VEHICLE_STATE_CHAR_UUID)
             with self._lock:
                 self._devices[path]['connected'] = True
                 self._devices[path]['backoff_s'] = BACKOFF_INITIAL_S
-            logger.info('BLE central: subscribed to %s', cpath)
+                self._devices[path]['vs_char'] = vs_char
+            logger.info('BLE central: subscribed to %s%s', cpath,
+                        '' if vs_char is not None else ' (node has no vehicle-state characteristic)')
             return
         logger.warning('BLE central: %s has no objects characteristic', path)
+
+    def _find_char(self, device_path: str, uuid: str):
+        """GattCharacteristic1 interface for `uuid` under device_path, or None."""
+        mgr = dbus.Interface(self._bus.get_object(BLUEZ_SVC, '/'), OBJMGR_IFACE)
+        for cpath, ifaces in mgr.GetManagedObjects().items():
+            char = ifaces.get(GATT_CHAR_IFACE)
+            if (char is not None and str(char.get('UUID', '')).lower() == uuid
+                    and str(cpath).startswith(device_path)):
+                return dbus.Interface(self._bus.get_object(BLUEZ_SVC, cpath), GATT_CHAR_IFACE)
+        return None
 
     def _connect_sweep(self) -> bool:
         """GLib timeout: discover radar nodes, (re)connect with per-node backoff."""
@@ -791,6 +890,47 @@ class BLECentral:
         self._pm.send('radar2d', msg)
         return True
 
+    # ── Host → node vehicle state ─────────────────────────────────────────────
+
+    def _vehicle_state_record(self) -> bytes:
+        """Build the next record from the latest carState/livePose."""
+        sm = self._sm
+        sm.update(0)
+        car_ok = sm.alive['carState'] and sm.valid['carState']
+        lp = sm['livePose']
+        pose_ok = (sm.alive['livePose'] and sm.valid['livePose'] and lp.inputsOK and
+                   lp.sensorsOK and lp.angularVelocityDevice.valid)
+        speed, yaw, valid = vehicle_state_inputs(car_ok, sm['carState'].vEgo,
+                                                 pose_ok, lp.angularVelocityDevice.z)
+        rec = encode_vehicle_state(self._vs_seq, speed, yaw,
+                                   int(time.monotonic() * 1e6), valid)
+        self._vs_seq = (self._vs_seq + 1) & 0xFF
+        return rec
+
+    def _send_vehicle_state(self) -> bool:
+        """GLib timeout: write the vehicle-state record to every connected node.
+        Asynchronous (reply/error handlers) so a slow link never blocks the
+        main loop; write-without-response ('command') since the data is
+        perishable. The first write on a fresh connection triggers BlueZ's
+        Just-Works pairing (the node requires encryption) — errors until then
+        are expected and rate-limited."""
+        if not self._running:
+            return False
+        try:
+            value = dbus.Array(self._vehicle_state_record(), signature='y')
+        except Exception:
+            logger.exception('BLE central: vehicle-state build failed')
+            return True
+        with self._lock:
+            targets = [(p, d['vs_char']) for p, d in self._devices.items()
+                       if d.get('connected') and d.get('vs_char') is not None]
+        for path, char in targets:
+            char.WriteValue(value, dbus.Dictionary({'type': 'command'}, signature='sv'),
+                            reply_handler=lambda: None,
+                            error_handler=lambda e, p=path: self._log_limited(
+                                f'vs:{p}', 'BLE central: vehicle-state write to %s failed: %s', p, e))
+        return True
+
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
@@ -805,8 +945,10 @@ class BLECentral:
             return
         # Single radar2d publisher for this process — see module docstring warning
         self._pm = messaging.PubMaster(['radar2d'])
+        self._sm = messaging.SubMaster(['carState', 'livePose'])
         self._running = True
         GLib.timeout_add(int(1000 / PUBLISH_HZ), self._publish)
+        GLib.timeout_add(int(1000 / VEHICLE_STATE_HZ), self._send_vehicle_state)
         GLib.timeout_add(int(RECONNECT_SCAN_S * 1000), self._connect_sweep)
         GLib.idle_add(self._connect_sweep)  # first sweep immediately
         logger.info('BLE central started (%.0f Hz publish, %.0f s rescan)',
