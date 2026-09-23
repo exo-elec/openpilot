@@ -93,7 +93,7 @@ dev/EOP10 ──┬── dev/01M   PyQt5 UI, classic openpilot layout, RK3588 /
   | board | SoC | device-tree compatible | consumer |
   |-------|-----|------------------------|----------|
   | ExoPilot 01M | RK3588 | `exopilot,exp01`, `rockchip,rk3588` | this branch + `dev/01M` |
-  | ExoPilot 02M | RK3576 | `rpdzkj,rp-rk3576`, `rockchip,rk3576` | `dev/02M`, VisionPilot |
+  | ExoPilot 02M | RK3576 | `rpdzkj,rp-rk3576`, `rockchip,rk3576` | `dev/02M` |
   | ExoPilot 03M | RK3688 | — | **not supported yet**; DoraPilot's, not this tree's |
 
   Only those two boards. Rockchip's other parts (RK356X and the rest) are not
@@ -209,8 +209,8 @@ Python and run as a `PythonProcess`, and `dev/01M` uses the same module.
   health and queues. Side and rear are not one combined model.
 - Only `off` and `shadow` modes exist. Existing Hailo/local detections remain
   authoritative; no eGPU output is connected to planning or control.
-- Corner-radar/4D point-cloud integration belongs to `../visionpilot`, outside
-  this OpenPilot camera pipeline.
+- Corner radars are not part of this camera pipeline: BLE `radar2d` on every
+  board, plus the ESP32_RADAR `dev/v2` WiFi point-cloud add-on on 02M only.
 - Future AutoSpeed, AutoSteer and AutoDrive ONNX experiments must be independent,
   lower-priority compatibility references. Semantic segmentation is the main eGPU
   expansion: front plus independent side and rear sessions. Production driving
@@ -252,9 +252,10 @@ Python and run as a `PythonProcess`, and `dev/01M` uses the same module.
   repo, same ownership split as BGT60TR13C. See
   `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
   sign-convention bench-verify items, and file map.
-- OpenPilot no longer owns a `radar4d` runtime. Future ESP32 corner-radar
-  point-cloud work is scoped to VisionPilot; OpenPilot keeps only its current
-  radar interfaces and camera consumers.
+- No `radar4d` daemon runs today. The ESP32 corner-radar WiFi point cloud
+  (ESP32_RADAR `dev/v2`, UDP 47000, decoder `hal.drivers.radar.radar4d`) is a
+  02M-only add-on on top of the BLE `radar2d` baseline; only 02M hardware has
+  the antenna for the corner-node WiFi AP.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical

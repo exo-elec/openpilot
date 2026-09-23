@@ -22,11 +22,11 @@ ships enabled by default. See `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
 
 | File | SHA256 | Source | Notes |
 |------|--------|--------|-------|
-| `hef/yolov8n.hef` | `7103302bf5f2bac163f60b3f9436684e85f762405749020f89249101bd606f49` | Hailo Model Zoo (`hailo8/yolov8n.hef`; cross-verified against `../visionpilot`'s copy) | YOLO v8 nano — monod/sided/reard, 5,155,491 bytes |
+| `hef/yolov8n.hef` | `7103302bf5f2bac163f60b3f9436684e85f762405749020f89249101bd606f49` | Hailo Model Zoo (`hailo8/yolov8n.hef`) | YOLO v8 nano — monod/sided/reard, 5,155,491 bytes |
 
 `scrfd_2.5g.hef` (face detection for `driverd`'s DMS pipeline) was fetched
 and then removed — this hardware has no driver-facing camera, and
-`driverd`'s face-DMS is VisionPilot-only anyway (see `models/README.md`).
+`driverd`'s face-DMS is not implemented (see `models/README.md`).
 Re-add from Hailo Model Zoo `hailo8/scrfd_2.5g.hef` if one is ever fitted.
 
 ## ONNX Models (Chestnut big model — plus pending eGPU-shadow placeholders)
@@ -37,7 +37,7 @@ dev-PC RKNN substitute (bukapilot's `driving_vision.onnx`/`driving_policy.onnx`)
 and the reference-only Autoware vision suite (`egolanes_lite_int8`,
 `scene3d_lite_int8`, `sceneseg_lite_int8`, `autosteer_full_int8`,
 `autospeed_full_int8`) were fetched and then removed. They're still available
-from `../visionpilot` and `../bukapilot` if that capability is needed again —
+from `../bukapilot` and Autoware if that capability is needed again —
 see git history for the exact hashes. The `yolo_side`/`yolo_rear`/`seg_*` rows
 below are unrelated, pre-existing `.onnx`-format placeholders for the eGPU
 camera-shadow feature (`inferenced.py`'s `MODEL_REGISTRY`) — not yet exported,
@@ -53,10 +53,8 @@ kept as the documented target path for when they are.
 | `onnx/seg_front_road.onnx` | *(set after verified export)* | viewpoint-specific segmentation | Front-road eGPU segmentation shadow vs. PP-LiteSeg; no trained artifact exists anywhere yet |
 | `onnx/seg_front_wide.onnx` | *(set after verified export)* | viewpoint-specific segmentation | Front-wide eGPU segmentation shadow vs. SceneSeg; no trained artifact exists anywhere yet |
 
-`domainseg_full_int8.onnx` and `dmonitoring_model*.onnx` also exist in
-`../visionpilot/models/onnx/` but have no corresponding EOP entry point today
-(no roadwork-segmentation or dmonitoring-via-ONNX consumer on this branch) —
-not pulled in; add an entry here first if a consumer is built.
+There is no roadwork-segmentation or dmonitoring-via-ONNX consumer on this
+branch; add an entry here first if one is built.
 
 ## Folder naming
 
@@ -77,10 +75,8 @@ side, rear, and similar smaller per-camera models) run first/cheaper. `onnx/`'s
 Chestnut big model (`egpu`) is the heaviest, optional, shadow-only tier — see
 "Not currently loaded by anything" above. `axmodel/` (`VOICE_INFERENCE` —
 local LLM, whisper voice encoder) is a separate tier from all of the above;
-nothing is stored there yet — a `.hef`-compiled whisper build exists in
-`../visionpilot` but was deliberately not pulled in here since it's the wrong
-tier for this folder's purpose (camera inference); wait for a real
-`.axmodel`-compiled build instead of storing a mismatched-format placeholder.
+nothing is stored there yet; wait for a real `.axmodel`-compiled build
+instead of storing a mismatched-format placeholder.
 
 **Reconciled against `VOICE_PIPELINE.md`'s cloud-voice decision (2026-08-24):**
 `VOICE_PIPELINE.md` (2026-08-14, Design/Implementation both complete) mandates

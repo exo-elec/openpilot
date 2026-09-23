@@ -241,8 +241,7 @@ def detect_exopilot_platform() -> str:
   RK3588 (ExoPilot 01M) lives on dev/01M, see the branch model in CLAUDE.md.
 
   This is a real platform identity, not just a data-provenance tag: data
-  merges across the ExoPilot fleet (including VisionPilot, also on 02M) rely
-  on it being accurate.
+  merges across the ExoPilot fleet rely on it being accurate.
 
   Supports the HARDWARE environment variable override for testing, matching
   system/hardware/registry.py's PlatformRegistry.detect() convention —

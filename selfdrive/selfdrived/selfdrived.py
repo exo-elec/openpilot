@@ -185,7 +185,7 @@ class SelfdriveD:
   def _evaluate_health_monitor(self):
     """EOP: Health Monitor — evaluate system health and trigger graduated responses.
 
-    Merges VisionPilot health monitor concepts into openpilot's existing event system:
+    Maps health-monitor levels onto openpilot's existing event system:
       - Level 0 (NORMAL): nothing
       - Level 1 (WARNING): yellow thermal OR high CPU/memory trend → healthWarning
       - Level 2 (DEGRADED): red thermal OR very high CPU/memory → healthDegradedStop (SOFT_DISABLE)
@@ -467,7 +467,7 @@ class SelfdriveD:
       self.events.add(EventName.radarFault)
     # EOP: road invisible to the camera in severe weather — takeover, not gating
     self._update_low_visibility()
-    # EOP: Stereo GPU fault → VisionPilot-style IMMEDIATE_DISABLE (no CPU fallback)
+    # EOP: Stereo GPU fault → IMMEDIATE_DISABLE (no CPU fallback)
     if self.sm.valid['stereoStatus'] and self.sm['stereoStatus'].enabled:
       if self.sm['stereoStatus'].fault:
         self.events.add(EventName.stereoFault)

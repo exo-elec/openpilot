@@ -51,7 +51,6 @@ Usage:
     origin, direction = geometry.image_to_world_ray('road', u, v)
 
 See Also:
-    - VisionPilot camera_geometry.py (reference implementation)
     - OpenCV calib3d: https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
 """
 

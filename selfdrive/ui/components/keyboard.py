@@ -1,7 +1,6 @@
 """On-screen keyboard.
 
-From Nagasware, which is the only source that has one -- VisionPilot's
-settings assume a keyboard exists without shipping it. Replaces openpilot's
+From Nagasware, which is the only source that has one. Replaces openpilot's
 qt/widgets/keyboard.cc.
 
 Sized for a 1600x600 panel used at arm's length: keys are 64px tall, which is

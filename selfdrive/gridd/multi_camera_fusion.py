@@ -17,8 +17,6 @@ Output: Unified perception with:
 - Range-aware confidence weights
 - Multi-scale detection fusion
 
-Adapted from VisionPilot's multi_camera_fusion.py for OpenPilot/EOP.
-
 Usage:
     from openpilot.selfdrive.gridd.multi_camera_fusion import MultiCameraFusion
 

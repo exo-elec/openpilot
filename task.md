@@ -3,14 +3,20 @@
 Branch: `EOP10`
 Goal: Complete the EOP schema/runtime alignment changes so the working tree is coherent and the modified daemons are syntactically and import-clean.
 
+> **History record (2026-09-23).** VisionPilot, the ROS 2 stack earlier entries
+> compare against, is no longer developed. openpilot is the
+> only stack: `dev/01M`/`dev/EOP10` on 01M, `dev/02M` on 02M. The VisionPilot
+> references below record where the ported code came from; they are not a
+> current dependency or target.
+
 ## Current session — USB eGPU camera expansion (2026-08-23)
 
 Scope and ownership:
 
 - OpenPilot owns the front driving cameras plus two independent optional workloads:
   `sided` for `side_left`/`side_right`, and `reard` for `rear`.
-- Corner-radar/4D point-cloud work is not part of this OpenPilot eGPU change. Its
-  future integration belongs in `../visionpilot`.
+- Corner-radar/4D point-cloud work is not part of this OpenPilot eGPU change. It
+  is the ESP32_RADAR WiFi add-on on 02M (BLE `radar2d` is the baseline).
 - The first milestone is shadow comparison: run the existing small/local result
   and the eGPU model on the same frame, measure consistency and any improvement,
   and leave the existing result authoritative.

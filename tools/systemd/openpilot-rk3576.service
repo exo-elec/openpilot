@@ -2,7 +2,7 @@
 Description=openpilot (EOP RK3576 / ExoPilot 02M)
 After=network-online.target rockchip.service
 Wants=network-online.target
-Conflicts=visionpilot.service dorapilot.service
+Conflicts=dorapilot.service
 
 [Service]
 Type=simple

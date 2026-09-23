@@ -9,7 +9,7 @@ id, not a raylib handle, so only the texture comes from Qt. That is the whole
 reason this is ~200 lines rather than a C++ extension.
 
 **CPU (dev PC, and fallback)** -- VisionIPC NV12 -> numpy -> QImage. Same
-shape as the cv_bridge path VisionPilot uses today, minus ROS.
+shape as a ROS cv_bridge path, minus ROS.
 
 The EGL path is unverified. It cannot be verified without real 02M hardware,
 and it carries the open question from section 12.2: EGLFS supports one

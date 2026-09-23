@@ -22,7 +22,7 @@
 
 | Platform | CPU | Memory | NPU | GPU | Notes |
 |----------|-----|--------|-----|-----|-------|
-| **RK3576** | 4×A72 + 4×A55 | 8GB LPDDR4X | 2-core 6 TOPS | Mali G52 | ExoPilot 02M — VisionPilot only |
+| **RK3576** | 4×A72 + 4×A55 | 8GB LPDDR4X | 2-core 6 TOPS | Mali G52 | ExoPilot 02M — openpilot `dev/02M` |
 | **RK3588** | Octa (4xA76 + 4xA55) | 8 GB LPDDR4 | 1x 3-core | Mali G78 MP20 | Reference platform |
 | **Dev PC** | x86-64 | Variable | — | — | Testing only (mocked backends) |
 

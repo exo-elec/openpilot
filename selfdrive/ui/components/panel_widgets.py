@@ -1,8 +1,7 @@
 """The panel set the gesture system cycles through.
 
 All QPainter, no messaging: each reads from PanelData.values, which the
-onroad view fills from the snapshot. That is what let VisionPilot's
-equivalents port essentially unchanged -- they were already toolkit-pure.
+onroad view fills from the snapshot, so the panels stay toolkit-pure.
 """
 
 from __future__ import annotations

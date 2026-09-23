@@ -358,7 +358,7 @@ struct MonoStatus @0xf4a5b6c7d8e9f0a1 {
   numTracks @3 :UInt16;
   processingTimeMs @4 :Float32;
 
-  # Fault state — mirrors VisionPilot hardware health / StereoStatus.fault pattern.
+  # Fault state — hardware health / StereoStatus.fault pattern.
   # fault=True → monoFault event → IMMEDIATE_DISABLE + NO_ENTRY in selfdrived.
   fault @5 :Bool;
   faultReason @6 :Text;   # "npu_unavailable", "npu_timeout", "npu_consecutive_failures"
@@ -490,7 +490,7 @@ struct StereoStatus @0xc8f4a5e2d3b1a907 {
   downscale @6 :UInt8;
   hasCalibration @7 :Bool;
 
-  # Fault state — mirrors VisionPilot's hardware health pattern.
+  # Fault state — hardware health pattern.
   # fault=True → stereoFault event → IMMEDIATE_DISABLE + NO_ENTRY in selfdrived.
   # Clears automatically when GPU recovers (no explicit ack required yet).
   fault @8 :Bool;

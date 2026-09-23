@@ -4,9 +4,8 @@ Best of both, and they split cleanly:
 
 - **Nagasware** has the richer presentation -- `domains/navigation/ui/` is
   ~5,600 LOC with a typed `ManeuverType`, drawn maneuver icons, route cards
-  and a Material-styled search bar. VisionPilot's `navigation_widget.py` is a
-  159-line panel with two view modes. The maneuver model here is Nagasware's.
-- **VisionPilot** has the routing *preferences* Nagasware lacks: `PathType`
+  and a Material-styled search bar. The maneuver model here is Nagasware's.
+- **Routing preferences** Nagasware lacks are added here: `PathType`
   (fastest / shortest / eco / avoid tolls / avoid highways). Nagasware's
   engine assumes one route.
 
@@ -61,7 +60,7 @@ class Maneuver(Enum):
 
 
 class PathType(Enum):
-  """VisionPilot's routing preferences."""
+  """Routing preferences."""
   FAST = "fastest"
   SHORT = "shortest"
   ECO = "eco"

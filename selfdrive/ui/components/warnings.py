@@ -1,10 +1,9 @@
 """ADAS engagement warnings.
 
-Taken from VisionPilot, which is the only one of the two source UIs that has
-a typed warning taxonomy at all -- Nagasware has generic border alerts and
+A typed warning taxonomy -- Nagasware has generic border alerts and
 nothing that says *why* engagement is blocked.
 
-VisionPilot spells it twice, though: `WarningType` (13 entries, carrying a
+The source UI spelled it twice: `WarningType` (13 entries, carrying a
 `dismissible` flag) and `SafetyType` (9 entries, carrying a `priority`), with
 overlapping members and metadata that disagrees -- CALIBRATION_REQUIRED is
 dismissible in one and priority-80 in the other, and CRASH_DETECTED uses key

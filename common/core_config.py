@@ -25,8 +25,6 @@ Platform Support:
       indices below carry over unchanged.
 
 Note: ExoPilot 03M (RK3688) is NOT supported by OpenPilot -- see DoraPilot.
-VisionPilot (ROS2) is a separate stack that also targets 02M; that is
-additional, not exclusive -- both can run on 02M hardware.
 """
 
 from openpilot.common.realtime import CORE_BIG, CORE_LITTLE, set_core_type

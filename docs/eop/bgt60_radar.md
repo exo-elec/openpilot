@@ -2,8 +2,9 @@
 
 *(Filename kept for history/link stability. The WiFi/UDP Radar4D corner-node
 pipeline described below is no longer an OpenPilot runtime dependency. OpenPilot
-uses the BLE Radar2D object stream for advisory corner coverage; VisionPilot may
-retain a separate WiFi/UDP point-cloud integration. Do not use this document as
+uses the BLE Radar2D object stream for advisory corner coverage on every board.
+The WiFi/UDP point cloud is an ESP32_RADAR `dev/v2` add-on for 02M only, with no
+running daemon yet. Do not use this document as
 the current OpenPilot process or safety contract.)*
 
 ## Radar classification
@@ -11,17 +12,17 @@ the current OpenPilot process or safety contract.)*
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | long-range UART radar (`selfdrive/controls/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
-| `radar4d` | 4x ESP32_RADAR corner nodes (future VisionPilot WiFi/UDP path) | 0–15m | VisionPilot-owned, no current OpenPilot consumer | close-range corner coverage |
+| `radar4d` | 4x ESP32_RADAR corner nodes (WiFi/UDP add-on, 02M only) | 0–15m | no running consumer yet | close-range corner coverage |
 | `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
-The historical `radar2d` and proposed VisionPilot `radar4d` designs share the
+The `radar2d` and `radar4d` designs share the
 same 4 physical corner-node brackets —
 `radar2d` reads each node's on-node-tracked BLE object stream, `radar4d`
 reads the same nodes' raw CFAR point cloud over an independent WiFi/UDP
 link. Two transports, one set of hardware, same corner-pose registry (see
 "Driver ownership" below).
 
-## Driver ownership — shared with VisionPilot via `hal`
+## Driver ownership — `hal`
 
 Low-level wire decode lives in the `exopilot` repo's `hal` package
 (`hal.drivers.radar.radar4d`), **not** duplicated here — openpilot is a
@@ -59,10 +60,8 @@ isn't importable or the UDP port fails to open.
 
 `hal.drivers.radar.bgt60tr13c`/`dsp_gpu.py`/`dsp_gpu_kernel.py`/`intrinsics.py`
 (the old SPI driver, GPU CFAR kernel, and factory intrinsics LUT) are **not
-deleted** from the shared `hal` package — they may still be used by
-VisionPilot (RK3576) for its own camera-bar-mounted BGT60 unit, which this
-repo has no visibility into. Only this repo's *consumption* of them was
-removed.
+deleted** from the shared `hal` package. Only this repo's *consumption* of
+them was removed.
 
 ## Wire protocol (UDP, port 47000, from any of 4 corner nodes)
 
@@ -87,7 +86,7 @@ parses the sensor's own binary frame:
   transforms them into vehicle frame using `radar4d_geometry.load_corner_poses()`
   — the *same* shared registry `gridd.py` already uses for `radar2d`'s
   corner nodes (`<eop_data_root>/calibration/sensor_calibration.yaml`,
-  written by visionpilot's pairing/on-road calibrator, read-only here). Same
+  read-only here). Same
   all-or-nothing fallback to a placeholder pose table if the registry is
   absent/incomplete.
 
@@ -171,7 +170,7 @@ Two independently-sourced pieces, same factory-vs-runtime split as before:
 
 | Component | Owner | Where it's applied |
 |---|---|---|
-| **Per-corner mounting pose** (x, y, yaw — dominant term) | `radar4d_geometry.load_corner_poses()`, shared `sensor_calibration.yaml` registry (visionpilot writes, openpilot reads) | `radar4d.py`'s `run()`: transforms each corner's local-frame detections into vehicle frame *before* clustering/tracking — same function (`corner_local_to_vehicle_frame()`) `gridd.py`'s `radar2d` fusion calls, extracted this session so both share one implementation |
+| **Per-corner mounting pose** (x, y, yaw — dominant term) | `radar4d_geometry.load_corner_poses()`, shared `sensor_calibration.yaml` registry (read-only here) | `radar4d.py`'s `run()`: transforms each corner's local-frame detections into vehicle frame *before* clustering/tracking — same function (`corner_local_to_vehicle_frame()`) `gridd.py`'s `radar2d` fusion calls, extracted this session so both share one implementation |
 | **On-road vehicle tilt** (pitch, yaw) | `calibrationd.py`'s `liveCalibration.rpyCalib` | `radar4d.py`: `_apply_calibration()` — unchanged, still rotates each *tracked* detection's az/el by live vehicle tilt at publish time, same as the BGT60 era |
 | **FOV-gating reference mount** | `RadarMounting.load()` (`radar4d_geometry.py`), `radar_extrinsics.json` | `gridd.py`'s `RadarStereoGeometry`, used only to gate radar4d detections against the camera FOV — **now a nominal vehicle-origin reference**, not a physical sensor mount, since detections already arrive vehicle-frame-transformed by the time this gate runs. Verify `radar_extrinsics.json` doesn't still carry BGT60's old camera-bar-mount offset (pre-existing default is all-zero, so this is only a concern if that file was ever populated non-zero) |
 

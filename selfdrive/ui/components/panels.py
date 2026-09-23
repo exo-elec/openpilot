@@ -1,10 +1,7 @@
 """Floating, swipeable side panels (plan section 5.6).
 
 Gesture vocabulary is Nagasware's, which is the implementation that actually
-runs -- VisionPilot's equivalent calls `.x_m()` on QPoint in nine places and
-raises AttributeError on every mouse release, so none of it has ever
-executed. The signal shape (widget_changed / swap_panels / reset) is
-VisionPilot's, which is plumbing with no behaviour of its own.
+runs. The signal shape is widget_changed / swap_panels / reset.
 
 Moved off the main window's event filter and onto the panel base class, and
 the hardcoded 500px split and leftover debug print are gone.

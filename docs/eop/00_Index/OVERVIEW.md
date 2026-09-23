@@ -50,7 +50,7 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
   - Wide road (1.7mm): 150° FOV, 0-30m - YOLO only (cut-in detection)
   - Road (8mm): 40° FOV, 0-100m - YOLO only (PP-LiteSeg on RKNN for road seg)
   - Tele road (16mm): 20° FOV, 80-300m - YOLO + SceneSeg (long-range lead car + drivable path)
-- TOPS Budget: 3x YOLO (~10.5) + 1x SceneSeg (~1.5) = ~12 TOPS, leaving ~1 TOPS for VisionPilot AI
+- TOPS Budget: 3x YOLO (~10.5) + 1x SceneSeg (~1.5) = ~12 TOPS, leaving ~1 TOPS headroom
 
 **STEREOD** — 2D stereo depth (selfdrive/stereod/)
 - `stereod.py`     GPU SGM → 2D disparity map                 Mali GPU (OpenCL)
@@ -88,8 +88,8 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
 - Optional `rear_yolo_egpu` shadow comparison is configured independently with
   `EOPRearEGPUMode`; `side_yolo_egpu` uses `EOPSideEGPUMode`
 - Both eGPU sessions route through the single `inferenced` device owner
-- Corner radar and future 4D point-cloud integration belong to VisionPilot, not
-  this OpenPilot camera pipeline
+- Corner radars are not part of this camera pipeline (BLE `radar2d`; WiFi
+  point-cloud add-on on 02M only)
 
 **OPTIONAL USB eGPU** — tinygrad camera inference (`system/inferenced/`)
 - Semantic segmentation is the main expansion workload: front SceneSeg/PP-LiteSeg

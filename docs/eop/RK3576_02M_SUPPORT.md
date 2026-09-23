@@ -1,14 +1,8 @@
 # RK3576 / ExoPilot 02M support
 
-> **Status change, 2026-09-10** — 02M is moving to VisionPilot's `dev/02M`
-> line, which runs this backend without ROS 2 behind a new UI. The **02M UI
-> has already been removed from this branch** (telemetry side panel, its width
-> param, the split `MainWindow` layout) — see `docs/eop/BRANCH_NAMING.md`.
-> Everything else below is still in-tree and still works: the RK3576 platform
-> layer, camera config, NPU topology and `Hardware::RK3576()` all remain, and
-> move only once the VisionPilot port runs on real 02M hardware. Read the
-> sections below as accurate *except* for anything describing on-screen 02M
-> behaviour.
+> **Status, 2026-09-23** — 02M is openpilot's `dev/02M` line. The 2026-09-10
+> plan to move it to a separate stack is dropped. Only 02M has the antenna for
+> the ESP32 corner-radar WiFi add-on; the other boards are BLE-only.
 
 
 **Status, 2026-08-26**: platform registration and NPU-topology plumbing
@@ -21,11 +15,9 @@ testing phase" status for RK3588 too (see `docs/eop/PHASE5_HARDWARE_READINESS.md
 ## Why this exists
 
 Until 2026-08-26, this fork and the sibling `~/pilot/exopilot` repo both
-stated RK3576 (ExoPilot 02M) was VisionPilot's (a separate ROS2 stack)
-exclusive target and explicitly out of scope for openpilot. That boundary
+treated RK3576 (ExoPilot 02M) as out of scope for openpilot. That boundary
 has been overridden by product decision: EOP10 now targets both ExoPilot
-01M (RK3588) and 02M (RK3576), and VisionPilot's ROS2 stack is additional
-on 02M, not exclusive.
+01M (RK3588) and 02M (RK3576).
 
 Scope note: the Hailo-8/DeepX (DX-M1) PCIe accelerator support this repo
 already has is **camera-inference tier only** (side/rear BSD-style
@@ -33,8 +25,7 @@ detection) — see `system/inferenced/compute.py`'s `WorkloadClass` docstring.
 The core driving model (`driving_vision`/`driving_policy`) stays RKNN-only
 on both platforms; RKNN and Hailo/DeepX are different, incompatible NPU
 toolchains, and nobody has attempted running the driving model on either
-PCIe accelerator anywhere in this codebase, `~/pilot/exopilot`, or
-`~/pilot/visionpilot`.
+PCIe accelerator anywhere in this codebase or `~/pilot/exopilot`.
 
 ## What's implemented (Phase A)
 
@@ -103,9 +94,9 @@ as everything else here.
   {ox03c10_driver.py,gc4653_driver.py}` has real, working register-level
   driver code for the exact same two sensors (OX03C10 ×3, GC4653 stereo
   pair) behind a clean `BaseCameraDriver` interface — a direct porting
-  reference, not something to re-derive from datasheets. VisionPilot uses
-  ROS2 topics where EOP10 uses V4L2+VisionIPC, so this is adaptation, not a
-  drop-in copy.
+  reference, not something to re-derive from datasheets. That repo is archived
+  (no longer developed) and used ROS2 topics where EOP10 uses V4L2+VisionIPC,
+  so this is adaptation, not a drop-in copy.
 - **Stereo depth math**: anything computing depth from a hardcoded 80mm
   baseline constant needs to read `get_stereo_baseline_mm()` per-platform
   instead (160mm on 02M).
@@ -206,7 +197,7 @@ topology comment and DT overlay (`exopilot02m-usbhub-rts5411.dtbo`) confirm
 it's the same RTS5411S hub as 01M (side_left/side_right on hub ports 1/2) —
 now probes the hub too, matching `RK3588Hardware`. `CLAUDE.md`'s
 Prerequisites section also gained the `setup_rk3576.sh` BSP install step,
-which already existed (written for VisionPilot) but wasn't referenced from
+which already existed but wasn't referenced from
 openpilot's own setup instructions.
 
 ## Found in a third pass: DEVICE_CAMERAS had no RK3576 entries at all

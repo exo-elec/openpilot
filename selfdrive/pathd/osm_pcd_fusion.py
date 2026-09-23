@@ -18,7 +18,7 @@ Architecture:
                     ├──► VTSC: Surface quality speed limits
                     └──► Hybrid A*: Obstacle-aware path planning
 
-Reference: VisionPilot map_prediction + Autoware behavior_velocity_planner
+Reference: Autoware behavior_velocity_planner
 """
 
 from __future__ import annotations
