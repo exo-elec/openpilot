@@ -60,10 +60,22 @@ at 20 Hz). Admission mirrors the WiFi fleet's MAC-ACL semantics: paired units
 bootstrap/pairing-window (`BLERadarPairingOpen`) PLUS eligibility —
 advertising dwell ≥ 10 s (presence stability) and the node's claimed WiFi
 STA MAC (BLE mfg data, Espressif company id 0x02E5) present in
-`/etc/hostapd/ap0.accept` (the identity check). RSSI is advisory-only
+`/etc/hostapd/ap0.accept` or the `BLERadarRoster` param (the identity
+check). RSSI is advisory-only
 (weak-signal anomaly warning, never a gate — BLE RSSI is not distance).
 Without that roster the identity check degrades to dwell-only (one startup
 warning). Full contract in the module docstring.
+
+### Host → node vehicle state (10 Hz)
+
+`ble_central.py` also writes the ego speed/yaw-rate record (10 bytes,
+characteristic `35B582CD-…`, write-without-response) to every connected
+corner node at 10 Hz: speed from `carState.vEgo`, yaw rate from
+`livePose.angularVelocityDevice` (device frame z down → negated, + = left).
+When either input is stale/invalid the record goes out with `flags=0` and
+the node falls back to its own IMU. The node requires an encrypted link for
+this write; BlueZ pairs Just Works on the first write. Contract:
+ESP32_RADAR `docs/ble-link.md`.
 
 ### Radar pairing service tool (NCP)
 
@@ -128,6 +140,7 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 | `EOPBluetoothRadarEnabled` | bool | `false` | BLE central for ESP32 corner radars (`ble_central.py`, sole `radar2d` publisher when on) |
 | `BLECornerPairs` | str (JSON) | — | Learned BLE MAC → corner_id pair set (`ble_central.py`), written automatically |
 | `BLERadarPairingOpen` | bool | `false` | Corner-radar pairing window — while `1`, unknown units may be learned/connected; close after pairing (mirrors WiFi MAC-ACL ritual) |
+| `BLERadarRoster` | str | — | Extra corner-radar identity MACs (factory WiFi STA MAC from the unit label/boot log), JSON list or whitespace/comma separated; merged with `/etc/hostapd/ap0.accept`. Needed for BLE-only nodes (ESP32_RADAR `dev/v1`, no WiFi) |
 | `EOPDeviceName` | str | `EXOPILOT` | BT adapter name — set per unit: `EXOPILOT 01`, `EXOPILOT 02M`, `EXOPILOT 02M` |
 | `EOPSPPEnabled` | bool | `false` | Classic SPP sub-daemon enable |
 | `EOPSPPAutoReconnect` | bool | `true` | Outward-connect to saved mobile device |
