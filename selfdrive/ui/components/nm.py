@@ -13,8 +13,9 @@ every call has a deadline.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from openpilot.common.wifi_band import is_5ghz, lan_band_for
 from openpilot.selfdrive.ui.qt import (
   QDBusConnection,
   QDBusInterface,
@@ -61,6 +62,7 @@ class AccessPoint:
   strength: int            # 0..100
   security: str
   path: str = ""
+  has_5ghz: bool = False   # any BSS of this SSID seen on 5GHz (02M band plan)
 
   @property
   def needs_password(self) -> bool:
@@ -197,6 +199,7 @@ class NetworkManager:
     paths = self._call(device, IFACE_DEVICE_WIRELESS, "GetAllAccessPoints") or []
 
     best: dict[str, AccessPoint] = {}
+    on_5ghz: set[str] = set()
     for raw in paths:
       path = _path_str(raw)
       if not path:
@@ -215,10 +218,13 @@ class NetworkManager:
                              _as_int(props.get("RsnFlags"))),
         path=path,
       )
+      if is_5ghz(_as_int(props.get("Frequency"))):
+        on_5ghz.add(ssid)
       if ssid not in best or ap.strength > best[ssid].strength:
         best[ssid] = ap
 
-    return sorted(best.values(), key=lambda a: -a.strength)
+    aps = [replace(ap, has_5ghz=ap.ssid in on_5ghz) for ap in best.values()]
+    return sorted(aps, key=lambda a: -a.strength)
 
   # ---- connections ------------------------------------------------------
 
@@ -249,6 +255,11 @@ class NetworkManager:
       "connection": {"type": "802-11-wireless", "uuid": _uuid(), "id": ap.ssid},
       "802-11-wireless": {"ssid": ap.ssid.encode(), "mode": "infrastructure"},
     }
+    # ExoPilot band plan (common/wifi_band.py): the vehicle LAN on 5GHz when
+    # this network offers it.
+    band = lan_band_for(ap.has_5ghz)
+    if band is not None:
+      connection["802-11-wireless"]["band"] = band
     if ap.needs_password:
       connection["802-11-wireless-security"] = {
         "key-mgmt": "wpa-psk", "auth-alg": "open", "psk": password,
