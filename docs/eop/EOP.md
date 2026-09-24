@@ -35,7 +35,7 @@
 | Driver Monitoring | ⚠️ Not implemented (no driver camera) |
 | Side Camera Video | ✅ USB UVC streams |
 | Side Camera AI BSD | ✅ Hailo-8 (no fallback policy without it) |
-| Voice Pipeline | ⚠️ Azure voice server — local alert tones only; no on-board mic/STT/TTS |
+| Voice Pipeline | ✅ Local only: `micd` (2-mic pair) → `voiced` (beamformer + VAD); no wake word/STT/cloud |
 | Two-Layer Safety | ✅ SocketD (software) + TC275 (hardware) |
 | MCAP Recording | ✅ Parallel logging for Foxglove Studio |
 

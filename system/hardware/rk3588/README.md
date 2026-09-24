@@ -15,7 +15,7 @@ This directory contains the hardware abstraction, camera configuration, and targ
 | Storage | 64 GB eMMC + SD card |
 | Camera | 4× MIPI CSI-2 + 3× USB UVC |
 | Audio | I2S DAC (speaker) + USB audio |
-| Voice Input | ❌ No on-board mic (steering-torque DMS only) |
+| Voice Input | ✅ 2-mic I2S pair on I2S0 SDI0 (local beamformer + VAD) |
 | Speaker | ✅ Yes (I2S DAC) |
 | Face Camera | ❌ Repurposed as rear_camera (170° UVC) |
 | Hailo-8 | ❌ Not present on ExoPilot 01M |

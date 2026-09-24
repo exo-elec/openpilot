@@ -283,7 +283,7 @@
 | GPS | NEO-M8U-06B (UDR, UART7) | ✅ HAL + full NMEA parser |
 | WiFi | RTL8821CE (PCIe) | ✅ Driver known; BSP confirmed |
 | CAN | can0/can1 (SocketCAN) | ✅ socketcand + libsocketcan |
-| **Microphone** | — | ⬜ No mic input on this platform |
+| **Microphone** | 2-mic INMP441-class I2S pair | ✅ `micd` (both channels) + `voiced` (local beamformer + VAD, offline) |
 | **Speaker** | I2S center-mounted | ✅ `spkd` + `soundd` implemented |
 
 ---

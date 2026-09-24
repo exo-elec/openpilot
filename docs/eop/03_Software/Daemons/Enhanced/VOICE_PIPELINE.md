@@ -4,10 +4,19 @@
 
 ## Status
 
+> **2026-09-24 (user decision): local and simple first.** Both ExoPilot
+> boards (01M, 02M) carry a 2-mic INMP441-class I2S pair next to a MAX98357A
+> mono amp (exopilot docs/02-HARDWARE/RK3588_PINMUX_01M.md and
+> RK3576_PINMUX_02M.md section 4). What runs is `system/voiced`: micd audio
+> (both channels) -> broadside beamformer -> energy VAD -> `micStatus`
+> (vadActive, micLevelDb), when `EOPVoiceEnabled`. It is offline and drives
+> nothing. The cloud design below (wake word, STT, intents, Azure) is **not
+> implemented and not planned for now**; keep it as background only.
+
 | Aspect | Status |
 |--------|--------|
-| **Design** | ✅ Complete |
-| **Implementation** | ✅ Complete |
+| **Local front end (beamformer + VAD)** | Implemented, host-tested (`system/voiced/tests`) |
+| **Wake word / STT / intents / cloud** | Not implemented (deferred) |
 
 ---
 
@@ -128,12 +137,13 @@ monitored centrally. Only non-language alert tones are synthesized locally.
 ## Hardware Requirements
 
 - **Platform:** RK3588 (ExoPilot 01M) — the only platform openpilot supports
-- **Microphones:** 2× INMP441 (I2S1) — ExoPilot 02M only; not present on 01M
-- **Speaker:** MAX98357A 3.2W amplifier — ExoPilot 02M only; not present on 01M
+- **Microphones:** 2× INMP441-class, one I2S stereo pair — 01M on I2S0 SDI0,
+  02M on SAI1 SDI0 (exopilot PINMUX docs section 4)
+- **Speaker:** MAX98357A mono amplifier on the same bus — both boards
 - **Network:** Active cellular/Wi-Fi link required for Azure voice server.
 
-**Note:** ExoPilot 01M (RK3588) has no microphone/speaker hardware. Voice
-daemons run but stay silent; alert tones are not available on 01M.
+**Note (2026-09-24):** the older "01M has no microphone/speaker" note
+predated the boards' audio design; both boards have the mic pair and amp.
 
 ---
 
