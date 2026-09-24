@@ -264,11 +264,11 @@ Python and run as a `PythonProcess`, and `dev/01M` uses the same module.
   `selfdrive/controls/tests/test_radar4d_points.py`. 02M-only add-on on top of
   the BLE `radar2d` baseline; only 02M hardware has the corner-node WiFi AP
   antenna. Not hardware-verified.
-- 02M WiFi band plan (2026-09-24): `ap0` 2.4GHz hotspot for the ESP32s,
-  `wlan0` 5GHz LAN when the radio has DBDC. Set up by exopilot's
-  `setup_wifi_dualwan.sh` (`/etc/exopilot/wifi-band.conf`); the WiFi screens
-  pin new networks through `common/wifi_band.py` (`bg` without DBDC, `a`
-  for 5GHz-capable networks with DBDC).
+- 02M WiFi band plan (2026-09-24): 02M is our own board with the AP6275S
+  (AP6256 dropped): `ap0` 2.4GHz hotspot for the ESP32s and `wlan0` 5GHz LAN
+  at once. Set up by exopilot's `setup_wifi_dualwan.sh`
+  (`/etc/exopilot/wifi-band.conf`, `LAN_BAND=a`); the WiFi screens pin new
+  5GHz-capable networks to `a` through `common/wifi_band.py`.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical

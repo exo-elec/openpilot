@@ -27,7 +27,7 @@ class RK3576Hardware(RockchipHardware):
 
     Board bring-up data (GPIO/UART/I2C/cellular pin assignments) ships from
     the closed exopilot hal package, same as RK3588Hardware. WiFi/BT chip
-    identity (AP6256, current trial board; being revised to AP6275S — see
+    identity (AP6275S: 2.4GHz ESP32 hotspot + 5GHz LAN at once — see
     exopilot's docs/02-HARDWARE/wifi_corner_nodes.md) and GPS UART
     (ZED-F9P, uart2) are now populated in hal.platform.rk3576_pins; I2C/USB
     topology data is still unported, so those two stay empty here (graceful
@@ -147,7 +147,7 @@ class RK3576Hardware(RockchipHardware):
             HardwareCapability.PCIE,
             HardwareCapability.MICROPHONE,
             HardwareCapability.VOICE_INPUT,
-            # WiFi (AP6256/SDIO, being revised to AP6275S), BT (same chip,
+            # WiFi (AP6275S/SDIO), BT (same chip,
             # UART, unconfirmed transport —
             # see hal.platform.rk3576_pins), GPS (ZED-F9P) and cellular
             # (EC25) are all present on this board. RTK is deliberately not

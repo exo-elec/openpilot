@@ -255,8 +255,8 @@ class NetworkManager:
       "connection": {"type": "802-11-wireless", "uuid": _uuid(), "id": ap.ssid},
       "802-11-wireless": {"ssid": ap.ssid.encode(), "mode": "infrastructure"},
     }
-    # 02M: keep wlan0 off the corner-radar hotspot's band when the radio
-    # cannot run two channels, and on 5GHz when it can (common/wifi_band.py).
+    # ExoPilot band plan (common/wifi_band.py): the vehicle LAN on 5GHz when
+    # this network offers it.
     band = lan_band_for(ap.has_5ghz)
     if band is not None:
       connection["802-11-wireless"]["band"] = band

@@ -293,22 +293,20 @@ just stale prose: exopilot's DTS `wifi_chip_type = "ap6398s"` would have
 made brcmfmac try to load BCM4359 firmware onto real BCM43456 (AP6256)
 silicon and fail to bring WiFi up entirely. Fixed throughout exopilot
 (DTS, hal/platform/{rk3576_pins,boards}.py, docs) and here. Separately,
-the team has decided to revise the board to **AP6275S** (WiFi6, DBDC —
-genuine concurrent 2.4GHz AP + 5GHz STA on one radio, unlike AP6256/
-AP6398S which are both same-band-only) — see exopilot's
-`docs/02-HARDWARE/wifi_corner_nodes.md` for the full writeup. This is a
-PCB footprint change (different package family from AP6256), not yet
-built. WiFi-based `radar4d` (ESP32_RADAR corner nodes) remains scoped to
+the team decided to move to **AP6275S** (WiFi 6, RSDB — genuine
+concurrent 2.4GHz AP + 5GHz STA on one radio). **2026-09-24 (user
+decision): 02M is our own board with the AP6275S only; AP6256 support is
+removed** — see exopilot's `docs/02-HARDWARE/wifi_corner_nodes.md`. WiFi-based `radar4d` (ESP32_RADAR corner nodes) remains scoped to
 this branch (`dev/02M`) only — `dev/EOP10`/`dev/01M` do not support it.
 
 **Band plan (user decision, 2026-09-24):** `ap0` is a 2.4GHz hotspot for
 the ESP32 corner nodes; `wlan0` uses 5GHz for the vehicle's own WiFi LAN.
-exopilot's `setup_wifi_dualwan.sh` detects whether the radio can run two
-channels at once (DBDC) and writes `/etc/exopilot/wifi-band.conf`.
-openpilot's WiFi screens (`selfdrive/ui/components/nm.py`,
-`system/ui/lib/wifi_manager.py`) read it through `common/wifi_band.py`:
-without DBDC new networks are pinned to 2.4GHz (`bg`) so `ap0` stays
-reachable; with DBDC a network seen on 5GHz is pinned to `a`. The ESP32
+exopilot's `setup_wifi_dualwan.sh` sets it up on the AP6275S and writes
+`/etc/exopilot/wifi-band.conf` (`LAN_BAND=a`). openpilot's WiFi screens
+(`selfdrive/ui/components/nm.py`, `system/ui/lib/wifi_manager.py`) read it
+through `common/wifi_band.py`: a network seen on 5GHz is pinned to `a`
+(with a 5GHz BSSID when one is pinned), a 2.4GHz-only one is left
+unpinned. The ESP32
 point cloud is consumed by `selfdrive/controls/radar4d.py` → gridd.
 `get_capabilities()` gained `WIFI`/`BLUETOOTH`/`GPS`/`CELLULAR` — **not**
 `RTK`, deliberately: no RTCM correction path exists (no NTRIP client), so
