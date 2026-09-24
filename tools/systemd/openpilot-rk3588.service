@@ -2,7 +2,6 @@
 Description=openpilot (EOP RK3588)
 After=network-online.target rockchip.service
 Wants=network-online.target
-Conflicts=visionpilot.service
 
 [Service]
 Type=simple
