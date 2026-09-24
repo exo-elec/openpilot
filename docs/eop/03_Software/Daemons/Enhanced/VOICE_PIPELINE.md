@@ -4,10 +4,17 @@
 
 ## Status
 
+> **2026-09-24 (user decision): local and simple first.** What runs on
+> `dev/02M` is `system/voiced`: micd audio → delay-and-sum beamformer →
+> energy VAD → `micStatus` (vadActive, micLevelDb), when `EOPVoiceEnabled`.
+> It is offline and drives nothing. The cloud design below (wake word, STT,
+> intents, Azure) is **not implemented and not planned for now**; keep it
+> as background only.
+
 | Aspect | Status |
 |--------|--------|
-| **Design** | ✅ Complete |
-| **Implementation** | ✅ Complete |
+| **Local front end (beamformer + VAD)** | Implemented, host-tested (`system/voiced/tests`) |
+| **Wake word / STT / intents / cloud** | Not implemented (deferred) |
 
 ---
 

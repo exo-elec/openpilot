@@ -82,6 +82,7 @@ DAEMON_CORE_TYPE = {
     "spkd": CORE_LITTLE,        # Speaker output via I2S DAC
     "soundd": CORE_LITTLE,      # TTS synthesis + alert tones
     "micd": CORE_LITTLE,        # Microphone input + SPL metering (standby — no mic on RK3588)
+    "voiced": CORE_LITTLE,      # Local beamformer + VAD (no wake word/STT/cloud)
 
     # Positioning/Navigation (Accuracy - not safety critical)
     "pigeond": CORE_LITTLE,     # GPS driver

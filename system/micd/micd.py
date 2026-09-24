@@ -52,11 +52,11 @@ def get_a_weighting_filter():
 
 
 def calculate_spl(measurements):
-    """Calculate sound pressure level in dB."""
-    sound_pressure = np.sqrt(np.mean(measurements ** 2))
+    """Sound pressure (RMS) and its level in dB, as a pair; both callers unpack two values."""
+    sound_pressure = float(np.sqrt(np.mean(measurements ** 2)))
     if sound_pressure > 0:
-        return 20 * np.log10(sound_pressure / REFERENCE_SPL)
-    return 0
+        return sound_pressure, float(20 * np.log10(sound_pressure / REFERENCE_SPL))
+    return 0.0, 0.0
 
 
 def apply_a_weighting(measurements: np.ndarray) -> np.ndarray:
