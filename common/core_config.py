@@ -100,6 +100,7 @@ DAEMON_CORE_TYPE = {
 
     # Communication / Subscription
     "bluetoothd": CORE_LITTLE,  # BLE/Phone
+    "radar4d": CORE_LITTLE,     # ESP32 corner WiFi point cloud (UDP decode, 20Hz)
     "subscribed": CORE_LITTLE,  # NavPilot subscription & hardware auth
     "obd2d": CORE_LITTLE,       # OBD2 bridge for bluetoothd
 

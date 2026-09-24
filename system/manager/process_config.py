@@ -130,6 +130,10 @@ procs = [
   # Not gated on a presence param — the vehicle's forward-radar hardware is a
   # fixed part of this build.
   PythonProcess("radar3d", "selfdrive.controls.radar3d", ignition_on),
+  # radar4d: ESP32_RADAR dev/v2 corner nodes' WiFi point cloud (UDP 47000) ->
+  # 'radar4d' socket -> gridd costmap. 02M only (WiFi AP antenna); idles if
+  # hal is missing, publishes nothing until a corner pose is confirmed.
+  PythonProcess("radar4d", "selfdrive.controls.radar4d", ignition_on),
   # radard: fuses camera (modelV2) leads with 'radar3d' points -> radarState -> ACC.
   # Renamed from this repo's old radar3d.py to match upstream openpilot's name,
   # now that radar3d.py itself is the sensor producer, not the fusion daemon.

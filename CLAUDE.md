@@ -252,10 +252,18 @@ Python and run as a `PythonProcess`, and `dev/01M` uses the same module.
   repo, same ownership split as BGT60TR13C. See
   `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
   sign-convention bench-verify items, and file map.
-- No `radar4d` daemon runs today. The ESP32 corner-radar WiFi point cloud
-  (ESP32_RADAR `dev/v2`, UDP 47000, decoder `hal.drivers.radar.radar4d`) is a
-  02M-only add-on on top of the BLE `radar2d` baseline; only 02M hardware has
-  the antenna for the corner-node WiFi AP.
+- `radar4d` (2026-09-24): `selfdrive/controls/radar4d.py` receives the ESP32
+  corner-radar WiFi point cloud (ESP32_RADAR `dev/v2`, Calterah CAL77S244,
+  Radar4D chunks on UDP 47000, decoder `hal.drivers.radar.radar4d`), places
+  each corner's points in the vehicle frame with the confirmed corner-pose
+  registry (`radar_corner_geometry.load_corner_poses()`), tags static points
+  from `carState.vEgo`, and publishes `radar4d`. gridd `_fuse_radar4d()`
+  stamps them into the costmap only (raw points, not tracks; the BLE `radar2d`
+  tracks from the same nodes stay the object source). Pure helpers and tests:
+  `selfdrive/controls/lib/radar4d_points.py`,
+  `selfdrive/controls/tests/test_radar4d_points.py`. 02M-only add-on on top of
+  the BLE `radar2d` baseline; only 02M hardware has the corner-node WiFi AP
+  antenna. Not hardware-verified.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical

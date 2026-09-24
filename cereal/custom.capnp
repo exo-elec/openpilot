@@ -1097,15 +1097,16 @@ struct EopThermalStatus @0xcd5de0a9f675e8a5 {
 # ---- EOP: Radar pipeline structs ----
 
 struct Radar4DPoint @0xa1b2c3d4e5f60718 {
-  # BGT60TR13C 60GHz FMCW short-range 4D radar point.
-  # Full polar measurement — position derived in gridd._fuse_radar4d(), not stored here.
-  trackId       @0 :UInt64;   # stable ID (confirm/drop hysteresis in radar4d_tracker.py)
-  rangM         @1 :Float32;  # radial distance (m); BGT60 range res = 2.7 cm
-  azimuth       @2 :Float32;  # angle (deg, 0=forward, +left, -right); dual-baseline phase AoA
+  # ESP32 corner-radar point (ESP32_RADAR dev/v2, Calterah CAL77S244 over WiFi).
+  # Vehicle-frame polar: selfdrive/controls/radar4d.py places each corner's
+  # points with the confirmed corner pose. Raw detections, not tracks.
+  trackId       @0 :UInt64;   # 0 = raw point (no tracker on this stream)
+  rangM         @1 :Float32;  # horizontal distance from the vehicle origin (m)
+  azimuth       @2 :Float32;  # vehicle-frame angle (deg, 0=forward, +left, -right)
   vRel          @3 :Float32;  # Doppler relative velocity (m/s); NEGATIVE = approaching
-  snrDb         @4 :Float32;  # peak SNR dB — proxy for radar cross section (RCS)
-  elevation     @5 :Float32;  # angle (deg, 0=boresight, +up); dual-baseline phase AoA
-  existenceProb @6 :Float32;  # 0-100, from tracker confirm hit-streak (radar4d_tracker.Track)
+  snrDb         @4 :Float32;  # relative SNR dB (the radar's SNR is not calibrated)
+  elevation     @5 :Float32;  # sensor-frame angle (deg, 0=boresight, +up); mount pitch not applied
+  existenceProb @6 :Float32;  # 0 = raw point (no tracker on this stream)
   isStatic      @7 :Bool;     # ego-velocity compensated: true = stationary clutter
   dynProp       @8 :UInt8;    # ARS-style: 0=stationary, 1=moving, 2=stopped
   aRel          @9 :Float32;  # longitudinal relative acceleration (m/s^2), negative = braking
@@ -1132,7 +1133,7 @@ struct Radar4DObject @0xb3c4d5e6f7a80921 {
 }
 
 struct Radar4D @0xf2a3b4c5d6e7f8e1 {
-  # Socket: radar4d  |  Published by: selfdrive/controls/radar4d.py
+  # Socket: radar4d  |  Published by: selfdrive/controls/radar4d.py (02M only)
   # Consumed by: selfdrive/gridd/gridd.py (_fuse_radar4d)
   points  @0 :List(Radar4DPoint);
   objects @1 :List(Radar4DObject);  # lidar-style clustered objects (new)
