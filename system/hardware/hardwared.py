@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-hardwared - Hardware Management Daemon for Rockchip RK3588
+hardwared - Hardware Management Daemon for ExoPilot 02M (RK3576)
 
 Manages:
-- PMIC power monitoring (RK806S voltage rails)
+- PMIC power monitoring: every kernel regulator with a voltage, found by its
+  sysfs name, checked against its own device-tree constraints
 - Hardware initialization and configuration
 - Core affinity management
 - Car power/ignition detection
@@ -18,11 +19,12 @@ into the standard OpenPilot hardwared pattern.
 
 from __future__ import annotations
 
+import glob
 import os
 from dataclasses import dataclass
 from enum import IntEnum
 
-from cereal import messaging, log
+from cereal import messaging
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.core_config import set_daemon_affinity
@@ -58,39 +60,69 @@ class PowerRail:
         return self.status
 
 
-class HardwareD:
-    """Hardware management daemon for RK3576 platforms.
+REGULATOR_SYSFS = "/sys/class/regulator"
+DEVFREQ_SYSFS = "/sys/class/devfreq"
 
-    REGULATORS below and the devfreq governor paths in _init_hardware() carry
-    RK3588's PMIC rail names and devfreq device-tree address; real RK3576
-    PMIC/devfreq data has not been confirmed against hardware yet. Both fail
-    closed rather than crash -- _set_governor no-ops if the sysfs path does
-    not exist, and REGULATORS just tracks whatever names are listed -- so
-    under-voltage detection and governor forcing are no-ops until that data
-    lands, rather than a boot failure.
+
+def _read(path: str) -> str | None:
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except (OSError, PermissionError):
+        return None
+
+
+def discover_regulators(root: str | None = None) -> dict[str, str]:
+    """Rail name -> its sysfs dir, for every regulator that reports a voltage.
+
+    The kernel names these dirs regulator.N and keeps the rail name (from the
+    device tree's regulator-name) in `name`, so rails are found by name
+    rather than by a hardcoded per-board list. Duplicate names keep the first.
     """
+    rails: dict[str, str] = {}
+    for d in sorted(glob.glob(os.path.join(root or REGULATOR_SYSFS, "regulator.*"))):
+        name = _read(os.path.join(d, "name"))
+        if name and name not in rails and _read(os.path.join(d, "microvolts")) is not None:
+            rails[name] = d
+    return rails
 
-    # RK806S regulator definitions for RK3588
-    REGULATORS: list[tuple[str, float]] = [
-        ("vdd_logic", 0.8),   # SoC logic voltage
-        ("vdd_arm", 0.9),     # CPU voltage
-        ("vdd_gpu", 0.8),     # GPU voltage
-        ("vdd_npu", 0.8),     # NPU voltage
-        ("vdd_ddr", 1.1),     # DDR memory voltage
-        ("vcc_3v3", 3.3),     # 3.3V IO
-        ("vcc_1v8", 1.8),     # 1.8V IO
-        ("vcc_sdio", 3.3),    # SDIO voltage
-    ]
+
+def discover_devfreq_governor(kind: str, root: str | None = None) -> str | None:
+    """Governor node of a devfreq device by kind ('npu', 'dmc'): <addr>.npu
+    differs per SoC (ffa30000.npu on RK3588), so it is found, not hardcoded."""
+    for pattern in (f"*.{kind}/governor", f"{kind}/governor"):
+        hits = sorted(glob.glob(os.path.join(root or DEVFREQ_SYSFS, pattern)))
+        if hits:
+            return hits[0]
+    return None
+
+
+class HardwareD:
+    """Hardware management daemon for ExoPilot 02M (RK3576).
+
+    Rails: 02M's PMIC rail names are not in this repo's board DTS (the PMIC
+    node comes from the vendor base tree), so no list is written here.
+    Every kernel regulator that reports a voltage is monitored, and its
+    nominal is its own device-tree lower constraint (min_microvolts), or the
+    first voltage read when the DT sets none. Note that regulator
+    `microvolts` is the programmed setpoint, not a measured value: this
+    catches a rail programmed or dropped below its constraint, not sag under
+    load (that needs an ADC).
+    """
 
     def __init__(self):
         set_daemon_affinity("hardwared")
 
         self.pm = messaging.PubMaster(['powerState'])
 
-        # Initialize power rail tracking
+        # Power rails, discovered from sysfs (see class docstring)
+        self.rail_dirs = discover_regulators()
         self.rails: dict[str, PowerRail] = {}
-        for name, nominal in self.REGULATORS:
+        for name, d in self.rail_dirs.items():
+            min_uv = _read(os.path.join(d, "min_microvolts"))
+            nominal = int(min_uv) / 1e6 if min_uv and min_uv.isdigit() and int(min_uv) > 0 else 0.0
             self.rails[name] = PowerRail(name, nominal)
+        cloudlog.info(f"hardwared: monitoring {len(self.rails)} regulators")
 
         self.car_power_connected = False
         self.last_under_voltage_report: list[str] | None = None
@@ -102,8 +134,10 @@ class HardwareD:
     def _init_hardware(self) -> bool:
         """Initialize hardware configuration."""
         try:
-            self._set_governor("/sys/class/devfreq/ffa30000.npu/governor", "performance")
-            self._set_governor("/sys/class/devfreq/dmc/governor", "performance")
+            for kind in ("npu", "dmc"):
+                path = discover_devfreq_governor(kind)
+                if path:
+                    self._set_governor(path, "performance")
 
             # Ensure camera nodes are accessible
             self._fix_camera_permissions()
@@ -128,34 +162,19 @@ class HardwareD:
         """Fix camera device permissions."""
         try:
             for pattern in ["/dev/video*", "/dev/media*", "/dev/v4l-subdev*"]:
-                import glob
                 for device in glob.glob(pattern):
                     os.chmod(device, 0o666)
         except Exception as e:
             cloudlog.debug(f"hardwared: Camera permission fix failed: {e}")
 
     def _read_rail_voltage(self, name: str) -> float | None:
-        """Read voltage from regulator sysfs."""
-        try:
-            path = f"/sys/class/regulator/{name}/microvolts"
-            if os.path.exists(path):
-                with open(path) as f:
-                    microvolts = int(f.read().strip())
-                    return microvolts / 1_000_000.0
-        except (OSError, ValueError, PermissionError):
-            pass
-        return None
+        """Programmed voltage of a rail (regulator.N/microvolts)."""
+        v = _read(os.path.join(self.rail_dirs[name], "microvolts"))
+        return int(v) / 1_000_000.0 if v and v.lstrip("-").isdigit() else None
 
     def _read_rail_status(self, name: str) -> bool:
-        """Check if regulator is enabled."""
-        try:
-            path = f"/sys/class/regulator/{name}/status"
-            if os.path.exists(path):
-                with open(path) as f:
-                    return f.read().strip() == "enabled"
-        except (OSError, PermissionError):
-            pass
-        return False
+        """Rail enabled? The sysfs attribute is `state` (enabled/disabled)."""
+        return _read(os.path.join(self.rail_dirs[name], "state")) == "enabled"
 
     def _read_car_power(self) -> bool:
         """Read car power/ignition connection status."""
@@ -194,6 +213,8 @@ class HardwareD:
             voltage = self._read_rail_voltage(name)
             if voltage is not None:
                 rail.voltage = voltage
+                if rail.nominal_voltage <= 0 and voltage > 0:
+                    rail.nominal_voltage = voltage   # no DT constraint: first reading
             rail.enabled = self._read_rail_status(name)
             rail.check_status()
 
@@ -236,14 +257,13 @@ class HardwareD:
 
         ps.carPowerConnected = self.car_power_connected
 
-        # Add power rail statuses
-        for name, rail in self.rails.items():
-            entry = log.PowerState.RailStatus.new_message()
+        # Rail statuses (capnp lists are sized up front; they have no append)
+        rails = ps.init('rails', len(self.rails))
+        for entry, (name, rail) in zip(rails, self.rails.items(), strict=True):
             entry.name = name
             entry.voltage = rail.voltage
-            entry.status = rail.status
+            entry.status = int(rail.status)
             entry.enabled = rail.enabled
-            ps.rails.append(entry)
 
         self.pm.send('powerState', msg)
 

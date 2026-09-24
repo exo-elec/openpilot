@@ -3,9 +3,15 @@
 RK3576 (ExoPilot 02M): 6 TOPS = 2 NPU cores x 3 TOPS/core, 85% budget =
 2.55 TOPS/core.
 
-RK3576's per-task core allocation (which core modeld/stereod/monod run on)
-has no measured data yet, so NPU_ALLOCATION_MAP[PlatformType.RK3576] is an
-empty dict and get_core_mask() falls back to core 1 for every task.
+Per-task core allocation (NPU_ALLOCATION_MAP) follows VisionPilot's RK3576
+budget (visionpilot src/common/common/constants.py, NPU_CORE_0/1_ALLOCATION;
+perception_inference NPU_ALLOCATION): core 0 = driving model + policy
+(2.5 TOPS), core 1 = all perception (2.4 TOPS), each under the 85% line.
+That split is VisionPilot's model set; per-task TOPS for this branch's
+models have not been measured on RK3576 -- measure before moving tasks.
+
+Values are RKNN core MASKS (RKNN_NPU_CORE_0 = 1, CORE_1 = 2), passed as
+ModelConfig.npu_cores straight to RKNNLite.init_runtime(core_mask=...).
 
 This branch supports 02M hardware only -- RK3588 (ExoPilot 01M) lives on
 dev/01M, see the branch model in CLAUDE.md.
@@ -47,12 +53,30 @@ class PlatformType(Enum):
     UNKNOWN = "unknown"
 
 
-# Model-to-core allocation lives in the closed hal package (hal.tuning.npu) —
-# this is ExoPilot's model-set-specific tuning, not generic platform logic.
-# RK3576 has no per-task allocation data yet (see module docstring) — empty
-# dict means get_core_mask() falls back to core 1 for every task on it.
+RKNN_NPU_CORE_AUTO = 0
+RKNN_NPU_CORE_0 = 1
+RKNN_NPU_CORE_1 = 2
+
+# RK3576 (2 cores): VisionPilot's split, see module docstring.
+_RK3576_ALLOCATION = {
+    # Core 0: driving model + policy (VisionPilot: 2.5 TOPS)
+    "modeld": RKNN_NPU_CORE_0,
+    "driving_vision": RKNN_NPU_CORE_0,
+    "policy": RKNN_NPU_CORE_0,
+    # Core 1: all perception (VisionPilot: 2.4 TOPS)
+    "stereod": RKNN_NPU_CORE_1,
+    "stereo_seg": RKNN_NPU_CORE_1,
+    "yolo": RKNN_NPU_CORE_1,
+    "ppliteseg": RKNN_NPU_CORE_1,
+    "domainseg": RKNN_NPU_CORE_1,
+    "scene3d": RKNN_NPU_CORE_1,
+    "monod": RKNN_NPU_CORE_1,
+    "mono_detect": RKNN_NPU_CORE_1,
+    "autospeed": RKNN_NPU_CORE_1,
+}
+
 NPU_ALLOCATION_MAP: dict[PlatformType, dict[str, int]] = {
-    PlatformType.RK3576: {},
+    PlatformType.RK3576: _RK3576_ALLOCATION,
 }
 
 
@@ -110,12 +134,11 @@ def get_core_mask(platform: PlatformType, task: str) -> int:
         >>> platform = detect_platform()
         >>> mask = get_core_mask(platform, 'monod')
     """
-    # An unknown platform gets no allocation table rather than borrowing
-    # another board's: falling through to `1` below puts every task on core 0,
-    # which is slow but correct, where a borrowed map would assign cores that
-    # may not exist on the actual silicon.
+    # An unknown platform or task gets RKNN_NPU_CORE_0 rather than a borrowed
+    # map: slow but always valid, where another board's map may name cores
+    # that do not exist on this silicon.
     allocation = NPU_ALLOCATION_MAP.get(platform, {})
-    return allocation.get(task, 1)  # 1 = RKNN_NPU_CORE_0
+    return allocation.get(task, RKNN_NPU_CORE_0)
 
 
 class NPUPlatformConfig:
@@ -124,8 +147,8 @@ class NPUPlatformConfig:
     NPU Budget Strategy (85% safety limit):
     - RK3576: 2 cores × 3 TOPS = 6 TOPS total
       * Per-core budget: 3.0 × 0.85 = 2.55 TOPS (safe)
-      * No measured per-task allocation yet, so every task lands on core 0 --
-        correct, and slower than it needs to be, until real 02M numbers exist.
+      * Core 0: driving model + policy; core 1: perception (VisionPilot's
+        split, NPU_ALLOCATION_MAP). Per-task TOPS still to be measured on 02M.
     """
 
     def __init__(self, platform: PlatformType | None = None):

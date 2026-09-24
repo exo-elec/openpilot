@@ -209,7 +209,7 @@ class RKNNMonoProcessor:
                     name=model_name,
                     path=str(model_path),
                     model_type=model_type,
-                    npu_cores=self.core_id,
+                    npu_cores=1 << self.core_id,  # RKNN core MASK, not the index
                 )
                 if self._npu.load_model(mcfg):
                     self._loaded_models.append(model_name)

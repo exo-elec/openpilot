@@ -24,7 +24,7 @@ from dataclasses import dataclass
 
 from openpilot.selfdrive.modeld.vision.yolo_rknn import YoloRKNNDetector
 from openpilot.common.swaglog import cloudlog
-from openpilot.selfdrive.modeld.runners.rknn_platform import rknn_soc_tag
+from openpilot.selfdrive.modeld.runners.rknn_platform import detect_platform, get_core_mask, rknn_soc_tag
 
 
 @dataclass
@@ -118,7 +118,7 @@ class YoloObjectDetector:
         return search_paths[0]
 
     def _init_detector(self, nms_threshold: float) -> None:
-        """Initialize RKNN detector on Core 2."""
+        """Initialize the RKNN detector on its NPU_ALLOCATION_MAP core."""
         if not self.model_path.exists():
             cloudlog.warning(f"YOLO model not found: {self.model_path}")
             return
@@ -129,10 +129,10 @@ class YoloObjectDetector:
             input_size=self.input_size,
             obj_threshold=self.obj_threshold,
             nms_threshold=nms_threshold,
-            use_npu_cores="2",  # Core 2: shared with policy model (lower priority)
+            use_npu_cores=get_core_mask(detect_platform(), "yolo"),
         )
         self._initialized = True
-        cloudlog.info(f"✅ YOLOv8-nano initialized on NPU Core 2 (policy pipeline): {self.input_size}")
+        cloudlog.info(f"YOLOv8-nano initialized on the NPU (perception core): {self.input_size}")
 
     @property
     def available(self) -> bool:

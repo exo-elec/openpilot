@@ -93,7 +93,7 @@ class YoloRKNNDetector:
     obj_threshold: float = 0.25,
     nms_threshold: float = 0.45,
     classes: Sequence[str] | None = None,
-    use_npu_cores: str = "all",
+    use_npu_cores: str | int = "all",
   ) -> None:
     """Initialize YOLO detector via HAL.
 
@@ -104,7 +104,8 @@ class YoloRKNNDetector:
         obj_threshold: Object confidence threshold
         nms_threshold: NMS IoU threshold
         classes: Class names (defaults to COCO)
-        use_npu_cores: NPU cores to use ('all', '0', '1', '2', '0,1')
+        use_npu_cores: NPU cores to use ('all', '0', '1', '2', '0,1'), or an
+            RKNN core mask int (rknn_platform.get_core_mask())
     """
     # Create HAL client - ONLY way to access NPU and RGA
     self.client = InferenceClient("yolo_detector")
@@ -144,8 +145,10 @@ class YoloRKNNDetector:
 
     print(f"✅ YOLO RKNN model loaded via HAL: {self.model_path.name} ({self.model_format}, input={self.input_size})")
 
-  def _parse_core_mask(self, use_npu_cores: str) -> int:
+  def _parse_core_mask(self, use_npu_cores: str | int) -> int:
     """Parse NPU core specification into core mask."""
+    if isinstance(use_npu_cores, int):
+      return use_npu_cores
     if use_npu_cores == "all":
       return 0xFF
     elif use_npu_cores == "0":

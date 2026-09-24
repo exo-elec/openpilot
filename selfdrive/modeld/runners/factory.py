@@ -20,6 +20,7 @@ from openpilot.system.inferenced import InferenceClient
 
 from openpilot.selfdrive.modeld.runners.driving_runner import DrivingRunner, DrivingModelSpec
 from openpilot.selfdrive.modeld.runners.rknn_driving_runner import RKNNDrivingRunner
+from openpilot.selfdrive.modeld.runners.rknn_platform import detect_platform, get_core_mask
 from openpilot.selfdrive.modeld.runners.egpu_driving_runner import (
     EgpuDrivingRunner, EGPU_MODEL_NAME, EGPU_PKL_FILENAME, EGPU_METADATA_FILENAME,
 )
@@ -129,6 +130,7 @@ def create_driving_runner(
   # Use the same backend selection modeld previously used directly:
   # NPU on real ARM hardware, ONNX on x86 dev PC, mock NPU as last resort.
   backend = client.inference_backend()
-  runner = RKNNDrivingRunner(vision_spec, policy_spec, client=client, backend=backend)
+  core = get_core_mask(detect_platform(), "modeld")
+  runner = RKNNDrivingRunner(vision_spec, policy_spec, client=client, backend=backend, use_npu_core=core)
   runner.load()
   return runner

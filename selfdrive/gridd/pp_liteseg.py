@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from openpilot.common.swaglog import cloudlog
-from openpilot.selfdrive.modeld.runners.rknn_platform import rknn_soc_tag
+from openpilot.selfdrive.modeld.runners.rknn_platform import detect_platform, get_core_mask, rknn_soc_tag
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.system.inferenced.compute import ModelConfig
 
@@ -67,11 +67,11 @@ class PPLiteSeg:
                 name=self.MODEL_NAME,
                 path=str(model_path),
                 model_type="segmentation",
-                npu_cores=1,
+                npu_cores=get_core_mask(detect_platform(), "ppliteseg"),  # RKNN core mask
             )
             if self._npu.load_model(model_cfg):
                 self._available = True
-                cloudlog.info(f"PPLiteSeg loaded on NPU Core 1: {model_path.name}")
+                cloudlog.info(f"PPLiteSeg loaded on NPU (mask {model_cfg.npu_cores:#x}): {model_path.name}")
             else:
                 cloudlog.error("PPLiteSeg: NPU load_model failed")
                 self._npu = None

@@ -149,11 +149,11 @@ already exists and is proven; anything marked **GAP** is real work.
 | `inference/` (2): `model_host`, `preprocessor` | `system/inferenced` (single device owner, IPC job queue) | covered — **and better**: solves the Hailo multi-process VDevice race documented in openpilot CLAUDE.md |
 | `calibration/` (7) | `camera_calibrationd` + `locationd` + `torqued` + `lagd` | covered |
 | `system/` (28) | `thermald`, `hardwared`, `stated`, `wdgd`, `imud`, `micd`, `spkd`, `rtcd`, `socketd`, `uvcd`, `bluetoothd`, `subscribed`, `updated` | covered |
-| `system/camera` (OX03C10 ×3, GC4653 stereo) | `system/v4l2d` — hardcodes **4** MIPI cameras (01M) | **GAP** — replace outright with 02M's 5. See §7.2 |
+| `system/camera` (OX03C10 ×3, GC4653 stereo) | `system/v4l2d` — 02M's 5 MIPI cameras (`CAMERAS_02M`), drivers in `v4l2d/drivers/` | **ported (2026-09-24)**; device paths still to be recorded on a unit. See §7.2 |
 | `telemetry/` (4): WebRTC, BLE, OBD, recorder | `steamd` (VR teleop) + `bluetoothd` + `obd2d` + `recordd` | covered |
 | `navigation/` (7): Valhalla, POI, search, TTS | `mapd` + `navd` + `soundd` (Piper TTS) | covered |
-| `voice/` (8): wake word, VAD, AEC, beamformer, barge-in | `micd` + `voiceCommandRequest` → `bluetoothd`/NCP | **partial GAP** — openpilot has mic + command transport but no on-device wake-word/VAD/beamformer chain. See §7.3 |
-| `gemini/` (cloud vision assistant) | `selfdrive/ui/qt/widgets/assistant_card.cc` + `audioFeedback` | **partial GAP** — see §7.3 |
+| `voice/` (8): wake word, VAD, AEC, beamformer, barge-in | `micd` → `system/voiced` (beamformer + VAD → `micStatus`) | **beamformer + VAD ported, local only**; wake word, AEC, barge-in, cloud not ported (decision, §7.3) |
+| `gemini/` (cloud vision assistant) | — | **not ported** (decision 2026-09-24, §7.3) |
 | `audio/` (3) | `soundd` + `spkd` | covered |
 | `logger/` (5): mcap, snap, impact, loop | `loggerd` + `mcapd` + `impactEvent` + `deleter` | covered |
 | `dashboard/` (3): ui, calib, onboarding | `selfdrive/ui/` — **this is the thing being replaced** | §4–§5 |
@@ -730,15 +730,28 @@ regularly is not counted as project time but is not optional either (§1).
 ## 7. Real gaps — things openpilot `dev/EOP10` does not have
 
 ### 7.1 Corner radar / 4D point cloud
-**Decided (2026-09-23).** The ESP32 corner radars are BLE-first on every board:
+**Done (2026-09-24).** The ESP32 corner radars are BLE-first on every board:
 `ble_central.py` publishes their tracked objects as `radar2d` and writes ego
 speed/yaw to them. On 02M only (the one board with the antenna for the
 corner-node WiFi AP), ESP32_RADAR `dev/v2` adds a WiFi/UDP point cloud
-(port 47000, decoder `hal.drivers.radar.radar4d`). No openpilot daemon consumes
-that point cloud yet; it is the next add-on feature on `dev/02M`.
+(port 47000, reassembled by `hal.drivers.radar.radar4d`), consumed by
+`selfdrive/controls/radar4d.py` and fused into gridd's costmap
+(`_fuse_radar4d()`; `docs/eop/04_Integration/ESP32_RADAR_CORNER.md`).
 
 ### 7.2 02M 5-camera MIPI capture (critical path)
-`system/v4l2d/_default_camera_configs()` hardcodes 01M's 4 MIPI cameras.
+**Ported (2026-09-24).** `system/v4l2d/v4l2d.py` `CAMERAS_02M` lists the five
+roles with their I2C ids from `kernel/dts/rk3576-rpdzkj-exp02.dts`:
+mono_narrow → `road`, mono_wide → `wide_road`, mono_tele → `tele_road`
+(`EOPTeleEnabled`), stereo_left/right (`EOPStereoEnabled`); the OX03C10/GC4653
+drivers are in `system/v4l2d/drivers/`. A camera opens only from a
+`/dev/videoN` confirmed on hardware (hal `rk3576_camera_paths.py`): three
+cameras share the OX03C10, so sensor-name discovery would mislabel them, and
+that fallback was removed. **Left:** on a unit, run
+`python3 -m openpilot.system.v4l2d.list_cameras` and record the paths;
+mono_tele is captured but has no model input yet.
+
+Original analysis:
+`system/v4l2d/_default_camera_configs()` hardcoded 01M's 4 MIPI cameras.
 02M has 5: mono_narrow / mono_wide / mono_tele / stereo_left / stereo_right.
 
 Because this line is 02M-only (§0), this is a **replacement, not a
@@ -757,6 +770,15 @@ today — not on either openpilot branch, not in `../exopilot` — except as
 VisionPilot's ROS 2 drivers.
 
 ### 7.3 Voice pipeline and Gemini assistant
+**Decided (2026-09-24): local and simple first.** Only VisionPilot's
+beamformer and VAD are ported, as `system/voiced` (runs when
+`EOPVoiceEnabled`): micd audio → delay-and-sum beamformer → energy VAD →
+`micStatus` (vadActive, micLevelDb). No wake word, STT, AEC, barge-in,
+command routing, Gemini or any cloud/online connection, and nothing acts on
+the VAD yet. The beamformer is a pass-through until 02M's mic array geometry
+is documented (micd captures one channel today).
+
+Original analysis:
 `src/voice/` (8 packages: wake_word, vad, aec, beamformer, barge_in,
 noise_suppress, command_routers, cloud_assistant) and `src/gemini/` have no
 openpilot equivalent beyond `micd` + the `voiceCommandRequest` transport.
@@ -766,6 +788,18 @@ and publishing `voiceCommandRequest` — the transport already exists, the DSP
 chain does not.
 
 ### 7.4 RK3576 platform subsystems promoted by the 02M-only scope
+**Status (2026-09-24):** thermal uses `hal.platform.rk3576_thermal` and finds
+devfreq governors by name. `hardwared` now finds every kernel regulator by its
+sysfs `name` and checks it against its own device-tree constraint (it had
+read nonexistent `/sys/class/regulator/<name>` paths and crashed on
+`ps.rails.append`); 02M's PMIC rail list is not written down because the PMIC
+node is not in our board DTS. `NPU_ALLOCATION_MAP[RK3576]` now holds
+VisionPilot's split (core 0 driving + policy, core 1 perception) and modeld,
+gridd YOLO/PP-LiteSeg and monod take their core mask from it (YOLO had asked
+for a third core RK3576 lacks; monod passed a core index as a mask). Per-task
+TOPS on RK3576 still need measuring.
+
+Original analysis:
 On a dual-platform line these were acceptable no-ops. On an 02M-only line they
 are the platform, and they do nothing today:
 
@@ -818,12 +852,12 @@ all three should be scheduled alongside §7.2 for hardware bring-up.
 | Risk | Severity | Mitigation |
 |---|---|---|
 | PyQt5 camera path can't hit 20 fps zero-copy | **high** | P1 spike before design work; raylib is the fallback |
-| 02M MIPI capture is unimplemented anywhere | **high** | P6/§7.2, port VisionPilot's drivers; blocks real-hardware bring-up |
+| 02M camera device paths unconfirmed | **high** | §7.2 — record them with `list_cameras`; until then v4l2d opens no MIPI camera on 02M rather than mislabel one |
 | 263 params hand-transcribed → silent omissions | medium | declarative descriptor + coverage test (§5.5) |
 | Two `StyleManager` implementations survive the merge | medium | pick one in P2, delete the other |
-| Corner radar has no owner once VisionPilot's ROS 2 stack retires on 02M | medium | decide §7.1 explicitly |
+| Corner radar has no owner once VisionPilot's ROS 2 stack retires on 02M | resolved | §7.1: `radar4d.py` + gridd |
 | Thermal/fan and PMIC monitoring are silent no-ops on RK3576 | **high** | §7.4 — on an 02M-only line this is thermal safety, not a caveat; schedule with P6 |
-| All NPU tasks land on core 1 (empty allocation map) | medium | §7.4 — port VisionPilot's TOPS budget into `hal.tuning.npu` |
+| NPU split unmeasured on RK3576 | medium | §7.4 — VisionPilot's split is in `rknn_platform.py`; measure per-task TOPS on 02M |
 | Nagasware offroad pages assume its own config layer, not `Params` | medium | rewrite the params layer per §5.5; keep the page/section structure |
 | PyQt5's GPLv3 licence vs openpilot's MIT | **high** | unresolved and deferred — not distributing. Qt imports are confined to `qt.py` so a PySide2 conversion stays mechanical (§12.1) |
 | EGLFS forbids mixing GL windows with QWidget content; target plugin unknown | **high** | P1 gate — name the plugin and prove `QOpenGLWidget` composites on real 02M (§4.3, §12.2) |

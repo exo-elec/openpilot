@@ -43,17 +43,24 @@ def test_core_count_unknown_defaults_conservatively():
   assert get_core_count(PlatformType.UNKNOWN) <= 3
 
 
-def test_rk3576_has_no_per_task_allocation_yet():
-  """Documents the current state: RK3576 has no hal.tuning.npu data, so its
-  allocation map entry is an empty dict. get_core_mask() then falls through to
-  core 0 for every task -- correct and slow, rather than borrowing another
-  board's core indices, which need not exist on this silicon."""
-  assert NPU_ALLOCATION_MAP[PlatformType.RK3576] == {}
+def test_rk3576_split_driving_core0_perception_core1():
+  """VisionPilot's RK3576 budget: driving model + policy on core 0, all
+  perception on core 1 (RKNN masks 1 and 2)."""
+  for task in ('modeld', 'driving_vision', 'policy'):
+    assert get_core_mask(PlatformType.RK3576, task) == 1, task
+  for task in ('stereod', 'stereo_seg', 'yolo', 'ppliteseg', 'domainseg', 'scene3d',
+               'monod', 'mono_detect', 'autospeed'):
+    assert get_core_mask(PlatformType.RK3576, task) == 2, task
 
 
-def test_get_core_mask_rk3576_falls_back_to_core_one_for_every_task():
-  for task in ('modeld', 'driving_vision', 'stereod', 'monod', 'policy'):
-    assert get_core_mask(PlatformType.RK3576, task) == 1
+def test_rk3576_masks_name_only_existing_cores():
+  # A mask naming core 2 (0x4) on a 2-core NPU is what gridd's YOLO used to do.
+  assert all(m in (1, 2) for m in NPU_ALLOCATION_MAP[PlatformType.RK3576].values())
+
+
+def test_unknown_task_or_platform_gets_core0():
+  assert get_core_mask(PlatformType.RK3576, 'not_a_task') == 1
+  assert get_core_mask(PlatformType.UNKNOWN, 'modeld') == 1
 
 
 def test_npu_platform_config_rk3576_core_availability():
