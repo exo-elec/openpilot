@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-V4L2 Camera Daemon — all MIPI CSI cameras (road, wide_road,
-stereo_left, stereo_right).
+V4L2 Camera Daemon — ExoPilot 02M's MIPI CSI cameras (road = mono_narrow,
+wide_road = mono_wide, tele_road = mono_tele, stereo_left, stereo_right).
 
 All cameras share identical capture/send/restart logic driven by
 CameraConfig data.  VisionIPC server is always "v4l2d".
@@ -82,54 +82,58 @@ CAMERA_RESTART_COOLDOWN_SEC = float(os.getenv("CSI_RESTART_COOLDOWN_SEC", "1.0")
 
 
 # ---------------------------------------------------------------------------
-# Device discovery — robust discovery by sensor name or device path
+# ExoPilot 02M MIPI array (hal boards.py BOARD_DATA["exopilot02m"]["cameras"],
+# I2C ids from kernel/dts/rk3576-rpdzkj-exp02.dts):
+#   role          stream        sensor   I2C bus-addr
+#   mono_narrow   road          OX03C10  3-0x36   (8.0 mm)
+#   mono_wide     wide_road     OX03C10  4-0x36   (1.7 mm)
+#   mono_tele     tele_road     OX03C10  5-0x36   (16.0 mm, EOPTeleEnabled)
+#   stereo_left   stereo_left   GC4653   5-0x29   (EOPStereoEnabled)
+#   stereo_right  stereo_right  GC4653   6-0x29   (EOPStereoEnabled)
 # ---------------------------------------------------------------------------
-def _get_video_device_name(node: str) -> str:
-  """Read the V4L2 device name from sysfs."""
-  try:
-    with open(f"/sys/class/video4linux/{node}/name") as f:
-      return f.read().strip().lower()
-  except Exception:
-    return ""
+Camera02M = namedtuple("Camera02M", ["role", "stream", "msg_name", "stream_type", "cam_id",
+                                     "sensor_name", "i2c_bus", "i2c_addr", "hdr_param", "gate_param",
+                                     "dev_fallback"])
+
+CAMERAS_02M = (
+  Camera02M("mono_narrow", "road", "roadCameraState", STREAM_ROAD, "road_camera",
+            "ox03c10", 3, 0x36, "EOPRoadHDR", None, ["/dev/video0"]),
+  Camera02M("mono_wide", "wide_road", "wideRoadCameraState", STREAM_WIDE_ROAD, "wide_camera",
+            "ox03c10", 4, 0x36, "EOPWideHDR", None, ["/dev/video1"]),
+  Camera02M("mono_tele", "tele_road", "teleRoadCameraState", STREAM_TELE_ROAD, "tele_camera",
+            "ox03c10", 5, 0x36, "EOPRoadHDR", "EOPTeleEnabled", ["/dev/video2"]),
+  Camera02M("stereo_left", "stereo_left", "stereoCameraState", STREAM_STEREO_LEFT, "stereo_left_camera",
+            "gc4653", 5, 0x29, None, "EOPStereoEnabled", ["/dev/video3"]),
+  Camera02M("stereo_right", "stereo_right", "stereoCameraStateRight", STREAM_STEREO_RIGHT, "stereo_right_camera",
+            "gc4653", 6, 0x29, None, "EOPStereoEnabled", ["/dev/video4"]),
+)
 
 
-def _find_device(candidates: list[str], sensor_name: str | None = None, exclude: set[str] | None = None) -> str:
-  """
-  Discovery logic:
-  1. If sensor_name is provided, search /sys/class/video4linux for a match.
-  2. Fall back to candidates (first existing path).
-  3. Final fallback to first candidate (will fail at open).
-  """
-  exclude = exclude or set()
-
-  if sensor_name:
-    # Rockchip nodes often look like 'rkisp-statistics', 'rkisp_mainpath', etc.
-    for node in sorted(os.listdir("/sys/class/video4linux")):
-      dev_path = f"/dev/{node}"
-      if dev_path in exclude:
-        continue
-
-      name = _get_video_device_name(node)
-      # Match sensor name (e.g., 'gc4653' or 'ox03c10')
-      if sensor_name.lower() in name and ("mainpath" in name or "mp" in name or "cap" in name):
-        return dev_path
-
+def _confirmed_path(cam: Camera02M) -> str | None:
+  """Device path recorded for this role on a real unit (hal rk3576_camera_paths),
+  keyed by role (mono_narrow) or stream name (road); first existing candidate."""
+  candidates = _HAL_MIPI_PATHS.get(cam.role) or _HAL_MIPI_PATHS.get(cam.stream) or []
   for p in candidates:
-    if os.path.exists(p) and p not in exclude:
+    if os.path.exists(p):
       return p
-  return candidates[0]
+  return candidates[0] if candidates else None
 
 
-def _default_camera_configs() -> list[CameraConfig]:
-  """Default camera configs for ExoPilot 01M (RK3588).
+def _default_camera_configs(device_type: str | None = None) -> list[CameraConfig]:
+  """ExoPilot 02M's 5-camera MIPI array (+ USB cameras, handled by uvcd).
 
-  4 MIPI cameras (road, wide_road, stereo_left, stereo_right)
-  + up to 3 USB cameras (side_left, side_right, rear_camera)
+  Device paths come ONLY from paths confirmed on real hardware (hal
+  rk3576_camera_paths.DEFAULT_MIPI_CAMERA_PATHS). Three cameras are OX03C10
+  and two are GC4653, so matching /dev/videoN by sensor name cannot tell
+  narrow/wide/tele (or left/right) apart; a role without a confirmed path is
+  skipped with an error rather than risk publishing one camera under
+  another's identity. `python3 -m openpilot.system.v4l2d.list_cameras` on a
+  unit prints what is needed to fill the table. On a dev PC ('pc'/None) the
+  plain /dev/videoN fallbacks are used.
   """
   sensor = messaging.log.FrameData.ImageSensor
-  stereo_enabled = _params.get_bool("EOPStereoEnabled")
+  dev_pc = device_type in (None, 'pc')
 
-  # Get camera array configuration from BSP
   try:
     cam_config = HARDWARE.get_camera_array_config()
     cloudlog.info(
@@ -140,76 +144,38 @@ def _default_camera_configs() -> list[CameraConfig]:
   except Exception as e:
     cloudlog.warning(f"v4l2d: Failed to get camera array config: {e}")
 
-  used_nodes: set[str] = set()
-
-  def _find_and_track(candidates, name):
-    dev = _find_device(candidates, name, exclude=used_nodes)
-    used_nodes.add(dev)
-    return dev
-
-  # Read HDR params — default HDR4 for maximum dynamic range (140dB)
-  # HDR4 uses 4 exposures (HCG + LCG + VS + SPD) merged on-chip for best
-  # night/tunnel/oncoming headlight performance. ISP runs in linear mode.
-  #
-  # FPS NOTE: All cameras run at 20fps. 2-lane MIPI bandwidth limits HDR4
-  # to ~20fps. 30fps would require 4-lane MIPI or SDR mode.
-  road_hdr = _params.get("EOPRoadHDR") or "hdr4"
-  wide_hdr = _params.get("EOPWideHDR") or "hdr4"
-  # Stereo is ALWAYS SDR — GC4653 has no HDR hardware, and even if it did,
-  # HDR temporal misalignment would degrade stereo depth accuracy 2-5x
-  stereo_hdr = "sdr"
-
-  configs = [
-    CameraConfig(
-      msg_name    = "roadCameraState",
-      stream_type = STREAM_ROAD,
-      device_path = _find_and_track(_mipi_paths("road", ["/dev/video0", "/dev/video2"]), "ox03c10"),
-      cam_id      = "road_camera",
+  configs = []
+  used: set[str] = set()
+  for cam in CAMERAS_02M:
+    if cam.gate_param and not _params.get_bool(cam.gate_param):
+      continue
+    path = _confirmed_path(cam)
+    if path is None and dev_pc:
+      path = next((p for p in cam.dev_fallback if p not in used), None)
+    if path is None:
+      cloudlog.error(
+        f"v4l2d: no confirmed /dev/video path for {cam.role} (I2C {cam.i2c_bus}-{cam.i2c_addr:#04x}); "
+        + "not opening it -- record it in hal rk3576_camera_paths.py (list_cameras.py)")
+      continue
+    if path in used:
+      cloudlog.error(f"v4l2d: {path} is recorded for two cameras; not opening {cam.role}")
+      continue
+    used.add(path)
+    # HDR4 on the OX03C10s (2-lane MIPI limits it to ~20 fps); the GC4653
+    # stereo pair is always SDR (no HDR hardware, and HDR's temporal
+    # misalignment would degrade stereo depth).
+    hdr = (_params.get(cam.hdr_param) or "hdr4") if cam.hdr_param else "sdr"
+    configs.append(CameraConfig(
+      msg_name    = cam.msg_name,
+      stream_type = cam.stream_type,
+      device_path = path,
+      cam_id      = cam.cam_id,
       vipc_server = "v4l2d",
-      sensor      = sensor.ox03c10,
-      sensor_name = "ox03c10",
-      hdr_mode    = road_hdr,
-      fps         = 20,  # 2-lane MIPI bandwidth limit with HDR4
-    ),
-    CameraConfig(
-      msg_name    = "wideRoadCameraState",
-      stream_type = STREAM_WIDE_ROAD,
-      device_path = _find_and_track(_mipi_paths("wide_road", ["/dev/video1", "/dev/video3"]), "ox03c10"),
-      cam_id      = "wide_camera",
-      vipc_server = "v4l2d",
-      sensor      = sensor.ox03c10,
-      sensor_name = "ox03c10",
-      hdr_mode    = wide_hdr,
-      fps         = 20,  # 2-lane MIPI bandwidth limit with HDR4
-    ),
-  ]
-
-  if stereo_enabled:
-    configs.extend([
-      CameraConfig(
-        msg_name    = "stereoCameraState",
-        stream_type = STREAM_STEREO_LEFT,
-        device_path = _find_and_track(_mipi_paths("stereo_left", ["/dev/video22", "/dev/video4"]), "gc4653"),
-        cam_id      = "stereo_left_camera",
-        vipc_server = "v4l2d",
-        sensor      = sensor.gc4653,
-        sensor_name = "gc4653",
-        hdr_mode    = stereo_hdr,  # ALWAYS SDR
-        fps         = 20,
-      ),
-      CameraConfig(
-        msg_name    = "stereoCameraStateRight",
-        stream_type = STREAM_STEREO_RIGHT,
-        device_path = _find_and_track(_mipi_paths("stereo_right", ["/dev/video31", "/dev/video5"]), "gc4653"),
-        cam_id      = "stereo_right_camera",
-        vipc_server = "v4l2d",
-        sensor      = sensor.gc4653,
-        sensor_name = "gc4653",
-        hdr_mode    = stereo_hdr,  # ALWAYS SDR
-        fps         = 20,
-      ),
-    ])
-
+      sensor      = getattr(sensor, cam.sensor_name),
+      sensor_name = cam.sensor_name,
+      hdr_mode    = hdr,
+      fps         = 20,
+    ))
   return configs
 
 
@@ -258,9 +224,12 @@ def load_camera_configs() -> list[CameraConfig]:
 
     stream_type, vipc_server, cam_sensor, sensor_name = _HAL_STREAM_MAP[stream_name]
 
-    device_path = cam.get("device")
-    if not device_path:
-      device_path = _find_device(_mipi_paths(stream_name, ["/dev/video0"]), sensor_name, exclude=used_nodes)
+    # A HAL entry must name its device, or have a confirmed path for its
+    # stream; never discover by sensor name (02M has three OX03C10s).
+    device_path = cam.get("device") or next(iter(_mipi_paths(stream_name, [])), None)
+    if not device_path or device_path in used_nodes:
+      cloudlog.error(f"v4l2d: HAL camera '{stream_name}' has no unique device path; not opening it")
+      continue
 
     used_nodes.add(device_path)
 
@@ -277,7 +246,11 @@ def load_camera_configs() -> list[CameraConfig]:
     ))
 
   if not configs:
-    configs = _default_camera_configs()
+    try:
+      device_type = HARDWARE.get_device_type()
+    except Exception:
+      device_type = None
+    configs = _default_camera_configs(device_type)
   return configs
 
 
@@ -368,7 +341,7 @@ class CameraState:
 # V4L2 Daemon
 # ---------------------------------------------------------------------------
 class V4L2D:
-  """V4L2 Camera Daemon — road, wide_road, stereo_left, stereo_right.
+  """V4L2 Camera Daemon — road, wide_road, tele_road, stereo_left, stereo_right.
 
   Safety critical ADAS input pipeline - runs on A76 big cores.
   """

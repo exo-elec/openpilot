@@ -86,7 +86,12 @@ as everything else here.
 
 ## What's NOT implemented (Phase B — needs real RK3576 hardware)
 
-- **Camera capture**: `system/v4l2d/_default_camera_configs()` hardcodes
+- **Camera capture** — *code ported 2026-09-24*: `system/v4l2d/v4l2d.py`
+  `CAMERAS_02M` covers all 5 roles (mono_tele → `tele_road`), drivers in
+  `system/v4l2d/drivers/`. Left: record each role's `/dev/videoN` on a unit
+  (`python3 -m openpilot.system.v4l2d.list_cameras`) into hal
+  `rk3576_camera_paths.py`; v4l2d opens no MIPI camera without it.
+  Original note: `_default_camera_configs()` hardcoded
   exactly 4 MIPI cameras (01M's road/wide_road/stereo_left/stereo_right).
   02M's 5-camera array (mono_narrow/mono_wide/mono_tele/stereo_left/
   stereo_right) needs a per-platform camera list plus actual sensor
@@ -110,8 +115,14 @@ as everything else here.
   bit-bang sequence itself (order, pulse widths, polarity) is a first guess
   based on the 01M sequence's shape, not a confirmed 02M procedure — needs
   validation against a schematic or real hardware before relying on it.
-- **NPU per-task core allocation**: needs real tuning data for RK3576's
-  2-core topology in `hal.tuning.npu` (currently RK3588-only).
+- **NPU per-task core allocation** — *VisionPilot's split ported
+  2026-09-24* (`rknn_platform.py`: core 0 driving + policy, core 1
+  perception). Left: measure per-task TOPS on RK3576.
+- **PMIC rails** — *2026-09-24*: `hardwared` discovers every regulator by
+  sysfs name and checks it against its device-tree constraint; no 02M rail
+  list is hardcoded (the PMIC node is not in our board DTS). Thermal now has
+  `hal.platform.rk3576_thermal` and name-based devfreq discovery. The note
+  below is the original analysis.
 - **Thermal/fan management and PMIC power-rail monitoring**:
   `system/hardware/hardwared.py` (RK806S PMIC rail names/nominal voltages),
   `system/thermald/thermald.py`/`fan_control.py`/`thermal_zones.py`
