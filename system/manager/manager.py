@@ -63,7 +63,7 @@ def manager_init() -> None:
   params.put("HardwareSerial", serial)
 
   # Auto-configure voice pipeline based on hardware detection
-  # RK3588 (ExoPilot 01M) has no on-board mic -> disable voice input, speaker-only
+  # Default to whether the board has a mic (01M and 02M both carry a 2-mic I2S pair)
   if not params.get("EOPVoiceEnabled"):
     # Only set default if user hasn't explicitly configured it
     params.put_bool("EOPVoiceEnabled", HAS_VOICE_INPUT)

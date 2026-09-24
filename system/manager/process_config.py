@@ -66,6 +66,9 @@ def parking_mode_only(started: bool, params: Params, CP: car.CarParams) -> bool:
   return _cached_param_bool(params, "EOPParkingMode")
 
 # Optional condition functions
+def voice_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return _cached_param_bool(params, "EOPVoiceEnabled")
+
 def not_joystick(started: bool, params: Params, CP: car.CarParams) -> bool:
   return not _cached_param_bool(params, "JoystickDebugMode")
 
@@ -89,6 +92,7 @@ procs = [
   # Device Daemons (I2S/I2C sensors)
   PythonProcess("imud", "system.imud.imud", always_run),     # IMU (LSM6DS3)
   PythonProcess("micd", "system.micd.micd", always_run),     # Microphone (I2S)
+  PythonProcess("voiced", "system.voiced.voiced", voice_enabled),  # Local beamformer + VAD
   PythonProcess("spkd", "system.spkd.spkd", always_run),     # Speaker (I2S)
   PythonProcess("rtcd", "system.rtcd.rtcd", always_run),     # RTC time sync
   PythonProcess("socketd", "system.socketd.socketd", always_run),

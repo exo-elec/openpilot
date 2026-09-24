@@ -5,8 +5,10 @@ micd - Microphone Input Daemon
 Captures audio from microphone via I2S.
 Publishes raw audio data for voiced (STT) and sound pressure levels.
 
-Hardware: RK3588 (ExoPilot 01M) has no on-board microphone —
-daemon always runs in standby mode.
+Hardware: both ExoPilot boards (01M, 02M) carry a 2-mic I2S stereo pair
+(exopilot docs/02-HARDWARE/*_PINMUX_*.md section 4); rawAudioData carries
+both channels interleaved for voiced, and SPL is measured on their mix.
+Without a mic (HAS_VOICE_INPUT false) the daemon stays in standby.
 """
 
 from __future__ import annotations
@@ -52,11 +54,11 @@ def get_a_weighting_filter():
 
 
 def calculate_spl(measurements):
-    """Calculate sound pressure level in dB."""
-    sound_pressure = np.sqrt(np.mean(measurements ** 2))
+    """Sound pressure (RMS) and its level in dB, as a pair; both callers unpack two values."""
+    sound_pressure = float(np.sqrt(np.mean(measurements ** 2)))
     if sound_pressure > 0:
-        return 20 * np.log10(sound_pressure / REFERENCE_SPL)
-    return 0
+        return sound_pressure, float(20 * np.log10(sound_pressure / REFERENCE_SPL))
+    return 0.0, 0.0
 
 
 def apply_a_weighting(measurements: np.ndarray) -> np.ndarray:
@@ -95,18 +97,22 @@ class MicD:
         cloudlog.info("micd: Initialized")
 
     def _audio_callback(self, audio_int16: np.ndarray):
-        """Called by I2S HAL with audio data."""
+        """Called by I2S HAL with int16 audio, shape (frames, channels)."""
         if not self.hardware_available:
             return
+        if audio_int16.ndim == 1:
+            audio_int16 = audio_int16[:, None]
+        channels = audio_int16.shape[1]
 
-        # Publish raw audio for voiced
+        # Publish raw audio for voiced (interleaved)
         msg = messaging.new_message('rawAudioData', valid=True)
-        msg.rawAudioData.data = audio_int16.tobytes()
+        msg.rawAudioData.data = np.ascontiguousarray(audio_int16).tobytes()
         msg.rawAudioData.sampleRate = SAMPLE_RATE
+        msg.rawAudioData.channels = channels
         self.pm.send('rawAudioData', msg)
 
-        # Process for SPL
-        audio_float = audio_int16.astype(np.float32) / 32768.0
+        # SPL on the channel mix
+        audio_float = audio_int16.astype(np.float32).mean(axis=1) / 32768.0
 
         with self.lock:
             self.measurements = np.concatenate((self.measurements, audio_float))

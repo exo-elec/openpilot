@@ -119,7 +119,7 @@ PAGES: list[Page] = [
     Control("EOPCATManualSREnabled", Kind.TOGGLE, "Use Fixed Steer Ratio", desc="Disable learning and apply a fixed steer ratio instead."),
   ]),
   Page("voice", [
-    Control("EOPVoiceEnabled", Kind.TOGGLE, "Enable Voice Assistant", desc="Wake word detection and speech-to-text for hands-free control."),
+    Control("EOPVoiceEnabled", Kind.TOGGLE, "Voice Input (Local)", desc="On-device microphone beamforming and voice-activity detection. Offline; no wake word, speech-to-text or cloud assistant yet."),
   ]),
 ]
 

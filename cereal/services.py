@@ -194,7 +194,7 @@ _services: dict[str, tuple] = {
   "impactEvent": (True, 0., 1),        # Impact detection event (immediate, LSM6DS3)
 
   # Audio services — adaptive loudness + Piper TTS navigation (both platforms)
-  "micStatus": (True, 1., 1),          # micd: SPL level for adaptive loudness
+  "micStatus": (True, 10., 10),        # voiced: local VAD + mic level (dBFS)
   "ttsRequest": (False, 0.),           # soundd: Piper TTS request (nav + alerts)
   "audioData": (False, 100.),          # soundd → spkd: raw PCM audio chunks
   "sounddStatus": (True, 1., 1),       # soundd: playback health
