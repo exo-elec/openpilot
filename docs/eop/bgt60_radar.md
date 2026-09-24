@@ -6,7 +6,9 @@ only (`radar2d`, `system/bluetoothd/ble_central.py`). Their WiFi 4D point
 cloud (ESP32_RADAR `dev/v2`, CAL77S244) runs only on openpilot `dev/02M`,
 the one board with the corner-node WiFi AP; see
 `docs/eop/04_Integration/ESP32_RADAR_CORNER.md` on that branch. Do not use
-this document as the current process or safety contract.)*
+this document as the current process or safety contract. The 11-byte BGT60
+corner packet and `decode_corner_packet()` described below were removed
+from exopilot hal on 2026-09-24; nothing sends that packet any more.)*
 
 ## Radar classification
 
