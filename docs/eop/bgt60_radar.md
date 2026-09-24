@@ -7,7 +7,10 @@ plus on 02M the ESP32_RADAR `dev/v2` (CAL77S244) WiFi point cloud through
 `docs/eop/04_Integration/ESP32_RADAR_CORNER.md`. Files named below that do
 not exist on this branch (`radar4d_tracker.py`, `radar4d_pointcloud.py`,
 `radar4d_geometry.py`) are part of the archived design. Do not use this
-document as the current process or safety contract.)*
+document as the current process or safety contract. The 11-byte BGT60
+corner packet and `decode_corner_packet()` described below were removed
+from exopilot hal on 2026-09-24; `RadarCornerReceiver` now takes only
+Radar4D chunk datagrams.)*
 
 ## Radar classification
 
