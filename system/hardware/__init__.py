@@ -48,8 +48,8 @@ PC = not ROCKCHIP
 # Speaker detection (for alert tones, TTS output)
 HAS_SPEAKER = HARDWARE.has_speaker() if hasattr(HARDWARE, 'has_speaker') else False
 
-# Voice input detection (mic + PCIe accelerator for Whisper STT) — per-platform:
-# False on RK3588: no on-board mic, so voice input is unsupported.
+# Voice input = an on-board microphone: True on 01M and 02M (2-mic I2S pair),
+# on a PC when an input device exists.
 HAS_VOICE_INPUT = HARDWARE.has_voice_input() if hasattr(HARDWARE, 'has_voice_input') else False
 
 # Side camera detection (UVC via USB 3.0 hub RTS5411S)

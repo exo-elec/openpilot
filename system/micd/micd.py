@@ -73,7 +73,7 @@ class MicD:
     def __init__(self):
         set_daemon_affinity("micd")
 
-        # Auto-detect voice input hardware (RK3588 has no on-board mic)
+        # Voice input hardware: both boards carry a 2-mic I2S pair
         self.hardware_available = HAS_VOICE_INPUT and I2S_HAL_AVAILABLE
 
         if not self.hardware_available:
