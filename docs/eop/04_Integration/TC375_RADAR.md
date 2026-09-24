@@ -15,7 +15,7 @@ describes that contract.)*
 |--------|--------|-------|-----------|---------|
 | `radar2d` | ESP32-S3 corner radar nodes, BLE tracked objects | 0-10m presence | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 | `radar3d` | long-range UART radar (`selfdrive/controls/radar3d.py`) | 15-200m | `radard.py` → `radarState` (ACC), `gridd.py` → `stereoObjects` (adjacent-lane) | ACC lead tracking + forward merge/cut-in awareness |
-| `radar4d` | BGT60TR13C (`radar4d.py`, SPI, camera-bar mounted) | 0-15m | `gridd.py` → `stereoObjects` | close-range maneuvering |
+| `radar4d` | not on this branch: ESP32 corner nodes' CAL77S244 WiFi point cloud, openpilot `dev/02M` only | 0-30m | `dev/02M` gridd costmap | close-range occupancy (02M) |
 
 `radar3d` is the only one of the three that feeds two independent
 consumers — see "Two consumers, one producer" below.

@@ -276,7 +276,7 @@ selfdrive/controls/lib/
 | `recordd` | `selfdrive/recordd/recordd.py` | `RecordD` | DVR ring-buffer recording | Always |
 | `radar3d` | `selfdrive/controls/radar3d.py` | `Radar3DD` | Long-range UART radar producer | 20 Hz |
 | `radard` | `selfdrive/controls/radard.py` | `RadarD` | radar3d + modelV2 lead fusion → radarState (ACC) | 20 Hz |
-| `radar4d` | *(deprecated OpenPilot runtime)* | *(reserved compatibility name)* | ESP32_RADAR WiFi/UDP point-cloud add-on (02M only); no daemon runs it yet; not a corner safety input | — |
+| `radar4d` | — (not on this branch) | — | ESP32_RADAR WiFi 4D point cloud (CAL77S244): openpilot `dev/02M` only, the one board with the corner-node WiFi AP (`docs/eop/04_Integration/ESP32_RADAR_CORNER.md` there). Here corner radars are BLE only | — |
 | `radar2d` | `system/bluetoothd/ble_central.py` → `gridd.py` | `Radar2D` | ESP32_RADAR corner-node BLE tracked objects → advisory BSD/RCW/FCTA/RCTA and low-speed near-front warning | 20 Hz |
 | `plannerd` | `selfdrive/controls/plannerd.py` | `PlannerD` | Longitudinal planning | 20 Hz |
 | `imud` | `system/imud/imud.py` | `ImuD` | IMU sensor polling | 100 Hz |
