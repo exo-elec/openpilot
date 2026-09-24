@@ -141,6 +141,7 @@ class RK3588Hardware(RockchipHardware):
             HardwareCapability.RGA,
             HardwareCapability.PCIE,
             HardwareCapability.SPEAKER,
+            HardwareCapability.VOICE_INPUT,
         }
 
     def has_speaker(self) -> bool:
@@ -148,8 +149,12 @@ class RK3588Hardware(RockchipHardware):
         return True
 
     def has_voice_input(self) -> bool:
-        """ExoPilot 01M has no on-board mic — voice input not supported."""
-        return False
+        """ExoPilot 01M has a 2-mic INMP441-class I2S pair on I2S0 SDI0,
+        sharing the bus with the MAX98357A amp (exopilot
+        kernel/dts/rk3588-lubancat-exp01.dts simple_sound;
+        docs/02-HARDWARE/RK3588_PINMUX_01M.md section 4). The older "no
+        on-board mic" note predated that audio design."""
+        return True
 
     def get_max_reliable_depth_m(self) -> float:
         """RK3588 stereo baseline + ISP limits reliable depth to ~80m."""

@@ -42,7 +42,7 @@ class HardwareCapability(Enum):
     PCIE = auto()
     MICROPHONE = auto()
     SPEAKER = auto()
-    VOICE_INPUT = auto()  # Microphone + voice-tier accelerator for Whisper STT
+    VOICE_INPUT = auto()  # On-board microphone (I2S mic pair)
 
 
 # ---- restored upstream support classes (used by preserved pc/ and tici/ HALs) ----
@@ -286,7 +286,7 @@ class HardwareBase(ABC):
         return False
 
     def has_voice_input(self) -> bool:
-        """Check if platform has voice input hardware (microphone + Hailo NPU)."""
+        """Check if platform has voice input hardware (on-board microphone)."""
         return False
 
     def has_side_cameras(self) -> bool:

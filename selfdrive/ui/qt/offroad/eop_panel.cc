@@ -783,13 +783,13 @@ void EopPanel::add_safety_toggles() {
 
 void EopPanel::add_voice_ai_toggles() {
   addItem(new LabelControl(
-      QString::fromUtf8("🎤 ") + tr("Voice AI"),
-      tr("Hands-free assistant. Requires microphone + Hailo-8 accelerator (not available on ExoPilot 01M).")));
+      QString::fromUtf8("🎤 ") + tr("Voice Input"),
+      tr("On-board 2-mic pair, processed locally (beamformer + voice-activity detection). Offline.")));
 
   auto voice_toggle = new ParamControl(
       "EOPVoiceEnabled",
-      tr("Enable Voice Assistant"),
-      tr("Wake word detection and speech-to-text for hands-free control."),
+      tr("Voice Input (Local)"),
+      tr("On-device microphone beamforming and voice-activity detection. Offline; no wake word, speech-to-text or cloud assistant yet."),
       "", this);
   addItem(voice_toggle);
   toggles["EOPVoiceEnabled"] = voice_toggle;

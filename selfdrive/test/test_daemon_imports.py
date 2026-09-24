@@ -62,6 +62,7 @@ CRITICAL_DAEMONS = [
     "system.rtcd.rtcd",
     "system.imud.imud",
     "system.micd.micd",
+    "system.voiced.voiced",
     "system.spkd.spkd",
     "system.mcapd.mcapd",
     "system.bluetoothd.bluetoothd",
