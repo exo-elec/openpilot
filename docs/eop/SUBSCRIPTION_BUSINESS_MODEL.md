@@ -134,7 +134,7 @@ Driver: "Hey Pilot, take me home"
 Separation of concerns = safety + performance.
 
 ### Hardware Requirements
-- **RK3588 (ExoPilot 01M)**: Wake word standby only (no mic). NavPilot handles voice via phone mic + cloud STT.
+- **RK3588 (ExoPilot 01M)**: on-board 2-mic pair with local beamformer + VAD only (same as 02M; no wake word/STT). NavPilot handles voice via phone mic + cloud STT.
 - **RK3576 (ExoPilot 02M)**: On-device wake word (Hailo-8). After wake, audio streams to NavPilot for cloud AI processing. Best of both worlds: privacy (no always-on cloud) + intelligence (cloud LLM after wake).
 
 ---

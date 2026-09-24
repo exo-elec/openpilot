@@ -5,9 +5,8 @@ spkd - Speaker Output Daemon
 Audio output via I2S to speaker/amplifier.
 Receives audio data from higher-level daemons (soundd for TTS/tones, ui for alerts).
 
-Hardware: I2S DAC (PCM5102A)
-- RK3588 (ExoPilot 01M): Has speaker for alert tones and TTS output
-  (no microphone — voice input pipeline disabled)
+Hardware: MAX98357A mono I2S amp, sharing the bus with the 2-mic pair
+(exopilot kernel/dts simple_sound) — same on 01M and 02M.
 """
 
 from __future__ import annotations
