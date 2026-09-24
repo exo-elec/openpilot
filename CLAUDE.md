@@ -211,6 +211,12 @@ After rebasing, re-run `./test.sh` on each branch.
   (ESP32_RADAR `dev/v2`, UDP 47000, decoder `hal.drivers.radar.radar4d`) is a
   02M-only add-on on top of the BLE `radar2d` baseline; only 02M hardware has
   the antenna for the corner-node WiFi AP.
+- 01M WiFi (2026-09-24): the RTL8822CE PCIe card serves only the vehicle LAN
+  (no corner-node hotspot), so `wlan0` uses 5GHz. exopilot's
+  `setup_wifi_lan.sh` (run by `setup_rk3588.sh`) writes
+  `/etc/exopilot/wifi-band.conf` (`LAN_BAND=a`); the WiFi screens pin new
+  networks seen on 5GHz to band `a` through `common/wifi_band.py` (with a
+  5GHz BSSID when one is pinned); 2.4GHz-only networks stay joinable.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical
