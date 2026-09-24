@@ -106,3 +106,25 @@ class TestDaemon:
     assert msg.micStatus.vadActive is True
     assert msg.micStatus.micLevelDb > -20
     assert msg.micStatus.wakeWordActive is False and msg.micStatus.sttActive is False
+
+
+  def test_stereo_pair_is_beamformed(self, monkeypatch):
+    from cereal import messaging
+    from openpilot.system.voiced import voiced
+
+    left = (tone(0.5, 0.3) * 32767).astype(np.int16)
+    audio = messaging.new_message('rawAudioData')
+    audio.rawAudioData.sampleRate = RATE
+    audio.rawAudioData.channels = 2
+    audio.rawAudioData.data = np.stack([left, left], axis=1).tobytes()
+    events = [audio.as_reader()]
+    monkeypatch.setattr(voiced.messaging, "drain_sock", lambda sock: [events.pop()] if events else [])
+
+    class PM:
+      def send(self, name, msg):
+        self.last = msg.as_reader()
+
+    d = voiced.VoiceD(sock=object(), pm=PM())
+    d.step()
+    assert d.beamformer.array.num_channels == 2
+    assert d.pm.last.micStatus.vadActive is True

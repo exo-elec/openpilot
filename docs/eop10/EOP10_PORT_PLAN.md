@@ -775,8 +775,12 @@ beamformer and VAD are ported, as `system/voiced` (runs when
 `EOPVoiceEnabled`): micd audio → delay-and-sum beamformer → energy VAD →
 `micStatus` (vadActive, micLevelDb). No wake word, STT, AEC, barge-in,
 command routing, Gemini or any cloud/online connection, and nothing acts on
-the VAD yet. The beamformer is a pass-through until 02M's mic array geometry
-is documented (micd captures one channel today).
+the VAD yet. Both 01M and 02M carry the same 2-mic I2S pair (exopilot
+PINMUX docs section 4); micd captures both channels from the board's
+`*-Simple-Audio` card and voiced beamforms them broadside (the channel
+average, which needs no geometry). Steering toward the driver waits for the
+mic spacing/orientation on the PCB. `dev/01M` gets the same (its "no mic"
+note predated the audio design).
 
 Original analysis:
 `src/voice/` (8 packages: wake_word, vad, aec, beamformer, barge_in,
@@ -827,6 +831,8 @@ all three should be scheduled alongside §7.2 for hardware bring-up.
   `coordinationd`/`osmCorrectedPose`; audit before assuming parity.
 - Simulation: `tools/sim` covers CARLA/MetaDrive; `scenario_simulator_adapter`
   does not port.
+- **Not planned (decision 2026-09-24):** VisionPilot's `stop_line_detector`.
+  The `StopLine` capnp structs stay only for schema compatibility.
 
 ---
 

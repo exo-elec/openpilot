@@ -3384,8 +3384,9 @@ struct SoundPressure @0xdc24138990726023 {
 }
 
 struct AudioData {
-  data @0 :Data;
+  data @0 :Data;             # int16 PCM, interleaved when channels > 1
   sampleRate @1 :UInt32;
+  channels @2 :UInt8;        # 0 (unset, older senders) or 1 = mono
 }
 
 struct MicrophoneData {
