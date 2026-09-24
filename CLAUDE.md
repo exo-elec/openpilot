@@ -60,6 +60,7 @@ The 01M equivalent (`setup_rk3588.sh`) belongs with `dev/01M`.
 | `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
 | `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP architecture (dual transport) |
+| `docs/eop/04_Integration/ESP32_RADAR_CORNER.md` | ESP32 corner radars: BLE `radar2d` + 02M WiFi `radar4d` (CAL77S244), band plan |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
 | `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
 | `test.sh` | Local dev gate before pushing |

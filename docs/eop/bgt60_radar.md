@@ -1,18 +1,20 @@
 # Archived radar4d design — superseded by Radar2D corner BLE
 
-*(Filename kept for history/link stability. The WiFi/UDP Radar4D corner-node
-pipeline described below is no longer an OpenPilot runtime dependency. OpenPilot
-uses the BLE Radar2D object stream for advisory corner coverage on every board.
-The WiFi/UDP point cloud is an ESP32_RADAR `dev/v2` add-on for 02M only, with no
-running daemon yet. Do not use this document as
-the current OpenPilot process or safety contract.)*
+*(Filename kept for history/link stability. This is the archived BGT60-era
+design. The current corner-radar integration — BLE `radar2d` on every board,
+plus on 02M the ESP32_RADAR `dev/v2` (CAL77S244) WiFi point cloud through
+`selfdrive/controls/radar4d.py` into gridd — is
+`docs/eop/04_Integration/ESP32_RADAR_CORNER.md`. Files named below that do
+not exist on this branch (`radar4d_tracker.py`, `radar4d_pointcloud.py`,
+`radar4d_geometry.py`) are part of the archived design. Do not use this
+document as the current process or safety contract.)*
 
 ## Radar classification
 
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | long-range UART radar (`selfdrive/controls/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
-| `radar4d` | 4x ESP32_RADAR corner nodes (WiFi/UDP add-on, 02M only) | 0–15m | no running consumer yet | close-range corner coverage |
+| `radar4d` | 4x ESP32_RADAR corner nodes (WiFi/UDP add-on, 02M only) | 0–30m | `radar4d.py` → gridd costmap | close-range corner occupancy |
 | `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
 The `radar2d` and `radar4d` designs share the
