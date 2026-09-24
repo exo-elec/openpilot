@@ -300,6 +300,16 @@ AP6398S which are both same-band-only) — see exopilot's
 PCB footprint change (different package family from AP6256), not yet
 built. WiFi-based `radar4d` (ESP32_RADAR corner nodes) remains scoped to
 this branch (`dev/02M`) only — `dev/EOP10`/`dev/01M` do not support it.
+
+**Band plan (user decision, 2026-09-24):** `ap0` is a 2.4GHz hotspot for
+the ESP32 corner nodes; `wlan0` uses 5GHz for the vehicle's own WiFi LAN.
+exopilot's `setup_wifi_dualwan.sh` detects whether the radio can run two
+channels at once (DBDC) and writes `/etc/exopilot/wifi-band.conf`.
+openpilot's WiFi screens (`selfdrive/ui/components/nm.py`,
+`system/ui/lib/wifi_manager.py`) read it through `common/wifi_band.py`:
+without DBDC new networks are pinned to 2.4GHz (`bg`) so `ap0` stays
+reachable; with DBDC a network seen on 5GHz is pinned to `a`. The ESP32
+point cloud is consumed by `selfdrive/controls/radar4d.py` → gridd.
 `get_capabilities()` gained `WIFI`/`BLUETOOTH`/`GPS`/`CELLULAR` — **not**
 `RTK`, deliberately: no RTCM correction path exists (no NTRIP client), so
 claiming it would let `coordinationd/fusion.py`'s `is_rtk` branch trust an

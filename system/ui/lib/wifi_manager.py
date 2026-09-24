@@ -20,6 +20,7 @@ except ImportError:
   # Params/Cythonized modules are not available in zipapp
   Params = None
 from openpilot.common.swaglog import cloudlog
+from openpilot.common.wifi_band import lan_band_for
 
 T = TypeVar("T")
 
@@ -221,6 +222,12 @@ class WifiManager:
 
       if bssid:
         connection['802-11-wireless']['bssid'] = Variant('ay', bssid.encode('utf-8'))
+
+      # 02M without DBDC: wlan0 must stay on 2.4GHz next to the corner-radar
+      # hotspot (common/wifi_band.py). Band unknown here, so 5GHz is never forced.
+      band = lan_band_for(has_5ghz=False)
+      if band is not None:
+        connection['802-11-wireless']['band'] = Variant('s', band)
 
       if password:
         connection['802-11-wireless-security'] = {
