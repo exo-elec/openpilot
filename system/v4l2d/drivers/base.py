@@ -156,7 +156,7 @@ class BaseCameraDriver:
             return False
 
         if self.fourcc:
-            self._cap.set(cv2.CAP_PROP_FOURCC, getattr(cv2, 'VideoWriter_fourcc')(*self.fourcc))
+            self._cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*self.fourcc))
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self._cap.set(cv2.CAP_PROP_FPS, self.fps)

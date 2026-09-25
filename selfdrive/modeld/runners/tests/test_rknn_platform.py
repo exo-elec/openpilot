@@ -10,7 +10,7 @@ import pytest
 
 from openpilot.selfdrive.modeld.runners.rknn_platform import (
   PlatformType, detect_platform, get_core_count, get_core_mask,
-  NPUPlatformConfig, NPU_ALLOCATION_MAP,
+  NPUPlatformConfig,
 )
 
 

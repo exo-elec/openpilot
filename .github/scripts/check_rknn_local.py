@@ -23,9 +23,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 FORBIDDEN = re.compile(
-    r"kommu|KA2|bukapilot|kmini|kommuai|"
-    r"https?://[^\s\"']+\.rknn|"
-    r"\.rknn\s*url|download.*\.rknn.*url|"
+    r"kommu|KA2|bukapilot|kmini|kommuai|" +
+    r"https?://[^\s\"']+\.rknn|" +
+    r"\.rknn\s*url|download.*\.rknn.*url|" +
     r"fork.*rknn|vendored.*rknn|external.*rknn\s*model",
     re.IGNORECASE,
 )
@@ -74,18 +74,18 @@ def main() -> int:
 
     # Allow generic public model-zoo URLs in the helper script/README.
     zoo_url = re.compile(
-        r"https?://github\.com/(airockchip/rknn_model_zoo|hailo-ai/hailo_model_zoo)|"
+        r"https?://github\.com/(airockchip/rknn_model_zoo|hailo-ai/hailo_model_zoo)|" +
         r"https?://hailo-model-zoo\.s3\.[^\s\"']+\.hef",
     )
 
     findings.extend(check_file(REGISTRY))
     findings.extend(check_file(CONVERTER))
-    findings.extend(check_file(DOWNLOADER))
+    findings.extend(check_file(DOWNLOADER, allowed=zoo_url))
     findings.extend(check_registry_paths())
 
     # Optional sanity scan of modeld Python files (excluding generic zoo docs).
     for py_file in (REPO_ROOT / "selfdrive/modeld").rglob("*.py"):
-        findings.extend(check_file(py_file))
+        findings.extend(check_file(py_file, allowed=zoo_url))
 
     if findings:
         print("RKNN local-placement check FAILED:")

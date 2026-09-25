@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import types
 
-import pytest
 
 from openpilot.system.hardware.base import HardwareBase
 from openpilot.system.hardware.pc.hardware import Pc

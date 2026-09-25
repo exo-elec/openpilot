@@ -44,7 +44,7 @@ def _strip_prose(src: str) -> list[str]:
     if quotes == 1:
       in_doc = True
       continue
-    if stripped.startswith("#") or stripped.startswith((double, single)):
+    if stripped.startswith(("#", double, single)):
       continue
     out.append(line)
   return out

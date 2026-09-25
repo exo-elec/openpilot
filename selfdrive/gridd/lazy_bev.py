@@ -25,7 +25,7 @@ Output:
 """
 from __future__ import annotations
 import time
-from typing import Any, cast
+from typing import cast
 import numpy as np
 from openpilot.system.hardware import HARDWARE
 from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry

@@ -21,14 +21,13 @@ import fcntl
 import time
 import threading
 from pathlib import Path
-from typing import List, Tuple, Optional
 
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.compat import UTC
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
-from openpilot.system.hardware import HARDWARE, TICI
+from openpilot.system.hardware import TICI
 
 LOCK_FILE = os.getenv("UPDATER_LOCK_FILE", "/tmp/safe_staging_overlay.lock")
 STAGING_ROOT = os.getenv("UPDATER_STAGING_ROOT", "/data/safe_staging")
@@ -69,7 +68,7 @@ class WaitTimeHelper:
     self.ready_event.wait(timeout=t)
 
 
-def run(cmd: List[str], cwd: Optional[str] = None, low_priority: bool = False):
+def run(cmd: list[str], cwd: str | None = None, low_priority: bool = False):
   if low_priority:
     cmd = ["nice", "-n", "19"] + cmd
   return subprocess.check_output(cmd, cwd=cwd, stderr=subprocess.STDOUT, encoding='utf8')
@@ -85,7 +84,7 @@ def set_consistent_flag(consistent: bool) -> None:
   os.sync()
 
 
-def set_params(new_version: bool, failed_count: int, exception: Optional[str]) -> None:
+def set_params(new_version: bool, failed_count: int, exception: str | None) -> None:
   params = Params()
 
   params.put("UpdateFailedCount", str(failed_count))
@@ -222,7 +221,7 @@ def check_git_fetch_result(fetch_txt: str) -> bool:
   return len(fetch_txt) > 0 and (fetch_txt != err_msg)
 
 
-def check_for_update() -> Tuple[bool, bool]:
+def check_for_update() -> tuple[bool, bool]:
   setup_git_options(OVERLAY_MERGED)
   try:
     git_fetch_output = run(["git", "fetch", "--dry-run"], OVERLAY_MERGED, low_priority=True)

@@ -6,7 +6,6 @@ for smooth, stable thermal management.
 from enum import IntEnum
 from dataclasses import dataclass
 from collections import OrderedDict
-from typing import cast
 from openpilot.system.hardware import HARDWARE
 
 # Fan bands are board data: resolved from whichever board is running, never
