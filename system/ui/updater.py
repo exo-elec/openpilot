@@ -84,7 +84,7 @@ class Updater(Widget):
 
     status_text = UPDATE_STATUS_TEXT.get(status, status)
     desc_text = (
-      "An update has been downloaded and is ready to install. "
+      "An update has been downloaded and is ready to install. " +
       "Reboot now to apply it."
       if available else
       f"Status: {status_text}"

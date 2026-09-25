@@ -181,7 +181,7 @@ def build_camera_specs(platform: str, geometry) -> dict[CameraRole, dict]:
     names = HAL_NAME_BY_ROLE.get(platform)
     if geometry is None or names is None:
         cloudlog.warning(
-            "camera specs: no HAL camera geometry for '%s'; using fallback "
+            "camera specs: no HAL camera geometry for '%s'; using fallback " +
             "optics. Fields of view and resolutions are approximate.", platform)
         return {role: {**optics, 'min_m': ROLE_RANGE_M[role][0],
                        'max_m': ROLE_RANGE_M[role][1]}
@@ -191,7 +191,7 @@ def build_camera_specs(platform: str, geometry) -> dict[CameraRole, dict]:
     for role, name in names.items():
         if name not in geometry.LENS_MM:
             cloudlog.error(
-                "camera specs: HAL has no camera '%s' for role %s on '%s' -- "
+                "camera specs: HAL has no camera '%s' for role %s on '%s' -- " +
                 "dropping that input rather than guessing.", name, role, platform)
             continue
         width, height = geometry.IMAGE_SIZE_PX[name]
