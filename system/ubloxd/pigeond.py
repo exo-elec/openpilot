@@ -16,7 +16,7 @@ from cereal import messaging
 from openpilot.common.time_helpers import system_time_valid
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.hardware import HARDWARE, ROCKCHIP
+from openpilot.system.hardware import ROCKCHIP
 
 # Low-level u-blox driver is board-support code in ExoPilot HAL.
 try:

@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import time
-import unittest
-from unittest.mock import MagicMock, patch
+import unittest  # noqa: TID251
+from unittest.mock import MagicMock, patch  # noqa: TID251
 
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.system.inferenced.compute import BackendType

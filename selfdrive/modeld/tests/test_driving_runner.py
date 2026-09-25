@@ -14,7 +14,6 @@ from openpilot.selfdrive.modeld.runners import (
     DrivingModelSpec,
     DrivingRunnerResult,
     RKNNDrivingRunner,
-    EgpuDrivingRunner,
     ChestnutDrivingRunner,
     create_driving_runner,
 )

@@ -26,7 +26,7 @@ class TestErrorRecovery:
     # Initially should not use fallback (need at least 3 ops)
     if strategy.should_try_fallback():
       logger.warning("✗ Should not fallback initially")
-      assert False, "Should not fallback initially"
+      raise AssertionError("Should not fallback initially")
 
     # Record failures (no successes) to trigger fallback
     # Needs total >= 3 and failure_count / total > 0.5
@@ -40,7 +40,7 @@ class TestErrorRecovery:
       return
     else:
       logger.warning("✗ Fallback not triggered at 100% failure rate")
-      assert False, "Fallback not triggered at 100% failure rate"
+      raise AssertionError("Fallback not triggered at 100% failure rate")
 
   def test_health_monitor(self):
     """Test backend health monitoring."""
@@ -51,20 +51,20 @@ class TestErrorRecovery:
     # Initially healthy
     if not monitor.is_healthy:
       logger.warning("✗ Should be healthy initially")
-      assert False, "Should be healthy initially"
+      raise AssertionError("Should be healthy initially")
 
     # Record failures
     for _i in range(2):
       monitor.record_failure()
       if not monitor.is_healthy:
         logger.warning("✗ Should still be healthy after 2 failures")
-        assert False, "Should still be healthy after 2 failures"
+        raise AssertionError("Should still be healthy after 2 failures")
 
     # Third failure should mark unhealthy
     should_restart = monitor.record_failure()
     if not should_restart or monitor.is_healthy:
       logger.warning("✗ Should mark unhealthy after 3 failures")
-      assert False, "Should mark unhealthy after 3 failures"
+      raise AssertionError("Should mark unhealthy after 3 failures")
 
     logger.info("✓ Health monitor working correctly")
     return
@@ -78,14 +78,14 @@ class TestErrorRecovery:
     error = create_error_from_exception(timeout_exc, "NPU", "model")
     if error.category != ErrorCategory.TIMEOUT:
       logger.warning("✗ Timeout error not categorized correctly")
-      assert False, "Timeout error not categorized correctly"
+      raise AssertionError("Timeout error not categorized correctly")
 
     # Test resource exhausted error
     mem_exc = MemoryError("Out of memory")
     error = create_error_from_exception(mem_exc, "ACL", "model")
     if error.category != ErrorCategory.RESOURCE_EXHAUSTED:
       logger.warning("✗ Memory error not categorized correctly")
-      assert False, "Memory error not categorized correctly"
+      raise AssertionError("Memory error not categorized correctly")
 
     logger.info("✓ Error categorization working")
     return
@@ -117,7 +117,7 @@ class TestErrorRecovery:
     summary = manager.get_error_summary()
     if summary['total_errors'] != 1:
       logger.warning("✗ Error not recorded")
-      assert False, "Error not recorded"
+      raise AssertionError("Error not recorded")
 
     logger.info("✓ Error recovery manager working")
     return
@@ -138,7 +138,7 @@ class TestErrorRecovery:
     error_summary = hal.get_error_summary()
     if 'total_errors' not in error_summary:
       logger.warning("✗ Error summary missing total_errors")
-      assert False, "Error summary missing total_errors"
+      raise AssertionError("Error summary missing total_errors")
 
     logger.info("✓ HAL error recovery integrated")
     return
@@ -158,7 +158,7 @@ class TestErrorRecovery:
     for backend_type in hal.get_available_backends():
       if not hal.is_backend_healthy(backend_type):
         logger.warning(f"✗ {backend_type.name} should be healthy initially")
-        assert False, "test failed"
+        raise AssertionError("test failed")
 
     logger.info("✓ All backends healthy at startup")
     return
@@ -187,11 +187,11 @@ class TestErrorRecovery:
 
     if not timeout_error.is_recoverable:
       logger.warning("✗ Timeout should be recoverable")
-      assert False, "Timeout should be recoverable"
+      raise AssertionError("Timeout should be recoverable")
 
     if oom_error.is_recoverable:
       logger.warning("✗ OOM should not be recoverable")
-      assert False, "OOM should not be recoverable"
+      raise AssertionError("OOM should not be recoverable")
 
     logger.info("✓ Error recoverability correct")
     return

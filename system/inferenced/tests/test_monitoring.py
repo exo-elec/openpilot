@@ -30,7 +30,7 @@ class TestMonitoring:
         # Initially zero operations
         if metrics.total_operations != 0:
             logger.warning("✗ Should start with 0 operations")
-            assert False, "Should start with 0 operations"
+            raise AssertionError("Should start with 0 operations")
 
         # Manually update metrics for testing
         metrics.total_operations = 10
@@ -45,19 +45,19 @@ class TestMonitoring:
         expected_success_rate = 90.0
         if abs(metrics.success_rate - expected_success_rate) > 0.1:
             logger.warning(f"✗ Success rate mismatch: {metrics.success_rate}")
-            assert False, "Should start with 0 operations"
+            raise AssertionError("Should start with 0 operations")
 
         # Check throughput
         expected_throughput = (10 / 100.0) * 1000
         if abs(metrics.throughput_ops_sec - expected_throughput) > 0.1:
             logger.warning(f"✗ Throughput mismatch: {metrics.throughput_ops_sec}")
-            assert False, "Should start with 0 operations"
+            raise AssertionError("Should start with 0 operations")
 
         # Check average latency
         expected_avg = 100.0 / 10
         if abs(metrics.avg_latency_ms - expected_avg) > 0.1:
             logger.warning(f"✗ Avg latency mismatch: {metrics.avg_latency_ms}")
-            assert False, "Should start with 0 operations"
+            raise AssertionError("Should start with 0 operations")
 
         logger.info("✓ Performance metrics working")
         return
@@ -81,21 +81,21 @@ class TestMonitoring:
         metrics = monitor.get_metrics("inference", "NPU")
         if metrics is None:
             logger.warning("✗ Metrics not found")
-            assert False, "Metrics not found"
+            raise AssertionError("Metrics not found")
 
         if metrics.total_operations != 5:
             logger.warning(f"✗ Total operations mismatch: {metrics.total_operations}")
-            assert False, "Metrics not found"
+            raise AssertionError("Metrics not found")
 
         if metrics.successful_operations != 5:
             logger.warning("✗ Success count mismatch")
-            assert False, "Success count mismatch"
+            raise AssertionError("Success count mismatch")
 
         # Test summary
         summary = monitor.get_summary()
         if summary['total_operations'] != 5:
             logger.warning("✗ Summary total mismatch")
-            assert False, "Summary total mismatch"
+            raise AssertionError("Summary total mismatch")
 
         logger.info("✓ Performance monitor working")
         return
@@ -116,18 +116,18 @@ class TestMonitoring:
         result = checker.run_check("test_check")
         if result is None or not result.is_healthy:
             logger.warning("✗ Health check failed")
-            assert False, "Health check failed"
+            raise AssertionError("Health check failed")
 
         # Run all checks
         results = checker.run_all_checks()
         if "test_check" not in results:
             logger.warning("✗ Check not in results")
-            assert False, "Check not in results"
+            raise AssertionError("Check not in results")
 
         # Check overall health
         if not checker.get_overall_health():
             logger.warning("✗ Overall health should be true")
-            assert False, "Overall health should be true"
+            raise AssertionError("Overall health should be true")
 
         logger.info("✓ Health checker working")
         return
@@ -153,13 +153,13 @@ class TestMonitoring:
         # Should have warning for latency
         if len(alert_result['alerts']) == 0:
             logger.warning("✗ Should have latency warning")
-            assert False, "Should have latency warning"
+            raise AssertionError("Should have latency warning")
 
         # Check alert types
         alert_types = [a['type'] for a in alert_result['alerts']]
         if 'HIGH_LATENCY' not in alert_types:
             logger.warning("✗ Missing HIGH_LATENCY alert")
-            assert False, "Missing HIGH_LATENCY alert"
+            raise AssertionError("Missing HIGH_LATENCY alert")
 
         logger.info("✓ Alert thresholds working")
         return
@@ -186,7 +186,7 @@ class TestMonitoring:
         critical_alerts = [a for a in alert_result['alerts'] if a['severity'] == 'CRITICAL']
         if len(critical_alerts) == 0:
             logger.warning("✗ Should have critical alerts")
-            assert False, "Should have critical alerts"
+            raise AssertionError("Should have critical alerts")
 
         logger.info("✓ Critical alert thresholds working")
         return
@@ -223,12 +223,12 @@ class TestMonitoring:
         for field in required_fields:
             if field not in diagnostic:
                 logger.warning(f"✗ Missing field: {field}")
-                assert False, "test failed"
+                raise AssertionError("test failed")
 
         # Check status values
         if diagnostic['status'] not in ['HEALTHY', 'DEGRADED', 'UNKNOWN']:
             logger.warning(f"✗ Invalid status: {diagnostic['status']}")
-            assert False, "test failed"
+            raise AssertionError("test failed")
 
         logger.info("✓ Diagnostic report working")
         return
@@ -247,18 +247,18 @@ class TestMonitoring:
         report = hal.get_diagnostic_report()
         if 'status' not in report:
             logger.warning("✗ Diagnostic report not found")
-            assert False, "Diagnostic report not found"
+            raise AssertionError("Diagnostic report not found")
 
         # Get all performance metrics (should be empty initially)
         all_metrics = hal.get_all_performance_metrics()
         if not isinstance(all_metrics, dict):
             logger.warning("✗ All metrics should be dict")
-            assert False, "All metrics should be dict"
+            raise AssertionError("All metrics should be dict")
 
         # Check performance monitor initialized
         if hal._performance_monitor is None:
             logger.warning("✗ Performance monitor not initialized")
-            assert False, "Performance monitor not initialized"
+            raise AssertionError("Performance monitor not initialized")
 
         logger.info("✓ HAL monitoring integration working")
         return
@@ -285,11 +285,11 @@ class TestMonitoring:
             metrics = hal.get_performance_metrics("test_model", "NPU")
             if metrics is None:
                 logger.warning("✗ Metrics not recorded")
-                assert False, "Metrics not recorded"
+                raise AssertionError("Metrics not recorded")
 
             if metrics.total_operations != 1:
                 logger.warning("✗ Operation not counted")
-                assert False, "Operation not counted"
+                raise AssertionError("Operation not counted")
 
             logger.info("✓ Monitoring with real inference working")
             return
@@ -311,7 +311,7 @@ class TestMonitoring:
         metrics = monitor.get_all_metrics()
         if len(metrics) != 2:
             logger.warning("✗ Operations not recorded")
-            assert False, "Operations not recorded"
+            raise AssertionError("Operations not recorded")
 
         # Reset
         monitor.reset()
@@ -320,7 +320,7 @@ class TestMonitoring:
         metrics = monitor.get_all_metrics()
         if len(metrics) != 0:
             logger.warning("✗ Metrics not cleared")
-            assert False, "Metrics not cleared"
+            raise AssertionError("Metrics not cleared")
 
         logger.info("✓ Performance monitor reset working")
         return

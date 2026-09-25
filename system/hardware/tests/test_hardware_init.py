@@ -28,7 +28,7 @@ def _run(code: str, hardware_env: str | None):
 
 
 def _flags_for(hardware_env: str | None) -> dict[str, bool]:
-  code = ("from openpilot.system.hardware import RK3588, ROCKCHIP, TICI, PC\n"
+  code = ("from openpilot.system.hardware import RK3588, ROCKCHIP, TICI, PC\n" +
           "print(RK3588, ROCKCHIP, TICI, PC)")
   result = _run(code, hardware_env)
   assert result.returncode == 0, result.stderr
@@ -57,7 +57,7 @@ class TestBranchHardwareScope:
   """
 
   def test_rk3576_is_not_a_known_platform(self):
-    result = _run("from openpilot.system.hardware.registry import PlatformRegistry\n"
+    result = _run("from openpilot.system.hardware.registry import PlatformRegistry\n" +
                   "print(sorted(PlatformRegistry._platforms))", None)
     assert result.returncode == 0, result.stderr
     registered = result.stdout.strip()

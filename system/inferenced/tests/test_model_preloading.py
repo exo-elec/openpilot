@@ -43,7 +43,7 @@ class TestModelPreloading:
       return
     else:
       logger.warning("✗ Model not preloaded")
-      assert False, "Model not preloaded"
+      raise AssertionError("Model not preloaded")
 
   def test_model_cache(self):
     """Test model caching mechanism."""
@@ -69,7 +69,7 @@ class TestModelPreloading:
         return
 
     logger.warning("✗ Model caching failed")
-    assert False, "Model caching failed"
+    raise AssertionError("Model caching failed")
 
   def test_clear_cache(self):
     """Test cache clearing."""
@@ -83,7 +83,7 @@ class TestModelPreloading:
 
     if not hal.is_model_cached('temp_model'):
       logger.warning("✗ Model not cached before clear test")
-      assert False, "Model not cached before clear test"
+      raise AssertionError("Model not cached before clear test")
 
     # Clear cache
     hal.clear_model_cache()
@@ -93,7 +93,7 @@ class TestModelPreloading:
       return
     else:
       logger.warning("✗ Cache not cleared")
-      assert False, "Cache not cleared"
+      raise AssertionError("Cache not cleared")
 
   def test_multiple_model_preload(self):
     """Test preloading multiple models."""
@@ -120,7 +120,7 @@ class TestModelPreloading:
       return
     else:
       logger.warning(f"✗ Preload incomplete (vision={vision_cached}, policy={policy_cached})")
-      assert False, "test failed"
+      raise AssertionError("test failed")
 
   def test_preload_stats(self):
     """Test that preloaded models track load time."""
@@ -146,7 +146,7 @@ class TestModelPreloading:
       return
     else:
       logger.warning("✗ Model statistics missing")
-      assert False, "Model statistics missing"
+      raise AssertionError("Model statistics missing")
 
   def test_backend_not_available(self):
     """Test graceful handling when backend not available."""
