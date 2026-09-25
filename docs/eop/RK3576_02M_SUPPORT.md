@@ -84,6 +84,22 @@ is `True`, so there's no known reason either backend needs platform-specific
 changes to work on 02M. Not verified on real hardware either, same caveat
 as everything else here.
 
+## First-unit bring-up commands (2026-09-25)
+
+Everything left for 02M needs the board; each step is one read-only command
+that prints PASS/FAIL or what to record:
+
+| Step | Command | Records / checks |
+|---|---|---|
+| Cameras | `python3 -m openpilot.system.v4l2d.list_cameras` | each role's `/dev/videoN` by I2C id → hal `rk3576_camera_paths.py` (v4l2d opens no MIPI camera without it) |
+| Mic pair | `python3 -m openpilot.system.micd.check_mic` | `EOP02M-Simple-Audio` card, 16 kHz, both mics live and correlated |
+| NPU split | `python3 -m openpilot.selfdrive.modeld.runners.npu_bench --model TASK=PATH@HZ:SHAPE ...` | per-model latency on its `NPU_ALLOCATION_MAP` core, per-core load vs 85% |
+| WiFi band plan | exopilot `scripts/install/wifi_bandcheck.sh` | `ap0` 2.4 GHz + `wlan0` 5 GHz at once |
+| Rails | `powerState` (hardwared) | regulators found by name, none critical |
+
+Not measurable by a tool yet: the mic spacing on the PCB (needed to steer
+the beamformer toward the driver instead of straight ahead).
+
 ## What's NOT implemented (Phase B — needs real RK3576 hardware)
 
 - **Camera capture** — *code ported 2026-09-24*: `system/v4l2d/v4l2d.py`
