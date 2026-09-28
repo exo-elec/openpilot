@@ -225,14 +225,12 @@ def calibration_description(store: ParamStore) -> str:
 
 def _hal_calibration_store():
   """hal.calibration.store/tf_tree, or None when the package is not
-  installed -- same lazy-import pattern side_rear_calibration.py uses, so a
-  dev PC or a board with no side/rear cameras degrades gracefully instead of
+  installed -- reached through HARDWARE like side_rear_calibration.py does, so
+  a dev PC or a board with no side/rear cameras degrades gracefully instead of
   raising ImportError from a settings screen."""
-  try:
-    from hal.calibration import store, tf_tree
-    return store, tf_tree
-  except ImportError:
-    return None
+  from openpilot.system.hardware import HARDWARE
+  pieces = HARDWARE.hal_calibration()
+  return None if pieces is None else (pieces[3], pieces[4])   # store, tf_tree
 
 
 def side_rear_calibration_description(cameras=SIDE_REAR_CAMERAS) -> str:
