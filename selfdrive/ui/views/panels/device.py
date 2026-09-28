@@ -32,6 +32,14 @@ CALIBRATION_PARAMS = (
   "LiveDelay",
 )
 
+# Side/rear cameras calibrated by exopilot's hal.calibration (see CLAUDE.md
+# "Side/rear calibration lives in exopilot"). Unlike the road camera above,
+# there is no CalibrationParams blob to clear -- the persisted state is
+# hal.calibration's own sensors_tf.yaml, and the daemon-side reset
+# (camera_calibrationd.py polling EOPSideRearCalibReset) is what actually
+# drops the in-progress calibrator; see side_rear_calibration.py.
+SIDE_REAR_CAMERAS = ("side_left", "side_right", "rear_camera")
+
 # UI language file -> the 2-letter code the TTS engine wants. Both Chinese
 # variants speak the same language even though they are written differently.
 LANGUAGE_TO_TTS = {
@@ -69,6 +77,11 @@ class DevicePanel(ListWidget):
     self.reset_calib.clicked.connect(self._reset_calibration)
     self.reset_calib.description_shown.connect(self._refresh_calibration_text)
     self.add_row(self.reset_calib)
+
+    self.side_rear_calib = ButtonControl(self.tr("Side/Rear Camera Calibration"), self.tr("RESET"))
+    self.side_rear_calib.clicked.connect(self._reset_side_rear_calibration)
+    self.side_rear_calib.description_shown.connect(self._refresh_side_rear_calibration_text)
+    self.add_row(self.side_rear_calib)
 
     self.training = ButtonControl(self.tr("Review Training Guide"), self.tr("REVIEW"))
     self.training.clicked.connect(self._review_training)
@@ -135,6 +148,15 @@ class DevicePanel(ListWidget):
     self._store.put_bool("OnroadCycleRequested", True)
     self._refresh_calibration_text()
 
+  def _reset_side_rear_calibration(self) -> None:
+    if not self._guarded(self.tr("Are you sure you want to reset side/rear camera calibration?"),
+                         self.tr("Reset"), self.tr("Disengage to Reset Calibration")):
+      return
+    # One-shot trigger: camera_calibrationd.py polls this, resets
+    # SideRearCalibration and clears it back to false.
+    self._store.put_bool("EOPSideRearCalibReset", True)
+    self._refresh_side_rear_calibration_text()
+
   def _review_training(self) -> None:
     if confirm_dialog(self.tr("Are you sure you want to review the training guide?"),
                       self.tr("Review"), self):
@@ -171,6 +193,9 @@ class DevicePanel(ListWidget):
     deserialises three capnp blobs out of Params."""
     self.reset_calib.set_description(calibration_description(self._store))
 
+  def _refresh_side_rear_calibration_text(self) -> None:
+    self.side_rear_calib.set_description(side_rear_calibration_description())
+
 
 def calibration_description(store: ParamStore) -> str:
   parts = ["openpilot requires the device to be mounted within 4° left or right and within 5° up or 9° down."]
@@ -196,6 +221,38 @@ def calibration_description(store: ParamStore) -> str:
 
   parts.append("\n\nCalibration resets rarely needed. Will restart openpilot if car is on.")
   return "".join(parts)
+
+
+def _hal_calibration_store():
+  """hal.calibration.store/tf_tree, or None when the package is not
+  installed -- same lazy-import pattern side_rear_calibration.py uses, so a
+  dev PC or a board with no side/rear cameras degrades gracefully instead of
+  raising ImportError from a settings screen."""
+  try:
+    from hal.calibration import store, tf_tree
+    return store, tf_tree
+  except ImportError:
+    return None
+
+
+def side_rear_calibration_description(cameras=SIDE_REAR_CAMERAS) -> str:
+  """Per-camera calibrated/not-yet-calibrated, read from hal.calibration's
+  persisted sensors_tf.yaml -- not live cereal, matching calibration_description()
+  above: built only when the description is opened, not polled continuously."""
+  hal = _hal_calibration_store()
+  if hal is None:
+    return "Side/rear camera calibration is not available on this device."
+  store, tf_tree = hal
+  links = store.load_links()
+  lines = [
+    "{}: {}".format(
+      cam.replace("_", " ").title(),
+      "calibrated" if tf_tree.link_frame(cam) in links else "not yet calibrated",
+    )
+    for cam in cameras
+  ]
+  lines.append("\n\nCalibrates automatically while driving. Reset rarely needed.")
+  return "\n".join(lines)
 
 
 def supported_languages() -> dict[str, str]:

@@ -14,7 +14,9 @@ the debt stays visible rather than becoming permanent.
 from __future__ import annotations
 
 # key -> why it is not a user-facing setting
-TRIAGED: dict[str, str] = {}
+TRIAGED: dict[str, str] = {
+  "EOPSideRearCalibReset": "One-shot daemon trigger, not a toggle -- custom ButtonControl in device.py's Side/Rear Camera Calibration row.",
+}
 
 # Not yet classified. Populated from the current gap so the gate is meaningful
 # from day one; entries move to TRIAGED (with a reason) or into descriptor.py.
