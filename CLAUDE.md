@@ -153,7 +153,7 @@ dev/EOP10 ──┬── dev/01M   PyQt5 UI, classic openpilot layout, RK3588 /
   it. Daemons, cereal, params_keys.h, systemd units, SConstruct outside the
   Qt block. Fixing it on 01M or 02M instead leaves the other branch broken.
 - **UI fixes belong on the branch they apply to.** The C++ UI is this
-  branch's; `selfdrive/ui/eop/` is theirs.
+  branch's; `selfdrive/ui/` is theirs.
 
 ### Rebasing the UI branches onto an improved EOP10
 
@@ -180,6 +180,39 @@ After rebasing, re-run `./test.sh` on each branch.
 |----------|----------|------|
 | `elm327d` | `adaptd` | Renamed 2026-05-30 — never implemented ELM327; is a driving policy daemon |
 | `radar3d.py` (camera+radar fusion) | `radard.py` | Renamed 2026-08-16 — matches upstream openpilot's name. `radar3d.py` (now `system/radar3d/`, the sensor-producer layer like `ubloxd`) is the long-range UART radar *producer* daemon, not the fusion daemon; see New Features below |
+
+## UI
+
+The C++/Qt UI is gone. `selfdrive/ui/` is a Qt Widgets UI written in
+Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
+
+- **Design is unchanged on 01M.** Sidebar, offroad home, the left-nav settings
+  window and the onroad HUD all reproduce the C++ layout they replace.
+  `dev/02M` is where the new design lives (top-tab settings, swipeable side
+  panels, 1600x600 chrome).
+- **`views/` and `main.py` are the intended divergence** between 01M and 02M.
+  Within `components/` each branch also owns the files that *are* its layout:
+  `alerts.py`, `hud.py` and `theme.py` exist only here; `chrome.py`,
+  `panels.py`, `panel_widgets.py` and `factory.py` only on 02M. Every file
+  that exists on **both** branches — `qt.py`, `state.py`, the common
+  `components/`, `settings/`, `styles/`, `views/panels/` — is kept
+  **byte-identical**, so a fix cherry-picks between them unchanged. Check
+  that before editing one of those files, and check it both ways: a
+  one-directional diff misses a file that exists only on the other branch.
+- **Binding**: **PyQt5 only**. There is no PySide fallback — carrying one
+  meant checking every spelling against two bindings, and it leaked anyway
+  (scoped vs unscoped QDBus enums, QSpinBox float coercion). Import Qt names
+  from `selfdrive/ui/qt.py` rather than from `PyQt5` directly: it is the
+  one place a future Qt move gets edited. Write `Signal`, not `pyqtSignal`.
+  Note PyQt5 is GPLv3 or a paid Riverbank licence while openpilot is MIT, so
+  the licence question has to be settled before anything is distributed —
+  a recorded choice for a research project, not an oversight.
+- **Run it**: `PYTHONPATH=. python3 -m openpilot.selfdrive.ui.main --demo`
+- **Test it**: `./test.sh` now includes the UI suite, or directly with
+  `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/tests
+  -c selfdrive/ui/tests/pytest.ini --noconftest`
+- **Not yet verified on hardware**: the VisionIPC/EGL camera path and which Qt
+  platform plugin the device runs. See `docs/eop10/EOP10_PORT_PLAN.md` P1.
 
 ## New Features
 
