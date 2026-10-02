@@ -26,6 +26,7 @@ from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
 from openpilot.selfdrive.controls.lib.aeb import AEB
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
+from openpilot.selfdrive.selfdrived.events import Events
 
 State = log.SelfdriveState.OpenpilotState
 LaneChangeState = log.LaneChangeState
@@ -71,7 +72,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'onroadEvents', 'driverAssistance',
+                                   'onroadEvents', 'driverAssistance', 'pandaStates',
                                    'enhancedTrajectory',  # EOP: pathd
                                    'surfaceStatus', 'radarState',
                                    'monoDetections', 'stereoDetections', 'stereoObjects',
@@ -115,7 +116,7 @@ class Controls:
 
     # EOP: per-frame state needed by ALCC
     self.CS_prev = car.CarState.new_message()  # zeroed CarState; safe on first frame
-    self.events: list[Any] = []
+    self.events = Events()
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     # EOP: TJA resume alert debounce
@@ -150,6 +151,13 @@ class Controls:
 
   def state_control(self):
     CS = self.sm['carState']
+
+    # ALCC mutates an Events collection while evaluating the current
+    # selfdrived event snapshot. Rebuild it each frame so the ALCC state
+    # machine sees the real disable/enable events, not an empty placeholder.
+    self.events.clear()
+    if self.sm.valid.get('onroadEvents', False):
+      self.events.add_from_msg(self.sm['onroadEvents'])
 
     # Update VehicleModel — apply CAT corrections if confident
     lp = self.sm['liveParameters']
@@ -274,11 +282,12 @@ class Controls:
     calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
     gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park, car.CarState.GearShifter.neutral, car.CarState.GearShifter.reverse)
     safety_ok = not CS.seatbeltUnlatched and not CS.doorOpen
+    panda_states = self.sm['pandaStates'] if self.sm.all_checks(['pandaStates']) else []
 
     alcc_status = self.alcc.update(
       CS=CS, CS_prev=self.CS_prev,
       events=self.events,
-      panda_states=self.sm['pandaStates'] if self.sm.valid.get('pandaStates', False) else [],
+      panda_states=panda_states,
       stock_enabled=self.sm['selfdriveState'].enabled,
       stock_active=self.sm['selfdriveState'].active,
       calibrated=calibrated, gear_ok=gear_ok, safety_ok=safety_ok,
