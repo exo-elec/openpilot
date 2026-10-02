@@ -140,7 +140,7 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 | `EOPBluetoothRadarEnabled` | bool | `false` | BLE central for ESP32 corner radars (`ble_central.py`, sole `radar2d` publisher when on) |
 | `BLECornerPairs` | str (JSON) | — | Learned BLE MAC → corner_id pair set (`ble_central.py`), written automatically |
 | `BLERadarPairingOpen` | bool | `false` | Corner-radar pairing window — while `1`, unknown units may be learned/connected; close after pairing (mirrors WiFi MAC-ACL ritual) |
-| `BLERadarRoster` | str | — | Extra corner-radar identity MACs (factory WiFi STA MAC from the unit label/boot log), JSON list or whitespace/comma separated; merged with `/etc/hostapd/ap0.accept`. Needed for BLE-only nodes (ESP32_RADAR `dev/v1`, no WiFi) |
+| `BLERadarRoster` | str | — | Extra corner-radar identity MACs (factory WiFi STA MAC from the unit label/boot log), JSON list or whitespace/comma separated; merged with `/etc/hostapd/ap0.accept`. Needed for BLE-only nodes (ESP32_RADAR `dev/TR13`, no WiFi) |
 | `EOPDeviceName` | str | `EXOPILOT` | BT adapter name — set per unit: `EXOPILOT 01`, `EXOPILOT 02M`, `EXOPILOT 02M` |
 | `EOPSPPEnabled` | bool | `false` | Classic SPP sub-daemon enable |
 | `EOPSPPAutoReconnect` | bool | `true` | Outward-connect to saved mobile device |

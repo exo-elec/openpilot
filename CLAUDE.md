@@ -347,8 +347,8 @@ After rebasing, re-run `./test.sh` on each branch.
   2026-08-23 audit's monolithic Bukapilot `supercombo.rknn` is not what runs.
   Converted and validated separately for RK3588 and RK3576; never reuse an
   RKNN binary across target SoCs.
-- Corner radars are not part of any camera pipeline: BLE `radar2d` on every
-  board, plus the ESP32_RADAR `dev/v2` WiFi point-cloud add-on on 02M only.
+- The EOP10 corner-radar baseline is BLE-only: ESP32_RADAR `dev/TR13`
+  publishes `radar2d`; WiFi point-cloud radar support belongs to the 02M layer.
 
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner
@@ -373,10 +373,9 @@ After rebasing, re-run `./test.sh` on each branch.
   repo, same ownership split as BGT60TR13C. See
   `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
   sign-convention bench-verify items, and file map.
-- No `radar4d` daemon runs today. The ESP32 corner-radar WiFi point cloud
-  (ESP32_RADAR `dev/v2`, UDP 47000, decoder `hal.drivers.radar.radar4d`) is a
-  02M-only add-on on top of the BLE `radar2d` baseline; only 02M hardware has
-  the antenna for the corner-node WiFi AP.
+- EOP10 has no `radar4d` daemon. Its ESP32 corner-radar input is BLE-only
+  `radar2d` from `dev/TR13`; WiFi point-cloud radar support is a 02M board-layer
+  addition.
 - 01M WiFi (2026-09-24): the RTL8822CE PCIe card serves only the vehicle LAN
   (no corner-node hotspot), so `wlan0` uses 5GHz. exopilot's
   `setup_wifi_lan.sh` (run by `setup_rk3588.sh`) writes

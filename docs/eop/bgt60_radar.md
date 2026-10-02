@@ -1,12 +1,10 @@
 # Archived radar4d design — superseded by Radar2D corner BLE
 
 *(Filename kept for history/link stability. This is the archived BGT60-era
-design, not this branch's runtime. Here the ESP32 corner radars are BLE
-only (`radar2d`, `system/bluetoothd/ble_central.py`). Their WiFi 4D point
-cloud (ESP32_RADAR `dev/v2`, CAL77S244) runs only on openpilot `dev/02M`,
-the one board with the corner-node WiFi AP; see
-`docs/eop/04_Integration/ESP32_RADAR_CORNER.md` on that branch. Do not use
-this document as the current process or safety contract. The 11-byte BGT60
+design, not this branch's runtime. EOP10's ESP32 corner-radar baseline is
+BLE-only (`radar2d`, `system/bluetoothd/ble_central.py`) using ESP32_RADAR
+`dev/TR13`; this foundation has no WiFi point-cloud service. Do not use this
+document as the current process or safety contract. The 11-byte BGT60
 corner packet and `decode_corner_packet()` described below were removed
 from exopilot hal on 2026-09-24; nothing sends that packet any more.)*
 
@@ -15,7 +13,7 @@ from exopilot hal on 2026-09-24; nothing sends that packet any more.)*
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | long-range UART radar (`system/radar3d/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
-| `radar4d` | 4x ESP32_RADAR corner nodes (WiFi/UDP add-on) | 0–30m | openpilot `dev/02M` only (`radar4d.py` → gridd costmap); not on this branch | close-range corner occupancy |
+| `radar4d` | 02M WiFi point-cloud add-on | 0–30m | Not in the EOP10 foundation; provided by the 02M layer | close-range corner occupancy |
 | `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
 The `radar2d` and `radar4d` designs share the

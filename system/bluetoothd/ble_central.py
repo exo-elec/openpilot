@@ -126,7 +126,7 @@ unit additionally requires these eligibility factors:
        roster: the WiFi MAC ACL (/etc/hostapd/ap0.accept, maintained by
        pair_corner_nodes.sh; 02M only, the only hardware with the
        corner-node WiFi antenna) UNION the BLERadarRoster param. The param
-       exists for BLE-only nodes (ESP32_RADAR dev/v1 has no WiFi, so it
+       exists for BLE-only nodes (ESP32_RADAR dev/TR13 has no WiFi, so it
        never joins the AP and pair_corner_nodes.sh cannot learn it): the
        operator enters the factory WiFi STA MAC from the unit's label /
        boot log. A neighbor's node claims a MAC in the NEIGHBOR's roster,
