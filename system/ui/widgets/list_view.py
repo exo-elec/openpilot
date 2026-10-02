@@ -2,6 +2,7 @@ import os
 import pyray as rl
 from collections.abc import Callable
 from abc import ABC
+from typing import cast
 from openpilot.system.ui.lib.application import gui_app, FontWeight, MousePos
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.wrap_text import wrap_text
@@ -83,7 +84,7 @@ class ButtonAction(ItemAction):
       rl.Rectangle(rect.x, rect.y + (rect.height - BUTTON_HEIGHT) / 2, BUTTON_WIDTH, BUTTON_HEIGHT),
       self.text,
       border_radius=BUTTON_BORDER_RADIUS,
-      font_weight=BUTTON_FONT_WEIGHT,
+      font_weight=cast(FontWeight, BUTTON_FONT_WEIGHT),
       font_size=BUTTON_FONT_SIZE,
       button_style=ButtonStyle.LIST_ACTION,
       is_enabled=self.enabled,
@@ -95,7 +96,7 @@ class TextAction(ItemAction):
     self._text_source = text
     self.color = color
 
-    self._font = gui_app.font(FontWeight.NORMAL)
+    self._font = gui_app.font(cast(FontWeight, FontWeight.NORMAL))
     initial_text = _resolve_value(text, "")
     text_width = measure_text_cached(self._font, initial_text, ITEM_TEXT_FONT_SIZE).x
     super().__init__(int(text_width + TEXT_PADDING), enabled)
@@ -153,7 +154,7 @@ class MultipleButtonAction(ItemAction):
     self.button_width = button_width
     self.selected_button = selected_index
     self.callback = callback
-    self._font = gui_app.font(FontWeight.MEDIUM)
+    self._font = gui_app.font(cast(FontWeight, FontWeight.MEDIUM))
 
   def _render(self, rect: rl.Rectangle) -> bool:
     spacing = 20
@@ -212,7 +213,7 @@ class ListItem(Widget):
     self.action_item = action_item
 
     self.set_rect(rl.Rectangle(0, 0, ITEM_BASE_WIDTH, ITEM_BASE_HEIGHT))
-    self._font = gui_app.font(FontWeight.NORMAL)
+    self._font = gui_app.font(cast(FontWeight, FontWeight.NORMAL))
 
     # Cached properties for performance
     self._prev_max_width: int = 0

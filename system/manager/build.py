@@ -8,11 +8,12 @@ from openpilot.common.basedir import BASEDIR
 from openpilot.common.spinner import Spinner
 from openpilot.common.text_window import TextWindow
 from openpilot.common.swaglog import cloudlog, add_file_handler
-from openpilot.system.hardware import HARDWARE, AGNOS
+from openpilot.system.hardware import HARDWARE
 from openpilot.system.version import get_build_metadata
 
 MAX_CACHE_SIZE = 4e9 if "CI" in os.environ else 2e9
-CACHE_DIR = Path("/data/scons_cache" if AGNOS else "/tmp/scons_cache")
+# Use /data for cache on embedded platforms
+CACHE_DIR = Path("/data/scons_cache")
 
 TOTAL_SCONS_NODES = 3275
 MAX_BUILD_PROGRESS = 100
@@ -26,9 +27,10 @@ def build(spinner: Spinner, dirty: bool = False, minimal: bool = False) -> None:
 
   extra_args = ["--minimal"] if minimal else []
 
-  if AGNOS:
-    HARDWARE.set_power_save(False)
-    os.sched_setaffinity(0, range(8))  # ensure we can use the isolcpus cores
+  # Disable power save and use all cores for building
+  HARDWARE.set_power_save(False)
+  if hasattr(os, 'sched_setaffinity'):
+    os.sched_setaffinity(0, range(os.cpu_count() or 4))
 
   # building with all cores can result in using too
   # much memory, so retry with less parallelism
@@ -91,4 +93,5 @@ if __name__ == "__main__":
   spinner = Spinner()
   spinner.update_progress(0, 100)
   build_metadata = get_build_metadata()
-  build(spinner, build_metadata.openpilot.is_dirty, minimal = AGNOS)
+  # Build with minimal mode for faster compilation
+  build(spinner, build_metadata.openpilot.is_dirty, minimal = True)

@@ -7,6 +7,15 @@ NetworkType = log.DeviceState.NetworkType
 NetworkStrength = log.DeviceState.NetworkStrength
 
 class Pc(HardwareBase):
+  @staticmethod
+  def detect() -> bool:
+    """Detect PC (dev) environment."""
+    import os
+    if os.getenv("OPENPILOT_PC") == "1":
+      return True
+    # If no Rockchip hardware detected by registry, fall back to PC
+    return False
+
   def get_os_version(self):
     return None
 
@@ -76,3 +85,17 @@ class Pc(HardwareBase):
 
   def get_networks(self):
     return None
+
+  def has_speaker(self) -> bool:
+    try:
+      import sounddevice as sd
+      return sd.query_devices(kind='output') is not None
+    except Exception:
+      return False
+
+  def has_voice_input(self) -> bool:
+    try:
+      import sounddevice as sd
+      return sd.query_devices(kind='input') is not None
+    except Exception:
+      return False

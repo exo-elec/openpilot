@@ -6,16 +6,17 @@ import sys
 import time
 import traceback
 
-from cereal import log
 import cereal.messaging as messaging
 import openpilot.system.sentry as sentry
 from openpilot.common.params import Params, ParamKeyFlag
 from openpilot.common.text_window import TextWindow
-from openpilot.system.hardware import HARDWARE
+from openpilot.system.hardware import HARDWARE, HAS_SPEAKER, HAS_VOICE_INPUT, HAS_SIDE_CAMERAS, HAS_REAR_CAMERA
+from openpilot.system.hardware.base import HardwareCapability
 from openpilot.system.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
 from openpilot.system.manager.process import ensure_running
 from openpilot.system.manager.process_config import managed_processes
-from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_ID
+from openpilot.system.hardware.power_monitoring import PowerMonitoring
+# Offline mode - no cloud registration needed
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata, terms_version, training_version
 from openpilot.system.hardware.hw import Paths
@@ -33,9 +34,6 @@ def manager_init() -> None:
   params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
   if build_metadata.release_channel:
     params.clear_all(ParamKeyFlag.DEVELOPMENT_ONLY)
-
-  if params.get_bool("RecordFrontLock"):
-    params.put_bool("RecordFront", True)
 
   # set unset params to their default value
   for k in params.all_keys():
@@ -64,12 +62,37 @@ def manager_init() -> None:
   params.put_bool("IsReleaseBranch", build_metadata.release_channel)
   params.put("HardwareSerial", serial)
 
-  # set dongle id
-  reg_res = register(show_spinner=True)
-  if reg_res:
-    dongle_id = reg_res
-  else:
-    raise Exception(f"Registration failed for device {serial}")
+  # Auto-configure voice pipeline based on hardware detection
+  # Default to whether the board has a mic (01M and 02M both carry a 2-mic I2S pair)
+  if not params.get("EOPVoiceEnabled"):
+    # Only set default if user hasn't explicitly configured it
+    params.put_bool("EOPVoiceEnabled", HAS_VOICE_INPUT)
+    cloudlog.info(f"manager: Auto-configured EOPVoiceEnabled={HAS_VOICE_INPUT} based on hardware")
+
+  # Auto-configure side cameras based on hardware detection
+  if not params.get("EOPSideCamerasEnabled"):
+    params.put_bool("EOPSideCamerasEnabled", HAS_SIDE_CAMERAS)
+    cloudlog.info(f"manager: Auto-configured EOPSideCamerasEnabled={HAS_SIDE_CAMERAS} based on hardware")
+
+  # Auto-configure rear camera based on hardware detection
+  if not params.get("EOPRearCameraEnabled"):
+    params.put_bool("EOPRearCameraEnabled", HAS_REAR_CAMERA)
+    cloudlog.info(f"manager: Auto-configured EOPRearCameraEnabled={HAS_REAR_CAMERA} based on hardware")
+
+  # Auto-configure mono detection daemon (RKNN NPU only — no PCIe accelerator required)
+  if not params.get("EOPMonoDEnabled"):
+    has_npu = HardwareCapability.NPU in HARDWARE.get_capabilities()
+    params.put_bool("EOPMonoDEnabled", has_npu)
+    cloudlog.info(f"manager: Auto-configured EOPMonoDEnabled={has_npu} based on hardware")
+
+  # Log hardware capabilities for debugging
+  cloudlog.info(f"manager: Hardware - speaker={HAS_SPEAKER}, voice={HAS_VOICE_INPUT}, side_cameras={HAS_SIDE_CAMERAS}, rear_camera={HAS_REAR_CAMERA}")
+
+  # set dongle id (offline mode - use eMMC CID)
+  dongle_id = HARDWARE.get_dongle_id()
+  if not dongle_id:
+    dongle_id = "unknown"
+  params.put("DongleId", dongle_id)
   os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
   os.environ['GIT_ORIGIN'] = build_metadata.openpilot.git_normalized_origin # Needed for swaglog
   os.environ['GIT_BRANCH'] = build_metadata.channel # Needed for swaglog
@@ -113,13 +136,11 @@ def manager_thread() -> None:
   params = Params()
 
   ignore: list[str] = []
-  if params.get("DongleId") in (None, UNREGISTERED_DONGLE_ID):
-    ignore += ["manage_athenad", "uploader"]
-  if os.getenv("NOBOARD") is not None:
-    ignore.append("pandad")
+  if params.get("DongleId") is None:
+    ignore += ["uploader"]
   ignore += [x for x in os.getenv("BLOCK", "").split(",") if len(x) > 0]
 
-  sm = messaging.SubMaster(['deviceState', 'carParams', 'pandaStates'], poll='deviceState')
+  sm = messaging.SubMaster(['deviceState', 'carParams'], poll='deviceState')
   pm = messaging.PubMaster(['managerState'])
 
   write_onroad_params(False, params)
@@ -127,6 +148,7 @@ def manager_thread() -> None:
 
   started_prev = False
   ignition_prev = False
+  power_monitor = PowerMonitoring()
 
   while True:
     sm.update(1000)
@@ -138,18 +160,31 @@ def manager_thread() -> None:
     elif not started and started_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
 
-    ignition = any(ps.ignitionLine or ps.ignitionCan for ps in sm['pandaStates'] if ps.pandaType != log.PandaState.PandaType.unknown)
+    ignition = params.get_bool("EOPIgnitionOn")
     if ignition and not ignition_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
 
-    # update onroad params, which drives pandad's safety setter thread
-    if started != started_prev:
+    # onroad/offroad params drive socketd's safety configuration; ordering matters:
+    # IsOnroad must publish *before* onroad processes start (so consumers never race
+    # a process that isn't up yet), while IsOffroad must publish *after* processes
+    # are signaled to stop (so consumers don't observe offroad while vision is still
+    # tearing down).
+    onroad_transition = started and not started_prev
+    offroad_transition = not started and started_prev
+
+    if onroad_transition:
       write_onroad_params(started, params)
 
     started_prev = started
     ignition_prev = ignition
 
+    # Power saver: request shutdown after configurable offroad timeout
+    power_monitor.update(started, ignition)
+
     ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore)
+
+    if offroad_transition:
+      write_onroad_params(started, params)
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
                        for p in managed_processes.values() if p.proc)
@@ -161,7 +196,7 @@ def manager_thread() -> None:
     msg.managerState.processes = [p.get_process_state_msg() for p in managed_processes.values()]
     pm.send('managerState', msg)
 
-    # kick AGNOS power monitoring watchdog
+    # kick power monitoring watchdog (if enabled)
     try:
       if sm.all_checks(['deviceState']):
         with open("/var/tmp/power_watchdog", "w") as f:
