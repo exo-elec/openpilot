@@ -1,5 +1,7 @@
 <div align="center" style="text-align: center;">
 
+> **This is the EnhancedOpenPilot (EOP) fork** — Rockchip RK3588 (ExoPilot 01M) support with additional features. [Original upstream ↗](https://github.com/commaai/openpilot)
+
 <h1>openpilot</h1>
 
 <p>

@@ -4,7 +4,7 @@ from cereal import log
 import cereal.messaging as messaging
 
 from openpilot.common.realtime import DT_DMON
-from openpilot.tools.sim.lib.camerad import Camerad
+from openpilot.tools.sim.lib.camera_sim import CameraSim
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -14,9 +14,11 @@ if TYPE_CHECKING:
 class SimulatedSensors:
   """Simulates the C3 sensors (acc, gyro, gps, peripherals, dm state, cameras) to OpenPilot"""
 
-  def __init__(self, dual_camera=False):
-    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'driverStateV2', 'driverMonitoringState', 'peripheralState'])
-    self.camerad = Camerad(dual_camera=dual_camera)
+  def __init__(self, dual_camera=False, tele_camera=None, stereo_camera=None):
+    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'driverPoseState', 'peripheralState'])
+    self.v4l2d = CameraSim(dual_camera=dual_camera, tele_camera=tele_camera, stereo_camera=stereo_camera)
+    self.tele_camera = self.v4l2d.tele_camera
+    self.stereo_camera = self.v4l2d.stereo_camera
     self.last_perp_update = 0
     self.last_dmon_update = 0
 
@@ -82,31 +84,39 @@ class SimulatedSensors:
     self.pm.send('peripheralState', dat)
 
   def send_fake_driver_monitoring(self):
-    # dmonitoringmodeld output
-    dat = messaging.new_message('driverStateV2')
-    dat.driverStateV2.leftDriverData.faceOrientation = [0., 0., 0.]
-    dat.driverStateV2.leftDriverData.faceProb = 1.0
-    dat.driverStateV2.rightDriverData.faceOrientation = [0., 0., 0.]
-    dat.driverStateV2.rightDriverData.faceProb = 1.0
-    self.pm.send('driverStateV2', dat)
-
-    # dmonitoringd output
-    dat = messaging.new_message('driverMonitoringState', valid=True)
-    dat.driverMonitoringState = {
-      "faceDetected": True,
-      "isDistracted": False,
-      "awarenessStatus": 1.,
+    # EOP uses steering monitoring (hands-on-wheel), not face tracking.
+    # DriverPoseState fields: steeringActive, attentionProb, steerState, detectMode
+    dat = messaging.new_message('driverPoseState', valid=True)
+    dat.driverPoseState = {
+      "steeringActive": True,   # hands on wheel — sim always engaged
+      "attentionProb": 1.0,
+      "steerState": "attentive",
+      "detectMode": "sim",
     }
-    self.pm.send('driverMonitoringState', dat)
+    self.pm.send('driverPoseState', dat)
 
   def send_camera_images(self, world: 'World'):
     world.image_lock.acquire()
-    yuv = self.camerad.rgb_to_yuv(world.road_image)
-    self.camerad.cam_send_yuv_road(yuv)
+    yuv = self.v4l2d.rgb_to_yuv(world.road_image)
+    self.v4l2d.cam_send_yuv_road(yuv)
 
     if world.dual_camera:
-      yuv = self.camerad.rgb_to_yuv(world.wide_road_image)
-      self.camerad.cam_send_yuv_wide_road(yuv)
+      yuv = self.v4l2d.rgb_to_yuv(world.wide_road_image)
+      self.v4l2d.cam_send_yuv_wide_road(yuv)
+
+    if self.tele_camera:
+      yuv = self.v4l2d.rgb_to_yuv(world.tele_image)
+      self.v4l2d.cam_send_yuv_tele_road(yuv)
+
+    if self.stereo_camera:
+      yuv = self.v4l2d.rgb_to_yuv_stereo(world.stereo_left_image)
+      self.v4l2d.cam_send_yuv_stereo_left(yuv)
+      yuv = self.v4l2d.rgb_to_yuv_stereo(world.stereo_right_image)
+      self.v4l2d.cam_send_yuv_stereo_right(yuv)
+
+  def close(self):
+    """Release camera simulator resources."""
+    self.v4l2d.close()
 
   def update(self, simulator_state: 'SimulatorState', world: 'World'):
     now = time.monotonic()

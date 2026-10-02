@@ -110,7 +110,14 @@ def send_thread(joystick):
 
 
 def joystick_control_thread(joystick):
-  Params().put_bool('JoystickDebugMode', True)
+  print("=" * 60)
+  print("NOTE: joystick_control now feeds SteamD (single source of external control).")
+  print("SteamD subscribes to testJoystick directly; joystickd is no longer needed.")
+  print("=" * 60)
+  params = Params()
+  params.put_bool('JoystickDebugMode', True)
+  # Also set SteamDRemoteControl so the new process mutex stops controlsd
+  params.put_bool('SteamDRemoteControl', True)
   threading.Thread(target=send_thread, args=(joystick,), daemon=True).start()
   while True:
     joystick.update()
