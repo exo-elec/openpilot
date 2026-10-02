@@ -733,7 +733,7 @@ regularly is not counted as project time but is not optional either (§1).
 **Decided (2026-09-23).** The ESP32 corner radars are BLE-first on every board:
 `ble_central.py` publishes their tracked objects as `radar2d` and writes ego
 speed/yaw to them. On 02M only (the one board with the antenna for the
-corner-node WiFi AP), ESP32_RADAR `dev/v2` adds a WiFi/UDP point cloud
+corner-node WiFi AP), ESP32_RADAR `dev/ATR24` adds a WiFi/UDP point cloud
 (port 47000, decoder `hal.drivers.radar.radar4d`). No openpilot daemon consumes
 that point cloud yet; it is the next add-on feature on `dev/02M`.
 
