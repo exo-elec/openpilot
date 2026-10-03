@@ -56,19 +56,21 @@ versa), any field whose ordinal disagrees between the producing and
 consuming schema will be silently misread as whatever field occupies that
 slot in the *reading* schema.
 
-### Confirmed same-slot collision (not just drift — an actual reused ordinal)
+### Confirmed same-slot collisions (not just drift — actual reused ordinals)
 
-`ControlsState` struct, ordinal **`@67`**:
+`ControlsState` struct:
 
-| Branch | Field at `@67` | Type |
-|---|---|---|
-| EOP10 | `tjaActive` | `Bool` |
-| NGP10 | `ngpAlccActive` | `Bool` |
-| EDP10 | *(ControlsState untouched)* | — |
+| Ordinal | EOP10 | NGP10 | Types |
+|---|---|---|---|
+| `@67` | `tjaActive` | `ngpAlccActive` | `Bool` / `Bool` |
+| `@68` | `tjaResumeRequired` | `ngpDlatUseLaneless` | `Bool` / `Bool` |
+| `@69` | `tjaHoldTime` | `ngpDlatLaneConfidence` | `Float32` / `Float32` |
 
-Both are `Bool`, so a cross-schema misread wouldn't crash — it would
-**silently substitute the wrong signal** (TJA-active for ALCC-active or vice
-versa) with no type error to catch it.
+EDP10 does not add these `ControlsState` fields.
+
+All three slots have matching payload types across EOP10 and NGP10, so a
+cross-schema misread would **silently substitute the wrong signal** with no
+type error to catch it.
 
 ### `ngpBrscActive`/`ngpBrscSpeed`/`ngpBrscRoughness` — same field name, three different ordinals
 
@@ -92,9 +94,11 @@ And each branch's own conflicting occupant of the *other* branches' slots:
 | `@46` | `vtscSpeed` (Float32) | — | `ngpBrscActive` (Bool) |
 | `@47` | `vtscUsingLearned` (Bool) | — | `ngpBrscSpeed` (Float32) |
 | `@48` | `mtscActive` (Bool) | — | `ngpBrscRoughness` (Float32) |
+| `@49` | `mtscSpeed` (Float32) | — | `ngpDlonModeKind` (enum) |
 | `@66` | `ngpBrscActive` (Bool) | — | — |
 | `@67` | `ngpBrscSpeed` (Float32) | — | — |
 | `@68` | `ngpBrscRoughness` (Float32) | — | — |
+| `@69`–`@75` | NGP DLON/TJA telemetry and mode enum | — | — |
 
 `@40`/`@41` are the worst case: types happen to coincide closely enough
 (`Bool`/numeric) between some pairs that a cross-schema decode wouldn't even
@@ -126,6 +130,8 @@ consolidated per Node 4, would be the next candidate).
 
 ---
 
-**Node status: done.** `params_keys.h`: clean. capnp: 1 confirmed same-slot
-collision (`ControlsState.@67`), plus a 3-way ordinal mismatch on fields
-explicitly documented as shared, requiring a cross-branch decision to fix.
+**Node status: done.** `params_keys.h`: clean. capnp: three confirmed
+same-slot collisions in `ControlsState` and ordinal mismatches in
+`LongitudinalPlan`. The EOP10 schema compiles internally; the layouts remain
+branch-specific and need a coordinated cross-branch decision if shared-log
+decoding is introduced.
