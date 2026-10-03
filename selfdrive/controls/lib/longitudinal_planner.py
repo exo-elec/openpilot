@@ -23,7 +23,6 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import (
   get_T_FOLLOW, get_jerk_factor, STOP_DISTANCE, COMFORT_BRAKE,
 )
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
-from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from openpilot.system.socketd.vehicle.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS, URBAN_SPEED_MPS,
@@ -216,7 +215,6 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.ngp_dlon = NGPDLON(get_bool=Params().get_bool)
     self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # EOP: VTSC initialization
@@ -266,8 +264,6 @@ class LongitudinalPlanner:
     self.brsc_result = None
     self.brsc_v_target = None
 
-    # Lane Change Lead Handoff (pure camera)
-    self.lc_handoff = NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
     # EOP: LHLC initialization (Long Horizon Lateral Controller - 500m Hybrid A* from pathd)
     self.lhlc_active = False
     self.lhlc_v_target = None
@@ -324,6 +320,8 @@ class LongitudinalPlanner:
     # EOP: DLON - Dynamic Longitudinal Profile
     # DLON can override experimental mode based on environmental triggers
     self.dlon_result = self.dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
+    # Keep the shared NGP telemetry fields aligned with EOP's active policy.
+    self.ngp_dlon_result = self.dlon_result
     self.dlon_e2e_enabled = self.dlon_result['e2e_enabled']
     self.dlon_force_stop = self.dlon_result.get('force_stop', False)
 
