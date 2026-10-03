@@ -5,12 +5,28 @@
 > the ESP32 corner-radar WiFi add-on; the other boards are BLE-only.
 
 
-**Status, 2026-08-26**: platform registration and NPU-topology plumbing
-landed (Phase A below). Camera capture on 02M does **not** work yet — no
-MIPI driver code exists for its 5-camera array (Phase B). Nothing here has
-been run on real RK3576 hardware; all verification is host-side (unit
-tests, env-var platform override), matching this repo's existing "dev PC
-testing phase" status for RK3588 too (see `docs/eop/PHASE5_HARDWARE_READINESS.md`).
+**Status, 2026-10-03**: platform registration, NPU-topology plumbing, and the
+five-role V4L2 camera path are implemented. Camera capture is **not yet
+operational on 02M hardware**: the HAL's `rk3576_camera_paths.py` is empty
+until video nodes are observed and verified on a real unit. The daemon fails
+closed rather than guessing sensor roles. No 02M hardware validation has been
+performed; see the Phase B checklist below.
+
+## Install
+
+On the 02M device, run ExoPilot's board setup first, then create the openpilot
+venv and install the service. The RK3576 installer adds Qt build/runtime
+packages, builds PyQt5 for the venv, and installs the systemd unit:
+
+```bash
+sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh
+cd /data/openpilot && uv sync
+sudo ./system/hardware/rk3576/config/install_openpilot.sh /data/openpilot
+```
+
+The service starts the UI and diagnostics while camera role discovery is
+pending. The 02M camera daemon opens no MIPI stream until each role has a
+hardware-confirmed path in ExoPilot HAL.
 
 ## Why this exists
 
@@ -119,21 +135,16 @@ the beamformer toward the driver instead of straight ahead).
 ## What's NOT implemented (Phase B — needs real RK3576 hardware)
 
 - **Camera capture** — *code ported 2026-09-24*: `system/v4l2d/v4l2d.py`
-  `CAMERAS_02M` covers all 5 roles (mono_tele → `tele_road`), drivers in
-  `system/v4l2d/drivers/`. Left: record each role's `/dev/videoN` on a unit
+  `CAMERAS_02M` covers all 5 roles (mono_tele → `tele_road`); the RK3576 BSP
+  provides the sensor/ISP layer. Left: record each role's `/dev/videoN` on a unit
   (`python3 -m openpilot.system.v4l2d.list_cameras`) into hal
   `rk3576_camera_paths.py`; v4l2d opens no MIPI camera without it.
-  Original note: `_default_camera_configs()` hardcoded
-  exactly 4 MIPI cameras (01M's road/wide_road/stereo_left/stereo_right).
-  02M's 5-camera array (mono_narrow/mono_wide/mono_tele/stereo_left/
-  stereo_right) needs a per-platform camera list plus actual sensor
-  driver/capture logic. `~/pilot/visionpilot/src/system/camera/camera/drivers/
+  `~/pilot/visionpilot/src/system/camera/camera/drivers/
   {ox03c10_driver.py,gc4653_driver.py}` has real, working register-level
-  driver code for the exact same two sensors (OX03C10 ×3, GC4653 stereo
-  pair) behind a clean `BaseCameraDriver` interface — a direct porting
-  reference, not something to re-derive from datasheets. That repo is archived
-  (no longer developed) and used ROS2 topics where EOP10 uses V4L2+VisionIPC,
-  so this is adaptation, not a drop-in copy.
+  driver code for the same sensor models, but the active 02M capture path
+  uses the RK3576 BSP's V4L2/ISP drivers rather than that ROS2 implementation.
+  The remaining blocker is role-to-device verification and live-frame bring-up,
+  not a guessed `/dev/videoN` table.
 - **Stereo depth math**: anything computing depth from a hardcoded 80mm
   baseline constant needs to read `get_stereo_baseline_mm()` per-platform
   instead (160mm on 02M).
@@ -221,15 +232,11 @@ road/wide_road/stereo_left/stereo_right, publishing wrong camera identities
 on the VisionIPC bus. That's a real risk on a driving-relevant pipeline, not
 just an incomplete feature.
 
-Fixed with a platform guard in `main()`: refuses to start (`return 1`,
-clear error log) on any platform other than `rk3588`/`pc`/undetected,
-rather than silently proceeding with the wrong camera identities. Does not
-attempt to build real RK3576 camera support (still needs
-`hal.platform.rk3576_camera_paths`, real device-path data, and the
-5-camera list this guard doesn't have — see the Camera capture item above).
-4 regression tests in `system/v4l2d/tests/test_v4l2d_platform_guard.py`
-confirm `V4L2D()` is never constructed for a rejected platform, and that
-`rk3588`/`pc` still work exactly as before.
+Fixed on the 02M branch with a branch-specific five-camera role table and a
+platform whitelist that includes RK3576. Each stream opens only a HAL-confirmed
+device path; an absent path skips that camera and never reuses the 01M list.
+The initial host-side guard regression tests remain useful, but a real 02M
+capture check still requires device nodes and live images from the board.
 
 The same class of issue was checked for and *not* found in `uvcd.py`/
 `sided.py` — both already delegate camera detection to the polymorphic
