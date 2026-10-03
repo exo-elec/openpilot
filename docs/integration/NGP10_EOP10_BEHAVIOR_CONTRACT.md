@@ -24,13 +24,19 @@ needed to preserve the same behavior on different hardware.
 
 | Branch | Starts here | Keep this boundary |
 |---|---|---|
-| NGP10 | Proven comma-device driving policy: DLON, DLAT, and portable ALCC policy using existing vehicle/model/calibration signals. | Keep policy that can be meaningfully exercised with NGP10 inputs here first. |
-| EOP10 | The hardware-enabled ADAS foundation: `pathd`, `stereod`, `gridd`, `monod`, the NanoRadarCore 77 GHz `radar3d` producer, TR13 BLE corner radar, and driving rules that consume their camera, stereo, radar, or IMU observations. | Keep camera/sensor acquisition and sensor-dependent rules here; expose normalized observations and gate them on freshness/validity. |
+| NGP10 | Proven comma-device driving policy: DLON, DLAT, portable ALCC, and normalized Radar2D/blind-spot policy. | Keep the source-neutral track model, zone assessment, and lane-change blocking policy here. Native vehicle BSM remains a fallback while external Radar2D is being validated. |
+| EOP10 | The hardware-enabled ADAS foundation: `pathd`, `stereod`, `gridd`, `monod`, the NanoRadarCore 77 GHz `radar3d` producer, TR13 BLE corner radar, and EOP sensor adapters. | Keep camera/sensor acquisition here; adapt TR13 observations to the NGP10 Radar2D contract, and gate sensor-dependent rules on freshness/validity. Do not fork the normalized BSD policy. |
 | 01M | EOP10-based RK3588 device/UI, screen, and calibration adaptation. | Preserve EOP10 ADAS behavior while adapting the device experience. |
 | 02M | EOP10 → 01M lineage adapted to RK3576; ATR24 WiFi corner radar starts here. | Keep RK3576/display changes and 02M-only sensors here. RTK corrections also belong here because of the ZED-F9P, but an NTRIP/RTCM daemon is not implemented yet. |
 
-TR13 is the EOP10 BLE baseline; the NanoRadarCore 77 GHz `radar3d` service and
-its vehicle UART adapter also begin in EOP10. ATR24 is the 02M WiFi corner
+Radar2D/BSD policy begins at NGP10 because it consumes normalized tracks and
+must support migration away from factory vehicle radar. NGP10 currently has
+the tracker/zone policy module, but its live lane-change consumer and external
+Radar2D transport are not yet integrated; keep native BSM as the safety
+fallback until that path is validated. EOP10 adds the TR13 BLE adapter and
+connects it to the shared contract. TR13 is the EOP10 BLE baseline; the
+NanoRadarCore 77 GHz `radar3d` service and its vehicle UART adapter also begin
+in EOP10. ATR24 is the 02M WiFi corner
 radar upgrade. `gridd` and `monod` are EOP10 services, and `pathd` begins with
 the EOP10 sensor-backed ADAS layer. DLON/DLAT begin in NGP10 and remain the
 portable control-policy baseline. The RTK boundary names the first hardware
