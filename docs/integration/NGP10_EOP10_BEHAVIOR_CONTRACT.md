@@ -20,6 +20,23 @@ needed to preserve the same behavior on different hardware.
 - 01M and 02M hardware and display adaptations preserve the same behavior
   contracts unless a separately identified, validated concept change is made.
 
+## Vehicle transport and protocol boundary
+
+NGP10 keeps comma's standard Panda/card/radard path, with OpenDBC owning the
+vehicle interface and Tesla-format translation used by the BrownPanda gateway.
+EOP10 replaces that generic Panda transport/process boundary with `socketd`
+and external SocketCAN interfaces to BrownPanda, using the Tesla CAN wire
+contract. The current EOP implementation still reuses OpenDBC's Tesla
+`CarState`, `CarController`, DBC definitions, and selected constants; this is
+a transport and hardware-boundary migration, not yet a complete independent
+Tesla-protocol implementation. Preserve those proven protocol semantics
+unless a separately validated port replaces them.
+
+Radar2D is a separate sensor input from vehicle CAN: NGP10 owns its normalized
+track/zone and blind-spot policy contract, while EOP10 adapts TR13 BLE corner
+radar observations. Do not route TR13 through NGP10's OpenDBC radar path or
+make the EOP10 vehicle adapter depend on NGP10's comma Panda lifecycle.
+
 ## Branch layer ownership
 
 | Branch | Starts here | Keep this boundary |
