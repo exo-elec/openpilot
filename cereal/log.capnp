@@ -1273,7 +1273,7 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   shouldStop @37: Bool;
   allowThrottle @38: Bool;
   allowBrake @39: Bool;
-  ngpDlonMode @40 :Text;
+  ngpDlonMode @40 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
   ngpDlonE2EEnabled @41 :Bool;
   ngpDlonForceStop @42 :Bool;
   ngpTjaActive @43 :Bool;
@@ -1284,6 +1284,14 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   ngpBrscActive @46 :Bool;
   ngpBrscSpeed @47 :Float32;
   ngpBrscRoughness @48 :Float32;
+
+  ngpDlonModeKind @49 :NgpDlonModeKind;
+  enum NgpDlonModeKind {
+    disabled @0;
+    chill @1;
+    experimental @2;
+    auto @3;
+  }
 
   solverExecutionTime @35 :Float32;
 

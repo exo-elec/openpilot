@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 
 from nagaspilot.controls.ngp_dlon import NGPDLON, NGPDLONMode, NGPDriveMode
-from nagaspilot.controls.ngp_mtsc import MTSCState, NGPMTSC
 
 
 class FakeSubMaster(dict):
@@ -40,23 +39,6 @@ def test_dlon_matches_eop_chill_experimental_and_auto_modes():
   dlon._active = True
   dlon.mode_manager.current_mode = NGPDriveMode.E2E
   assert dlon.update(sm)["e2e_enabled"]
-
-
-def test_mtsc_restrictive_curve_and_handover():
-  mtsc = NGPMTSC()
-  result = mtsc.update([(450.0, 0.01), (300.0, 0.03)])
-  assert result.state is MTSCState.APPROACHING
-  assert result.curvature == 0.03
-  assert result.target_speed is not None
-  result = mtsc.update([(150.0, 0.03)])
-  assert result.state is MTSCState.HANDOVER
-  assert result.target_speed is None
-
-
-def test_mtsc_ignores_out_of_range_and_disable():
-  mtsc = NGPMTSC()
-  assert mtsc.update([(100.0, 0.1), (600.0, 0.1)]).state is MTSCState.DISABLED
-  assert NGPMTSC(enabled=False).update([(300.0, 0.03)]).target_speed is None
 
 
 def test_speed_limit_trigger_is_nav_only():

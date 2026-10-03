@@ -13,6 +13,7 @@ from opendbc.car.car_helpers import interfaces
 from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
+from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
@@ -60,6 +61,7 @@ class Controls:
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
     self.alcc_active = False
+    self.alcc = NGPALCC()
 
     # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling
     # in the curvature/steering sense). Always automatic -- a default behavior
@@ -106,8 +108,25 @@ class Controls:
 
     # Check which actuators can be enabled
     standstill = abs(CS.vEgo) <= max(self.CP.minSteerSpeed, 0.3) or CS.standstill
-    self.alcc_active = self.alcc_enabled and CS.cruiseState.available and not standstill and \
-                       CS.gearShifter != car.CarState.GearShifter.reverse
+    calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
+    gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park,
+                                     car.CarState.GearShifter.neutral,
+                                     car.CarState.GearShifter.reverse)
+    safety_ok = not (CS.steerFaultTemporary or CS.steerFaultPermanent or
+                     CS.seatbeltUnlatched or CS.doorOpen)
+    alcc_status = self.alcc.update(ALCCInput(
+      feature_enabled=self.alcc_enabled,
+      engage_request=CS.cruiseState.available,
+      user_disable=not CS.cruiseState.available,
+      immediate_disable=not safety_ok,
+      soft_disable=self.sm['selfdriveState'].state == State.softDisabling,
+      pause_condition=standstill and not self.CP.steerAtStandstill,
+      steering_override=abs(CS.steeringTorque) > 1.0,
+      calibrated=calibrated,
+      gear_ok=gear_ok,
+      safety_ok=safety_ok,
+    ))
+    self.alcc_active = alcc_status.active_suggestion and alcc_status.available
     lat_active = self.sm['selfdriveState'].active or self.alcc_active
     CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)

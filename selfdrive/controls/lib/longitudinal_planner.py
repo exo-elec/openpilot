@@ -7,12 +7,14 @@ import cereal.messaging as messaging
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.common.constants import CV
 from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState
 from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import LongitudinalMpc
 from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDXS as T_IDXS_MPC
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
+from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
@@ -134,7 +136,7 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.ngp_dlon = NGPDLON()
+    self.ngp_dlon = NGPDLON(get_bool=Params().get_bool)
     self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
@@ -143,7 +145,7 @@ class LongitudinalPlanner:
     self.brsc_v_target = None
 
     # Lane Change Lead Handoff (pure camera)
-    self.lc_handoff = NGPLeadHandoff()
+    self.lc_handoff = NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
 
     # VTSC: Vision Turn Speed Control (0-250m advisory)
     self.vtsc = NGPVTSC(enabled=False)
@@ -392,6 +394,7 @@ class LongitudinalPlanner:
     longitudinalPlan.allowBrake = True
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
     longitudinalPlan.ngpDlonMode = self.ngp_dlon_result['mode']
+    longitudinalPlan.ngpDlonModeKind = self.ngp_dlon_result['mode'].lower()  # enum names are the lower-cased mode strings
     longitudinalPlan.ngpDlonE2EEnabled = bool(self.ngp_dlon_result['e2e_enabled'])
     longitudinalPlan.ngpDlonForceStop = bool(self.ngp_dlon_result.get('force_stop', False))
     longitudinalPlan.ngpTjaActive = bool(self.tja_result.active)

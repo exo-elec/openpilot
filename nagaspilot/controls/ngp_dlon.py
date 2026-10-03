@@ -10,7 +10,6 @@ selection and force-stop policy while using NGP-owned names and dependencies.
 import time
 from enum import Enum
 from openpilot.common.realtime import DT_MDL
-from openpilot.common.params import Params
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
 # SmoothEMA is kept local so the NGP port has no EOP runtime dependency.
 
@@ -137,8 +136,10 @@ class NGPDLON:
   # continuous, so a small margin avoids chatter at the zone edge).
   SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
 
-  def __init__(self):
-    self.params = Params()
+  def __init__(self, get_bool=None):
+    # Param reader injected by the runtime hook (Params().get_bool); None keeps
+    # every toggle at its default, so this module does no I/O of its own.
+    self._get_bool = get_bool
     self.mode = NGPDLONMode.AUTO
     self.last_param_update = 0
 
@@ -196,18 +197,18 @@ class NGPDLON:
     mode; users cannot force pure E2E driving directly.
     """
     current_time = time.monotonic()
-    if current_time - self.last_param_update >= 1.0:
+    if self._get_bool is not None and current_time - self.last_param_update >= 1.0:
       self.mode = NGPDLONMode.AUTO
       # Per-trigger toggles (CEM merge)
-      self._trigger_enabled['curves'] = self.params.get_bool("ngp_lon_dlon_curves")
-      self._trigger_enabled['lane_confidence'] = self.params.get_bool("ngp_lon_dlon_lane_confidence")
-      self._trigger_enabled['slow_lead'] = self.params.get_bool("ngp_lon_dlon_slow_lead")
-      self._trigger_enabled['low_speed'] = self.params.get_bool("ngp_lon_dlon_low_speed")
-      self._trigger_enabled['stop_prediction'] = self.params.get_bool("ngp_lon_dlon_stop_prediction")
-      self._trigger_enabled['navigation'] = self.params.get_bool("ngp_lon_dlon_navigation")
-      self._trigger_enabled['signal'] = self.params.get_bool("ngp_lon_dlon_signal")
-      self._trigger_enabled['speed_limit'] = self.params.get_bool("ngp_lon_dlon_speed_limit")
-      self.force_stops_enabled = self.params.get_bool("ngp_lon_dlon_force_stops")
+      self._trigger_enabled['curves'] = self._get_bool("ngp_lon_dlon_curves")
+      self._trigger_enabled['lane_confidence'] = self._get_bool("ngp_lon_dlon_lane_confidence")
+      self._trigger_enabled['slow_lead'] = self._get_bool("ngp_lon_dlon_slow_lead")
+      self._trigger_enabled['low_speed'] = self._get_bool("ngp_lon_dlon_low_speed")
+      self._trigger_enabled['stop_prediction'] = self._get_bool("ngp_lon_dlon_stop_prediction")
+      self._trigger_enabled['navigation'] = self._get_bool("ngp_lon_dlon_navigation")
+      self._trigger_enabled['signal'] = self._get_bool("ngp_lon_dlon_signal")
+      self._trigger_enabled['speed_limit'] = self._get_bool("ngp_lon_dlon_speed_limit")
+      self.force_stops_enabled = self._get_bool("ngp_lon_dlon_force_stops")
       self.last_param_update = current_time
 
   def detect_traffic_control(self, model_v2, radar_state, v_ego) -> bool:

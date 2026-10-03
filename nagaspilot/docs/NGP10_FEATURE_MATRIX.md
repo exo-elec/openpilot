@@ -9,7 +9,7 @@
 | Longitudinal | Speed-zone accel/jerk | `nagaspilot/speed_zones.py` → longitudinal planner | Integrated |
 | Longitudinal | BRSC (Bumpy Road Speed Controller, vertical-IMU roughness) | `nagaspilot/controls/ngp_brsc.py` (pure policy, byte-identical across branches) → longitudinal planner | Integrated, default on (`ngp_lon_brsc`) |
 | Lateral | ALCC/always-on lateral | inline in `controlsd.py` (not `ngp_alcc.py` — that module has zero non-test importers) | Integrated, default off |
-| Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` (not `ngp_lca.py` — same as above, unwired) | Integrated, default off |
+| Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` | Integrated, default off |
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
 | Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
@@ -20,7 +20,8 @@
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
-| Perception | GridD/SOC/radar helpers | existing bounded helper modules | Portable; no control authority |
+| Radar / BSD | Blind-spot zones, radar tracker, lane-change radar gate, collision advisory | Not in NGP10: they need side/rear radar a comma 3 does not have. Native vehicle BSM stays the fallback. Lives in EOP10 | EOP only |
+| Perception | SOC (lane geometry) | Not in NGP10 (unwired; EOP10 has it). GridD, MonoD, BEV, side/rear overlays, radar zones are EOP-only | EOP only |
 
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
@@ -33,18 +34,13 @@ executed on this branch during that window, not just "unvalidated on road" —
 `longitudinalPlan` itself was never published. Fixed 2026-08-25; still no on-road
 validation of any of them as of this fix.
 
-**Written-but-unwired modules** (`ngp_mtsc.py`, `ngp_collision.py`,
-`ngp_road_condition.py`, `ngp_traffic_control.py`, `ngp_radar.py`,
-`ngp_alcc.py`, `ngp_lca.py`, `selfdrive/adaptd/ngp_profile.py`) are
-deliberately not listed as "Integrated" above — see
-`EOP10_PARITY_CANDIDATES.md` in this same directory for the full
-EOP10-vs-NGP10 comparison, portability assessment per feature, and current
-status. `ngp_vtsc.py` and `ngp_speed_policy.py` were removed from this list
-2026-08-25 — both wired this session (see the VTSC and NSLC-equivalent rows
-above). `selfdrive/adaptd/ngp_profile.py` differs from the rest of this
-list: it isn't just unwired, both its input source (vehicle
-telemetry/OBD-BLE pipeline) and its consumer are entirely absent from this
-branch — see `EOP10_PARITY_CANDIDATES.md`'s Tier 2.5 entry.
+**Policy for unwired code:** NGP10 carries only add-ons that are wired into the runtime and
+work from comma 3 inputs. `ngp_mtsc`, `ngp_road_condition`, `ngp_traffic_control`,
+`ngp_profile`, `ngp_curvature`, `ngp_soc` and `ngp_trip` were unwired (no map route, OBD/BLE
+telemetry or camera classifier exists on this branch) and were removed; `dev/EOP10`
+holds them. See `EOP10_PARITY_CANDIDATES.md` for the per-feature comparison.
+`ngp_alcc.py` is a standalone policy module with test coverage; ALCC runs inline in
+`controlsd.py`.
 
 **BRSC note (2026-08-04):** the pure policy module was ported first (commit
 `822986441`), then this worktree's pre-existing uncommitted `ngp_*` →

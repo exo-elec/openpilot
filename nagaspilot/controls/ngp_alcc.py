@@ -87,5 +87,7 @@ class NGPALCC:
       else:
         self.state = ALCCState.ENABLED
 
-    active = self.state in (ALCCState.ENABLED, ALCCState.SOFT_DISABLING, ALCCState.OVERRIDING)
+    # A steering override is a latched controller state for status/recovery,
+    # but it must not request steering authority from controlsd.
+    active = self.state in (ALCCState.ENABLED, ALCCState.SOFT_DISABLING)
     return ALCCResult(self.state, self._latched, active, available, False, reason)

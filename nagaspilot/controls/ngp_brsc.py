@@ -3,7 +3,7 @@ acceleration.
 
 Detects road roughness (potholes, expansion joints, washboard pavement) from the
 vertical accelerometer axis and asks the caller to reduce cruise speed and/or the
-positive acceleration limit while it is rough. Like ngp_tja / ngp_road_condition,
+positive acceleration limit while it is rough. Like ngp_tja,
 this is a pure policy: it never touches messaging or Params, and it may only
 reduce speed and acceleration, never raise them above what the caller already
 allows.

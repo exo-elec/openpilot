@@ -1,5 +1,9 @@
 # EOP10 → NGP10 feature parity candidates
 
+> **Status (NGP10 hardware rule):** the NGP modules named in this comparison for MTSC, traffic control,
+> road condition, adaptive profile, radar zones and collision were removed from `dev/NGP10`; they live on
+> `dev/EOP10`. Rows below are historical context, not a list of NGP10 files.
+
 Full inventory of `dev/EOP10`'s driving-policy features, checked against what
 `dev/NGP10` actually has wired today, for picking what to port next. Built by
 reading `selfdrive/ui/qt/offroad/eop_panel.cc` (every toggle EOP10 exposes)
@@ -37,7 +41,7 @@ No action needed.
 | DLAT→DLON confidence coupling | `dlon.py::detect_lane_confidence_trigger()` reads `dlatUseLaneless`, always consulted since 2026-08-10 (no mode gate left) | `ngp_dlon.py::detect_lane_confidence_trigger()` reads `ngpDlatUseLaneless`, always consulted (2026-08-09, both branches) |
 | TJA (traffic-jam gap policy) | `tja.py` | `ngp_tja.py` |
 | BRSC (bumpy-road speed) | `ngp_brsc.py` | `ngp_brsc.py` (shared file) |
-| ALCC (always-on lane centering) | `EOPLatALCC` | `ngp_lat_alcc` (inline in `controlsd.py`) |
+| ALCC (always-on lane centering) | `EOPLatALCC` | `ngp_lat_alcc` wired through the portable `NGPALCC` state machine in `controlsd.py`; requires calibration, valid forward gear, safe vehicle state, and respects standstill/driver override gating. EOP-specific event rewriting and Panda mismatch policy remain in EOP10 until separately adapted to NGP's event and Panda contracts. |
 | LCA speed threshold | `EOPLatLCASpeed` | `ngp_lat_lca_speed`/`_auto_sec` (via upstream `DesireHelper`) |
 | Road Edge Detection | `EOPLatRoadEdgeDetection` | `ngp_lat_road_edge_detection`, `ngp_road_edge.py` (wired in `modeld.py`) |
 | Lane Change Lead Handoff | `lc_lead_handoff.py`, `EOPLCAdjacentLeadHandoff` (opt-in, no panel toggle) | `ngp_lc_lead_handoff.py` (ported 2026-08-25), `ngp_lon_lc_lead_handoff` — wired into `longitudinal_planner.py` via `NGPFlags.LC_LEAD_HANDOFF`, no panel toggle (matches EOP10) |
@@ -110,8 +114,6 @@ every 20 Hz frame that nothing on this branch reads, logs, or acts on.
 
 | Feature | EOP10 module | NGP10 module | Why it's blocked |
 |---|---|---|---|
-| Collision-risk advisory | (folded into AEB path) | `ngp_collision.py` — "Advisory collision-risk assessment using normalized radar tracks" | **Corrected 2026-08-25**: `radarState`/`liveTracks` are real, working inputs (`liveTracks` published by `card.py`) — the previous entry's "feed it `radarState`/`liveTracks`" was accurate but incomplete, since `CollisionResult.control_authority` is `False` by design and nothing on NGP10 reads a `CollisionResult`. Wiring this today means adding a call whose output goes nowhere. Would become a real item once something consumes it (a UI collision-risk indicator, an event log entry, a future advisory alert path) — that consumer doesn't exist yet either. |
-| Normalized radar / zones | (part of EOP10's own radar4d + upstream fusion) | `ngp_radar.py` — "Normalized Tesla-gateway radar2D/radar3D tracking and zone assessment" | **Corrected 2026-08-25**: its only real (non-test) importer on this branch is `ngp_lca.py`, which the feature matrix already documents as itself unwired (zero non-test importers, LCA speed/auto-sec is actually served by upstream `DesireHelper` instead). So `ngp_radar.py`'s one potential consumer is also dead code — same "output has no reader" blocker as collision above, one hop removed. |
 
 ---
 

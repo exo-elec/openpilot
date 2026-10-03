@@ -1,6 +1,7 @@
 #pragma once
 
 #include "selfdrive/ui/qt/offroad/settings.h"
+#include "selfdrive/ui/qt/offroad/ngp_controls.h"
 
 class NGPPanel : public ListWidget {
   Q_OBJECT

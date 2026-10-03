@@ -1,0 +1,50 @@
+{
+ "base": "c085b8af19438956c15592828bd082803f43dfaf",
+ "modified": {
+  "selfdrive/car/card.py": [
+   0,
+   1
+  ],
+  "selfdrive/controls/controlsd.py": [
+   48,
+   1
+  ],
+  "selfdrive/controls/lib/desire_helper.py": [
+   24,
+   6
+  ],
+  "selfdrive/controls/lib/longitudinal_planner.py": [
+   216,
+   6
+  ],
+  "selfdrive/controls/plannerd.py": [
+   30,
+   5
+  ],
+  "selfdrive/controls/radard.py": [
+   18,
+   9
+  ],
+  "selfdrive/locationd/helpers.py": [
+   1,
+   1
+  ],
+  "selfdrive/locationd/torqued.py": [
+   2,
+   1
+  ],
+  "selfdrive/modeld/modeld.py": [
+   174,
+   18
+  ],
+  "selfdrive/selfdrived/selfdrived.py": [
+   2,
+   1
+  ],
+  "selfdrive/selfdrived/state.py": [
+   3,
+   2
+  ]
+ },
+ "deleted": []
+}

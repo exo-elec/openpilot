@@ -16,7 +16,6 @@ from typing import Any
 from cereal import log
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import DT_MDL
-from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from nagaspilot.speed_zones import URBAN_SPEED_MPS
 
 LaneChangeState = log.LaneChangeState
@@ -50,18 +49,23 @@ class _LeadProxy:
   radarTrackId: int = -1
 
 
+# Mirrors selfdrive.controls.radard.RADAR_TO_CAMERA; the runtime hook passes the
+# real value so this policy module never imports a daemon.
+DEFAULT_RADAR_TO_CAMERA = 1.52
+
+
 class NGPLeadHandoff:
   """Pure-camera adjacent-lane lead handoff during a lane change."""
 
-  def __init__(self):
+  def __init__(self, radar_to_camera: float = DEFAULT_RADAR_TO_CAMERA):
+    self._radar_to_camera = radar_to_camera
     self._active = False
     self._proxy: _LeadProxy | None = None
     self._persist_until = 0.0
     self._last_lc_state = LaneChangeState.off
     self._d_filter = FirstOrderFilter(0.0, HANDOFF_SMOOTHING_TAU, DT_MDL)
 
-  @staticmethod
-  def _pick_adjacent_lead(model_v2, direction: int, v_ego: float) -> _LeadProxy | None:
+  def _pick_adjacent_lead(self, model_v2, direction: int, v_ego: float) -> _LeadProxy | None:
     if model_v2 is None or len(model_v2.leadsV3) == 0:
       return None
 
@@ -70,7 +74,7 @@ class NGPLeadHandoff:
       if lead.prob < MIN_LEAD_PROB:
         continue
       y = lead.y[0]   # positive = left
-      x = lead.x[0] - RADAR_TO_CAMERA
+      x = lead.x[0] - self._radar_to_camera
       if direction == LaneChangeDirection.left and y > ADJACENT_LANE_Y_MIN:
         picks.append((x, y, lead))
       elif direction == LaneChangeDirection.right and y < -ADJACENT_LANE_Y_MIN:
