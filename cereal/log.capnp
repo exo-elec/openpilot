@@ -1487,12 +1487,12 @@ struct ControlsState @0x97ff69c53601abf1 {
   curvature @37 :Float32;  # path curvature from vehicle model
   desiredCurvature @61 :Float32;  # lag adjusted curvatures used by lateral controllers
   forceDecel @51 :Bool;
-  ngpAlccActive @100 :Bool;
+  ngpAlccActive @76 :Bool;
 
   # DLAT: Dynamic Lateral Profile -- automatic Laneful/Laneless confidence
   # arbitration. Always-on behavior of this branch; no user-selectable mode.
-  ngpDlatUseLaneless @101 :Bool;    # resolved laneless state actually in effect
-  ngpDlatLaneConfidence @102 :Float32;
+  ngpDlatUseLaneless @77 :Bool;    # resolved laneless state actually in effect
+  ngpDlatLaneConfidence @78 :Float32;
   tjaActive @67 :Bool;
   tjaResumeRequired @68 :Bool;
   tjaHoldTime @69 :Float32;
@@ -1904,14 +1904,14 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   allowBrake @39: Bool;
   # NGP10-specific fields use high ordinals so they do not collide with the
   # EOP longitudinal controller telemetry below.
-  ngpDlonMode @100 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
-  ngpDlonE2EEnabled @101 :Bool;
-  ngpDlonForceStop @102 :Bool;
-  ngpTjaActive @103 :Bool;
-  ngpTjaCutIn @104 :Bool;
-  ngpTjaDesiredGap @105 :Float32;
+  ngpDlonMode @69 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
+  ngpDlonE2EEnabled @70 :Bool;
+  ngpDlonForceStop @71 :Bool;
+  ngpTjaActive @72 :Bool;
+  ngpTjaCutIn @73 :Bool;
+  ngpTjaDesiredGap @74 :Float32;
 
-  ngpDlonModeKind @109 :NgpDlonModeKind;
+  ngpDlonModeKind @75 :NgpDlonModeKind;
   enum NgpDlonModeKind {
     disabled @0;
     chill @1;
@@ -1965,7 +1965,8 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   ddscStandstillLatched @64 :Bool;
   ddscSpeed @65 :Float32;
 
-  # BRSC telemetry is also consumed by the NGP10 policy implementation.
+  # BRSC policy is shared with NGP10; these EOP-local ordinals are not.
+  # See docs/upstream-audit/NODE_05_capnp_ordinal_collisions.md.
   ngpBrscActive @66 :Bool;
   ngpBrscSpeed @67 :Float32;
   ngpBrscRoughness @68 :Float32;
@@ -3623,10 +3624,7 @@ struct Event {
     uiDebug @102 :UIDebug;
 
     # driving feedback
-    userBookmark @1000 :UserBookmark;
-    bookmarkButton @1001 :UserBookmark;
-    audioFeedback @1002 :AudioFeedback;
-    egpuState @1003 :EgpuState;
+    egpuState @303 :EgpuState;
 
     # *********** debug ***********
     testJoystick @52 :Joystick;

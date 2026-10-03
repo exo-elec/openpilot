@@ -27,12 +27,15 @@ Applied the cheap, no-coordination-needed part of the fix on EOP10: reworded
 `log.capnp`'s BRSC comment from "shared via nagaspilot/controls" (readable
 as a wire-compatibility claim) to explicitly state that the **Python source**
 is shared byte-identical but the **wire ordinals are not**, with a pointer to
-this doc. Did not touch EDP10/NGP10's copies of the same comment (not
-checked out in this worktree) or attempt an ordinal renumber (a schema
-change like that should be a deliberate one-time move across all three
-branches together, not something to do piecemeal from one branch). If a
-cross-branch log tool is ever built, reserve a shared ordinal block before
-that tool ships — the risk becomes live at that point, not before.
+this doc. During the 2026-10-03 EOP10 rebase onto NGP10, the combined EOP
+schema also had duplicate service fields and skipped ordinals, so its
+NGP-specific DLON/TJA fields were moved to EOP's next free slots
+(`LongitudinalPlan @69–75`, `ControlsState @76–78`); `egpuState` was appended
+at `Event @303`. This makes EOP's schema internally valid, but does not align
+its wire layout with NGP10 or EDP10. `capnp compile -I cereal -I . -o-
+cereal/log.capnp` passes on EOP10 after the repair. If a cross-branch log tool
+is ever built, reserve and coordinate a shared ordinal block before that
+tool ships — the risk becomes live at that point, not before.
 
 **Original finding (schema-level facts, still accurate):** same field name,
 different wire slot, across branches; one confirmed same-slot/different-field
