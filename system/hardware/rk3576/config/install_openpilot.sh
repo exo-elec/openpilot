@@ -19,15 +19,27 @@ echo "Installing openpilot RK3576 runtime from $OPENPILOT_DIR"
 
 apt-get update
 apt-get install -y \
+  build-essential \
   python3-pip python3-numpy python3-venv \
   libusb-1.0-0 libffi-dev git wget curl \
   v4l-utils ffmpeg libgles2-mesa-dev libegl1-mesa-dev \
   qtbase5-dev qttools5-dev-tools qtwayland5 libqt5opengl5-dev
 
-if [[ ! -x "$OPENPILOT_DIR/.venv/bin/python" ]]; then
-  echo "Create the runtime first: cd $OPENPILOT_DIR && uv sync" >&2
+UV_BIN="$(command -v uv || true)"
+if [[ -z "$UV_BIN" && -n "${SUDO_USER:-}" ]]; then
+  USER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+  for candidate in "$USER_HOME/.local/bin/uv" "$USER_HOME/.cargo/bin/uv"; do
+    if [[ -x "$candidate" ]]; then
+      UV_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if [[ -z "$UV_BIN" ]]; then
+  echo "Install uv for the invoking user or system-wide, then rerun this installer." >&2
   exit 1
 fi
+(cd "$OPENPILOT_DIR" && "$UV_BIN" sync --locked)
 
 "$OPENPILOT_DIR/scripts/ensure_pyqt5.sh" "$OPENPILOT_DIR/.venv/bin/python"
 

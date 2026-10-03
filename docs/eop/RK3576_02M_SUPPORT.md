@@ -20,11 +20,12 @@ packages, builds PyQt5 for the venv, and installs the systemd unit:
 
 ```bash
 sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh
-cd /data/openpilot && uv sync
 sudo ./system/hardware/rk3576/config/install_openpilot.sh /data/openpilot
 ```
 
-The service starts the UI and diagnostics while camera role discovery is
+The installer installs the build/Qt system packages, runs `uv sync`, builds
+PyQt5 against system Qt, and installs the systemd unit. The service starts the
+UI and diagnostics while camera role discovery is
 pending. The 02M camera daemon opens no MIPI stream until each role has a
 hardware-confirmed path in ExoPilot HAL.
 
