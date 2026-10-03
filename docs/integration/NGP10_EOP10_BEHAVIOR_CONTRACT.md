@@ -33,8 +33,10 @@ Radar2D/BSD policy begins at NGP10 because it consumes normalized tracks and
 must support migration away from factory vehicle radar. NGP10 currently has
 the tracker/zone policy module, but its live lane-change consumer and external
 Radar2D transport are not yet integrated; keep native BSM as the safety
-fallback until that path is validated. EOP10 adds the TR13 BLE adapter and
-connects it to the shared contract. TR13 is the EOP10 BLE baseline; the
+fallback until that path is validated, then retire the factory-radar
+dependency only after vehicle validation. EOP10 adds the TR13 BLE adapter;
+connecting its corner-specific output to the shared contract remains part of
+the port. TR13 is the EOP10 BLE baseline; the
 NanoRadarCore 77 GHz `radar3d` service and its vehicle UART adapter also begin
 in EOP10. ATR24 is the 02M WiFi corner
 radar upgrade. `gridd` and `monod` are EOP10 services, and `pathd` begins with
