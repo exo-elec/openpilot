@@ -28,8 +28,8 @@ Related: [`BOUNDARIES.md`](BOUNDARIES.md) (layer rules), [`NAMING_CONVENTIONS.md
 | --- | --- | --- | --- |
 | NGP10 | 11 (+518 / −51 lines) | 0 | 8 |
 | EOP10 | 221 (all of `selfdrive/`) | 89 | 397 |
-| 01M | 32 (+2982 / −709) in the ratchet; 161 counting `ui` and `assets` | 70 in the ratchet; 186 counting `ui` | 418 |
-| 02M | 32 (+2982 / −709) in the ratchet, identical to 01M; 161 counting `ui` and `assets` | 70 in the ratchet; 186 counting `ui` | 434 |
+| 01M | 32 (+2993 / −709) in the ratchet; 161 counting `ui` and `assets` | 70 in the ratchet; 186 counting `ui` | 418 |
+| 02M | 32 (+2993 / −709) in the ratchet, identical to 01M; 161 counting `ui` and `assets` | 70 in the ratchet; 186 counting `ui` | 434 |
 
 Largest edits to upstream files, NGP10 versus 01M:
 
@@ -74,7 +74,7 @@ Status: ☐ open · ◐ partial · ☑ done · ⛔ needs on-device validation or
 | T6 | Rename the fork-added non-`EOP` params (40 found against v0.10.0), with a settings migration | n/a | ◐ renamed + migration, not run on a device | ◐ (inherited) |
 | T7 | Remove `ngp_panel.*` from the EOP line | n/a | ☑ (orphan: the Qt UI is gone on 01M/02M) | ☑ |
 | T8 | Move EOP daemons from `selfdrive/` into `nagaspilot/<name>d/` | n/a | ⛔ | ⛔ |
-| T9 | Extract EOP logic from the eight large upstream files, down to hook size | ◐ (small hooks) | ◐ `desire_helper` helpers done; 7 files left | ⛔ |
+| T9 | Extract EOP logic from the eight large upstream files, down to hook size | ◐ (small hooks) | ◐ `desire_helper` helpers done; 7 files left | ◐ inherited from 01M |
 | T10 | Make `system/` additive: board directories, shared files untouched | n/a | ⛔ | ⛔ |
 | T12 | Unprefixed EOP daemon modules (`lazy_bev.py`, `gridd/*`, …): decide prefix and location together with T8; `lazy_bev` is live code used by `gridd`/`segd`, not dead like the libraries moved in T3 | n/a | ☐ | ☐ |
 | T11 | Remove the stray NGP planning file from the EOP root (`task.md` is EOP's live task list and stays; earlier audit text was wrong) | n/a | ☑ | ☑ |
