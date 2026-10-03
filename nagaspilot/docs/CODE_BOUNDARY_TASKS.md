@@ -57,8 +57,8 @@ Findings:
 - Policy classes `NGPMonoD`, `NGPCapabilities`, `NGPSOC`, … exist only on the EOP line and carry the NGP prefix.
 - Seven `ngp_*` libraries sit in `selfdrive/{adaptd,gridd,mapd,monod,pathd,tripd}`; on 01M/02M nothing outside tests imports them (dead code).
 - `lazy_bev.py` on 01M/02M is real daemon code (`gridd`, `segd`); it does **not** define `NGPLazyBEV`, so `selfdrive/gridd/tests/test_ngp_portable_features.py` fails at import there.
-- Both `ngp_panel.*` and `eop_panel.*` exist on EOP10.
-- Root files that do not belong on EOP10: `NGP10_CHESTNUT_MIGRATION_PLAN.md`, `task.md`.
+- `ngp_panel.*` was an orphan on 01M/02M: the Qt UI no longer builds there.
+- Root file that did not belong on EOP10: `NGP10_CHESTNUT_MIGRATION_PLAN.md` (NGP planning). `task.md` is EOP's live task list and stays.
 
 ## 4. Tasks
 
@@ -72,12 +72,12 @@ Status: ☐ open · ◐ partial · ☑ done · ⛔ needs on-device validation or
 | T4 | Remove or fix the broken `test_ngp_portable_features.py` (`NGPLazyBEV` import) | n/a | ☑ | ☑ |
 | T5 | Shared policy modules (DLON, lead handoff) mirrored across branches | ☑ | ☑ (EOP10 only) | ☐ |
 | T6 | Rename the 36 non-`EOP` params, with a settings migration | n/a | ⛔ | ⛔ |
-| T7 | Remove `ngp_panel.*` from the EOP line | n/a | ⛔ | ⛔ |
+| T7 | Remove `ngp_panel.*` from the EOP line | n/a | ☑ (orphan: the Qt UI is gone on 01M/02M) | ☑ |
 | T8 | Move EOP daemons from `selfdrive/` into `nagaspilot/<name>d/` | n/a | ⛔ | ⛔ |
 | T9 | Extract EOP logic from the eight large upstream files, down to hook size | ◐ (small hooks) | ◐ `desire_helper` helpers done; 7 files left | ⛔ |
 | T10 | Make `system/` additive: board directories, shared files untouched | n/a | ⛔ | ⛔ |
 | T12 | Unprefixed EOP daemon modules (`lazy_bev.py`, `gridd/*`, …): decide prefix and location together with T8; `lazy_bev` is live code used by `gridd`/`segd`, not dead like the libraries moved in T3 | n/a | ☐ | ☐ |
-| T11 | Remove stray root files on EOP10 (`NGP10_CHESTNUT_MIGRATION_PLAN.md`, `task.md`) | n/a | ☐ | ☐ |
+| T11 | Remove the stray NGP planning file from the EOP root (`task.md` is EOP's live task list and stays; earlier audit text was wrong) | n/a | ☑ | ☑ |
 
 Order: T1 and T2 first on every branch (they stop further growth), then T3/T4 (mechanical, dead
 code), then the ⛔ items one daemon or file at a time, each with its own hook budget and an
@@ -93,4 +93,5 @@ on-device check.
 ## 6. Progress log
 
 - **T9 / `desire_helper.py` (01M, `b4056162c`)**: the road-edge guard, adjacent-gap TTC check, lane-width check and blind-spot priority logic moved into `nagaspilot/controls/eop_lane_change.py` as pure functions. `desire_helper.py` keeps the state machine and thin delegates (`_evaluate_gap` stays callable unbound, as `test_lateral_sign_conventions.py` does). Upstream-file delta +362 → +177, file 456 → 271 lines. Equivalence check: old and new compared over 900,000 randomized outputs (40 seeds × 2,500 steps, helper calls included, fake clock, stubbed cereal/Params/DLAT), 0 differences. Not run: the repo's own `desire_helper` tests (no cereal build here) — run them on a build before relying on this. The state machine itself stays upstream-side; it is stateful and timing-sensitive, so moving it needs on-device validation.
+- **T7 / T11 (01M, 02M)**: deleted the orphan `selfdrive/ui/qt/offroad/ngp_panel.{cc,h}` (`selfdrive/ui/SConscript` states no Qt UI is built on either UI branch, nothing referenced the files) and the NGP-only `NGP10_CHESTNUT_MIGRATION_PLAN.md` (unreferenced; it stays on `dev/NGP10`). Correction: `task.md` is EOP's live working list and is referenced by `docs/` and `models/`, so it stays.
 
