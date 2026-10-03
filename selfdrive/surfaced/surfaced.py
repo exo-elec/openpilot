@@ -1,6 +1,6 @@
 """Compatibility import for the relocated SurfaceD daemon."""
-from openpilot.nagaspilot.daemons.surfaced.surfaced import *  # noqa: F401,F403
+import importlib
+import sys
 
-if __name__ == "__main__":
-  from openpilot.nagaspilot.daemons.surfaced.surfaced import main
-  raise SystemExit(main())
+_implementation = importlib.import_module("openpilot.nagaspilot.daemons.surfaced.surfaced")
+sys.modules[__name__] = _implementation
