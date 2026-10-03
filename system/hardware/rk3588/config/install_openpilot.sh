@@ -31,7 +31,7 @@ apt-get install -y \
   git wget curl \
   v4l-utils ffmpeg \
   libgles2-mesa-dev libegl1-mesa-dev \
-  2>/dev/null || true
+  qtbase5-dev qttools5-dev-tools qtwayland5 libqt5opengl5-dev
 
 # 2. Verify ExoPilot HAL setup was run
 if [ ! -f /etc/profile.d/99-rockchip-rk3588-env.sh ]; then

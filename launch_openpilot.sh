@@ -37,6 +37,13 @@ export PYTHONPATH="${SCRIPT_DIR}:${SCRIPT_DIR}/tinygrad_repo:${PYTHONPATH}"
 
 MODE="${1:-full}"
 
+# On ARM64, PyQt5 must be built against the board's system Qt because PyPI
+# does not publish a compatible Linux/aarch64 wheel. The setup script installs
+# the Qt headers and tools; this helper builds the binding once into the venv.
+if [[ "$MODE" == "full" ]]; then
+  "${SCRIPT_DIR}/scripts/ensure_pyqt5.sh" "$PYTHON"
+fi
+
 echo "[openpilot] Platform: ExoPilot 01M (RK3588)"
 
 # --- Camera module loading ---

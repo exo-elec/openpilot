@@ -69,6 +69,10 @@ dependencies = [
   "zstandard",
 
   # ui
+  # PyQt5 does not publish Linux/aarch64 wheels. On RK boards the launcher
+  # builds it against the system Qt development packages instead.
+  "PyQt5-sip == 12.17.0",
+  "PyQt5 == 5.15.11; platform_machine != 'aarch64'",
 ]
 
 [project.optional-dependencies]
