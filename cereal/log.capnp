@@ -1902,19 +1902,16 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   shouldStop @37: Bool;
   allowThrottle @38: Bool;
   allowBrake @39: Bool;
-  ngpDlonMode @40 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
-  ngpDlonE2EEnabled @41 :Bool;
-  ngpDlonForceStop @42 :Bool;
-  ngpTjaActive @43 :Bool;
-  ngpTjaCutIn @44 :Bool;
-  ngpTjaDesiredGap @45 :Float32;
+  # NGP10-specific fields use high ordinals so they do not collide with the
+  # EOP longitudinal controller telemetry below.
+  ngpDlonMode @100 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
+  ngpDlonE2EEnabled @101 :Bool;
+  ngpDlonForceStop @102 :Bool;
+  ngpTjaActive @103 :Bool;
+  ngpTjaCutIn @104 :Bool;
+  ngpTjaDesiredGap @105 :Float32;
 
-  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via nagaspilot/controls)
-  ngpBrscActive @106 :Bool;
-  ngpBrscSpeed @107 :Float32;
-  ngpBrscRoughness @108 :Float32;
-
-  ngpDlonModeKind @49 :NgpDlonModeKind;
+  ngpDlonModeKind @109 :NgpDlonModeKind;
   enum NgpDlonModeKind {
     disabled @0;
     chill @1;
@@ -1968,11 +1965,7 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   ddscStandstillLatched @64 :Bool;
   ddscSpeed @65 :Float32;
 
-  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy). The
-  # nagaspilot/controls/ngp_brsc.py policy source is shared byte-identical
-  # across EOP10/NGP10/EDP10, but these wire ordinals are NOT synchronized
-  # across branches' schemas — do not decode one branch's radar/plan logs
-  # with another branch's cereal bindings. See docs/upstream-audit/NODE_05.
+  # BRSC telemetry is also consumed by the NGP10 policy implementation.
   ngpBrscActive @66 :Bool;
   ngpBrscSpeed @67 :Float32;
   ngpBrscRoughness @68 :Float32;
