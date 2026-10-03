@@ -47,6 +47,12 @@ if [ ! -f /usr/local/bin/npu_powerctrl.sh ]; then
   echo "  Run: sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh"
 fi
 
+if [ ! -x "$OPENPILOT_DIR/.venv/bin/python" ]; then
+  echo "Create the runtime first: cd $OPENPILOT_DIR && uv sync" >&2
+  exit 1
+fi
+"$OPENPILOT_DIR/scripts/ensure_pyqt5.sh" "$OPENPILOT_DIR/.venv/bin/python"
+
 # 3. Create data directories
 echo "[2/4] Creating data directories..."
 mkdir -p /data/media/0/realdata
@@ -57,7 +63,9 @@ mkdir -p /data/log
 # 4. Install systemd service
 echo "[3/4] Installing systemd service..."
 if [ -f "$OPENPILOT_DIR/system/hardware/rk3588/config/openpilot.service" ]; then
-  cp "$OPENPILOT_DIR/system/hardware/rk3588/config/openpilot.service" /etc/systemd/system/
+  sed "s|@@DIR@@|$OPENPILOT_DIR|g" \
+    "$OPENPILOT_DIR/system/hardware/rk3588/config/openpilot.service" \
+    > /etc/systemd/system/openpilot.service
   systemctl daemon-reload
   systemctl enable openpilot.service
 fi
