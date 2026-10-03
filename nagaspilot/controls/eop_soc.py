@@ -24,7 +24,7 @@ class SOCResult:
   control_authority: bool = False
 
 
-class NGPSOC:
+class EOPSOC:
   OFFSET_M = 0.20
 
   def __init__(self, confirmation_frames: int = 20):

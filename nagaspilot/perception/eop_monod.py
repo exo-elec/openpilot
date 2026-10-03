@@ -1,13 +1,13 @@
 """Default-off single-camera detector adapter for original comma 3.
 
 The backend may report 2D detections and independently calibrated metric
-positions. NGP10 never estimates metric depth from bounding-box size alone.
+positions. EOP never estimates metric depth from bounding-box size alone.
 """
 
 from dataclasses import dataclass
 from typing import Protocol
 
-from openpilot.selfdrive.gridd.ngp_capabilities import CameraRole, Feature, NGPCapabilities
+from nagaspilot.perception.eop_capabilities import CameraRole, Feature, EOPCapabilities
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class MonoDBackend(Protocol):
   def infer(self, frame) -> list[dict]: ...
 
 
-class NGPMonoD:
+class EOPMonoD:
   def __init__(self, enabled: bool = False, backend: MonoDBackend | None = None,
                min_confidence: float = 0.5):
     self.enabled = enabled
@@ -44,7 +44,7 @@ class NGPMonoD:
     self.min_confidence = max(0.0, min(1.0, float(min_confidence)))
 
   def update(self, frame, frame_id: int, timestamp_sof: int,
-             capabilities: NGPCapabilities, calibration_valid: bool) -> MonoDResult:
+             capabilities: EOPCapabilities, calibration_valid: bool) -> MonoDResult:
     if not self.enabled:
       return MonoDResult(frame_id, timestamp_sof, CameraRole.ROAD, (), False, "disabled")
     if not capabilities.supports(Feature.MONOD):

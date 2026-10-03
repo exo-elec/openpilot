@@ -1,7 +1,7 @@
 """Pure adaptive profile computer for gateway-normalized telemetry.
 
 BLE, NCP, OBD transport, and vehicle-specific PID interpretation stay outside
-NGP10. The returned limits are proposals and have no control consumer.
+EOP policy. The returned limits are proposals and have no control consumer.
 """
 
 from dataclasses import dataclass
@@ -38,7 +38,7 @@ class AdaptiveProfile:
   control_authority: bool = False
 
 
-class NGPAdaptiveProfile:
+class EOPAdaptiveProfile:
   DEFAULT_ACCEL_MAX = 2.0
   DEFAULT_ACCEL_MIN = -3.48
 

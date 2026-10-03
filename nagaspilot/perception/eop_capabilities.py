@@ -1,4 +1,4 @@
-"""Camera/feature capability contract shared by NGP10 and EOP10.
+"""Camera/feature capability contract for EOP hardware.
 
 This module intentionally contains no camera I/O or hardware assumptions.  It
 lets application code expose GridD/SOC/overlay interfaces while comma 3 safely
@@ -31,7 +31,7 @@ class Feature(str, Enum):
 
 
 @dataclass(frozen=True)
-class NGPCapabilities:
+class EOPCapabilities:
   """Declared streams and optional compute support for one device."""
 
   cameras: frozenset[CameraRole] = frozenset((CameraRole.ROAD, CameraRole.WIDE_ROAD))
@@ -43,7 +43,7 @@ class NGPCapabilities:
   adaptive_telemetry: bool = False
 
   @classmethod
-  def comma3(cls, driver_camera: bool = False) -> "NGPCapabilities":
+  def comma3(cls, driver_camera: bool = False) -> "EOPCapabilities":
     return cls(driver_camera=driver_camera)
 
   def has_camera(self, role: CameraRole) -> bool:
