@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hardware Platform Registry for Rockchip RK3588 (ExoPilot 01M)."""
+"""Hardware Platform Registry for Rockchip RK3576 (ExoPilot 02M)."""
 
 from __future__ import annotations
 
@@ -43,8 +43,8 @@ class PlatformRegistry:
         try:
             with open('/proc/device-tree/compatible') as f:
                 compatible = f.read().lower()
-                if 'rk3588' in compatible:
-                    return 'rk3588'
+                if 'rk3576' in compatible:
+                    return 'rk3576'
         except Exception:
             pass
 
@@ -64,11 +64,11 @@ class PlatformRegistry:
 
 # Auto-register platforms
 def _auto_register():
-    """Auto-register the RK3588 platform."""
+    """Auto-register the RK3576 platform."""
     try:
-        from openpilot.system.hardware.rk3588.hardware import RK3588Hardware
-        PlatformRegistry.register('rk3588', RK3588Hardware,
-                                  aliases=['rk3588s', 'rk3588s2', 'exopilot01m'])
+        from openpilot.system.hardware.rk3576.hardware import RK3576Hardware
+        PlatformRegistry.register('rk3576', RK3576Hardware,
+                                  aliases=['exopilot02m'])
     except ImportError:
         pass
 

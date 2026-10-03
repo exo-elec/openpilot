@@ -1,0 +1,45 @@
+[Unit]
+Description=openpilot (EOP RK3576 / ExoPilot 02M)
+After=network-online.target rockchip.service
+Wants=network-online.target
+Conflicts=dorapilot.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=@@DIR@@
+Environment=OPENPILOT_PREFIX=rk3576
+EnvironmentFile=-/etc/openpilot/env
+
+ExecStartPre=/bin/bash -c 'source /etc/profile.d/99-rockchip-rk3576-env.sh 2>/dev/null || true'
+# Bounded camera wait. openpilot-rk3588.service used an unbounded
+# `until [ -e ... ]` loop, so a device whose cameras never enumerated sat in
+# ExecStartPre until the start timeout with nothing in the journal explaining
+# why. Fail after 30s with a message and let Restart= retry instead. (The 01M
+# unit has since been fixed the same way.)
+ExecStartPre=/bin/bash -c 'for i in $(seq 60); do [ -e /dev/video-camera0 ] && exit 0; sleep 0.5; done; echo "camera node /dev/video-camera0 did not appear within 30s"; exit 1'
+
+ExecStart=/bin/bash @@DIR@@/launch_openpilot.sh
+
+Restart=on-failure
+RestartSec=5
+
+# Deliberately no LimitAS/LimitRSS. Both are setrlimit values applied to the
+# service process and inherited by everything manager forks -- about 45
+# supervised daemons -- and neither bounds memory the way it reads:
+#
+#   LimitAS caps virtual address space, not resident memory. camerad and
+#   modeld map large VisionIPC dmabuf regions and the RKNN runtime reserves
+#   big VA ranges, so a cap there turns into mmap failing with ENOMEM inside
+#   a daemon while the board still has free physical RAM.
+#
+#   LimitRSS sets RLIMIT_RSS, which Linux has not enforced since 2.4 -- dead
+#   configuration that reads like a working memory bound.
+#
+# Bounding the stack's memory for real means MemoryMax= on the cgroup, which
+# needs a number measured on hardware, not one guessed here. The 01M unit
+# carried both and has since dropped them too.
+OOMScoreAdjust=-100
+
+[Install]
+WantedBy=multi-user.target

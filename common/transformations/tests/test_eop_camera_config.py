@@ -1,16 +1,27 @@
-"""Regression test for common/transformations/camera.py's DEVICE_CAMERAS
-entries.
+"""Regression test for common/transformations/camera.py's RK3576 entries,
+added 2026-08-26.
 
-The failure this guards is silent: a platform with no entry in DEVICE_CAMERAS
-misses the dict and falls back to stock comma-3's _ar_ox_config (1928x1208,
-focal 2648.0/567.0) -- the wrong resolution and the wrong focal length, not
-merely a less precise version of the right ones. Nothing raises; the geometry
-is just quietly wrong.
+Before this fix, DEVICE_CAMERAS had no ("rk3576", ...) keys at all, so
+get_device_camera_config() on RK3576 would miss the dict and silently fall
+back to stock comma-3's _ar_ox_config (1928x1208, focal 2648.0/567.0) --
+wrong resolution and focal length, not just "less precise than RK3588's".
 """
 import os
 import subprocess
 import sys
 
+from openpilot.common.transformations.camera import DEVICE_CAMERAS, _ar_ox_config
+
+
+def test_rk3576_keys_exist_in_device_cameras():
+  assert ("rk3576", "ox03c10") in DEVICE_CAMERAS
+  assert ("rk3576", "gc4653") in DEVICE_CAMERAS
+  assert ("rk3576", "unknown") in DEVICE_CAMERAS
+
+
+def test_rk3576_fallback_config_is_not_stock_comma_ar_ox():
+  cfg = DEVICE_CAMERAS[("rk3576", "ox03c10")]
+  assert cfg.fcam.size != _ar_ox_config.fcam.size or cfg.fcam.focal_length != _ar_ox_config.fcam.focal_length
 
 
 def _get_device_camera_config_for(hardware_env: str) -> tuple:
@@ -30,7 +41,11 @@ def _get_device_camera_config_for(hardware_env: str) -> tuple:
   return int(w), int(h), float(f)
 
 
-def test_get_device_camera_config_end_to_end_on_rk3588():
-  w, h, f = _get_device_camera_config_for('rk3588')
+def test_get_device_camera_config_end_to_end_on_rk3576():
+  """HARDWARE/PlatformRegistry.create() are singletons computed at import
+  time, so this needs a fresh interpreter per platform, not just changing
+  os.environ after the fact (which silently has no effect -- exactly the
+  kind of thing that could hide this bug from a less careful test)."""
+  w, h, f = _get_device_camera_config_for('rk3576')
   assert (w, h) == (1920, 1280)
   assert f == 2667.0

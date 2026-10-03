@@ -12,7 +12,7 @@ def retryWithDelay(int maxRetries, int delay, Closure body) {
 // The ExoPilot board this branch targets. One line per branch, matching
 // ROCKCHIP_SOCS in SConstruct, SUPPORTED_SOCS in system/hardware/rk_device_id.py
 // and RKNN_TARGETS in tools/convert_models_to_rknn.py -- see CLAUDE.md.
-EOP_BOARD = "rk3588"
+EOP_BOARD = "rk3576"
 
 def device(String ip, String step_label, String cmd) {
   withCredentials([file(credentialsId: 'id_rsa', variable: 'key_file')]) {

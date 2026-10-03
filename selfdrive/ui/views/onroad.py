@@ -1,64 +1,49 @@
-"""The classic 01M driving screen.
+"""Onroad view.
 
 Layered, bottom to top:
 
-  border          status-coloured frame, painted by this widget itself
-  camera          VisionIPC road camera, inset by the border
-  model path      lane lines, path and lead markers
-  blind-spot      edge bands for any occupied blind spot
-  HUD             speeds, speed limit, driver pill, maneuver card
-  camera overlay  full-screen side/rear on a single blinker or reverse
-  pairing PIN     shown only while Bluetooth pairing is open
-  alert           always last -- a full-screen camera must never bury one
+  camera            VisionIPC surface (section 4.3)
+  model path        lane lines, path and lead markers
+  blind-spot bands  edge gradients (section 5.7)
+  panels            two swipeable side panels (section 5.6)
+  chrome            50px top and bottom bars (section 5.4)
+  camera overlay    full-screen side/rear on blinker or reverse (section 5.7)
+  alert             always last -- a full-screen camera must never bury one
 
-Same composition as onroad_home.cc, and the same stacking rule: the alert
-outranks everything, because the one thing that must never be hidden is the
-car telling the driver to take over.
-
-Geometry is set explicitly rather than by a QLayout. Most of these layers
-cover rather than occupy, which is not something a layout expresses.
+Laid out by explicit geometry rather than a QLayout: most of these cover
+rather than occupy, which is not something a layout expresses.
 """
 
 from __future__ import annotations
 
-from openpilot.selfdrive.ui.components.alerts import AlertBanner
 from openpilot.selfdrive.ui.components.blind_spot import BlindSpotBands
 from openpilot.selfdrive.ui.components.camera_overlay import CameraOverlayStack
 from openpilot.selfdrive.ui.components.camera_view import create_camera_view
-from openpilot.selfdrive.ui.components.hud import HudOverlay
 from openpilot.selfdrive.ui.components.model_renderer import ModelRenderer
-from openpilot.selfdrive.ui.components.theme import (
-  STATUS_COLORS,
-  UI_BORDER_SIZE,
+from openpilot.selfdrive.ui.components.chrome import (
+  BAR_H,
+  AlertOverlay,
+  BottomBar,
+  TopBar,
 )
-from openpilot.selfdrive.ui.qt import (
-  QColor,
-  QPainter,
-  QRect,
-  Qt,
-  QtWidgets,
-  QWidget,
+from openpilot.selfdrive.ui.components.panels import PanelData, PanelHost
+from openpilot.selfdrive.ui.components.warnings import (
+  AdasWarning,
+  WarningOverlay,
+  blocks_engagement,
 )
-from openpilot.selfdrive.ui.state import ModelFrame, Snapshot, UIStatus
+from openpilot.selfdrive.ui.qt import Qt, QColor, QPainter, QWidget
+from openpilot.selfdrive.ui.state import ModelFrame, Snapshot
 
-PAIRING_KEYS = ("EOPBluetoothPairingPin", "EOPBluetoothPairingActive")
-PAIRING_POLL_MS = 2000
+# 1600x600, split 50 / 500 / 50 (plan section 5.4).
+PANEL_W, PANEL_H = 1600, 600
 
-PAIRING_STYLE = """
-QLabel {
-  color: #ffcc00;
-  background-color: rgba(0, 0, 0, 180);
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 32px;
-  font-weight: bold;
-}
-"""
+MS_TO_KPH = 3.6
 
 
 class PlaceholderCamera(QWidget):
-  """Stands in for VisionIPC when there is none, e.g. --demo. Labelled rather
-  than blank: an empty widget reads as a rendering bug."""
+  """Used when VisionIPC is unavailable, e.g. `--demo`. Labelled rather than
+  blank: an empty widget reads as a rendering bug."""
 
   def __init__(self, parent=None):
     super().__init__(parent)
@@ -75,60 +60,68 @@ class PlaceholderCamera(QWidget):
 
 
 class OnroadView(QWidget):
-  """Driving screen: camera, path, HUD and alerts inside a status border."""
-
-  def __init__(self, live_camera: bool = True, store=None, parent=None):
+  def __init__(self, live_camera: bool = True, parent=None):
     super().__init__(parent)
     self.setObjectName("onroadRoot")
-    self.setAttribute(Qt.WA_OpaquePaintEvent, True)
-
-    self._store = store
-    self._border = STATUS_COLORS[UIStatus.DISENGAGED]
 
     self.camera = create_camera_view(parent=self) if live_camera else PlaceholderCamera(self)
     self.model = ModelRenderer(self)
     self.bands = BlindSpotBands(self)
-    self.hud = HudOverlay(self)
+    self.panels = PanelHost(self)
+    self.top = TopBar(self)
+    self.bottom = BottomBar(self)
     self.overlays = CameraOverlayStack(self)
+    self.warnings = WarningOverlay(self)
+    self.alert = AlertOverlay(self)
+    self.alert.hide()
 
-    self.pairing = QtWidgets.QLabel(self)
-    self.pairing.setAlignment(Qt.AlignCenter)
-    self.pairing.setStyleSheet(PAIRING_STYLE)
-    # A status label, not a control: it must not swallow taps meant for what
-    # is underneath it.
-    self.pairing.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-    self.pairing.hide()
-
-    self.alert = AlertBanner(self)
-
-    for w in (self.model, self.bands, self.hud, self.overlays,
-              self.pairing, self.alert):
+    # Alert last: a full-screen camera must never bury one, and a warning
+    # card must never bury an alert.
+    for w in (self.model, self.bands, self.panels, self.top, self.bottom,
+              self.overlays, self.warnings, self.alert):
       w.raise_()
-
-    self._pairing_state = dict.fromkeys(PAIRING_KEYS, "")
-    from openpilot.selfdrive.ui.qt import QTimer
-    self._pairing_timer = QTimer(self)
-    self._pairing_timer.setInterval(PAIRING_POLL_MS)
-    self._pairing_timer.timeout.connect(self._refresh_pairing)
 
   # ---- state ------------------------------------------------------------
 
   def set_snapshot(self, snap: Snapshot) -> None:
     self.bands.set_severity(snap.blind_spot)
-    # A full-screen side camera covers the bands entirely, which is exactly
-    # when the driver most needs the warning -- signalling toward a car that
-    # is already alongside. CameraOverlayStack carries it on the overlay's own
-    # border from the same fused severity, so the two can never disagree.
     self.overlays.set_snapshot(snap)
-    self.hud.set_snapshot(snap)
-    self.alert.set_alert(snap.alert_text1, snap.alert_text2,
-                         snap.alert_severity, snap.alert_size)
 
-    border = STATUS_COLORS.get(snap.status, STATUS_COLORS[UIStatus.DISENGAGED])
-    if border != self._border:
-      self._border = border
-      self.update()
+    self.top.status = snap.status.value
+    self.top.temp_c = snap.cpu_temp
+    self.top.update()
 
+    self.bottom.left_text = f"{snap.v_ego * MS_TO_KPH:.0f} km/h"
+    self.bottom.right_text = (f"cruise {snap.cruise_kph:.0f}"
+                              if snap.cruise_kph > 0 else "cruise --")
+    self.bottom.update()
+
+    active = [w for w in (AdasWarning.from_key(k) for k in snap.warnings) if w]
+    self.warnings.set_active(active)
+
+    critical = snap.alert_severity == "critical"
+    self.alert.set_alert(snap.alert_text1, snap.alert_text2, snap.alert_severity)
+    # A safety warning freezes panel cycling: a swipe should not be able to
+    # page away from what the car is trying to say (section 5.6).
+    self.panels.set_blocked(critical or blocks_engagement(active))
+
+    self.panels.set_data(PanelData({
+      "v_ego": snap.v_ego,
+      "steering_angle": snap.steering_angle,
+      "cruise_kph": snap.cruise_kph,
+      "gear": snap.gear,
+      "engaged": snap.status.value == "engaged",
+      "blinker": ("left" if snap.left_blinker else
+                  "right" if snap.right_blinker else "none"),
+      "lead_valid": snap.lead_valid,
+      "lead_d": snap.lead_d,
+      "status": snap.status.value,
+      "bearing": snap.bearing,
+      "cpu_temp": snap.cpu_temp,
+      "mem_pct": snap.mem_pct,
+      "free_gb": snap.free_gb,
+      "objects": [],
+    }))
 
   def set_model_frame(self, frame: ModelFrame | None, snap: Snapshot) -> None:
     self.model.set_frame(frame, snap)
@@ -142,58 +135,27 @@ class OnroadView(QWidget):
     if poll is not None:
       poll()
 
-  def _refresh_pairing(self) -> None:
-    if self._store is None:
-      return
-    for key in PAIRING_KEYS:
-      self._pairing_state[key] = self._store.get_text(key)
-
-    pin = self._pairing_state["EOPBluetoothPairingPin"]
-    if self._pairing_state["EOPBluetoothPairingActive"] == "1" and pin:
-      self.pairing.setText(f"PIN: {pin}")
-      self.pairing.adjustSize()
-      self.pairing.move(self.width() - self.pairing.width() - 30, 30)
-      self.pairing.show()
-      self.pairing.raise_()
-      self.alert.raise_()
-    else:
-      self.pairing.hide()
-
   # ---- layout -----------------------------------------------------------
 
   def _layout(self) -> None:
     w, h = self.width(), self.height()
-    inner = QRect(UI_BORDER_SIZE, UI_BORDER_SIZE,
-                  max(0, w - UI_BORDER_SIZE * 2), max(0, h - UI_BORDER_SIZE * 2))
+    body = self.rect().adjusted(0, BAR_H, 0, -BAR_H)
 
-    # Everything that belongs to the camera image is inset by the border, so
-    # the coloured frame stays visible around all of it.
-    for widget in (self.camera, self.model, self.bands, self.hud, self.overlays):
-      widget.setGeometry(inner)
-    self.alert.setGeometry(inner)
-    self._refresh_pairing()
+    self.camera.setGeometry(self.rect())
+    self.model.setGeometry(self.rect())
+    self.overlays.setGeometry(self.rect())
+    self.bands.setGeometry(self.rect())
+
+    self.top.setGeometry(0, 0, w, BAR_H)
+    self.bottom.setGeometry(0, h - BAR_H, w, BAR_H)
+    self.panels.setGeometry(body)
+    self.alert.setGeometry(0, (h - 160) // 2, w, 160)
+    self.warnings.setGeometry((w - 700) // 2, (h - 110) // 2, 700, 110)
 
   def resizeEvent(self, event):
     super().resizeEvent(event)
     self._layout()
 
   def showEvent(self, event):
-    # Qt queues resize events for a widget that has never been shown, so a
-    # parent that sets geometry once and then shows would leave every layer
-    # at its default size.
     super().showEvent(event)
     self._layout()
-    self._refresh_pairing()
-    self._pairing_timer.start()
-
-  def hideEvent(self, event):
-    super().hideEvent(event)
-    self._pairing_timer.stop()
-
-  # ---- painting ---------------------------------------------------------
-
-  def paintEvent(self, event):
-    # Only the border is painted here; the camera covers the rest opaquely.
-    p = QPainter(self)
-    p.fillRect(self.rect(), QColor(self._border.red(), self._border.green(),
-                                   self._border.blue(), 255))

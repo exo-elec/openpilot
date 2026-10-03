@@ -237,29 +237,32 @@ class SpeedLimitConfirmation:
 def detect_exopilot_platform() -> str:
   """Detect ExoPilot platform based on hardware device tree.
 
-  Returns 'exopilot01m' for RK3588. This branch supports 01M hardware only --
-  RK3576 (ExoPilot 02M) lives on dev/02M, see the branch model in CLAUDE.md.
+  Returns 'exopilot02m' for RK3576. This branch supports 02M hardware only --
+  RK3588 (ExoPilot 01M) lives on dev/01M, see the branch model in CLAUDE.md.
 
   This is a real platform identity, not just a data-provenance tag: data
   merges across the ExoPilot fleet rely on it being accurate.
 
   Supports the HARDWARE environment variable override for testing, matching
-  system/hardware/registry.py's PlatformRegistry.detect() convention, so
-  platform detection can be exercised without a real device tree.
+  system/hardware/registry.py's PlatformRegistry.detect() convention —
+  added 2026-08-26, this function previously had no test-friendly way to
+  exercise platform detection without a real device tree.
 
   EOP-CLEANUP: Extracted from cslb.py and surface_quality_db.py which had
   nearly identical copies of this function.
   """
   env_platform = os.environ.get('HARDWARE', '').lower()
-  if 'rk3588' in env_platform:
-    return 'exopilot01m'
+  if 'rk3576' in env_platform:
+    return 'exopilot02m'
 
   try:
     with open('/proc/device-tree/compatible') as f:
       compatible = f.read()
-      if 'rk3588' in compatible:
-        return 'exopilot01m'
+      if 'rk3576' in compatible:
+        return 'exopilot02m'
   except Exception:
     pass
 
-  return 'exopilot01m'
+  # Unknown device tree: this branch only builds for 02M, so that is the
+  # only honest answer. A wrong platform tag corrupts fleet data merges.
+  return 'exopilot02m'

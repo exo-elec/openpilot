@@ -78,6 +78,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.hw import Paths
 from openpilot.selfdrive.controls.radar_corner_geometry import (
     corner_local_to_vehicle_frame, encode_corner_track_id, load_corner_poses)
+from openpilot.selfdrive.controls.lib.radar4d_points import points_to_obstacles
 
 RATE = 20  # Hz
 OCCUPIED_THRESHOLD = 0.7   # stereo occupancy -> obstacle cost; pathd's own grid collision threshold
@@ -224,7 +225,8 @@ class GridD:
              'drivableBev',   # segd: each camera's card segmentation on our BEV grid
              'livePose',      # signed forward speed, to move the fused drivable layer
              'radar3d',   # long-range UART radar — 15-200m, all tracked points
-             'radar2d'],  # corner/blind-spot zone sensors — 0-10m presence
+             'radar2d',   # corner/blind-spot zone sensors — 0-10m presence
+             'radar4d'],  # corner WiFi point cloud (02M add-on), vehicle frame
             poll=cast(str | None, ['stereoDepth'])
         )
 
@@ -634,6 +636,22 @@ class GridD:
                 })
         return objects
 
+    def _fuse_radar4d(self, radar4d) -> None:
+        """Stamp the ESP32 corner nodes' WiFi point cloud into the costmap.
+
+        Points are already vehicle-frame polar (selfdrive/controls/radar4d.py
+        applied the corner poses). Raw detections, not tracks, so they only
+        mark occupancy; they never become stereoObjects entries (the BLE
+        Radar2D tracks from the same nodes already do). Static points get a
+        lower cost than moving ones.
+        """
+        if radar4d is None or self._active_costmap is None:
+            return
+        for d_rel, y_rel, radius, cost in points_to_obstacles(radar4d.points):
+            # points_to_obstacles costs are 0-1; the cost layer is 0-COST_OBSTACLE
+            self._active_costmap.add_obstacle(d_rel, y_rel, 2.0 * radius, 2.0 * radius,
+                                              int(round(cost * COST_OBSTACLE)))
+
     def _fuse_radar2d(self, objects: list, radar2d) -> list:
         """Orchestrate radar2d corner fusion.
 
@@ -936,6 +954,8 @@ class GridD:
 
             _radar3d_msg = self.sm['radar3d'] if self.sm.updated['radar3d'] else None
             _radar2d_msg = self.sm['radar2d'] if self.sm.updated['radar2d'] else None
+            _radar4d_msg = (self.sm['radar4d']
+                            if self.sm.updated['radar4d'] and self.sm.valid['radar4d'] else None)
             self._refresh_corner_poses()
 
             inference_success = True
@@ -981,6 +1001,7 @@ class GridD:
                 all_objects = self._fuse_radar3d(all_objects, _radar3d_msg)
             if _radar2d_msg is not None:
                 all_objects = self._fuse_radar2d(all_objects, _radar2d_msg)
+            self._fuse_radar4d(_radar4d_msg)
 
             # Annotate every fused object with 8-class lane zone (curve-aware, full-taxonomy)
             for obj in all_objects:

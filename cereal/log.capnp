@@ -3890,7 +3890,7 @@ struct Event {
     livestreamRearRightEncodeIdx @297 :EncodeIndex;
     livestreamRearLeftEncodeData @298 :EncodeData;
     livestreamRearRightEncodeData @299 :EncodeData;
-    radar4d @300 :Custom.Radar4D;   # BGT60TR13C 4D short-range (radar4d.py → gridd)
+    radar4d @300 :Custom.Radar4D;   # ESP32 corner WiFi point cloud, 02M (radar4d.py → gridd)
     radar2d @301 :Custom.Radar2D;   # ESP32-S3 corner radars — tracked objects + legacy zone presence
     drivableBev @302 :Custom.DrivableBev;  # segd: per-camera card segmentation on gridd's BEV grid
     # ---- restored upstream members (wire compat; unused by EOP code) ----

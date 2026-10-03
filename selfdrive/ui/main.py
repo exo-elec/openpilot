@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""EOP UI entry point (ExoPilot 01M).
+"""EOP UI entry point (ExoPilot 02M).
 
-Replaces the C++ `ui` process. Run it directly to work on it:
+Standalone until P5, when it replaces the C++ `ui` process in
+system/manager/process_config.py. Running it directly is the intended way to
+work on it:
 
     PYTHONPATH=. python3 -m openpilot.selfdrive.ui.main --demo
 
@@ -15,15 +17,16 @@ import argparse
 import sys
 
 from openpilot.selfdrive.ui.components.controls import ParamStore
-from openpilot.selfdrive.ui.components.theme import SCREEN_H, SCREEN_W
 from openpilot.selfdrive.ui.qt import QApplication, QtGui, QTranslator, run_app
 from openpilot.selfdrive.ui.state import UIState
-from openpilot.selfdrive.ui.views.window import MainWindow
+from openpilot.selfdrive.ui.styles.style_manager import (
+  Component,
+  StyleManager,
+  Theme,
+)
+from openpilot.selfdrive.ui.views.offroad import OffroadView
+from openpilot.selfdrive.ui.views.onroad import PANEL_H, PANEL_W, OnroadView
 
-# window.cc exits with this to ask the launcher to start it again, which is
-# how a language change takes effect -- Qt cannot retranslate a live widget
-# tree.
-RESTART_EXIT_CODE = 18
 
 # Compiled translations live next to their .ts sources. The C++ UI embedded
 # them in a Qt resource (`:/main_th`); there is no resource system here, so
@@ -39,6 +42,9 @@ FONTS = (
 
 def load_fonts() -> int:
   """Register the bundled Inter faces. Returns how many loaded.
+
+  Must be called after QApplication exists -- QFontDatabase segfaults
+  without one, rather than raising.
 
   Qt silently falls back to the default sans for a missing family, which is
   what happens on a dev PC without the assets -- the UI is laid out with
@@ -84,121 +90,97 @@ def load_translation(app, store) -> str:
   return stem
 
 
-def _demo_snapshots():
-  """A short scripted drive, so every layer can be seen without a car."""
+
+def _demo_source():
+  """Cycle blind-spot severities so the bands can be seen without a car."""
   from openpilot.selfdrive.ui.components.blind_spot import (
     CAUTION,
     CLEAR,
     WARNING,
-    BlindSpotSeverity,
   )
-  from openpilot.selfdrive.ui.state import NavManeuver, Snapshot, UIStatus
+  from openpilot.selfdrive.ui.state import Snapshot
+  from openpilot.selfdrive.ui.components.blind_spot import BlindSpotSeverity
 
-  base = dict(started=True, is_metric=True, cruise_available=True,
-              cruise_set=True, set_speed=100.0, speed_limit_ms=25.0,
-              nav=NavManeuver(valid=True, maneuver_type="turn", modifier="left",
-                              primary_text="Sukhumvit Road", distance_m=420.0))
   script = [
-    Snapshot(status=UIStatus.DISENGAGED, v_ego=0.0, **base),
-    Snapshot(status=UIStatus.ENGAGED, v_ego=18.0, **base),
-    Snapshot(status=UIStatus.ENGAGED, v_ego=25.0, left_blinker=True,
-             blind_spot=BlindSpotSeverity(left=WARNING), **base),
-    Snapshot(status=UIStatus.OVERRIDE, v_ego=22.0,
-             blind_spot=BlindSpotSeverity(right=CAUTION), **base),
-    Snapshot(status=UIStatus.ENGAGED, v_ego=27.0,
-             blind_spot=BlindSpotSeverity(CLEAR, CLEAR),
-             alert_text1="Take Control", alert_text2="Turn exceeds limit",
-             alert_severity="warning", alert_size="mid", **base),
+    BlindSpotSeverity(CLEAR, CLEAR),
+    BlindSpotSeverity(CAUTION, CLEAR),
+    BlindSpotSeverity(CLEAR, WARNING),
+    BlindSpotSeverity(WARNING, CAUTION),
   ]
   i = 0
   while True:
-    yield script[i % len(script)]
+    yield Snapshot(blind_spot=script[i % len(script)])
     i += 1
 
 
 def main(argv: list[str] | None = None) -> int:
-  ap = argparse.ArgumentParser(description="ExoPilot 01M UI")
+  ap = argparse.ArgumentParser(description="ExoPilot 02M UI")
   ap.add_argument("--demo", action="store_true",
                   help="drive the view from a scripted source, no msgq needed")
   args = ap.parse_args(argv)
 
   app = QApplication(sys.argv[:1])
   load_fonts()
-
-  store = ParamStore() if not args.demo else ParamStore(_DemoParams())
-  # Before MainWindow: Qt resolves tr() when a string is used, so a widget
-  # built before the translator is installed keeps its English text.
-  load_translation(app, store)
-  # Matches window.cc: no focus rectangle, and Inter everywhere QSS reaches.
+  # Matches the C++ UI: no focus rectangle, Inter wherever QSS reaches.
   app.setStyleSheet("* { font-family: Inter; outline: none; }")
 
-  window = MainWindow(store, live_camera=not args.demo)
-  window.setWindowTitle("ExoPilot 01M")
+  store = ParamStore() if not args.demo else None
+  # Before any widget: Qt resolves tr() when a string is used, so a widget
+  # built before the translator is installed keeps its English text.
+  load_translation(app, store)
+
+  styles = StyleManager(Theme.DARK)
+  styles.apply(app, Component.ONROAD)
+
+  from openpilot.selfdrive.ui.qt import QtWidgets
+  window = QtWidgets.QStackedWidget()
+  window.setWindowTitle("ExoPilot 02M")
+  view = OnroadView(live_camera=not args.demo)
+  offroad = OffroadView() if not args.demo else None
+  window.addWidget(view)
+  if offroad is not None:
+    window.addWidget(offroad)
   # Fixed, not resize(): every coordinate in the onroad view is absolute
-  # against SCREEN_W x SCREEN_H, so a window the WM can reshape draws wrong
-  # rather than adapting. Matches what the C++ UI does on dev/EOP10.
-  window.setFixedSize(SCREEN_W, SCREEN_H)
+  # against PANEL_W x PANEL_H, so a window the WM can reshape draws wrong
+  # rather than adapting. 1600x600 is the only size this branch renders at,
+  # as 1024x600 is the only one 01M and EOP10 render at.
+  window.setFixedSize(PANEL_W, PANEL_H)
   window.show()
 
   if args.demo:
     from openpilot.selfdrive.ui.qt import QTimer
-    source = _demo_snapshots()
-
-    def tick():
-      snap = next(source)
-      window.set_started(snap.started)
-      window.set_snapshot(snap)
-
-    timer = QTimer(window)
-    timer.setInterval(2000)
-    timer.timeout.connect(tick)
+    source = _demo_source()
+    timer = QTimer(view)
+    timer.setInterval(1500)
+    timer.timeout.connect(lambda: view.set_snapshot(next(source)))
     timer.start()
-    tick()
+    view.set_snapshot(next(source))
   else:
     state = UIState(parent=window)
-    state.updated.connect(window.set_snapshot)
-    state.updated.connect(lambda snap: _on_frame(window, state, snap))
-    state.offroad_transition.connect(lambda offroad: window.set_started(not offroad))
+    state.updated.connect(view.set_snapshot)
+    state.updated.connect(lambda snap: _on_frame(view, state, snap))
+    # Settings are only reachable while parked -- pulling the driving view off
+    # screen at speed is a safety defect, not a UX preference (section 5.6).
+    if offroad is not None:
+      state.offroad_transition.connect(
+        lambda is_offroad: window.setCurrentIndex(1 if is_offroad else 0))
     state.start()
 
   return run_app(app)
 
 
-def _on_frame(window: MainWindow, state: UIState, snap) -> None:
+def _on_frame(view, state, snap) -> None:
   """Per-frame work that needs more than the Snapshot.
 
   The model geometry is a few thousand floats and only the driving view reads
   it, so it is fetched here rather than carried in every Snapshot -- and only
   while onroad.
   """
+  view.poll_camera()
   if not snap.started:
     return
-  onroad = window.home.onroad
-  onroad.poll_camera()
-  width, height = onroad.camera_size()
-  onroad.set_model_frame(state.read_model_frame(width, height), snap)
-
-
-class _DemoParams:
-  """In-memory stand-in so --demo needs no Params and writes nothing."""
-
-  def __init__(self):
-    self.d = {"HasAcceptedTerms": "2", "CompletedTrainingVersion": "1"}
-
-  def get(self, key):
-    return self.d.get(key, "")
-
-  def put(self, key, value):
-    self.d[key] = value
-
-  def get_bool(self, key):
-    return bool(self.d.get(key, False))
-
-  def put_bool(self, key, value):
-    self.d[key] = value
-
-  def remove(self, key):
-    self.d.pop(key, None)
+  width, height = view.camera_size()
+  view.set_model_frame(state.read_model_frame(width, height), snap)
 
 
 if __name__ == "__main__":

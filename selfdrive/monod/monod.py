@@ -359,6 +359,7 @@ class MonoD:
 
     def _publish(self, fused_tracks: list[FusedDetection], ts: int, lights: list[dict] | None = None) -> None:
         lights = lights or []
+
         msg = messaging.new_message('monoDetections')
         msg.monoDetections.frameId = self.frame_id
         msg.monoDetections.timestamp = ts

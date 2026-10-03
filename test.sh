@@ -38,7 +38,7 @@ set -- "${args[@]}"
 
 echo "==> Running focused ruff checks"
 ruff check \
-  system/hardware/rk3588 \
+  system/hardware/rk3576 \
   system/hardware/rockchip \
   system/inferenced/rockchip_npu.py \
   system/manager/manager.py \
@@ -84,7 +84,7 @@ else
     system/hardware/tests \
     system/v4l2d/tests \
     selfdrive/gridd/tests/test_camera_specs.py \
-    system/hardware/rk3588/tests/test_rk3588.py \
+    system/hardware/rk3576/tests/test_rk3576.py \
     system/hardware/rockchip/tests/test_rockchip.py \
     -v
 fi

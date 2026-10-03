@@ -18,11 +18,13 @@ Or manually:
     set_core_type(DAEMON_CORE_TYPE["soundd"])  # or use CORE_BIG/CORE_LITTLE directly
 
 Platform Support:
-    - RK3588: Full OpenPilot support (ExoPilot 01M). The only board this
-      branch supports — RK3576 (ExoPilot 02M) lives on dev/02M, see the
-      branch model in CLAUDE.md.
+    - RK3576: Full OpenPilot support (ExoPilot 02M). The only board this
+      branch supports -- RK3588 (ExoPilot 01M) lives on dev/01M and
+      dev/EOP10, see the branch model in CLAUDE.md. Same 4 big + 4 little
+      topology as 01M (A72 rather than A76), so the CORE_BIG/CORE_LITTLE
+      indices below carry over unchanged.
 
-Note: ExoPilot 03M (RK3688) is NOT supported by OpenPilot — see DoraPilot.
+Note: ExoPilot 03M (RK3688) is NOT supported by OpenPilot -- see DoraPilot.
 """
 
 from openpilot.common.realtime import CORE_BIG, CORE_LITTLE, set_core_type
@@ -100,6 +102,7 @@ DAEMON_CORE_TYPE = {
 
     # Communication / Subscription
     "bluetoothd": CORE_LITTLE,  # BLE/Phone
+    "radar4d": CORE_LITTLE,     # ESP32 corner WiFi point cloud (UDP decode, 20Hz)
     "subscribed": CORE_LITTLE,  # NavPilot subscription & hardware auth
     "obd2d": CORE_LITTLE,       # OBD2 bridge for bluetoothd
 

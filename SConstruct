@@ -62,7 +62,7 @@ assert arch in ["aarch64", "x86_64", "Darwin"]
 # The board(s) this branch supports. One entry per branch: EOP10 and 01M are
 # RK3588, 02M is RK3576. The lookup below is board-generic so only this list
 # changes between branches.
-ROCKCHIP_SOCS = ['rk3588']
+ROCKCHIP_SOCS = ['rk3576']
 soc = None
 if arch == "aarch64":
   try:
@@ -256,11 +256,11 @@ Export('envCython', 'np_version')
 # CMake bootstrap blocks were removed in the upstream-delta audit (D32) —
 # the SConscripts all link the vendored {arch}/lib paths.
 
-# The Qt build environment is gone with the C++ UI. dev/01M's UI is
+# The Qt build environment is gone with the C++ UI. dev/02M's UI is
 # selfdrive/ui/eop -- Qt Widgets in Python -- so nothing in the tree needs
 # Qt dev headers, moc/rcc/uic, lupdate/lrelease or the qt3 SCons tool at
 # build time. Only the Qt5 runtime libraries are needed, and those the
-# device already ships.
+# device already ships. See docs/eop10/EOP10_PORT_PLAN.md section 4.2.
 
 Export('env', 'arch', 'real_arch', 'soc')
 

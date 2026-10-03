@@ -15,7 +15,7 @@ from openpilot.system.inferenced.compute import HardwareBackend, BackendType, In
 
 logger = logging.getLogger(__name__)
 
-# Minimum rknpu driver version. Below this, fp16 inference on RK3588 has
+# Minimum rknpu driver version. Below this, fp16 inference on RK3576 has
 # observed driver bugs; warn loudly rather than silently producing bad output.
 MIN_RKNPU_DRIVER_VERSION = "0.9.6"
 

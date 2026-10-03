@@ -22,7 +22,7 @@ from pathlib import Path
 
 # SoCs this branch can build RKNN artifacts for. One entry per branch, matching
 # ROCKCHIP_SOCS in SConstruct -- see the branch model in CLAUDE.md.
-RKNN_TARGETS = ("rk3588",)
+RKNN_TARGETS = ("rk3576",)
 
 # Add openpilot to path
 sys.path.insert(0, str(Path(__file__).parents[1]))

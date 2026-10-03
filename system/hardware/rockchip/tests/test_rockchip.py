@@ -13,20 +13,20 @@ from openpilot.system.hardware.rockchip.mpp import MPPCodec, MPPDecoderConfig, M
 import numpy as np
 
 
-def _is_rk3588() -> bool:
+def _is_rk3576() -> bool:
   try:
     with open('/proc/device-tree/compatible') as f:
-      return 'rk3588' in f.read().lower()
+      return 'rk3576' in f.read().lower()
   except OSError:
     return False
 
 
-@pytest.mark.skipif(not _is_rk3588(), reason="Not running on an RK3588 device")
+@pytest.mark.skipif(not _is_rk3576(), reason="Not running on an RK3576 device")
 def test_platform_detection() -> None:
-  """Verify the device tree reports an RK3588 SoC."""
+  """Verify the device tree reports an RK3576 SoC."""
   with open('/proc/device-tree/compatible') as f:
     compat = f.read().lower()
-  assert 'rk3588' in compat, f"expected rk3588 in compatible, got {compat[:40]!r}"
+  assert 'rk3576' in compat, f"expected rk3576 in compatible, got {compat[:40]!r}"
 
 
 @pytest.fixture

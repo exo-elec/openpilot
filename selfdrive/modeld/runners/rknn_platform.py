@@ -1,13 +1,19 @@
-"""RKNN Platform Detection and NPU Core Allocation for RK3588.
+"""RKNN Platform Detection and NPU Core Allocation for RK3576.
 
-RK3588 (ExoPilot 01M): 6 TOPS = 3 NPU cores x 2 TOPS/core, 85% budget =
-1.7 TOPS/core. Per-task core placement is computed by npu_pack.py's
+RK3576 (ExoPilot 02M): 6 TOPS = 2 NPU cores x 3 TOPS/core, 85% budget =
+2.55 TOPS/core. Per-task core placement is computed by npu_pack.py's
 board-agnostic LPT packer from hal.tuning.npu's estimated TASK_TOPS (see
-NPU_ALLOCATION_MAP below) -- the same function dev/02M's RK3576 uses, just
-with this board's own core count and budget.
+NPU_ALLOCATION_MAP below) -- the same function dev/01M's RK3588 uses, just
+with this board's own core count and budget. Per-task TOPS for this
+branch's models have not been measured on RK3576; run npu_bench.py on real
+hardware to replace the estimate with a measured CORE_ALLOCATION, which
+then overrides the computed one.
 
-This branch supports 01M hardware only -- RK3576 (ExoPilot 02M) lives on
-dev/02M, see the branch model in CLAUDE.md.
+Values are RKNN core MASKS (RKNN_NPU_CORE_0 = 1, CORE_1 = 2), passed as
+ModelConfig.npu_cores straight to RKNNLite.init_runtime(core_mask=...).
+
+This branch supports 02M hardware only -- RK3588 (ExoPilot 01M) lives on
+dev/01M, see the branch model in CLAUDE.md.
 """
 
 from __future__ import annotations
@@ -22,12 +28,12 @@ from openpilot.system.hardware import HARDWARE
 
 npu_tuning = HARDWARE.hal_import("tuning.npu")
 if npu_tuning is None:
-    # hal not installed (dev PC) — fall back to the stock RK3588 allocation
+    # hal not installed (dev PC) — fall back to the stock allocation
     # documented under NPUPlatformConfig below. Values mirror hal.tuning.npu;
     # no NPU exists here anyway, so this only keeps imports/tests working.
     class _FallbackNpuTuning:
         CORE_ALLOCATION: dict[str, int] = {}
-        TOPS_PER_CORE = 2.0
+        TOPS_PER_CORE = 3.0
         UTILIZATION_SAFETY_LIMIT = 0.85
         TASK_TOPS = {
             "modeld": 2.0, "driving_vision": 2.0, "stereod": 1.4, "stereo_seg": 1.4,
@@ -40,14 +46,14 @@ if npu_tuning is None:
 
 class PlatformType(Enum):
     """Supported Rockchip platforms."""
-    RK3588 = "rk3588"      # 3 NPU cores × 2 TOPS (RK3588 and RK3588S2 share same NPU)
+    RK3576 = "rk3576"      # 2 NPU cores × 3 TOPS
     UNKNOWN = "unknown"
 
 
 def get_core_count(platform: PlatformType) -> int:
     """Get NPU core count for platform."""
     core_counts = {
-        PlatformType.RK3588: 3,
+        PlatformType.RK3576: 2,
         PlatformType.UNKNOWN: 3,  # Default to 3 for safety
     }
     return core_counts.get(platform, 3)
@@ -59,6 +65,8 @@ def get_core_count(platform: PlatformType) -> int:
 # packer below counts each workload's TOPS once, and every alias always
 # lands on the same core. Values are hal.tuning.npu's estimates -- see
 # npu_bench.py, which replaces them with real per-model measurements.
+# Identical to dev/01M's list -- the workload set is the same across
+# boards, only the hardware constants below differ.
 _TASK_GROUPS: tuple[NPUTaskGroup, ...] = (
     NPUTaskGroup(("modeld", "driving_vision"), npu_tuning.TASK_TOPS.get("modeld", 2.0)),
     NPUTaskGroup(("stereod", "stereo_seg"), npu_tuning.TASK_TOPS.get("stereod", 1.4)),
@@ -76,10 +84,12 @@ _TASK_GROUPS: tuple[NPUTaskGroup, ...] = (
 # computed guess. Otherwise this board-agnostic packer bin-packs the
 # estimated TASK_TOPS onto this platform's real core count -- the same
 # function every ExoPilot board calls, so no board needs its own
-# hand-authored allocation table.
+# hand-authored allocation table. Replaces the old VisionPilot-borrowed
+# split (core 0 = driving+policy, core 1 = everything else), which put
+# ~4.05 estimated TOPS on core 1 against a 2.55 TOPS/core budget.
 NPU_ALLOCATION_MAP: dict[PlatformType, dict[str, int]] = {
-    PlatformType.RK3588: (
-        npu_tuning.CORE_ALLOCATION or pack_tasks_to_cores(_TASK_GROUPS, get_core_count(PlatformType.RK3588))
+    PlatformType.RK3576: (
+        npu_tuning.CORE_ALLOCATION or pack_tasks_to_cores(_TASK_GROUPS, get_core_count(PlatformType.RK3576))
     ),
 }
 
@@ -92,16 +102,16 @@ def detect_platform() -> PlatformType:
     """
     # Allow environment override for testing
     env_platform = os.environ.get('RKNN_PLATFORM', '').lower()
-    if 'rk3588' in env_platform:
-        return PlatformType.RK3588
+    if 'rk3576' in env_platform:
+        return PlatformType.RK3576
 
     # Check device tree
     compat_path = Path('/proc/device-tree/compatible')
     if compat_path.exists():
         try:
             compat = compat_path.read_bytes().decode('utf-8', errors='ignore').lower()
-            if 'rk3588' in compat:
-                return PlatformType.RK3588
+            if 'rk3576' in compat:
+                return PlatformType.RK3576
         except Exception:
             pass
 
@@ -128,9 +138,11 @@ def get_core_mask(platform: PlatformType, task: str) -> int:
     Example:
         >>> platform = detect_platform()
         >>> mask = get_core_mask(platform, 'monod')
-        >>> # On RK3588: returns 4 (CORE_2)
     """
-    allocation = NPU_ALLOCATION_MAP.get(platform, NPU_ALLOCATION_MAP[PlatformType.RK3588])
+    # An unknown platform or task gets RKNN_NPU_CORE_0 rather than a borrowed
+    # map: slow but always valid, where another board's map may name cores
+    # that do not exist on this silicon.
+    allocation = NPU_ALLOCATION_MAP.get(platform, {})
     return allocation.get(task, 1)  # 1 = RKNN_NPU_CORE_0
 
 
@@ -138,7 +150,7 @@ class NPUPlatformConfig:
     """Configuration for NPU allocation on current platform.
 
     NPU Budget Strategy (85% safety limit):
-    - RK3588: 3 cores x 2 TOPS = 6 TOPS total, 1.7 TOPS/core budget.
+    - RK3576: 2 cores x 3 TOPS = 6 TOPS total, 2.55 TOPS/core budget.
       Per-task placement is computed (NPU_ALLOCATION_MAP, npu_pack.py's LPT
       packer over hal.tuning.npu's estimated TASK_TOPS), not hand-assigned;
       run npu_bench.py on real hardware to replace the estimate with a
@@ -159,9 +171,9 @@ class NPUPlatformConfig:
         return 0 <= core_id < self.core_count
 
     @property
-    def is_rk3588(self) -> bool:
-        """True if running on RK3588 (including S2)."""
-        return self.platform == PlatformType.RK3588
+    def is_rk3576(self) -> bool:
+        """True if running on RK3576 (ExoPilot 02M)."""
+        return self.platform == PlatformType.RK3576
 
 
 def get_platform_npu_config() -> NPUPlatformConfig:

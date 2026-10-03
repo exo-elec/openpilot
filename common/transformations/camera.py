@@ -54,7 +54,7 @@ _neo_config = DeviceCameraConfig(CameraConfig(1164, 874, 910.0), CameraConfig(81
 
 # EOP10 RK3588 fallback configs, used when the closed exopilot HAL is not
 # installed (e.g. dev PC). Production values live in exopilot's
-# hal.platform.rk3588_camera_geometry and override these at import time.
+# hal.platform.<soc>_camera_geometry and override these at import time.
 # Focal lengths are derived from the lens focal length and sensor pixel pitch:
 #   OX03C10 pixel pitch = 3.0 µm  →  8.0mm lens ≈ 2667 px, 1.7mm lens ≈ 567 px.
 # Resolution matches the OX03C10 native 1920x1280 readout used by the driver.
@@ -87,13 +87,19 @@ def _load_eop_config(platform: str, road_cam: str, wide_cam: str, fallback: Devi
     # HAL not installed or geometry incomplete — use the public fallback.
     return fallback
 
-def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
-  """Load RK3588 camera geometry; fall back to public defaults.
+def _load_eop_rk3576_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  """Load RK3576 (ExoPilot 02M) camera geometry; fall back to public defaults.
 
-  EOP10 uses the same OX03C10 sensor and lens stack as the reference platform.
-  The native readout is 1920x1280, close to the reference's 1928x1208.
+  mono_narrow/mono_wide use the identical lens specs as RK3588's road/
+  wide_road (8.0mm/1.7mm, same OX03C10 sensor) -- confirmed against
+  hal.platform.rk3576_camera_geometry.py directly, not assumed. 02M's third
+  road-facing camera, mono_tele (16.0mm), has no fcam/dcam/ecam slot in this
+  3-camera model and isn't wired to anything yet -- camera *capture* for
+  RK3576 doesn't exist yet either (see docs/eop/RK3576_02M_SUPPORT.md's
+  Phase B), so this only matters once that's built, at which point
+  mono_tele's model-input role is an open design question, not a bug here.
   """
-  return _load_eop_config("rk3588", "road", "wide_road", _eop_ox03c10_config)
+  return _load_eop_config("rk3576", "mono_narrow", "mono_wide", _eop_ox03c10_config)
 
 DEVICE_CAMERAS = {
   # A "device camera" is defined by a device type and sensor
@@ -110,12 +116,15 @@ DEVICE_CAMERAS = {
   # simulator (emulates a tici)
   ("pc", "unknown"): _ar_ox_config,
 
-  # ExoPilot 01M (RK3588) - road/wide_road are OX03C10, stereo is GC4653.
-  # GC4653 is not a model input camera, so all RK3588 lookups return the
-  # OX03C10 main/wide geometry.
-  ("rk3588", "ox03c10"): _load_eop_rk3588_config("ox03c10"),
-  ("rk3588", "gc4653"): _load_eop_rk3588_config("gc4653"),
-  ("rk3588", "unknown"): _load_eop_rk3588_config("ox03c10"),
+  # ExoPilot 02M (RK3576) - mono_narrow/mono_wide are OX03C10, stereo is
+  # GC4653, mono_tele has no slot yet (see _load_eop_rk3576_config). Without
+  # these entries, a lookup for ("rk3576", ...) would miss this dict
+  # entirely and fall back to stock comma-3's _ar_ox_config (wrong
+  # resolution and focal length, not just "less precise than RK3588's") --
+  # added 2026-08-26 during the dual-platform audit.
+  ("rk3576", "ox03c10"): _load_eop_rk3576_config("ox03c10"),
+  ("rk3576", "gc4653"): _load_eop_rk3576_config("gc4653"),
+  ("rk3576", "unknown"): _load_eop_rk3576_config("ox03c10"),
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})
@@ -133,9 +142,9 @@ def get_device_camera_config(camera_type: str = "ox03c10") -> DeviceCameraConfig
   device_type = HARDWARE.get_device_type()
 
   # Comment corrected 2026-08-26: this actually falls back to stock comma-3's
-  # _ar_ox_config (not an rk3588 config, despite what this comment used to
+  # _ar_ox_config (not an ExoPilot config, despite what this comment used to
   # say) if (device_type, camera_type) isn't in DEVICE_CAMERAS -- e.g. an
-  # unregistered platform. rk3588 is registered above, so
+  # unregistered platform. rk3576 is registered above, so
   # this fallback should not be hit for either in practice.
   return DEVICE_CAMERAS.get((device_type, camera_type), _ar_ox_config)
 

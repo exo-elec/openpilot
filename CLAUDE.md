@@ -7,14 +7,12 @@ Guidance for Claude Code when working on this openpilot fork.
 **ExoPilot (EOP)** — Advanced ADAS for Rockchip RK3588.
 
 - **Codebase**: OpenPilot fork + EOP-specific daemons, controllers, UI
-- **Platform**: **RK3588 only** (ExoPilot 01L / 01M). 02M/RK3576 lives on
-  `dev/02M` — see **Branch model** below. As of 2026-09-13 this branch carries
-  no RK3576 support at all: `system/hardware/rk3576/`, `PlatformType.RK3576`,
-  `Hardware::RK3576()`, the RK3576 camera/NPU entries and the 02M UI
-  (wide-screen telemetry panel, `EOPTelemetryPanelWidth`, the split
-  `MainWindow`) are gone, and `deviceScreenSize()` is a constant 1024x600.
-  Asking for `rk3576` now fails loudly rather than falling back. ExoRobot 01H
-  (RK3588 16GB, HumRobot) is in `~/robot/exorobot`
+- **Platform**: **RK3576 only** (ExoPilot 02M). 01M/RK3588 lives on `dev/01M`
+  and `dev/EOP10` — see **Branch model** below. As of 2026-09-13 this branch
+  carries no RK3588 support at all: `system/hardware/rk3588/`,
+  `PlatformType.RK3588`, `Hardware::RK3588()` and the RK3588 camera/NPU
+  entries are gone. Asking for `rk3588` fails loudly rather than falling
+  back. ExoRobot 01H (RK3588 16GB, HumRobot) is in `~/robot/exorobot`
 - **Suffix = RAM**: L=4GB / M=8GB / H=16GB
 - **Camera-tier card is standard on 01M and 02M** (2026-09-27): a Hailo-8 or a
   DX-M1M, detected at runtime, chosen on price. It runs semantic segmentation
@@ -26,9 +24,9 @@ Guidance for Claude Code when working on this openpilot fork.
 
 ExoPilot BSP must be installed first before openpilot:
 ```bash
-sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot   # ExoPilot 01L/01M
+sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh && sudo reboot   # ExoPilot 02M
 ```
-The 02M equivalent (`setup_rk3576.sh`) belongs with `dev/02M`.
+The 01M equivalent (`setup_rk3588.sh`) belongs with `dev/01M`.
 
 ---
 
@@ -89,6 +87,7 @@ offset added to a y-right path), SOC (read `yRel` as right),
 | `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
 | `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP architecture (dual transport) |
+| `docs/eop/04_Integration/ESP32_RADAR_CORNER.md` | ESP32 corner radars: BLE `radar2d` + 02M WiFi `radar4d` (BGT60ATR24C), band plan |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
 | `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
 | `test.sh` | Local dev gate before pushing |
@@ -101,9 +100,9 @@ offset added to a y-right path), SOC (read `yRel` as right),
 
 ## Branch model
 
-This is the **foundation** branch. It keeps the old C++/Qt UI and supports
-**ExoPilot 01M (RK3588) hardware only**. The two UI branches sit on top of it
-and take foundation improvements by **rebasing**, not by cherry-picking:
+`dev/EOP10` is the **foundation**: it keeps the old C++/Qt UI and supports
+**ExoPilot 01M (RK3588) hardware only**. This branch and `dev/01M` sit on top
+of it and take foundation improvements by **rebasing**, not cherry-picking:
 
 ```
 dev/EOP10 ──┬── dev/01M   PyQt5 UI, classic openpilot layout, RK3588 / 1024x600
@@ -152,8 +151,17 @@ dev/EOP10 ──┬── dev/01M   PyQt5 UI, classic openpilot layout, RK3588 /
 - **A fix that is not about the UI belongs here**, so both branches inherit
   it. Daemons, cereal, params_keys.h, systemd units, SConstruct outside the
   Qt block. Fixing it on 01M or 02M instead leaves the other branch broken.
-- **UI fixes belong on the branch they apply to.** The C++ UI is this
-  branch's; `selfdrive/ui/` is theirs.
+- **UI fixes belong on the branch they apply to.** `selfdrive/ui/` is
+  this branch's and 01M's; the C++ UI is EOP10's.
+- **`views/` and `main.py` are the intended divergence** between 01M and 02M.
+  Within `components/` each branch also owns the files that *are* its layout:
+  `chrome.py`, `panels.py`, `panel_widgets.py` and `factory.py` exist only
+  here; `alerts.py`, `hud.py` and `theme.py` only on 01M. Every file that
+  exists on **both** branches — `qt.py`, `state.py`, the common
+  `components/`, `settings/`, `styles/`, `views/panels/` — is kept
+  **byte-identical**, so a fix cherry-picks between them unchanged. Check
+  that before editing one of those files, and check it both ways: a
+  one-directional diff misses a file that exists only on the other branch.
 
 ### Rebasing the UI branches onto an improved EOP10
 
@@ -184,17 +192,15 @@ After rebasing, re-run `./test.sh` on each branch.
 ## UI
 
 The C++/Qt UI is gone. `selfdrive/ui/` is a Qt Widgets UI written in
-Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
+Python and run as a `PythonProcess`, and `dev/01M` uses the same module.
 
-- **Design is unchanged on 01M.** Sidebar, offroad home, the left-nav settings
-  window and the onroad HUD all reproduce the C++ layout they replace.
-  `dev/02M` is where the new design lives (top-tab settings, swipeable side
-  panels, 1600x600 chrome).
+- **This branch carries the new design**: top-tab settings, swipeable side
+  panels, 1600x600 chrome. `dev/01M` keeps the classic openpilot layout.
 - **`views/` and `main.py` are the intended divergence** between 01M and 02M.
   Within `components/` each branch also owns the files that *are* its layout:
-  `alerts.py`, `hud.py` and `theme.py` exist only here; `chrome.py`,
-  `panels.py`, `panel_widgets.py` and `factory.py` only on 02M. Every file
-  that exists on **both** branches — `qt.py`, `state.py`, the common
+  `chrome.py`, `panels.py`, `panel_widgets.py` and `factory.py` exist only
+  here; `alerts.py`, `hud.py` and `theme.py` only on 01M. Every file that
+  exists on **both** branches — `qt.py`, `state.py`, the common
   `components/`, `settings/`, `styles/`, `views/panels/` — is kept
   **byte-identical**, so a fix cherry-picks between them unchanged. Check
   that before editing one of those files, and check it both ways: a
@@ -211,6 +217,13 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
 - **Test it**: `./test.sh` now includes the UI suite, or directly with
   `QT_QPA_PLATFORM=offscreen python3 -m pytest selfdrive/ui/tests
   -c selfdrive/ui/tests/pytest.ini --noconftest`
+- **Translations**: `main.load_translation()` installs a `QTranslator` for
+  `LanguageSetting` before the first widget is built — Qt resolves `tr()` when
+  a string is used, so a widget constructed earlier keeps its English text. It
+  reads `selfdrive/ui/translations/<stem>.qm`, compiled from the `.ts` sources
+  by the `lrelease` step in `selfdrive/ui/SConscript` (`scons translations`).
+  The C++ UI embedded those in a Qt resource; there is no resource system
+  here, so they are read from disk.
 - **Not yet verified on hardware**: the VisionIPC/EGL camera path and which Qt
   platform plugin the device runs. See `docs/eop10/EOP10_PORT_PLAN.md` P1.
 
@@ -380,8 +393,8 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
   2026-08-23 audit's monolithic Bukapilot `supercombo.rknn` is not what runs.
   Converted and validated separately for RK3588 and RK3576; never reuse an
   RKNN binary across target SoCs.
-- The EOP10 corner-radar baseline is BLE-only: ESP32_RADAR `dev/TR13`
-  publishes `radar2d`; WiFi point-cloud radar support belongs to the 02M layer.
+- Corner radars are not part of any camera pipeline: BLE `radar2d` on every
+  board, plus the ESP32_RADAR `dev/ATR24` WiFi point-cloud add-on on 02M only.
 
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner
@@ -406,15 +419,23 @@ Python and run as a `PythonProcess`, and `dev/02M` uses the same module.
   repo, same ownership split as BGT60TR13C. See
   `docs/eop/04_Integration/TC375_RADAR.md` for the full wire contract,
   sign-convention bench-verify items, and file map.
-- EOP10 has no `radar4d` daemon. Its ESP32 corner-radar input is BLE-only
-  `radar2d` from `dev/TR13`; WiFi point-cloud radar support is a 02M board-layer
-  addition.
-- 01M WiFi (2026-09-24): the RTL8822CE PCIe card serves only the vehicle LAN
-  (no corner-node hotspot), so `wlan0` uses 5GHz. exopilot's
-  `setup_wifi_lan.sh` (run by `setup_rk3588.sh`) writes
-  `/etc/exopilot/wifi-band.conf` (`LAN_BAND=a`); the WiFi screens pin new
-  networks seen on 5GHz to band `a` through `common/wifi_band.py` (with a
-  5GHz BSSID when one is pinned); 2.4GHz-only networks stay joinable.
+- `radar4d` (2026-09-24): `selfdrive/controls/radar4d.py` receives the ESP32
+  corner-radar WiFi point cloud (ESP32_RADAR `dev/ATR24`, Infineon BGT60ATR24C,
+  Radar4D chunks on UDP 47000, decoder `hal.drivers.radar.radar4d`), places
+  each corner's points in the vehicle frame with the confirmed corner-pose
+  registry (`radar_corner_geometry.load_corner_poses()`), tags static points
+  from `carState.vEgo`, and publishes `radar4d`. gridd `_fuse_radar4d()`
+  stamps them into the costmap only (raw points, not tracks; the BLE `radar2d`
+  tracks from the same nodes stay the object source). Pure helpers and tests:
+  `selfdrive/controls/lib/radar4d_points.py`,
+  `selfdrive/controls/tests/test_radar4d_points.py`. 02M-only add-on on top of
+  the BLE `radar2d` baseline; only 02M hardware has the corner-node WiFi AP
+  antenna. Not hardware-verified.
+- 02M WiFi band plan (2026-09-24): 02M is our own board with the AP6275S
+  (AP6256 dropped): `ap0` 2.4GHz hotspot for the ESP32s and `wlan0` 5GHz LAN
+  at once. Set up by exopilot's `setup_wifi_dualwan.sh`
+  (`/etc/exopilot/wifi-band.conf`, `LAN_BAND=a`); the WiFi screens pin new
+  5GHz-capable networks to `a` through `common/wifi_band.py`.
 
 **BRSC — Bumpy Road Speed Controller (2026-08-03):**
 - Reduces cruise speed / positive accel on rough pavement, detected from vertical
@@ -523,7 +544,7 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 ---
 
 **Last updated**: 2026-09-21  
-**Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
+**Branch**: dev/02M (RK3576 / ExoPilot 02M only)
 
 ---
 

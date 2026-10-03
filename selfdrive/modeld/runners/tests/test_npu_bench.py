@@ -35,8 +35,8 @@ class FakeRKNN:
 
 
 @pytest.fixture(autouse=True)
-def rk3588(monkeypatch):
-  monkeypatch.setenv("RKNN_PLATFORM", "rk3588")
+def rk3576(monkeypatch):
+  monkeypatch.setenv("RKNN_PLATFORM", "rk3576")
 
 
 def test_parse_spec():
@@ -58,11 +58,11 @@ def test_main_passes_and_fails_on_the_85_percent_line(capsys):
   FakeRKNN.latency = {"/drive.rknn": 0.030, "/mono.rknn": 0.050}
   args = ["--model", "modeld=/drive.rknn@20:1x3x8x8", "--model", "monod=/mono.rknn@10:1x3x8x8",
           "--runs", "5", "--warmup", "1"]
-  assert nb.main(args, rknn_factory=FakeRKNN, clock=CLOCK) == 0     # core 0 60%, core 2 50%
+  assert nb.main(args, rknn_factory=FakeRKNN, clock=CLOCK) == 0     # core 0 60%, core 1 50%
   out = capsys.readouterr().out
-  assert "core mask 0x1: 60.0%" in out and "core mask 0x4: 50.0%" in out   # RK3588: monod on core 2
+  assert "core mask 0x1: 60.0%" in out and "core mask 0x2: 50.0%" in out
 
-  FakeRKNN.latency["/mono.rknn"] = 0.090                            # core 2 90%
+  FakeRKNN.latency["/mono.rknn"] = 0.090                            # core 1 90%
   assert nb.main(args, rknn_factory=FakeRKNN, clock=CLOCK) == 1
   assert "OVER" in capsys.readouterr().out
 

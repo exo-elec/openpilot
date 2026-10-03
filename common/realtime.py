@@ -17,11 +17,11 @@ DT_HW = 0.5  # hardwared and manager
 DT_DMON = 0.05  # driver monitoring
 
 # 4 big + 4 little CPU cores — same topology on both supported platforms:
-# RK3588: 4x A76 big + 4x A55 little.
+# RK3576: 4x A72 big + 4x A55 little.
 # Core *indices* are identical across both; only the big-core microarchitecture
 # differs, which doesn't affect affinity assignment. Not yet verified against
 # real RK3576 hardware — see docs/eop/RK3576_02M_SUPPORT.md.
-BIG_CORES = [0, 1, 2, 3]      # A76 - high performance
+BIG_CORES = [0, 1, 2, 3]      # A72 - high performance
 LITTLE_CORES = [4, 5, 6, 7]   # A55 - power efficient
 
 # Core type constants for simple allocation

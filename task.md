@@ -1452,6 +1452,10 @@ Direct `hal` imports in `selfdrive/` today (8 sites):
   `system/radar3d/`; the `radar3d` socket, `car.RadarData` shape and its
   consumers (`radard`, `gridd`) do not change; update `process_config.py`
   and core affinity.
+  dev/02M's `radar4d` stays in `selfdrive/controls/` (it shares
+  `radar4d_points` / `radar_corner_geometry` with gridd and radar_zones, so
+  moving it would make `system/` import `selfdrive/`); its hal import goes
+  through `HARDWARE.hal_import` like the rest.
 - [x] **R5 frame convention written down once.** modelV2 is device frame (y
   right-positive); radar/fused objects use yRel left-positive; convert at
   ingestion only (radard's pattern). Two ingestion bugs of exactly this

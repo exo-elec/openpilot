@@ -29,21 +29,22 @@ public:
     return false;
   }
 
-  // Check if running on RK3588 (ExoPilot 01M)
-  static bool RK3588() { return matchesPlatform("rk3588"); }
+  // Check if running on RK3576 (ExoPilot 02M)
+  static bool RK3576() { return matchesPlatform("rk3576"); }
 
-  // Generic Rockchip detection. This branch supports 01M hardware only, so
-  // RK3588 is the only board this branch carries -- RK3576 (ExoPilot 02M) lives on
-  // dev/02M, see the branch model in CLAUDE.md. Kept as a separate predicate
-  // rather than folded into RK3588() because callers asking "is this a
-  // ExoPilot board" should not have to be edited when a board is added.
+  // ExoPilot board detection. This branch supports 02M hardware only, so
+  // RK3576 is the only board this branch carries -- RK3588 (ExoPilot 01M)
+  // lives on dev/01M, see the branch model in CLAUDE.md. Kept as a separate
+  // predicate rather than folded into RK3576() because callers asking "is
+  // this an ExoPilot board" should not have to be edited when a board is
+  // added.
   static bool ROCKCHIP() {
-    return RK3588();
+    return RK3576();
   }
 
   // Device name for logging
   static std::string get_name() {
-    if (RK3588()) return "rk3588";
+    if (RK3576()) return "rk3576";
     return "pc";
   }
 
@@ -92,7 +93,7 @@ public:
   }
 
  private:
-  // Used by RK3588(): an EOP_PLATFORM env var override (for
+  // Used by RK3576(): an EOP_PLATFORM env var override (for
   // testing) checked first, then a substring match against the device
   // tree's compatible string, read from disk once and cached -- the
   // physical SoC can't change at runtime, so re-reading it on every call

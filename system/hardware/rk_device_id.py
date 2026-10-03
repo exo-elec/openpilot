@@ -30,7 +30,7 @@ import sys
 
 # Rockchip SoCs this branch supports, as they appear in the device tree.
 # One entry per branch -- see the branch model in CLAUDE.md.
-SUPPORTED_SOCS = ("rk3588",)
+SUPPORTED_SOCS = ("rk3576",)
 
 
 def _read_text(path: str) -> str | None:

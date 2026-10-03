@@ -89,6 +89,27 @@ class _MPPLib:
     lib.mpp_frame_deinit.argtypes = [ctypes.POINTER(MppFrame)]
     lib.mpp_frame_deinit.restype = ctypes.c_int
 
+    # Frame geometry and buffer access. Without these an MppFrame is an opaque
+    # handle and decoded pixels are unreachable from Python -- which is why the
+    # DVR path had no way to display a frame. Bound as optional: an older
+    # librockchip_mpp may not export all of them, and a missing symbol should
+    # degrade the decoder rather than fail the import for every consumer of
+    # this module (inferenced included).
+    for name, argtypes, restype in (
+      ("mpp_frame_get_buffer", [MppFrame], ctypes.c_void_p),
+      ("mpp_frame_get_width", [MppFrame], ctypes.c_uint32),
+      ("mpp_frame_get_height", [MppFrame], ctypes.c_uint32),
+      ("mpp_frame_get_hor_stride", [MppFrame], ctypes.c_uint32),
+      ("mpp_frame_get_ver_stride", [MppFrame], ctypes.c_uint32),
+      ("mpp_frame_get_errinfo", [MppFrame], ctypes.c_uint32),
+      ("mpp_buffer_get_ptr_with_caller", [ctypes.c_void_p, ctypes.c_char_p], ctypes.c_void_p),
+      ("mpp_buffer_get_size_with_caller", [ctypes.c_void_p, ctypes.c_char_p], ctypes.c_size_t),
+    ):
+      fn = getattr(lib, name, None)
+      if fn is not None:
+        fn.argtypes = argtypes
+        fn.restype = restype
+
   @property
   def handle(self) -> ctypes.CDLL:
     return self._lib
@@ -206,6 +227,45 @@ class MPPBackend:
     if img is None:
       raise RuntimeError("JPEG decode failed")
     return img
+
+  def frame_to_nv12(self, frame) -> tuple[np.ndarray, int, int, int] | None:
+    """Map a decoded MppFrame and return (buffer, width, height, stride).
+
+    The buffer is a *view* of MPP's memory, not a copy -- valid only until the
+    frame is released, so callers must convert or copy before doing so. mpp's
+    ptr/size accessors are the `_with_caller` variants; the plain names are
+    macros in the C header and are not exported symbols.
+    """
+    if not self._lib:
+      return None
+    lib = self._lib.handle
+    get_buf = getattr(lib, "mpp_frame_get_buffer", None)
+    get_ptr = getattr(lib, "mpp_buffer_get_ptr_with_caller", None)
+    if get_buf is None or get_ptr is None:
+      return None
+
+    errinfo = getattr(lib, "mpp_frame_get_errinfo", None)
+    if errinfo is not None and errinfo(frame):
+      return None
+
+    buf = get_buf(frame)
+    if not buf:
+      return None
+    ptr = get_ptr(buf, b"eop_ui")
+    if not ptr:
+      return None
+
+    width = int(lib.mpp_frame_get_width(frame))
+    height = int(lib.mpp_frame_get_height(frame))
+    stride = int(lib.mpp_frame_get_hor_stride(frame)) or width
+    v_stride = int(lib.mpp_frame_get_ver_stride(frame)) or height
+    if width <= 0 or height <= 0:
+      return None
+
+    nbytes = stride * v_stride * 3 // 2   # NV12
+    array_type = ctypes.c_uint8 * nbytes
+    view = np.frombuffer(array_type.from_address(ptr), dtype=np.uint8)
+    return view, width, height, stride
 
   def get_device_info(self) -> dict[str, str]:
     info: dict[str, str] = {"backend": "MPP"}

@@ -1,19 +1,23 @@
 # Archived radar4d design — superseded by Radar2D corner BLE
 
 *(Filename kept for history/link stability. This is the archived BGT60-era
-design, not this branch's runtime. EOP10's ESP32 corner-radar baseline is
-BLE-only (`radar2d`, `system/bluetoothd/ble_central.py`) using ESP32_RADAR
-`dev/TR13`; this foundation has no WiFi point-cloud service. Do not use this
+design. The current corner-radar integration — BLE `radar2d` on every board,
+plus on 02M the ESP32_RADAR `dev/ATR24` (BGT60ATR24C) WiFi point cloud through
+`selfdrive/controls/radar4d.py` into gridd — is
+`docs/eop/04_Integration/ESP32_RADAR_CORNER.md`. Files named below that do
+not exist on this branch (`radar4d_tracker.py`, `radar4d_pointcloud.py`,
+`radar4d_geometry.py`) are part of the archived design. Do not use this
 document as the current process or safety contract. The 11-byte BGT60
 corner packet and `decode_corner_packet()` described below were removed
-from exopilot hal on 2026-09-24; nothing sends that packet any more.)*
+from exopilot hal on 2026-09-24; `RadarCornerReceiver` now takes only
+Radar4D chunk datagrams.)*
 
 ## Radar classification
 
 | Socket | Source | Range | Consumer | Purpose |
 |--------|--------|-------|----------|---------|
 | `radar3d` | long-range UART radar (`system/radar3d/radar3d.py`) | 15–200m | `radard.py` → `radarState`; `gridd.py` → `stereoObjects` | ACC lead tracking + forward adjacent-lane awareness |
-| `radar4d` | 02M WiFi point-cloud add-on | 0–30m | Not in the EOP10 foundation; provided by the 02M layer | close-range corner occupancy |
+| `radar4d` | 4x ESP32_RADAR corner nodes (WiFi/UDP add-on, 02M only) | 0–30m | `radar4d.py` → gridd costmap | close-range corner occupancy |
 | `radar2d` | 4x ESP32_RADAR corner nodes (`ble_central.py`, BLE) | 0–10m | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
 
 The `radar2d` and `radar4d` designs share the
@@ -35,11 +39,17 @@ from the BGT60 era):
 ```
 ../exopilot/hal/hal/drivers/radar/radar4d.py      ← UDP wire decode (RadarCornerReceiver,
                                                       CornerFrame, decode_corner_packet)
-../exopilot/hal/hal/drivers/radar/bgt60tr13c.py   ← shared RadarDetection dataclass
+../exopilot/hal/hal/drivers/radar/detection.py    ← shared RadarDetection dataclass
                                                       (range_m, vel_mps, azimuth_deg,
                                                       elevation_deg, snr_db, is_static, track_id)
+                                                      + compensate_ego_velocity()/
+                                                      threshold_filter()/filter_crossing_noise()
+                                                      (generic) -- relocated 2026-09-15 when
+                                                      bgt60tr13c.py/dsp.py (BGT60 direct-SPI
+                                                      driver + raw-ADC FFT/CFAR/AoA pipeline,
+                                                      retired now that BGT60 lives only on
+                                                      ESP32 corner nodes) were deleted
 ../exopilot/hal/hal/drivers/radar/ego_velocity.py ← RANSAC/GNC ego-speed estimation (generic)
-../exopilot/hal/hal/drivers/radar/dsp.py          ← compensate_ego_velocity() (generic)
 
 selfdrive/controls/radar4d.py           ← cereal daemon (Radar4DD, process name "radar4d")
 selfdrive/controls/radar4d_tracker.py   ← KalmanTrackManager (EKF + occlusion coasting)

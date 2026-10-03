@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Hardware Abstraction Layer for Rockchip RK3588 (ExoPilot 01M).
+Hardware Abstraction Layer for Rockchip RK3576 (ExoPilot 02M).
 
-This branch supports 01M hardware only. RK3576 (ExoPilot 02M) lives on
-dev/02M -- see the branch model in CLAUDE.md. RockchipHardware stays as the
-board-independent base so a board can be added back without reintroducing the
-RK3576-subclasses-RK3588 tangle that used to make the two inseparable.
+This branch supports 02M hardware only. RK3588 (ExoPilot 01M) lives on
+dev/01M and dev/EOP10 -- see the branch model in CLAUDE.md. RockchipHardware
+stays as the board-independent base so a board can be added back without
+reintroducing the RK3576-subclasses-RK3588 tangle that used to make the two
+inseparable.
 """
 
 from __future__ import annotations
@@ -18,14 +19,14 @@ from openpilot.system.hardware.registry import PlatformRegistry
 
 # Platform exports
 from openpilot.system.hardware.rockchip_base import RockchipHardware
-from openpilot.system.hardware.rk3588.hardware import RK3588Hardware
+from openpilot.system.hardware.rk3576.hardware import RK3576Hardware
 
 # Singleton hardware instance
 HARDWARE = cast(HardwareBase, PlatformRegistry.create())
 
 # Platform detection flags
-RK3588 = HARDWARE.get_device_type() == 'rk3588'
-RK3588_DETECTED = RK3588
+RK3576 = HARDWARE.get_device_type() == 'rk3576'
+RK3576_DETECTED = RK3576
 
 # "Is this an ExoPilot board?" Asks the shared base, not RK3588Hardware:
 # RK3576Hardware used to subclass RK3588Hardware, so this was answered by
@@ -65,9 +66,9 @@ __all__ = [
     'HardwareCapability',
     'PlatformRegistry',
     # Platforms
-    'RK3588',
-    'RK3588_DETECTED',
-    'RK3588Hardware',
+    'RK3576',
+    'RK3576_DETECTED',
+    'RK3576Hardware',
     # Combined flags
     'ROCKCHIP',
     'TICI',  # Legacy compatibility
