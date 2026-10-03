@@ -1,50 +1,205 @@
 {
  "base": "c085b8af19438956c15592828bd082803f43dfaf",
  "modified": {
-  "selfdrive/car/card.py": [
+  "selfdrive/SConscript": [
    0,
    1
   ],
   "selfdrive/controls/controlsd.py": [
-   48,
-   1
+   358,
+   28
   ],
   "selfdrive/controls/lib/desire_helper.py": [
-   24,
-   6
+   177,
+   20
+  ],
+  "selfdrive/controls/lib/latcontrol_pid.py": [
+   1,
+   1
+  ],
+  "selfdrive/controls/lib/latcontrol_torque.py": [
+   222,
+   55
+  ],
+  "selfdrive/controls/lib/longcontrol.py": [
+   144,
+   2
+  ],
+  "selfdrive/controls/lib/longitudinal_mpc_lib/SConscript": [
+   2,
+   2
+  ],
+  "selfdrive/controls/lib/longitudinal_mpc_lib/long_mpc.py": [
+   65,
+   21
   ],
   "selfdrive/controls/lib/longitudinal_planner.py": [
-   216,
-   6
+   622,
+   19
   ],
   "selfdrive/controls/plannerd.py": [
-   30,
-   5
+   41,
+   28
   ],
   "selfdrive/controls/radard.py": [
-   18,
-   9
+   40,
+   24
+  ],
+  "selfdrive/debug/fingerprint_from_route.py": [
+   2,
+   1
+  ],
+  "selfdrive/debug/get_fingerprint.py": [
+   1,
+   1
+  ],
+  "selfdrive/debug/uiview.py": [
+   1,
+   1
+  ],
+  "selfdrive/locationd/calibrationd.py": [
+   11,
+   4
   ],
   "selfdrive/locationd/helpers.py": [
    1,
    1
   ],
+  "selfdrive/locationd/lagd.py": [
+   4,
+   2
+  ],
+  "selfdrive/locationd/locationd.py": [
+   11,
+   2
+  ],
+  "selfdrive/locationd/paramsd.py": [
+   3,
+   22
+  ],
   "selfdrive/locationd/torqued.py": [
-   2,
-   1
+   5,
+   2
+  ],
+  "selfdrive/modeld/SConscript": [
+   13,
+   55
   ],
   "selfdrive/modeld/modeld.py": [
-   174,
-   18
+   733,
+   317
+  ],
+  "selfdrive/modeld/models/README.md": [
+   1,
+   1
+  ],
+  "selfdrive/pandad/pandad.py": [
+   4,
+   2
+  ],
+  "selfdrive/selfdrived/events.py": [
+   165,
+   17
+  ],
+  "selfdrive/selfdrived/helpers.py": [
+   14,
+   4
   ],
   "selfdrive/selfdrived/selfdrived.py": [
-   2,
-   1
+   313,
+   38
   ],
   "selfdrive/selfdrived/state.py": [
    3,
    2
+  ],
+  "selfdrive/test/process_replay/vision_meta.py": [
+   2,
+   2
+  ],
+  "selfdrive/test/setup_xvfb.sh": [
+   1,
+   1
+  ],
+  "selfdrive/test/test_onroad.py": [
+   20,
+   32
+  ],
+  "selfdrive/test/test_updated.py": [
+   2,
+   1
   ]
  },
- "deleted": []
+ "deleted": [
+  "selfdrive/car/CARS_template.md",
+  "selfdrive/car/__init__.py",
+  "selfdrive/car/car_specific.py",
+  "selfdrive/car/card.py",
+  "selfdrive/car/cruise.py",
+  "selfdrive/car/docs.py",
+  "selfdrive/car/tests/.gitignore",
+  "selfdrive/car/tests/__init__.py",
+  "selfdrive/car/tests/big_cars_test.sh",
+  "selfdrive/car/tests/test_car_interfaces.py",
+  "selfdrive/car/tests/test_cruise_speed.py",
+  "selfdrive/car/tests/test_docs.py",
+  "selfdrive/car/tests/test_models.py",
+  "selfdrive/car/tests/test_models_segs.txt",
+  "selfdrive/controls/tests/test_following_distance.py",
+  "selfdrive/controls/tests/test_latcontrol.py",
+  "selfdrive/controls/tests/test_leads.py",
+  "selfdrive/debug/car/clear_dtc.py",
+  "selfdrive/debug/car/disable_ecu.py",
+  "selfdrive/debug/car/ecu_addrs.py",
+  "selfdrive/debug/car/fw_versions.py",
+  "selfdrive/debug/car/hyundai_enable_radar_points.py",
+  "selfdrive/debug/car/toyota_eps_factor.py",
+  "selfdrive/debug/car/vin.py",
+  "selfdrive/debug/car/vw_mqb_config.py",
+  "selfdrive/debug/check_can_parser_performance.py",
+  "selfdrive/debug/count_events.py",
+  "selfdrive/debug/cycle_alerts.py",
+  "selfdrive/debug/debug_fw_fingerprinting_offline.py",
+  "selfdrive/debug/dump_car_docs.py",
+  "selfdrive/debug/fuzz_fw_fingerprint.py",
+  "selfdrive/debug/print_docs_diff.py",
+  "selfdrive/debug/print_flags.py",
+  "selfdrive/debug/read_dtc_status.py",
+  "selfdrive/debug/run_process_on_route.py",
+  "selfdrive/debug/test_fw_query_on_routes.py",
+  "selfdrive/locationd/test/test_lagd.py",
+  "selfdrive/locationd/test/test_locationd_scenarios.py",
+  "selfdrive/locationd/test/test_paramsd.py",
+  "selfdrive/modeld/dmonitoringmodeld.py",
+  "selfdrive/modeld/models/big_driving_policy.onnx",
+  "selfdrive/modeld/models/big_driving_vision.onnx",
+  "selfdrive/modeld/models/dmonitoring_model.current",
+  "selfdrive/modeld/models/dmonitoring_model.onnx",
+  "selfdrive/modeld/models/driving_policy.onnx",
+  "selfdrive/modeld/models/driving_vision.onnx",
+  "selfdrive/modeld/runners/tinygrad_helpers.py",
+  "selfdrive/modeld/tests/test_modeld.py",
+  "selfdrive/monitoring/README.md",
+  "selfdrive/monitoring/dmonitoringd.py",
+  "selfdrive/monitoring/helpers.py",
+  "selfdrive/monitoring/test_monitoring.py",
+  "selfdrive/pandad/tests/test_pandad_loopback.py",
+  "selfdrive/pandad/tests/test_pandad_spi.py",
+  "selfdrive/selfdrived/tests/test_alerts.py",
+  "selfdrive/test/longitudinal_maneuvers/.gitignore",
+  "selfdrive/test/longitudinal_maneuvers/__init__.py",
+  "selfdrive/test/longitudinal_maneuvers/maneuver.py",
+  "selfdrive/test/longitudinal_maneuvers/plant.py",
+  "selfdrive/test/longitudinal_maneuvers/test_longitudinal.py",
+  "selfdrive/test/process_replay/__init__.py",
+  "selfdrive/test/process_replay/migration.py",
+  "selfdrive/test/process_replay/model_replay.py",
+  "selfdrive/test/process_replay/process_replay.py",
+  "selfdrive/test/process_replay/regen.py",
+  "selfdrive/test/process_replay/regen_all.py",
+  "selfdrive/test/process_replay/test_fuzzy.py",
+  "selfdrive/test/process_replay/test_processes.py",
+  "selfdrive/test/process_replay/test_regen.py",
+  "selfdrive/test/update_ci_routes.py"
+ ]
 }
