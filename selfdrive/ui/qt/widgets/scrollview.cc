@@ -40,6 +40,7 @@ ScrollView::ScrollView(QWidget *w, QWidget *parent) : QScrollArea(parent) {
   sp.setScrollMetric(QScrollerProperties::VerticalOvershootPolicy, QVariant::fromValue<QScrollerProperties::OvershootPolicy>(QScrollerProperties::OvershootAlwaysOff));
   sp.setScrollMetric(QScrollerProperties::HorizontalOvershootPolicy, QVariant::fromValue<QScrollerProperties::OvershootPolicy>(QScrollerProperties::OvershootAlwaysOff));
   sp.setScrollMetric(QScrollerProperties::MousePressEventDelay, 0.01);
+  sp.setScrollMetric(QScrollerProperties::AxisLockThreshold, 0.66);
   scroller->grabGesture(this->viewport(), QScroller::LeftMouseButtonGesture);
   scroller->setScrollerProperties(sp);
 }

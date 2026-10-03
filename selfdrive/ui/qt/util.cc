@@ -27,7 +27,7 @@ QString getVersion() {
 }
 
 QString getBrand() {
-  return QObject::tr("openpilot");
+  return QObject::tr("EXO-ELECTRONICS");
 }
 
 QString getUserAgent() {
@@ -103,8 +103,9 @@ void sigTermHandler(int s) {
 }
 
 void initApp(int argc, char *argv[], bool disable_hidpi) {
-  Hardware::set_display_power(true);
-  Hardware::set_brightness(65);
+  // EOP: display power/brightness handled by platform-specific HAL
+  // Hardware::set_display_power(true);
+  // Hardware::set_brightness(65);
 
   // setup signal handlers to exit gracefully
   std::signal(SIGINT, sigTermHandler);
@@ -196,11 +197,7 @@ QPixmap bootstrapPixmap(const QString &id) {
 }
 
 bool hasLongitudinalControl(const cereal::CarParams::Reader &car_params) {
-  // Using the experimental longitudinal toggle, returns whether longitudinal control
-  // will be active without needing a restart of openpilot
-  return car_params.getAlphaLongitudinalAvailable()
-             ? Params().getBool("AlphaLongitudinalEnabled")
-             : car_params.getOpenpilotLongitudinalControl();
+  return car_params.getOpenpilotLongitudinalControl();
 }
 
 // ParamWatcher

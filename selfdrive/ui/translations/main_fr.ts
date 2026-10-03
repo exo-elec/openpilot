@@ -175,16 +175,8 @@
         <translation>N° de série</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Caméra conducteur</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>APERÇU</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Aperçu de la caméra orientée vers le conducteur pour assurer une bonne visibilité de la surveillance du conducteur. (véhicule doit être éteint)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -935,14 +927,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>Recevez des alertes pour revenir dans la voie lorsque votre véhicule dérive au-delà d&apos;une ligne de voie détectée sans clignotant activé en roulant à plus de 31 mph (50 km/h).</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Enregistrer et télécharger la caméra conducteur</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Publiez les données de la caméra orientée vers le conducteur et aidez à améliorer l&apos;algorithme de surveillance du conducteur.</translation>
-    </message>
-    <message>
         <source>Use Metric System</source>
         <translation>Utiliser le système métrique</translation>
     </message>
@@ -1005,14 +989,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>La visualisation de la conduite passera sur la caméra grand angle dirigée vers la route à faible vitesse afin de mieux montrer certains virages. Le logo du mode expérimental s&apos;affichera également dans le coin supérieur droit.</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>Surveillance continue du conducteur</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>Activer la surveillance conducteur lorsque openpilot n&apos;est pas actif.</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

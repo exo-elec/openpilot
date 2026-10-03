@@ -175,16 +175,8 @@
         <translation>序列号</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>驾驶员摄像头</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>预览</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>打开并预览驾驶员摄像头，以确保驾驶员监控具有良好视野。（仅熄火时可用）</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -932,14 +924,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>显示车速时，以km/h代替mph。</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>录制并上传驾驶员摄像头</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>上传驾驶员摄像头的数据，帮助改进驾驶员监控算法。</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>踩油门时取消控制</translation>
     </message>
@@ -1006,14 +990,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>在低速时，驾驶可视化将转换为道路朝向的广角摄像头，以更好地展示某些转弯。测试模式标志也将显示在右上角。</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>驾驶员监控常开</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>即使在openpilot未激活时也启用驾驶员监控。</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

@@ -6,11 +6,12 @@
 #include <cmath>
 
 #include "common/swaglog.h"
+#include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
 
 // Window that shows camera view and variety of info drawn on top
 AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *parent)
-    : fps_filter(UI_FREQ, 3, 1. / UI_FREQ), CameraWidget("camerad", type, parent) {
+    : fps_filter(UI_FREQ, 3, 1. / UI_FREQ), CameraWidget("v4l2d", type, parent) {
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"uiDebug"});
 
   main_layout = new QVBoxLayout(this);
@@ -19,12 +20,49 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
 
   experimental_btn = new ExperimentalButton(this);
   main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
+  
+  // BEV Widget (Bird's Eye View) -- a small corner overlay floating over the
+  // camera view.
+  bev_widget = new BEVWidget(this);
+  bev_widget->setParent(this);
+  // This corner-overlay placement is this call site's own choice -- size,
+  // position, and click-through are specific to floating over the camera
+  // view, not something BEVWidget assumes.
+  bev_widget->setFixedSize(130, 180);
+  bev_widget->setAttribute(Qt::WA_TransparentForMouseEvents);
+  // Position is set in resizeEvent(), not here: this widget has not been
+  // laid out yet at construction time, so width()/height() are still Qt's
+  // defaults rather than the real 1024x600 panel, and the overlay would be
+  // placed against those instead. It is not in main_layout (it floats over
+  // the camera rather than taking space in it), so nothing else would move
+  // it either.
+  positionBevWidget();
+}
+
+void AnnotatedCameraWidget::positionBevWidget() {
+  if (!bev_widget) return;
+  // Bottom-right, inset by the border main_layout reserves (UI_BORDER_SIZE)
+  // so the overlay sits inside the alert border ring rather than under it.
+  bev_widget->move(width() - bev_widget->width() - UI_BORDER_SIZE,
+                   height() - bev_widget->height() - UI_BORDER_SIZE);
+}
+
+void AnnotatedCameraWidget::resizeEvent(QResizeEvent *event) {
+  CameraWidget::resizeEvent(event);
+  positionBevWidget();
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
-  dmon.updateState(s);
+  // Update BEV widget -- visibility is this call site's decision (see
+  // BEVWidget::isShowing()): hide the corner overlay entirely when there's
+  // nothing valid to show, rather than drawing an empty grid over the
+  // camera feed.
+  if (bev_widget) {
+    bev_widget->updateState(s);
+    bev_widget->setVisible(bev_widget->isShowing());
+  }
 }
 
 void AnnotatedCameraWidget::initializeGL() {
@@ -39,6 +77,11 @@ void AnnotatedCameraWidget::initializeGL() {
 }
 
 mat4 AnnotatedCameraWidget::calcFrameMatrix() {
+  // Rear camera: simple scale-to-fit (no calibration needed)
+  if (active_stream_type == VISION_STREAM_REAR) {
+    return CameraWidget::calcFrameMatrix();
+  }
+
   // Project point at "infinity" to compute x and y offsets
   // to ensure this ends up in the middle of the screen
   // for narrow come and a little lower for wide cam.
@@ -109,7 +152,7 @@ void AnnotatedCameraWidget::paintGL() {
       skip_frame_count = 5;
     }
 
-    // Wide or narrow cam dependent on speed
+    // Wide or narrow cam dependent on speed (road camera always stays active)
     bool has_wide_cam = available_streams.count(VISION_STREAM_WIDE_ROAD);
     if (has_wide_cam) {
       float v_ego = sm["carState"].getCarState().getVEgo();
@@ -129,8 +172,8 @@ void AnnotatedCameraWidget::paintGL() {
   painter.setRenderHint(QPainter::Antialiasing);
   painter.setPen(Qt::NoPen);
 
+  // Model and HUD overlays always drawn (rear camera is now a PIP overlay)
   model.draw(painter, rect());
-  dmon.draw(painter, rect());
   hud.updateState(*s);
   hud.draw(painter, rect());
 

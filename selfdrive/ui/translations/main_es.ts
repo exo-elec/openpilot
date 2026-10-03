@@ -187,16 +187,8 @@
         <translation>Empareja tu dispositivo con comma connect (connect.comma.ai) y reclama tu oferta de comma prime.</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Cámara del conductor</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>VISUALIZAR</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Previsualizar la cámara del conductor para garantizar que la monitorización del sistema tenga buena visibilidad (el vehículo tiene que estar apagado)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -939,22 +931,6 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
     <message>
         <source>Receive alerts to steer back into the lane when your vehicle drifts over a detected lane line without a turn signal activated while driving over 31 mph (50 km/h).</source>
         <translation>Recibir alertas para volver al carril cuando su vehículo se salga fuera del carril sin que esté activada la señal de giro y esté conduciendo por encima de 50 km/h (31 mph).</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>Monitoreo Permanente del Conductor</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>Habilitar el monitoreo del conductor incluso cuando Openpilot no esté activado.</translation>
-    </message>
-    <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Grabar y Subir Cámara del Conductor</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Subir datos de la cámara del conductor para ayudar a mejorar el algoritmo de monitoreo del conductor.</translation>
     </message>
     <message>
         <source>Use Metric System</source>

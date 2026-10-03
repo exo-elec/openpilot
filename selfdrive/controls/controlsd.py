@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 import math
+import time
 from numbers import Number
+from typing import Any
 
 from cereal import car, log
 import cereal.messaging as messaging
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
-from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
+from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 
-from opendbc.car.car_helpers import interfaces
-from opendbc.car.vehicle_model import VehicleModel
+from openpilot.system.socketd.vehicle.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
-from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
-from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
 from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
+from openpilot.selfdrive.controls.lib.cat import CAT
+from openpilot.selfdrive.controls.lib.dlat import DLAT
+from openpilot.selfdrive.controls.lib.red import RED
+from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
+from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
+from openpilot.selfdrive.controls.lib.aeb import AEB
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
 State = log.SelfdriveState.OpenpilotState
@@ -27,20 +33,53 @@ LaneChangeDirection = log.LaneChangeDirection
 
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
 
+# Ordinary cruise/following authority. This is a behavior limit based on the
+# real-world comfort band, not an arbitrary percentage of a hardware range.
+# AEB is applied later and may cross this boundary only from a confirmed lead
+# measured by the built-in forward 77 GHz radar.
+NORMAL_BRAKE_LIMIT_MS2 = -2.5
+
+
+def reduce_steer(steer: float, steering_angle_deg: float, cs_angle_deg: float, resume_diff: float) -> tuple[float, float]:
+  """Ramp steering authority back in after a lateral-control resume.
+
+  Non-linear easing over 1.75 s: the first moments are heavily attenuated to
+  avoid a sharp torque step when LKA/steering re-engages, then authority
+  returns to 100%.
+  """
+  end_time = 1.75
+  if resume_diff >= end_time:
+    return steer, steering_angle_deg
+
+  # Higher rate means steeper curve; 0 is linear.
+  rate = 0.003
+  mul = min(1.0, (resume_diff / end_time) ** (1.0 - rate))
+  return steer * mul, (steering_angle_deg - cs_angle_deg) * mul + cs_angle_deg
+
 
 class Controls:
   def __init__(self) -> None:
     self.params = Params()
     cloudlog.info("controlsd is waiting for CarParams")
-    self.CP = messaging.log_from_bytes(self.params.get("CarParams", block=True), car.CarParams)
+    _car_params = self.params.get("CarParams")
+    assert _car_params is not None, "CarParams not available"
+    self.CP = messaging.log_from_bytes(_car_params, car.CarParams)
     cloudlog.info("controlsd got CarParams")
 
-    self.CI = interfaces[self.CP.carFingerprint](self.CP)
+    # Tesla-only: No need for generic interface lookup
+    self.CI = None  # Replaced by vehicled daemon
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance'], poll='selfdriveState')
-    self.pm = messaging.PubMaster(['carControl', 'controlsState'])
+                                   'onroadEvents', 'driverAssistance',
+                                   'enhancedTrajectory',  # EOP: pathd
+                                   'surfaceStatus', 'radarState',
+                                   'monoDetections', 'stereoDetections', 'stereoObjects',
+                                   'sideDetections', 'rearDetections',  # EOP: camera fallback for zone monitor
+                                   'gridObjects',  # EOP: fused drivable layer for the zone monitor's off-road check
+                                   'adaptiveDrivingState'],  # EOP: adaptd
+                                  poll='selfdriveState')
+    self.pm = messaging.PubMaster(['carControl', 'controlsState', 'blindSpotAlert', 'ttsRequest', 'alccState'])
 
     self.steer_limited_by_safety = False
     self.curvature = 0.0
@@ -51,27 +90,55 @@ class Controls:
 
     self.LoC = LongControl(self.CP)
     self.VM = VehicleModel(self.CP)
+
+    # EOP: CAT (Car Adaptive Tuning) — smoothed steer ratio / stiffness learning
+    self.cat = CAT(self.CP)
+
+    # EOP: DLAT (Dynamic Lateral Profile)
+    self.dlat = DLAT()
+    self.dlat_use_laneless = False
+    self.dlat_mode = 0
+    self.dlat_state = 0
+
+    # EOP: RED (Road Edge Detection)
+    self.red = RED()
+
+    # EOP: radar zone monitor — adjacent-lane + rear threat assessment
+    self.zone_monitor = RadarZoneMonitor()
+
+    # EOP: AEB (Autonomous Emergency Braking)
+    self.aeb = AEB()
+
+    # EOP: ALCC (Always Lane Centering Control)
+    self.alcc = AlccController(self.CP)
+    self.alcc_status = AlccStatus()  # default-initialised; overwritten on first frame
+
+    # EOP: per-frame state needed by ALCC
+    self.CS_prev = car.CarState.new_message()  # zeroed CarState; safe on first frame
+    self.events: list[Any] = []
+    self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
+
+    # EOP: TJA resume alert debounce
+    self._tja_resume_alerted = False
+
+    # EOP: post-lateral-resume steering ramp (avoids jerk when LKA/steering re-engages)
+    self._lat_active_prev = False
+    self._steer_resumed = False
+    self._last_steer_resume_t = 0.0
+
+    # EOP-CLEANUP: Cached params — refreshed once per second, not every frame
+    self._param_refresh_s = 1.0
+    self._last_param_t = 0.0
+    self._cached_eop_params: dict[str, Any] = {}
+
     self.LaC: LatControl
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
-      self.LaC = LatControlAngle(self.CP, self.CI)
+      # Tesla uses angle-based steering control
+      self.LaC = LatControlAngle(self.CP, None)
     elif self.CP.lateralTuning.which() == 'pid':
-      self.LaC = LatControlPID(self.CP, self.CI)
+      self.LaC = LatControlPID(self.CP, None)
     elif self.CP.lateralTuning.which() == 'torque':
-      self.LaC = LatControlTorque(self.CP, self.CI)
-
-    self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
-    self.alcc_active = False
-    self.alcc = NGPALCC()
-
-    # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling
-    # in the curvature/steering sense). Always automatic -- a default behavior
-    # of this branch, no user-selectable mode and no panel control for the
-    # mode itself. DLP curve assist (ngp_lat_dlp_curves) is a separate,
-    # panel-exposed pre-emptive override on top of that arbitration.
-    self.dlat = NGPDLAT()
-    self.dlat_use_laneless = False
-    self.dlat_lane_confidence = 1.0
-    self.dlp_curves_enabled = self.params.get_bool("ngp_lat_dlp_curves")
+      self.LaC = LatControlTorque(self.CP, None)
 
   def update(self):
     self.sm.update(15)
@@ -84,10 +151,15 @@ class Controls:
   def state_control(self):
     CS = self.sm['carState']
 
-    # Update VehicleModel
+    # Update VehicleModel — apply CAT corrections if confident
     lp = self.sm['liveParameters']
-    x = max(lp.stiffnessFactor, 0.1)
-    sr = max(lp.steerRatio, 0.1)
+    cat_status = self.cat.update(self.sm)
+    if cat_status.adaptive:
+      x  = max(cat_status.stiffness_factor, 0.1)
+      sr = max(cat_status.steer_ratio, 0.1)
+    else:
+      x  = max(lp.stiffnessFactor, 0.1)
+      sr = max(lp.steerRatio, 0.1)
     self.VM.update_params(x, sr)
 
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - lp.angleOffsetDeg)
@@ -103,33 +175,130 @@ class Controls:
     long_plan = self.sm['longitudinalPlan']
     model_v2 = self.sm['modelV2']
 
+    # EOP-CLEANUP: Refresh cached params once per second
+    now = time.monotonic()
+    if now - self._last_param_t >= self._param_refresh_s:
+      self._last_param_t = now
+      self._cached_eop_params = {
+        'EOPBSDEnabled': self.params.get_bool("EOPBSDEnabled"),
+        'EOPBSDMinSpeed': float(self.params.get("EOPBSDMinSpeed") or 5.5),
+        'EOPBSDChimeEnabled': self.params.get_bool("EOPBSDChimeEnabled"),
+        'EOPTTSAlertsEnabled': self.params.get_bool("EOPTTSAlertsEnabled"),
+        'EOPAEBEnabled': self.params.get_bool("EOPAEBEnabled"),
+      }
+    p = self._cached_eop_params
+
+    # EOP: radar zone monitor — advisory only, never intervenes in steering/braking
+    # Camera-only operation remains available when a BLE corner is absent.
+    # Feature-specific speed/gear gates are owned by RadarZoneMonitor so
+    # low-speed cross-traffic warnings are not disabled by the BSD threshold.
+    if p.get('EOPBSDEnabled'):
+      if self.sm.updated['gridObjects'] and self.sm.valid.get('gridObjects'):
+        self.zone_monitor.cache_drivable(self.sm['gridObjects'], now)
+      self.zone_monitor.update(
+        stereo_objects_msg=self.sm['stereoObjects'] if self.sm.valid.get('stereoObjects') else None,
+        carstate=CS,
+        side_detections_msg=self.sm['sideDetections'] if self.sm.valid.get('sideDetections') else None,
+        rear_detections_msg=self.sm['rearDetections'] if self.sm.valid.get('rearDetections') else None,
+        t=now,
+      )
+      zm = self.zone_monitor
+
+      zone_msg = messaging.new_message('blindSpotAlert')
+      cross_threats = (zm.fcta_state, zm.rcta_state)
+      left_cross = [threat for threat in cross_threats if threat.detected and threat.side == ZoneSide.LEFT]
+      right_cross = [threat for threat in cross_threats if threat.detected and threat.side == ZoneSide.RIGHT]
+      left_level = max([zm.left_state.alert_level.value] + [threat.alert_level.value for threat in left_cross])
+      right_level = max([zm.right_state.alert_level.value] + [threat.alert_level.value for threat in right_cross])
+      left_primary = min(left_cross, key=lambda threat: threat.ttc_s) if left_cross else None
+      right_primary = min(right_cross, key=lambda threat: threat.ttc_s) if right_cross else None
+
+      zone_msg.blindSpotAlert.leftAlertLevel  = left_level
+      zone_msg.blindSpotAlert.rightAlertLevel = right_level
+      zone_msg.blindSpotAlert.leftDetected    = zm.left_state.detected or bool(left_cross)
+      zone_msg.blindSpotAlert.rightDetected   = zm.right_state.detected or bool(right_cross)
+      zone_msg.blindSpotAlert.leftDistance    = left_primary.distance_m if left_primary else zm.left_state.distance_m
+      zone_msg.blindSpotAlert.rightDistance   = right_primary.distance_m if right_primary else zm.right_state.distance_m
+      zone_msg.blindSpotAlert.leftRelativeSpeed  = left_primary.vRel_ms if left_primary else zm.left_state.vRel_ms
+      zone_msg.blindSpotAlert.rightRelativeSpeed = right_primary.vRel_ms if right_primary else zm.right_state.vRel_ms
+      zone_msg.blindSpotAlert.rearCrossTrafficDetected     = zm.rcta_state.detected
+      zone_msg.blindSpotAlert.rearCrossTrafficAlertLevel   = zm.rcta_state.alert_level.value
+      zone_msg.blindSpotAlert.rearCrossTrafficDistance     = zm.rcta_state.distance_m
+      zone_msg.blindSpotAlert.rearCrossTrafficRelativeSpeed = zm.rcta_state.vRel_ms
+      zone_msg.blindSpotAlert.alertMessage   = zm.alert_message() or ""
+      # Wide TTC-based LCA gate (reads radar3d far-range adjacent objects)
+      zone_msg.blindSpotAlert.lcaBlockedLeft  = zm.lca_blocked_left
+      zone_msg.blindSpotAlert.lcaBlockedRight = zm.lca_blocked_right
+
+      should_chime, _ = zm.chime_request(now)
+      zone_msg.blindSpotAlert.chimeRequest = should_chime and p.get('EOPBSDChimeEnabled', False)
+
+      if should_chime and p.get('EOPTTSAlertsEnabled', False):
+        alert_txt = zm.alert_message()
+        if alert_txt:
+          tts_msg = messaging.new_message('ttsRequest')
+          tts_msg.ttsRequest.text = alert_txt
+          tts_msg.ttsRequest.priority = 1
+          tts_msg.ttsRequest.interrupt = True
+          self.pm.send('ttsRequest', tts_msg)
+
+      self.pm.send('blindSpotAlert', zone_msg)
+
     CC = car.CarControl.new_message()
     CC.enabled = self.sm['selfdriveState'].enabled
 
+    # EOP: DLAT - Update lateral profile mode
+    self.dlat_use_laneless, self.dlat_mode, self.dlat_state = self.dlat.update(model_v2, CS)
+
+    # EOP: RED (Road Edge Detection) - only active in laneless mode
+    # Get YOLO detections from gridd if available
+    yolo_detections = None
+    stereo_data = None
+    if self.sm.valid.get('enhancedTrajectory', False):
+      et = self.sm['enhancedTrajectory']
+      # gridd provides detections via enhancedTrajectory
+      yolo_detections = getattr(et, 'detections', None)
+      stereo_data = getattr(et, 'stereoData', None)
+
+    red_output = self.red.update(
+      model_v2=model_v2,
+      yolo_detections=yolo_detections,
+      stereo_data=stereo_data,
+      vehicle_position=(0.0, 0.0),  # Relative to path center
+      v_ego=CS.vEgo,
+      planned_path=[],  # Path points from lateral planner
+      is_laneless=self.dlat_use_laneless
+    )
+
+    # EOP: Enhanced ALCC (Always Lane Centering Control)
+    calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
+    gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park, car.CarState.GearShifter.neutral, car.CarState.GearShifter.reverse)
+    safety_ok = not CS.seatbeltUnlatched and not CS.doorOpen
+
+    alcc_status = self.alcc.update(
+      CS=CS, CS_prev=self.CS_prev,
+      events=self.events,
+      panda_states=self.sm['pandaStates'] if self.sm.valid.get('pandaStates', False) else [],
+      stock_enabled=self.sm['selfdriveState'].enabled,
+      stock_active=self.sm['selfdriveState'].active,
+      calibrated=calibrated, gear_ok=gear_ok, safety_ok=safety_ok,
+      disengage_on_accelerator=self.disengage_on_accelerator
+    )
+    self.alcc_status = alcc_status
+
     # Check which actuators can be enabled
     standstill = abs(CS.vEgo) <= max(self.CP.minSteerSpeed, 0.3) or CS.standstill
-    calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
-    gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park,
-                                     car.CarState.GearShifter.neutral,
-                                     car.CarState.GearShifter.reverse)
-    safety_ok = not (CS.steerFaultTemporary or CS.steerFaultPermanent or
-                     CS.seatbeltUnlatched or CS.doorOpen)
-    alcc_status = self.alcc.update(ALCCInput(
-      feature_enabled=self.alcc_enabled,
-      engage_request=CS.cruiseState.available,
-      user_disable=not CS.cruiseState.available,
-      immediate_disable=not safety_ok,
-      soft_disable=self.sm['selfdriveState'].state == State.softDisabling,
-      pause_condition=standstill and not self.CP.steerAtStandstill,
-      steering_override=abs(CS.steeringTorque) > 1.0,
-      calibrated=calibrated,
-      gear_ok=gear_ok,
-      safety_ok=safety_ok,
-    ))
-    self.alcc_active = alcc_status.active_suggestion and alcc_status.available
-    lat_active = self.sm['selfdriveState'].active or self.alcc_active
-    CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
-                   (not standstill or self.CP.steerAtStandstill)
+
+    # Standard active or ALCC
+    CC.latActive = (self.sm['selfdriveState'].active or alcc_status.active) and \
+                   not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+                   not CS.lkaDisabled and \
+                   (not standstill or self.CP.steerAtStandstill or alcc_status.hold_at_standstill)
+
+    # Inhibit ALCC if user is actively steering (soft override)
+    if alcc_status.active and not self.sm['selfdriveState'].active and abs(CS.steeringTorque) > 1.0:
+      CC.latActive = False
+
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators
@@ -146,38 +315,118 @@ class Controls:
       self.LoC.reset()
 
     # accel PID loop
-    pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, CS.vEgo, CS.vCruise * CV.KPH_TO_MS)
+    # Tesla-only actuator envelope. Keep ordinary cruise/following inside the
+    # comfort boundary; the built-in-radar AEB path is applied separately below.
+    pid_accel_limits = (self.CP.accelMin, self.CP.accelMax) if self.CP.accelMin < self.CP.accelMax else (-3.48, 2.0)
+    pid_accel_limits = (max(pid_accel_limits[0], NORMAL_BRAKE_LIMIT_MS2), pid_accel_limits[1])
+
+    # EOP: adaptd adaptive driving — clamp accel/decel limits from OBD telemetry
+    if self.sm.valid.get('adaptiveDrivingState', False):
+      ads = self.sm['adaptiveDrivingState']
+      if ads.enabled:
+        ads_accel_max = float(ads.accelMax)
+        ads_decel_max = float(ads.decelMax)
+        # Only clamp if values are sane (non-zero, finite)
+        if 0.0 < ads_accel_max < 10.0 and 0.0 < ads_decel_max < 10.0:
+          pid_accel_limits = (
+            max(pid_accel_limits[0], -ads_decel_max),
+            min(pid_accel_limits[1], ads_accel_max),
+          )
+
     actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits))
 
-    # DLAT: automatic Laneful/Laneless confidence arbitration, a default
-    # always-on behavior of this branch -- no user-selectable mode. DLP curve
-    # assist (ngp_lat_dlp_curves) pre-emptively forces laneless on a
-    # predicted tight curve, ahead of the ordinary confidence hysteresis.
-    dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo, curve_assist_enabled=self.dlp_curves_enabled)
-    self.dlat_lane_confidence = dlat_result.lane_confidence
-    self.dlat_use_laneless = dlat_result.suggestion is DLATSuggestion.LANELESS
+    # EOP: TJA resume required alert (soundd TTS)
+    if self.LoC.tja_resume_required and not self._tja_resume_alerted:
+      tts_msg = messaging.new_message('ttsRequest')
+      tts_msg.ttsRequest.text = "Traffic Jam Assist hold expired. Please resume manually."
+      tts_msg.ttsRequest.priority = 1  # high
+      tts_msg.ttsRequest.interrupt = True
+      self.pm.send('ttsRequest', tts_msg)
+      self._tja_resume_alerted = True
+    elif not self.LoC.tja_resume_required:
+      self._tja_resume_alerted = False
+
+    # EOP: AEB - Autonomous Emergency Braking
+    if p.get('EOPAEBEnabled', False) and CC.longActive:
+      aeb_result = self.aeb.update(self.sm, CS)
+      if aeb_result.is_active and aeb_result.target_decel < 0 and math.isfinite(aeb_result.target_decel):
+        # AEB requests emergency braking - clamp acceleration
+        actuators.accel = min(actuators.accel, aeb_result.target_decel)
+        cloudlog.warning(f"AEB active: decel={aeb_result.target_decel:.1f}m/s², TTC={aeb_result.ttc:.2f}s, reason={aeb_result.reason}")
+
+    # EOP: pathd collision avoidance — clamp accel based on enhancedTrajectory
+    if CC.longActive and self.sm.valid.get('enhancedTrajectory', False):
+      et = self.sm['enhancedTrajectory']
+      alert = et.trajectoryAlertLevel
+      if alert == "critical":
+        # Camera/path perception has no AEB authority. It may request firm but
+        # comfortable mitigation only; crossing the boundary is reserved for
+        # the confirmed built-in-radar AEB path above.
+        actuators.accel = min(actuators.accel, NORMAL_BRAKE_LIMIT_MS2)
+      elif alert == "warning" and et.speedAdjustment and et.speedAdjustment[0] < -0.1:
+        # speedAdjustment is m/s² (pathd divides Δv by ACCEL_RESPONSE_TIME=1.0s)
+        actuators.accel = min(actuators.accel, max(et.speedAdjustment[0], -2.0))
 
     # Steering PID loop and lateral MPC
     # Reset desired curvature to current to avoid violating the limits on engage
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
+
+    # EOP: RED - Apply road edge repulsive force to curvature
+    if red_output['lateral_cost'] > 0 and self.dlat_use_laneless:
+      # Apply repulsive offset: push away from detected edge
+      # The cost is converted to a small curvature adjustment
+      edge_offset = red_output['lateral_cost'] * 0.001  # Scale factor
+      if red_output.get('edges_detected', 0) > 0:
+        # Determine which side the edge is on and push away
+        closest_dist = red_output.get('closest_distance', float('inf'))
+        if closest_dist < 1.0:  # Only adjust if edge is close
+          # edge_side: -1 = left edge → push right (negative curvature delta)
+          #            +1 = right edge → push left (positive curvature delta)
+          # positive desiredCurvature = left turn, so right-push = negative delta
+          edge_sign = 1 if red_output.get('edge_side', 0) > 0 else -1
+          new_desired_curvature += edge_sign * abs(edge_offset)
+
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
     actuators.curvature = self.desired_curvature
+    if hasattr(self.LaC, 'set_model_data'):
+      self.LaC.set_model_data(self.sm['modelV2'])
     steer, steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                        self.steer_limited_by_safety, self.desired_curvature,
                                                        curvature_limited)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
+
+    # EOP: post-lateral-resume steering ramp. When lateral control transitions
+    # from inactive → active, ramp torque/angle authority over 1.75 s to avoid
+    # a sharp step. This covers LKA-disable → LKA-enable transitions and any
+    # other latActive resume edge.
+    if not CC.latActive:
+      self._steer_resumed = False
+    elif not self._lat_active_prev:
+      self._steer_resumed = True
+      self._last_steer_resume_t = time.monotonic()
+
+    if self._steer_resumed:
+      resume_diff = time.monotonic() - self._last_steer_resume_t
+      if resume_diff < 2.0:
+        actuators.torque, actuators.steeringAngleDeg = reduce_steer(
+          actuators.torque, actuators.steeringAngleDeg, CS.steeringAngleDeg, resume_diff)
+      else:
+        self._steer_resumed = False
+
+    self._lat_active_prev = CC.latActive
+
     # Ensure no NaNs/Infs
-    for p in ACTUATOR_FIELDS:
-      attr = getattr(actuators, p)
+    for field_name in ACTUATOR_FIELDS:
+      attr = getattr(actuators, field_name)
       if not isinstance(attr, Number):
         continue
-
       if not math.isfinite(attr):
-        cloudlog.error(f"actuators.{p} not finite {actuators.to_dict()}")
-        setattr(actuators, p, 0.0)
+        cloudlog.error(f"actuators.{field_name} not finite {actuators.to_dict()}")
+        setattr(actuators, field_name, 0.0)
 
+    self.CS_prev = CS
     return CC, lac_log
 
   def publish(self, CC, lac_log):
@@ -229,14 +478,23 @@ class Controls:
     cs.lateralPlanMonoTime = self.sm.logMonoTime['modelV2']
     cs.desiredCurvature = self.desired_curvature
     cs.longControlState = self.LoC.long_control_state
+
+    # EOP: DLAT debug info
+    cs.dlatMode = self.dlat_mode
+    cs.dlatState = self.dlat_state
+    cs.dlatLaneConfidence = self.dlat.lane_confidence
+    cs.dlatUseLaneless = self.dlat_use_laneless
+
+    # EOP: radar zone monitor state (for UI overlay)
+    cs.leftBlindSpot  = self.zone_monitor.left_state.alert_level.value
+    cs.rightBlindSpot = self.zone_monitor.right_state.alert_level.value
+
     cs.upAccelCmd = float(self.LoC.pid.p)
     cs.uiAccelCmd = float(self.LoC.pid.i)
     cs.ufAccelCmd = float(self.LoC.pid.f)
-    cs.forceDecel = bool((self.sm['driverMonitoringState'].awarenessStatus < 0.) or
-                         (self.sm['selfdriveState'].state == State.softDisabling))
-    cs.ngpAlccActive = bool(self.alcc_active)
-    cs.ngpDlatUseLaneless = bool(self.dlat_use_laneless)
-    cs.ngpDlatLaneConfidence = float(self.dlat_lane_confidence)
+    # EOP: driverMonitoringState removed (EOP uses its own monitoring daemons).
+    # Inattention escalation is handled by monod → selfdriveState.state transitions.
+    cs.forceDecel = bool(self.sm['selfdriveState'].state == State.softDisabling)
 
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
@@ -254,6 +512,16 @@ class Controls:
     cc_send.carControl = CC
     self.pm.send('carControl', cc_send)
 
+    # EOP: alccState (Topic 01) — ALCC state for UI / logging
+    alcc_send = messaging.new_message('alccState')
+    alcc_send.valid = True
+    a = alcc_send.alccState
+    a.state = self.alcc_status.state
+    a.enabled = self.alcc_status.enabled
+    a.active = self.alcc_status.active
+    a.available = self.alcc_status.available
+    self.pm.send('alccState', alcc_send)
+
   def run(self):
     rk = Ratekeeper(100, print_delay_threshold=None)
     while True:
@@ -263,11 +531,17 @@ class Controls:
       rk.monitor_time()
 
 
-def main():
-  config_realtime_process(4, Priority.CTRL_HIGH)
-  controls = Controls()
-  controls.run()
+def main() -> int:
+  try:
+    set_daemon_affinity("controlsd")
+    config_realtime_process(DT_CTRL, Priority.CTRL_HIGH)
+    controls = Controls()
+    controls.run()
+    return 0
+  except Exception as e:
+    cloudlog.exception(f"ControlsD fatal error: {e}")
+    raise
 
 
 if __name__ == "__main__":
-  main()
+  exit(main())

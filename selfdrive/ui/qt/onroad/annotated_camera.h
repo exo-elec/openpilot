@@ -2,9 +2,9 @@
 
 #include <QVBoxLayout>
 #include <memory>
+#include "selfdrive/ui/qt/onroad/bev_widget.h"
 #include "selfdrive/ui/qt/onroad/hud.h"
 #include "selfdrive/ui/qt/onroad/buttons.h"
-#include "selfdrive/ui/qt/onroad/driver_monitoring.h"
 #include "selfdrive/ui/qt/onroad/model.h"
 #include "selfdrive/ui/qt/widgets/cameraview.h"
 
@@ -18,9 +18,12 @@ public:
 private:
   QVBoxLayout *main_layout;
   ExperimentalButton *experimental_btn;
-  DriverMonitorRenderer dmon;
   HudRenderer hud;
   ModelRenderer model;
+  // Small corner overlay floating over the camera view. Not in main_layout
+  // -- positioned manually by positionBevWidget() on every resize.
+  BEVWidget *bev_widget = nullptr;
+  void positionBevWidget();
   std::unique_ptr<PubMaster> pm;
 
   int skip_frame_count = 0;
@@ -30,6 +33,7 @@ protected:
   void paintGL() override;
   void initializeGL() override;
   void showEvent(QShowEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
   mat4 calcFrameMatrix() override;
 
   double prev_draw_t = 0;

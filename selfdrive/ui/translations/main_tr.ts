@@ -175,16 +175,8 @@
         <translation>Seri Numara</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Sürücü Kamerası</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>ÖN İZLEME</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Sürücü kamerasının görüş açısını test etmek için kamerayı önizleyin (Araç kapalı olmalıdır.) </translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -925,14 +917,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>Hızı mph yerine km/h şeklinde görüntüleyin.</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Sürücü kamerasını kayıt et.</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Sürücüye bakan kamera verisini yükleyin ve Cihazın algoritmasını geliştirmemize yardımcı olun.</translation>
-    </message>
-    <message>
         <source>When enabled, pressing the accelerator pedal will disengage openpilot.</source>
         <translation>Aktifleştirilirse eğer gaz pedalına basınca openpilot devre dışı kalır.</translation>
     </message>
@@ -998,14 +982,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     </message>
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

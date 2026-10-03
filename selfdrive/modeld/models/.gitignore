@@ -1,0 +1,4 @@
+# Model binaries and metadata — not committed to git
+# Download via models/download_models.sh or generate metadata with get_model_metadata.py
+*.onnx
+*.pkl

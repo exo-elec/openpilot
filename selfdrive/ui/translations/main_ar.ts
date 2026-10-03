@@ -175,16 +175,8 @@
         <translation>الرقم التسلسلي</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>كاميرة السائق</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>معاينة</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>قم بمعاينة الكاميرا المواجهة للسائق للتأكد من أن نظام مراقبة السائق يتمتع برؤية جيدة. (يجب أن تكون السيارة متوقفة)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -953,14 +945,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>عرض السرعة بواحدات كم/سا بدلاً من ميل/سا.</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>تسجيل وتحميل كاميرا السائق</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>تحميل البيانات من الكاميرا المواجهة للسائق، والمساعدة في تحسين خوارزمية مراقبة السائق.</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>فك الارتباط عن دواسة الوقود</translation>
     </message>
@@ -1027,14 +1011,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>ستتحول واجهة القيادة إلى الكاميرا الواسعة المواجهة للطريق عند السرعات المنخفضة لعرض بعض المنعطفات بشكل أفضل. كما سيتم عرض شعار وضع التجريبي في الزاوية العلوية اليمنى.</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>مراقبة السائق المستمرة</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>تمكين مراقبة السائق حتى عندما لا يكون نظام OpenPilot مُفعّلاً.</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

@@ -12,7 +12,7 @@
 RecordButton::RecordButton(QWidget *parent) : QPushButton(parent) {
   setCheckable(true);
   setChecked(false);
-  setFixedSize(148, 148);
+  setFixedSize(90, 90);
 
   QObject::connect(this, &QPushButton::toggled, [=]() {
     setEnabled(false);
@@ -59,10 +59,10 @@ BodyWindow::BodyWindow(QWidget *parent) : fuel_filter(1.0, 5., 1. / UI_FREQ), QW
   vlayout->setMargin(45);
   layout->addWidget(w);
 
-  // face
-  face = new QLabel();
-  face->setAlignment(Qt::AlignCenter);
-  layout->addWidget(face);
+  // body animation
+  body_anim = new QLabel();
+  body_anim->setAlignment(Qt::AlignCenter);
+  layout->addWidget(body_anim);
   awake = new QMovie("../assets/body/awake.gif", {}, this);
   awake->setCacheMode(QMovie::CacheAll);
   sleep = new QMovie("../assets/body/sleep.gif", {}, this);
@@ -142,9 +142,9 @@ void BodyWindow::updateState(const UIState &s) {
   // TODO: use carState.standstill when that's fixed
   const bool standstill = std::abs(cs.getVEgo()) < 0.01;
   QMovie *m = standstill ? sleep : awake;
-  if (m != face->movie()) {
-    face->setMovie(m);
-    face->movie()->start();
+  if (m != body_anim->movie()) {
+    body_anim->setMovie(m);
+    body_anim->movie()->start();
   }
 
   // update record button state

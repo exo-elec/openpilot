@@ -175,16 +175,8 @@
         <translation>ซีเรียล</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>กล้องฝั่งคนขับ</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>แสดงภาพ</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>ดูภาพตัวอย่างกล้องที่หันเข้าหาคนขับเพื่อให้แน่ใจว่าการตรวจสอบคนขับมีทัศนวิสัยที่ดี (รถต้องดับเครื่องยนต์)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -928,14 +920,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>แสดงความเร็วเป็น กม./ชม. แทน ไมล์/ชั่วโมง</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>บันทึกและอัปโหลดภาพจากกล้องคนขับ</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>อัปโหลดข้อมูลจากกล้องที่หันหน้าไปทางคนขับ และช่วยปรับปรุงอัลกอริธึมการตรวจสอบผู้ขับขี่</translation>
-    </message>
-    <message>
         <source>Disengage on Accelerator Pedal</source>
         <translation>ยกเลิกระบบช่วยขับเมื่อเหยียบคันเร่ง</translation>
     </message>
@@ -1002,14 +986,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>การแสดงภาพการขับขี่จะเปลี่ยนไปใช้กล้องมุมกว้างที่หันหน้าไปทางถนนเมื่ออยู่ในความเร็วต่ำ เพื่อแสดงภาพการเลี้ยวที่ดีขึ้น โลโก้โหมดการทดลองจะแสดงที่มุมบนขวาด้วย</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>การเฝ้าระวังผู้ขับขี่ตลอดเวลา</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>เปิดใช้งานการเฝ้าระวังผู้ขับขี่แม้เมื่อ openpilot ไม่ได้เข้าควบคุมอยู่</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

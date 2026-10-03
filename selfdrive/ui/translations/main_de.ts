@@ -175,16 +175,8 @@
         <translation>Seriennummer</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Fahrerkamera</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>VORSCHAU</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Vorschau der auf den Fahrer gerichteten Kamera, um sicherzustellen, dass die Fahrerüberwachung eine gute Sicht hat. (Fahrzeug muss aus sein)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -935,14 +927,6 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
         <translation>Zeige die Geschwindigkeit in km/h anstatt von mph.</translation>
     </message>
     <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Fahrerkamera aufnehmen und hochladen</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Lade Daten der Fahreraufmerksamkeitsüberwachungskamera hoch, um die Fahreraufmerksamkeitsüberwachungsalgorithmen zu verbessern.</translation>
-    </message>
-    <message>
         <source>When enabled, pressing the accelerator pedal will disengage openpilot.</source>
         <translation>Wenn aktiviert, deaktiviert sich Openpilot sobald das Gaspedal betätigt wird.</translation>
     </message>
@@ -1009,14 +993,6 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
     <message>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.</source>
         <translation>Die Fahrvisualisierung wechselt bei niedrigen Geschwindigkeiten auf die nach vorne gerichtete Weitwinkelkamera, um Kurven besser darzustellen. Das Logo des Experimentellen Modus wird außerdem oben rechts angezeigt.</translation>
-    </message>
-    <message>
-        <source>Always-On Driver Monitoring</source>
-        <translation>Dauerhaft aktive Fahrerüberwachung</translation>
-    </message>
-    <message>
-        <source>Enable driver monitoring even when openpilot is not engaged.</source>
-        <translation>Fahrerüberwachung auch aktivieren, wenn openpilot nicht aktiv ist.</translation>
     </message>
     <message>
         <source>Use the openpilot system for adaptive cruise control and lane keep driver assistance. Your attention is required at all times to use this feature.</source>

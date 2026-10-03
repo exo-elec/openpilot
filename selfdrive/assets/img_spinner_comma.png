@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="100%" height="100%" fill="none"/>
+
+  <defs>
+    <!-- Multi-gradient layers for dynamic blue shading -->
+    <radialGradient id="gradOuter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#2563EB" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.2"/>
+    </radialGradient>
+    <radialGradient id="gradMid" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1E40AF" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.25"/>
+    </radialGradient>
+    <radialGradient id="gradInner" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.95"/>
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.3"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Outer multi-gradient aura -->
+  <g fill="none" stroke-linecap="round">
+    <circle cx="512" cy="512" r="380" stroke="url(#gradOuter)" stroke-width="22" opacity="0.35"/>
+    <circle cx="512" cy="512" r="440" stroke="url(#gradMid)" stroke-width="18" opacity="0.28"/>
+    <circle cx="512" cy="512" r="500" stroke="url(#gradInner)" stroke-width="14" opacity="0.22"/>
+  </g>
+
+  <!-- ZenRadar quadrant arcs -->
+  <g fill="none" stroke="url(#gradInner)" stroke-width="20" stroke-linecap="round" opacity="0.8">
+    <path d="M320 192 A320 320 0 0 1 512 132"/>
+    <path d="M832 320 A320 320 0 0 1 892 512"/>
+    <path d="M704 832 A320 320 0 0 1 512 892"/>
+    <path d="M192 704 A320 320 0 0 1 132 512"/>
+  </g>
+
+  <!-- Enhanced center car (deep blue stroke) -->
+  <g fill="none" stroke="#1E40AF" stroke-width="18" stroke-linejoin="round">
+    <rect x="440" y="340" width="144" height="360" rx="60" ry="60"/>
+    <path d="M440 440 H584" stroke-width="10" opacity="0.85"/>
+    <path d="M440 520 H584" stroke-width="10" opacity="0.85"/>
+    <path d="M440 600 H584" stroke-width="10" opacity="0.85"/>
+  </g>
+</svg>

@@ -131,16 +131,8 @@
         <translation>Serienummer</translation>
     </message>
     <message>
-        <source>Driver Camera</source>
-        <translation>Bestuurders Camera</translation>
-    </message>
-    <message>
         <source>PREVIEW</source>
         <translation>BEKIJKEN</translation>
-    </message>
-    <message>
-        <source>Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)</source>
-        <translation>Bekijk de naar de bestuurder gerichte camera om ervoor te zorgen dat het monitoren van de bestuurder goed zicht heeft. (Voertuig moet uitgschakeld zijn)</translation>
     </message>
     <message>
         <source>Reset Calibration</source>
@@ -997,14 +989,6 @@ ingesteld</translation>
     <message>
         <source>Display speed in km/h instead of mph.</source>
         <translation>Geef snelheid weer in km/u in plaats van mph.</translation>
-    </message>
-    <message>
-        <source>Record and Upload Driver Camera</source>
-        <translation>Opnemen en Uploaden van de Bestuurders Camera</translation>
-    </message>
-    <message>
-        <source>Upload data from the driver facing camera and help improve the driver monitoring algorithm.</source>
-        <translation>Upload gegevens van de bestuurders camera en help het algoritme voor het monitoren van de bestuurder te verbeteren.</translation>
     </message>
     <message>
         <source>Disengage on Accelerator Pedal</source>
