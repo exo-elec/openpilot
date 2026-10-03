@@ -3,7 +3,7 @@
 
 Validates the safety-critical authority logic:
 - Local override detection and priority
-- may_publish() gating on JoystickDebugMode and SteamDRemoteControl
+- may_publish() gating on JoystickDebugMode and EOPSteamDRemoteControl
 - Link-loss safe-stop timing
 - Cooldown behavior after override
 
@@ -93,7 +93,7 @@ class TestControlArbiter(unittest.TestCase):
       self.arbiter.check_local_override(cs)
       calls = list(mock_put.call_args_list)
       self.assertTrue(any(c.args == ("JoystickDebugMode", False) for c in calls))
-      self.assertTrue(any(c.args == ("SteamDRemoteControl", False) for c in calls))
+      self.assertTrue(any(c.args == ("EOPSteamDRemoteControl", False) for c in calls))
 
   # ------------------------------------------------------------------ #
   # may_publish() gating
@@ -113,7 +113,7 @@ class TestControlArbiter(unittest.TestCase):
 
   def test_may_publish_true_with_steamd_remote_control(self):
     def side_effect(key):
-      return key == "SteamDRemoteControl"
+      return key == "EOPSteamDRemoteControl"
     with patch.object(self.arbiter.params, 'get_bool', side_effect=side_effect):
       self.assertTrue(self.arbiter.may_publish())
       self.assertEqual(self.arbiter.state, AuthorityState.REMOTE_ACTIVE)

@@ -81,7 +81,7 @@ PAIR SET (CornerPairTable): a node's BLE public address is its factory eFuse
 BT MAC — unique per IC, stable across flashes/OTA — so it is the UNIT
 identity, while the corner_id in each datagram (from the resistor strap) is
 the POSITION identity. Every valid datagram teaches the table
-{ble_address: corner_id}, persisted in the BLECornerPairs param (JSON) so the
+{ble_address: corner_id}, persisted in the EOPBLECornerPairs param (JSON) so the
 mapping survives restarts — the BLE analogue of the WiFi fleet's MAC pairing
 (hostapd macaddr_acl + exopilot's pair_corner_nodes.sh). Conflict semantics
 (kept deliberately simple):
@@ -98,9 +98,9 @@ known units may feed openpilot). A sender is authorized if:
     - the pair set is EMPTY (first-run bootstrap: with nothing paired yet,
       any unit may be learned — otherwise the fleet could never be
       commissioned), OR
-    - BLERadarPairingOpen=1 (pairing window open).
+    - EOPBLERadarPairingOpen=1 (pairing window open).
 Operator workflow — same ritual as exopilot's pair_corner_nodes.sh adding a
-MAC to ap0.accept: set BLERadarPairingOpen=1 during calibration/pairing,
+MAC to ap0.accept: set EOPBLERadarPairingOpen=1 during calibration/pairing,
 power the node, confirm `paired <addr> → corner <name>` in the log, then set
 it back to 0. Enforcement is applied twice (defense in depth): the connect
 sweep skips unauthorized peripherals, and the frame path drops their
@@ -109,7 +109,7 @@ NOTE: this is a host-side SOFTWARE check — BLE gating here is NOT
 radio-level admission control. WiFi's MAC ACL (hostapd denies association)
 remains the stronger boundary; a rogue BLE peripheral can still occupy the
 link layer, it just never reaches radar2d.
-BLERadarPairingOpen is deliberately NOT EOPBluetoothPairWindow — the latter
+EOPBLERadarPairingOpen is deliberately NOT EOPBluetoothPairWindow — the latter
 is the PHONE discoverable window in bluetoothd.py, a different concern.
 
 CROSS-VEHICLE CONFUSION PROTECTION (parking-lot threat): a neighboring
@@ -125,7 +125,7 @@ unit additionally requires these eligibility factors:
        [6-byte WiFi STA MAC]; the claimed MAC must be in OUR vehicle's
        roster: the WiFi MAC ACL (/etc/hostapd/ap0.accept, maintained by
        pair_corner_nodes.sh; 02M only, the only hardware with the
-       corner-node WiFi antenna) UNION the BLERadarRoster param. The param
+       corner-node WiFi antenna) UNION the EOPBLERadarRoster param. The param
        exists for BLE-only nodes (ESP32_RADAR dev/TR13 has no WiFi, so it
        never joins the AP and pair_corner_nodes.sh cannot learn it): the
        operator enters the factory WiFi STA MAC from the unit's label /
@@ -277,7 +277,7 @@ def load_wifi_roster(path: str = WIFI_PAIR_ROSTER_PATH) -> set[str] | None:
 
 
 def parse_roster_param(raw) -> set[str]:
-    """Parse the BLERadarRoster param: a JSON list of MACs, or MACs separated
+    """Parse the EOPBLERadarRoster param: a JSON list of MACs, or MACs separated
     by whitespace/commas ('#' comments allowed). Invalid entries are ignored.
     Pure, D-Bus-free."""
     if not raw:
@@ -293,7 +293,7 @@ def parse_roster_param(raw) -> set[str]:
 
 
 def merge_rosters(file_roster: set[str] | None, param_roster: set[str]) -> set[str] | None:
-    """Effective identity roster = WiFi MAC ACL ∪ BLERadarRoster. None (degraded,
+    """Effective identity roster = WiFi MAC ACL ∪ EOPBLERadarRoster. None (degraded,
     dwell-only) only when the file is unreadable AND the param is empty."""
     if file_roster is None and not param_roster:
         return None
@@ -361,8 +361,8 @@ RECONNECT_SCAN_S = 5.0          # discovery/connect sweep period
 BACKOFF_INITIAL_S = 1.0         # per-node reconnect backoff…
 BACKOFF_MAX_S = 60.0            # …capped here (doubling)
 
-ROSTER_PARAM = 'BLERadarRoster'  # extra roster MACs for BLE-only nodes (docstring)
-PAIRING_OPEN_PARAM = 'BLERadarPairingOpen'  # pairing window — NOT the phone's
+ROSTER_PARAM = 'EOPBLERadarRoster'  # extra roster MACs for BLE-only nodes (docstring)
+PAIRING_OPEN_PARAM = 'EOPBLERadarPairingOpen'  # pairing window — NOT the phone's
                                             # EOPBluetoothPairWindow (docstring)
 PAIRING_OPEN_TTL_S = 2.0        # param re-read interval — toggles take effect
                                 # without restarting bluetoothd
@@ -386,7 +386,7 @@ class CornerPairTable:
     corner claims warn but keep both addresses.
     """
 
-    PARAM_KEY = 'BLECornerPairs'
+    PARAM_KEY = 'EOPBLECornerPairs'
 
     def __init__(self, params=None):
         self._params = params
@@ -518,7 +518,7 @@ class BLECentral:
     # ── Authorization (paired / bootstrap / pairing window — see docstring) ───
 
     def _pairing_open(self) -> bool:
-        """BLERadarPairingOpen, re-read at most every PAIRING_OPEN_TTL_S so
+        """EOPBLERadarPairingOpen, re-read at most every PAIRING_OPEN_TTL_S so
         toggling it takes effect without restarting bluetoothd."""
         value, expiry = self._pairing_open_cache
         now = time.monotonic()

@@ -116,8 +116,8 @@ def joystick_control_thread(joystick):
   print("=" * 60)
   params = Params()
   params.put_bool('JoystickDebugMode', True)
-  # Also set SteamDRemoteControl so the new process mutex stops controlsd
-  params.put_bool('SteamDRemoteControl', True)
+  # Also set EOPSteamDRemoteControl so the new process mutex stops controlsd
+  params.put_bool('EOPSteamDRemoteControl', True)
   threading.Thread(target=send_thread, args=(joystick,), daemon=True).start()
   while True:
     joystick.update()

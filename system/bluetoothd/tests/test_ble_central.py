@@ -402,7 +402,7 @@ class TestFramePathAuthorization:
     def test_window_open_frame_learns(self):
         params = FakeParams({
             CornerPairTable.PARAM_KEY: '{"AA:BB:CC:DD:EE:02": 1}',
-            'BLERadarPairingOpen': '1',
+            'EOPBLERadarPairingOpen': '1',
         })
         central = BLECentral(params)
         central._wifi_roster = None
@@ -412,11 +412,11 @@ class TestFramePathAuthorization:
         assert central._pairs.as_dict() == {'AA:BB:CC:DD:EE:02': 1, self.ADDR: 0}
 
     def test_pairing_open_param_reread_on_toggle(self):
-        params = FakeParams({'BLERadarPairingOpen': '0'})
+        params = FakeParams({'EOPBLERadarPairingOpen': '0'})
         central = BLECentral(params)
         assert central._pairing_open() is False
         # toggle without restart — cached within TTL, picked up after expiry
-        params.store['BLERadarPairingOpen'] = '1'
+        params.store['EOPBLERadarPairingOpen'] = '1'
         assert central._pairing_open() is False  # still cached
         central._pairing_open_cache = (False, 0.0)  # force TTL expiry
         assert central._pairing_open() is True

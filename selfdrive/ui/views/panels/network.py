@@ -205,8 +205,8 @@ class BluetoothPanel(ListWidget):
   def refresh(self) -> None:
     self.device_name.set_value(self._store.get_text("EOPDeviceName") or "ExoPilot")
 
-    pairing_open = self._store.get_text("BluetoothPairingActive") == "1"
-    pin = self._store.get_text("BluetoothPairingPin")
+    pairing_open = self._store.get_text("EOPBluetoothPairingActive") == "1"
+    pin = self._store.get_text("EOPBluetoothPairingPin")
     # GATT is checked alongside SPP: SPP is reserved for legacy OBD scanners,
     # and NavPilot's actual transport is BLE GATT. Looking only at SPP is why
     # the sidebar used to read "BLE OFF" with a phone plainly connected.
@@ -227,8 +227,8 @@ class BluetoothPanel(ListWidget):
     self.update()
 
   def _toggle_pairing(self) -> None:
-    now_open = self._store.get_text("BluetoothPairingActive") == "1"
-    self._store.put_bool("BluetoothPairingActive", not now_open)
+    now_open = self._store.get_text("EOPBluetoothPairingActive") == "1"
+    self._store.put_bool("EOPBluetoothPairingActive", not now_open)
     self.refresh()
 
   def _forget(self) -> None:
@@ -236,5 +236,5 @@ class BluetoothPanel(ListWidget):
       return
     self._store.put_text("EOPSPPPairedDevice", "")
     self._store.put_bool("EOPNavPilotPaired", False)
-    self._store.put_text("BluetoothPairingAddr", "")
+    self._store.put_text("EOPBluetoothPairingAddr", "")
     self.refresh()

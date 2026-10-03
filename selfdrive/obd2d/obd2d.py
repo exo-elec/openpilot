@@ -347,9 +347,9 @@ class OBD2D:
         # Store in params
         try:
             params = Params()
-            params.put("CarVin", self.vin)
-            params.put("CarMake", self.vehicle_make)
-            params.put("CarType", self.vehicle_type)
+            params.put("EOPCarVin", self.vin)
+            params.put("EOPCarMake", self.vehicle_make)
+            params.put("EOPCarType", self.vehicle_type)
         except Exception as e:
             cloudlog.debug(f"Failed to store VIN: {e}")
 

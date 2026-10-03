@@ -81,7 +81,7 @@
 - Less documentation
 
 #### Carrotpilot Strengths (ajouatom — Korean fork)
-- **BLE destination input**: NavPilot companion app sends destination via BLE SPP (NCP v4.1 `CMD_NAVIGATE`); `bluetoothd/spp.py` writes to `NavDestination` param; navd polls and routes — offline Valhalla, no API key needed
+- **BLE destination input**: NavPilot companion app sends destination via BLE SPP (NCP v4.1 `CMD_NAVIGATE`); `bluetoothd/spp.py` writes to `EOPNavDestination` param; navd polls and routes — offline Valhalla, no API key needed
 - `carrotd.py` master daemon cleanly separated in `selfdrive/carrot/` *(not implemented)* namespace
 - Speed camera database integration (Korea + global) via T-map API
 - No comma account required
@@ -154,7 +154,7 @@
 - **Routing engine:** Valhalla (local C++ service on port 8002)
 - **Tile source:** OpenStreetMap PBF → Valhalla graph tiles (offline)
 - **Tile management:** `tile_manager.py` (manual) + `tile_auto_manager.py` (auto-download by GPS region)
-- **Destination input:** `NavDestination` param (written by bluetoothd SPP, CLI, or companion app)
+- **Destination input:** `EOPNavDestination` param (written by bluetoothd SPP, CLI, or companion app)
 - **Architecture divergence:** Upstream/FrogPilot use online cloud routing APIs. EOP uses Valhalla (offline) + NavPilot BLE SPP for destination input.
 
 **Architecture:**
@@ -170,7 +170,7 @@ navInstruction / navRoute cereal (5 Hz)
   MTSC           MSLC speed limit (SpeedLimitController)
 ```
 
-- **New params:** `EOPNavEnabled`, `EOPAutoTileEnabled`, `EOPAutoTileWifiOnly`, `NavDestination`
+- **New params:** `EOPNavEnabled`, `EOPAutoTileEnabled`, `EOPAutoTileWifiOnly`, `EOPNavDestination`
 - **Files:** `selfdrive/navd/navd.py`, `selfdrive/navd/helpers.py`, `selfdrive/navd/tile_manager.py`, `selfdrive/navd/tile_auto_manager.py`
 - **Storage:** `/data/media/0/valhalla/` (tiles tar + config)
 

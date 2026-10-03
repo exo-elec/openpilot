@@ -31,7 +31,7 @@ CALIBRATIOND is the camera calibration service for EOP. It determines the relati
 | `k1-k3` | Radial distortion | -0.5 to 0.5 |
 | `p1, p2` | Tangential distortion | -0.01 to 0.01 |
 
-**Storage**: `FactoryCalibrationParams` - **NEVER modified by runtime processes**
+**Storage**: `EOPFactoryCalibrationParams` - **NEVER modified by runtime processes**
 
 ### 2.2 Runtime Calibration (Extrinsics - REFINED)
 
@@ -44,7 +44,7 @@ CALIBRATIOND is the camera calibration service for EOP. It determines the relati
 | Yaw | Rotation around Z-axis | ±4° |
 | Height | Camera height above ground | 1.0-1.8m |
 
-**Storage**: `CalibrationParams` / `CameraCalibrationParams`
+**Storage**: `CalibrationParams` / `EOPCameraCalibrationParams`
 
 ## 3. Technical Architecture
 
@@ -130,9 +130,9 @@ for cam1, cam2 in combinations(cameras, 2):
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `FactoryCalibrationParams` | BYTES | Immutable factory intrinsics |
+| `EOPFactoryCalibrationParams` | BYTES | Immutable factory intrinsics |
 | `CalibrationParams` | BYTES | Runtime extrinsics (legacy) |
-| `CameraCalibrationParams` | BYTES | Multi-camera runtime extrinsics |
+| `EOPCameraCalibrationParams` | BYTES | Multi-camera runtime extrinsics |
 | `EOPFactoryCalibrated` | BOOL | Device has factory calibration |
 | `EOPMultiCameraCalibEnabled` | BOOL | Use enhanced daemon |
 
@@ -207,7 +207,7 @@ The EOP Settings panel provides:
 | Factory calibration tool | ✅ Done | `camera_calibrator.py` with ChArUco |
 | Runtime calibrationd | ✅ Done | Stock OpenPilot integration |
 | Multi-camera calibrationd | ✅ Done | `camera_calibrationd.py` |
-| Factory/runtime separation | ✅ Done | `FactoryCalibrationParams` immutable |
+| Factory/runtime separation | ✅ Done | `EOPFactoryCalibrationParams` immutable |
 | Calibration storage bridge | ✅ Done | `calibration_storage.py` |
 | EOP UI integration | ✅ Done | Road-camera factory/runtime calibration section in settings |
 | Stereo calibration | ✅ Done | `calibrate_stereo.py` |

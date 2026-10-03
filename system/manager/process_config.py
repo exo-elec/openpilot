@@ -76,7 +76,7 @@ def joystick(started: bool, params: Params, CP: car.CarParams) -> bool:
   return _cached_param_bool(params, "JoystickDebugMode")
 
 def not_remote_control(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return not _cached_param_bool(params, "SteamDRemoteControl")
+  return not _cached_param_bool(params, "EOPSteamDRemoteControl")
 
 
 procs = [
@@ -198,7 +198,7 @@ procs = [
   # VR Teleoperation (SteamD replaces teleoprtc + webrtcd)
   PythonProcess("steamd", "selfdrive.steamd.steamd", always_run,
                 enabled_callback=lambda started, params, CP:
-                  always_run(started, params, CP) and _cached_param_bool(params, "SteamDEnabled")),
+                  always_run(started, params, CP) and _cached_param_bool(params, "EOPSteamDEnabled")),
 
 
 ]

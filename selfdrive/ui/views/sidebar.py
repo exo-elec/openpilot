@@ -55,7 +55,7 @@ HOME_BTN = QRect(60, 860, 180, 180)
 # in practice and does not need a watcher per key.
 BLE_POLL_MS = 2000
 
-BLE_KEYS = ("BluetoothPairingPin", "BluetoothPairingActive",
+BLE_KEYS = ("EOPBluetoothPairingPin", "EOPBluetoothPairingActive",
             "EOPSPPPairedDevice", "EOPNavPilotPaired")
 
 
@@ -191,8 +191,8 @@ class Sidebar(QWidget):
       temp_card(snap.thermal_status),
       panda_card(snap.panda_connected),
       network_card(snap.network_type, snap.network_strength),
-      ble_card(self._ble["BluetoothPairingActive"] == "1",
-               self._ble["BluetoothPairingPin"],
+      ble_card(self._ble["EOPBluetoothPairingActive"] == "1",
+               self._ble["EOPBluetoothPairingPin"],
                self._ble["EOPNavPilotPaired"] == "1",
                bool(self._ble["EOPSPPPairedDevice"])),
     )

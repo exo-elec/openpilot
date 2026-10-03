@@ -146,7 +146,7 @@ sudo apt install libqmaplibre-dev
 |-------|-----------|-------------|
 | **Hidden** | Default / no navigation | Not visible |
 | **GPS Only** | Map visible, no route | Current position marker |
-| **Routing** | `NavDestination` set, route incoming | Position + "Waiting for route" |
+| **Routing** | `EOPNavDestination` set, route incoming | Position + "Waiting for route" |
 | **Navigating** | `navRoute` + `navInstruction` active | Position + route polyline + turn arrow + ETA |
 | **Arrived** | `maneuverType == "arrive"` | Position marker, route clears |
 | **No GPS** | No `liveLocationKalman` fix | Map visible, "Waiting for GPS" |

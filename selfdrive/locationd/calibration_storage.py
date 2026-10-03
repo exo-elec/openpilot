@@ -8,7 +8,7 @@ Bridges OpenPilot's binary Cap'n Proto format with the EOP YAML format.
 Storage Formats:
 ----------------
 1. Runtime (OpenPilot native): Binary Cap'n Proto in params
-   - Key: "CalibrationParams" / "CameraCalibrationParams"
+   - Key: "CalibrationParams" / "EOPCameraCalibrationParams"
    - Fast, efficient, cereal-native
 
 2. Factory/External: YAML for human-readable calibration
@@ -146,14 +146,14 @@ class CalibrationStorage:
     # Default paths
     YAML_PATH = Path("/data/params/calibration/camera_calibration.yaml")
     LEGACY_CALIBRATION_PARAMS = "CalibrationParams"
-    MULTI_CAMERA_CALIBRATION_PARAMS = "CameraCalibrationParams"
+    MULTI_CAMERA_CALIBRATION_PARAMS = "EOPCameraCalibrationParams"
 
     @classmethod
     def load_from_params(cls, multi_camera: bool = False) -> MultiCameraCalibration | None:
         """Load calibration from OpenPilot params (binary format).
 
         Args:
-            multi_camera: If True, try CameraCalibrationParams first
+            multi_camera: If True, try EOPCameraCalibrationParams first
 
         Returns:
             MultiCameraCalibration or None if not found
@@ -436,7 +436,7 @@ class CalibrationStorage:
         R[2, 1] = np.sin(rpy[0])
         return R
 
-    FACTORY_CALIBRATION_PARAMS = "FactoryCalibrationParams"
+    FACTORY_CALIBRATION_PARAMS = "EOPFactoryCalibrationParams"
 
     @classmethod
     def import_from_factory(cls, factory_yaml: str | Path,
@@ -445,7 +445,7 @@ class CalibrationStorage:
 
         This is the main entry point for factory calibration workflow:
         1. Load from factory YAML (EOP format)
-        2. Save to FactoryCalibrationParams (IMMUTABLE - intrinsics)
+        2. Save to EOPFactoryCalibrationParams (IMMUTABLE - intrinsics)
         3. Save to CalibrationParams (runtime - extrinsics can be refined)
 
         IMPORTANT: Factory calibration (intrinsics) is stored separately and

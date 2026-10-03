@@ -152,9 +152,9 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         with self._lock:
             self._current_pin = pin
         if self._params:
-            self._params.put('BluetoothPairingPin', pin)
-            self._params.put('BluetoothPairingAddr', addr)
-            self._params.put('BluetoothPairingActive', '1')
+            self._params.put('EOPBluetoothPairingPin', pin)
+            self._params.put('EOPBluetoothPairingAddr', addr)
+            self._params.put('EOPBluetoothPairingActive', '1')
         if self._on_pin_displayed:
             try:
                 self._on_pin_displayed(pin)
@@ -166,8 +166,8 @@ class PairingAgent(dbus.service.Object if DBUS_AVAILABLE else object):
         with self._lock:
             self._current_pin = ''
         if self._params:
-            self._params.put('BluetoothPairingPin', '')
-            self._params.put('BluetoothPairingActive', '0')
+            self._params.put('EOPBluetoothPairingPin', '')
+            self._params.put('EOPBluetoothPairingActive', '0')
 
     @staticmethod
     def _device_address(device_path: dbus.ObjectPath) -> str:
@@ -227,10 +227,10 @@ def get_displayed_pin() -> tuple[str, str]:
     if not Params:
         return '', ''
     params = Params()
-    if params.get('BluetoothPairingActive') != b'1':
+    if params.get('EOPBluetoothPairingActive') != b'1':
         return '', ''
-    pin = (params.get('BluetoothPairingPin') or b'').decode()
-    addr = (params.get('BluetoothPairingAddr') or b'').decode()
+    pin = (params.get('EOPBluetoothPairingPin') or b'').decode()
+    addr = (params.get('EOPBluetoothPairingAddr') or b'').decode()
     return pin, addr
 
 

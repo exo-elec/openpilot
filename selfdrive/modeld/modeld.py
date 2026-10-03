@@ -51,15 +51,15 @@ SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
 # Mirrors upstream's UsbGpuLoading/UsbGpuActive state machine, named Egpu*
 # to cover both custom flashed ASM2464PD firmware and comma's official Chestnut.
 EGPU_DRIVING_LOAD_TIMEOUT = 60.0  # seconds to wait for external model load/warmup
-EGPU_DRIVING_ENABLED_PARAM = "EgpuDrivingEnabled"
-EGPU_DRIVING_LOADING_PARAM = "EgpuDrivingLoading"
-EGPU_DRIVING_ACTIVE_PARAM = "EgpuDrivingActive"
+EGPU_DRIVING_ENABLED_PARAM = "EOPEgpuDrivingEnabled"
+EGPU_DRIVING_LOADING_PARAM = "EOPEgpuDrivingLoading"
+EGPU_DRIVING_ACTIVE_PARAM = "EOPEgpuDrivingActive"
 
 # Backward compatibility aliases
 CHESTNUT_DRIVING_LOAD_TIMEOUT = EGPU_DRIVING_LOAD_TIMEOUT
-CHESTNUT_DRIVING_ENABLED_PARAM = "ChestnutDrivingEnabled"
-CHESTNUT_DRIVING_LOADING_PARAM = "ChestnutDrivingLoading"
-CHESTNUT_DRIVING_ACTIVE_PARAM = "ChestnutDrivingActive"
+CHESTNUT_DRIVING_ENABLED_PARAM = "EOPChestnutDrivingEnabled"
+CHESTNUT_DRIVING_LOADING_PARAM = "EOPChestnutDrivingLoading"
+CHESTNUT_DRIVING_ACTIVE_PARAM = "EOPChestnutDrivingActive"
 
 # Repo-level models directory (relative to openpilot root)
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent

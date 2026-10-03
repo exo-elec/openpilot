@@ -435,7 +435,7 @@ class MCAPD:
             cloudlog.error("MCAPD: Failed to start")
             return
 
-        self.params.put("CurrentMCAPRoute", self.file_writer.route_name)
+        self.params.put("EOPCurrentMCAPRoute", self.file_writer.route_name)
 
         # Start WebSocket if enabled
         tasks = []

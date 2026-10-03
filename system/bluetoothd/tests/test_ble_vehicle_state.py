@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the host → ESP32 corner-radar vehicle-state record and the
-BLERadarRoster identity-roster param (ble_central.py).
+EOPBLERadarRoster identity-roster param (ble_central.py).
 
 Pure-python — no D-Bus / BlueZ / hal needed. Golden bytes are the
 ESP32_RADAR contract (tools/golden_vectors/radar_frames.json,
@@ -90,7 +90,7 @@ class TestRosterParam:
     def test_central_uses_param_roster(self, monkeypatch):
         import openpilot.system.bluetoothd.ble_central as bc
         monkeypatch.setattr(bc, 'load_wifi_roster', lambda *a, **k: None)
-        central = BLECentral(FakeParams({'BLERadarRoster': 'AA:BB:CC:DD:EE:FF'}))
+        central = BLECentral(FakeParams({'EOPBLERadarRoster': 'AA:BB:CC:DD:EE:FF'}))
         assert central._wifi_roster == {'AA:BB:CC:DD:EE:FF'}
         cand = {'first_seen': 0.0, 'wifi_mac': 'AA:BB:CC:DD:EE:FF'}
         assert bc.check_learn_eligibility(cand, central._wifi_roster, 100.0) == (True, 'ok')

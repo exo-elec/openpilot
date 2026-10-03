@@ -44,8 +44,8 @@ tooling/docs may still reference the old names):
   `ChestnutDrivingRunner = EgpuDrivingRunner` is an alias. Same fail-closed
   stub behavior described below — `load()` still unconditionally raises
   until the compiled artifact and validation gates exist.
-- `common/params_keys.h` — `EgpuDrivingEnabled`/`EgpuDrivingLoading`/
-  `EgpuDrivingActive` alongside the existing `ChestnutDriving*` keys (both
+- `common/params_keys.h` — `EOPEgpuDrivingEnabled`/`EOPEgpuDrivingLoading`/
+  `EOPEgpuDrivingActive` alongside the existing `ChestnutDriving*` keys (both
   read at startup: `params.get_bool(EGPU_DRIVING_ENABLED_PARAM) or
   params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)`).
 - `system/inferenced/egpu.py` — `_detect_egpu()` now returns which firmware

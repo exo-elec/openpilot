@@ -83,7 +83,7 @@ class LatControlTorque(LatControl):
     self._nn_friction_override = False
 
   def _init_nn_model(self, CP):
-    if not Params().get_bool("NeuralNetworkLateralControl"):
+    if not Params().get_bool("EOPNeuralNetworkLateralControl"):
       return
     model_path, model_name, exact_match = get_nn_model_path(CP.carFingerprint)
     if model_path and os.path.isfile(model_path):

@@ -103,13 +103,13 @@ class TestBLECentralAccessors:
         assert central.candidates_dump()[0]['corner'] == 2
 
     def test_pairing_window_open_accessor(self):
-        central = make_central({'BLERadarPairingOpen': '1'})
+        central = make_central({'EOPBLERadarPairingOpen': '1'})
         central._pairing_open_cache = (False, 0.0)  # force re-read
         assert central.pairing_window_open() is True
 
 
 class TestRadarPairControl:
-    """Inbound 0x0610 — sets/clears BLERadarPairingOpen, ACK semantics."""
+    """Inbound 0x0610 — sets/clears EOPBLERadarPairingOpen, ACK semantics."""
 
     def _session(self, params):
         return NCPSession(params=params, ble_central=make_central())
@@ -119,23 +119,23 @@ class TestRadarPairControl:
         session = self._session(params)
         resp = session.handle_frame(protocol.Frame.from_json(
             protocol.MessageType.RADAR_PAIR_CONTROL, {'open': True}))
-        assert params.store['BLERadarPairingOpen'] == '1'
+        assert params.store['EOPBLERadarPairingOpen'] == '1'
         assert resp is not None
         assert resp.msg_type == protocol.MessageType.RESPONSE_ACK
 
     def test_close_clears_param(self):
-        params = FakeParams({'BLERadarPairingOpen': '1'})
+        params = FakeParams({'EOPBLERadarPairingOpen': '1'})
         session = self._session(params)
         session.handle_frame(protocol.Frame.from_json(
             protocol.MessageType.RADAR_PAIR_CONTROL, {'open': False}))
-        assert params.store['BLERadarPairingOpen'] == '0'
+        assert params.store['EOPBLERadarPairingOpen'] == '0'
 
     def test_missing_open_defaults_closed(self):
-        params = FakeParams({'BLERadarPairingOpen': '1'})
+        params = FakeParams({'EOPBLERadarPairingOpen': '1'})
         session = self._session(params)
         session.handle_frame(protocol.Frame.from_json(
             protocol.MessageType.RADAR_PAIR_CONTROL, {}))
-        assert params.store['BLERadarPairingOpen'] == '0'
+        assert params.store['EOPBLERadarPairingOpen'] == '0'
 
 
 class TestRadarPairStatus:
@@ -179,7 +179,7 @@ class TestRadarPairStatus:
 
     def test_cadence_open_window_1hz(self):
         params = FakeParams()
-        central = make_central({'BLERadarPairingOpen': '1'})
+        central = make_central({'EOPBLERadarPairingOpen': '1'})
         session = NCPSession(params=params, ble_central=central)
         sent = []
         session._send_frame = lambda t, d: sent.append((t, d))

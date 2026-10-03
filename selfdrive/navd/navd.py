@@ -10,7 +10,7 @@ Requirements:
     - Valhalla service running locally on port 8002
     - Offline tiles at /data/valhalla/tiles/
 
-Destination is written to the NavDestination param by bluetoothd/spp.py
+Destination is written to the EOPNavDestination param by bluetoothd/spp.py
 (NCP 0x0302) or by set_destination.py.
 
 Usage:
@@ -172,7 +172,7 @@ class NavD:
     # ------------------------------------------------------------------
 
     def update_destination(self) -> bool:
-        dest_json = self.params.get("NavDestination")
+        dest_json = self.params.get("EOPNavDestination")
 
         if not dest_json:
             if self.nav_destination is not None:

@@ -14,7 +14,7 @@
 | BLE GATT (Nordic UART) | ✅ Complete — NavPilot iOS + Android |
 | Pairing agent (6-digit PIN) | ✅ Complete — `DisplayOnly`, user must type PIN |
 | Adaptive driving (adaptd) | ✅ Complete — consumes `ncpVehicleData` from NavPilot |
-| Convoy follow (`CMD_CONVOY_LEAD`/`CANCEL`) | ✅ Complete — capability-gated via `convoyFollow`, reuses `NavDestination` |
+| Convoy follow (`CMD_CONVOY_LEAD`/`CANCEL`) | ✅ Complete — capability-gated via `convoyFollow`, reuses `EOPNavDestination` |
 
 ---
 
@@ -175,7 +175,7 @@ Set at flash time: `params put EOPDeviceName "EXOPILOT 01"`
 | `system/bluetoothd/ncp_session.py` | Command dispatch — navigate, convoy, vehicle data, auth, etc. |
 | `system/bluetoothd/pairing_agent.py` | BlueZ Agent1, DisplayOnly, DisplayPasskey |
 | `selfdrive/adaptd/adaptd.py` | Adaptive driving daemon (consumes ncpVehicleData) |
-| `selfdrive/navd/navd.py` | Consumes `NavDestination` param (set by CMD_NAVIGATE / CMD_CONVOY_LEAD), re-routes via Valhalla |
+| `selfdrive/navd/navd.py` | Consumes `EOPNavDestination` param (set by CMD_NAVIGATE / CMD_CONVOY_LEAD), re-routes via Valhalla |
 
 **NavPilot (Flutter):**
 

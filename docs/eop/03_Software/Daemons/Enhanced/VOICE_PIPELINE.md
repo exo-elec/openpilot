@@ -99,7 +99,7 @@ monitored centrally. Only non-language alert tones are synthesized locally.
 - **Outputs:**
   - Local alert tones (engagement, warnings, etc.)
   - Azure voice audio passthrough
-  - Quiet-mode amplitude scaling (see `QuietMode` param)
+  - Quiet-mode amplitude scaling (see `EOPQuietMode` param)
 
 ---
 
@@ -154,7 +154,7 @@ predated the boards' audio design; both boards have the mic pair and amp.
 | `EOPVoiceEnabled` | 0 | Enable voice pipeline |
 | `EOPWakeWordSensitivity` | 0.7 | Wake word detection threshold (server-side) |
 | `EOPVoiceLanguage` | "en" | STT/TTS language |
-| `QuietMode` | 0 | Reduce local alert-tone volume |
+| `EOPQuietMode` | 0 | Reduce local alert-tone volume |
 
 ---
 

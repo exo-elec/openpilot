@@ -36,8 +36,8 @@ class PowerMonitoring:
     self._shutdown_requested = False
 
   def _get_timeout_s(self) -> float:
-    """Read PowerSaverEntryDuration in minutes; 0 means disabled."""
-    raw = self.params.get("PowerSaverEntryDuration")
+    """Read EOPPowerSaverEntryDuration in minutes; 0 means disabled."""
+    raw = self.params.get("EOPPowerSaverEntryDuration")
     if raw is None:
       return DEFAULT_POWER_SAVER_ENTRY_MIN * 60.0
     try:

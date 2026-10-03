@@ -4,7 +4,7 @@
 Rejects remote control commands when the vehicle is outside a configurable
 GPS polygon boundary. Uses the ray-casting (even-odd) point-in-polygon test.
 
-Polygon format (param `SteamDGeofencePolygon`): JSON array of [lat, lon] pairs.
+Polygon format (param `EOPSteamDGeofencePolygon`): JSON array of [lat, lon] pairs.
 Example: [[37.7749,-122.4194],[37.7755,-122.4180],[37.7735,-122.4175]]
 
 An empty or invalid polygon disables the geofence.

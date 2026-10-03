@@ -41,7 +41,7 @@ from openpilot.selfdrive.ui.qt import (
 )
 from openpilot.selfdrive.ui.state import ModelFrame, Snapshot, UIStatus
 
-PAIRING_KEYS = ("BluetoothPairingPin", "BluetoothPairingActive")
+PAIRING_KEYS = ("EOPBluetoothPairingPin", "EOPBluetoothPairingActive")
 PAIRING_POLL_MS = 2000
 
 PAIRING_STYLE = """
@@ -148,8 +148,8 @@ class OnroadView(QWidget):
     for key in PAIRING_KEYS:
       self._pairing_state[key] = self._store.get_text(key)
 
-    pin = self._pairing_state["BluetoothPairingPin"]
-    if self._pairing_state["BluetoothPairingActive"] == "1" and pin:
+    pin = self._pairing_state["EOPBluetoothPairingPin"]
+    if self._pairing_state["EOPBluetoothPairingActive"] == "1" and pin:
       self.pairing.setText(f"PIN: {pin}")
       self.pairing.adjustSize()
       self.pairing.move(self.width() - self.pairing.width() - 30, 30)

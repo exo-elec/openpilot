@@ -169,7 +169,7 @@
 | ✅ 35 | `navigate_on_openpilot` field missing in UIScene | `map.cc` | **FIXED 2026-05-02** — removed reference to missing field |
 | ✅ 36 | QMapLibre not in dependency scripts, breaks build | `selfdrive/ui/SConscript` | **FIXED 2026-05-02** — conditional compilation via `pkg-config --exists QMapLibre` + `ENABLE_MAPS` |
 | ✅ 17 | `navInstruction` removed from cereal (upstream 2025-11-09) | `cereal/log.capnp`, `navd.py` | **FIXED 2026-03-19** — struct restored; `navd.py` corrected to use `navRoute.coordinates` only |
-| ✅ 18 | BLE asyncio loop never ran during sync Ratekeeper loop | `selfdrive/navd/navd.py` | **FIXED 2026-03-19** — BLE SPP moved to `system/bluetoothd/spp.py`; navd.py reads `NavDestination` param only |
+| ✅ 18 | BLE asyncio loop never ran during sync Ratekeeper loop | `selfdrive/navd/navd.py` | **FIXED 2026-03-19** — BLE SPP moved to `system/bluetoothd/spp.py`; navd.py reads `EOPNavDestination` param only |
 | ✅ 19 | `mapData`/`navInstruction` missing from plannerd SubMaster | `selfdrive/controls/plannerd.py` | **FIXED 2026-03-19** — both added; MTSC/MSLC now receive messages |
 | ✅ 20 | MSLC ignores `navInstruction.speedLimit` | `selfdrive/controls/lib/mslc.py` | **FIXED 2026-03-19** — `nav_speed_limit_ms` fallback added (OSM > navd priority) |
 | ✅ 21 | `navInstruction.speedLimit` published in km/h instead of m/s | `selfdrive/navd/navd.py` | **FIXED 2026-03-19** — added `/3.6` conversion; schema field is m/s |
@@ -324,7 +324,7 @@
 | Task | File | Status |
 |------|------|--------|
 | `helpers.py` — Valhalla offline routing + OSM tile management | `selfdrive/navd/helpers.py` | ✅ Done |
-| `spp.py` — BLE SPP server for NavPilot NCP v4.1 (`CMD_NAVIGATE` → `NavDestination` param) | `system/bluetoothd/spp.py` | ✅ Done |
+| `spp.py` — BLE SPP server for NavPilot NCP v4.1 (`CMD_NAVIGATE` → `EOPNavDestination` param) | `system/bluetoothd/spp.py` | ✅ Done |
 | `navd.py` — on-device Valhalla routing, step tracking, 5 Hz publish | `selfdrive/navd/navd.py` | ✅ Done |
 | Add params: `EOPNavBleEnabled`, `EOPSPPEnabled`, `EOPSPPAutoReconnect` | `common/params_keys.h` | ✅ Done |
 | BLE toggle + SPP settings in UI | `eop_panel.cc` | ✅ Done |

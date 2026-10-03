@@ -113,13 +113,13 @@ class ControlArbiter:
     self._override_reason = reason
     self._override_time = time.monotonic()
     self.params.put_bool("JoystickDebugMode", False)
-    self.params.put_bool("SteamDRemoteControl", False)
+    self.params.put_bool("EOPSteamDRemoteControl", False)
 
   def may_publish(self) -> bool:
     """Return True if SteamD is allowed to publish carControl this tick."""
     # Reuse existing JoystickDebugMode param as the external-control gate.
     # This minimizes impact: controlsd already stops when this param is True.
-    if not (self.params.get_bool("JoystickDebugMode") or self.params.get_bool("SteamDRemoteControl")):
+    if not (self.params.get_bool("JoystickDebugMode") or self.params.get_bool("EOPSteamDRemoteControl")):
       self._state = AuthorityState.LOCAL_ONLY
       return False
 

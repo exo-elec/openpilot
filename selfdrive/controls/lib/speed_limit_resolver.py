@@ -4,7 +4,7 @@
 Wraps MSLC/NSLC/car dash outputs with user-configurable source policy,
 and publishes a unified SpeedLimitState for the UI.
 
-Policy (SpeedLimitPolicy param, int):
+Policy (EOPSpeedLimitPolicy param, int):
   0 = none          — ignore all speed limits
   1 = car           — use dashboard-reported limit only
   2 = map           — use MSLC (OSM) only
@@ -49,7 +49,7 @@ class SpeedLimitResolver:
       return
     self._last_param_t = now
     try:
-      self._policy = int(self.params.get("SpeedLimitPolicy") or "4")
+      self._policy = int(self.params.get("EOPSpeedLimitPolicy") or "4")
     except (ValueError, TypeError):
       self._policy = 4
 

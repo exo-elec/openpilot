@@ -148,7 +148,7 @@ class MessageType(IntEnum):
     # the ESP32 corner radars. NEW values: 0x0602 was the only reserved v3.x
     # slot reused; 0x0610/0x0611 reclaim nothing. Flutter peer implements both.
     # Payload schemas are the pinned cross-repo contract — do not rename fields.
-    RADAR_PAIR_CONTROL = 0x0610  # PHONE→DEVICE: {"open": bool} → BLERadarPairingOpen param
+    RADAR_PAIR_CONTROL = 0x0610  # PHONE→DEVICE: {"open": bool} → EOPBLERadarPairingOpen param
     RADAR_PAIR_STATUS  = 0x0611  # DEVICE→PHONE: window/pairs/candidates (ncp_session)
 
 

@@ -34,7 +34,7 @@ class SoundD:
 
         params = Params()
         self.params = params
-        self._quiet_mode = params.get_bool("QuietMode")
+        self._quiet_mode = params.get_bool("EOPQuietMode")
 
         # Messaging
         self.pm = messaging.PubMaster(['audioData', 'sounddStatus'])
@@ -47,7 +47,7 @@ class SoundD:
         self._last_alert_sound = AudibleAlert.none
         self._alert_tone_cooldown = 0.0
 
-        # Param poll: check QuietMode every 5s
+        # Param poll: check EOPQuietMode every 5s
         self._last_param_check = 0.0
         # Alerts suppressed in quiet mode (keep warnings and prompts)
         self._QUIET_SUPPRESSED_ALERTS = {
@@ -110,13 +110,13 @@ class SoundD:
         self._play_alert_tone(current_alert_sound)
 
     def _check_params(self):
-        """Poll QuietMode every 5s."""
+        """Poll EOPQuietMode every 5s."""
         now = time.monotonic()
         if now - self._last_param_check < 5.0:
             return
         self._last_param_check = now
 
-        quiet_mode = self.params.get_bool("QuietMode")
+        quiet_mode = self.params.get_bool("EOPQuietMode")
         if quiet_mode != self._quiet_mode:
             cloudlog.info(f"soundd: quiet mode changed → {quiet_mode}")
             self._quiet_mode = quiet_mode

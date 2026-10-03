@@ -50,7 +50,7 @@ class SteamD:
     self.params = Params()
 
     # Control pipeline
-    joystick_enabled = self.config.enable_joystick_input and self.params.get_bool("SteamDJoystickInput")
+    joystick_enabled = self.config.enable_joystick_input and self.params.get_bool("EOPSteamDJoystickInput")
     self.joystick_input = JoystickInput() if joystick_enabled else None
     self.keyboard_input = KeyboardInput() if self.config.enable_keyboard_input else None
     self.udp_input = UdpInput(
@@ -69,7 +69,7 @@ class SteamD:
     self.sm = messaging.SubMaster(["carState", "gpsLocationExternal"])
 
     # Geofence
-    self.geofence = Geofence(self.params.get("SteamDGeofencePolygon", b"").decode())
+    self.geofence = Geofence(self.params.get("EOPSteamDGeofencePolygon", b"").decode())
 
     # Web server (status page only)
     self.app: web.Application | None = None
@@ -113,12 +113,12 @@ class SteamD:
     logger.info(f"Web server on {proto}://{self.config.web_host}:{self.config.web_port}")
 
   def _load_auth_token(self) -> str:
-    token = self.params.get("SteamDAuthToken")
+    token = self.params.get("EOPSteamDAuthToken")
     if token:
       return token.decode() if isinstance(token, bytes) else token
     import secrets
     token = secrets.token_urlsafe(32)
-    self.params.put("SteamDAuthToken", token.encode())
+    self.params.put("EOPSteamDAuthToken", token.encode())
     logger.info("Generated new SteamD auth token (check params to share with client)")
     return token
 

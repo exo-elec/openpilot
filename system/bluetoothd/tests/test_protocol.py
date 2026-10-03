@@ -100,7 +100,7 @@ class TestConvoy:
         response = session.handle_frame(frame)
 
         assert response.msg_type == MessageType.RESPONSE_ACK
-        dest = json.loads(session.params.get('NavDestination'))
+        dest = json.loads(session.params.get('EOPNavDestination'))
         assert dest['latitude'] == pytest.approx(13.7563)
         assert dest['longitude'] == pytest.approx(100.5018)
         assert 'friend-123' in dest['place_name']
@@ -115,12 +115,12 @@ class TestConvoy:
 
     def test_convoy_cancel_clears_nav_destination(self):
         session = self._session()
-        session.params.put('NavDestination', json.dumps({'latitude': 1.0, 'longitude': 2.0}))
+        session.params.put('EOPNavDestination', json.dumps({'latitude': 1.0, 'longitude': 2.0}))
 
         response = session.handle_frame(Frame(MessageType.CMD_CONVOY_CANCEL, b'{}'))
 
         assert response.msg_type == MessageType.RESPONSE_ACK
-        assert session.params.get('NavDestination') is None
+        assert session.params.get('EOPNavDestination') is None
 
 
 if __name__ == '__main__':

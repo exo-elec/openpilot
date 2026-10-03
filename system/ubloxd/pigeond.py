@@ -78,9 +78,9 @@ class PigeonD:
             self.pigeon,
             system_time_valid=system_time_valid(),
             assistnow_token=token,
-            last_gps_lat=float(self.params.get('LastGPSLatitude') or 0.0),
-            last_gps_lon=float(self.params.get('LastGPSLongitude') or 0.0),
-            last_gps_alt=float(self.params.get('LastGPSAltitude') or 0.0),
+            last_gps_lat=float(self.params.get('EOPLastGPSLatitude') or 0.0),
+            last_gps_lon=float(self.params.get('EOPLastGPSLongitude') or 0.0),
+            last_gps_alt=float(self.params.get('EOPLastGPSAltitude') or 0.0),
         ):
             deinitialize_pigeon(self.pigeon)
             return

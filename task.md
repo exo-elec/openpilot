@@ -198,7 +198,7 @@ Next tasks, in order:
   - Mirrored upstream Chestnut behavior from `openpilot/selfdrive/modeld/modeld.py`
     (load big model in a bounded background thread, keep small model warm, catch
     exceptions in the main loop, set `UsbGpuActive` False and switch runner).
-  - Added `ChestnutDrivingEnabled`, `ChestnutDrivingLoading`, `ChestnutDrivingActive`
+  - Added `EOPChestnutDrivingEnabled`, `EOPChestnutDrivingLoading`, `EOPChestnutDrivingActive`
     Params mirroring upstream's `UsbGpuLoading`/`UsbGpuActive` contract. The names
     diverge from upstream deliberately: EOP's `inferenced` owns the USB GPU device,
     so the state machine is named after the Chestnut model class, not the transport.
@@ -210,7 +210,7 @@ Next tasks, in order:
     before the real compiled artifact and private multi-tensor transport are ready.
   - On-road retry is prohibited because the active Param is only cleared at the next
     offroad/ignition restart (`params.remove(ChestnutDrivingActive)` at startup).
-  - Soft-disable if engaged is delegated to selfdrived via the `ChestnutDrivingActive`
+  - Soft-disable if engaged is delegated to selfdrived via the `EOPChestnutDrivingActive`
     Param, matching upstream's `bigModelFailed` event pattern.
 - [ ] Port upstream's compiled tinygrad JIT artifact identity and deterministic
   compile/replay checks. Dynamic `OnnxRunner` remains shadow-only.
@@ -723,7 +723,7 @@ Key findings (no external source names per policy):
   HAL + `rknn_runner.py`). That is an improvement over the fork's SNPE/ONNX
   stack, not a break from openpilot's design concept.
 - AGNOS is comma's OEM update OS. Because EOP10 runs on the SOM supplier's
-  Ubuntu image, AGNOS is not needed. The fork's `UpdateStatus` param lifecycle
+  Ubuntu image, AGNOS is not needed. The fork's `EOPUpdateStatus` param lifecycle
   and dirty-repo guard are useful, but the AGNOS image-flashing path is not.
 - EC25 on EOP10 is already correctly delegated to `hal.drivers.cellular` in
   ExoPilot. The fork never used EC25 QMI; it used the QCOM GPSD/SUPL stack, so
@@ -734,15 +734,15 @@ Key findings (no external source names per policy):
 
 Recommended porting plan (highest value first):
 
-1. [x] **Power monitoring + auto-shutdown**: added `PowerSaverEntryDuration` param
+1. [x] **Power monitoring + auto-shutdown**: added `EOPPowerSaverEntryDuration` param
    and `system/hardware/power_monitoring.py`, integrated into `manager_thread()`.
    Offroad auto-shutdown sets `DoShutdown`; guarded by `DisablePowerDown` and
    `ForcePowerDown`. Application layer. Commit: `d75d576b0`.
-2. [x] **Quiet mode + volume limits**: added `QuietMode` param; `soundd` now scales
+2. [x] **Quiet mode + volume limits**: added `EOPQuietMode` param; `soundd` now scales
    alert-tone amplitude to ~25% and suppresses engage/disengage tones in quiet
    mode. Also removed local Piper TTS from `soundd` because language/voice audio
    is handled by the Azure server. Application layer. Commit: `d75d576b0`.
-3. [x] **Update backend lifecycle**: add `UpdateStatus` string param and a
+3. [x] **Update backend lifecycle**: add `EOPUpdateStatus` string param and a
    dirty-repo guard in the update flow. Application layer (EOP10 already has the
    pyray updater UI).
 4. [x] **ALC / lane-change behavior**: road-edge blinker guard, below-ALC-speed
@@ -773,14 +773,14 @@ previous session.
 Completed:
 
 - [x] **Update backend lifecycle**:
-  - Added `UpdateStatus` string param to `common/params_keys.h`.
+  - Added `EOPUpdateStatus` string param to `common/params_keys.h`.
   - Created `system/updated.py`, an OS-agnostic Git + OverlayFS safe-update
     daemon (no AGNOS/NEOS image flashing). It writes the full lifecycle through
-    `UpdateStatus` (`checking`, `prepareDownload`, `installing`, `success`,
+    `EOPUpdateStatus` (`checking`, `prepareDownload`, `installing`, `success`,
     `latest`, `noInternet`, `fetchFailed`, `unsavedChanges`, `waiting`) and
     blocks updates when the repo has local/unpushed changes.
   - Registered `updated` in `system/manager/process_config.py`.
-  - Updated `system/ui/updater.py` to display `UpdateStatus` and offer a reboot
+  - Updated `system/ui/updater.py` to display `EOPUpdateStatus` and offer a reboot
     when `UpdateAvailable` is true; legacy CLI args are accepted but ignored.
 - [x] **ALC / lane-change behavior**:
   - `selfdrive/controls/lib/desire_helper.py`: added road-edge blinker guard
@@ -1154,7 +1154,7 @@ result, `./test.sh` green.
   ASM2464PD and Chestnut", author `EXO-ELEC`) — reviewed it carefully before
   building on it (see `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`'s
   "Implementation status (2026-08-23)" section for the full review and two
-  regressions found/fixed: a deleted `CarVin` params_keys.h entry, and three
+  regressions found/fixed: a deleted `EOPCarVin` params_keys.h entry, and three
   submodule pins accidentally cross-contaminated from `dev/NGP10`). Fixed in
   `ae37ac0de4`.
 - [x] Fixed the repo's `origin` remote from HTTPS to SSH

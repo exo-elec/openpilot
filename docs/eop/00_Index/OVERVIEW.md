@@ -397,9 +397,9 @@ Quick reference:
 
 | Key | Type | Purpose |
 |-----|------|---------|
-| `FactoryCalibrationParams` | BYTES | Factory intrinsics (IMMUTABLE) |
+| `EOPFactoryCalibrationParams` | BYTES | Factory intrinsics (IMMUTABLE) |
 | `CalibrationParams` | BYTES | Runtime extrinsics (pitch/yaw/height) |
-| `CameraCalibrationParams` | BYTES | Multi-camera runtime extrinsics |
+| `EOPCameraCalibrationParams` | BYTES | Multi-camera runtime extrinsics |
 
 See [CALIBRATION_PIPELINE.md](../03_Software/Architecture/CALIBRATION_PIPELINE.md) for full documentation.
 

@@ -31,7 +31,7 @@ class Screen(IntEnum):
   PROGRESS = 2
 
 
-# Human-readable mapping for the UpdateStatus lifecycle written by system/updated.py.
+# Human-readable mapping for the EOPUpdateStatus lifecycle written by system/updated.py.
 UPDATE_STATUS_TEXT = {
   "checking": "Checking for updates...",
   "prepareDownload": "Downloading update...",
@@ -62,7 +62,7 @@ class Updater(Widget):
     self.wifi_manager_ui = WifiManagerUI(self.wifi_manager)
 
   def _read_status(self) -> tuple[str, bool]:
-    status = self.params.get("UpdateStatus", encoding='utf8') or "waiting"
+    status = self.params.get("EOPUpdateStatus", encoding='utf8') or "waiting"
     available = self.params.get_bool("UpdateAvailable")
     return status, available
 

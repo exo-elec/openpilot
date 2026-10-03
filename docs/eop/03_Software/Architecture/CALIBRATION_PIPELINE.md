@@ -49,9 +49,9 @@ This document describes the complete camera calibration pipeline for EnhancedOpe
 
 | Parameter | Type | Purpose | Modified By |
 |-----------|------|---------|-------------|
-| `FactoryCalibrationParams` | IMMUTABLE | Intrinsics (fx, fy, cx, cy, distortion) | Factory only |
+| `EOPFactoryCalibrationParams` | IMMUTABLE | Intrinsics (fx, fy, cx, cy, distortion) | Factory only |
 | `CalibrationParams` | Runtime | Extrinsics (pitch, yaw, height) | calibrationd |
-| `CameraCalibrationParams` | Runtime | Multi-camera extrinsics | camera_calibrationd |
+| `EOPCameraCalibrationParams` | Runtime | Multi-camera extrinsics | camera_calibrationd |
 
 **Factory Intrinsics (NEVER modified by runtime):**
 - Focal lengths (fx, fy)
