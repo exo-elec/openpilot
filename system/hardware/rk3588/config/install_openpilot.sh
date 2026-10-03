@@ -26,6 +26,7 @@ echo
 echo "[1/4] Installing system dependencies..."
 apt-get update
 apt-get install -y \
+  build-essential \
   python3-pip python3-numpy python3-venv \
   libusb-1.0-0 libffi-dev \
   git wget curl \
@@ -47,10 +48,21 @@ if [ ! -f /usr/local/bin/npu_powerctrl.sh ]; then
   echo "  Run: sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh"
 fi
 
-if [ ! -x "$OPENPILOT_DIR/.venv/bin/python" ]; then
-  echo "Create the runtime first: cd $OPENPILOT_DIR && uv sync" >&2
+UV_BIN="$(command -v uv || true)"
+if [ -z "$UV_BIN" ] && [ -n "${SUDO_USER:-}" ]; then
+  USER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+  for candidate in "$USER_HOME/.local/bin/uv" "$USER_HOME/.cargo/bin/uv"; do
+    if [ -x "$candidate" ]; then
+      UV_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if [ -z "$UV_BIN" ]; then
+  echo "Install uv for the invoking user or system-wide, then rerun this installer." >&2
   exit 1
 fi
+(cd "$OPENPILOT_DIR" && "$UV_BIN" sync --locked)
 "$OPENPILOT_DIR/scripts/ensure_pyqt5.sh" "$OPENPILOT_DIR/.venv/bin/python"
 
 # 3. Create data directories
