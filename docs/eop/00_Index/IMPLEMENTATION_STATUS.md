@@ -54,7 +54,7 @@
 | **MCAPD** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — Parallel MCAP logging for Foxglove Studio |
 | **INFERENCED** | ✅ | ✅ | N/A | ✅ | ✅ | **COMPLETE** |
 | **OBD2D** | ✅ | ✅ | N/A | ✅ | ✅ | **COMPLETE** — OBD2/UDS diagnostics over BLE |
-| **RTKD** | ✅ | ✅ | N/A | ✅ | ✅ | **COMPLETE** — NTRIP RTK correction client |
+| **RTKD** | N/A | N/A | N/A | ⏳ | ⏳ | **PLANNED FOR 02M ONLY** — no NTRIP client exists; do not report RTK-fixed positioning until RTCM is delivered and validated |
 | **MICD** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — Microphone capture and SPL |
 | **MONOD** | ✅ | N/A | N/A | ✅ | ✅ | **COMPLETE** — Front object detection on RKNN: road + 02M telephoto |
 | **POINTCLOUDD** | ✅ | ✅ | N/A | ✅ | ✅ | **COMPLETE** |
@@ -137,7 +137,7 @@
 | **CAT** | CAT.md | `cat.py` + `controlsd.py` | ✅ | Adaptive VM update + UI toggles |
 | **RED** | RED.md | `red.py` + `controlsd.py` | ✅ | Core + integration complete |
 | **GPS-RK3588** | HAL.md | `common/hardware/rk3588/gps.py` | ✅ | NEO-M8U-06B UDR, full NMEA |
-| **GPS-RK3576** | PIGEOND.md | `common/hardware/rk3576/gps.py` | ✅ | ZED-F9P-04B fully implemented (HAL + baud negotiation + NTRIP) |
+| **GPS-RK3576** | PIGEOND.md | 02M hardware integration | ⏳ | ZED-F9P hardware belongs to 02M; NTRIP/RTK correction service remains unimplemented |
 | **UI** | UI.md | `eop_panel.cc` | ✅ | All sections implemented |
 | **CALIBRATIOND** | CALIBRATIOND.md | `calibrationd.py`, `camera_calibrationd.py` | ✅ | Factory/runtime separation complete |
 | **CALIB-STORAGE** | CALIBRATION_PIPELINE.md | `calibration_storage.py` | ✅ | Factory intrinsics protected |

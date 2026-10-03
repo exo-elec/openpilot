@@ -340,13 +340,13 @@ See IMPLEMENTATION_STATUS.md for detailed tracking.
 4. **Speed limit from Valhalla** — `maxspeed` annotations feed `MSLC` (sunnypilot pattern)
 5. **EOP → EVP transition** — EOP serves RK3588 + RK3576; EVP is the next-gen platform
 
-### 2026-03-18 — ELAT, ELON, RTK Stack Complete
+### 2026-03-18 — ELAT and ELON Complete; RTK Deferred to 02M
 
 **Completed:**
 - ELAT (`selfdrive/pathd/lat_nudge.py`) — stereo boundary + obstacle lateral avoidance
 - ELON (`selfdrive/pathd/lon_nudge.py`) — drivable distance speed trim + TTC lead tracking
 - PathD integration — 7→33pt interpolation, speed delta pipeline
-- ZED-F9P baud negotiation + NTRIP daemon + RTK params/UI
+- RTK/NTRIP is not implemented in this repository. Any future correction client belongs in the 02M layer, which has ZED-F9P hardware; keep it out of EOP10 and 01M until a complete RTCM path exists.
 - Code quality fixes: unused imports, inline import in hot loop
 
 ### 2026-03-15 — Reference Fork Research

@@ -313,7 +313,7 @@ Quick reference:
 | `coordinationd` | OSM + SGM localization + fusion | 5 Hz | `selfdrive/coordinationd/` |
 | `mcapd` | Parallel MCAP logging for Foxglove visualization | 20 Hz | `system/mcapd/` |
 | `obd2d` | OBD2/UDS vehicle diagnostics over BLE | 1 Hz | `selfdrive/obd2d/` |
-| `rtkd` | RTK GPS NTRIP correction client | always-on | `system/rtkd/` |
+| RTK correction client | 02M-only planned service for ZED-F9P; not implemented in EOP10 or current 02M tree | — | 02M follow-up |
 | `micd` | Microphone capture and sound pressure level | 10 Hz | `system/micd/` |
 | `monod` | Front object detection on RKNN: road, 02M telephoto | 20 Hz | `selfdrive/monod/` |
 | `segd` | Semantic segmentation, every camera, on the camera-tier card | 20 Hz | `selfdrive/segd/` |
@@ -467,7 +467,7 @@ See `docs/eop/04_Integration/BLE_DESIGN.md` for full architecture.
 | **NAVD** | ✅ Done | `selfdrive/navd/navd.py` |
 | **MCAPD** | ✅ Done | `system/mcapd/mcapd.py` (Foxglove MCAP logging) |
 | **OBD2D** | ✅ Done | `selfdrive/obd2d/obd2d.py` (OBD2/UDS over BLE) |
-| **RTKD** | ✅ Done | `system/rtkd/rtkd.py` (NTRIP RTK corrections) |
+| **RTKD** | ⏳ Planned for 02M | No daemon exists yet; keep outside EOP10/01M. Requires a verified RTCM source and 02M UART integration. |
 | **MICD** | ⚠️ Partial | `system/micd/micd.py` (Microphone capture and SPL) |
 | **MONOD** | ✅ Done | `selfdrive/monod/monod.py` (road + telephoto YOLO on RKNN) |
 | **SEGD** | ✅ Code | `selfdrive/segd/segd.py` (card segmentation, every camera) |

@@ -60,7 +60,7 @@ This document describes the consolidated daemon architecture following OpenPilot
 | **spkd** | Speaker | I2S | - (accepts commands) |
 | **rtcd** | PCF8563 | I2C | `clock` |
 | **pigeond** | u-blox GPS | UART | `gpsLocation` |
-| **rtkd** | NTRIP RTK | Network | `gnssMeasurements` |
+| **RTK correction client** | Planned for 02M only; no service currently publishes corrections | Network + 02M GPS UART | Not implemented |
 | **bluetoothd** | BT module | HCI/USB/UART | `bluetooth` |
 | **networkd** | WiFi + EC25 4G | NetworkManager | `networkState` |
 | **socketd** | CAN + TC275 | SocketCAN | `can`, `carState` |
@@ -162,7 +162,7 @@ wifi_interface = HARDWARE.WIFI_INTERFACE  # "wlan0"
 | Category | Count | Daemons |
 |----------|-------|---------|
 | Foundational | 5 | logmessaged, stated, thermald, hardwared, wdgd |
-| I/O Device | 12 | v4l2d, imud, micd, spkd, rtcd, pigeond, rtkd, bluetoothd, networkd, socketd, obd2d, adaptd |
+| I/O Device | 11 | v4l2d, imud, micd, spkd, rtcd, pigeond, bluetoothd, networkd, socketd, obd2d, adaptd |
 | Storage | 4 | loggerd, deleter, uploader, mcapd |
 | **Total System** | **20** | All HAL daemons |
 
