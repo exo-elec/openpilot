@@ -158,7 +158,7 @@ procs = [
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPStereoEnabled")),
 
   # Surface Perception
-  PythonProcess("surfaced", "selfdrive.surfaced.surfaced", ignition_on,
+  PythonProcess("surfaced", "nagaspilot.daemons.surfaced.surfaced", ignition_on,
                 enabled_callback=lambda started, params, CP:
                   ignition_on(started, params, CP) and _cached_param_bool(params, "EOPSurfaceEnabled")),
 
