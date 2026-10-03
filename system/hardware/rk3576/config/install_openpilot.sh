@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install the ExoPilot 02M (RK3576) openpilot service and runtime dependencies.
-# Run after ../exopilot/scripts/install/setup_rk3576.sh and `uv sync`.
+# Run after ../exopilot/scripts/install/setup_rk3576.sh. This installs Qt/build
+# packages, synchronizes the venv, builds PyQt5, then installs the service.
 
 set -euo pipefail
 
