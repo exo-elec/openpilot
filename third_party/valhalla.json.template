@@ -1,0 +1,98 @@
+{
+  "mjolnir": {
+    "tile_dir": "/data/media/0/valhalla/tiles",
+    "tile_extract": "/data/media/0/valhalla/valhalla_tiles.tar",
+    "traffic_extract": "/data/media/0/valhalla/traffic.tar",
+    "transit_dir": "/data/media/0/valhalla/transit",
+    "hierarchy": true,
+    "shortcuts": true,
+    "concurrency": 2,
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    }
+  },
+  "loki": {
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    },
+    "service": {
+      "proxy": "ipc:///tmp/loki"
+    },
+    "actions": ["locate", "route", "height", "sources_to_targets", "optimized_route", "isochrone", "trace_route", "trace_attributes", "transit_available", "expansion", "centroid"],
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    }
+  },
+  "thor": {
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    },
+    "service": {
+      "proxy": "ipc:///tmp/thor"
+    }
+  },
+  "odin": {
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    },
+    "service": {
+      "proxy": "ipc:///tmp/odin"
+    }
+  },
+  "httpd": {
+    "service": {
+      "listen": "tcp://127.0.0.1:8002",
+      "loopback": "ipv4",
+      "threads": 2
+    },
+    "logging": {
+      "type": "std_out",
+      "level": "WARN"
+    }
+  },
+  "service_limits": {
+    "auto": {
+      "max_distance": 500000,
+      "max_locations": 2,
+      "max_matrix_distance": 100000,
+      "max_matrix_locations": 2,
+      "max_height": 100,
+      "max_width": 10,
+      "max_length": 25,
+      "max_weight": 10000
+    },
+    "pedestrian": {
+      "max_distance": 50000,
+      "max_locations": 2,
+      "max_matrix_distance": 10000,
+      "max_matrix_locations": 2
+    },
+    "bicycle": {
+      "max_distance": 100000,
+      "max_locations": 2,
+      "max_matrix_distance": 20000,
+      "max_matrix_locations": 2
+    }
+  },
+  "costing_options": {
+    "auto": {
+      "maneuver_penalty": 5.0,
+      "destination_only_penalty": 600.0,
+      "alley_penalty": 5.0,
+      "parking_penalty": 300.0,
+      "toll_booth_penalty": 0.0,
+      "ferry_penalty": 300.0,
+      "country_crossing_penalty": 0.0,
+      "use_ferry": 0.5,
+      "use_highways": 0.5,
+      "use_tolls": 0.5,
+      "use_trails": 0.0,
+      "top_speed": 140
+    }
+  }
+}

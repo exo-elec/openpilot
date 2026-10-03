@@ -1,0 +1,144 @@
+# SCons build script for Hailo official libraries
+#
+# This script builds the official Hailo libraries from their GitHub repos:
+# - hailort: HailoRT runtime library for Hailo-8/8L/8R
+# - tappas: TAPPAS application pipelines and GStreamer plugins
+#
+# Official repositories:
+# - https://github.com/hailo-ai/hailort (use 'hailo8' branch for Hailo-8/8L)
+# - https://github.com/hailo-ai/tappas
+#
+# Note: Hailo-8L is used on ExoPilot 02 for:
+#   - Whisper STT (Speech-to-Text)
+#   - YOLO object detection (telephoto camera)
+#   - LLM inference
+
+import os
+import platform
+
+Import('env')
+
+# Only build on ARM64 (Rockchip platforms with Hailo-8L)
+if platform.machine() not in ['aarch64', 'arm64']:
+    print("Hailo libraries only build on ARM64 - skipping")
+    Return()
+
+# ============================================================================
+# Build Configuration
+# ============================================================================
+
+BUILD_DIR = Dir('build')
+INSTALL_DIR = Dir('install')
+
+# CMake options
+CMAKE_OPTS = {
+    'CMAKE_BUILD_TYPE': 'Release',
+    'CMAKE_INSTALL_PREFIX': str(INSTALL_DIR.abspath),
+}
+
+# ============================================================================
+# HailoRT Runtime Library
+# ============================================================================
+
+def build_hailort():
+    """Build HailoRT runtime library from official repo.
+    
+    HailoRT provides:
+    - libhailort.so - Runtime library
+    - hailortcli - CLI tool for device control
+    - pyhailort - Python bindings
+    """
+    hailort_src = Dir('hailort')
+    hailort_build = BUILD_DIR.Dir('hailort')
+    
+    if not os.path.exists(hailort_src.abspath):
+        print("HailoRT source not found - run: git submodule update --init third_party/hailort")
+        return None
+    
+    # HailoRT uses CMake
+    cmake_cmd = f"cd {hailort_build.abspath} && cmake {hailort_src.abspath}"
+    for opt, val in CMAKE_OPTS.items():
+        cmake_cmd += f" -D{opt}={val}"
+    # Build only what we need
+    cmake_cmd += " -DBUILD_SHARED_LIBS=ON"
+    cmake_cmd += " -DBUILD_PYBIND=ON"  # Python bindings
+    
+    build_cmd = f"cd {hailort_build.abspath} && make -j$(nproc)"
+    install_cmd = f"cd {hailort_build.abspath} && make install"
+    
+    cmake = env.Command(
+        hailort_build.Dir('Makefile'),
+        hailort_src,
+        cmake_cmd
+    )
+    
+    build = env.Command(
+        hailort_build.Dir('libhailort.so'),
+        cmake,
+        build_cmd
+    )
+    
+    install = env.Command(
+        INSTALL_DIR.Dir('lib/libhailort.so'),
+        build,
+        install_cmd
+    )
+    
+    return install
+
+# ============================================================================
+# TAPPAS (Optional - for GStreamer pipelines)
+# ============================================================================
+
+def build_tappas():
+    """Build TAPPAS application pipelines.
+    
+    TAPPAS provides:
+    - GStreamer plugins for Hailo (hailonet, hailofilter, etc.)
+    - Pre-built application templates
+    - Post-processing libraries
+    
+    Note: Requires GStreamer development packages.
+    """
+    tappas_src = Dir('tappas')
+    
+    if not os.path.exists(tappas_src.abspath):
+        print("TAPPAS source not found - run: git submodule update --init third_party/tappas")
+        return None
+    
+    # TAPPAS has its own install script
+    # For now, just mark as available - actual build uses TAPPAS's install.sh
+    print("TAPPAS: Use ./install.sh in third_party/tappas for installation")
+    return None
+
+# ============================================================================
+# Hailo Model Zoo (Reference only - large repo)
+# ============================================================================
+
+def setup_hailo_model_zoo():
+    """Setup Hailo Model Zoo reference.
+    
+    The Model Zoo is large (contains model definitions and configs).
+    Pre-compiled HEF models should be downloaded separately.
+    """
+    zoo_src = Dir('hailo_model_zoo')
+    
+    if not os.path.exists(zoo_src.abspath):
+        print("Hailo Model Zoo not found - run: git submodule update --init third_party/hailo_model_zoo")
+        return None
+    
+    print("Hailo Model Zoo: Reference available at third_party/hailo_model_zoo")
+    print("  - Pre-trained HEF models available at: /opt/hailo-models/")
+    print("  - Download from: https://github.com/hailo-ai/hailo_model_zoo/releases")
+    return zoo_src
+
+# ============================================================================
+# Build Targets
+# ============================================================================
+
+hailort_target = build_hailort()
+tappas_target = build_tappas()
+hailo_model_zoo_target = setup_hailo_model_zoo()
+
+# Export for other SConscripts
+Export('hailort_target', 'tappas_target', 'hailo_model_zoo_target')

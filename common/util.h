@@ -41,9 +41,20 @@ const double METER_TO_FOOT = 3.28084;
 
 namespace util {
 
+// CPU Core Constants (RK3588)
+constexpr int BIG_CORES[] = {0, 1, 2, 3};      // A76 - Performance cores
+constexpr int LITTLE_CORES[] = {4, 5, 6, 7};   // A55 - Power efficient cores
+
+// Core type enum for simple allocation
+enum class CoreType {
+  BIG,    // A76 cores (0-3)
+  LITTLE  // A55 cores (4-7)
+};
+
 void set_thread_name(const char* name);
 int set_realtime_priority(int level);
 int set_core_affinity(std::vector<int> cores);
+int set_core_type(CoreType type);  // Set affinity to big or little cores
 int set_file_descriptor_limit(uint64_t limit);
 
 // ***** math helpers *****

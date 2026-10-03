@@ -52,6 +52,49 @@ _ar_ox_config = DeviceCameraConfig(CameraConfig(1928, 1208, 2648.0), _ar_ox_fish
 _os_config = DeviceCameraConfig(CameraConfig(2688 // 2, 1520 // 2, 1522.0 * 3 / 4), _os_fisheye, _os_fisheye)
 _neo_config = DeviceCameraConfig(CameraConfig(1164, 874, 910.0), CameraConfig(816, 612, 650.0), _NoneCameraConfig())
 
+# EOP10 RK3588 fallback configs, used when the closed exopilot HAL is not
+# installed (e.g. dev PC). Production values live in exopilot's
+# hal.platform.rk3588_camera_geometry and override these at import time.
+# Focal lengths are derived from the lens focal length and sensor pixel pitch:
+#   OX03C10 pixel pitch = 3.0 µm  →  8.0mm lens ≈ 2667 px, 1.7mm lens ≈ 567 px.
+# Resolution matches the OX03C10 native 1920x1280 readout used by the driver.
+_eop_ox03c10_config = DeviceCameraConfig(
+  CameraConfig(1920, 1280, 2667.0),   # road: 8.0mm lens, ~40deg HFOV
+  _NoneCameraConfig(),                 # no driver monitoring camera
+  CameraConfig(1920, 1280, 567.0),    # wide_road: 1.7mm lens, ~118deg HFOV
+)
+
+def _load_eop_config(platform: str, road_cam: str, wide_cam: str, fallback: DeviceCameraConfig) -> DeviceCameraConfig:
+  """Load camera geometry for an ExoPilot Rockchip platform from exopilot HAL.
+
+  `road_cam`/`wide_cam` are the camera-geometry names (from
+  hal.platform.<platform>_camera_geometry) that map onto this file's
+  fcam/ecam roles. Focal length in pixels is a physical property of the
+  lens and sensor pixel pitch, independent of exact output resolution.
+  """
+  try:
+    module = __import__(f"hal.platform.{platform}_camera_geometry", fromlist=["FOCAL_PX", "IMAGE_SIZE_PX"])
+    def _cfg(name: str) -> CameraConfig:
+      w, h = module.IMAGE_SIZE_PX[name]
+      fx, _fy = module.FOCAL_PX[name]
+      return CameraConfig(w, h, fx)
+    return DeviceCameraConfig(
+      fcam=_cfg(road_cam),
+      dcam=_NoneCameraConfig(),
+      ecam=_cfg(wide_cam),
+    )
+  except Exception:
+    # HAL not installed or geometry incomplete — use the public fallback.
+    return fallback
+
+def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  """Load RK3588 camera geometry; fall back to public defaults.
+
+  EOP10 uses the same OX03C10 sensor and lens stack as the reference platform.
+  The native readout is 1920x1280, close to the reference's 1928x1208.
+  """
+  return _load_eop_config("rk3588", "road", "wide_road", _eop_ox03c10_config)
+
 DEVICE_CAMERAS = {
   # A "device camera" is defined by a device type and sensor
 
@@ -66,9 +109,35 @@ DEVICE_CAMERAS = {
 
   # simulator (emulates a tici)
   ("pc", "unknown"): _ar_ox_config,
+
+  # ExoPilot 01M (RK3588) - road/wide_road are OX03C10, stereo is GC4653.
+  # GC4653 is not a model input camera, so all RK3588 lookups return the
+  # OX03C10 main/wide geometry.
+  ("rk3588", "ox03c10"): _load_eop_rk3588_config("ox03c10"),
+  ("rk3588", "gc4653"): _load_eop_rk3588_config("gc4653"),
+  ("rk3588", "unknown"): _load_eop_rk3588_config("ox03c10"),
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})
+
+def get_device_camera_config(camera_type: str = "ox03c10") -> DeviceCameraConfig:
+  """Get camera config for current hardware platform
+
+  Args:
+    camera_type: Camera sensor type (ox03c10, gc4653)
+
+  Returns:
+    DeviceCameraConfig for the specified camera
+  """
+  from openpilot.system.hardware import HARDWARE
+  device_type = HARDWARE.get_device_type()
+
+  # Comment corrected 2026-08-26: this actually falls back to stock comma-3's
+  # _ar_ox_config (not an rk3588 config, despite what this comment used to
+  # say) if (device_type, camera_type) isn't in DEVICE_CAMERAS -- e.g. an
+  # unregistered platform. rk3588 is registered above, so
+  # this fallback should not be hit for either in practice.
+  return DEVICE_CAMERAS.get((device_type, camera_type), _ar_ox_config)
 
 # device/mesh : x->forward, y-> right, z->down
 # view : x->right, y->down, z->forward
@@ -79,7 +148,6 @@ device_frame_from_view_frame = np.array([
 ])
 view_frame_from_device_frame = device_frame_from_view_frame.T
 
-
 # aka 'extrinsic_matrix'
 # road : x->forward, y -> left, z->up
 def get_view_frame_from_road_frame(roll, pitch, yaw, height):
@@ -87,14 +155,11 @@ def get_view_frame_from_road_frame(roll, pitch, yaw, height):
   view_from_road = view_frame_from_device_frame.dot(device_from_road)
   return np.hstack((view_from_road, [[0], [height], [0]]))
 
-
-
 # aka 'extrinsic_matrix'
 def get_view_frame_from_calib_frame(roll, pitch, yaw, height):
   device_from_calib= orient.rot_from_euler([roll, pitch, yaw])
   view_from_calib = view_frame_from_device_frame.dot(device_from_calib)
   return np.hstack((view_from_calib, [[0], [height], [0]]))
-
 
 def vp_from_ke(m):
   """
@@ -105,12 +170,10 @@ def vp_from_ke(m):
   """
   return (m[0, 0]/m[2, 0], m[1, 0]/m[2, 0])
 
-
 def roll_from_ke(m):
   # note: different from calibration.h/RollAnglefromKE: i think that one's just wrong
   return np.arctan2(-(m[1, 0] - m[1, 1] * m[2, 0] / m[2, 1]),
                     -(m[0, 0] - m[0, 1] * m[2, 0] / m[2, 1]))
-
 
 def normalize(img_pts, intrinsics):
   # normalizes image coordinates
@@ -123,7 +186,6 @@ def normalize(img_pts, intrinsics):
   img_pts_normalized = img_pts.dot(intrinsics_inv.T)
   img_pts_normalized[(img_pts < 0).any(axis=1)] = np.nan
   return img_pts_normalized[:, :2].reshape(input_shape)
-
 
 def denormalize(img_pts, intrinsics, width=np.inf, height=np.inf):
   # denormalizes image coordinates
@@ -141,14 +203,12 @@ def denormalize(img_pts, intrinsics, width=np.inf, height=np.inf):
     img_pts_denormalized[img_pts_denormalized[:, 1] < 0] = np.nan
   return img_pts_denormalized[:, :2].reshape(input_shape)
 
-
 def get_calib_from_vp(vp, intrinsics):
   vp_norm = normalize(vp, intrinsics)
   yaw_calib = np.arctan(vp_norm[0])
   pitch_calib = -np.arctan(vp_norm[1]*np.cos(yaw_calib))
   roll_calib = 0
   return roll_calib, pitch_calib, yaw_calib
-
 
 def device_from_ecef(pos_ecef, orientation_ecef, pt_ecef):
   # device from ecef frame
@@ -161,7 +221,6 @@ def device_from_ecef(pos_ecef, orientation_ecef, pt_ecef):
   pt_ecef_rel = pt_ecef - pos_ecef
   pt_device = np.einsum('jk,ik->ij', device_from_ecef_rot, pt_ecef_rel)
   return pt_device.reshape(input_shape)
-
 
 def img_from_device(pt_device):
   # img coordinates from pts in device frame
