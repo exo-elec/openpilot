@@ -9,10 +9,10 @@ def _cs(v=15.0, pressed=False, torque=0.0, standstill=False, brake=False, gas=Fa
   return NS(vEgo=v, steeringPressed=pressed, steeringTorque=torque, standstill=standstill, brakePressed=brake, gasPressed=gas)
 
 
-def _event_names(msg):
+def _event_names(data):
   from cereal import log
   names = {v: k for k, v in log.OnroadEvent.EventName.schema.enumerants.items()}
-  return [names[e.name] for e in messaging.log_from_bytes(msg.to_bytes()).driverMonitoringState.events]
+  return [names[int(e.name.raw)] for e in messaging.log_from_bytes(data).driverMonitoringState.events]  # _DynamicEnum hashes unlike int
 
 
 def test_wheel_press_brake_and_gas_count_as_the_driver_but_not_openpilots_own_steering():
@@ -48,12 +48,12 @@ def test_stages_publish_the_matching_events_and_awareness_status():
   for _ in range(int(61.0 / 0.05)):
     status = d.step(_cs(), True)
     if status.stage not in seen:
-      seen[status.stage] = (status, state_msg(status, True))
+      seen[status.stage] = (status, state_msg(status, True).to_bytes())  # serialise once: capnp warns on a second write
   assert _event_names(seen[OK][1]) == []
   assert _event_names(seen[SOFT][1]) == ["preDriverUnresponsive"]
   assert _event_names(seen[PROMPT][1]) == ["promptDriverUnresponsive"]
   assert _event_names(seen[CRITICAL][1]) == ["driverUnresponsive"]
-  critical = messaging.log_from_bytes(seen[CRITICAL][1].to_bytes()).driverMonitoringState
+  critical = messaging.log_from_bytes(seen[CRITICAL][1]).driverMonitoringState
   assert critical.awarenessStatus < 0.0  # controlsd forces deceleration on this
   assert not critical.faceDetected and not critical.isActiveMode
 
