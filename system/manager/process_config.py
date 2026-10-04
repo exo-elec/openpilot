@@ -18,6 +18,9 @@ def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
 def map_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("ngp_map_enabled")
 
+def tripd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("ngp_tripd_enabled")
+
 def notcar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and CP.notCar
 
@@ -104,6 +107,7 @@ procs = [
   PythonProcess("gridd", "nagaspilot.runtime.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
   PythonProcess("mapd", "nagaspilot.mapd.mapd", map_enabled),
+  PythonProcess("tripd", "nagaspilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),

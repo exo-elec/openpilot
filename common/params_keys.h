@@ -136,6 +136,23 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (nagaspilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
     {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
     // Map / light / distraction speed caps (nagaspilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
+    // tripd (nagaspilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind ngp_tripd_enabled.
+    {"ngp_tripd_enabled", {PERSISTENT, BOOL, "0"}},
+    {"ngp_trip_a_start_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_a_start_time", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_b_start_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_b_start_time", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_last_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_last_duration", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_last_max_accel", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_last_override_free_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_last_personality_time", {PERSISTENT, STRING, ""}},
+    {"ngp_trip_lifetime_engagement_ratio", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_total_distance", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_total_drives", {PERSISTENT, INT, "0"}},
+    {"ngp_trip_daily_stats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
+    {"ngp_trip_uptime_engaged", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_trip_uptime_onroad", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_map_enabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
     {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
