@@ -1,0 +1,639 @@
+{
+"mtsc": [
+{
+"curves": [
+[
+300.0,
+0.004
+]
+],
+"v_target": 21.213203435596427,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.004,
+"distance": 300.0
+},
+{
+"curves": [
+[
+300.0,
+0.004
+]
+],
+"v_target": 21.213203435596427,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.004,
+"distance": 300.0
+},
+{
+"curves": [
+[
+300.0,
+0.004
+]
+],
+"v_target": 21.213203435596427,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.004,
+"distance": 300.0
+},
+{
+"curves": [
+[
+300.0,
+0.004
+],
+[
+450.0,
+0.01
+]
+],
+"v_target": 13.416407864998739,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.01,
+"distance": 450.0
+},
+{
+"curves": [
+[
+300.0,
+0.004
+],
+[
+450.0,
+0.01
+]
+],
+"v_target": 13.416407864998739,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.01,
+"distance": 450.0
+},
+{
+"curves": [
+[
+300.0,
+0.004
+],
+[
+450.0,
+0.01
+]
+],
+"v_target": 13.416407864998739,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.01,
+"distance": 450.0
+},
+{
+"curves": [
+[
+100.0,
+0.02
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+100.0,
+0.02
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+100.0,
+0.02
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+300.0,
+0.0002
+]
+],
+"v_target": 42.42640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.001,
+"distance": 300.0
+},
+{
+"curves": [
+[
+300.0,
+0.0002
+]
+],
+"v_target": 42.42640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.001,
+"distance": 300.0
+},
+{
+"curves": [
+[
+300.0,
+0.0002
+]
+],
+"v_target": 42.42640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.001,
+"distance": 300.0
+},
+{
+"curves": [
+[
+600.0,
+0.01
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+600.0,
+0.01
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+600.0,
+0.01
+]
+],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [
+[
+200.0,
+0.2
+]
+],
+"v_target": 4.242640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.1,
+"distance": 200.0
+},
+{
+"curves": [
+[
+200.0,
+0.2
+]
+],
+"v_target": 4.242640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.1,
+"distance": 200.0
+},
+{
+"curves": [
+[
+200.0,
+0.2
+]
+],
+"v_target": 4.242640687119285,
+"state": "approaching",
+"active": true,
+"handover": false,
+"curvature": 0.1,
+"distance": 200.0
+},
+{
+"curves": [],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+},
+{
+"curves": [],
+"v_target": null,
+"state": "disabled",
+"active": false,
+"handover": false,
+"curvature": 0.0,
+"distance": null
+}
+],
+"mslc": [
+{
+"speedLimit": 80.0,
+"next": 0.0,
+"dist": 0.0,
+"v": 20.0,
+"drv": false,
+"t": 1.0,
+"nav": 0.0,
+"target": 22.22222222222222,
+"state": 2
+},
+{
+"speedLimit": 80.0,
+"next": 50.0,
+"dist": 250.0,
+"v": 20.0,
+"drv": false,
+"t": 2.0,
+"nav": 0.0,
+"target": 18.05555555555556,
+"state": 2
+},
+{
+"speedLimit": 80.0,
+"next": 50.0,
+"dist": 50.0,
+"v": 20.0,
+"drv": false,
+"t": 3.0,
+"nav": 0.0,
+"target": null,
+"state": 2
+},
+{
+"speedLimit": 30.0,
+"next": 0.0,
+"dist": 0.0,
+"v": 25.0,
+"drv": false,
+"t": 4.0,
+"nav": 0.0,
+"target": null,
+"state": 2
+},
+{
+"speedLimit": 0.0,
+"next": 0.0,
+"dist": 0.0,
+"v": 20.0,
+"drv": false,
+"t": 5.0,
+"nav": 16.7,
+"target": null,
+"state": 2
+},
+{
+"speedLimit": 0.0,
+"next": 0.0,
+"dist": 0.0,
+"v": 20.0,
+"drv": false,
+"t": 6.0,
+"nav": 0.0,
+"target": null,
+"state": 1
+},
+{
+"speedLimit": 60.0,
+"next": 0.0,
+"dist": 0.0,
+"v": 20.0,
+"drv": true,
+"t": 7.0,
+"nav": 0.0,
+"target": null,
+"state": 2
+}
+],
+"ddsc": [
+{
+"in": [
+0.0,
+false,
+20.0,
+false,
+null,
+false
+],
+"cap": null,
+"a": null,
+"active": false,
+"latched": false
+},
+{
+"in": [
+16.67,
+false,
+20.0,
+false,
+null,
+false
+],
+"cap": 16.67,
+"a": -1.5,
+"active": true,
+"latched": false
+},
+{
+"in": [
+16.67,
+false,
+26.0,
+false,
+null,
+false
+],
+"cap": 22.2,
+"a": -1.5,
+"active": true,
+"latched": false
+},
+{
+"in": [
+16.67,
+false,
+26.0,
+false,
+18.0,
+false
+],
+"cap": 16.2,
+"a": -1.5,
+"active": true,
+"latched": false
+},
+{
+"in": [
+16.67,
+false,
+10.0,
+false,
+null,
+true
+],
+"cap": 0.0,
+"a": -1.5,
+"active": true,
+"latched": false
+},
+{
+"in": [
+16.67,
+false,
+10.0,
+true,
+null,
+false
+],
+"cap": null,
+"a": null,
+"active": false,
+"latched": false
+},
+{
+"in": [
+16.67,
+true,
+12.0,
+false,
+null,
+false
+],
+"cap": 4.17,
+"a": -2.0,
+"active": true,
+"latched": false
+},
+{
+"in": [
+16.67,
+true,
+0.1,
+false,
+null,
+false
+],
+"cap": 0.0,
+"a": -2.0,
+"active": true,
+"latched": true
+},
+{
+"in": [
+16.67,
+true,
+5.0,
+false,
+null,
+false
+],
+"cap": 0.0,
+"a": -2.0,
+"active": true,
+"latched": true
+},
+{
+"in": [
+16.67,
+false,
+5.0,
+true,
+null,
+false
+],
+"cap": null,
+"a": null,
+"active": false,
+"latched": false
+},
+{
+"in": [
+16.67,
+true,
+5.0,
+false,
+null,
+false
+],
+"cap": 4.17,
+"a": -2.0,
+"active": true,
+"latched": false
+}
+],
+"tlsc": [
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"red",
+0.9,
+40.0
+]
+],
+"out": 10.954451150103322
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"yellow",
+0.9,
+25.0
+],
+[
+"red",
+0.9,
+60.0
+]
+],
+"out": 8.660254037844387
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"green",
+0.9,
+30.0
+]
+],
+"out": null
+},
+{
+"lead": true,
+"v": 15.0,
+"objs": [
+[
+"red",
+0.9,
+40.0
+]
+],
+"out": null
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"red",
+0.01,
+40.0
+]
+],
+"out": null
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"red",
+0.9,
+2.0
+]
+],
+"out": null
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [
+[
+"red",
+0.9,
+90.0
+]
+],
+"out": null
+},
+{
+"lead": false,
+"v": 3.0,
+"objs": [
+[
+"red",
+0.9,
+40.0
+]
+],
+"out": 3.0
+},
+{
+"lead": false,
+"v": 15.0,
+"objs": [],
+"out": null
+}
+]
+}
