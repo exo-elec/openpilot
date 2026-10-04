@@ -39,6 +39,10 @@ openpilot v0.10.0 vs **NagasPilot**
 | DLAT | **Dynamic Lateral Profile** | Picks lane-line or laneless steering by how clear the lanes are, and switches early for tight curves. | ❌ | ✅ |
 | ALCC | **Always-on Lateral Control** | Keeps steering assistance on without cruise control. Optional. | ❌ | ✅ |
 | — | **Smooth steering resume** | Eases steering assistance back in after you take over. | ❌ | ✅ |
+| RED | **Road Edge Detection** | Nudges the car away from a close road edge (curb, grass, guardrail, wall). | ❌ | ✅ |
+| SOC | **Smart Offset Control** | Moves slightly away from a vehicle beside you on the highway. | ❌ | ✅ |
+| CAT | **Car Adaptive Tuning** | Learns the car's steering ratio and stiffness and uses only trusted values. | ❌ | ✅ |
+| — | **Blinker pause** | Pauses steering assistance while a turn signal is on below a chosen speed, so it does not fight a turn. Optional. | ❌ | ✅ |
 
 #### Lane changes
 
@@ -55,6 +59,7 @@ openpilot v0.10.0 vs **NagasPilot**
 |:--|---|---|:-:|:-:|
 | DM | **Driver Monitoring** | Checks the driver is paying attention. | ✅ | ✅ |
 | — | **Lead departure notice** | Tells you when the car ahead drives off while you are stopped. Optional. | ❌ | ✅ |
+| — | **Green-light notice** | Tells you when the car is released from a stop at a light. Optional. | ❌ | ✅ |
 
 #### Device and hardware
 
