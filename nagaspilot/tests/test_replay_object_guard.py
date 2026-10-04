@@ -17,7 +17,7 @@ def lead(d=0.0, y=0.0, status=True):
 
 
 def det(tid, x, y, vx, vy, conf=0.9):
-  return NS(trackId=tid, x=x, y=y, vx=vx, vy=vy, sigmaX=1.0, confidence=conf)
+  return NS(trackId=tid, x=x, y=y, vx=vx, vy=vy, sigmaX=1.0, confidence=conf, className='car')
 
 
 def log(n=40):

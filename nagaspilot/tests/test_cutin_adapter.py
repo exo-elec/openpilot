@@ -4,7 +4,7 @@ from nagaspilot.runtime.cutin_adapter import cutin_objects
 
 
 def det(**k):
-  base = dict(trackId=3, x=22.0, y=3.0, vx=-6.0, vy=-1.5, sigmaX=1.0, confidence=0.9)
+  base = dict(trackId=3, x=22.0, y=3.0, vx=-6.0, vy=-1.5, sigmaX=1.0, confidence=0.9, className='motorcycle')
   base.update(k)
   return NS(**base)
 
@@ -17,7 +17,7 @@ class SM(dict):
 
 def test_fresh_message_maps_fields():
   objs, fresh = cutin_objects(SM(True, True, [det()]))
-  assert fresh and objs[0].track_id == 3 and objs[0].y == 3.0 and objs[0].conf == 0.9
+  assert fresh and objs[0].track_id == 3 and objs[0].y == 3.0 and objs[0].conf == 0.9 and objs[0].name == 'motorcycle'
 
 
 def test_not_alive_or_invalid_is_not_fresh_and_empty():

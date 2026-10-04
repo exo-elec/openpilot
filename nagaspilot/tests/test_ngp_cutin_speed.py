@@ -1,10 +1,10 @@
 import math
 
-from nagaspilot.controls.ngp_cutin_speed import HOLD_S, MAX_REDUCTION, MIN_TARGET_SPEED, CutInSpeed, Obj, evaluate
+from nagaspilot.controls.ngp_cutin_speed import CAR, HOLD_S, MIN_TARGET_SPEED, CutInSpeed, Obj, evaluate
 
 
-def obj(x=22.0, y=3.0, vx=-6.0, vy=-1.5, sigma=2.0, conf=0.8, tid=1):
-  return Obj(tid, x, y, vx, vy, sigma, conf)
+def obj(x=22.0, y=3.0, vx=-6.0, vy=-1.5, sigma=2.0, conf=0.8, tid=1, name='car'):
+  return Obj(tid, x, y, vx, vy, sigma, conf, name)
 
 
 def run(c, o, n=3, v=25.0, dt=0.2, **kw):
@@ -29,7 +29,7 @@ def test_target_matches_object_speed_but_is_capped_and_floored():
   assert abs(r.target_speed - 23.0) < 1e-6
   c = CutInSpeed()
   r = run(c, obj(vx=-20.0, x=60.0))         # object far slower: capped at 25 % below
-  assert abs(r.target_speed - 25.0 * (1 - MAX_REDUCTION)) < 1e-6
+  assert abs(r.target_speed - 25.0 * (1 - CAR.max_reduction)) < 1e-6
   c = CutInSpeed()
   r = run(c, obj(vx=-15.0, x=60.0), v=10.0)  # 25 % of 10 is 7.5 < floor
   assert r.target_speed >= min(MIN_TARGET_SPEED, 10.0) - 1e-9
@@ -80,3 +80,21 @@ def test_most_urgent_object_wins_and_track_switch_restarts_confirmation():
   r = c.update(25.0, [a, b], 0.2)
   assert r.active and r.track_id == 2
   assert math.isfinite(r.ttc)
+
+
+def test_two_wheeler_triggers_where_a_car_would_not():
+  # slow lateral drift (0.25 m/s) and a looser gap: below the car criteria, inside the two-wheeler ones
+  m = obj(y=2.0, vy=-0.25, x=33.0, vx=-3.0, name='motorcycle')
+  c = obj(y=2.0, vy=-0.25, x=33.0, vx=-3.0, name='car')
+  assert evaluate(25.0, c) is None and evaluate(25.0, m) is not None
+
+
+def test_two_wheeler_gets_a_stronger_cap():
+  c = CutInSpeed()
+  r = run(c, obj(vx=-20.0, x=60.0, name='motorcycle'))
+  assert abs(r.target_speed - 25.0 * 0.70) < 1e-6
+
+
+def test_non_cut_in_classes_ignored():
+  assert evaluate(25.0, obj(name='person')) is None
+  assert evaluate(25.0, obj(name='traffic light')) is None

@@ -10,5 +10,5 @@ def cutin_objects(sm) -> tuple[list[Obj], bool]:
   fresh = bool(sm.alive.get('monoDetections', False) and sm.valid.get('monoDetections', False))
   if not fresh:
     return [], False
-  return [Obj(int(d.trackId), float(d.x), float(d.y), float(d.vx), float(d.vy), float(d.sigmaX), float(d.confidence))
+  return [Obj(int(d.trackId), float(d.x), float(d.y), float(d.vx), float(d.vy), float(d.sigmaX), float(d.confidence), str(d.className))
           for d in sm['monoDetections'].detections], True

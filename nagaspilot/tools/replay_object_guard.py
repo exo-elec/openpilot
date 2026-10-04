@@ -61,7 +61,7 @@ def analyze(msgs) -> dict:
       last_t = t
       objs = []
       for d in md.detections:
-        objs.append(Obj(int(d.trackId), float(d.x), float(d.y), float(d.vx), float(d.vy), float(d.sigmaX), float(d.confidence)))
+        objs.append(Obj(int(d.trackId), float(d.x), float(d.y), float(d.vx), float(d.vy), float(d.sigmaX), float(d.confidence), str(d.className)))
         first_seen.setdefault(int(d.trackId), t)
         if d.confidence > 0 and d.x > 1.0:
           checked += 1
