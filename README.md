@@ -8,6 +8,8 @@
 
 ## What we changed from openpilot v0.10
 
+Based on **openpilot v0.10.0** (upstream release tag, August 2025). It does not include v0.10.1 or later. Each step below lists what is new or better compared with stock v0.10.0, and each branch includes the steps before it.
+
 **Step 1 — NagasPilot: smarter driving on the comma 3**  ← this branch
 
 - **Smoother cruise control**: it adapts to traffic, handles slow-moving jams and cars cutting in, and eases off for bumpy roads, sharp curves it can see ahead, and the speed limit from your navigation.
@@ -17,6 +19,8 @@
 - **Extras**: an optional notice when the car in front of you drives off while you are stopped, and support for BYD cars.
 
 Branches build on each other: `dev/NGP10` → `dev/EOP10` → `dev/01M` → `dev/02M`.
+
+*Version note: the code inside v0.10.0 already prints "0.10.1" as its version string, because upstream bumps that string before tagging. The code itself is the v0.10.0 tag.*
 Technical notes for developers are in `nagaspilot/docs/`.
 
 ---
