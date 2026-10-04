@@ -70,3 +70,7 @@ Guards that apply to every tier (the "protection layer"):
 Tests: 9 pure tests (both sides, cap/floor, non-triggers, headway, hold/release, gates, track switching, adapter). The planner hook is not run (needs the built MPC). Not proven on a vehicle: use shadow-mode metrics (section 4) before turning it on; ranging error here has no independent radar reference.
 Carry to EOP10: it can use the same pure policy from its gridd `trackedObjects`/monoDetections through an adapter; EOP10's AEB/radar authority split is unchanged.
 
+
+## 8. Shadow-mode replay tool (2026-10-04)
+
+`python3 -m nagaspilot.tools.replay_object_guard <route>...` runs a logged route through the same pure cut-in policy and reports, without actuating: `monoDetections` rate and `modelExecutionTime` (mean/p95/max), how often the cut-in trim would have triggered (and per hour, with times/tracks/target speeds), ranging agreement against `radarState` leads (median and p95 relative error; consistency only on radarless devices), and how much earlier the detector saw an object than a lead matched it. Needs a route recorded with `ngp_monod_enabled` on. Tested on synthetic logs only (2 tests); not yet run on a real route.
