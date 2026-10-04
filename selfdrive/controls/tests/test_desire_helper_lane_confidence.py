@@ -106,3 +106,34 @@ def test_default_is_no_block_when_caller_omits_the_argument():
   cs = _make_carstate(left_blinker=True, steering_pressed=True, steering_torque=1.0)
   dh.update(cs, lateral_active=True, lane_change_prob=1.0)
   assert dh.lane_change_state == LaneChangeState.laneChangeStarting
+
+
+def _line(y, n=8):
+  return SimpleNamespace(x=[5.0 * (i + 1) for i in range(n)], y=[y] * n)
+
+
+def _model(lead_y=None):
+  leads = [SimpleNamespace(prob=0.9, x=[20.0], y=[lead_y], v=[5.0])] if lead_y is not None else []
+  return SimpleNamespace(laneLines=[_line(-5.2), _line(-1.8), _line(1.8), _line(5.2)], roadEdges=[_line(-7.0), _line(7.0)], leadsV3=leads)
+
+
+def _start(dh, model):
+  _enter_pre_lane_change(dh)
+  cs = _make_carstate(left_blinker=True, steering_pressed=True, steering_torque=1.0)
+  dh.update(cs, lateral_active=True, lane_change_prob=1.0, model_v2=model)
+  return dh.lane_change_state
+
+
+def test_gap_guard_blocks_only_when_enabled():
+  closing_left = _model(lead_y=-3.0)  # right-positive model frame: left lane
+  assert _start(DesireHelper(ngp_lca_gap_eval=True), closing_left) == LaneChangeState.preLaneChange
+  assert _start(DesireHelper(), closing_left) == LaneChangeState.laneChangeStarting
+  assert _start(DesireHelper(ngp_lca_gap_eval=True), _model()) == LaneChangeState.laneChangeStarting
+  assert _start(DesireHelper(ngp_lca_gap_eval=True), None) == LaneChangeState.laneChangeStarting
+
+
+def test_lane_width_guard_blocks_shoulder_only_when_enabled():
+  shoulder = _model()
+  shoulder.roadEdges = [_line(-2.4), _line(2.4)]
+  assert _start(DesireHelper(ngp_lca_lane_width=True), shoulder) == LaneChangeState.preLaneChange
+  assert _start(DesireHelper(), shoulder) == LaneChangeState.laneChangeStarting

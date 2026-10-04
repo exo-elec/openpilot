@@ -368,6 +368,8 @@ def main(demo=False):
   DH = DesireHelper(
     ngp_lca_speed_mph=int(params.get("ngp_lat_lca_speed", return_default=True)),
     ngp_lca_auto_sec=float(params.get("ngp_lat_lca_auto_sec", return_default=True)),
+    ngp_lca_gap_eval=params.get_bool("ngp_lat_lca_gap_eval"),
+    ngp_lca_lane_width=params.get_bool("ngp_lat_lca_lane_width"),
   )
   ngp_road_edge_enabled = params.get_bool("ngp_lat_road_edge_detection")
 
@@ -490,7 +492,8 @@ def main(demo=False):
       DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob,
                 left_edge_detected=bool(road_edges and road_edges.left_blocked),
                 right_edge_detected=bool(road_edges and road_edges.right_blocked),
-                low_lane_confidence=lane_confidence < DEFAULT_ENTER_THRESHOLD)
+                low_lane_confidence=lane_confidence < DEFAULT_ENTER_THRESHOLD,
+                model_v2=modelv2_send.modelV2)
       modelv2_send.modelV2.meta.laneChangeState = DH.lane_change_state
       modelv2_send.modelV2.meta.laneChangeDirection = DH.lane_change_direction
       drivingdata_send.drivingModelData.meta.laneChangeState = DH.lane_change_state

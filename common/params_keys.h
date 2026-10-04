@@ -104,6 +104,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // (which fuses stereo+YOLO). Unvalidated on road; default off.
     {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
+    // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).
+    {"ngp_lat_lca_gap_eval", {PERSISTENT, BOOL, "0"}},
+    {"ngp_lat_lca_lane_width", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
