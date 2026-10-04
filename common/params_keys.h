@@ -107,6 +107,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).
     {"ngp_lat_lca_gap_eval", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_lane_width", {PERSISTENT, BOOL, "0"}},
+    // CAT: smoothed and validated steer ratio / stiffness from liveParameters. Default off.
+    {"ngp_lat_cat", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10

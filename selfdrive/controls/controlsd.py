@@ -14,6 +14,7 @@ from opendbc.car.car_helpers import interfaces
 from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
+from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -63,6 +64,8 @@ class Controls:
       self.LaC = LatControlTorque(self.CP, self.CI)
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
+    self.cat = NGPCAT(self.CP.steerRatio) if self.params.get_bool("ngp_lat_cat") else None
     self.alcc_active = False
     self.alcc = NGPALCC()
 
@@ -91,6 +94,11 @@ class Controls:
     lp = self.sm['liveParameters']
     x = max(lp.stiffnessFactor, 0.1)
     sr = max(lp.steerRatio, 0.1)
+    if self.cat is not None:
+      if self.sm.updated['liveParameters']:
+        self.cat.step(time.monotonic(), live_params_gated(lp, CS), lp.steerRatio, lp.stiffnessFactor, lp.angleOffsetDeg)
+      if self.cat.status.adaptive:  # held between liveParameters updates so the model does not flicker
+        x, sr = max(self.cat.status.stiffness_factor, 0.1), max(self.cat.status.steer_ratio, 0.1)
     self.VM.update_params(x, sr)
 
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - lp.angleOffsetDeg)
