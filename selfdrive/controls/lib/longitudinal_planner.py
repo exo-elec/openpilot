@@ -37,6 +37,8 @@ from nagaspilot.controls.ngp_dlon import NGPDLON
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp.
 from nagaspilot.controls.ngp_brsc import NGPBRSC
+from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
+from nagaspilot.runtime.cutin_adapter import cutin_objects
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
 from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
@@ -66,6 +68,7 @@ class NGPFlags:
   LC_LEAD_HANDOFF = 2 ** 4
   VTSC = 2 ** 5
   NSLC = 2 ** 6
+  CUTIN = 2 ** 7
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -130,6 +133,9 @@ class LongitudinalPlanner:
     self.brsc = NGPBRSC()
     self.brsc_result = None
     self.brsc_v_target = None
+
+    # Cut-in speed trim: predicted cut-in from monoDetections -> lower cruise speed only (default off).
+    self.cutin = CutInSpeed()
 
     # Lane Change Lead Handoff (pure camera)
     self.lc_handoff = NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
@@ -240,6 +246,12 @@ class LongitudinalPlanner:
         and self.brsc_result.active and v_ego > BRSC_MIN_V_EGO):
       self.brsc_v_target = max(v_cruise * self.brsc_result.speed_factor, BRSC_MIN_SPEED_MS)
       v_cruise = min(v_cruise, self.brsc_v_target)
+
+    # Cut-in speed trim (monoDetections, opt-in): only ever lowers v_cruise; the MPC keeps braking authority.
+    cutin_objs, cutin_fresh = cutin_objects(sm)
+    cutin = self.cutin.update(v_ego, cutin_objs, self.dt, enabled=bool(ngp_flags & NGPFlags.CUTIN), fresh=cutin_fresh)
+    if cutin.target_speed is not None:
+      v_cruise = min(v_cruise, cutin.target_speed)
 
     # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
     # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
