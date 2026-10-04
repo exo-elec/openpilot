@@ -10,10 +10,11 @@ NagasPilot is based on openpilot v0.10.0 and adds the following.
 
 *Comes from:* **openpilot (extended)** = an openpilot feature we built on; **NagasPilot** = added by us for the comma-3 version.
 
+### Longitudinal control (speed and following)
+
 | Abbreviation | Feature | What it does | Comes from |
 |---|---|---|---|
 | **DLON** | Dynamic Longitudinal Profile | Automatically switches between standard cruise and end-to-end following to suit the situation. | openpilot (extended) |
-| **DLAT** | Dynamic Lateral Profile | Chooses lane-line or laneless steering depending on how clear the lanes are. Includes curve assist: it switches to laneless early when a tight curve is coming. | NagasPilot |
 | **TJA** | Traffic Jam Assist | Smooth following in slow traffic and when other cars cut in. | NagasPilot |
 | **—** | Speed zones | Limits acceleration and jerk according to your speed range. | NagasPilot |
 | **BRSC** | Bumpy Road Speed Controller | Slows the car down on rough or bumpy pavement. | NagasPilot |
@@ -22,13 +23,34 @@ NagasPilot is based on openpilot v0.10.0 and adds the following.
 | **—** | Acceleration profiles | Choose normal, eco or sport acceleration. | NagasPilot |
 | **—** | Adaptive following gap | Adjusts the following distance to the situation. Optional. | NagasPilot |
 | **—** | Speed offset | Adds or subtracts a fixed amount from the set speed. | NagasPilot |
+
+### Lateral control (steering)
+
+| Abbreviation | Feature | What it does | Comes from |
+|---|---|---|---|
+| **DLAT** | Dynamic Lateral Profile | Chooses lane-line or laneless steering depending on how clear the lanes are. Includes curve assist: it switches to laneless early when a tight curve is coming. | NagasPilot |
 | **ALCC** | Always-on Lateral Control | Keeps steering assistance on without cruise control. Optional. | NagasPilot |
+| **—** | Smooth steering resume | Eases steering assistance back in after you take over. | NagasPilot |
+
+### Lane changes
+
+| Abbreviation | Feature | What it does | Comes from |
+|---|---|---|---|
 | **LCA** | Lane Change Assist options | Set the minimum speed for lane changes and an optional automatic start. | openpilot (extended) |
 | **—** | Road-edge guard | Blocks a lane change toward a road edge. | NagasPilot |
 | **—** | Lane change checks | Checks that the next lane is free and wide enough before changing. Optional. | NagasPilot |
 | **—** | Lead handoff | During a lane change, follows the car in the lane you are moving into. | NagasPilot |
-| **—** | Smooth steering resume | Eases steering assistance back in after you take over. | NagasPilot |
+
+### Safety and awareness
+
+| Abbreviation | Feature | What it does | Comes from |
+|---|---|---|---|
 | **—** | Lead departure notice | Tells you when the car ahead drives off while you are stopped. Optional. | NagasPilot |
+
+### System and devices
+
+| Abbreviation | Feature | What it does | Comes from |
+|---|---|---|---|
 | **—** | BYD support | Support for BYD cars through our gateway. | NagasPilot |
 
 ## What we removed from openpilot
