@@ -12,7 +12,7 @@ def radar_state(lead_one_status=False):
   return SimpleNamespace(leadOne=lead_one, leadTwo=SimpleNamespace(status=False))
 
 
-def model_v2_with_lead(x=10.0, y=3.0, v=15.0, a=0.0, prob=0.9):
+def model_v2_with_lead(x=10.0, y=-3.0, v=15.0, a=0.0, prob=0.9):
   lead = SimpleNamespace(x=[x], y=[y], v=[v], a=[a], prob=prob)
   return SimpleNamespace(leadsV3=[lead])
 
@@ -38,7 +38,7 @@ def test_below_speed_floor_returns_original_radar_state():
 def test_lane_change_starting_wraps_adjacent_left_lead():
   handoff = NGPLeadHandoff()
   base = radar_state()
-  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(x=12.0, y=3.0, v=18.0), radar_state=base,
+  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(x=12.0, y=-3.0, v=18.0), radar_state=base,
                         lc_state=LaneChangeState.laneChangeStarting, lc_dir=LaneChangeDirection.left,
                         v_ego=20.0, now=0.0)
   assert out is not base
@@ -49,7 +49,7 @@ def test_lane_change_starting_wraps_adjacent_left_lead():
 def test_lane_change_starting_wraps_adjacent_right_lead():
   handoff = NGPLeadHandoff()
   base = radar_state()
-  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(x=12.0, y=-3.0, v=18.0), radar_state=base,
+  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(x=12.0, y=3.0, v=18.0), radar_state=base,
                         lc_state=LaneChangeState.laneChangeStarting, lc_dir=LaneChangeDirection.right,
                         v_ego=20.0, now=0.0)
   assert out is not base
@@ -60,8 +60,8 @@ def test_lane_change_starting_wraps_adjacent_right_lead():
 def test_lead_on_wrong_side_is_ignored():
   handoff = NGPLeadHandoff()
   base = radar_state()
-  # direction is left, but lead is to the right (y < 0) -- should not be picked
-  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(y=-3.0), radar_state=base,
+  # direction is left, but lead is to the right (model y > 0) -- should not be picked
+  out = handoff.update(enabled=True, model_v2=model_v2_with_lead(y=3.0), radar_state=base,
                         lc_state=LaneChangeState.laneChangeStarting, lc_dir=LaneChangeDirection.left,
                         v_ego=20.0, now=0.0)
   assert out is base

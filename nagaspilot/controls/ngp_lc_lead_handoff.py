@@ -73,7 +73,8 @@ class NGPLeadHandoff:
     for lead in model_v2.leadsV3:
       if lead.prob < MIN_LEAD_PROB:
         continue
-      y = lead.y[0]   # positive = left
+      # modelV2 calibrated-frame y is right-positive; radarState yRel is left-positive.
+      y = -lead.y[0]
       x = lead.x[0] - self._radar_to_camera
       if direction == LaneChangeDirection.left and y > ADJACENT_LANE_Y_MIN:
         picks.append((x, y, lead))
@@ -90,7 +91,7 @@ class NGPLeadHandoff:
     return _LeadProxy(
       status=True,
       dRel=float(x),
-      yRel=float(-y),
+      yRel=float(y),
       vRel=float(v_rel),
       vLead=float(lead.v[0]),
       vLeadK=float(lead.v[0]),
