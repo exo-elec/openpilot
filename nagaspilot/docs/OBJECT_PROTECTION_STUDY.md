@@ -241,3 +241,33 @@ Rule: anything in EOP10 that is pure logic moves into `nagaspilot/controls/` (sh
 2. **`LatNudge` is off above 80 km/h** (by design) and **ignores object width** (it uses the track centre minus 0.5 m): a truck alongside never nudges it; the shared selector accounts for width and class.
 3. **EOP10's proposers are reactive**: they act on objects already in the lane (`|yRel| <= 1.8`) with no prediction. Cut-in overlaps: baseline 14, EOP10's original logic 14, with the fixed scale 14 (median gap gain 0.0-0.1 m), against 4 (protection layer), 5 (rule planner), 7 (integrated DPP). They do not hurt (no run worse than the baseline, 0 % false triggers) and still carry the in-lane lead trim and centering; the prediction-based logic is what handles cut-ins.
 Left to port when a use for it exists on NGP10: the AEB RSS core as a pure module (default off; the product decision on AEB/FCW stays the user's).
+
+## 23. Port scope rule and inventory (user, 2026-10-04)
+
+Rule: anything in EOP10 that is **not** tied to the extra hardware `../exopilot` describes (BLE corner-radar nodes and the BLE/NavPilot link, stereo, the NPU / camera-tier card, Rockchip power/watchdog/IMU/RTC/camera drivers, UART radar) and is **not** a safety function (AEB, FCW, RCW, blind-spot, `radar_zones`) can run on the old comma hardware, because the CPU has room. It moves into the shared base (pure core + golden test against the original's recorded outputs, shim left on EOP10), default off on NGP10.
+
+| EOP10 piece | Status | Note |
+|---|---|---|
+| pathd cores (`LatNudge`, `LonNudge`, `predict`, `compute_speed_reduction`) | **ported** | section 22 |
+| MTSC, MSLC, DDSC, TLSC (+ curve-speed helpers, MTSC->VTSC blend) | **ported** | `ngp_{mtsc,mslc,ddsc,tlsc,curve_speed}.py`; `runtime/map_speed.py` is the one planner adapter (`ngp_lon_mtsc/mslc/tlsc/ddsc`) |
+| mapd (OSM geometry, speed limit, curve lookahead, tile cache) | **ported** | `nagaspilot/mapd/`, `MapData` schema with EOP10's ordinals (Event @154 here, @215 there), process `mapd` behind `ngp_map_enabled`; EOP10's files are shims keeping `EOPMapdEnabled` |
+| traffic lights (class 9 + HSV lamp colour) | **ported** | `runtime/traffic_light.py`, monod senses, gridd passes them through untracked into `stereoObjects` |
+| tripd | **ported** | `runtime/tripd.py`, key mapping (`ngp_trip_*` by default, `EOPTrip*` through EOP10/01M/02M shims), process behind `ngp_tripd_enabled` |
+| LDW | nothing to port | EOP10's `ldw.py` is identical to upstream's, already on NGP10 |
+| following distance, driver prefs | nothing to port | NGP10 already has `longitudinal_policy.py` and the speed offset |
+| adaptd (adaptive personality from vehicle telemetry) | **core portable, input is not** | its only input is `ncpVehicleData` from NavPilot over BLE (bluetoothd), i.e. the BLE hardware link: port the core and schema, the producer stays EOP-only |
+| RCD (road condition from camera HSV) | portable, **needs real images to prove** | next |
+| CSLB (curve speed learning DB), surface DB | portable (sqlite) | CSLB read-only lookup next; no writer thread in the planner loop |
+| mcapd (MCAP/Foxglove logging) | portable, tooling | optional |
+| AEB, FCW, RCW, `radar_zones`, `blindspot` | **not ported** (safety) | |
+| stereod, steamd, surfaced, pointcloudd, segd, inferenced, sided, reard, radar3d/4d, bluetoothd, camera_calibrationd (multi-camera) | **not ported** (extra hardware, NPU, BLE) | |
+| stated, wdgd, rtcd, thermald, imud, v4l2d, uvcd, socketd, spkd/voiced/micd, recordd (Rockchip MPP encode), subscribed (NavPilot subscription/cloud) | **not ported** (platform / ecosystem) | |
+| MTSC/MSLC/CSLB map consumers' source of position | n/a | `coordinationd` (OSM + SGM fusion) needs stereo: NGP10's mapd uses `gpsLocationExternal` only |
+
+**Findings from checking the originals on the built clone before porting** (each module was run with realistic inputs first):
+1. MTSC/MSLC are applied by EOP10's planner **one cycle in twenty**: the target is reset every cycle and set only when `sm.updated['mapData']` (1 Hz). `MapSpeed` holds the result for 3 s (tested: 19 cycles without a map message still return the cap).
+2. **DDSC is dead on EOP10**: nothing publishes `driverStatus`. On NGP10 (and, via the same adapter, EOP10) its "distracted" input is the driver-activity monitor's awareness (<= 25 %), unresponsive after 20 s at zero.
+3. **MSLC returns no target while the car is more than 10 km/h above it**, which reads as a driver override: it does not slow a car that is well over a new, lower limit.
+4. **TLSC has no lane association**: any red/yellow light in view with no lead triggers a stop. The adapter keeps only lights within 3.5 m of the planned path (tested: a side-road light is ignored).
+5. MTSC is **not** dead: mapd does fill `upcomingCurvatureDEPRECATED`, despite the name.
+Left as decisions for the user: mapd uses the **public Overpass servers** (usage policy) and OSM data under ODbL (attribution) for a product sold on clones; TLSC and DDSC can stop or slow the car, so each stays opt-in until proven on a vehicle.
