@@ -17,6 +17,8 @@ from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed, Obj
 from nagaspilot.controls.ngp_path_selector import PathSelector, PObj, build_profile
 from nagaspilot.controls.ngp_pathd_consumer import PathAdjustFollower, speed_cap
+from nagaspilot.controls.ngp_cutin_speed import PlannedPath
+from nagaspilot.controls.ngp_rule_planner import RulePlanner
 
 DT = 0.05
 SPEED_TAU_S = 1.2      # ego speed response to a lowered target
@@ -43,10 +45,12 @@ WIDTH = {'car': 1.8, 'truck': 2.5, 'motorcycle': 0.8, 'bicycle': 0.6, 'bus': 2.5
 
 
 def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, seconds: float = 12.0,
-        noise: float = 0.0, seed: int = 1) -> dict:
+        noise: float = 0.0, seed: int = 1, controller: str = 'policy') -> dict:
+  """controller: 'policy' = stand-in policy (+ the protection layer when `layer`), 'rule' = the rule planner drives accel and lateral offset."""
   rng = random.Random(seed)
   ex, ey, ev = 0.0, 0.0, set_speed       # ego world position, lateral offset (left +), speed
   sel = PathSelector()
+  rule = RulePlanner()
   cutin = CutInSpeed()
   follower = PathAdjustFollower()
   target_off = 0.0
@@ -65,7 +69,19 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       if a.cut_stop_y is not None and ((a.vy > 0 and a.y >= a.cut_stop_y) or (a.vy < 0 and a.y <= a.cut_stop_y)):
         a.y, a.vy = a.cut_stop_y, 0.0
     cap = None
-    if layer:
+    rule_cmd = None
+    if controller == 'rule':
+      pobjs = []
+      for i, a in enumerate(actors):
+        rx, ry = a.x - ex, a.y - ey
+        if abs(noise) > 0:
+          rx *= 1 + rng.gauss(0, noise)
+          ry += rng.gauss(0, noise * 2)
+        pobjs.append(PObj(i, a.name, rx, ry, a.v - ev, a.vy, 0.9))
+      room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
+      room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
+      rule_cmd = rule.plan(ev, set_speed, PlannedPath([0.0, 100.0], [-ey, -ey]), room_l, room_r, pobjs)
+    elif layer:
       objs, pobjs = [], []
       for i, a in enumerate(actors):
         rx, ry = a.x - ex, a.y - ey
@@ -91,7 +107,11 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       if dx > 0 and abs(dy) < 1.4:
         follow = a.v + 0.35 * (dx - (4.0 + 1.4 * ev))
         target_speed = min(target_speed, max(follow, 0.0))
-    accel = (target_speed - ev) / SPEED_TAU_S
+    if rule_cmd is not None and rule_cmd.valid:
+      accel = rule_cmd.accel
+      target_off = rule_cmd.offset_m
+    else:
+      accel = (target_speed - ev) / SPEED_TAU_S
     ev += max(accel, -MAX_DECEL) * DT
     ey += (target_off - ey) * DT / LAT_TAU_S
     ex += ev * DT
@@ -108,7 +128,7 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
         if closing > 0.1:
           min_ttc = min(min_ttc, dx / closing)
     t += DT
-  return {'layer': layer, 'min_gap_ahead_m': round(min_gap, 1) if math.isfinite(min_gap) else None,
+  return {'layer': layer if controller == 'policy' else 'rule', 'min_gap_ahead_m': round(min_gap, 1) if math.isfinite(min_gap) else None,
           'min_ttc_s': round(min_ttc, 2) if math.isfinite(min_ttc) else None, 'max_offset_m': round(max_off, 2),
           'min_speed_mps': round(min_speed, 1), 'overlap_steps': hits}
 
@@ -128,9 +148,11 @@ def main() -> None:
   for name, make in scenarios().items():
     off = run(make(), layer=False)
     on = run(make(), layer=True)
+    rl = run(make(), controller='rule')
     print(name)
-    print('  off:', off)
-    print('  on :', on)
+    print('  policy stand-in      :', off)
+    print('  + protection layer   :', on)
+    print('  rule planner primary :', rl)
 
 
 if __name__ == "__main__":

@@ -142,3 +142,22 @@ Implemented: `nagaspilot/controls/ngp_arbiter.py` (speed = minimum of caps, neve
 
 Simulation without a vehicle: `python3 -m nagaspilot.tools.sim_scenarios` runs a toy closed loop (ego point mass, stand-in for stock lead-following, scripted traffic: car/bike cut-ins, truck alongside, filtering bike, steady and receding adjacent cars) with the layer off and on. Current results: car cut-in min gap 4.5 -> 11.1 m, min TTC 1.5 -> 6.1 s; bike cut-in 4.0 -> 7.6 m, 1.7 -> 17.2 s, no overlap; alongside traffic gets 0.2-0.3 m nudges with no slowdown; steady/receding cars cause no action. Same direction with 5 % range noise. It tests the logic and tuning direction only (first-order ego response, no real MPC, no perception error beyond range noise). 4 tests.
 For MetaDrive/other simulators: feed `monoDetections` from ground truth (class, x forward, y left, relative velocity, sigma, confidence) and run with `ngp_monod_enabled` off and the detector replaced by the bridge; `ngp_pathd_enabled`, `ngp_lat_pathd`, `ngp_lon_pathd`, `ngp_lon_cutin` on.
+
+## 16. pathd as a parallel rule channel and DPP (user, 2026-10-04; coded as pure cores, not wired)
+
+The user's point: a protection layer is not enough; pathd should also run **in parallel to the policy model**, fed by the monod rule pipeline, as an optional alternative channel. The chosen style (section 15) already allows it: the protection layer is the *lowest* authority of a ladder, and a full rule planner is just a stronger proposer. Authority is staged so each step can be proven before the next:
+
+| Mode | Authority of the rule channel | Use |
+|---|---|---|
+| OFF | none | perception unhealthy |
+| SHADOW | none; runs and is measured (disagreement with the policy) | default, proof in sim/replay |
+| SUPERVISE | accel = min(policy, rule), curvature stays the policy's | brake-only protection |
+| PRIMARY_LONG | accel from the rule channel (jerk-limited) | following, cut-ins |
+| PRIMARY_LAT | curvature from the rule channel (slew-limited) | traffic alongside in clear lanes |
+| PRIMARY_BOTH | both | opt-in ceiling only |
+
+Always back to the policy on stale/invalid rule output or driver override; in PRIMARY modes a 1 s disagreement (curvature 0.004 1/m or accel 2 m/s^2) hands control back for 3 s, keeping the more conservative accel.
+
+New pure cores: `ngp_rule_planner.py` (`RulePlanner`: lane centre + `PathSelector` offset -> pure-pursuit curvature; IDM car-following on the nearest in-lane object, a predicted cut-in, or a radar lead; speed capped by set speed, a 2 m/s^2 lateral-acceleration curve limit and the selector's slowdown; brake limit -4 m/s^2), `ngp_policy_arbiter.py` (`PolicyArbiter`, the table above), and **`ngp_dpp.py` (DPP, Dynamic Path Planner)**: like DLAT/DLON, an automatic selector of the mode by case, inside a user ceiling (`ngp_dpp_max_mode`, not yet a param): cruise -> SHADOW; cut-in predicted -> PRIMARY_LONG; lead inside 1.2 s headway -> SUPERVISE; truck/bus/two-wheeler alongside with confident lanes and a straight road -> PRIMARY_LAT, with weak lanes -> SUPERVISE; weak lanes or a tight curve -> policy; unhealthy perception/rule or driver override -> OFF/SHADOW at once; policy-rule disagreement -> SHADOW. Escalation needs 0.3 s, de-escalation 2.5 s dwell, urgent drops are immediate, a lowered ceiling applies at once. 5 tests; rule planner 10; policy arbiter 10.
+Toy closed loop (`sim_scenarios`, third row per scenario, rule planner as the only controller): car cut-in min gap 4.5 -> 12.0 m, bike cut-in 4.0 -> 8.0 m, no overlap; no action when nothing threatens; 0.2-0.3 m offsets beside a truck or filtering bike. Same ballpark as the protection layer, with the rule planner able to run alone.
+**Not done**: nothing here is wired into `controlsd`/planner/pathd; `Situation` needs an adapter (lane confidence from `modelV2.laneLineProbs`, curvature from the lane polyline, `cut_in_risk`/VRU flags from the tracks, `disagree` from the arbiter's d_curv/d_accel, perception health from monod's exec time and message age); params `ngp_dpp_max_mode` and a mode for the shadow log; the policy/rule disagreement belongs in `replay_object_guard`. Also: the lane polyline comes from the policy network's *perception* heads (`modelV2.laneLines`), so the channels are independent in planning but share lane perception; a second lane source (monod segmentation on EOP10) is the way to make them independent in perception too.
