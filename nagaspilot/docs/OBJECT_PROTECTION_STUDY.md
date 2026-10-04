@@ -63,3 +63,10 @@ Guards that apply to every tier (the "protection layer"):
 - Numbers for the promotion gates.
 - Wide (1.7 mm) camera ranging (fisheye model).
 - Whether cars without a radar lead (vision-only) should get Tier A at all before Tier B is proven.
+
+## 7. Implemented 2026-10-04: cut-in speed trim (Tier B, cut-in only), opt-in
+
+`nagaspilot/controls/ngp_cutin_speed.py` (pure), `nagaspilot/runtime/cutin_adapter.py`, hook in `longitudinal_planner.py` after BRSC (`NGPFlags.CUTIN`, param `ngp_lon_cutin`, default off; needs `ngp_monod_enabled`). For a confirmed, non-occluded track outside the corridor (|y| > 1.5 m) moving toward it (>= 0.3 m/s), predict the entry time (<= 3 s), the gap and closing speed at entry; trigger if TTC after entry <= 4 s or headway < 1.0 s. Response: lower `v_cruise` toward the object's speed, at most 25 % below current speed, not below 8.3 m/s, no action under 8 m/s, 2 consecutive confirmations, 2 s hold, never raises speed. No braking authority: the MPC still brakes (and still has no radar here). Objects already in the corridor are left to the lead logic. Gates: monod alive+valid, confidence >= 0.5, range sigma <= 25 % of range, range 3-80 m.
+Tests: 9 pure tests (both sides, cap/floor, non-triggers, headway, hold/release, gates, track switching, adapter). The planner hook is not run (needs the built MPC). Not proven on a vehicle: use shadow-mode metrics (section 4) before turning it on; ranging error here has no independent radar reference.
+Carry to EOP10: it can use the same pure policy from its gridd `trackedObjects`/monoDetections through an adapter; EOP10's AEB/radar authority split is unchanged.
+
