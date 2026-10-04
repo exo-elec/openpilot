@@ -33,7 +33,7 @@ OFFROAD_ALERTS = ['Offroad_StorageMissing', 'Offroad_IsTakingSnapshot']
 DATA: dict[str, capnp.lib.capnp._DynamicStructBuilder] = dict.fromkeys(
   ["carParams", "deviceState", "pandaStates", "controlsState", "selfdriveState",
   "liveCalibration", "modelV2", "radarState", "driverMonitoringState", "carState",
-  "driverStateV2", "roadCameraState", "wideRoadCameraState", "driverCameraState"], None)
+  "roadCameraState", "wideRoadCameraState"], None)
 
 def setup_homescreen(click, pm: PubMaster):
   pass
@@ -137,13 +137,6 @@ def setup_keyboard_uppercase(click, pm: PubMaster):
   setup_keyboard(click, pm)
   click(200, 800)
 
-def setup_driver_camera(click, pm: PubMaster):
-  setup_settings_device(click, pm)
-  click(1950, 435)
-  DATA['deviceState'].deviceState.started = False
-  setup_onroad(click, pm)
-  DATA['deviceState'].deviceState.started = True
-
 def setup_onroad_alert(click, pm: PubMaster, text1, text2, size, status=log.SelfdriveState.AlertStatus.normal):
   print(f'setup onroad alert, size: {size}')
   state = DATA['selfdriveState']
@@ -206,7 +199,6 @@ CASES = {
   "onroad_alert_full": setup_onroad_alert_full,
   "onroad_wide": setup_onroad_wide,
   "onroad_wide_sidebar": setup_onroad_wide_sidebar,
-  "driver_camera": setup_driver_camera,
   "body": setup_body,
   "offroad_alert": setup_offroad_alert,
   "update_available": setup_update_available,

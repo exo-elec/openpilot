@@ -3,7 +3,6 @@ import json
 
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
-from openpilot.selfdrive.ui.onroad.driver_camera_dialog import DriverCameraDialog
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.selfdrive.ui.widgets.pairing_dialog import PairingDialog
 from openpilot.system.hardware import TICI
@@ -18,7 +17,6 @@ from openpilot.system.ui.widgets.scroller import Scroller
 # Description constants
 DESCRIPTIONS = {
   'pair_device': "Pair your device with comma connect (connect.comma.ai) and claim your comma prime offer.",
-  'driver_camera': "Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)",
   'reset_calibration': (
       "openpilot requires the device to be mounted within 4° left or right and within 5° " +
       "up or 9° down. openpilot is continuously calibrating, resetting is rarely required."
@@ -33,7 +31,6 @@ class DeviceLayout(Widget):
 
     self._params = Params()
     self._select_language_dialog: MultiOptionDialog | None = None
-    self._driver_camera: DriverCameraDialog | None = None
     self._pair_device_dialog: PairingDialog | None = None
     self._fcc_dialog: HtmlRenderer | None = None
 
@@ -48,7 +45,6 @@ class DeviceLayout(Widget):
       text_item("Dongle ID", dongle_id),
       text_item("Serial", serial),
       button_item("Pair Device", "PAIR", DESCRIPTIONS['pair_device'], callback=self._pair_device),
-      button_item("Driver Camera", "PREVIEW", DESCRIPTIONS['driver_camera'], callback=self._show_driver_camera, enabled=ui_state.is_offroad),
       button_item("Reset Calibration", "RESET", DESCRIPTIONS['reset_calibration'], callback=self._reset_calibration_prompt),
       regulatory_btn := button_item("Regulatory", "VIEW", callback=self._on_regulatory),
       button_item("Review Training Guide", "REVIEW", DESCRIPTIONS['review_guide'], self._on_review_training_guide),
@@ -78,12 +74,6 @@ class DeviceLayout(Widget):
       self._params.put("LanguageSetting", selected_language)
 
     self._select_language_dialog = None
-
-  def _show_driver_camera(self):
-    if not self._driver_camera:
-      self._driver_camera = DriverCameraDialog()
-
-    gui_app.set_modal_overlay(self._driver_camera, callback=lambda result: setattr(self, '_driver_camera', None))
 
   def _reset_calibration_prompt(self):
     if ui_state.engaged:
