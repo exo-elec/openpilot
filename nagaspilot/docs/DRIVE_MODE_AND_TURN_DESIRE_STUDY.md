@@ -62,20 +62,20 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
   none, turnLeft, turnRight, laneChangeLeft, laneChangeRight, keepLeft, keepRight.
 - `modeld` feeds it as a **pulse on the rising edge** (`new_desire = where(desire - prev_desire > 0.99, ...)`); holding a desire
   constant therefore sends one pulse, and the model itself decides when the action is complete.
-- `DesireHelper.DESIRES` only ever maps the lane-change states; `turnLeft`/`turnRight` are never produced by our code.
+- **NGP10:** `DesireHelper.DESIRES` only maps the lane-change states, so the `turnLeft`/`turnRight` slots were never used.
+- **EOP10 already has it:** `DesireHelper` sends `turnLeft`/`turnRight` whenever one signal is on below the lane-change speed and the
+  car is not stopped (`TURN_DESIRES`, commented as a FrogPilot pattern). It is always on, has no parameter, and does not require lateral
+  to be active. We missed this in the first pass of the fork review; reading our own code first found it.
 - The model reports `meta.desirePrediction` for all slots, so a response to a turn pulse can be measured on a replay.
 - NGP10 runs upstream's v0.10 model; the ExoPilot branches run the Bukapilot KA2 RKNN pair. Whether either model was trained to react
   to a turn pulse is **not knowable from our code**.
 
-### Benefit
+### Decision
 
-Potentially better path planning in sharp low-speed turns at intersections when the driver signals; **unproven** for both models.
-The cost of being wrong is an unexpected path at low speed, so the first version is conservative and off by default.
-
-### Design chosen
-
-- Pure `nagaspilot/controls/ngp_turn_desire.py`: returns turnLeft/turnRight only while exactly one signal is on, speed is between a
-  floor (2 m/s) and the chosen ceiling, lateral is active, and no lane change is in progress; otherwise none.
-- Hook at the end of `DesireHelper.update` (only when the helper's own desire is none). Param `ngp_lat_turn_desire_mph`, 0 = off.
-- To establish the benefit: replay drives with turns, compare `desirePrediction[turn]` with and without the pulse, and the path
-  curvature. Until that is done the feature stays off and the README marks it "optional, experimental".
+- NGP10 gets a stricter, opt-in version (`ngp_turn_desire.py`): exactly one signal, lateral active, no lane change running, speed
+  between 2 m/s and a driver-chosen ceiling; `ngp_lat_turn_desire_mph` = 0 (off) by default.
+- EOP10 keeps its existing always-on behaviour untouched. It is *not* refactored onto the NGP10 core: the two differ on purpose
+  (EOP does not require lateral active), and changing an always-on path without a replay is the wrong trade. The README therefore marks
+  the feature "basic, optional" on NagasPilot and "always on" on ExoPilot, not "extended".
+- Open question for a replay: should EOP10 also require lateral active and no lane change, as NGP10 does? Compare `desirePrediction[turn]`
+  and path curvature with and without the pulse on drives with turns.

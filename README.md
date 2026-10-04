@@ -30,6 +30,7 @@ openpilot v0.10.0 vs **NagasPilot**
 | — | **Acceleration profiles** | Choose normal, eco or sport acceleration. | ❌ | ✅ |
 | — | **Adaptive following gap** | Adjusts following distance to the situation. Optional. | ❌ | ✅ |
 | — | **Speed offset** | Adds or subtracts a fixed amount from the set speed. | ❌ | ✅ |
+| — | **Driving modes** | Eco, Normal or Sport sets acceleration, following style and adaptive gap together. Optional. | ❌ | ✅ |
 
 #### Steering
 
@@ -42,6 +43,7 @@ openpilot v0.10.0 vs **NagasPilot**
 | RED | **Road Edge Detection** | Nudges the car away from a close road edge (curb, grass, guardrail, wall). | ❌ | ✅ |
 | SOC | **Smart Offset Control** | Moves slightly away from a vehicle beside you on the highway. | ❌ | ✅ |
 | CAT | **Car Adaptive Tuning** | Learns the car's steering ratio and stiffness and uses only trusted values. | ❌ | ✅ |
+| — | **Lane turn desire** | Tells the driving model about a turn when you signal at low speed. Optional and experimental. | ❌ | ✅ |
 | — | **Blinker pause** | Pauses steering assistance while a turn signal is on below a chosen speed, so it does not fight a turn. Optional. | ❌ | ✅ |
 
 #### Lane changes
