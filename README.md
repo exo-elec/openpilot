@@ -59,7 +59,7 @@ openpilot v0.10.0 vs **NagasPilot**
 
 | | Feature | What it does | openpilot v0.10.0 | NagasPilot |
 |:--|---|---|:-:|:-:|
-| DM | **Driver Monitoring** | Checks the driver is paying attention. | ✅ | ✅ |
+| DM | **Driver Monitoring** | Camera check that the driver is paying attention. | ✅ | ✅ |
 | — | **Lead departure notice** | Tells you when the car ahead drives off while you are stopped. Optional. | ❌ | ✅ |
 | — | **Green-light notice** | Tells you when the car is released from a stop at a light. Optional. | ❌ | ✅ |
 
@@ -90,6 +90,7 @@ openpilot's Experimental mode is switched on and off by hand. **DLON** decides f
 - **NagasPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
 - openpilot's safety system is unchanged. See [docs/SAFETY.md](docs/SAFETY.md).
 - New features have **not** been validated on a real vehicle. Always stay attentive and ready to take over.
+
 
 **MIT licensed.** openpilot is released under the MIT license. Some parts of the software are released under other licenses as specified.
 
