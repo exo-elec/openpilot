@@ -6,7 +6,8 @@ the rule planner against the stand-in policy. Randomised: gap, closing speed, la
 class (car / motorcycle), range noise, detection dropouts. Negative cases (steady or receding neighbours at
 random offsets) measure the false-trigger rate.
 
-Gates (exit code 1 if any fails): in the cut-in set the layer, the rule planner and the integrated DPP system are never worse than the
+`eop_legacy` / `eop` are EOP10's ported LatNudge/LonNudge/speed-reduction proposers with the original (always-zero) and the corrected
+distance scale. Gates (exit code 1 if any fails): in the cut-in set every system is never worse than the
 baseline in >= 95 % of runs and have no more overlaps; in the benign set fewer than 2 % of runs trigger.
 This is a logic and tuning-direction check, not a statement about the real car.
 
@@ -18,6 +19,9 @@ import sys
 
 from nagaspilot.tools.sim_scenarios import Actor, run
 
+CONTROLLERS = (('layer', {'layer': True}), ('rule', {'controller': 'rule'}), ('dpp', {'controller': 'dpp'}),
+               ('eop_legacy', {'controller': 'eop_legacy'}), ('eop', {'controller': 'eop'}))   # eop* = EOP10's ported proposers
+KEYS = tuple(k for k, _ in CONTROLLERS)
 GATES = {'not_worse_fraction': 0.95, 'false_trigger_rate': 0.02}
 
 
@@ -53,34 +57,34 @@ def _worse(on: dict, base: dict) -> bool:
 
 def sweep(runs: int = 60, seed: int = 7) -> dict:
   rng = random.Random(seed)
-  cut = {k: {'not_worse': 0, 'overlap': 0, 'gap_gain': []} for k in ('layer', 'rule', 'dpp')}
+  cut = {k: {'not_worse': 0, 'overlap': 0, 'gap_gain': []} for k in KEYS}
   cut.update({'baseline_overlap': 0, 'runs': runs})
   for i in range(runs):
     noise, dropout = rng.choice([0.0, 0.03, 0.08]), rng.choice([0.0, 0.05, 0.2])
     make = _cut_in
     base = run(make(random.Random(i)), layer=False)
     cut['baseline_overlap'] += base['overlap_steps'] > 0
-    for key, kw in (('layer', {'layer': True}), ('rule', {'controller': 'rule'}), ('dpp', {'controller': 'dpp'})):
+    for key, kw in CONTROLLERS:
       r = run(make(random.Random(i)), noise=noise, dropout=dropout, seed=i, **kw)
       cut[key]['not_worse'] += not _worse(r, base)
       cut[key]['overlap'] += r['overlap_steps'] > 0
       if r['min_gap_ahead_m'] is not None and base['min_gap_ahead_m'] is not None:
         cut[key]['gap_gain'].append(r['min_gap_ahead_m'] - base['min_gap_ahead_m'])
-  triggers = {'layer': 0, 'rule': 0, 'dpp': 0}
+  triggers = dict.fromkeys(KEYS, 0)
   for i in range(runs):
     noise = rng.choice([0.0, 0.03, 0.08])
-    for key, kw in (('layer', {'layer': True}), ('rule', {'controller': 'rule'}), ('dpp', {'controller': 'dpp'})):
+    for key, kw in CONTROLLERS:
       r = run(_benign(random.Random(1000 + i)), noise=noise, seed=i, **kw)
       triggers[key] += (r['min_speed_mps'] < 24.0) or (r['max_offset_m'] > 0.45)
   out = {'runs': runs, 'baseline_cut_in_overlap_runs': cut['baseline_overlap']}
-  for key in ('layer', 'rule', 'dpp'):
+  for key in KEYS:
     gains = sorted(cut[key]['gap_gain'])
     out[key] = {'cut_in_not_worse_fraction': round(cut[key]['not_worse'] / runs, 3), 'cut_in_overlap_runs': cut[key]['overlap'],
                 'median_gap_gain_m': round(gains[len(gains) // 2], 1) if gains else None,
                 'benign_false_trigger_rate': round(triggers[key] / runs, 3)}
   out['gates'] = {k: {'not_worse': out[k]['cut_in_not_worse_fraction'] >= GATES['not_worse_fraction'],
                       'no_more_overlaps': out[k]['cut_in_overlap_runs'] <= out['baseline_cut_in_overlap_runs'],
-                      'false_triggers': out[k]['benign_false_trigger_rate'] < GATES['false_trigger_rate']} for k in ('layer', 'rule', 'dpp')}
+                      'false_triggers': out[k]['benign_false_trigger_rate'] < GATES['false_trigger_rate']} for k in KEYS}
   out['pass'] = all(all(v.values()) for v in out['gates'].values())
   return out
 

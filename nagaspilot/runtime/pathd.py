@@ -95,13 +95,16 @@ class Extras:
   speed_factor: float | None = None
 
 
-def extras_from_eop(speed_reduction: float, lon_delta: float, lateral_adjustments, v_ego: float) -> Extras:
+def extras_from_eop(speed_reduction: float, lon_delta: float, lateral_adjustments, v_ego: float, lookahead_points: int = 1) -> Extras:
   """EOP10's pathd results as Extras. Its lateral adjustments are in the path's y-RIGHT frame (flipped once here) and
   its speed reductions are m/s deltas (negative = slow down). The factor stays inside the shared contract (>= 0.8);
   EOP10's stronger emergency reduction keeps travelling in `enhancedTrajectory.speedAdjustment`."""
   offset = None
-  if len(lateral_adjustments) and math.isfinite(float(lateral_adjustments[0])) and abs(float(lateral_adjustments[0])) > 0.01:
-    offset = -float(lateral_adjustments[0])
+  near = [float(v) for v in list(lateral_adjustments)[:max(lookahead_points, 1)] if math.isfinite(float(v))]
+  if near:
+    strongest = max(near, key=abs)                       # the largest request in the near part of the path
+    if abs(strongest) > 0.01:
+      offset = -strongest
   total = (float(speed_reduction) if math.isfinite(speed_reduction) else 0.0) + (float(lon_delta) if math.isfinite(lon_delta) else 0.0)
   factor = max(1.0 + total / max(v_ego, 1.0), 0.8) if total < -0.05 else None
   return Extras(offset, factor)
@@ -125,8 +128,10 @@ def merge_extras(sel, room, extras: Extras | None):
 class SharedPathdHost:
   """The per-frame work of pathd, identical on every branch. Call `tick` once per loop; it returns True when it published."""
 
-  def __init__(self, params, pm, source=None, clock=time.monotonic, new_message=None):
+  def __init__(self, params, pm, source=None, clock=time.monotonic, new_message=None, extras_provider=None):
+    """`extras_provider(sm, objects, v_ego) -> Extras | None`: the board's proposers when the caller passes none per tick."""
     self.params, self.pm, self._clock, self._new_message = params, pm, clock, new_message
+    self.extras_provider = extras_provider
     self.pathd = PathD(source)
     self.ceiling, self._ceiling_t, self._last_t = 0, 0.0, clock()
 
@@ -141,6 +146,8 @@ class SharedPathdHost:
     cs = sm['carState']
     v_ego = float(cs.vEgo)
     sel, room, n = self.pathd.step(sm, v_ego)
+    if extras is None and self.extras_provider is not None:
+      extras = self.extras_provider(sm, self.pathd._last[0], v_ego)
     sel = merge_extras(sel, room, extras)
     set_speed = float(cs.cruiseState.speed) if cs.cruiseState.speed > 0 else v_ego
     rule = self.pathd.step_rule(sm, v_ego, set_speed, bool(cs.steeringPressed or cs.brakePressed or cs.gasPressed), self.ceiling, dt)
@@ -162,7 +169,13 @@ def run(source=None) -> None:
 
   sm = SubMaster(['modelV2', 'carState', 'radarState', 'monoDetections', 'stereoObjects'], poll='modelV2',
                  ignore_alive=['monoDetections', 'radarState', 'stereoObjects'])
-  host = SharedPathdHost(Params(), PubMaster(['pathAdjust']), source or GriddSource())
+  params = Params()
+  provider = None
+  if params.get_bool("ngp_pathd_nudges"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
+    from nagaspilot.runtime.nudge_extras import NudgeExtras
+    nudges = NudgeExtras()
+    provider = lambda sm, objs, v_ego: nudges.update(sm['modelV2'], objs, v_ego)  # noqa: E731
+  host = SharedPathdHost(params, PubMaster(['pathAdjust']), source or GriddSource(), extras_provider=provider)
   while True:
     sm.update()
     host.tick(sm)

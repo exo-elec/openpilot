@@ -32,3 +32,10 @@ def test_integrated_system_improves_cut_in_gap_and_stays_quiet_on_benign_traffic
     assert dpp['min_gap_ahead_m'] > base['min_gap_ahead_m'] + 1.5 and dpp['min_ttc_s'] > base['min_ttc_s'] and dpp['overlap_steps'] == 0
   for name in ('adjacent_lane_car_steady', 'car_moving_away'):
     assert run(S[name](), controller='dpp')['min_speed_mps'] == 25.0
+
+
+def test_eop_ports_do_not_regress_and_the_sweep_exposes_that_they_add_little_for_cut_ins():
+  r = sweep(24, seed=3)
+  for k in ('eop_legacy', 'eop'):
+    assert r[k]['cut_in_overlap_runs'] <= r['baseline_cut_in_overlap_runs'] and r[k]['benign_false_trigger_rate'] < 0.02
+  assert r['layer']['cut_in_overlap_runs'] < r['eop']['cut_in_overlap_runs']       # EOP10's reactive proposers do not predict cut-ins

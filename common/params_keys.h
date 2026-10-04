@@ -133,6 +133,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_pathd", {PERSISTENT, BOOL, "0"}},
     // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
     {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
+    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (nagaspilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
+    {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
     {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},

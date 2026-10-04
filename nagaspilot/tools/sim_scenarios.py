@@ -19,6 +19,9 @@ from nagaspilot.controls.ngp_path_selector import PathSelector, PObj, build_prof
 from nagaspilot.controls.ngp_pathd_consumer import PathAdjustFollower, speed_cap
 from nagaspilot.controls.ngp_cutin_speed import PlannedPath
 from nagaspilot.controls.ngp_rule_planner import RulePlanner
+from nagaspilot.runtime.nudge_extras import NudgeExtras
+from nagaspilot.runtime.pathd import merge_extras
+from nagaspilot.controls.ngp_path_selector import Selection
 from nagaspilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer
 from types import SimpleNamespace as NS
 
@@ -59,6 +62,7 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
   follower = PathAdjustFollower()
   target_off = 0.0
   channel, consumer = RuleChannel(), RuleChannelConsumer()
+  nudges = NudgeExtras(legacy_scale_bug=(controller == 'eop_legacy'))
   last_pobjs: list = []
   stale_t = 0.0
   modes: dict[int, int] = {}
@@ -93,6 +97,24 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
       room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
       rule_cmd = rule.plan(ev, set_speed, PlannedPath([0.0, 100.0], [-ey, -ey]), room_l, room_r, pobjs)
+    elif controller in ('eop', 'eop_legacy'):
+      pobjs = []
+      for i, a in enumerate(actors):
+        if dropped:
+          break
+        rx, ry = a.x - ex, a.y - ey
+        if abs(noise) > 0:
+          rx *= 1 + rng.gauss(0, noise)
+          ry += rng.gauss(0, noise * 2)
+        pobjs.append(PObj(i, a.name, rx, ry, a.v - ev, a.vy, 0.9))
+      room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
+      room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
+      lane_line = lambda y: NS(x=[0.0, 100.0], y=[y, y])
+      model = NS(laneLines=[lane_line(-3.6), lane_line(-(LANE_HALF - ey)), lane_line(LANE_HALF + ey), lane_line(3.6)], laneLineProbs=[0.9] * 4)
+      ext = nudges.update(model, pobjs, ev)
+      merged = merge_extras(Selection(0.0, 1.0, None, 0.0, 'clear'), (room_l, room_r), ext)
+      target_off = merged.offset_m
+      cap = ev * merged.speed_factor if merged.speed_factor < 1.0 else None
     elif controller == 'dpp':
       pobjs = []
       for i, a in enumerate(actors):
