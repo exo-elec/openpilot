@@ -31,7 +31,7 @@ def test_vision_lead_side_uses_right_positive_model_frame():
 
 def test_ttc_and_low_confidence_leads():
   assert evaluate_gap(_model([_lead(40.0, -3.0, 15.0)]), 'left', 20.0)[0]  # TTC ~8 s
-  assert not evaluate_gap(_model([_lead(12.0, -3.0, 14.0)]), 'left', 20.0)[0] 
+  assert not evaluate_gap(_model([_lead(12.0, -3.0, 14.0)]), 'left', 20.0)[0]
   assert evaluate_gap(_model([_lead(20.0, -3.0, 5.0, prob=0.2)]), 'left', 20.0)[0]
   assert evaluate_gap(_model([_lead(8.0, -3.0, 20.0)]), 'left', 20.0) == (False, 0.3)  # level and close
 
