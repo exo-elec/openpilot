@@ -5,7 +5,7 @@ the `yRel` convention). Measurements are ranged detections (x, y). An unmatched 
 track coasts on its prediction (marked `occluded`, covariance growing) and is dropped after
 MAX_COAST_S. Pure numpy; no cereal, no Params.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -25,6 +25,8 @@ class Measurement:
   y: float
   sigma_x: float
   sigma_y: float
+  conf: float = 1.0
+  box: tuple = (0.0, 0.0, 0.0, 0.0)   # normalised u, v, w, h of the source box
 
 
 @dataclass
@@ -36,7 +38,8 @@ class Track:
   hits: int = 1
   misses: int = 0
   since_update: float = 0.0
-  history: list = field(default_factory=list)
+  conf: float = 1.0
+  box: tuple = (0.0, 0.0, 0.0, 0.0)
 
   @property
   def confirmed(self) -> bool:
@@ -100,7 +103,7 @@ class ObjectTracker:
     for mi in sorted(unmatched):
       m = meas[mi]
       cov = np.diag([m.sigma_x ** 2, m.sigma_y ** 2, 25.0, 4.0])
-      self.tracks.append(Track(self._next_id, m.name, np.array([m.x, m.y, 0.0, 0.0]), cov))
+      self.tracks.append(Track(self._next_id, m.name, np.array([m.x, m.y, 0.0, 0.0]), cov, conf=m.conf, box=m.box))
       self._next_id += 1
     return [t for t in self.tracks if t.confirmed]
 
@@ -137,6 +140,7 @@ class ObjectTracker:
     t.state = t.state + K @ (np.array([m.x, m.y]) - H @ t.state)
     t.cov = (np.eye(4) - K @ H) @ t.cov
     t.hits += 1
+    t.conf, t.box = m.conf, m.box
     t.misses = 0
     t.since_update = 0.0
 

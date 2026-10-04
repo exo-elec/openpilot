@@ -55,6 +55,10 @@ for model_name in ['driving_vision', 'driving_policy']:
   }.get(arch, 'DEV=LLVM IMAGE=0')
   tg_compile(flags, model_name)
 
+# NagasPilot road-camera detector (monod): compiled only when its ONNX is present; the weights are not in the repo.
+if File("models/yolo_detector.onnx").exists():
+  tg_compile({'larch64': 'DEV=QCOM', 'Darwin': 'DEV=CPU IMAGE=0'}.get(arch, 'DEV=LLVM IMAGE=0'), 'yolo_detector')
+
 # Compile BIG model if USB GPU is available
 if "USBGPU" in os.environ:
   import subprocess

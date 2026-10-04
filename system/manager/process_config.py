@@ -9,6 +9,9 @@ from openpilot.system.manager.process import PythonProcess, NativeProcess, Daemo
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
 
+def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("ngp_monod_enabled")
+
 def notcar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and CP.notCar
 
@@ -90,6 +93,7 @@ procs = [
   PythonProcess("card", "selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
   PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", only_onroad),
+  PythonProcess("monod", "nagaspilot.runtime.monod", monod_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),

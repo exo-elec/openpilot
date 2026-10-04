@@ -124,6 +124,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
     // Driver-activity monitoring policy (devices without a driver camera): strict. See ngp_driver_activity.py.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
+    // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
+    {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
+    {"ngp_monod_hz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
     // custom (default) writes nothing. See nagaspilot/controls/ngp_drive_mode.py.
     {"ngp_lon_drive_mode", {PERSISTENT, STRING, "custom"}},
