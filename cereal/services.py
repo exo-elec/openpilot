@@ -29,6 +29,7 @@ _services: dict[str, tuple] = {
   "pandaStates": (True, 10., 1),
   "peripheralState": (True, 2., 1),
   "egpuState": (True, 10., 10),
+  "pathAdjust": (True, 20., 5),         # nagaspilot pathd add-on
   "monoDetections": (True, 20., 5),    # road-camera YOLO detections (nagaspilot monod)
   "radarState": (True, 20., 5),
   "roadEncodeIdx": (False, 20., 1),

@@ -12,6 +12,9 @@ WEBCAM = os.getenv("USE_WEBCAM") is not None
 def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("ngp_monod_enabled")
 
+def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("ngp_pathd_enabled")
+
 def notcar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and CP.notCar
 
@@ -94,6 +97,7 @@ procs = [
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
   PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", only_onroad),
   PythonProcess("monod", "nagaspilot.runtime.monod", monod_enabled),
+  PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),

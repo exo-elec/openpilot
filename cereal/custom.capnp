@@ -125,3 +125,17 @@ struct MonoDetections @0xa9b0c1d2e3f4a5b6 {
   numTracks @3 :UInt16;
   modelExecutionTime @4 :Float32;   # seconds, detector forward pass only
 }
+
+# pathd add-on layer (NagasPilot): bounded lateral offset and speed factor chosen around the policy path.
+# Publish-only until the replay proof; EOP10 maps these fields onto its own enhancedTrajectory.
+struct PathAdjust @0x86ee74962cb31a1d {
+  frameId @0 :UInt32;
+  offsetM @1 :Float32;            # left positive, added to the policy path
+  speedFactor @2 :Float32;        # <= 1.0, only ever lowers speed
+  minClearanceM @3 :Float32;      # worst lateral clearance at the chosen offset (NaN: no object)
+  reason @4 :Text;                # off | clear | nudge | slow
+  roomLeftM @5 :Float32;
+  roomRightM @6 :Float32;
+  numObjects @7 :UInt16;
+}
+

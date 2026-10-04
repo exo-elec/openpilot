@@ -2652,6 +2652,7 @@ struct Event {
     audioFeedback @149 :AudioFeedback;
     egpuState @150 :EgpuState;
     monoDetections @151 :Custom.MonoDetections;   # EOP10 has this at @218
+    pathAdjust @152 :Custom.PathAdjust;           # NagasPilot pathd add-on (publish-only)
 
     # *********** debug ***********
     testJoystick @52 :Joystick;

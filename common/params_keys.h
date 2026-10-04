@@ -127,6 +127,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.
     {"ngp_lon_cutin", {PERSISTENT, BOOL, "0"}},
+    // pathd add-on (nagaspilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
+    {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
