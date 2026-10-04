@@ -56,3 +56,16 @@ def test_model_path_is_used_when_logged():
     if m.which() == 'carState':
       msgs.append(Msg('modelV2', m.logMonoTime * 1e-9, position=NS(x=[0.0, 20.0, 40.0, 80.0], y=[0.0, -1.0, -4.0, -12.0])))  # y-right: path bends LEFT
   assert analyze(msgs)['cutin_would_trigger'] == 0
+
+
+def test_path_selector_stats_with_a_truck_alongside():
+  msgs = []
+  for i in range(30):
+    t = i * 0.2
+    msgs.append(Msg('carState', t, vEgo=25.0))
+    msgs.append(Msg('modelV2', t, position=NS(x=[0.0, 40.0], y=[0.0, 0.0]),
+                    laneLines=[NS(y=[-3.6] * 33), NS(y=[-1.9] * 33), NS(y=[1.9] * 33), NS(y=[3.6] * 33)], laneLineProbs=[0.9] * 4))
+    msgs.append(Msg('monoDetections', t, detections=[NS(trackId=9, x=0.0, y=-2.6, vx=0.0, vy=0.0, sigmaX=1.0, confidence=0.9, className='truck')],
+                    modelExecutionTime=0.02))
+  r = analyze(msgs)['path_selector']
+  assert r['frames'] == 30 and r['nudge_frames'] > 0 and 0 < r['max_offset_m'] <= 0.6

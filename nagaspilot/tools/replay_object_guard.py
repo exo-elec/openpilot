@@ -16,6 +16,8 @@ import statistics
 import sys
 
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed, Obj, PlannedPath
+from nagaspilot.controls.ngp_path_selector import PathSelector, PObj
+from nagaspilot.runtime.path_adapter import lane_room
 
 BEARING_GATE_RAD = 0.04
 RANGE_RATIO_GATE = (0.5, 2.0)
@@ -31,6 +33,11 @@ def _pct(values, q):
 def analyze(msgs) -> dict:
   """`msgs`: iterable of log messages (m.which(), m.logMonoTime, and the union member attribute)."""
   cutin = CutInSpeed()
+  selector = PathSelector()
+  room = (0.0, 0.0)
+  sel_n = nudge_n = slow_n = 0
+  offsets: list[float] = []
+  slow_factors: list[float] = []
   v_ego = 0.0
   leads: list[tuple[float, float]] = []
   path = None
@@ -54,6 +61,7 @@ def analyze(msgs) -> dict:
       pos = m.modelV2.position
       cand = PlannedPath(list(pos.x), [-float(v) for v in pos.y]) if len(pos.x) >= 2 else None   # model y-right -> left
       path = cand if cand is not None and cand.valid else None
+      room = lane_room(m.modelV2)
     elif which == 'radarState':
       leads = [(float(lead.dRel), float(lead.yRel)) for lead in (m.radarState.leadOne, m.radarState.leadTwo) if lead.status]
     elif which == 'monoDetections':
@@ -82,6 +90,15 @@ def analyze(msgs) -> dict:
         triggers.append({'t': round(t - (t_first or t), 2), 'track_id': res.track_id, 'v_ego': round(v_ego, 1),
                          'target_speed': round(res.target_speed, 1), 'urgency_s': None if res.ttc is None else round(res.ttc, 2)})
       was_active = res.active
+      sel = selector.update(v_ego, [PObj(o.track_id, o.name, o.x, o.y, o.vx, o.vy, o.conf) for o in objs], path, room[0], room[1])
+      if sel.reason != 'off':
+        sel_n += 1
+        if sel.reason == 'nudge' or abs(sel.offset_m) > 0:
+          nudge_n += 1
+          offsets.append(abs(sel.offset_m))
+        if sel.reason == 'slow':
+          slow_n += 1
+          slow_factors.append(sel.speed_factor)
 
   duration = (t_last - t_first) if (t_first is not None and t_last is not None) else 0.0
   lead_times = [first_match[i] - first_seen[i] for i in first_match]
@@ -97,6 +114,11 @@ def analyze(msgs) -> dict:
     'ranging_vs_leads': {'objects_checked': checked, 'matched': matched,
                          'median_rel_err': None if not rel_err else round(statistics.median(rel_err), 3),
                          'p95_abs_rel_err': None if not rel_err else round(_pct([abs(e) for e in rel_err], 0.95), 3)},
+    'path_selector': {'frames': sel_n, 'nudge_frames': nudge_n, 'slow_frames': slow_n,
+                      'nudge_fraction': round(nudge_n / sel_n, 3) if sel_n else None,
+                      'max_offset_m': round(max(offsets), 2) if offsets else 0.0,
+                      'p95_offset_m': round(_pct(offsets, 0.95), 2) if offsets else 0.0,
+                      'min_speed_factor': round(min(slow_factors), 3) if slow_factors else 1.0},
     'detector_lead_time_s': {'n': len(lead_times), 'median': None if not lead_times else round(statistics.median(lead_times), 2)},
     'caveat': 'radarState leads are vision leads on radarless devices: ranging_vs_leads is a consistency check, not ground truth',
   }
