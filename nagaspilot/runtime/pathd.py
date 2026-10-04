@@ -1,38 +1,42 @@
 #!/usr/bin/env python3
-"""pathd on the NGP10 base: bounded add-on layer plus an optional parallel rule channel, published as `pathAdjust`.
+"""pathd: the planner. Bounded add-on layer plus an optional parallel rule channel, published as `pathAdjust`.
 
-NGP10 base only: EOP10/01M/02M do not register this process under the name `pathd` (EOP10 has its own
-`selfdrive.pathd`); EOP10 runs it as `pathadjustd` with a MonoTrackFeed (see eop_pathadjustd.py).
+One process name, `pathd`, on every branch: NGP10 registers `nagaspilot.runtime.pathd`; EOP10/01M/02M keep their
+`selfdrive.pathd.pathd` and host `SharedPathdHost` inside it with the gridd source. FUSION is not here: gridd (EOP10)
+or monod's own tracker (NGP10) deliver the objects.
 
 Reads modelV2 (policy path, lane lines, policy action), carState, radarState and monoDetections and publishes
   - the PathSelector request (offset, speed factor, horizon profile): the protection layer
   - the RulePlanner command and the DPP-selected arbiter mode (ruleValid/ruleCurvature/ruleAccel/dppMode/dppCase):
     the parallel rule channel, applied by controlsd and the planner through RuleChannelConsumer
+Objects come from a source adapter (`object_sources`): monod's tracks on NGP10, gridd's fused `stereoObjects` on
+EOP10/01M/02M. The same code is the one process `pathd` on every branch; the board's own planner logic joins it as
+`Extras` (more proposals into the same arbitration), it does not run a second channel.
 The rule channel is idle (dppMode 0) unless `ngp_dpp_max_mode` > 0; the whole process runs only with
 `ngp_pathd_enabled` (default off). With no process, a stale message or mode 0 every consumer passes the policy through.
 """
 import math
+import time
+from dataclasses import dataclass, replace
 
+from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
 from nagaspilot.controls.ngp_cutin_speed import PlannedPath
 from nagaspilot.controls.ngp_path_selector import PROFILE_DT_S, PathSelector, build_profile
 from nagaspilot.runtime.cutin_adapter import cutin_path
-from nagaspilot.runtime.path_adapter import lane_room, pobjects
+from nagaspilot.runtime.object_sources import MonoDetectionsSource
+from nagaspilot.runtime.path_adapter import lane_room
 from nagaspilot.runtime.rule_channel import EXEC_TIME_BUDGET_S, RuleChannel, RuleOut
 
 
 class PathD:
-  def __init__(self, feed=None):
-    """`feed`: optional MonoTrackFeed for sources whose monoDetections carry positions only (EOP10)."""
+  def __init__(self, source=None):
+    """`source`: where the objects come from (nagaspilot/runtime/object_sources.py). pathd plans; it does not fuse or track."""
     self.selector = PathSelector()
     self.channel = RuleChannel()
-    self.feed = feed
+    self.source = source or MonoDetectionsSource()
 
   def _objects(self, sm):
-    if self.feed is None:
-      return pobjects(sm)
-    fresh = bool(sm.alive.get('monoDetections', False) and sm.valid.get('monoDetections', False))
-    self.feed.update(sm['monoDetections'].detections if fresh else [], fresh)
-    return self.feed.path_objects(), fresh
+    return self.source.objects(sm)
 
   def step(self, sm, v_ego: float):
     objs, fresh = self._objects(sm)
@@ -45,7 +49,7 @@ class PathD:
   def step_rule(self, sm, v_ego: float, set_speed: float, driver_override: bool, ceiling: int, dt: float) -> RuleOut:
     """Call after `step` in the same frame (shares its objects)."""
     objs, fresh, room = self._last
-    exec_time = float(sm['monoDetections'].modelExecutionTime) if fresh and self.feed is None else 0.0
+    exec_time = float(sm['monoDetections'].modelExecutionTime) if fresh and self.source.name == 'monoDetections' else 0.0
     perception_ok = bool(fresh and exec_time <= EXEC_TIME_BUDGET_S and sm.valid.get('modelV2', False))
     leads = []
     if sm.valid.get('radarState', False):
@@ -81,36 +85,72 @@ def fill_path_adjust(pa, sel, room, n_objects: int, frame_id: int, v_ego: float 
     pa.disagreeAccel = float(rule.d_accel)
 
 
-def run(feed=None) -> None:
-  import time
 
+
+@dataclass(frozen=True)
+class Extras:
+  """The board's own planner logic as more proposals (EOP10's LatNudge offset, its emergency/LonNudge speed factor)."""
+  offset_m: float | None = None
+  speed_factor: float | None = None
+
+
+def merge_extras(sel, room, extras: Extras | None):
+  """Merge extra proposals into the selector's request with the same tighten-only rules (one arbitration)."""
+  if extras is None or (extras.offset_m is None and extras.speed_factor is None):
+    return sel
+  props = [Proposal('selector', sel.offset_m)]
+  if extras.offset_m is not None and math.isfinite(extras.offset_m):
+    props.append(Proposal('board', extras.offset_m))
+  arb = arbitrate(props, room[0], room[1])
+  factor = sel.speed_factor
+  if extras.speed_factor is not None and math.isfinite(extras.speed_factor):
+    factor = min(factor, max(extras.speed_factor, 0.0))
+  reason = 'slow' if factor < 1.0 else ('nudge' if arb.offset_m != 0.0 else sel.reason)
+  return replace(sel, offset_m=arb.offset_m, speed_factor=min(factor, 1.0), reason=reason)
+
+
+class SharedPathdHost:
+  """The per-frame work of pathd, identical on every branch. Call `tick` once per loop; it returns True when it published."""
+
+  def __init__(self, params, pm, source=None, clock=time.monotonic, new_message=None):
+    self.params, self.pm, self._clock, self._new_message = params, pm, clock, new_message
+    self.pathd = PathD(source)
+    self.ceiling, self._ceiling_t, self._last_t = 0, 0.0, clock()
+
+  def tick(self, sm, extras: Extras | None = None) -> bool:
+    if not sm.updated['modelV2'] or not sm.valid['carState']:
+      return False
+    now = self._clock()
+    dt = min(max(now - self._last_t, 0.01), 0.2)
+    self._last_t = now
+    if now - self._ceiling_t > 1.0:                       # the DPP ceiling can be changed while driving
+      self.ceiling, self._ceiling_t = int(self.params.get("ngp_dpp_max_mode") or 0), now
+    cs = sm['carState']
+    v_ego = float(cs.vEgo)
+    sel, room, n = self.pathd.step(sm, v_ego)
+    sel = merge_extras(sel, room, extras)
+    set_speed = float(cs.cruiseState.speed) if cs.cruiseState.speed > 0 else v_ego
+    rule = self.pathd.step_rule(sm, v_ego, set_speed, bool(cs.steeringPressed or cs.brakePressed or cs.gasPressed), self.ceiling, dt)
+    new_message = self._new_message
+    if new_message is None:
+      from cereal import messaging
+      new_message = messaging.new_message
+    msg = new_message('pathAdjust', valid=math.isfinite(sel.offset_m))
+    fill_path_adjust(msg.pathAdjust, sel, room, n, sm['modelV2'].frameId, v_ego, rule)
+    self.pm.send('pathAdjust', msg)
+    return True
+
+
+def run(source=None) -> None:
   from cereal import messaging
   from cereal.messaging import PubMaster, SubMaster
   from openpilot.common.params import Params
 
-  params = Params()
-  sm = SubMaster(['modelV2', 'carState', 'radarState', 'monoDetections'], poll='modelV2',
-                 ignore_alive=['monoDetections', 'radarState'])
-  pm = PubMaster(['pathAdjust'])
-  pathd = PathD(feed)
-  ceiling, ceiling_t, last_t = 0, 0.0, time.monotonic()
+  sm = SubMaster(['modelV2', 'carState', 'radarState', 'monoDetections'], poll='modelV2', ignore_alive=['monoDetections', 'radarState'])
+  host = SharedPathdHost(Params(), PubMaster(['pathAdjust']), source)
   while True:
     sm.update()
-    if not sm.updated['modelV2'] or not sm.valid['carState']:
-      continue
-    now = time.monotonic()
-    dt = min(max(now - last_t, 0.01), 0.2)
-    last_t = now
-    if now - ceiling_t > 1.0:                       # the DPP ceiling can be changed while driving
-      ceiling, ceiling_t = int(params.get("ngp_dpp_max_mode") or 0), now
-    cs = sm['carState']
-    v_ego = float(cs.vEgo)
-    sel, room, n = pathd.step(sm, v_ego)
-    set_speed = float(cs.cruiseState.speed) if cs.cruiseState.speed > 0 else v_ego
-    rule = pathd.step_rule(sm, v_ego, set_speed, bool(cs.steeringPressed or cs.brakePressed or cs.gasPressed), ceiling, dt)
-    msg = messaging.new_message('pathAdjust', valid=math.isfinite(sel.offset_m))
-    fill_path_adjust(msg.pathAdjust, sel, room, n, sm['modelV2'].frameId, v_ego, rule)
-    pm.send('pathAdjust', msg)
+    host.tick(sm)
 
 
 def main():
