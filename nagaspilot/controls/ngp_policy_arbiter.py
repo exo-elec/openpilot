@@ -3,8 +3,8 @@
   OFF           policy only
   SHADOW        policy only; the rule channel runs and its disagreement with the policy is measured
   SUPERVISE     accel = min(policy, rule)  (can only brake more); curvature stays the policy's
-  PRIMARY_LONG  accel from the rule channel (jerk-limited); curvature from the policy
-  PRIMARY_LAT   curvature from the rule channel (slew-limited); accel from the policy
+  PRIMARY_LONG  accel moves toward the rule channel's by a slewed correction; curvature from the policy
+  PRIMARY_LAT   curvature moves toward the rule channel's by a slewed correction; accel from the policy
   PRIMARY_BOTH  both from the rule channel
 
 Always fall back to the policy when the rule channel is missing, invalid or stale, or the driver is in
@@ -28,8 +28,8 @@ class Mode(IntEnum):
   PRIMARY_BOTH = 5
 
 
-MAX_JERK = 2.5                 # m/s^3 on the rule accel when it is in charge
-MAX_CURV_RATE = 0.004          # 1/m per second slew of the rule curvature when it is in charge
+MAX_JERK = 2.5                 # m/s^3 slew of the accel correction when the rule channel is in charge
+MAX_CURV_RATE = 0.004          # 1/m per second slew of the curvature correction
 DISAGREE_CURV = 0.004          # 1/m
 DISAGREE_ACCEL = 2.0           # m/s^2
 DISAGREE_TIME_S = 1.0
@@ -48,14 +48,13 @@ class Blend:
 
 class PolicyArbiter:
   def __init__(self):
-    self.last_curv = 0.0
-    self.last_accel = 0.0
+    self.delta_curv = 0.0       # slewed correction added to the policy curvature
+    self.delta_accel = 0.0
     self._dis_t = 0.0
     self._hold = 0.0
 
-  def reset(self, curv: float = 0.0, accel: float = 0.0) -> None:
+  def reset(self) -> None:
     self.__init__()
-    self.last_curv, self.last_accel = curv, accel
 
   def update(self, mode: int, policy_curv: float, policy_accel: float, rule: RuleCmd | None, fresh: bool,
              driver_override: bool, dt: float) -> Blend:
@@ -65,7 +64,7 @@ class PolicyArbiter:
     d_acc = rule.accel - policy_accel if ok else 0.0
 
     def policy(reason: str | None) -> Blend:
-      self.last_curv, self.last_accel = policy_curv, policy_accel
+      self.delta_curv, self.delta_accel = 0.0, 0.0
       return Blend(policy_curv, policy_accel, 'policy', d_curv, d_acc, reason)
 
     if mode in (Mode.OFF, Mode.SHADOW):
@@ -80,7 +79,7 @@ class PolicyArbiter:
 
     if mode == Mode.SUPERVISE:
       accel = min(policy_accel, max(rule.accel, A_BRAKE_LIMIT))
-      self.last_curv, self.last_accel = policy_curv, accel
+      self.delta_curv, self.delta_accel = 0.0, accel - policy_accel
       return Blend(policy_curv, accel, 'min' if accel < policy_accel else 'policy', d_curv, d_acc, None)
 
     # PRIMARY modes: watch the disagreement
@@ -93,19 +92,21 @@ class PolicyArbiter:
       self._dis_t = 0.0
     if self._hold > 0.0:
       self._hold = max(self._hold - dt, 0.0)
+      self.delta_curv = self._slew(self.delta_curv, 0.0, MAX_CURV_RATE * dt)
       accel = min(policy_accel, rule.accel) if mode in (Mode.PRIMARY_LONG, Mode.PRIMARY_BOTH) else policy_accel
-      self.last_curv, self.last_accel = policy_curv, accel
-      return Blend(policy_curv, accel, 'min' if accel < policy_accel else 'policy', d_curv, d_acc, 'disagree')
+      self.delta_accel = accel - policy_accel
+      return Blend(policy_curv + self.delta_curv, accel, 'min' if accel < policy_accel else 'policy', d_curv, d_acc, 'disagree')
 
-    curv, accel, src = policy_curv, policy_accel, 'policy'
-    if mode in (Mode.PRIMARY_LONG, Mode.PRIMARY_BOTH):
-      step = MAX_JERK * dt
-      accel = self.last_accel + min(max(rule.accel - self.last_accel, -step), step)
-      accel = min(max(accel, A_BRAKE_LIMIT), 2.0)
-      src = 'rule'
-    if mode in (Mode.PRIMARY_LAT, Mode.PRIMARY_BOTH):
-      step = MAX_CURV_RATE * dt
-      curv = self.last_curv + min(max(rule.curvature - self.last_curv, -step), step)
-      src = 'rule'
-    self.last_curv, self.last_accel = curv, accel
-    return Blend(curv, accel, src, d_curv, d_acc, None)
+    # The rule channel is applied as a slewed *correction* on top of the policy: the policy's own dynamics pass
+    # through, authority builds smoothly, and the output converges to the rule command at steady state.
+    use_long = mode in (Mode.PRIMARY_LONG, Mode.PRIMARY_BOTH)
+    use_lat = mode in (Mode.PRIMARY_LAT, Mode.PRIMARY_BOTH)
+    self.delta_accel = self._slew(self.delta_accel, d_acc if use_long else 0.0, MAX_JERK * dt)
+    self.delta_curv = self._slew(self.delta_curv, d_curv if use_lat else 0.0, MAX_CURV_RATE * dt)
+    accel = min(max(policy_accel + self.delta_accel, A_BRAKE_LIMIT), 2.0)
+    curv = policy_curv + self.delta_curv
+    return Blend(curv, accel, 'rule' if (use_long or use_lat) else 'policy', d_curv, d_acc, None)
+
+  @staticmethod
+  def _slew(value: float, target: float, step: float) -> float:
+    return value + min(max(target - value, -step), step)

@@ -141,5 +141,14 @@ struct PathAdjust @0x86ee74962cb31a1d {
   horizonDt @8 :Float32;
   offsetProfile @9 :List(Float32);      # lateral offsets, left positive
   speedCapProfile @10 :List(Float32);   # m/s, never above the current speed
+  # Parallel rule channel (RulePlanner + DPP, append-only fields)
+  ruleValid @11 :Bool;
+  ruleCurvature @12 :Float32;           # 1/m, left positive
+  ruleAccel @13 :Float32;               # m/s^2
+  ruleSpeedTarget @14 :Float32;         # m/s
+  dppMode @15 :UInt8;                   # ngp_policy_arbiter.Mode: 0 off 1 shadow 2 supervise 3 primary_long 4 primary_lat 5 primary_both
+  dppCase @16 :Text;                    # why DPP chose it
+  disagreeCurvature @17 :Float32;       # rule - policy
+  disagreeAccel @18 :Float32;
 }
 

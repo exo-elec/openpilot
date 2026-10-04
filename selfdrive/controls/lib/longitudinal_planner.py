@@ -40,6 +40,7 @@ from nagaspilot.controls.ngp_brsc import NGPBRSC
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
 from nagaspilot.controls.ngp_pathd_consumer import speed_cap
 from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
+from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
 from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
@@ -138,6 +139,8 @@ class LongitudinalPlanner:
 
     # Cut-in speed trim: predicted cut-in from monoDetections -> lower cruise speed only (default off).
     self.cutin = CutInSpeed()
+    # Parallel rule channel (pathd + DPP): blends pathd's accel into the policy accel per DPP's mode (policy unchanged without it)
+    self.rule_consumer = RuleChannelConsumer()
 
     # Lane Change Lead Handoff (pure camera)
     self.lc_handoff = NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
@@ -392,6 +395,7 @@ class LongitudinalPlanner:
     if not reset_state:
       output_a_target = min(output_a_target,
                             self.output_a_target + longitudinal_jerk_up(v_ego) * self.tja_result.jerk_scale * self.dt)
+    output_a_target = apply_accel(self.rule_consumer, sm, float(output_a_target), self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip
 

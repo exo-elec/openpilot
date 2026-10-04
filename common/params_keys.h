@@ -131,6 +131,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // pathd add-on consumers (ngp_pathd_consumer.py), default off, need ngp_pathd_enabled: lateral offset in controlsd, speed cap in the planner.
     {"ngp_lat_pathd", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_pathd", {PERSISTENT, BOOL, "0"}},
+    // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
+    {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
     {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},

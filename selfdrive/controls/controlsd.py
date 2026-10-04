@@ -19,6 +19,7 @@ from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
 from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
 from nagaspilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
+from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
 from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
 from nagaspilot.runtime.path_adapter import lane_room
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
@@ -77,6 +78,8 @@ class Controls:
     self.soc = NGPSOC() if self.params.get_bool("ngp_lat_soc") else None
     # pathd add-on offset (ngp_lat_pathd, default off): bounded lateral offset from `pathAdjust`; replaces SOC's own offset when on
     self.pathd_lat = PathAdjustFollower() if self.params.get_bool("ngp_lat_pathd") else None
+    # Parallel rule channel (pathd + DPP): applies pathd's mode to the policy curvature; no pathd or mode < 4 = policy unchanged
+    self.rule_consumer = RuleChannelConsumer()
     # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
     self.red = NGPRED() if self.params.get_bool("ngp_lat_edge_guard") else None
     # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
@@ -205,6 +208,8 @@ class Controls:
       proposals.append(Proposal('pathd', self.pathd_lat.update(self.sm['pathAdjust'].offsetM, fresh, allowed, DT_CTRL)))
     if proposals:
       new_desired_curvature += arbitrate(proposals, *lane_room(model_v2)).offset_m * BIAS_PER_METER
+    new_desired_curvature = apply_curvature(self.rule_consumer, self.sm, new_desired_curvature, CC.latActive,
+                                            CS.steeringPressed or CS.brakePressed or CS.gasPressed, DT_CTRL)
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
     actuators.curvature = self.desired_curvature

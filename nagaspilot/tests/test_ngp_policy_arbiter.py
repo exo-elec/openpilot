@@ -31,17 +31,22 @@ def test_supervise_only_brakes_more():
   assert b.accel == A_BRAKE_LIMIT
 
 
-def test_primary_long_is_jerk_limited_and_leaves_curvature_alone():
+def test_primary_long_adds_a_slewed_correction_and_leaves_curvature_alone():
   b, arb = run(Mode.PRIMARY_LONG, cmd(0.0, -2.0), pc=0.003, pa=0.0)
   assert b.curvature == 0.003 and abs(b.accel + 2.5 * 0.05) < 1e-9 and b.source == 'rule'
   b, _ = run(Mode.PRIMARY_LONG, cmd(0.0, -2.0), pc=0.003, pa=0.0, n=60, arb=arb)
   assert b.accel <= -1.9
+  # the policy's own dynamics pass through: when the policy accel moves, the output moves with it plus the correction
+  b2, _ = run(Mode.PRIMARY_LONG, cmd(0.0, -2.0), pc=0.003, pa=0.5, n=1, arb=arb)
+  assert b2.accel > b.accel and b2.accel < 0.5
 
 
-def test_primary_lat_is_slew_limited_and_leaves_accel_alone():
+def test_primary_lat_adds_a_slewed_correction_and_leaves_accel_alone():
   b, arb = run(Mode.PRIMARY_LAT, cmd(0.01, 0.0), pc=0.0, pa=0.4)
   assert b.accel == 0.4 and abs(b.curvature - 0.004 * 0.05) < 1e-9
   b, _ = run(Mode.PRIMARY_LAT, cmd(0.003, 0.0), pc=0.0, pa=0.4, n=100, arb=arb)
+  assert abs(b.curvature - 0.003) < 1e-6
+  b, _ = run(Mode.PRIMARY_LAT, cmd(0.003, 0.0), pc=0.005, pa=0.4, n=100, arb=arb)     # policy moved a little: output still converges to the rule
   assert abs(b.curvature - 0.003) < 1e-6
 
 
@@ -57,6 +62,8 @@ def test_sustained_disagreement_hands_back_to_the_policy_keeping_the_safer_accel
   arb = PolicyArbiter()
   n = int(DISAGREE_TIME_S / 0.05) + 2
   b, arb = run(Mode.PRIMARY_BOTH, cmd(0.02, -3.0), pc=0.0, pa=0.5, n=n, arb=arb)
-  assert b.fallback == 'disagree' and b.curvature == 0.0 and b.accel == -3.0      # more conservative accel wins
+  assert b.fallback == 'disagree' and b.accel == -3.0 and abs(b.curvature) <= 0.004      # more conservative accel wins; the curvature correction decays, no step
+  b, arb = run(Mode.PRIMARY_BOTH, cmd(0.02, -3.0), pc=0.0, pa=0.5, n=100, arb=arb)
+  assert b.curvature == 0.0
   b, _ = run(Mode.PRIMARY_BOTH, cmd(0.02, 3.0), pc=0.0, pa=0.5, n=1, arb=arb)
   assert b.fallback == 'disagree' and b.accel == 0.5                               # rule would accelerate: policy accel kept
