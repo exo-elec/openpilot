@@ -6,7 +6,7 @@
    1
   ],
   "selfdrive/controls/controlsd.py": [
-   74,
+   80,
    1
   ],
   "selfdrive/controls/lib/desire_helper.py": [
@@ -42,11 +42,11 @@
    18
   ],
   "selfdrive/selfdrived/events.py": [
-   8,
+   16,
    0
   ],
   "selfdrive/selfdrived/selfdrived.py": [
-   6,
+   11,
    1
   ],
   "selfdrive/selfdrived/state.py": [
