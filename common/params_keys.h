@@ -136,6 +136,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (nagaspilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
     {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
     // Map / light / distraction speed caps (nagaspilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
+    {"ngp_map_enabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
     {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"ngp_lon_tlsc", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)

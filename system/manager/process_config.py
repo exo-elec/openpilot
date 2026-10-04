@@ -15,6 +15,9 @@ def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
 def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("ngp_pathd_enabled")
 
+def map_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("ngp_map_enabled")
+
 def notcar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and CP.notCar
 
@@ -99,6 +102,8 @@ procs = [
   PythonProcess("monod", "nagaspilot.runtime.monod", monod_enabled),
   # perception for one camera: tracks monod's detections into the fused-object message pathd reads (EOP10's gridd does this and more)
   PythonProcess("gridd", "nagaspilot.runtime.gridd", monod_enabled),
+  # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
+  PythonProcess("mapd", "nagaspilot.mapd.mapd", map_enabled),
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
