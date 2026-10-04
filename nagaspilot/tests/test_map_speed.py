@@ -91,3 +91,16 @@ def test_the_lowest_cap_wins_and_it_is_never_negative():
   ms, _ = make()
   r = ms.update(sm(curve(), updated=True, lights=[('red', 40.0, 1.0)], awareness=0.2), 15.0, 25.0, None, False, 0.05)
   assert r.cap == min(r.sources.values()) and set(r.sources) >= {'tlsc', 'ddsc'} and r.cap >= 0.0
+
+
+def test_rcd_cap_comes_from_a_surface_source_and_is_off_without_one():
+  ms, clk = make(flags=('rcd',))
+  s = sm()
+  assert ms.update(s, 25.0, 25.0, None, False, 0.05).cap is None                     # NGP10: no surfaceStatus, nothing to say
+  s['surfaceStatus'] = NS(hasSurfaceQuality=True, surfaceQuality=NS(score=0.55, texture='x'))
+  s.valid['surfaceStatus'] = True
+  caps = []
+  for _ in range(8):
+    clk.t += 0.05
+    caps.append(ms.update(s, 25.0, 25.0, None, False, 0.05).cap)
+  assert caps[-1] == 12.0 and caps[-1] is not None                                    # wet road: 12 m/s, from the first active cycle

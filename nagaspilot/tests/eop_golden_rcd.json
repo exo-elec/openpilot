@@ -1,0 +1,3907 @@
+{
+ "seq": {
+  "wet_then_good": {
+   "in": [
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.95,
+     0.29268292682926833,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     0.5782272456870912,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     0.8568070689630158,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     1.1285922624029423,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ]
+   ]
+  },
+  "debris_flicker": {
+   "in": [
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.1
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.1
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.1
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.1
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.1
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ],
+    [
+     "s",
+     0.8
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.9,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.9,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.9,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.9,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.9,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.8,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     0.29268292682926833,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     0.5782272456870912,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     0.8568070689630158,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     1.1285922624029423,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     1.3937485486857975,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.8,
+     1.6524376084739487,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ]
+   ]
+  },
+  "rough_then_wet_then_good": {
+   "in": [
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.7
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.45
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.7,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.7,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.7,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.7,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     0.29268292682926833,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     0.5782272456870912,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     0.8568070689630158,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     1.1285922624029423,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     1.3937485486857975,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.7,
+     1.6524376084739487,
+     true,
+     "DEBRIS: limit=12.0m/s"
+    ],
+    [
+     "DEBRIS",
+     0.45,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.45,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.45,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.45,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.45,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     1.0,
+     1.552079627991542,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     1.8069069541380898,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     2.0555189796469167,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     2.2980672972165044,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ]
+   ]
+  },
+  "seg_debris": {
+   "in": [
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     "g",
+     [
+      true,
+      false,
+      true
+     ]
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "DEBRIS: no limit"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "DEBRIS",
+     0.4,
+     0.0,
+     false,
+     "No data source available"
+    ]
+   ]
+  },
+  "wet_active": {
+   "in": [
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ],
+    [
+     "s",
+     0.05
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.55,
+     0.29268292682926833,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     0.5782272456870912,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     0.8568070689630158,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.1285922624029423,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.3937485486857975,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.6524376084739487,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.9048171789989743,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.151041150242902,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.3912596587735626,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.625619179291281,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.854262613942713,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.0773293794563052,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.294955492152493,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.5072736508804807,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.714413317932176,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.9165007979826107,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.113659315104986,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.306009087907303,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.493667402836394,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.676748685694043,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.855364571408822,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.029623972106168,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.199633143518213,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.365495749773866,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.5273129266086505,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.68518334303283,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     5.839203261495444,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     5.989466596580922,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     6.13606497227407,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.95,
+     6.279087777828361,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.95,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ]
+   ]
+  },
+  "reactivate_active": {
+   "in": [
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ],
+    [
+     "s",
+     0.55
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.55,
+     0.29268292682926833,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     0.5782272456870912,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     0.8568070689630158,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.1285922624029423,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.3937485486857975,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.6524376084739487,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     1.9048171789989743,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.151041150242902,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.3912596587735626,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.625619179291281,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.854262613942713,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.0773293794563052,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.294955492152493,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.5072736508804807,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.714413317932176,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.9165007979826107,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     4.113659315104986,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     4.306009087907303,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     4.493667402836394,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     4.676748685694043,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.55,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.55,
+     1.9919652974545572,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.2360637048337146,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.474208492520697,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.7065448707519,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     2.933214508050634,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.154355617610374,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.370103041571097,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.5805883332400947,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.785939837307409,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     3.9862827681047897,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.181739285955892,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.372428571664285,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.558466899184668,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.739967706521628,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     4.917041664899149,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     0.55,
+     5.089796746243072,
+     true,
+     "WET: limit=12.0m/s"
+    ]
+   ]
+  },
+  "no_data": {
+   "in": [
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ],
+    [
+     "n",
+     null
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ]
+   ]
+  },
+  "invalid_then_wet": {
+   "in": [
+    [
+     "i",
+     0.5
+    ],
+    [
+     "i",
+     0.5
+    ],
+    [
+     "i",
+     0.5
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.0,
+     0.0,
+     false,
+     "No data source available"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ]
+   ]
+  },
+  "reactivate": {
+   "in": [
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.0
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ],
+    [
+     "s",
+     0.4
+    ]
+   ],
+   "out": [
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     1.0,
+     0.29268292682926833,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     0.5782272456870912,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     0.8568070689630158,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "WET",
+     1.0,
+     1.1285922624029423,
+     true,
+     "WET: limit=12.0m/s"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     1.0,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "GOOD",
+     0.4,
+     0.0,
+     false,
+     "GOOD: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ],
+    [
+     "WET",
+     0.4,
+     0.0,
+     false,
+     "WET: no limit"
+    ]
+   ]
+  }
+ },
+ "disabled": [
+  "GOOD",
+  0.0,
+  0.0,
+  false,
+  "RCD disabled"
+ ],
+ "classify": [
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    155.5671875,
+    250.2171875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    218.52265625,
+    110.58203125,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    180.47265625,
+    202.36875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    5.09765625,
+    246.478125,
+    0.9
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    128.90234375,
+    244.93671875,
+    0.65
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    153.3921875,
+    247.30625,
+    0.434375
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    73.69765625,
+    252.1015625,
+    0.9
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    145.90390625,
+    252.41484375,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    120.8171875,
+    225.20859375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    115.7109375,
+    163.00234375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    33.97265625,
+    253.7109375,
+    0.9
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    76.70546875,
+    219.80390625,
+    0.37734375
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    172.378125,
+    88.5515625,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    98.45390625,
+    243.834375,
+    0.0859375
+   ],
+   "out": [
+    "DEBRIS",
+    0.5,
+    "debris_detected",
+    12.0
+   ]
+  },
+  {
+   "m": [
+    203.54453125,
+    106.1984375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    222.75078125,
+    130.2421875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    203.15546875,
+    239.86796875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    33.35703125,
+    254.5109375,
+    0.9875
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    132.9640625,
+    181.22578125,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    111.94296875,
+    250.2328125,
+    0.75546875
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    19.175,
+    251.95625,
+    0.9
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    217.49609375,
+    245.96875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    137.1828125,
+    207.52421875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    221.4515625,
+    170.659375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    199.80234375,
+    182.55,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    178.17421875,
+    190.4359375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    225.66171875,
+    216.1265625,
+    0.009375
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    38.38046875,
+    220.61640625,
+    0.85546875
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    225.37734375,
+    196.11796875,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    86.46953125,
+    232.4265625,
+    0.86875
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    0.0,
+    255.0,
+    1.0
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    84.92734375,
+    254.25234375,
+    0.65
+   ],
+   "out": [
+    "ICY",
+    0.7,
+    "icy_surface",
+    8.0
+   ]
+  },
+  {
+   "m": [
+    174.17734375,
+    243.590625,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    136.49921875,
+    183.06484375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  },
+  {
+   "m": [
+    74.28984375,
+    171.7109375,
+    0.0
+   ],
+   "out": [
+    "GOOD",
+    0.9,
+    "good",
+    0.0
+   ]
+  }
+ ],
+ "limits": {
+  "GOOD": 0.0,
+  "WET": 12.0,
+  "ICY": 8.0,
+  "SNOW": 8.0,
+  "DEBRIS": 12.0
+ }
+}
