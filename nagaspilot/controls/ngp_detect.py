@@ -15,6 +15,8 @@ import numpy as np
 ROAD_CLASSES: dict[int, str] = {
   0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck',
 }
+TRAFFIC_LIGHT = 'traffic light'
+LIGHT_CLASSES: dict[int, str] = {**ROAD_CLASSES, 9: TRAFFIC_LIGHT}      # COCO 9; decode with these to also get lights
 
 
 @dataclass(frozen=True)

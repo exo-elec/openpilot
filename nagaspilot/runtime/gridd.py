@@ -16,14 +16,22 @@ import time
 
 from nagaspilot.runtime.fusion_tracks import CAMERA_CLASSES, CameraTrackAnnotator
 
-OBSTACLE_OF_CLASS = {'car': 'vehicle', 'truck': 'vehicle', 'bus': 'vehicle', 'motorcycle': 'motorcycle', 'bicycle': 'motorcycle', 'person': 'person'}
+OBSTACLE_OF_CLASS = {'car': 'vehicle', 'truck': 'vehicle', 'bus': 'vehicle', 'motorcycle': 'motorcycle', 'bicycle': 'motorcycle', 'person': 'person',
+                     'traffic light': 'trafficLight'}
+LIGHT = 'traffic light'
+TL_STATE = {0: 'unknown', 1: 'red', 2: 'yellow', 3: 'green'}
 
 
 def detections_to_objects(detections) -> list[dict]:
   out = []
   for d in detections:
     name = str(d.className)
-    if name not in CAMERA_CLASSES or float(d.confidence) <= 0.0 or not (math.isfinite(d.x) and math.isfinite(d.y)):
+    if (name not in CAMERA_CLASSES and name != LIGHT) or float(d.confidence) <= 0.0 or not (math.isfinite(d.x) and math.isfinite(d.y)):
+      continue
+    if name == LIGHT:                                    # lights are not road users: no tracking, passed on as seen
+      out.append({'dRel': float(d.x), 'yRel': float(d.y), 'obstacleType': LIGHT, 'confidence': float(d.confidence), 'trackId': 0, 'vRel': 0.0,
+                  'vyRel': 0.0, 'trafficLightState': int(getattr(d, 'trafficLightState', 0)),
+                  'trafficLightConfidence': float(getattr(d, 'trafficLightConfidence', 0.0))})
       continue
     out.append({'dRel': float(d.x), 'yRel': float(d.y), 'obstacleType': name, 'confidence': float(d.confidence),
                 'trackId': int(d.trackId), 'source': str(d.cameraSource) or 'road', 'vRel': 0.0})
@@ -38,6 +46,9 @@ def fill_stereo_objects(so, objs: list[dict]) -> None:
     it.dRel, it.yRel, it.vRel, it.vyRel = float(o['dRel']), float(o['yRel']), float(o['vRel']), float(o['vyRel'])
     it.prob = float(o['confidence'])
     it.obstacleType = OBSTACLE_OF_CLASS[o['obstacleType']]
+    if o['obstacleType'] == LIGHT:
+      it.trafficLightState = TL_STATE.get(int(o.get('trafficLightState', 0)), 'unknown')
+      it.trafficLightConfidence = float(o.get('trafficLightConfidence', 0.0))
 
 
 class Gridd:
@@ -56,7 +67,7 @@ class Gridd:
     if new_message is None:
       from cereal import messaging
       new_message = messaging.new_message
-    confirmed = [o for o in objs if 'vyRel' in o]       # only tracks the Kalman filter has confirmed
+    confirmed = [o for o in objs if 'vyRel' in o or o['obstacleType'] == LIGHT]       # confirmed tracks, and lights as seen
     msg = new_message('stereoObjects', valid=True)
     fill_stereo_objects(msg.stereoObjects, confirmed)
     pm.send('stereoObjects', msg)

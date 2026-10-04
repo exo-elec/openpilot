@@ -16,12 +16,12 @@ Parts:
 import math
 import os
 import time
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
 
-from nagaspilot.controls.ngp_detect import Box, Letterbox, decode
+from nagaspilot.controls.ngp_detect import LIGHT_CLASSES, TRAFFIC_LIGHT, Box, Letterbox, decode
 from nagaspilot.controls.ngp_object_tracker import Measurement, ObjectTracker, Track, measurement_sigma
 from nagaspilot.controls.ngp_ranging import LeadAnchoredRanger, RoadCamera
 
@@ -78,13 +78,53 @@ class MonoPipeline:
     return self.tracker.update(self.detect(boxes, leads, view_from_calib, cam_height), dt)
 
 
-def fill_raw_detections(md, meas: list[Measurement], frame_id: int, timestamp_s: float, exec_time: float) -> None:
-  """Fill a MonoDetections builder with UNTRACKED detections: position, class, confidence, box, sigma; no id, no velocity."""
+@dataclass(frozen=True)
+class Light:
+  """A traffic-light head seen by the road camera: position from the head size, lamp colour from the crop."""
+  x: float
+  y: float
+  state: int           # 0 unknown, 1 red, 2 yellow, 3 green
+  state_conf: float
+  conf: float          # detector confidence
+  box: tuple           # normalised u, v, w, h
+
+
+def detect_lights(boxes: list[Box], rgb, focal: float, cx: float, img_w: int, img_h: int) -> list[Light]:
+  """SENSING for traffic lights: classify the lamp colour and range the head by its size. Lights are not tracked."""
+  from nagaspilot.runtime.traffic_light import classify_rgb, head_position
+  out = []
+  for b in boxes:
+    if b.name != TRAFFIC_LIGHT:
+      continue
+    pos = head_position(b, focal, cx)
+    if pos is None:
+      continue
+    state, frac = classify_rgb(rgb, (b.x1, b.y1, b.x2, b.y2))
+    out.append(Light(pos[0], pos[1], state, frac, b.conf, (b.cx / img_w, 0.5 * (b.y1 + b.y2) / img_h, b.w / img_w, b.h / img_h)))
+  return out
+
+
+def fill_raw_detections(md, meas: list[Measurement], frame_id: int, timestamp_s: float, exec_time: float, lights: list | None = None) -> None:
+  """Fill a MonoDetections builder with UNTRACKED detections: position, class, confidence, box, sigma; no id, no velocity.
+
+  Traffic lights follow the road users as extra entries (className 'traffic light', lamp colour in trafficLightState)."""
+  lights = lights or []
   md.frameId = frame_id
   md.timestamp = timestamp_s
   md.numTracks = len(meas)
   md.modelExecutionTime = exec_time
-  dets = md.init('detections', len(meas))
+  dets = md.init('detections', len(meas) + len(lights))
+  for j, lt in enumerate(lights):
+    d = dets[len(meas) + j]
+    d.trackId = 0
+    d.className = TRAFFIC_LIGHT
+    d.confidence = float(lt.conf)
+    d.cameraSource = 'road'
+    d.u, d.v, d.w, d.h = (float(v) for v in lt.box)
+    d.x, d.y = float(lt.x), float(lt.y)
+    d.distance = float(math.hypot(lt.x, lt.y))
+    d.trafficLightState = int(lt.state)
+    d.trafficLightConfidence = float(lt.state_conf)
   for i, m in enumerate(meas):
     d = dets[i]
     d.trackId = 0
@@ -205,10 +245,12 @@ def main():
     view_from_calib = get_view_frame_from_calib_frame(rpy[0], rpy[1], rpy[2], 0.0)[:, :3]
     leads = [(float(l.dRel), float(l.yRel)) for l in (sm["radarState"].leadOne, sm["radarState"].leadTwo) if l.status]
     height = float(calib.height[0]) if len(calib.height) else None
-    meas = pipe.detect(decode(raw, pipe.lb, buf.width, buf.height), leads, view_from_calib, height)
+    boxes = decode(raw, pipe.lb, buf.width, buf.height, classes=LIGHT_CLASSES)
+    meas = pipe.detect([b for b in boxes if b.name != TRAFFIC_LIGHT], leads, view_from_calib, height)
+    lights = detect_lights(boxes, rgb, float(pipe.K[0, 0]), float(pipe.K[0, 2]), buf.width, buf.height)
 
     msg = messaging.new_message('monoDetections', valid=True)
-    fill_raw_detections(msg.monoDetections, meas, vipc.frame_id, vipc.timestamp_sof * 1e-9, exec_time)
+    fill_raw_detections(msg.monoDetections, meas, vipc.frame_id, vipc.timestamp_sof * 1e-9, exec_time, lights)
     pm.send('monoDetections', msg)
 
 

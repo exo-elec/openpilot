@@ -60,7 +60,7 @@ def test_publishes_only_confirmed_tracks_with_stable_ids_and_velocities():
 
 def test_class_mapping_filters_and_stale_monod_publishes_nothing():
   d = detections_to_objects([det(20.0, 0.0, 'motorcycle'), det(20.0, 0.0, 'person'), det(20.0, 0.0, 'traffic light'), det(20.0, 0.0, conf=0.0)])
-  assert [o['obstacleType'] for o in d] == ['motorcycle', 'person']
+  assert [o['obstacleType'] for o in d] == ['motorcycle', 'person', 'traffic light']       # lights pass through, untracked
   g, clk, pm = make()
   for _ in range(10):
     tick(g, clk, pm, [det(30.0, 0.0)])
@@ -80,3 +80,13 @@ def test_pathd_reads_gridds_message_through_the_same_gridd_source():
   sm.alive, sm.valid = {'stereoObjects': True}, {'stereoObjects': True}
   objs, fresh = GriddSource().objects(sm)
   assert fresh and objs[0].name == 'motorcycle' and objs[0].vy < 0 and objs[0].track_id > 0
+
+
+def test_traffic_lights_pass_through_with_lamp_state_and_are_never_tracked():
+  from nagaspilot.runtime.gridd import fill_stereo_objects
+  g, clk, pm = make()
+  light = NS(className='traffic light', confidence=0.8, x=40.0, y=1.0, trackId=0, cameraSource='road', trafficLightState=1, trafficLightConfidence=0.4)
+  tick(g, clk, pm, [light])
+  items = pm.sent[-1].stereoObjects.objects
+  assert len(items) == 1 and items[0].obstacleType == 'trafficLight' and items[0].trafficLightState == 'red'
+  assert abs(items[0].trafficLightConfidence - 0.4) < 1e-9 and items[0].dRel == 40.0 and items[0].vyRel == 0.0 and not g.annotator.tracker.tracks

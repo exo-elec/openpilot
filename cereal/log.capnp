@@ -2619,6 +2619,36 @@ struct StereoObjects @0xa1b2c3d4e5f67890 {
   objects @0 :List(CameraObject);
 }
 
+# OSM map data published by mapd (same struct and field ordinals as EOP10)
+struct MapData {
+  # OSM map data published by mapd — speeds in km/h, distances in metres
+  hasMapData       @0 :Bool;
+  currentLatitude  @1 :Float32;
+  currentLongitude @2 :Float32;
+
+  # Speed limit (km/h, 0 = none)
+  speedLimit            @3 :Float32;   # current road speed limit
+  nextSpeedLimit        @4 :Float32;   # next road speed limit
+  nextSpeedLimitDistance @5 :Float32;  # metres to next limit change
+
+  # Road metadata
+  roadName @6 :Text;
+  roadType @7 :Text;
+
+  # Curvature lookahead (for MTSC) — x=distance(m), y=curvature(1/m)
+  upcomingCurvatureDEPRECATED @8 :List(CurvePoint);
+
+  # Cache diagnostics
+  cacheHits      @9  :UInt32;
+  cacheMisses    @10 :UInt32;
+  curvatureValid @11 :Bool;
+
+  struct CurvePoint {
+    x @0 :Float32;   # distance ahead (m)
+    y @1 :Float32;   # curvature (1/m)
+  }
+}
+
 struct Event {
   logMonoTime @0 :UInt64;  # nanoseconds
   valid @67 :Bool = true;
@@ -2721,6 +2751,7 @@ struct Event {
     monoDetections @151 :Custom.MonoDetections;   # EOP10 has this at @218
     pathAdjust @152 :Custom.PathAdjust;           # NagasPilot pathd add-on (publish-only)
     stereoObjects @153 :StereoObjects;            # fused camera objects (EOP10: gridd @155)
+    mapData @154 :MapData;                        # OSM speed limits and curvature (EOP10: mapd @215)
 
     # *********** debug ***********
     testJoystick @52 :Joystick;

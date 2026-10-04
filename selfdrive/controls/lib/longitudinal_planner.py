@@ -40,6 +40,7 @@ from nagaspilot.controls.ngp_brsc import NGPBRSC
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
 from nagaspilot.controls.ngp_pathd_consumer import speed_cap
 from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
+from nagaspilot.runtime.map_speed import MapSpeed
 from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
@@ -139,6 +140,9 @@ class LongitudinalPlanner:
 
     # Cut-in speed trim: predicted cut-in from monoDetections -> lower cruise speed only (default off).
     self.cutin = CutInSpeed()
+    # Map / traffic-light / distraction speed caps (MTSC, MSLC, TLSC, DDSC); every one default off, they only lower the cruise speed
+    _params = Params()
+    self.map_speed = MapSpeed(_params.get_bool, lambda k: _params.get(k))
     # Parallel rule channel (pathd + DPP): blends pathd's accel into the policy accel per DPP's mode (policy unchanged without it)
     self.rule_consumer = RuleChannelConsumer()
 
@@ -279,6 +283,10 @@ class LongitudinalPlanner:
       self.vtsc_v_target = self.vtsc_result.target_speed
       if self.vtsc_v_target is not None:
         v_cruise = min(v_cruise, self.vtsc_v_target)
+
+    map_speed = self.map_speed.update(sm, v_ego, v_cruise, self.vtsc_v_target, bool(self.output_should_stop), self.dt)
+    if map_speed.cap is not None:
+      v_cruise = min(v_cruise, map_speed.cap)
 
     # NSLC-equivalent: clamp v_cruise to the posted nav speed limit.
     # ngp_speed_policy.py's evaluate() never applies anything itself (it's a

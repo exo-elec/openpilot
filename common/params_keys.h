@@ -135,6 +135,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
     // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (nagaspilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
     {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
+    // Map / light / distraction speed caps (nagaspilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
+    {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
+    {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
+    {"ngp_lon_tlsc", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
+    {"ngp_lon_ddsc", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
+    {"ngp_lon_slc_offsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
     {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},
