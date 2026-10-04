@@ -18,11 +18,11 @@
    4
   ],
   "selfdrive/controls/lib/longitudinal_planner.py": [
-   247,
+   255,
    9
   ],
   "selfdrive/controls/plannerd.py": [
-   37,
+   35,
    5
   ],
   "selfdrive/controls/radard.py": [
