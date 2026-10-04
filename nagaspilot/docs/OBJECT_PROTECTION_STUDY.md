@@ -184,3 +184,22 @@ What can be proven where, and the code for each (all pure, run from `python3 -m 
 
 **What the sim already taught (and changed)**: the first integrated run (stand-in policy + rule channel + DPP + arbiters) improved a car cut-in minimum gap only 4.5 -> 4.6 m while the rule planner alone reached 12.0 m. Causes found and fixed: DPP waited 0.3 s before escalating (now 0.1 s for cut-in/close-lead), the arbiter built braking authority at 2.5 m/s^3 (now 6 m/s^3 for MORE braking, 2.5 to release), and, the biggest, a rule channel that brakes harder than the policy was counted as a "disagreement" and pushed DPP back to SHADOW (now only a rule channel that is LESS cautious counts). After the fix: car cut-in 4.5 -> 9.9 m (TTC 1.5 -> 3.4 s), bike cut-in 4.0 -> 6.8 m (TTC 1.7 -> 9.1 s), no overlap. 60-run sweep (random gap/speed/lateral speed/class/noise/dropout): baseline overlaps in 14 runs, layer 4, rule planner 5, integrated DPP 7 (more outages are treated as unhealthy and handed to the policy by design); no run worse than the baseline; false-trigger rate 0 % for all. Remaining tuning targets are visible in that table (DPP's overlap count vs the layer's), not hidden.
 **Limits stated plainly**: the sim ego is first-order, the stand-in policy is a hold-speed + lead-follow rule, and the sweep's perception errors are range noise and frame dropouts only; none of it is a statement about the real car. The ranging and replay tools have been tested on synthetic logs only until a real route exists.
+
+## 19. Status and what is left (2026-10-04)
+
+Built, pure-tested, carried to EOP10 / 01M / 02M, all default off: YOLO decode, flat-ground ranging with lead anchor, Kalman tracker, cut-in trim (per class, planned-path corridor), path selector, arbiter, parallel rule channel (rule planner + policy arbiter + DPP), `pathAdjust` with horizon profile, consumers in `controlsd`/planner, EOP10 `pathadjustd` + `MonoTrackFeed`, proof tooling (`validate_ranging`, `scenario_sweep`, integrated sim with fault injection, `sim_bridge`, replay stats), EOP10 `monod` box publish and the ground-plane ranging hook (`ngp_monod_ranger`).
+
+| Switch | Where | Default |
+|---|---|---|
+| `ngp_monod_enabled`, `ngp_monod_hz` | NGP10 monod runtime | off |
+| `ngp_pathd_enabled` | pathd (NGP10) / pathadjustd (EOP10, 01M, 02M) | off |
+| `ngp_dpp_max_mode` (0-5) | DPP ceiling, runtime-changeable | 0 (idle) |
+| `ngp_lat_pathd`, `ngp_lon_pathd`, `ngp_lon_cutin` | protection-layer hooks | off |
+| `ngp_monod_ranger` | EOP10 / 01M / 02M monod ground ranging | off |
+
+Left, in order of what unblocks what:
+1. **A real EOP10 stereo route -> `validate_ranging`.** Decides `ngp_monod_ranger` on EOP10 and is the only independent evidence for NGP10's ranging. Nothing has seen a real route.
+2. **Simulator run by the user** with `sim_bridge` + `ngp_pathd_enabled` + `ngp_dpp_max_mode`: tune DPP thresholds (`ngp_dpp.py`), the disagreement limits (`rule_channel.py`), profile gaps (`ngp_path_selector.py`, `ngp_cutin_speed.py`).
+3. **NGP10 device checks**: tinygrad runner, NV12 conversion, GPU time beside `modeld`, `camerad` with no driver sensor, the unrun loops (`monod`, `pathd`).
+4. **Licence of the YOLO weights** (Ultralytics = AGPL-3.0); wide-camera (fisheye) ranging; a second lane source so the rule channel's lane perception is independent of the policy network.
+5. **Rebase hygiene on 01M/02M**: re-add `pathadjustd` in `nagaspilot/manager/process_config.py`, re-apply any EOP10 `monod.py` edit to `nagaspilot/daemons/monod/monod.py`, re-run `footprint.py --update`, diff the README afterwards (done for every propagation so far).
