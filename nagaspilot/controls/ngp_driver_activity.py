@@ -1,12 +1,13 @@
-"""Steering-activity monitoring for devices without a driver camera (replaces camera-based driver monitoring).
+"""Driver-activity monitoring for devices without a driver camera (replaces camera-based driver monitoring).
 
-Awareness starts full and drains while openpilot is engaged and the car is moving fast enough, at a rate that depends on the
-speed band; hands on the wheel (the car's own `steeringPressed`) refill it at once. Stages are proportional to awareness:
+The goal is only that the driver does not fall asleep. Awareness starts full and drains while openpilot is engaged and the
+car is moving fast enough, at a rate that depends on the speed band; any driver input refills it at once: hands on the wheel
+(the car's own `steeringPressed`) or a press of the brake or gas pedal. Stages are proportional to awareness:
 soft alert at 50 %, prompt at 25 %, critical at 0. At critical the monitor asks for a gentle forced deceleration; it never
 disengages by itself.
 
-Only a driver input refills awareness. openpilot moves the wheel itself, so steering angle or angle rate is not evidence of a
-driver; the monitor therefore takes a single boolean, `driver_engaged`, and nothing else from the steering signals.
+Only a driver input refills awareness. openpilot moves the wheel itself, so steering angle or torque is not evidence of a driver;
+the monitor takes a single boolean, `driver_engaged`, which the caller builds from the driver pedal and wheel-press flags.
 
 Policies are tables of (band upper edge m/s, seconds from full to empty); the last band has no upper edge. Below the first
 edge there is no drain. Bands switch with a small hysteresis so speed noise at an edge does not flip the rate.
@@ -36,7 +37,7 @@ class MonitorStatus:
   force_decel: bool
 
 
-class SteeringMonitor:
+class DriverActivityMonitor:
   def __init__(self, policy: str = DEFAULT_POLICY, dt: float = 0.05):
     self.table = POLICIES.get(policy, POLICIES[DEFAULT_POLICY])
     self.dt = float(dt)

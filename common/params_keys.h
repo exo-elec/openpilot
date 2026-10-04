@@ -122,7 +122,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
-    // Steering-activity monitoring policy (devices without a driver camera): strict. See ngp_steering_monitor.py.
+    // Driver-activity monitoring policy (devices without a driver camera): strict. See ngp_driver_activity.py.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
     // custom (default) writes nothing. See nagaspilot/controls/ngp_drive_mode.py.

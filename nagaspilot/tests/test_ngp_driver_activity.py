@@ -1,12 +1,12 @@
 import pytest
 
-from nagaspilot.controls.ngp_steering_monitor import CRITICAL, OK, PROMPT, SOFT, SteeringMonitor
+from nagaspilot.controls.ngp_driver_activity import CRITICAL, OK, PROMPT, SOFT, DriverActivityMonitor
 
 DT = 0.05
 
 
 def _time_to(stage, v, policy="strict", limit=300.0):
-  m = SteeringMonitor(policy, DT)
+  m = DriverActivityMonitor(policy, DT)
   t = 0.0
   while t < limit:
     t += DT
@@ -33,7 +33,7 @@ def test_no_drain_below_the_first_band():
 
 def test_driver_engagement_refills_at_once_in_every_stage():
   for stage_after in (40.0, 55.0, 70.0):
-    m = SteeringMonitor("strict", DT)
+    m = DriverActivityMonitor("strict", DT)
     for _ in range(int(stage_after / DT)):
       m.update(15.0, True, False, False)
     assert m.update(15.0, True, False, True).awareness == 1.0
@@ -41,7 +41,7 @@ def test_driver_engagement_refills_at_once_in_every_stage():
 
 
 def test_critical_asks_for_deceleration_and_is_never_a_disengage_request():
-  m = SteeringMonitor("strict", DT)
+  m = DriverActivityMonitor("strict", DT)
   status = None
   for _ in range(int(40.0 / DT)):
     status = m.update(25.0, True, False, False)
@@ -51,7 +51,7 @@ def test_critical_asks_for_deceleration_and_is_never_a_disengage_request():
 
 
 def test_not_engaged_resets_and_standstill_holds():
-  m = SteeringMonitor("strict", DT)
+  m = DriverActivityMonitor("strict", DT)
   for _ in range(int(20.0 / DT)):
     m.update(25.0, True, False, False)
   held = m.update(0.0, True, True, False).awareness
@@ -60,7 +60,7 @@ def test_not_engaged_resets_and_standstill_holds():
 
 
 def test_awareness_carries_across_a_band_change():
-  m = SteeringMonitor("strict", DT)
+  m = DriverActivityMonitor("strict", DT)
   for _ in range(int(30.0 / DT)):  # half a minute at 15 m/s: half empty
     m.update(15.0, True, False, False)
   assert m.awareness == pytest.approx(0.5, abs=0.01)
@@ -71,7 +71,7 @@ def test_awareness_carries_across_a_band_change():
 
 
 def test_hysteresis_stops_speed_noise_flipping_the_rate_at_an_edge():
-  m = SteeringMonitor("strict", DT)
+  m = DriverActivityMonitor("strict", DT)
   bands = set()
   for i in range(400):
     bands.add(m.update(22.0 + (0.3 if i % 2 else -0.3), True, False, False).band)

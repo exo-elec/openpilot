@@ -77,7 +77,7 @@ procs = [
   PythonProcess("timed", "system.timed", always_run, enabled=not PC),
 
   PythonProcess("modeld", "selfdrive.modeld.modeld", only_onroad),
-  # No driver camera on our devices: camera-based driver monitoring (dmonitoringmodeld, dmonitoringd) is not run; steering activity is.
+  # No driver camera on our devices: camera-based driver monitoring (dmonitoringmodeld, dmonitoringd) is not run; driver activity is.
 
   PythonProcess("sensord", "system.sensord.sensord", only_onroad, enabled=not PC),
   NativeProcess("ui", "selfdrive/ui", ["./ui"], always_run, watchdog_max_dt=(5 if not PC else None)),
@@ -92,7 +92,7 @@ procs = [
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", only_onroad),
   PythonProcess("card", "selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
-  PythonProcess("steeringmonitord", "nagaspilot.runtime.steering_monitord", only_onroad),
+  PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", only_onroad),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),

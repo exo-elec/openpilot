@@ -1,12 +1,12 @@
 from types import SimpleNamespace as NS
 
 import cereal.messaging as messaging
-from nagaspilot.controls.ngp_steering_monitor import CRITICAL, OK, PROMPT, SOFT
-from nagaspilot.runtime.steering_monitord import SteeringMonitorD, driver_engaged, state_msg
+from nagaspilot.controls.ngp_driver_activity import CRITICAL, OK, PROMPT, SOFT
+from nagaspilot.runtime.driver_activityd import DriverActivityD, driver_engaged, state_msg
 
 
-def _cs(v=15.0, pressed=False, torque=0.0, standstill=False):
-  return NS(vEgo=v, steeringPressed=pressed, steeringTorque=torque, standstill=standstill)
+def _cs(v=15.0, pressed=False, torque=0.0, standstill=False, brake=False, gas=False):
+  return NS(vEgo=v, steeringPressed=pressed, steeringTorque=torque, standstill=standstill, brakePressed=brake, gasPressed=gas)
 
 
 def _event_names(msg):
@@ -15,13 +15,27 @@ def _event_names(msg):
   return [names[e.name] for e in messaging.log_from_bytes(msg.to_bytes()).driverMonitoringState.events]
 
 
-def test_only_the_cars_steering_pressed_counts_as_the_driver():
+def test_wheel_press_brake_and_gas_count_as_the_driver_but_not_openpilots_own_steering():
   assert driver_engaged(_cs(pressed=True))
-  assert not driver_engaged(_cs(pressed=False, torque=3.0))  # a large torque alone (openpilot's own steering) is not a driver
+  assert driver_engaged(_cs(brake=True))
+  assert driver_engaged(_cs(gas=True))
+  assert not driver_engaged(_cs())
+  assert not driver_engaged(_cs(torque=3.0))  # a large torque alone (openpilot's own steering) is not a driver
+
+
+def test_a_pedal_press_refills_awareness_like_a_wheel_press():
+  d = DriverActivityD("strict")
+  for _ in range(int(45.0 / 0.05)):
+    d.step(_cs(), True)
+  assert d.step(_cs(), True).stage != "ok"
+  assert d.step(_cs(brake=True), True).awareness == 1.0
+  for _ in range(int(45.0 / 0.05)):
+    d.step(_cs(), True)
+  assert d.step(_cs(gas=True), True).awareness == 1.0
 
 
 def test_openpilots_own_steering_never_refills_awareness():
-  d = SteeringMonitorD("strict")
+  d = DriverActivityD("strict")
   stages = []
   for _ in range(int(70.0 / 0.05)):
     stages.append(d.step(_cs(torque=2.5), True).stage)  # steering hard every tick, no press
@@ -29,7 +43,7 @@ def test_openpilots_own_steering_never_refills_awareness():
 
 
 def test_stages_publish_the_matching_events_and_awareness_status():
-  d = SteeringMonitorD("strict")
+  d = DriverActivityD("strict")
   seen = {}
   for _ in range(int(61.0 / 0.05)):
     status = d.step(_cs(), True)
@@ -45,5 +59,5 @@ def test_stages_publish_the_matching_events_and_awareness_status():
 
 
 def test_valid_flag_is_passed_through():
-  d = SteeringMonitorD("strict")
+  d = DriverActivityD("strict")
   assert not state_msg(d.step(_cs(), True), False).valid
