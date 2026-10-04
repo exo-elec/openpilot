@@ -99,9 +99,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
     // including its default-on.
     {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
-    // Edge guard: vision-only curvature nudge away from a close, high-
-    // confidence road edge. NGP10-only -- not a port of EOP10's red.py
-    // (which fuses stereo+YOLO). Unvalidated on road; default off.
+    // RED: vision-only curvature nudge away from a close road edge in laneless mode (ngp_red.py).
+    // ExoPilot adds YOLO/stereo corroboration. Unvalidated on road; default off.
     {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
     // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).

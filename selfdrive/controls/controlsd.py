@@ -15,6 +15,7 @@ from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
+from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -64,6 +65,8 @@ class Controls:
       self.LaC = LatControlTorque(self.CP, self.CI)
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
+    self.red = NGPRED() if self.params.get_bool("ngp_lat_edge_guard") else None
     # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
     self.cat = NGPCAT(self.CP.steerRatio) if self.params.get_bool("ngp_lat_cat") else None
     self.alcc_active = False
@@ -171,6 +174,8 @@ class Controls:
     # Steering PID loop and lateral MPC
     # Reset desired curvature to current to avoid violating the limits on engage
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
+    if self.red is not None and CC.latActive:
+      new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
     actuators.curvature = self.desired_curvature
