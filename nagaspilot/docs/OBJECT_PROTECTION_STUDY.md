@@ -256,8 +256,8 @@ Rule: anything in EOP10 that is **not** tied to the extra hardware `../exopilot`
 | LDW | nothing to port | EOP10's `ldw.py` is identical to upstream's, already on NGP10 |
 | following distance, driver prefs | nothing to port | NGP10 already has `longitudinal_policy.py` and the speed offset |
 | adaptd (adaptive personality from vehicle telemetry) | **core portable, input is not** | its only input is `ncpVehicleData` from NavPilot over BLE (bluetoothd), i.e. the BLE hardware link: port the core and schema, the producer stays EOP-only |
-| RCD (road condition from camera HSV) | portable, **needs real images to prove** | next |
-| CSLB (curve speed learning DB), surface DB | portable (sqlite) | CSLB read-only lookup next; no writer thread in the planner loop |
+| RCD (road condition cap) | hysteresis + cap logic portable; **source is EOP-only** (surfaceStatus, card) and the camera-HSV classifier is never fed a frame in EOP10 | **ported 2026-10-04** (`ngp_rcd.py`, `runtime/rcd.py`, MapSpeed source `ngp_lon_rcd`, default off, idle without a source). Found and fixed: the smoothing filter sat at 0 with no cap, so the first cap was ~0.3 m/s and took ~10 s to reach 12 m/s (`legacy_filter_bug` reproduces it). HSV thresholds untuned: need real frames |
+| CSLB (curve speed learning DB), surface DB | sqlite | **not ported**: nothing writes the DB (learning is a placeholder in EOP10's planner), so the lookup always falls back to a physics speed NGP10 already has. A writer outside the planner loop would be a new feature |
 | mcapd (MCAP/Foxglove logging) | portable, tooling | optional |
 | AEB, FCW, RCW, `radar_zones`, `blindspot` | **not ported** (safety) | |
 | stereod, steamd, surfaced, pointcloudd, segd, inferenced, sided, reard, radar3d/4d, bluetoothd, camera_calibrationd (multi-camera) | **not ported** (extra hardware, NPU, BLE) | |
