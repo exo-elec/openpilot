@@ -6,16 +6,20 @@
    1
   ],
   "selfdrive/controls/controlsd.py": [
-   48,
+   53,
    1
   ],
   "selfdrive/controls/lib/desire_helper.py": [
-   24,
-   6
+   37,
+   7
+  ],
+  "selfdrive/controls/lib/longitudinal_mpc_lib/long_mpc.py": [
+   5,
+   4
   ],
   "selfdrive/controls/lib/longitudinal_planner.py": [
-   193,
-   6
+   244,
+   9
   ],
   "selfdrive/controls/plannerd.py": [
    30,
@@ -34,7 +38,7 @@
    1
   ],
   "selfdrive/modeld/modeld.py": [
-   174,
+   177,
    18
   ],
   "selfdrive/selfdrived/selfdrived.py": [

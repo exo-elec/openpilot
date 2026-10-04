@@ -86,7 +86,7 @@ Status: ☐ open · ◐ partial · ☑ done · ⛔ needs on-device validation or
 | T12 | Unprefixed EOP daemon modules (`lazy_bev.py`, `gridd/*`, …): decide prefix and location together with T8; `lazy_bev` is live code used by `gridd`/`segd`, not dead like the libraries moved in T3 | n/a | ☐ | ☐ |
 | T11 | Remove the stale root `NGP10_CHESTNUT_MIGRATION_PLAN.md` from the EOP line. Keep `task.md`: it is the live task record there | n/a | ☐ | ☐ |
 | T13 | Lane-change gap and lane-width guards from modelV2 in one shared module (`ngp_lane_change.py`) | ◐ module + hook + tests, opt-in, no build run | ◐ EOP10 `desire_helper` calls it; 01M `eop_lane_change.py` copy still to become an adapter | ☐ same as 01M |
-| T14 | NGP10 footprint ratchet is red at `82d52eca4`: controlsd +53 > 48, `long_mpc.py` new, longitudinal_planner +244 > 193. Shrink the hooks or justify and `--update` | ◐ | n/a | n/a |
+| T14 | NGP10 footprint ratchet was red at `82d52eca4`. Budget raised on 2026-10-03 for hooks that carry the shared policies and the opt-in lane-change guards: controlsd +48→+53, longitudinal_planner +193→+244, `long_mpc.py` +5/-4 (new, optional accel-profile argument), desire_helper +24→+37, modeld +174→+177. All logic is in `nagaspilot/controls/`; the hooks are calls and param reads. Shrinking them further is open work | ☑ budget updated, test green | n/a | n/a |
 
 Order: T1 and T2 first on every branch (they stop further growth), then T3/T4 (mechanical, dead
 code), then the ⛔ items one daemon or file at a time, each with its own hook budget and an
@@ -121,3 +121,4 @@ Original handoff: audit EOP lane-change behavior against NGP10. EOP road-edge di
 Also classify, without blind copying: (1) EOP TJA launch ramp is standard-state input based but opt-in; standstill hold timeout needs a driver-visible resume event path; (2) lead-departure alert can use `radarState` but needs event/UI integration; (3) EOP traffic-light, surface, road-condition, collision, enhanced-trajectory and adaptive-personality policies need their documented perception, map/pathd, or OBD/BLE inputs; (4) steering/turn limits need vehicle-model equivalence review. Keep default behavior and thresholds explicit.
 
 No test suite, build, vehicle, or HIL validation was run for the 2026-10-03 changes. `git diff --check` was clean. Validate behavior and compile on the target build before enabling adaptive gap or relying on actuator changes.
+- **T14 (NGP10, 2026-10-03)**: `footprint.py --update` run after the shared-policy commits and the lane-change hook (budget increases listed in the T14 row). Not a shrink, so recorded here as a justified exception to working rule 2.
