@@ -1,8 +1,9 @@
 # EOP10 → NGP10 feature parity candidates
 
-> **Status (NGP10 hardware rule):** the NGP modules named in this comparison for MTSC, traffic control,
-> road condition, adaptive profile, radar zones and collision were removed from `dev/NGP10`; they live on
-> `dev/EOP10`. Rows below are historical context, not a list of NGP10 files.
+> **Status (NGP10 hardware rule):** modules requiring EOP-only map, camera, radar, or OBD/BLE
+> inputs remain on the EOP line. Portable planner policies that consume stock NGP10 inputs are
+> shared under `nagaspilot/controls/`; this inventory tracks their parity and the concrete
+> infrastructure blockers for features that cannot consume stock comma-3 data.
 
 Full inventory of `dev/EOP10`'s driving-policy features, checked against what
 `dev/NGP10` actually has wired today, for picking what to port next. Built by
@@ -48,6 +49,9 @@ No action needed.
 | VTSC (Vision Turn Speed Control, 0-250m) | `vtsc.py`, `EOPVTSCEnabled` (learned-speed DB + self-calibration) | `ngp_vtsc.py` (wired 2026-08-25), `ngp_lon_vtsc` — comma-3-safe vision-only slice (no learned DB/self-calibration, deliberately simpler than EOP10's), wired into `longitudinal_planner.py` via `NGPFlags.VTSC`, panel toggle in `NGPPanel`'s Longitudinal Ctrl section |
 | NSLC-equivalent (nav-source speed-limit enforcement) | `nslc.py`, `EOPNSLCEnabled` (no panel toggle either) — offset + `SpeedLimitConfirmation` debounce | `ngp_speed_policy.py` (wired 2026-08-25), `ngp_lon_nslc` — `SpeedLimitPolicy.NAVIGATION` only (no map source on this branch, no `driver_overriding`/offset/confirmation debounce — hard instant clamp), wired via `NGPFlags.NSLC`. **Verified inert 2026-08-25**: no publisher of `navInstruction` exists on this branch (`navd` isn't in `process_config.py`, no source, only stale `.mypy_cache`) — and none can exist without reintroducing navigation, which upstream comma removed from openpilot entirely in 2024 (`3b8ed67aa3`, "remove navigation"). Wiring is correct and fails safe (`ignore_alive` + `sm.valid` guard, never crashes), but the feature cannot actually enforce a speed limit on any current comma-3 device. |
 | Adaptive accel limit (low-speed clamp + cruise ramp-off) | inline function `_apply_adaptive_accel_limit()` in `longitudinal_planner.py`, always-on, no toggle | Ported verbatim 2026-08-25, same placement (inside `mode == 'acc'`, right after `get_max_accel()`), always-on, no param, no schema change. 7 unit tests in `selfdrive/controls/tests/test_longitudinal_planner_adaptive_accel.py` |
+| Steering resume ramp | `controlsd.py` post-`latActive` ramp | Shared `SteeringResumeRamp` in `nagaspilot/controls/steering_policy.py`, used by NGP10 and EOP runtimes. Standard actuator/car-state inputs; validate on each vehicle class. |
+| Acceleration profiles (normal/eco/sport) | `_A_CRUISE_PROFILES` + `EOPAccelerationProfile` | Shared `acceleration_profile_limit()` in `nagaspilot/controls/longitudinal_policy.py`, wired 2026-10-03; `ngp_lon_accel_profile` defaults to `normal`, preserving NGP10's existing normal curve. Direct Param only on both branches. |
+| Adaptive following gap (lead-relative-speed modulation) | Inline policy using `radarState.leadOne`, `EOPAdaptiveGapEnabled` default off | Shared `adaptive_follow_gap()` in `nagaspilot/controls/longitudinal_policy.py`, wired 2026-10-03; `ngp_lon_adaptive_gap` defaults off. NGP10 adds optional MPC overrides without changing default MPC behavior. Standard radar/personality inputs only; vehicle validation required before enabling. |
 | DLP curve assist (pre-emptive laneless for tight curves) | `dlat.py`'s `_predict_curve`/`force_laneless`, `EOPDLPCurvesEnabled` (default on) | Wired 2026-08-25 into `NGPDLAT.update()`/`update_model()` (`nagaspilot/controls/ngp_dlat.py`) as `force_laneless`, bypassing the hysteresis frame-counters entirely, matching EOP10. `ngp_lat_dlp_curves` (default on), panel toggle in Lateral Ctrl section, wired via `controlsd.py`'s `self.dlp_curves_enabled`. NGP10's `_curve_detected()` was already ported (same 0.055 curvature threshold, same fifth-model-horizon sample) but its result had no effect until this commit — see `test_ngp_dlat.py`'s renamed test for what changed. 3 new/changed unit tests. |
 | Driver preference speed offset | `driver_prefs.py::get_speed_with_offset()`, `EOPSpeedLimitOffset` (default 0, no panel toggle) | Ported 2026-08-25 as `_apply_speed_offset()` in `longitudinal_planner.py`, `ngp_lon_speed_offset_kph` (default 0, no panel toggle, matches EOP10). Applied last, same site EOP10 uses, but deliberately *not* applied while `force_slow_decel` is active (`if self.speed_offset_kph and not force_slow_decel`) — EOP10 itself has no re-clamp there, so a positive offset there would add speed back on top of a forced-decel zero set by selfdrived for driver-distraction/escalation events; this branch does not copy that. `following_distance`/`get_time_gap()` not ported — dead code even in EOP10's own `longitudinal_planner.py` (defined, never called). 5 unit tests in `test_longitudinal_planner_speed_offset.py`. **Known bounded-output gap, found 2026-08-26, inherited from EOP10, not introduced here**: neither `_apply_speed_offset()` nor EOP10's own `driver_prefs.py::get_speed_with_offset()` clamps the offset or the result — since this param has no panel toggle on either branch (only a direct param write can set it), an extreme value (e.g. `-200`) drives `v_cruise` negative with nothing downstream to catch it. `test_large_negative_offset_is_not_bounded_and_can_go_negative` documents this rather than silently fixing it — the right bound is a product decision (what's a reasonable driver-adjustment range?), not something to pick unilaterally. |
 
@@ -58,6 +62,8 @@ different, smaller thing (turn-signal lane change speed gate). The camera
 one is Tier 4 below.
 
 ---
+
+**Terminology clarification (2026-10-03):** adaptive following gap is a portable, radar-lead policy and is now shared with NGP10. It is distinct from the adaptive *personality/profile* daemon (`adaptd`), which derives a driver profile from OBD/BLE telemetry and remains blocked on missing NGP10 services and hardware plumbing. `DriverPrefs.get_time_gap()` is also still unused by EOP10's planner and is not an implemented following-distance feature.
 
 ## Tier 2 — NGP10 already has a portable pure-policy module, just never wired
 

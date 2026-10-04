@@ -108,6 +108,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
+    {"ngp_lon_accel_profile", {PERSISTENT, STRING, "normal"}},
+    // Adaptive follow gap uses only the standard radarState.leadOne observation.
+    // Default off like EOP10's EOPAdaptiveGapEnabled; opt-in pending vehicle validation.
+    {"ngp_lon_adaptive_gap", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
     // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
     // of this branch -- automatic ACC/E2E switching only. No master enable

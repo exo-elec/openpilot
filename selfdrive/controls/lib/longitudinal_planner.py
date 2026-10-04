@@ -4,6 +4,7 @@ import time
 import numpy as np
 
 import cereal.messaging as messaging
+from cereal import log
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.common.constants import CV
 from openpilot.common.filter_simple import FirstOrderFilter
@@ -11,7 +12,9 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState
-from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import LongitudinalMpc
+from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import (
+  LongitudinalMpc, get_T_FOLLOW, get_jerk_factor, STOP_DISTANCE, COMFORT_BRAKE,
+)
 from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDXS as T_IDXS_MPC
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
@@ -19,7 +22,9 @@ from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from nagaspilot.controls.longitudinal_policy import (
-  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
+  ACCELERATION_PROFILES, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT,
+  acceleration_profile_limit, adaptive_follow_gap,
+  apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
@@ -42,7 +47,9 @@ from nagaspilot.controls.ngp_vtsc import NGPVTSC
 from nagaspilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
-A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
+A_CRUISE_MAX_VALS = list(ACCELERATION_PROFILES["normal"])
+_accel_profile_cache = {"ts": 0.0, "profile": "normal"}
+_adaptive_gap_cache = {"ts": 0.0, "enabled": False}
 A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 ALLOW_THROTTLE_THRESHOLD = 0.4
@@ -64,8 +71,33 @@ BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
 BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
 
 
+def _load_accel_profile():
+  global _accel_profile_cache
+  now = time.monotonic()
+  if now - _accel_profile_cache["ts"] < 2.0:
+    return _accel_profile_cache["profile"]
+  value = Params().get("ngp_lon_accel_profile")
+  profile = value.decode("utf-8") if value else "normal"
+  if profile not in ACCELERATION_PROFILES:
+    profile = "normal"
+  _accel_profile_cache = {"ts": now, "profile": profile}
+  return profile
+
+
+def _load_adaptive_gap_enabled():
+  global _adaptive_gap_cache
+  now = time.monotonic()
+  if now - _adaptive_gap_cache["ts"] < 2.0:
+    return _adaptive_gap_cache["enabled"]
+  enabled = Params().get_bool("ngp_lon_adaptive_gap")
+  _adaptive_gap_cache = {"ts": now, "enabled": enabled}
+  return enabled
+
+
 def get_max_accel(v_ego):
-  return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
+  profile = _load_accel_profile()
+  profile_limit = acceleration_profile_limit(v_ego, profile, A_CRUISE_MAX_BP)
+  return min(profile_limit, longitudinal_accel_max(v_ego))
 
 
 def get_coast_accel(pitch):
@@ -134,6 +166,9 @@ class LongitudinalPlanner:
     self.speed_policy = NGPSpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
     self.speed_policy_result = None
     self.speed_policy_v_target = None
+    self._adaptive_gap_enabled = _load_adaptive_gap_enabled()
+    self._adaptive_gap_t_follow = None
+    self._adaptive_gap_jerk_factor = None
 
   @staticmethod
   def parse_model(model_msg):
@@ -156,6 +191,8 @@ class LongitudinalPlanner:
     return x, v, a, j, throttle_prob
 
   def update(self, sm, ngp_flags=0):
+    self._adaptive_gap_enabled = _load_adaptive_gap_enabled()
+
     # BRSC: vertical-IMU roughness policy (always fed so its internal baseline/hold
     # state stays current; application is gated below). accel_max_full=1.0 makes
     # result.accel_max double as the [0-1] accel-scale fraction directly, matching
@@ -281,7 +318,17 @@ class LongitudinalPlanner:
     if self.speed_offset_kph and not force_slow_decel:
       v_cruise = _apply_speed_offset(v_cruise, self.speed_offset_kph)
 
-    self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality)
+    personality = sm['selfdriveState'].personality
+    self._adaptive_gap_t_follow = None
+    self._adaptive_gap_jerk_factor = None
+    lead_one = sm['radarState'].leadOne
+    if self._adaptive_gap_enabled and lead_one.status:
+      self._adaptive_gap_t_follow, self._adaptive_gap_jerk_factor = adaptive_follow_gap(
+        v_ego, lead_one.dRel, lead_one.vLead, get_T_FOLLOW(personality),
+        get_jerk_factor(personality), STOP_DISTANCE, COMFORT_BRAKE)
+
+    self.mpc.set_weights(
+      prev_accel_constraint, personality=personality, jerk_factor=self._adaptive_gap_jerk_factor)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
 
     # Lane Change Lead Handoff — if laneChangeStarting, replace radarState.leadOne
@@ -300,7 +347,8 @@ class LongitudinalPlanner:
         now=time.monotonic(),
       )
 
-    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=sm['selfdriveState'].personality)
+    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=personality,
+                    t_follow_override=self._adaptive_gap_t_follow)
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)

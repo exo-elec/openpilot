@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import time
 from numbers import Number
 
 from cereal import car, log
@@ -14,6 +15,7 @@ from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
+from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
@@ -45,6 +47,7 @@ class Controls:
     self.steer_limited_by_safety = False
     self.curvature = 0.0
     self.desired_curvature = 0.0
+    self.steering_resume_ramp = SteeringResumeRamp()
 
     self.pose_calibrator = PoseCalibrator()
     self.calibrated_pose: Pose | None = None
@@ -168,6 +171,8 @@ class Controls:
                                                        curvature_limited)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
+    actuators.torque, actuators.steeringAngleDeg = self.steering_resume_ramp.update(
+      CC.latActive, actuators.torque, actuators.steeringAngleDeg, CS.steeringAngleDeg, time.monotonic())
     # Ensure no NaNs/Infs
     for p in ACTUATOR_FIELDS:
       attr = getattr(actuators, p)

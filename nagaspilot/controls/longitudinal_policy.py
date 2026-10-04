@@ -5,6 +5,36 @@ from openpilot.common.constants import CV
 
 ADAPTIVE_ACCEL_CITY_SPEED_LIMIT = 13.9  # m/s (~50 km/h)
 
+ACCELERATION_PROFILES = {
+  "normal": (1.6, 1.2, 0.8, 0.6),
+  "eco": (1.2, 0.9, 0.6, 0.4),
+  "sport": (2.0, 1.6, 1.2, 0.8),
+}
+
+
+def acceleration_profile_limit(v_ego: float, profile: str, speed_breakpoints, profiles=ACCELERATION_PROFILES) -> float:
+  """Return the interpolated acceleration ceiling for a named profile."""
+  values = profiles.get(profile, profiles["normal"])
+  return float(np.interp(v_ego, speed_breakpoints, values))
+
+
+def adaptive_follow_gap(v_ego: float, d_rel: float, v_lead: float, t_follow_base: float,
+                       jerk_base: float, stop_distance: float, comfort_brake: float):
+  """Return adaptive (time-gap, jerk) overrides from the current lead observation."""
+  if v_lead > v_ego:
+    distance_factor = max(d_rel - (v_ego * t_follow_base), 1.0)
+    offset = float(np.clip(stop_distance - v_ego, 1.0, distance_factor))
+    return max(t_follow_base / offset, 0.5), jerk_base / offset
+
+  if v_lead < v_ego:
+    distance_factor = max(d_rel - (v_lead * t_follow_base), 1.0)
+    braking_offset = float(np.clip(min(v_ego - v_lead, v_lead) - comfort_brake, 1.0, distance_factor))
+    if d_rel >= 100.0:
+      braking_offset += max(d_rel - (v_ego * t_follow_base) - stop_distance, 0.0)
+    return max(t_follow_base / braking_offset, 0.5), jerk_base
+
+  return None, None
+
 
 def apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: float) -> float:
   """Apply the shared low-speed and near-cruise acceleration limits."""
