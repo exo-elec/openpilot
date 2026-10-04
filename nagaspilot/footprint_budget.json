@@ -29,6 +29,10 @@
    18,
    9
   ],
+  "selfdrive/debug/uiview.py": [
+   1,
+   1
+  ],
   "selfdrive/locationd/helpers.py": [
    1,
    1
@@ -57,9 +61,29 @@
    3,
    2
   ],
+  "selfdrive/test/process_replay/README.md": [
+   2,
+   5
+  ],
+  "selfdrive/test/process_replay/model_replay.py": [
+   2,
+   23
+  ],
+  "selfdrive/test/process_replay/process_replay.py": [
+   1,
+   21
+  ],
+  "selfdrive/test/process_replay/test_fuzzy.py": [
+   1,
+   1
+  ],
+  "selfdrive/test/process_replay/test_processes.py": [
+   1,
+   1
+  ],
   "selfdrive/test/test_onroad.py": [
    0,
-   2
+   4
   ]
  },
  "deleted": [
