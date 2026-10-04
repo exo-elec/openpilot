@@ -27,6 +27,10 @@ openpilot v0.10.0 vs **NagasPilot**
 | BRSC | **Bumpy Road Speed Controller** | Slows down on rough or bumpy pavement. | ❌ | ✅ |
 | VTSC | **Vision Turn Speed Controller** | Slows for curves the camera sees ahead. | ❌ | ✅ |
 | NSLC | **Navigation Speed Limit Control** | Follows the speed limit from your navigation. | ❌ | ✅ |
+| MTSC | **Map Turn Speed Controller** | Slows for curves ahead that the map shows, before the camera can see them. Optional, off by default. | ❌ | 🚧 experimental |
+| MSLC | **Map Speed Limit Controller** | Lowers the set speed to the map's speed limit, with an offset you choose per speed range. Optional, off by default. | ❌ | 🚧 experimental |
+| TLSC | **Traffic Light Speed Controller** | Slows for a red or yellow light ahead in your lane, seen by the road camera. Optional, off by default. | ❌ | 🚧 experimental |
+| RCD | **Road Condition Detection** | Lowers the speed limit on a wet, icy or debris-covered road. Needs a road-surface sensor that comma devices do not have, so it stays idle there. Optional, off by default. | ❌ | 🚧 experimental |
 | — | **Acceleration profiles** | Choose normal, eco or sport acceleration. | ❌ | ✅ |
 | — | **Adaptive following gap** | Adjusts following distance to the situation. Optional. | ❌ | ✅ |
 | — | **Speed offset** | Adds or subtracts a fixed amount from the set speed. | ❌ | ✅ |
