@@ -203,3 +203,18 @@ Left, in order of what unblocks what:
 3. **NGP10 device checks**: tinygrad runner, NV12 conversion, GPU time beside `modeld`, `camerad` with no driver sensor, the unrun loops (`monod`, `pathd`).
 4. **Licence of the YOLO weights** (Ultralytics = AGPL-3.0); wide-camera (fisheye) ranging; a second lane source so the rule channel's lane perception is independent of the policy network.
 5. **Rebase hygiene on 01M/02M**: re-add `pathadjustd` in `nagaspilot/manager/process_config.py`, re-apply any EOP10 `monod.py` edit to `nagaspilot/daemons/monod/monod.py`, re-run `footprint.py --update`, diff the README afterwards (done for every propagation so far).
+
+## 20. Layering decision: sensing / perception / planning (user, 2026-10-04)
+
+Mapped to Autoware's layers: **sensing = monod and stereod** (detectors and depth: pixels in, metric detections out), **perception = gridd** (fusion, tracking, velocity, prediction), **planning = pathd** (the only planner). Consequences, applied today:
+- **One process name, `pathd`, on every branch.** `pathadjustd` and `eop_pathadjustd.py` are removed. NGP10 registers `nagaspilot.runtime.pathd`; EOP10/01M/02M keep their `pathd` (`selfdrive.pathd.pathd`, relocated to `nagaspilot/daemons/pathd/` on 01M/02M) and host `SharedPathdHost` inside it (default off, `ngp_pathd_enabled`). The same planner code runs everywhere; the board's own planner results join it as proposals (`extras_from_eop`: LatNudge/SOC offset flipped once from the path's y-right frame, `speed_reduction` + LonNudge as a factor >= 0.8) into the same tighten-only arbitration.
+- **Objects reach pathd through one interface** (`runtime/object_sources.py`): `MonoDetectionsSource` (NGP10: monod's own tracks) and `GriddSource` (EOP10/01M/02M: gridd's fused `stereoObjects` incl. `vRel`, `vyRel`). pathd does no tracking and no sensor fusion.
+- **gridd now produces what the planner needs**: its camera objects had `vRel` 0 and no lateral speed (the Kalman tracker in `gridd/tracker.py` was not wired to `stereoObjects`). `CameraTrackAnnotator` (`runtime/fusion_tracks.py`, the shared tracker) annotates fused camera objects with `vRel` (only where there is no radar Doppler) and `vyRel` (new `CameraObject.vyRel @17`). Radar objects keep their Doppler.
+- **Stereo refinement stays in gridd** (it already blends stereo depth into mono ranges within 30 m); the pathd-side `StereoAssistedFeed` I started was dropped as a layer violation.
+
+Where the layers are still blurred (honest list):
+1. NGP10 has no gridd, so **monod's runtime tracks** (perception work inside a sensing process). Fix: a `gridd`-lite process on NGP10 that hosts `ObjectTracker` and publishes the same fused-object message (needs `CameraObject`/`stereoObjects` in NGP10's schema, or a smaller shared message), leaving monod as detection + box ranging.
+2. **EOP10's pathd keeps its own cluster tracker and 3 s predictor** (`pathd/track.py`, `predict.py`): perception inside the planner. Leave until the shared planner has proof; then move prediction to gridd (`TrackedObjects`, which already carries predicted trajectories) and let pathd consume predicted paths.
+3. **Cut-in prediction (`ngp_cutin_speed.evaluate`) runs in the planner's rule channel.** In Autoware terms it is prediction; it should consume gridd's predicted paths instead of extrapolating itself. Same fix as 2.
+4. **monod's ground-plane ranging** (`ngp_monod_ranger`) is sensing (box -> metric), which is the right layer.
+Verified: EOP10 gridd tests, pathd test, `test_controlsd_smoke`, `test_selfdrived_smoke` and the new unit tests (69 passed) on the built clone; 148/147 pure tests on 01M/02M. NOT run: a drive, `pathd` with the param on (the clone's compiled Params predates the new keys).
