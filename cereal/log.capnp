@@ -130,6 +130,18 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     userBookmark @95;
     excessiveActuation @96;
     audioFeedback @97;
+    # Ordinals 98-108 match dev/EOP10 so logs stay readable across branches; capnp enums have no gaps.
+    reserved98DEPRECATED @98;
+    reserved99DEPRECATED @99;
+    reserved100DEPRECATED @100;
+    reserved101DEPRECATED @101;
+    reserved102DEPRECATED @102;
+    lkasEnable @103;
+    lkasDisable @104;
+    manualSteeringRequired @105;
+    controlsMismatchLateral @106;
+    greenLightAlert @107;
+    leadDepartingAlert @108;
 
     soundsUnavailableDEPRECATED @47;
   }
