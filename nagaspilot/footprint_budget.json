@@ -37,6 +37,10 @@
    2,
    1
   ],
+  "selfdrive/modeld/SConscript": [
+   1,
+   1
+  ],
   "selfdrive/modeld/modeld.py": [
    178,
    18
@@ -52,7 +56,19 @@
   "selfdrive/selfdrived/state.py": [
    3,
    2
+  ],
+  "selfdrive/test/test_onroad.py": [
+   0,
+   2
   ]
  },
- "deleted": []
+ "deleted": [
+  "selfdrive/modeld/dmonitoringmodeld.py",
+  "selfdrive/modeld/models/dmonitoring_model.current",
+  "selfdrive/modeld/models/dmonitoring_model.onnx",
+  "selfdrive/monitoring/README.md",
+  "selfdrive/monitoring/dmonitoringd.py",
+  "selfdrive/monitoring/helpers.py",
+  "selfdrive/monitoring/test_monitoring.py"
+ ]
 }
