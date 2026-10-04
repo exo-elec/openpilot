@@ -8,26 +8,32 @@ Smarter cruise control and steering.
 
 NagasPilot is based on openpilot v0.10.0 and adds the following.
 
-| Feature | What it does |
-|---|---|
-| **DLON — Dynamic Longitudinal Profile** | Automatically switches between standard cruise and end-to-end following to suit the situation. |
-| **DLAT — Dynamic Lateral Profile** | Chooses lane-line or laneless steering depending on how clear the lanes are. Includes curve assist: it switches to laneless early when a tight curve is coming. |
-| **TJA — Traffic Jam Assist** | Smooth following in slow traffic and when other cars cut in. |
-| **Speed zones** | Limits acceleration and jerk according to your speed range. |
-| **BRSC — Bumpy Road Speed Controller** | Slows the car down on rough or bumpy pavement. |
-| **VTSC — Vision Turn Speed Controller** | Slows for curves that the camera sees ahead, before you enter them. |
-| **NSLC — Navigation Speed Limit Control** | Follows the speed limit given by your navigation. |
-| **Acceleration profiles** | Choose normal, eco or sport acceleration. |
-| **Adaptive following gap (optional)** | Adjusts the following distance to the situation. |
-| **Speed offset** | Adds or subtracts a fixed amount from the set speed. |
-| **ALCC — Always-on Lateral Control (optional)** | Keeps steering assistance on without cruise control. |
-| **Lane change options** | Set the minimum speed for lane changes and an optional automatic start. |
-| **Road-edge guard** | Blocks a lane change toward a road edge. |
-| **Lane change checks (optional)** | Checks that the next lane is free and wide enough before changing. |
-| **Lead handoff** | During a lane change, follows the car in the lane you are moving into. |
-| **Smooth steering resume** | Eases steering assistance back in after you take over. |
-| **Lead departure notice (optional)** | Tells you when the car ahead drives off while you are stopped. |
-| **BYD support** | Support for BYD cars through our gateway. |
+*Comes from:* **openpilot (extended)** = an openpilot feature we built on; **NagasPilot** = added by us for the comma-3 version.
+
+| Abbreviation | Feature | What it does | Comes from |
+|---|---|---|---|
+| **DLON** | Dynamic Longitudinal Profile | Automatically switches between standard cruise and end-to-end following to suit the situation. | openpilot (extended) |
+| **DLAT** | Dynamic Lateral Profile | Chooses lane-line or laneless steering depending on how clear the lanes are. Includes curve assist: it switches to laneless early when a tight curve is coming. | NagasPilot |
+| **TJA** | Traffic Jam Assist | Smooth following in slow traffic and when other cars cut in. | NagasPilot |
+| **—** | Speed zones | Limits acceleration and jerk according to your speed range. | NagasPilot |
+| **BRSC** | Bumpy Road Speed Controller | Slows the car down on rough or bumpy pavement. | NagasPilot |
+| **VTSC** | Vision Turn Speed Controller | Slows for curves that the camera sees ahead, before you enter them. | NagasPilot |
+| **NSLC** | Navigation Speed Limit Control | Follows the speed limit given by your navigation. | NagasPilot |
+| **—** | Acceleration profiles | Choose normal, eco or sport acceleration. | NagasPilot |
+| **—** | Adaptive following gap | Adjusts the following distance to the situation. Optional. | NagasPilot |
+| **—** | Speed offset | Adds or subtracts a fixed amount from the set speed. | NagasPilot |
+| **ALCC** | Always-on Lateral Control | Keeps steering assistance on without cruise control. Optional. | NagasPilot |
+| **LCA** | Lane Change Assist options | Set the minimum speed for lane changes and an optional automatic start. | openpilot (extended) |
+| **—** | Road-edge guard | Blocks a lane change toward a road edge. | NagasPilot |
+| **—** | Lane change checks | Checks that the next lane is free and wide enough before changing. Optional. | NagasPilot |
+| **—** | Lead handoff | During a lane change, follows the car in the lane you are moving into. | NagasPilot |
+| **—** | Smooth steering resume | Eases steering assistance back in after you take over. | NagasPilot |
+| **—** | Lead departure notice | Tells you when the car ahead drives off while you are stopped. Optional. | NagasPilot |
+| **—** | BYD support | Support for BYD cars through our gateway. | NagasPilot |
+
+## What we removed from openpilot
+
+Nothing is removed. NagasPilot only adds to openpilot.
 
 ## Safety and legal
 
