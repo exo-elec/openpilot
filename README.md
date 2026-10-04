@@ -59,7 +59,8 @@ openpilot v0.10.0 vs **NagasPilot**
 
 | | Feature | What it does | openpilot v0.10.0 | NagasPilot |
 |:--|---|---|:-:|:-:|
-| DM | **Driver Monitoring** | Camera check that the driver is paying attention. | ✅ | ✅ |
+| DM | **Driver Monitoring (camera)** | Camera check that the driver is paying attention. Removed: our devices have no driver camera. | ✅ | ❌ |
+| — | **Driver activity monitoring** | Warns, then slows the car if you do not touch the wheel, brake or gas for too long (limits depend on speed). Never switches off by itself. | ❌ | ✅ |
 | — | **Lead departure notice** | Tells you when the car ahead drives off while you are stopped. Optional. | ❌ | ✅ |
 | — | **Green-light notice** | Tells you when the car is released from a stop at a light. Optional. | ❌ | ✅ |
 
@@ -88,6 +89,7 @@ openpilot's Experimental mode is switched on and off by hand. **DLON** decides f
 ------
 
 - **NagasPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
+- There is no camera-based driver monitoring: our devices (including comma 3 / 3X clones) have no driver camera. Driver activity monitoring only warns and slows the car when you stop touching the wheel, brake or gas; it never switches off by itself. Keep watching the road.
 - openpilot's safety system is unchanged. See [docs/SAFETY.md](docs/SAFETY.md).
 - New features have **not** been validated on a real vehicle. Always stay attentive and ready to take over.
 
