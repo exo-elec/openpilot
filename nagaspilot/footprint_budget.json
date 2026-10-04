@@ -29,6 +29,10 @@
    18,
    9
   ],
+  "selfdrive/debug/cycle_alerts.py": [
+   1,
+   1
+  ],
   "selfdrive/debug/uiview.py": [
    1,
    1
@@ -82,8 +86,8 @@
    1
   ],
   "selfdrive/test/test_onroad.py": [
-   0,
-   4
+   5,
+   11
   ]
  },
  "deleted": [
