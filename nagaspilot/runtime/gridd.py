@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""gridd on the NGP10 base: the PERCEPTION layer for one camera. monod senses, gridd tracks, pathd plans.
+"""gridd: the PERCEPTION layer. monod senses, gridd tracks, pathd plans.
 
-Reads monod's untracked `monoDetections` and publishes the same fused-object message EOP10's full gridd publishes
+On the NGP10 base it is deliberately small: it can only fuse what a single forward camera gives it. It is the same
+`gridd` as EOP10's: EOP10's perception code (stereo, BEV occupancy, segmentation, radars, side
+cameras) carries over into it as more sources and more steps behind the same message, nothing else changes.
+
+Reads monod's untracked `monoDetections` and publishes the same fused-object message EOP10's gridd publishes
 (`stereoObjects`: dRel/yRel left positive, `vRel`, `vyRel`, class, probability, a stable track id) so pathd reads one
 interface everywhere. It runs the shared Kalman tracker (`CameraTrackAnnotator`) and publishes only CONFIRMED tracks. If
-monod goes stale it publishes nothing, so a missing detector is never mistaken for an empty road. EOP10's gridd does
-far more (stereo, BEV occupancy, segmentation, radars); this is the part a single-camera comma 3 can do. Process name
-`gridd`, runs with monod (`ngp_monod_enabled`).
+monod goes stale it publishes nothing, so a missing detector is never mistaken for an empty road. Process name `gridd`; runs with
+monod (`ngp_monod_enabled`).
 """
 import math
 import time
@@ -37,7 +40,7 @@ def fill_stereo_objects(so, objs: list[dict]) -> None:
     it.obstacleType = OBSTACLE_OF_CLASS[o['obstacleType']]
 
 
-class GriddLite:
+class Gridd:
   def __init__(self, clock=time.monotonic):
     self.annotator = CameraTrackAnnotator(clock)
 
@@ -65,7 +68,7 @@ def run() -> None:
 
   sm = SubMaster(['monoDetections'], poll='monoDetections')
   pm = PubMaster(['stereoObjects'])
-  gridd = GriddLite()
+  gridd = Gridd()
   while True:
     sm.update()
     gridd.tick(sm, pm)

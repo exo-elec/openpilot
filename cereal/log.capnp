@@ -2552,8 +2552,8 @@ struct Touch {
   value @4 :Int32;
 }
 
-# Fused camera objects (same structs and ids as EOP10). EOP10's gridd publishes them; on NGP10 `gridd`-lite does
-# (nagaspilot/runtime/gridd_lite.py), tracking monod's detections so pathd reads the same message everywhere.
+# Fused camera objects (same structs and ids as EOP10). EOP10's gridd publishes them; on NGP10 `gridd` does
+# (nagaspilot/runtime/gridd.py), tracking monod's detections so pathd reads the same message everywhere.
 struct CameraObject @0xf3d1e4a9b2c5d6e7 {
   trackId @0 :UInt64;
   dRel @1 :Float32;

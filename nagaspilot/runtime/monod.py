@@ -11,7 +11,7 @@ Parts:
   fill_detections  tracks -> MonoDetections builder (same schema as EOP10)
   TinygradYolo     the model behind an interface (device only, not tested here)
   main             VisionIPC road stream at `ngp_monod_hz`, liveCalibration, radarState leads; publishes untracked detections
-                   (tracking, velocity and the fused-object message belong to `gridd`: runtime/gridd_lite.py)
+                   (tracking, velocity and the fused-object message belong to `gridd`: runtime/gridd.py)
 """
 import math
 import os

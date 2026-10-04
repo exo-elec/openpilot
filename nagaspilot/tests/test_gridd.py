@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from nagaspilot.runtime.gridd_lite import GriddLite, detections_to_objects
+from nagaspilot.runtime.gridd import Gridd, detections_to_objects
 from nagaspilot.runtime.object_sources import GriddSource
 
 
@@ -35,9 +35,9 @@ def sm_for(dets, valid=True, updated=True):
   return sm
 
 
-def lite():
+def make():
   clk = Clock()
-  return GriddLite(clk), clk, PM()
+  return Gridd(clk), clk, PM()
 
 
 def tick(g, clk, pm, dets, **kw):
@@ -46,7 +46,7 @@ def tick(g, clk, pm, dets, **kw):
 
 
 def test_publishes_only_confirmed_tracks_with_stable_ids_and_velocities():
-  g, clk, pm = lite()
+  g, clk, pm = make()
   published = []
   for i in range(30):
     tick(g, clk, pm, [det(40.0 - 0.4 * i, 4.0 - 0.075 * i)])
@@ -61,7 +61,7 @@ def test_publishes_only_confirmed_tracks_with_stable_ids_and_velocities():
 def test_class_mapping_filters_and_stale_monod_publishes_nothing():
   d = detections_to_objects([det(20.0, 0.0, 'motorcycle'), det(20.0, 0.0, 'person'), det(20.0, 0.0, 'traffic light'), det(20.0, 0.0, conf=0.0)])
   assert [o['obstacleType'] for o in d] == ['motorcycle', 'person']
-  g, clk, pm = lite()
+  g, clk, pm = make()
   for _ in range(10):
     tick(g, clk, pm, [det(30.0, 0.0)])
   n = len(pm.sent)
@@ -69,8 +69,8 @@ def test_class_mapping_filters_and_stale_monod_publishes_nothing():
   assert tick(g, clk, pm, [det(30.0, 0.0)], updated=False) is False
 
 
-def test_pathd_reads_gridd_lites_message_through_the_same_gridd_source():
-  g, clk, pm = lite()
+def test_pathd_reads_gridds_message_through_the_same_gridd_source():
+  g, clk, pm = make()
   for i in range(25):
     tick(g, clk, pm, [det(35.0 - 0.3 * i, 3.0 - 0.07 * i, 'motorcycle')])
   fused = pm.sent[-1].stereoObjects
