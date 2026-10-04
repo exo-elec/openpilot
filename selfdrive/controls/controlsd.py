@@ -16,6 +16,7 @@ from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
+from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
 from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, curvature_bias, threats_from
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
@@ -66,6 +67,9 @@ class Controls:
       self.LaC = LatControlTorque(self.CP, self.CI)
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    # Blinker pause (ngp_lat_blinker_pause_mph, 0 = off): no lateral assistance with a signal on below this speed
+    pause_mph = self.params.get("ngp_lat_blinker_pause_mph", return_default=True)
+    self.blinker_pause = NGPBlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
     # SOC (ngp_lat_soc, default off): small slow offset away from a vehicle beside you on the highway
     self.soc = NGPSOC() if self.params.get_bool("ngp_lat_soc") else None
     # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
@@ -147,6 +151,8 @@ class Controls:
     lat_active = self.sm['selfdriveState'].active or self.alcc_active
     CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
+    if self.blinker_pause is not None and self.blinker_pause.update(CS.vEgo, CS.leftBlinker, CS.rightBlinker):
+      CC.latActive = False
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators

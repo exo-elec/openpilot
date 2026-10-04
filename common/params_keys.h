@@ -99,6 +99,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
     // including its default-on.
     {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
+    // Pause lateral assistance with a turn signal on below this speed (mph); 0 = off.
+    {"ngp_lat_blinker_pause_mph", {PERSISTENT, INT, "0"}},
+    // Notice when the car is released from a planner stop (green light). Default off.
+    {"ngp_lon_green_light", {PERSISTENT, BOOL, "0"}},
     // SOC: small slow offset away from a vehicle beside you on the highway (ngp_soc.py). Default off.
     {"ngp_lat_soc", {PERSISTENT, BOOL, "0"}},
     // RED: vision-only curvature nudge away from a close road edge in laneless mode (ngp_red.py).

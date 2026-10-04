@@ -22,6 +22,7 @@ from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
+from nagaspilot.controls.ngp_green_light import NGPGreenLight
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
 
@@ -93,6 +94,7 @@ class SelfdriveD:
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    self.green_light = NGPGreenLight() if self.params.get_bool("ngp_lon_green_light") else None
     self.lead_departure = NGPLeadDeparture() if self.params.get_bool("ngp_lon_lead_departure") else None
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
@@ -318,6 +320,9 @@ class SelfdriveD:
       self.events.add(EventName.radarTempUnavailable)
     elif any(self.sm['radarState'].radarErrors.to_dict().values()):
       self.events.add(EventName.radarFault)
+    if self.green_light is not None and self.green_light.update(
+        self.sm.valid['longitudinalPlan'] and self.sm['longitudinalPlan'].ngpDlonForceStop, CS.standstill):
+      self.events.add(EventName.greenLightAlert)
     if self.lead_departure and self.lead_departure.update(CS.standstill, self.sm['radarState'].leadOne):
       self.events.add(EventName.leadDepartingAlert)
     if not self.sm.valid['pandaStates']:

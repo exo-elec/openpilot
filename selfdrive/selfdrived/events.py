@@ -1011,6 +1011,14 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.PERMANENT: audio_feedback_alert,
   },
 
+  EventName.greenLightAlert: {
+    ET.PERMANENT: Alert(
+      "Light Turned Green",
+      "",
+      AlertStatus.userPrompt, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
+  },
+
   EventName.leadDepartingAlert: {
     ET.PERMANENT: Alert(
       "Lead Vehicle Departing",
