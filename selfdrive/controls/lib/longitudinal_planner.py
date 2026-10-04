@@ -18,8 +18,9 @@ from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
-from nagaspilot.controls.ngp_longitudinal_policy import (
-  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, _apply_adaptive_accel_limit, _apply_speed_offset,
+from nagaspilot.controls.longitudinal_policy import (
+  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
+  apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
 from nagaspilot.controls.ngp_dlon import NGPDLON

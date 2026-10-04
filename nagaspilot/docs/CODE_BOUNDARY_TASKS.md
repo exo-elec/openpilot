@@ -93,4 +93,4 @@ on-device check.
 ## 6. Progress log
 
 - **T9 / `desire_helper.py` (01M `b4056162c`, merged into 02M)**: road-edge guard, adjacent-gap TTC check, lane-width check and blind-spot priority logic moved into `nagaspilot/controls/eop_lane_change.py` as pure functions; `desire_helper.py` keeps the state machine. Upstream-file delta +362 → +177. Old and new compared over 900,000 randomized outputs, 0 differences; the repo's own `desire_helper` tests were not run (no cereal build here). The state machine stays upstream-side: it needs on-device validation to move.
-- **T9 / NGP10 longitudinal policies**: moved `_apply_adaptive_accel_limit`, `_apply_speed_offset`, and the adaptive speed constant to `nagaspilot/controls/ngp_longitudinal_policy.py`. The planner imports the same names and applies them at the existing call sites; formulas and NGP10 comma 3 behavior are unchanged.
+- **T9 / longitudinal policies across the lineage**: adaptive acceleration and speed-offset math now lives in `nagaspilot/controls/longitudinal_policy.py`, shared by NGP10 and the EOP branches. NGP10's old module path remains an alias; branch call sites retain their existing names.
