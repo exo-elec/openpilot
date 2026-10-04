@@ -62,6 +62,7 @@ openpilot v0.10.0 vs **NagasPilot**
 | DM | **Driver Monitoring (camera)** | Camera check that the driver is paying attention. Removed: our devices have no driver camera. | ✅ | ❌ |
 | — | **Driver activity monitoring** | Warns, then slows the car if you do not touch the wheel, brake or gas for too long (limits depend on speed). Never switches off by itself. | ❌ | ✅ |
 | — | **Object detection (road camera)** | Spots cars, trucks, buses, bikes and people ahead, estimates how far they are and where they are heading. Experimental and off by default. Optional: slows the car a little when another car is about to cut in. | ❌ | 🚧 experimental |
+| — | **Rule-based path planner (DPP)** | A second, rule-based planner runs beside the driving model and takes part only in certain situations: a car or bike about to cut in, or a truck or bike right beside you. It can brake earlier or move a little within the lane, and it hands control back to the driving model when anything looks unhealthy. Experimental and off by default. | ❌ | 🚧 experimental |
 | — | **Lead departure notice** | Tells you when the car ahead drives off while you are stopped. Optional. | ❌ | ✅ |
 | — | **Green-light notice** | Tells you when the car is released from a stop at a light. Optional. | ❌ | ✅ |
 
