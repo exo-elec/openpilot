@@ -1,5 +1,8 @@
 # Object protection: what EOP10 does, what NGP10 can prove, a middle way (2026-10-04)
 
+> **Correction from the user (2026-10-04): NGP10 devices have no radar add-on and ship no AEB or FCW.**
+> Read everything below with that: (1) there is nothing to carry from EOP10's AEB (no radar lead exists; `radarState` leads on NGP10 are the vision model's, `radar` false); (2) the lead-anchored ranging anchors on *vision* leads (`radarState`/`modelV2`), which are the same camera model, not an independent reference, so "range error vs radar" cannot be measured on these devices and needs an external reference (a radar-equipped test car, a range finder or surveyed targets); (3) Tier C (braking authority) is not applicable; (4) Tier A/B would be the *only* object-aware protection on the device beyond stock openpilot, so it needs the proof in section 4 even more. Note: the stock openpilot FCW code is still in the tree (`longitudinal_planner.py` `fcw = mpc.crash_cnt > 2`, and the model's `hardBrakePredicted` in `selfdrived.py`); whether it is switched off for the product is a product decision I have not changed.
+
 Study only. Nothing here is implemented or run on a vehicle. Read from EOP10 `dev/EOP10` (`2af2ffbac`).
 
 ## 1. What EOP10's rule-based protection actually is
