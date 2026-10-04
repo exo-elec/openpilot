@@ -18,7 +18,7 @@
    4
   ],
   "selfdrive/controls/lib/longitudinal_planner.py": [
-   244,
+   222,
    9
   ],
   "selfdrive/controls/plannerd.py": [
@@ -41,8 +41,12 @@
    177,
    18
   ],
+  "selfdrive/selfdrived/events.py": [
+   8,
+   0
+  ],
   "selfdrive/selfdrived/selfdrived.py": [
-   2,
+   6,
    1
   ],
   "selfdrive/selfdrived/state.py": [
