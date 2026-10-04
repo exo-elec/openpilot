@@ -74,7 +74,7 @@ Status: ☐ open · ◐ partial · ☑ done · ⛔ needs on-device validation or
 | T6 | Rename the 36 non-`EOP` params, with a settings migration | n/a | ⛔ | ⛔ |
 | T7 | Remove `ngp_panel.*` from the EOP line | n/a | ⛔ | ⛔ |
 | T8 | Move EOP daemons from `selfdrive/` into `nagaspilot/<name>d/` | n/a | ⛔ | ⛔ |
-| T9 | Extract EOP logic from the eight large upstream files, down to hook size | ◐ (small hooks) | ◐ `desire_helper` helpers done; 7 files left | ◐ same (inherited from 01M) |
+| T9 | Extract product logic from large upstream files, down to hook size | ◐ pure NGP longitudinal policies moved; stateful orchestration remains | ⛔ `desire_helper` and `events.py` helpers moved; 6 runtime files need behavior-equivalence/build validation | ⛔ `desire_helper` and `events.py` helpers moved; 6 runtime files need behavior-equivalence/build validation |
 | T10 | Make `system/` additive: board directories, shared files untouched | n/a | ⛔ | ⛔ |
 | T12 | Unprefixed EOP daemon modules (`lazy_bev.py`, `gridd/*`, …): decide prefix and location together with T8; `lazy_bev` is live code used by `gridd`/`segd`, not dead like the libraries moved in T3 | n/a | ☐ | ☐ |
 | T11 | Remove stray root files on EOP10 (`NGP10_CHESTNUT_MIGRATION_PLAN.md`, `task.md`) | n/a | ☐ | ☐ |
@@ -93,4 +93,4 @@ on-device check.
 ## 6. Progress log
 
 - **T9 / `desire_helper.py` (01M `b4056162c`, merged into 02M)**: road-edge guard, adjacent-gap TTC check, lane-width check and blind-spot priority logic moved into `nagaspilot/controls/eop_lane_change.py` as pure functions; `desire_helper.py` keeps the state machine. Upstream-file delta +362 → +177. Old and new compared over 900,000 randomized outputs, 0 differences; the repo's own `desire_helper` tests were not run (no cereal build here). The state machine stays upstream-side: it needs on-device validation to move.
-
+- **T9 / NGP10 longitudinal policies**: moved `_apply_adaptive_accel_limit`, `_apply_speed_offset`, and the adaptive speed constant to `nagaspilot/controls/ngp_longitudinal_policy.py`. The planner imports the same names and applies them at the existing call sites; formulas and NGP10 comma 3 behavior are unchanged.

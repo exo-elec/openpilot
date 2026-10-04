@@ -18,6 +18,9 @@ from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from nagaspilot.controls.ngp_longitudinal_policy import (
+  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, _apply_adaptive_accel_limit, _apply_speed_offset,
+)
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
 from nagaspilot.controls.ngp_dlon import NGPDLON
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
@@ -62,33 +65,6 @@ BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floo
 
 def get_max_accel(v_ego):
   return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
-
-
-# Adaptive acceleration -- merged from FrogPilot via EOP10's identical
-# _apply_adaptive_accel_limit(). Clamps max accel at low speeds and ramps it
-# off near the cruise setpoint for a more natural, less robotic feel.
-# Always-on, no param, no schema change -- pure v_cruise/v_ego math, ported
-# verbatim (EOP10_PARITY_CANDIDATES.md Tier 3).
-ADAPTIVE_ACCEL_CITY_SPEED_LIMIT = 13.9  # m/s (~50 km/h)
-
-
-def _apply_adaptive_accel_limit(raw_max_accel: float, v_cruise: float, v_ego: float) -> float:
-  """Reduce max acceleration at low speeds and near cruise speed."""
-  # Low-speed clamp: quarter max at standstill, half at 25 km/h, full at 50 km/h
-  low_speed_limit = np.interp(v_ego, [0.0, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT / 2, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT],
-                               [raw_max_accel / 4, raw_max_accel / 2, raw_max_accel])
-  # Ramp-off near setpoint: reduce accel as we approach cruise speed
-  ramp_off = np.interp(v_cruise - v_ego, [0.0, 1.0, 5.0], [0.0, 0.5, raw_max_accel])
-  return min(raw_max_accel, low_speed_limit, ramp_off)
-
-
-# Driver preference: constant kph offset on v_cruise -- ported from EOP10's
-# driver_prefs.py::get_speed_with_offset(). Only the speed-offset half of
-# that module has a real effect; its following_distance/get_time_gap()
-# concept is never called anywhere in EOP10's own longitudinal_planner.py
-# and isn't ported here (EOP10_PARITY_CANDIDATES.md).
-def _apply_speed_offset(v_cruise: float, offset_kph: float) -> float:
-  return (v_cruise * CV.MS_TO_KPH + offset_kph) * CV.KPH_TO_MS
 
 
 def get_coast_accel(pitch):
