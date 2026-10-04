@@ -18,16 +18,25 @@ class RCDRuntime:
     self._t = -1e9
     self.enabled = False
 
-  def _result(self, sm):
+  @staticmethod
+  def from_surface(sm):
     if sm.valid.get('surfaceStatus', False):
       s = sm['surfaceStatus']
       if s.hasSurfaceQuality:
         return from_surface_score(s.surfaceQuality.score, s.surfaceQuality.texture)
+    return None
+
+  @staticmethod
+  def from_segmentation(sm):
     if sm.valid.get('monoSegments', False):
       seg = next((x for x in sm['monoSegments'].segments if x.camera == 'road'), None)
       if seg is not None and seg.hasRoad:
         return from_segmentation(True, seg.hasEdge, seg.hasDrivable)
     return None
+
+  def _result(self, sm):
+    result = self.from_surface(sm)
+    return result if result is not None else self.from_segmentation(sm)
 
   def update(self, sm) -> RCDState:
     now = self._clock()
