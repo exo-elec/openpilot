@@ -69,3 +69,13 @@ def test_path_selector_stats_with_a_truck_alongside():
                     modelExecutionTime=0.02))
   r = analyze(msgs)['path_selector']
   assert r['frames'] == 30 and r['nudge_frames'] > 0 and 0 < r['max_offset_m'] <= 0.6
+
+
+def test_rule_channel_stats_from_logged_pathAdjust():
+  msgs = []
+  for i in range(10):
+    msgs.append(Msg('pathAdjust', i * 0.05, dppMode=3 if i > 4 else 1, dppCase='cut_in' if i > 4 else 'cruise', ruleValid=True,
+                    disagreeCurvature=0.0, disagreeAccel=-1.5 if i > 4 else 0.2))
+  r = analyze(msgs)['rule_channel']
+  assert r['pathAdjust_frames'] == 10 and r['dpp_mode_frames'] == {'1': 5, '3': 5} and r['dpp_cases'] == {'cruise': 5, 'cut_in': 5}
+  assert r['rule_valid_fraction'] == 1.0 and r['disagreement_fraction'] == 0.0 and r['rule_minus_policy_accel_range'] == [-1.5, 0.2]

@@ -36,6 +36,11 @@ def analyze(msgs) -> dict:
   selector = PathSelector()
   room = (0.0, 0.0)
   sel_n = nudge_n = slow_n = 0
+  pa_n = 0
+  modes: dict[int, int] = {}
+  cases: dict[str, int] = {}
+  rule_valid_n = disagree_n = 0
+  d_acc_min = d_acc_max = 0.0
   offsets: list[float] = []
   slow_factors: list[float] = []
   v_ego = 0.0
@@ -62,6 +67,15 @@ def analyze(msgs) -> dict:
       cand = PlannedPath(list(pos.x), [-float(v) for v in pos.y]) if len(pos.x) >= 2 else None   # model y-right -> left
       path = cand if cand is not None and cand.valid else None
       room = lane_room(m.modelV2)
+    elif which == 'pathAdjust':
+      pa = m.pathAdjust
+      pa_n += 1
+      modes[int(pa.dppMode)] = modes.get(int(pa.dppMode), 0) + 1
+      cases[str(pa.dppCase)] = cases.get(str(pa.dppCase), 0) + 1
+      if pa.ruleValid:
+        rule_valid_n += 1
+        d_acc_min, d_acc_max = min(d_acc_min, float(pa.disagreeAccel)), max(d_acc_max, float(pa.disagreeAccel))
+        disagree_n += abs(float(pa.disagreeCurvature)) > 0.006 or float(pa.disagreeAccel) > 2.5
     elif which == 'radarState':
       leads = [(float(lead.dRel), float(lead.yRel)) for lead in (m.radarState.leadOne, m.radarState.leadTwo) if lead.status]
     elif which == 'monoDetections':
@@ -119,6 +133,10 @@ def analyze(msgs) -> dict:
                       'max_offset_m': round(max(offsets), 2) if offsets else 0.0,
                       'p95_offset_m': round(_pct(offsets, 0.95), 2) if offsets else 0.0,
                       'min_speed_factor': round(min(slow_factors), 3) if slow_factors else 1.0},
+    'rule_channel': {'pathAdjust_frames': pa_n, 'dpp_mode_frames': {str(k): v for k, v in sorted(modes.items())},
+                     'dpp_cases': dict(sorted(cases.items())), 'rule_valid_fraction': round(rule_valid_n / pa_n, 3) if pa_n else None,
+                     'disagreement_fraction': round(disagree_n / rule_valid_n, 3) if rule_valid_n else None,
+                     'rule_minus_policy_accel_range': [round(d_acc_min, 2), round(d_acc_max, 2)]},
     'detector_lead_time_s': {'n': len(lead_times), 'median': None if not lead_times else round(statistics.median(lead_times), 2)},
     'caveat': 'radarState leads are vision leads on radarless devices: ranging_vs_leads is a consistency check, not ground truth',
   }
