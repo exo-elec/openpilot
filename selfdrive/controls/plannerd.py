@@ -33,9 +33,9 @@ def main():
   # (a prior session ported this from EOP10, which does have the service).
   # See ngp_dlon.py::detect_speed_limit_trigger()'s docstring.
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'navInstruction', 'accelerometer', 'monoDetections'],
+                            'navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust'],
                            poll='modelV2',
-                           ignore_alive=['navInstruction', 'accelerometer', 'monoDetections'])
+                           ignore_alive=['navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust'])
 
   # DLON runs unconditionally -- a default, always-on behavior of this
   # branch, not a user-selectable feature.
@@ -50,6 +50,8 @@ def main():
     ngp_flags |= NGPFlags.NSLC
   if params.get_bool("ngp_lon_cutin"):
     ngp_flags |= NGPFlags.CUTIN
+  if params.get_bool("ngp_lon_pathd"):
+    ngp_flags |= NGPFlags.PATHD
 
   while True:
     sm.update()

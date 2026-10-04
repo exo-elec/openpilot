@@ -128,6 +128,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.
     {"ngp_lon_cutin", {PERSISTENT, BOOL, "0"}},
     // pathd add-on (nagaspilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
+    // pathd add-on consumers (ngp_pathd_consumer.py), default off, need ngp_pathd_enabled: lateral offset in controlsd, speed cap in the planner.
+    {"ngp_lat_pathd", {PERSISTENT, BOOL, "0"}},
+    {"ngp_lon_pathd", {PERSISTENT, BOOL, "0"}},
     {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},

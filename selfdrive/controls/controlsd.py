@@ -7,7 +7,7 @@ from cereal import car, log
 import cereal.messaging as messaging
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
-from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
+from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
@@ -17,6 +17,7 @@ from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
+from nagaspilot.controls.ngp_pathd_consumer import PathAdjustFollower
 from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, curvature_bias, threats_from
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
@@ -45,7 +46,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance'], poll='selfdriveState')
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pathAdjust'], poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'])
 
     self.steer_limited_by_safety = False
@@ -72,6 +73,8 @@ class Controls:
     self.blinker_pause = NGPBlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
     # SOC (ngp_lat_soc, default off): small slow offset away from a vehicle beside you on the highway
     self.soc = NGPSOC() if self.params.get_bool("ngp_lat_soc") else None
+    # pathd add-on offset (ngp_lat_pathd, default off): bounded lateral offset from `pathAdjust`; replaces SOC's own offset when on
+    self.pathd_lat = PathAdjustFollower() if self.params.get_bool("ngp_lat_pathd") else None
     # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
     self.red = NGPRED() if self.params.get_bool("ngp_lat_edge_guard") else None
     # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
@@ -185,7 +188,12 @@ class Controls:
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
-    if self.soc is not None and CC.latActive:
+    if self.pathd_lat is not None:
+      fresh = bool(self.sm.alive['pathAdjust'] and self.sm.valid['pathAdjust'])
+      allowed = CC.latActive and not (CS.steeringPressed or CS.leftBlinker or CS.rightBlinker or CC.leftBlinker or CC.rightBlinker)
+      self.pathd_lat.update(self.sm['pathAdjust'].offsetM, fresh, allowed, DT_CTRL)
+      new_desired_curvature += self.pathd_lat.curvature_delta()
+    if self.soc is not None and self.pathd_lat is None and CC.latActive:
       left, right = threats_from(CS, model_v2)
       lines = tuple(tuple(line.y) for line in model_v2.laneLines)
       new_desired_curvature += curvature_bias(self.soc.update(SOCInput(

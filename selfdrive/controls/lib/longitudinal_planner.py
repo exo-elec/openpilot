@@ -38,6 +38,7 @@ from nagaspilot.controls.ngp_dlon import NGPDLON
 # tightens the clamp.
 from nagaspilot.controls.ngp_brsc import NGPBRSC
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
+from nagaspilot.controls.ngp_pathd_consumer import speed_cap
 from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
@@ -69,6 +70,7 @@ class NGPFlags:
   VTSC = 2 ** 5
   NSLC = 2 ** 6
   CUTIN = 2 ** 7
+  PATHD = 2 ** 8
 
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
@@ -253,6 +255,12 @@ class LongitudinalPlanner:
                             path=cutin_path(sm) if cutin_fresh else None)
     if cutin.target_speed is not None:
       v_cruise = min(v_cruise, cutin.target_speed)
+
+    # pathd add-on speed factor (opt-in): only ever lowers v_cruise, floored; the MPC keeps braking authority.
+    if ngp_flags & NGPFlags.PATHD:
+      pa_cap = speed_cap(v_ego, sm['pathAdjust'].speedFactor, bool(sm.alive.get('pathAdjust', False) and sm.valid.get('pathAdjust', False)))
+      if pa_cap is not None:
+        v_cruise = min(v_cruise, pa_cap)
 
     # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
     # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
