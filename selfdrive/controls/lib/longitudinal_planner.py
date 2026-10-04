@@ -38,7 +38,7 @@ from nagaspilot.controls.ngp_dlon import NGPDLON
 # tightens the clamp.
 from nagaspilot.controls.ngp_brsc import NGPBRSC
 from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
-from nagaspilot.runtime.cutin_adapter import cutin_objects
+from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
 from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
@@ -249,7 +249,8 @@ class LongitudinalPlanner:
 
     # Cut-in speed trim (monoDetections, opt-in): only ever lowers v_cruise; the MPC keeps braking authority.
     cutin_objs, cutin_fresh = cutin_objects(sm)
-    cutin = self.cutin.update(v_ego, cutin_objs, self.dt, enabled=bool(ngp_flags & NGPFlags.CUTIN), fresh=cutin_fresh)
+    cutin = self.cutin.update(v_ego, cutin_objs, self.dt, enabled=bool(ngp_flags & NGPFlags.CUTIN), fresh=cutin_fresh,
+                            path=cutin_path(sm) if cutin_fresh else None)
     if cutin.target_speed is not None:
       v_cruise = min(v_cruise, cutin.target_speed)
 

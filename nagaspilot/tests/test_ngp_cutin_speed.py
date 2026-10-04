@@ -98,3 +98,27 @@ def test_two_wheeler_gets_a_stronger_cap():
 def test_non_cut_in_classes_ignored():
   assert evaluate(25.0, obj(name='person')) is None
   assert evaluate(25.0, obj(name='traffic light')) is None
+
+
+def test_planned_path_corridor_follows_a_curve():
+  from nagaspilot.controls.ngp_cutin_speed import PlannedPath
+  # we are steering left: the path is 4 m left of the car at 40 m. A car at y=+4 (left) is IN our corridor,
+  # a car at y=-0.5 (ahead-right) is 4.5 m outside it.
+  curve = PlannedPath([0.0, 20.0, 40.0, 80.0], [0.0, 1.0, 4.0, 12.0])
+  assert evaluate(25.0, obj(x=40.0, y=4.0, vy=0.0, vx=0.0), curve) is None          # already in (path-relative)
+  assert evaluate(25.0, obj(x=40.0, y=4.0, vy=0.0, vx=0.0)) is None                  # straight corridor: adjacent lane, steady
+  # an object steady at y=3 is adjacent on a straight road but sits in the lane of a curve to the left
+  assert evaluate(25.0, obj(x=30.0, y=3.0, vy=-1.5, vx=-6.0)) is not None
+  assert evaluate(25.0, obj(x=30.0, y=3.0, vy=-1.5, vx=-6.0), curve) is None          # path bends toward it: already inside
+  p = PlannedPath([0.0, 10.0], [0.0, 2.0])
+  assert abs(p.y_at(5.0) - 1.0) < 1e-9 and p.y_at(-3.0) == 0.0 and p.y_at(50.0) == 2.0
+  assert not PlannedPath([1.0], [0.0]).valid and not PlannedPath([2.0, 1.0], [0.0, 0.0]).valid
+
+
+def test_update_passes_path_and_bad_path_falls_back_to_straight():
+  from nagaspilot.controls.ngp_cutin_speed import PlannedPath
+  c = CutInSpeed()
+  bad = PlannedPath([1.0], [0.0])
+  for _ in range(3):
+    r = c.update(25.0, [obj()], 0.2, path=bad)
+  assert r.active

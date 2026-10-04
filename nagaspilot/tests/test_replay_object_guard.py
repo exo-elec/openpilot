@@ -46,3 +46,13 @@ def test_metrics_on_synthetic_log():
 def test_empty_log():
   r = analyze([])
   assert r['monoDetections_frames'] == 0 and r['cutin_would_trigger'] == 0 and r['rate_hz'] is None
+
+
+def test_model_path_is_used_when_logged():
+  # same cut-in, but the logged model path bends toward the car (it is already "in" our lane): no trigger
+  msgs = []
+  for m in log():
+    msgs.append(m)
+    if m.which() == 'carState':
+      msgs.append(Msg('modelV2', m.logMonoTime * 1e-9, position=NS(x=[0.0, 20.0, 40.0, 80.0], y=[0.0, -1.0, -4.0, -12.0])))  # y-right: path bends LEFT
+  assert analyze(msgs)['cutin_would_trigger'] == 0

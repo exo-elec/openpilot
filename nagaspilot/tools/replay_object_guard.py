@@ -15,7 +15,7 @@ import math
 import statistics
 import sys
 
-from nagaspilot.controls.ngp_cutin_speed import CutInSpeed, Obj
+from nagaspilot.controls.ngp_cutin_speed import CutInSpeed, Obj, PlannedPath
 
 BEARING_GATE_RAD = 0.04
 RANGE_RATIO_GATE = (0.5, 2.0)
@@ -33,6 +33,7 @@ def analyze(msgs) -> dict:
   cutin = CutInSpeed()
   v_ego = 0.0
   leads: list[tuple[float, float]] = []
+  path = None
   last_t = None
   t_first = t_last = None
   exec_times: list[float] = []
@@ -49,6 +50,10 @@ def analyze(msgs) -> dict:
     t = m.logMonoTime * 1e-9
     if which == 'carState':
       v_ego = float(m.carState.vEgo)
+    elif which == 'modelV2':
+      pos = m.modelV2.position
+      cand = PlannedPath(list(pos.x), [-float(v) for v in pos.y]) if len(pos.x) >= 2 else None   # model y-right -> left
+      path = cand if cand is not None and cand.valid else None
     elif which == 'radarState':
       leads = [(float(lead.dRel), float(lead.yRel)) for lead in (m.radarState.leadOne, m.radarState.leadTwo) if lead.status]
     elif which == 'monoDetections':
@@ -72,7 +77,7 @@ def analyze(msgs) -> dict:
               rel_err.append((d.x - dist) / dist)
               first_match.setdefault(int(d.trackId), t)
               break
-      res = cutin.update(v_ego, objs, dt, enabled=True, fresh=True)
+      res = cutin.update(v_ego, objs, dt, enabled=True, fresh=True, path=path)
       if res.active and not was_active:
         triggers.append({'t': round(t - (t_first or t), 2), 'track_id': res.track_id, 'v_ego': round(v_ego, 1),
                          'target_speed': round(res.target_speed, 1), 'urgency_s': None if res.ttc is None else round(res.ttc, 2)})

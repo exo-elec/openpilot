@@ -60,8 +60,49 @@ class CutInResult:
   track_id: int | None
 
 
-def evaluate(v_ego: float, o: Obj) -> float | None:
-  """Return the TTC-like urgency (seconds) if `o` is a cut-in threat, else None."""
+class PlannedPath:
+  """Our planned path in the car frame: lateral offset (left positive) at forward distance x.
+
+  Built from `modelV2.position` by the adapter (y-right flipped once). Beyond the last point the
+  offset is held. `PlannedPath.straight()` is the fixed-corridor fallback.
+  """
+
+  def __init__(self, xs, ys_left):
+    self.xs = [float(v) for v in xs]
+    self.ys = [float(v) for v in ys_left]
+    ok = len(self.xs) >= 2 and len(self.xs) == len(self.ys) and all(math.isfinite(v) for v in self.xs + self.ys)
+    ok = ok and all(b > a for a, b in zip(self.xs, self.xs[1:], strict=False))
+    self.valid = ok
+
+  @classmethod
+  def straight(cls) -> 'PlannedPath':
+    return cls([0.0, 200.0], [0.0, 0.0])
+
+  def y_at(self, x: float) -> float:
+    if not self.valid:
+      return 0.0
+    if x <= self.xs[0]:
+      return self.ys[0]
+    if x >= self.xs[-1]:
+      return self.ys[-1]
+    for i in range(1, len(self.xs)):
+      if x <= self.xs[i]:
+        f = (x - self.xs[i - 1]) / (self.xs[i] - self.xs[i - 1])
+        return self.ys[i - 1] + f * (self.ys[i] - self.ys[i - 1])
+    return self.ys[-1]
+
+
+_STEP_S = 0.1
+
+
+def evaluate(v_ego: float, o: Obj, path: PlannedPath | None = None) -> float | None:
+  """Return an urgency (seconds, lower = more urgent) if `o` is a cut-in threat, else None.
+
+  Steps the object forward at constant relative velocity and finds when its centre first lies
+  within the class corridor around the planned path, then tests TTC and headway at that moment.
+  (For same-direction constant-velocity motion Autoware's collision-time margin is exactly the
+  headway at entry, so the headway test covers it.)
+  """
   prof = PROFILES.get(o.name)
   if prof is None:
     return None                       # not a cut-in class (pedestrians cross, they do not cut in)
@@ -70,17 +111,30 @@ def evaluate(v_ego: float, o: Obj) -> float | None:
     return None
   if o.conf < MIN_CONF or not (MIN_RANGE_M <= o.x <= MAX_RANGE_M) or o.sigma_x > MAX_SIGMA_FRAC * o.x:
     return None
-  if abs(o.y) <= prof.half_width_m:
+  path = path or PlannedPath.straight()
+
+  def off(t: float) -> float:        # lateral offset from the planned path at time t
+    x = o.x + o.vx * t
+    return (o.y + o.vy * t) - path.y_at(x)
+
+  d0 = off(0.0)
+  if abs(d0) <= prof.half_width_m:
     return None                       # already in the corridor: lead logic's job
-  toward = -math.copysign(1.0, o.y) * o.vy  # positive when moving toward the centre line
+  toward = (abs(d0) - abs(off(0.5))) / 0.5   # m/s toward the path (can include path curvature)
   if toward < prof.min_lateral_speed:
     return None
-  t_enter = (abs(o.y) - prof.half_width_m) / toward
-  if t_enter > prof.max_enter_s:
+  t_enter = None
+  n = int(round(prof.max_enter_s / _STEP_S))
+  for i in range(1, n + 1):
+    t = i * _STEP_S
+    if o.x + o.vx * t <= 0:
+      return None                     # it will be behind us before it arrives
+    if abs(off(t)) <= prof.half_width_m:
+      t_enter = t
+      break
+  if t_enter is None:
     return None
   gap = o.x + o.vx * t_enter
-  if gap <= 0:
-    return None                       # it will be behind us when it arrives
   closing = -o.vx
   ttc = gap / closing if closing > 0.3 else math.inf
   headway = gap / max(v_ego, 0.1)
@@ -100,14 +154,15 @@ class CutInSpeed:
   def reset(self) -> None:
     self.__init__()
 
-  def update(self, v_ego: float, objs: list[Obj], dt: float, enabled: bool = True, fresh: bool = True) -> CutInResult:
+  def update(self, v_ego: float, objs: list[Obj], dt: float, enabled: bool = True, fresh: bool = True,
+             path: PlannedPath | None = None) -> CutInResult:
     if not enabled or not fresh or v_ego < MIN_V_EGO:
       self.reset()
       return CutInResult(False, None, None, None)
 
     best: tuple[float, Obj] | None = None
     for o in objs:
-      u = evaluate(v_ego, o)
+      u = evaluate(v_ego, o, path)
       if u is not None and (best is None or u < best[0]):
         best = (u, o)
 

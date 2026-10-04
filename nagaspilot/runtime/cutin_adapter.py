@@ -1,5 +1,5 @@
 """monoDetections -> cut-in objects for the planner (adapter; the policy is nagaspilot/controls/ngp_cutin_speed.py)."""
-from nagaspilot.controls.ngp_cutin_speed import Obj
+from nagaspilot.controls.ngp_cutin_speed import Obj, PlannedPath
 
 
 def cutin_objects(sm) -> tuple[list[Obj], bool]:
@@ -12,3 +12,14 @@ def cutin_objects(sm) -> tuple[list[Obj], bool]:
     return [], False
   return [Obj(int(d.trackId), float(d.x), float(d.y), float(d.vx), float(d.vy), float(d.sigmaX), float(d.confidence), str(d.className))
           for d in sm['monoDetections'].detections], True
+
+
+def cutin_path(sm) -> PlannedPath | None:
+  """Planned path from modelV2.position. The model is y-RIGHT; flip once to the left-positive car frame."""
+  if not sm.valid.get('modelV2', False):
+    return None
+  pos = sm['modelV2'].position
+  if len(pos.x) < 2 or len(pos.y) != len(pos.x):
+    return None
+  path = PlannedPath(list(pos.x), [-float(v) for v in pos.y])
+  return path if path.valid else None
