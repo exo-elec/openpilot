@@ -2651,6 +2651,7 @@ struct Event {
     bookmarkButton @148 :UserBookmark;
     audioFeedback @149 :AudioFeedback;
     egpuState @150 :EgpuState;
+    monoDetections @151 :Custom.MonoDetections;   # EOP10 has this at @218
 
     # *********** debug ***********
     testJoystick @52 :Joystick;
