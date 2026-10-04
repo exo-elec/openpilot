@@ -99,6 +99,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
     // including its default-on.
     {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
+    // SOC: small slow offset away from a vehicle beside you on the highway (ngp_soc.py). Default off.
+    {"ngp_lat_soc", {PERSISTENT, BOOL, "0"}},
     // RED: vision-only curvature nudge away from a close road edge in laneless mode (ngp_red.py).
     // ExoPilot adds YOLO/stereo corroboration. Unvalidated on road; default off.
     {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},

@@ -16,6 +16,7 @@ from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
+from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, curvature_bias, threats_from
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -65,6 +66,8 @@ class Controls:
       self.LaC = LatControlTorque(self.CP, self.CI)
 
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
+    # SOC (ngp_lat_soc, default off): small slow offset away from a vehicle beside you on the highway
+    self.soc = NGPSOC() if self.params.get_bool("ngp_lat_soc") else None
     # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
     self.red = NGPRED() if self.params.get_bool("ngp_lat_edge_guard") else None
     # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
@@ -176,6 +179,11 @@ class Controls:
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
+    if self.soc is not None and CC.latActive:
+      left, right = threats_from(CS, model_v2)
+      lines = tuple(tuple(line.y) for line in model_v2.laneLines)
+      new_desired_curvature += curvature_bias(self.soc.update(SOCInput(
+        CS.vEgo, left, right, lines, tuple(model_v2.laneLineProbs), tuple(model_v2.laneLineStds))))
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
     actuators.curvature = self.desired_curvature

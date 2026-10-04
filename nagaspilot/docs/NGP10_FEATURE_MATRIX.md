@@ -12,6 +12,7 @@
 | Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` | Integrated, default off |
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
+| Lateral | SOC (Smart Offset Control: move slightly away from a vehicle beside you) | `nagaspilot/controls/ngp_soc.py` → `controlsd.py` | Integrated 2026-10-04, default off (`ngp_lat_soc`). Basic version: blind-spot flags or a neighbouring-lane vision lead, highway speed, well-formed lane lines, one-sided threat confirmed for 1 s; 0.2 m offset ramped at 0.1 m/s and applied as a tiny curvature bias. ExoPilot adds tracked objects ahead (closing speed) from its own cameras/radar in `pathd`. Not validated on a vehicle. |
 | Lateral | RED (Road Edge Detection: keep away from curbs, grass, guardrails, walls) | `nagaspilot/controls/ngp_red.py` → `controlsd.py` | Integrated 2026-10-04, default off (`ngp_lat_edge_guard`). Basic vision-only version from `modelV2.roadEdges` (confidence from `roadEdgeStds`): temporal filter, warning/critical states, small curvature nudge away from a close edge in laneless mode. ExoPilot adds YOLO barrier and stereo corroboration and edge types. Not validated on a vehicle. |
 | Lateral | CAT (Car Adaptive Tuning: smoothed, validated steer ratio / stiffness) | `nagaspilot/controls/ngp_cat.py` → `controlsd.py` | Integrated 2026-10-04, default off (`ngp_lat_cat`). Basic version: gates + smoothing + confidence over `liveParameters`. ExoPilot adds a persisted seed, manual steer ratio and per-car presets. Not validated on a vehicle. |
 | Lateral | Steering resume ramp | `nagaspilot/controls/steering_policy.py` → `controlsd.py` | Integrated, shared with EOP; eases steering authority back in over 1.75 s after `latActive` resumes. Requires vehicle validation. |
@@ -26,7 +27,7 @@
 | Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
 | Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
 | Radar / BSD | Blind-spot zones, radar tracker, lane-change radar gate, collision advisory | Not in NGP10: they need side/rear radar a comma 3 does not have. Native vehicle BSM stays the fallback. Lives in EOP10 | EOP only |
-| Perception | SOC (lane geometry) | Not in NGP10 (unwired; EOP10 has it). GridD, MonoD, BEV, side/rear overlays, radar zones are EOP-only | EOP only |
+| Perception | Tracked-object SOC, lane geometry | Not in NGP10 (needs ExoPilot tracks; the basic SOC above is separate). GridD, MonoD, BEV, side/rear overlays, radar zones are EOP-only | EOP only |
 
 Vehicle actuation still requires the branch’s normal safety model and hardware
 validation. A module being integrated does not claim target-car HIL completion.
