@@ -83,7 +83,7 @@ class RuleChannel:
     except AttributeError:
       p_curv = p_acc = 0.0
     d_curv, d_acc = (cmd.curvature - p_curv, cmd.accel - p_acc) if cmd.valid else (0.0, 0.0)
-    over = abs(d_curv) > DISAGREE_CURV or abs(d_acc) > DISAGREE_ACCEL
+    over = abs(d_curv) > DISAGREE_CURV or d_acc > DISAGREE_ACCEL      # braking more than the policy is not a disagreement
     self._dis_t = self._dis_t + dt if over else max(self._dis_t - dt, 0.0)
 
     cut_in = False

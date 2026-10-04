@@ -28,7 +28,8 @@ class Mode(IntEnum):
   PRIMARY_BOTH = 5
 
 
-MAX_JERK = 2.5                 # m/s^3 slew of the accel correction when the rule channel is in charge
+MAX_JERK = 2.5                 # m/s^3 slew of the accel correction when the rule channel gives accel back (releases braking)
+MAX_JERK_BRAKE = 6.0           # m/s^3 slew when it asks for MORE braking: a cut-in must not wait for a comfort ramp
 MAX_CURV_RATE = 0.004          # 1/m per second slew of the curvature correction
 DISAGREE_CURV = 0.004          # 1/m
 DISAGREE_ACCEL = 2.0           # m/s^2
@@ -83,7 +84,8 @@ class PolicyArbiter:
       return Blend(policy_curv, accel, 'min' if accel < policy_accel else 'policy', d_curv, d_acc, None)
 
     # PRIMARY modes: watch the disagreement
-    if abs(d_curv) > DISAGREE_CURV or abs(d_acc) > DISAGREE_ACCEL:
+    # a rule channel that brakes MORE than the policy is the conservative direction and not a disagreement
+    if abs(d_curv) > DISAGREE_CURV or d_acc > DISAGREE_ACCEL:
       self._dis_t += dt
     else:
       self._dis_t = max(self._dis_t - dt, 0.0)
@@ -101,7 +103,8 @@ class PolicyArbiter:
     # through, authority builds smoothly, and the output converges to the rule command at steady state.
     use_long = mode in (Mode.PRIMARY_LONG, Mode.PRIMARY_BOTH)
     use_lat = mode in (Mode.PRIMARY_LAT, Mode.PRIMARY_BOTH)
-    self.delta_accel = self._slew(self.delta_accel, d_acc if use_long else 0.0, MAX_JERK * dt)
+    target_acc = d_acc if use_long else 0.0
+    self.delta_accel = self._slew(self.delta_accel, target_acc, (MAX_JERK_BRAKE if target_acc < self.delta_accel else MAX_JERK) * dt)
     self.delta_curv = self._slew(self.delta_curv, d_curv if use_lat else 0.0, MAX_CURV_RATE * dt)
     accel = min(max(policy_accel + self.delta_accel, A_BRAKE_LIMIT), 2.0)
     curv = policy_curv + self.delta_curv

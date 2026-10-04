@@ -19,6 +19,8 @@ from nagaspilot.controls.ngp_path_selector import PathSelector, PObj, build_prof
 from nagaspilot.controls.ngp_pathd_consumer import PathAdjustFollower, speed_cap
 from nagaspilot.controls.ngp_cutin_speed import PlannedPath
 from nagaspilot.controls.ngp_rule_planner import RulePlanner
+from nagaspilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer
+from types import SimpleNamespace as NS
 
 DT = 0.05
 SPEED_TAU_S = 1.2      # ego speed response to a lowered target
@@ -45,8 +47,10 @@ WIDTH = {'car': 1.8, 'truck': 2.5, 'motorcycle': 0.8, 'bicycle': 0.6, 'bus': 2.5
 
 
 def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, seconds: float = 12.0,
-        noise: float = 0.0, seed: int = 1, controller: str = 'policy') -> dict:
-  """controller: 'policy' = stand-in policy (+ the protection layer when `layer`), 'rule' = the rule planner drives accel and lateral offset."""
+        noise: float = 0.0, seed: int = 1, controller: str = 'policy', dropout: float = 0.0) -> dict:
+  """controller: 'policy' = stand-in policy (+ the protection layer when `layer`), 'rule' = the rule planner drives accel
+  and lateral offset, 'dpp' = the integrated system: stand-in policy + rule channel + DPP mode selection + arbiters, with
+  detection dropouts treated as a stale perception (`dropout` = per-frame probability of a lost frame)."""
   rng = random.Random(seed)
   ex, ey, ev = 0.0, 0.0, set_speed       # ego world position, lateral offset (left +), speed
   sel = PathSelector()
@@ -54,6 +58,11 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
   cutin = CutInSpeed()
   follower = PathAdjustFollower()
   target_off = 0.0
+  channel, consumer = RuleChannel(), RuleChannelConsumer()
+  last_pobjs: list = []
+  stale_t = 0.0
+  modes: dict[int, int] = {}
+  mode_changes, last_mode = 0, 0
   min_gap = math.inf
   min_ttc = math.inf
   max_off = 0.0
@@ -70,9 +79,12 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
         a.y, a.vy = a.cut_stop_y, 0.0
     cap = None
     rule_cmd = None
+    dropped = dropout > 0 and rng.random() < dropout
     if controller == 'rule':
       pobjs = []
       for i, a in enumerate(actors):
+        if dropped:
+          break
         rx, ry = a.x - ex, a.y - ey
         if abs(noise) > 0:
           rx *= 1 + rng.gauss(0, noise)
@@ -81,9 +93,29 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
       room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
       rule_cmd = rule.plan(ev, set_speed, PlannedPath([0.0, 100.0], [-ey, -ey]), room_l, room_r, pobjs)
+    elif controller == 'dpp':
+      pobjs = []
+      for i, a in enumerate(actors):
+        if dropped:
+          break
+        rx, ry = a.x - ex, a.y - ey
+        if abs(noise) > 0:
+          rx *= 1 + rng.gauss(0, noise)
+          ry += rng.gauss(0, noise * 2)
+        pobjs.append(PObj(i, a.name, rx, ry, a.v - ev, a.vy, 0.9))
+      if dropped:
+        stale_t += DT
+        pobjs = last_pobjs if stale_t < 0.3 else []       # a short outage coasts on the last tracks, a long one is lost
+      else:
+        stale_t, last_pobjs = 0.0, pobjs
+      room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
+      room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
+      dpp_pobjs, dpp_room = pobjs, (room_l, room_r)
     elif layer:
       objs, pobjs = [], []
       for i, a in enumerate(actors):
+        if dropped:
+          break
         rx, ry = a.x - ex, a.y - ey
         if abs(noise) > 0:
           rx *= 1 + rng.gauss(0, noise)
@@ -112,6 +144,19 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       target_off = rule_cmd.offset_m
     else:
       accel = (target_speed - ev) / SPEED_TAU_S
+    if controller == 'dpp':
+      policy_accel = max((target_speed - ev) / SPEED_TAU_S, -MAX_DECEL)
+      lane_line = lambda y: NS(x=[0.0, 100.0], y=[y, y])
+      model = NS(laneLines=[lane_line(-3.6), lane_line(-(LANE_HALF - ey)), lane_line(LANE_HALF + ey), lane_line(3.6)],
+                 laneLineProbs=[0.9, 0.9, 0.9, 0.9], position=NS(x=[0.0, 100.0], y=[ey * 0.0, ey * 0.0]),
+                 action=NS(desiredCurvature=0.0, desiredAcceleration=policy_accel))
+      out = channel.step(ev, set_speed, model, dpp_pobjs, [], dpp_room, stale_t < 0.3, False, 5, DT)
+      accel, src = consumer.accel(out.mode, policy_accel, out.cmd.valid, out.cmd.accel, stale_t < 0.3, False, DT)
+      curv, lat_src = consumer.curvature(out.mode, 0.0, out.cmd.valid, out.cmd.curvature, stale_t < 0.3, False, DT)
+      target_off = out.cmd.offset_m if lat_src == 'rule' else 0.0
+      modes[out.mode] = modes.get(out.mode, 0) + 1
+      mode_changes += out.mode != last_mode
+      last_mode = out.mode
     ev += max(accel, -MAX_DECEL) * DT
     ey += (target_off - ey) * DT / LAT_TAU_S
     ex += ev * DT
@@ -128,7 +173,8 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
         if closing > 0.1:
           min_ttc = min(min_ttc, dx / closing)
     t += DT
-  return {'layer': layer if controller == 'policy' else 'rule', 'min_gap_ahead_m': round(min_gap, 1) if math.isfinite(min_gap) else None,
+  extra = {'modes': modes, 'mode_changes': mode_changes} if controller == 'dpp' else {}
+  return {**extra, 'layer': layer if controller == 'policy' else controller, 'min_gap_ahead_m': round(min_gap, 1) if math.isfinite(min_gap) else None,
           'min_ttc_s': round(min_ttc, 2) if math.isfinite(min_ttc) else None, 'max_offset_m': round(max_off, 2),
           'min_speed_mps': round(min_speed, 1), 'overlap_steps': hits}
 

@@ -39,8 +39,11 @@ def test_degraded_disagree_driver_lowspeed_and_off():
 def test_escalates_quickly_and_deescalates_slowly():
   d = DPP()
   assert run(d, sit(), Mode.PRIMARY_BOTH, 1.0).mode == Mode.SHADOW
-  assert run(d, sit(cut_in_risk=True), Mode.PRIMARY_BOTH, 0.2).mode == Mode.SHADOW       # not yet
-  assert run(d, sit(cut_in_risk=True), Mode.PRIMARY_BOTH, 0.3).mode == Mode.PRIMARY_LONG
+  assert run(d, sit(cut_in_risk=True), Mode.PRIMARY_BOTH, 0.05).mode == Mode.SHADOW      # not yet
+  assert run(d, sit(cut_in_risk=True), Mode.PRIMARY_BOTH, 0.2).mode == Mode.PRIMARY_LONG  # safety cases escalate almost at once
+  d2 = DPP()
+  assert run(d2, sit(vru_alongside=True), Mode.PRIMARY_BOTH, 0.2).mode == Mode.SHADOW   # other cases wait 0.3 s
+  assert run(d2, sit(vru_alongside=True), Mode.PRIMARY_BOTH, 0.2).mode == Mode.PRIMARY_LAT
   assert run(d, sit(), Mode.PRIMARY_BOTH, DEESCALATE_S - 0.5).mode == Mode.PRIMARY_LONG  # dwell holds it
   assert run(d, sit(), Mode.PRIMARY_BOTH, 1.0).mode == Mode.SHADOW
 

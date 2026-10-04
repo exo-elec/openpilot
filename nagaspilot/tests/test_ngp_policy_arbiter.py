@@ -33,7 +33,7 @@ def test_supervise_only_brakes_more():
 
 def test_primary_long_adds_a_slewed_correction_and_leaves_curvature_alone():
   b, arb = run(Mode.PRIMARY_LONG, cmd(0.0, -2.0), pc=0.003, pa=0.0)
-  assert b.curvature == 0.003 and abs(b.accel + 2.5 * 0.05) < 1e-9 and b.source == 'rule'
+  assert b.curvature == 0.003 and abs(b.accel + 6.0 * 0.05) < 1e-9 and b.source == 'rule'      # more braking: fast slew
   b, _ = run(Mode.PRIMARY_LONG, cmd(0.0, -2.0), pc=0.003, pa=0.0, n=60, arb=arb)
   assert b.accel <= -1.9
   # the policy's own dynamics pass through: when the policy accel moves, the output moves with it plus the correction
@@ -67,3 +67,12 @@ def test_sustained_disagreement_hands_back_to_the_policy_keeping_the_safer_accel
   assert b.curvature == 0.0
   b, _ = run(Mode.PRIMARY_BOTH, cmd(0.02, 3.0), pc=0.0, pa=0.5, n=1, arb=arb)
   assert b.fallback == 'disagree' and b.accel == 0.5                               # rule would accelerate: policy accel kept
+
+
+def test_braking_more_than_the_policy_is_never_a_disagreement_but_accelerating_more_is():
+  arb = PolicyArbiter()
+  b, arb = run(Mode.PRIMARY_LONG, cmd(0.0, -4.0), pc=0.0, pa=0.5, n=100, arb=arb)       # rule brakes hard for 5 s
+  assert b.fallback is None and b.source == 'rule' and b.accel < 0.0
+  arb = PolicyArbiter()
+  b, arb = run(Mode.PRIMARY_LONG, cmd(0.0, 3.0), pc=0.0, pa=0.0, n=30, arb=arb)         # rule wants +3 m/s^2 over the policy
+  assert b.fallback == 'disagree'

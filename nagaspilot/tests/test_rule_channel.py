@@ -56,8 +56,10 @@ def test_unhealthy_perception_or_driver_override_drops_the_mode():
 def test_sustained_policy_disagreement_pulls_dpp_back_to_shadow():
   ch = RuleChannel()
   cut = [PObj(1, 'car', 22.0, 3.0, -6.0, -1.5, 0.9)]
-  out = step(ch, cut, mdl=model(acc=1.5), n=30)                 # the policy wants to accelerate, the rule channel brakes
+  out = step(ch, cut, mdl=model(acc=-9.0), n=30)                # the policy wants MORE braking than the rule channel (rule is less cautious)
   assert out.disagree and out.mode == int(Mode.SHADOW) and out.case == 'disagree'
+  ch = RuleChannel()
+  assert step(ch, cut, mdl=model(acc=1.5), n=30).mode == int(Mode.PRIMARY_LONG)        # the rule channel brakes more: allowed
 
 
 class SM(dict):
@@ -85,7 +87,7 @@ def test_consumers_apply_authority_slewed_and_driver_wins():
   a = apply_accel(c, SM(2), 0.5, 0.05)
   assert a == -2.0                                                                       # supervise: min(policy, rule)
   a = apply_accel(RuleChannelConsumer(), SM(3, ra=-2.0), 0.5, 0.05)
-  assert 0.3 < a < 0.5                                                                   # primary_long: correction builds at the jerk limit
+  assert 0.1 < a < 0.4                                                                   # primary_long: correction builds at the jerk limit
 
 
 def test_message_fields_filled_for_the_new_rule_channel():
