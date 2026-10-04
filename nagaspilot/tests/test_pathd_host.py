@@ -93,3 +93,14 @@ def test_extras_flow_into_the_published_message():
   h.tick(sm_for([]), Extras(offset_m=0.3, speed_factor=0.85))
   pa = pm.sent[-1][1].pathAdjust
   assert abs(pa.offsetM - 0.3) < 1e-9 and abs(pa.speedFactor - 0.85) < 1e-9
+
+
+def test_extras_from_eop_flips_the_lateral_frame_and_keeps_the_speed_contract():
+  from nagaspilot.runtime.pathd import extras_from_eop
+  e = extras_from_eop(-2.5, -0.5, [0.3, 0.2], 25.0)
+  assert abs(e.offset_m + 0.3) < 1e-9                                 # +0.3 right in EOP's frame is -0.3 in the left-positive frame
+  assert abs(e.speed_factor - (1.0 - 3.0 / 25.0)) < 1e-9
+  e = extras_from_eop(float('inf'), 0.0, [0.0], 25.0)
+  assert e.offset_m is None and e.speed_factor is None               # nothing asked
+  assert extras_from_eop(-30.0, 0.0, [], 25.0).speed_factor == 0.8    # a hard emergency still only asks 20 % here
+  assert extras_from_eop(-1.0, 0.0, [float('nan')], 25.0).offset_m is None

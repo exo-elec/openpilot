@@ -94,6 +94,18 @@ class Extras:
   speed_factor: float | None = None
 
 
+def extras_from_eop(speed_reduction: float, lon_delta: float, lateral_adjustments, v_ego: float) -> Extras:
+  """EOP10's pathd results as Extras. Its lateral adjustments are in the path's y-RIGHT frame (flipped once here) and
+  its speed reductions are m/s deltas (negative = slow down). The factor stays inside the shared contract (>= 0.8);
+  EOP10's stronger emergency reduction keeps travelling in `enhancedTrajectory.speedAdjustment`."""
+  offset = None
+  if len(lateral_adjustments) and math.isfinite(float(lateral_adjustments[0])) and abs(float(lateral_adjustments[0])) > 0.01:
+    offset = -float(lateral_adjustments[0])
+  total = (float(speed_reduction) if math.isfinite(speed_reduction) else 0.0) + (float(lon_delta) if math.isfinite(lon_delta) else 0.0)
+  factor = max(1.0 + total / max(v_ego, 1.0), 0.8) if total < -0.05 else None
+  return Extras(offset, factor)
+
+
 def merge_extras(sel, room, extras: Extras | None):
   """Merge extra proposals into the selector's request with the same tighten-only rules (one arbitration)."""
   if extras is None or (extras.offset_m is None and extras.speed_factor is None):
