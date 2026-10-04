@@ -12,6 +12,7 @@
 | Lateral | LCA speed/auto-sec | upstream `DesireHelper` in `modeld.py` | Integrated, default off |
 | Lateral | Road-edge gate | `ngp_road_edge.py`, `modeld.py` | Integrated, default off |
 | Lateral | ISO VM limits | OpenDBC lateral safety | Integrated |
+| Lateral | RED (Road Edge Detection: keep away from curbs, grass, guardrails, walls) | `nagaspilot/controls/ngp_red.py` → `controlsd.py` | Integrated 2026-10-04, default off (`ngp_lat_edge_guard`). Basic vision-only version from `modelV2.roadEdges` (confidence from `roadEdgeStds`): temporal filter, warning/critical states, small curvature nudge away from a close edge in laneless mode. ExoPilot adds YOLO barrier and stereo corroboration and edge types. Not validated on a vehicle. |
 | Lateral | CAT (Car Adaptive Tuning: smoothed, validated steer ratio / stiffness) | `nagaspilot/controls/ngp_cat.py` → `controlsd.py` | Integrated 2026-10-04, default off (`ngp_lat_cat`). Basic version: gates + smoothing + confidence over `liveParameters`. ExoPilot adds a persisted seed, manual steer ratio and per-car presets. Not validated on a vehicle. |
 | Lateral | Steering resume ramp | `nagaspilot/controls/steering_policy.py` → `controlsd.py` | Integrated, shared with EOP; eases steering authority back in over 1.75 s after `latActive` resumes. Requires vehicle validation. |
 | Longitudinal | Lane Change Lead Handoff (pure-camera adjacent-lane lead tracking) | `nagaspilot/controls/ngp_lc_lead_handoff.py` → longitudinal planner | Integrated, default off (`ngp_lon_lc_lead_handoff`), no panel toggle (matches EOP10) |
