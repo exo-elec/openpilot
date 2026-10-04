@@ -13,7 +13,6 @@ Currently the following processes are tested:
 * radard
 * plannerd
 * calibrationd
-* dmonitoringd
 * locationd
 * paramsd
 * ubloxd
@@ -78,13 +77,11 @@ Supported processes:
 * radard
 * plannerd
 * calibrationd
-* dmonitoringd
 * locationd
 * paramsd
 * ubloxd
 * torqued
 * modeld
-* dmonitoringmodeld
 
 Certain processes may require an initial state, which is usually supplied within `Params` and persisting from segment to segment (e.g CalibrationParams, LiveParameters). The `custom_params` is dictionary  used to prepopulate `Params` with arbitrary values. The `get_custom_params_from_lr` helper is provided to fetch meaningful values from log files.
 
@@ -99,7 +96,7 @@ custom_params = get_custom_params_from_lr(previous_segment_lr, 'last')
 output_logs = replay_process_with_name('calibrationd', lr, custom_params=custom_params)
 ```
 
-Replaying processes that use VisionIPC (e.g. modeld, dmonitoringmodeld) require additional `frs` dictionary with camera states as keys and `FrameReader` objects as values.
+Replaying processes that use VisionIPC (e.g. modeld) require additional `frs` dictionary with camera states as keys and `FrameReader` objects as values.
 
 ```py
 from openpilot.tools.lib.framereader import FrameReader
@@ -110,7 +107,7 @@ frs = {
   'driverCameraState': FrameReader(...),
 }
 
-output_logs = replay_process_with_name(['modeld', 'dmonitoringmodeld'], lr, frs=frs)
+output_logs = replay_process_with_name(['modeld'], lr, frs=frs)
 ```
 
 To capture stdout/stderr of the replayed process, `captured_output_store` can be provided.
