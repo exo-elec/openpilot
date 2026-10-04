@@ -23,6 +23,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 
 from openpilot.system.hardware import HARDWARE
 from nagaspilot.controls.ngp_green_light import NGPGreenLight
+from nagaspilot.controls.ngp_adaptive_limits import personality_from_state
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
 
@@ -76,7 +77,7 @@ class SelfdriveD:
     # TODO: de-couple selfdrived with card/conflate on carState without introducing controls mismatches
     self.car_state_sock = messaging.sub_sock('carState', timeout=20)
 
-    ignore = self.sensor_packets + self.gps_packets + ['alertDebug']
+    ignore = self.sensor_packets + self.gps_packets + ['alertDebug', 'adaptiveDrivingState']
     if SIMULATION:
       ignore += ['managerState']
     if REPLAY:
@@ -85,7 +86,7 @@ class SelfdriveD:
     self.sm = messaging.SubMaster(['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
-                                   'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback'] + \
+                                   'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback', 'adaptiveDrivingState'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
                                   ignore_valid=ignore, frequency=int(1/DT_CTRL))
@@ -415,6 +416,14 @@ class SelfdriveD:
         self.personality = (self.personality - 1) % 3
         self.params.put_nonblocking('LongitudinalPersonality', self.personality)
         self.events.add(EventName.personalityChanged)
+
+    # adaptd (default off): the recommended personality from vehicle telemetry; this branch has three, so `traffic` maps to `relaxed`
+    if self.CP.openpilotLongitudinalControl:
+      ads = self.sm['adaptiveDrivingState']
+      adapted = personality_from_state(self.personality, self.sm.valid['adaptiveDrivingState'] and ads.enabled, int(ads.personality), max_personality=2)
+      if adapted != self.personality:
+        self.personality = adapted
+        self.params.put_nonblocking('LongitudinalPersonality', self.personality)
 
   def data_sample(self):
     _car_state = messaging.recv_one(self.car_state_sock)

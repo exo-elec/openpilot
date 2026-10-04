@@ -17,6 +17,7 @@ from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
+from nagaspilot.controls.ngp_adaptive_limits import clamp_accel_limits
 from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
 from nagaspilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
 from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
@@ -49,7 +50,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pathAdjust'], poll='selfdriveState')
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pathAdjust', 'adaptiveDrivingState'], poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'])
 
     self.steer_limited_by_safety = False
@@ -178,6 +179,8 @@ class Controls:
 
     # accel PID loop
     pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, CS.vEgo, CS.vCruise * CV.KPH_TO_MS)
+    ads = self.sm['adaptiveDrivingState']          # adaptd (default off): accel/decel limits from vehicle telemetry, tighten only
+    pid_accel_limits = clamp_accel_limits(pid_accel_limits, self.sm.valid['adaptiveDrivingState'] and ads.enabled, float(ads.accelMax), float(ads.decelMax))
     actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits))
 
     # DLAT: automatic Laneful/Laneless confidence arbitration, a default

@@ -2752,6 +2752,9 @@ struct Event {
     pathAdjust @152 :Custom.PathAdjust;           # NagasPilot pathd add-on (publish-only)
     stereoObjects @153 :StereoObjects;            # fused camera objects (EOP10: gridd @155)
     mapData @154 :MapData;                        # OSM speed limits and curvature (EOP10: mapd @215)
+    adaptiveDrivingState @155 :Custom.AdaptiveDrivingState;   # adaptd (EOP10 @287)
+    ncpVehicleData @156 :Custom.NcpVehicleData;                # interpreted OBD from NavPilot over BLE (EOP10 @288)
+    obdState @157 :Custom.ObdState;                            # basic OBD-II telemetry (EOP10 @257)
 
     # *********** debug ***********
     testJoystick @52 :Joystick;

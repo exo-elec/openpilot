@@ -153,6 +153,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_trip_daily_stats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
     {"ngp_trip_uptime_engaged", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_trip_uptime_onroad", {PERSISTENT, FLOAT, "0.0"}},
+    {"ngp_adaptd_enabled", {PERSISTENT, BOOL, "0"}},   // adaptd: personality and accel limits from vehicle telemetry (NavPilot over BLE, or OBD-II read from the car)
     {"ngp_map_enabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
     {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)

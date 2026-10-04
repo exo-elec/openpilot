@@ -152,3 +152,87 @@ struct PathAdjust @0x86ee74962cb31a1d {
   disagreeAccel @18 :Float32;
 }
 
+# adaptd (shared with EOP10: same struct ids and field ordinals)
+struct ObdState @0xf1e2d3c4b5a69788 {
+  engineRpm @0 :Float32;        # Engine RPM
+  vehicleSpeed @1 :Float32;    # Vehicle speed (km/h)
+  coolantTemp @2 :Float32;     # Coolant temperature (°C)
+  intakeTemp @3 :Float32;      # Intake air temperature (°C)
+  throttlePos @4 :Float32;     # Throttle position (%)
+  engineLoad @5 :Float32;      # Engine load (%)
+  fuelLevel @6 :Float32;       # Fuel level (%)
+  obdConnected @7 :Bool;       # OBD2 connection status
+  protocol @8 :UInt8;          # Active protocol number
+
+  # Vehicle identification (populated once on detection)
+  vin @9 :Text;                # Vehicle Identification Number
+  vehicleType @10 :Text;       # 'generic_ice', 'generic_ev', 'byd', 'mg', etc.
+  make @11 :Text;              # Vehicle manufacturer
+
+  # EV / Mode 22 telemetry
+  batterySoc @12 :Float32;     # Battery SOC (%)
+  batterySoh @13 :Float32;     # Battery SOH (%)
+  batteryVoltage @14 :Float32; # Battery voltage (V)
+  batteryCurrent @15 :Float32; # Battery current (A), signed
+  batteryTempMax @16 :Float32; # Battery max temperature (°C)
+  batteryTempMin @17 :Float32; # Battery min temperature (°C)
+  batteryPower @18 :Float32;   # Battery power (kW), signed
+  chargingStatus @19 :UInt8;   # 0=off, 1=AC, 2=DC
+  chargingPower @20 :Float32; # Charging power (kW)
+  rangeRemaining @21 :Float32; # Range remaining (km)
+  motorRpm @22 :Float32;       # Motor RPM
+  motorTemp @23 :Float32;      # Motor temperature (°C)
+  inverterTemp @24 :Float32;   # Inverter temperature (°C)
+  auxBatteryVoltage @25 :Float32; # 12V aux battery voltage (V)
+  odometer @26 :Float32;       # Odometer (km)
+}
+
+# Adaptive Driving State — published by adaptd, consumed by controlsd
+# Dynamically adjusts driving personality based on OBD telemetry
+struct AdaptiveDrivingState @0xb4ea0a039234a515 {
+  enabled @0 :Bool;            # Adaptive driving active
+  personality @1 :UInt8;       # Recommended LongitudinalPersonality (0-3)
+  reason @2 :Text;             # Human-readable reason for recommendation
+  reasonCode @3 :Text;         # Machine-readable reason code (e.g. "low_soc", "thermal")
+  accelMax @4 :Float32;        # Max acceleration limit (m/s²), 0 = no limit
+  decelMax @5 :Float32;        # Max deceleration limit (m/s²), 0 = no limit
+  regenStrength @6 :Float32;   # Regen strength multiplier (0.0-1.0), EV only
+  thermalDerating @7 :Bool;    # True when thermal limits active
+  soc @8 :Float32;             # Current battery SOC (%), EV only
+  rangeKm @9 :Float32;         # Current range remaining (km)
+  batteryTemp @10 :Float32;    # Battery temperature (°C), EV only
+  motorTemp @11 :Float32;      # Motor temperature (°C), EV only
+  coolantTemp @12 :Float32;    # Coolant temperature (°C), ICE only
+  timestamp @13 :UInt64;       # Mono time in nanoseconds
+}
+
+# NCP Vehicle Data — sent from NavPilot (phone) to device via BLE
+# Contains interpreted OBD telemetry that NavPilot decoded from raw ELM327 responses
+struct NcpVehicleData @0xbe2faa50e7c9e4d4 {
+  valid @0 :Bool;              # Data is fresh and valid
+  batterySoc @1 :Float32;      # Battery SOC (%)
+  batterySoh @2 :Float32;      # Battery SOH (%)
+  batteryVoltage @3 :Float32;  # Battery voltage (V)
+  batteryCurrent @4 :Float32;  # Battery current (A)
+  batteryTempMax @5 :Float32;  # Battery max temp (°C)
+  batteryTempMin @6 :Float32;  # Battery min temp (°C)
+  batteryPower @7 :Float32;    # Battery power (kW)
+  chargingStatus @8 :UInt8;    # 0=off, 1=AC, 2=DC
+  chargingPower @9 :Float32;   # Charging power (kW)
+  rangeRemaining @10 :Float32; # Range remaining (km)
+  motorRpm @11 :Float32;       # Motor RPM
+  motorTemp @12 :Float32;      # Motor temperature (°C)
+  inverterTemp @13 :Float32;   # Inverter temperature (°C)
+  auxBatteryVoltage @14 :Float32; # 12V aux voltage (V)
+  engineRpm @15 :Float32;      # Engine RPM (ICE)
+  coolantTemp @16 :Float32;    # Coolant temperature (°C)
+  throttlePos @17 :Float32;    # Throttle position (%)
+  engineLoad @18 :Float32;     # Engine load (%)
+  fuelLevel @19 :Float32;      # Fuel level (%)
+  vehicleSpeed @20 :Float32;   # Vehicle speed (km/h)
+  odometer @21 :Float32;       # Odometer (km)
+  vin @22 :Text;               # Vehicle VIN
+  vehicleType @23 :Text;       # Vehicle type string
+  timestamp @24 :UInt64;       # Mono time (ns)
+}
+

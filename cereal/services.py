@@ -29,6 +29,9 @@ _services: dict[str, tuple] = {
   "pandaStates": (True, 10., 1),
   "peripheralState": (True, 2., 1),
   "egpuState": (True, 10., 10),
+  "obdState": (True, 2., 10),          # periodic OBD state (RPM, speed, temps, EV telemetry)
+  "adaptiveDrivingState": (True, 2., 10),   # adaptive driving parameters from adaptd
+  "ncpVehicleData": (True, 2., 10),         # interpreted OBD from NavPilot
   "mapData": (True, 1., 1),             # OSM speed limits and curvature (mapd)
   "stereoObjects": (True, 20., 5),     # fused camera objects (gridd / gridd)
   "pathAdjust": (True, 20., 5),         # nagaspilot pathd add-on

@@ -1,0 +1,259 @@
+{
+"cases": [
+{
+"in": {},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Cold battery -273.0\u00b0C",
+"code": "cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batterySoc": 50.0
+},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Cold battery -273.0\u00b0C",
+"code": "cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batterySoc": 15.0
+},
+"personality": 2,
+"accel_max": 1.4,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Low SOC 15%; Cold battery -273.0\u00b0C",
+"code": "low_soc;cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batterySoc": 5.0
+},
+"personality": 3,
+"accel_max": 1.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Critical SOC 5%; Cold battery -273.0\u00b0C",
+"code": "critical_soc;cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batterySoc": 85.0
+},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "High SOC 85% (limited regen); Cold battery -273.0\u00b0C",
+"code": "high_soc;cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"rangeRemaining": 40.0
+},
+"personality": 2,
+"accel_max": 1.2,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Low range 40km; Cold battery -273.0\u00b0C",
+"code": "low_range;cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"rangeRemaining": 20.0
+},
+"personality": 3,
+"accel_max": 0.8,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Critical range 20km; Cold battery -273.0\u00b0C",
+"code": "critical_range;cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batteryTempMax": 50.0
+},
+"personality": 1,
+"accel_max": 1.2,
+"accel_min": -3.48,
+"regen": 1.0,
+"derating": true,
+"reason": "Hot battery 50.0\u00b0C",
+"code": "hot_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batteryTempMax": 60.0
+},
+"personality": 1,
+"accel_max": 0.8,
+"accel_min": -3.48,
+"regen": 0.5,
+"derating": true,
+"reason": "Critical battery temp 60.0\u00b0C",
+"code": "critical_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"batteryTempMin": -5.0
+},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Cold battery -5.0\u00b0C",
+"code": "cold_batt_temp",
+"enabled": true
+},
+{
+"in": {
+"motorTemp": 85.0
+},
+"personality": 1,
+"accel_max": 1.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": true,
+"reason": "Cold battery -273.0\u00b0C; Hot motor 85.0\u00b0C",
+"code": "cold_batt_temp;hot_motor_temp",
+"enabled": true
+},
+{
+"in": {
+"motorTemp": 105.0
+},
+"personality": 1,
+"accel_max": 0.6,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": true,
+"reason": "Cold battery -273.0\u00b0C; Critical motor temp 105.0\u00b0C",
+"code": "cold_batt_temp;critical_motor_temp",
+"enabled": true
+},
+{
+"in": {
+"inverterTemp": 75.0
+},
+"personality": 1,
+"accel_max": 1.2,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": true,
+"reason": "Cold battery -273.0\u00b0C; Hot inverter 75.0\u00b0C",
+"code": "cold_batt_temp;hot_inverter_temp",
+"enabled": true
+},
+{
+"in": {
+"inverterTemp": 95.0
+},
+"personality": 1,
+"accel_max": 0.6,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": true,
+"reason": "Cold battery -273.0\u00b0C; Critical inverter temp 95.0\u00b0C",
+"code": "cold_batt_temp;critical_inverter_temp",
+"enabled": true
+},
+{
+"in": {
+"coolantTemp": 105.0
+},
+"personality": 1,
+"accel_max": 1.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": true,
+"reason": "Cold battery -273.0\u00b0C; High coolant 105.0\u00b0C",
+"code": "cold_batt_temp;high_coolant_temp",
+"enabled": true
+},
+{
+"in": {
+"batterySoc": 5.0,
+"rangeRemaining": 20.0,
+"batteryTempMax": 60.0,
+"motorTemp": 105.0
+},
+"personality": 3,
+"accel_max": 0.6,
+"accel_min": -3.48,
+"regen": 0.5,
+"derating": true,
+"reason": "Critical SOC 5%; Critical range 20km; Critical battery temp 60.0\u00b0C; Critical motor temp 105.0\u00b0C",
+"code": "critical_soc;critical_range;critical_batt_temp;critical_motor_temp",
+"enabled": true
+},
+{
+"in": {
+"valid": false
+},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 1.0,
+"derating": false,
+"reason": "No vehicle data",
+"code": "no_data",
+"enabled": true
+},
+{
+"in": {},
+"personality": 1,
+"accel_max": 2.0,
+"accel_min": -3.48,
+"regen": 0.4,
+"derating": false,
+"reason": "Cold battery -273.0\u00b0C",
+"code": "cold_batt_temp",
+"enabled": true
+}
+],
+"hysteresis": [
+{
+"soc": 50.0,
+"dt": 11.0,
+"personality": 1
+},
+{
+"soc": 5.0,
+"dt": 11.0,
+"personality": 3
+},
+{
+"soc": 50.0,
+"dt": 2.0,
+"personality": 3
+},
+{
+"soc": 50.0,
+"dt": 12.0,
+"personality": 1
+}
+]
+}
