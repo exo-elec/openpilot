@@ -1,6 +1,7 @@
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
+from nagaspilot.controls.ngp_turn_desire import NGPTurnDesire
 from nagaspilot.controls.ngp_lane_change import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
 
 LaneChangeState = log.LaneChangeState
@@ -32,7 +33,7 @@ DESIRES = {
 
 
 class DesireHelper:
-  def __init__(self, ngp_lca_speed_mph=20, ngp_lca_auto_sec=0.0, ngp_lca_gap_eval=False, ngp_lca_lane_width=False):
+  def __init__(self, ngp_lca_speed_mph=20, ngp_lca_auto_sec=0.0, ngp_lca_gap_eval=False, ngp_lca_lane_width=False, ngp_turn_desire_mph=0):
     self.lane_change_state = LaneChangeState.off
     self.lane_change_direction = LaneChangeDirection.none
     self.lane_change_timer = 0.0
@@ -45,6 +46,7 @@ class DesireHelper:
     self.ngp_lca_auto_timer = 0.0
     self.ngp_lca_gap_eval = bool(ngp_lca_gap_eval)
     self.ngp_lca_lane_width = bool(ngp_lca_lane_width)
+    self.ngp_turn = NGPTurnDesire(float(ngp_turn_desire_mph) * CV.MPH_TO_MS) if ngp_turn_desire_mph else None
 
   def _lane_blocked(self, model_v2, direction, v_ego):
     # Opt-in modelV2 guards (adjacent-lane TTC gap, target-lane width). Unknown data never blocks.
@@ -142,3 +144,10 @@ class DesireHelper:
         self.keep_pulse_timer = 0.0
       elif self.desire in (log.Desire.keepLeft, log.Desire.keepRight):
         self.desire = log.Desire.none
+
+    # Opt-in turn desire (ngp_lat_turn_desire_mph): a turnLeft/turnRight pulse for the model at low speed with a signal on
+    if self.ngp_turn is not None and self.desire == log.Desire.none:
+      turn = self.ngp_turn.update(v_ego, carstate.leftBlinker, carstate.rightBlinker, lateral_active,
+                                  self.lane_change_state != LaneChangeState.off)
+      if turn is not None:
+        self.desire = log.Desire.turnLeft if turn == 'left' else log.Desire.turnRight

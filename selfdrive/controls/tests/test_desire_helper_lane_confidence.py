@@ -30,6 +30,8 @@ class Desire(IntEnum):
   laneChangeRight = 2
   keepLeft = 3
   keepRight = 4
+  turnLeft = 5
+  turnRight = 6
 
 
 _fake_log = types.SimpleNamespace(LaneChangeState=LaneChangeState, LaneChangeDirection=LaneChangeDirection, Desire=Desire)
@@ -137,3 +139,25 @@ def test_lane_width_guard_blocks_shoulder_only_when_enabled():
   shoulder.roadEdges = [_line(-2.4), _line(2.4)]
   assert _start(DesireHelper(ngp_lca_lane_width=True), shoulder) == LaneChangeState.preLaneChange
   assert _start(DesireHelper(), shoulder) == LaneChangeState.laneChangeStarting
+
+
+def test_turn_desire_is_off_by_default_and_follows_the_signal_when_enabled():
+  cs = _make_carstate(v_ego=5.0, left_blinker=True)
+  dh = DesireHelper()
+  dh.update(cs, lateral_active=True, lane_change_prob=0.0)
+  assert dh.desire == Desire.none
+  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh.update(cs, lateral_active=True, lane_change_prob=0.0)
+  assert dh.desire == Desire.turnLeft
+  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh.update(_make_carstate(v_ego=5.0, right_blinker=True), lateral_active=True, lane_change_prob=0.0)
+  assert dh.desire == Desire.turnRight
+
+
+def test_turn_desire_stays_out_of_lane_changes_and_fast_driving():
+  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh.update(_make_carstate(v_ego=15.0, left_blinker=True), lateral_active=True, lane_change_prob=0.0)
+  assert dh.desire == Desire.none  # above the ceiling, a lane change is the signal's meaning
+  dh.update(_make_carstate(v_ego=5.0), lateral_active=False, lane_change_prob=0.0)
+  dh.update(_make_carstate(v_ego=5.0, left_blinker=True), lateral_active=False, lane_change_prob=0.0)
+  assert dh.desire == Desire.none  # lateral not active

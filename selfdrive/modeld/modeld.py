@@ -370,6 +370,7 @@ def main(demo=False):
     ngp_lca_auto_sec=float(params.get("ngp_lat_lca_auto_sec", return_default=True)),
     ngp_lca_gap_eval=params.get_bool("ngp_lat_lca_gap_eval"),
     ngp_lca_lane_width=params.get_bool("ngp_lat_lca_lane_width"),
+    ngp_turn_desire_mph=int(params.get("ngp_lat_turn_desire_mph", return_default=True)),
   )
   ngp_road_edge_enabled = params.get_bool("ngp_lat_road_edge_detection")
 

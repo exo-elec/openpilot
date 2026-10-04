@@ -109,6 +109,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // ExoPilot adds YOLO/stereo corroboration. Unvalidated on road; default off.
     {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
+    // Lane turn desire: max speed (mph) at which a turn signal sends a turn desire to the model; 0 = off.
+    {"ngp_lat_turn_desire_mph", {PERSISTENT, INT, "0"}},
     // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).
     {"ngp_lat_lca_gap_eval", {PERSISTENT, BOOL, "0"}},
     {"ngp_lat_lca_lane_width", {PERSISTENT, BOOL, "0"}},
@@ -120,6 +122,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
+    // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
+    // custom (default) writes nothing. See nagaspilot/controls/ngp_drive_mode.py.
+    {"ngp_lon_drive_mode", {PERSISTENT, STRING, "custom"}},
     {"ngp_lon_accel_profile", {PERSISTENT, STRING, "normal"}},
     // Adaptive follow gap uses only the standard radarState.leadOne observation.
     // Default off like EOP10's EOPAdaptiveGapEnabled; opt-in pending vehicle validation.

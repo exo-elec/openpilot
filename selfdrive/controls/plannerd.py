@@ -5,6 +5,7 @@ from openpilot.common.realtime import Priority, config_realtime_process
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning
 from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner, NGPFlags
+from nagaspilot.runtime.drive_mode import DriveModeApplier
 import cereal.messaging as messaging
 
 
@@ -23,6 +24,7 @@ def main():
   # NGP10_FEATURE_MATRIX.md's "Live vs. next-drive toggles").
   speed_offset_kph = int(params.get("ngp_lon_speed_offset_kph", return_default=True))
   longitudinal_planner = LongitudinalPlanner(CP, speed_offset_kph=speed_offset_kph)
+  drive_mode = DriveModeApplier(params)  # ngp_lon_drive_mode: eco / normal / sport write the style params; custom writes nothing
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
   # NOTE: 'mapData' is deliberately NOT subscribed here. NGP10 has no MapData
   # struct/Event field in cereal/log.capnp, no 'mapData' entry in
@@ -49,6 +51,7 @@ def main():
 
   while True:
     sm.update()
+    drive_mode.update()
     if sm.updated['modelV2']:
       longitudinal_planner.update(sm, ngp_flags)
       longitudinal_planner.publish(sm, pm)
