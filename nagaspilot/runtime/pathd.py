@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """pathd add-on layer at the NGP10 base: bounded lateral offset + speed factor around the policy path.
 
+NGP10 base only: EOP10/01M/02M do not register this process (EOP10 has its own `selfdrive.pathd` daemon; map `pathAdjust` onto `enhancedTrajectory` through an adapter instead).
 Reads modelV2 (policy path, lane lines), carState and monoDetections; runs the pure PathSelector;
 publishes `pathAdjust`. Publish-only: nothing consumes it until the shadow replay proves it
 (`python3 -m nagaspilot.tools.replay_object_guard`). Runs only with `ngp_pathd_enabled` (default off).

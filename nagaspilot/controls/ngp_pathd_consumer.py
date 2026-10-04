@@ -7,8 +7,7 @@ Pure: no cereal, no Params.
 """
 import math
 
-from nagaspilot.controls.ngp_soc import BIAS_PER_METER   # same curvature gain as SOC (1/m per metre of offset)
-
+BIAS_PER_METER = 0.002    # 1/m of curvature per metre of offset: the same gain as ngp_soc.BIAS_PER_METER (not imported: EOP10 has no ngp_soc)
 MAX_OFFSET_M = 0.6
 RAMP_M_PER_S = 0.15
 MIN_SPEED_FLOOR = 8.3     # m/s, same floor as BRSC / cut-in

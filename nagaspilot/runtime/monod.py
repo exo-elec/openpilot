@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """monod on comma 3 / 3X and clones: road-camera YOLO detections, ranged and tracked, published as `monoDetections`.
 
+NGP10 base only: EOP10/01M/02M do not register this process (their RKNN `selfdrive.monod` publishes `monoDetections`; one publisher per service).
 Publish-only and default off (`ngp_monod_enabled`): nothing in controls reads `monoDetections` yet.
 Needs a detector ONNX (YOLOv8-style head) compiled by SCons to `models/yolo_detector_tinygrad.pkl`;
 without it the process idles. The weights are not part of this repo (check their licence).
