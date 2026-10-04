@@ -55,3 +55,14 @@ def test_fill_detections_fields_and_occluded_confidence():
   md2 = Builder()
   fill_detections(md2, occluded, 8, 12.9, 0.0)
   assert md2.detections[0].confidence == 0.0 and md2.detections[0].sigmaX > d.sigmaX
+
+
+def test_detect_is_sensing_only_untracked_and_fill_raw_publishes_it():
+  from nagaspilot.runtime.monod import fill_raw_detections
+  p = MonoPipeline(K, W, H)
+  meas = p.detect([box_at(30.0, u=900.0)], [], VIEW_FROM_CALIB)
+  assert len(meas) == 1 and abs(meas[0].x - 30.0) < 0.5 and p.tracker.tracks == []        # nothing tracked here
+  md = Builder()
+  fill_raw_detections(md, meas, 9, 3.5, 0.02)
+  d = md.detections[0]
+  assert md.frameId == 9 and d.trackId == 0 and d.className == 'car' and d.confidence > 0.7 and d.w > 0 and not hasattr(d, 'vx')

@@ -49,7 +49,8 @@ class PathD:
   def step_rule(self, sm, v_ego: float, set_speed: float, driver_override: bool, ceiling: int, dt: float) -> RuleOut:
     """Call after `step` in the same frame (shares its objects)."""
     objs, fresh, room = self._last
-    exec_time = float(sm['monoDetections'].modelExecutionTime) if fresh and self.source.name == 'monoDetections' else 0.0
+    # the detector's forward-pass time, when a detector publishes it (NGP10 monod); 0 where there is none
+    exec_time = float(sm['monoDetections'].modelExecutionTime) if sm.alive.get('monoDetections', False) and sm.valid.get('monoDetections', False) else 0.0
     perception_ok = bool(fresh and exec_time <= EXEC_TIME_BUDGET_S and sm.valid.get('modelV2', False))
     leads = []
     if sm.valid.get('radarState', False):
@@ -154,12 +155,14 @@ class SharedPathdHost:
 
 
 def run(source=None) -> None:
+  from nagaspilot.runtime.object_sources import GriddSource
   from cereal import messaging
   from cereal.messaging import PubMaster, SubMaster
   from openpilot.common.params import Params
 
-  sm = SubMaster(['modelV2', 'carState', 'radarState', 'monoDetections'], poll='modelV2', ignore_alive=['monoDetections', 'radarState'])
-  host = SharedPathdHost(Params(), PubMaster(['pathAdjust']), source)
+  sm = SubMaster(['modelV2', 'carState', 'radarState', 'monoDetections', 'stereoObjects'], poll='modelV2',
+                 ignore_alive=['monoDetections', 'radarState', 'stereoObjects'])
+  host = SharedPathdHost(Params(), PubMaster(['pathAdjust']), source or GriddSource())
   while True:
     sm.update()
     host.tick(sm)

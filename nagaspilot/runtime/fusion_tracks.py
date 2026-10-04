@@ -52,6 +52,8 @@ class CameraTrackAnnotator:
       t = best[1]
       if not o.get('vRel'):
         o['vRel'] = float(t.vx)
+      if not o.get('trackId'):                 # sources without ids (NGP10 monod) get the tracker's
+        o['trackId'] = int(t.track_id)
       o['vyRel'] = float(t.vy)
       n += 1
     return n

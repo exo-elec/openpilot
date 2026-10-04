@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""monod on comma 3 / 3X and clones: road-camera YOLO detections, ranged and tracked, published as `monoDetections`.
+"""monod on comma 3 / 3X and clones: road-camera YOLO detections, ranged (sensing only, untracked), published as `monoDetections`.
 
 NGP10 base only: EOP10/01M/02M do not register this process (their RKNN `selfdrive.monod` publishes `monoDetections`; one publisher per service).
 Publish-only and default off (`ngp_monod_enabled`): nothing in controls reads `monoDetections` yet.
@@ -7,10 +7,11 @@ Needs a detector ONNX (YOLOv8-style head) compiled by SCons to `models/yolo_dete
 without it the process idles. The weights are not part of this repo (check their licence).
 
 Parts:
-  MonoPipeline     detections -> ranged -> tracked (pure, tested with a fake model)
+  MonoPipeline     SENSING: boxes -> ranged detections (`detect`); `step` adds the tracker for tests/tools only
   fill_detections  tracks -> MonoDetections builder (same schema as EOP10)
   TinygradYolo     the model behind an interface (device only, not tested here)
-  main             VisionIPC road stream at `ngp_monod_hz`, liveCalibration, radarState leads
+  main             VisionIPC road stream at `ngp_monod_hz`, liveCalibration, radarState leads; publishes untracked detections
+                   (tracking, velocity and the fused-object message belong to `gridd`: runtime/gridd_lite.py)
 """
 import math
 import os
@@ -46,9 +47,11 @@ class MonoPipeline:
     self.tracker = ObjectTracker()
     self.lb = Letterbox.fit(img_w, img_h, MODEL_SIZE)
 
-  def step(self, boxes: list[Box], leads: list[tuple[float, float]], view_from_calib: np.ndarray,
-           dt: float, cam_height: float | None = None) -> list[Track]:
-    """`leads` = [(dRel, yRel)] from radarState, yRel left positive."""
+  def detect(self, boxes: list[Box], leads: list[tuple[float, float]], view_from_calib: np.ndarray,
+             cam_height: float | None = None) -> list[Measurement]:
+    """SENSING: boxes -> metric detections (ranging + lead-anchored scale). No tracking: that is gridd's job.
+
+    `leads` = [(dRel, yRel)] from radarState, yRel left positive."""
     if cam_height:
       self.ranger.cam = replace(self.ranger.cam, height_m=float(cam_height))
     vp_u, horizon_v = vanishing_point(view_from_calib, self.K)
@@ -67,7 +70,31 @@ class MonoPipeline:
       y = r.y * (x / r.x) if r.x else r.y
       meas.append(Measurement(b.name, x, y, sx, sy, b.conf,
                               (b.cx / self.img_w, 0.5 * (b.y1 + b.y2) / self.img_h, b.w / self.img_w, b.h / self.img_h)))
-    return self.tracker.update(meas, dt)
+    return meas
+
+  def step(self, boxes: list[Box], leads: list[tuple[float, float]], view_from_calib: np.ndarray,
+           dt: float, cam_height: float | None = None) -> list[Track]:
+    """detect + track in one call (used by tests and offline tools; the daemon publishes `detect` and gridd tracks)."""
+    return self.tracker.update(self.detect(boxes, leads, view_from_calib, cam_height), dt)
+
+
+def fill_raw_detections(md, meas: list[Measurement], frame_id: int, timestamp_s: float, exec_time: float) -> None:
+  """Fill a MonoDetections builder with UNTRACKED detections: position, class, confidence, box, sigma; no id, no velocity."""
+  md.frameId = frame_id
+  md.timestamp = timestamp_s
+  md.numTracks = len(meas)
+  md.modelExecutionTime = exec_time
+  dets = md.init('detections', len(meas))
+  for i, m in enumerate(meas):
+    d = dets[i]
+    d.trackId = 0
+    d.className = m.name
+    d.confidence = float(m.conf)
+    d.cameraSource = 'road'
+    d.u, d.v, d.w, d.h = (float(v) for v in m.box)
+    d.x, d.y = float(m.x), float(m.y)
+    d.distance = float(math.hypot(m.x, m.y))
+    d.sigmaX, d.sigmaY = float(m.sigma_x), float(m.sigma_y)
 
 
 def fill_detections(md, tracks: list[Track], frame_id: int, timestamp_s: float, exec_time: float) -> None:
@@ -178,10 +205,10 @@ def main():
     view_from_calib = get_view_frame_from_calib_frame(rpy[0], rpy[1], rpy[2], 0.0)[:, :3]
     leads = [(float(l.dRel), float(l.yRel)) for l in (sm["radarState"].leadOne, sm["radarState"].leadTwo) if l.status]
     height = float(calib.height[0]) if len(calib.height) else None
-    tracks = pipe.step(decode(raw, pipe.lb, buf.width, buf.height), leads, view_from_calib, dt, height)
+    meas = pipe.detect(decode(raw, pipe.lb, buf.width, buf.height), leads, view_from_calib, height)
 
     msg = messaging.new_message('monoDetections', valid=True)
-    fill_detections(msg.monoDetections, tracks, vipc.frame_id, vipc.timestamp_sof * 1e-9, exec_time)
+    fill_raw_detections(msg.monoDetections, meas, vipc.frame_id, vipc.timestamp_sof * 1e-9, exec_time)
     pm.send('monoDetections', msg)
 
 

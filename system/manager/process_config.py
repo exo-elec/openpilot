@@ -97,6 +97,8 @@ procs = [
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
   PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", only_onroad),
   PythonProcess("monod", "nagaspilot.runtime.monod", monod_enabled),
+  # perception for one camera: tracks monod's detections into the fused-object message pathd reads (EOP10's gridd does this and more)
+  PythonProcess("gridd", "nagaspilot.runtime.gridd_lite", monod_enabled),
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),

@@ -2552,6 +2552,73 @@ struct Touch {
   value @4 :Int32;
 }
 
+# Fused camera objects (same structs and ids as EOP10). EOP10's gridd publishes them; on NGP10 `gridd`-lite does
+# (nagaspilot/runtime/gridd_lite.py), tracking monod's detections so pathd reads the same message everywhere.
+struct CameraObject @0xf3d1e4a9b2c5d6e7 {
+  trackId @0 :UInt64;
+  dRel @1 :Float32;
+  yRel @2 :Float32;
+  vRel @3 :Float32;
+  prob @4 :Float32;
+  x @5 :List(Float32);
+  y @6 :List(Float32);
+  v @7 :List(Float32);
+  xStd @8 :Float32;
+  yStd @9 :Float32;
+  vStd @10 :Float32;
+  depthSource @11 :DepthSource = unknown;  # How depth was computed
+  obstacleType @12 :ObstacleType = unknown;   # Type of obstacle (for control strategy)
+  trafficLightState @13 :TrafficLightState = unknown;  # Classified signal color (if traffic light)
+  trafficLightConfidence @14 :Float32;  # Confidence for the classified traffic light state
+  aRel @15 :Float32;  # Longitudinal relative acceleration (m/s^2), negative = braking; fused from radar4d
+
+  enum DepthSource {
+    bboxCenter @0;          # Fallback: depth from bbox center (legacy, less accurate for overlapping objects)
+    maskMedian @1;          # Preferred: median depth from segmentation mask pixels (accurate for overlapping objects)
+    stereoTriangulation @2; # Future: direct triangulation from dual stereo views
+    unknown @3;             # Unspecified depth source (legacy / not set)
+  }
+
+  enum ObstacleType {
+    unknown @0;       # Unknown/unclassified obstacle
+    vehicle @1;       # Vehicle (car, truck, bus, van)
+    motorcycle @2;    # Motorcycle, scooter, bicycle
+    person @3;        # Person, pedestrian, cyclist
+    animal @4;        # Dog, cat, cow, buffalo, elephant (common in Thailand)
+    bump @5;          # Small bump on road (< 15cm height from depth)
+    speedBump @6;     # Speed bump (long + wide geometry)
+    debris @7;        # Small debris/object on road
+    cone @8;          # Traffic cone, barrier, construction marker
+    tollGate @9;      # Highway toll gate/barrier (vertical obstacle from voxel, height > 1.5m)
+    trafficLight @10; # Traffic signal head detected via stereo YOLO + classifier
+  }
+
+  enum TrafficLightState {
+    unknown @0;   # Not classified / not a traffic signal
+    red @1;       # Red light lit
+    yellow @2;    # Yellow/amber light lit
+    green @3;     # Green light lit
+  }
+
+  enum LaneZone {
+    unknown       @0;
+    ego           @1;
+    adjLeft       @2;
+    adjRight      @3;
+    farLeft       @4;
+    farRight      @5;
+    shoulderLeft  @6;
+    shoulderRight @7;
+  }
+  laneZone @16 :LaneZone = unknown;
+  vyRel @17 :Float32; # Lateral relative speed (m/s), left positive; gridd's Kalman track of camera objects (0 = unknown)
+}
+
+struct StereoObjects @0xa1b2c3d4e5f67890 {
+  # Objects from stereo pair (left+right front cameras with depth)
+  objects @0 :List(CameraObject);
+}
+
 struct Event {
   logMonoTime @0 :UInt64;  # nanoseconds
   valid @67 :Bool = true;
@@ -2653,6 +2720,7 @@ struct Event {
     egpuState @150 :EgpuState;
     monoDetections @151 :Custom.MonoDetections;   # EOP10 has this at @218
     pathAdjust @152 :Custom.PathAdjust;           # NagasPilot pathd add-on (publish-only)
+    stereoObjects @153 :StereoObjects;            # fused camera objects (EOP10: gridd @155)
 
     # *********** debug ***********
     testJoystick @52 :Joystick;

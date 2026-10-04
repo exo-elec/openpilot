@@ -45,3 +45,17 @@ def test_unconfirmed_unknown_class_and_out_of_range_get_nothing():
   clk.t += 0.05
   one = [obj(30.0, 1.0), obj(30.0, 1.0, name='traffic light'), obj(300.0, 0.0)]
   assert a.annotate(one) == 0 and all('vyRel' not in o for o in one)        # a track is confirmed only after 3 hits
+
+
+def test_tracker_ids_are_assigned_only_where_the_source_has_none_and_stay_stable():
+  clk, a = Clock(), CameraTrackAnnotator(Clock())
+  a._clock = clk
+  ids = set()
+  for i in range(30):
+    clk.t += 0.05
+    o = obj(40.0 - 0.4 * i, 2.0, tid=0)
+    keep = obj(25.0, -2.0, name='truck', tid=77)
+    a.annotate([o, keep])
+    if 'vyRel' in o:
+      ids.add(o['trackId'])
+  assert len(ids) == 1 and next(iter(ids)) > 0 and keep['trackId'] == 77
