@@ -28,6 +28,9 @@ from nagaspilot.controls.longitudinal_policy import (
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
+from nagaspilot.runtime.longitudinal_params import (
+  load_accel_profile as _load_accel_profile, load_adaptive_gap_enabled as _load_adaptive_gap_enabled,
+)
 from nagaspilot.controls.ngp_dlon import NGPDLON
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
 # EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
@@ -48,8 +51,6 @@ from nagaspilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObser
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = list(ACCELERATION_PROFILES["normal"])
-_accel_profile_cache = {"ts": 0.0, "profile": "normal"}
-_adaptive_gap_cache = {"ts": 0.0, "enabled": False}
 A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 ALLOW_THROTTLE_THRESHOLD = 0.4
@@ -69,29 +70,6 @@ class NGPFlags:
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
 BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
-
-
-def _load_accel_profile():
-  global _accel_profile_cache
-  now = time.monotonic()
-  if now - _accel_profile_cache["ts"] < 2.0:
-    return _accel_profile_cache["profile"]
-  value = Params().get("ngp_lon_accel_profile")
-  profile = value.decode("utf-8") if value else "normal"
-  if profile not in ACCELERATION_PROFILES:
-    profile = "normal"
-  _accel_profile_cache = {"ts": now, "profile": profile}
-  return profile
-
-
-def _load_adaptive_gap_enabled():
-  global _adaptive_gap_cache
-  now = time.monotonic()
-  if now - _adaptive_gap_cache["ts"] < 2.0:
-    return _adaptive_gap_cache["enabled"]
-  enabled = Params().get_bool("ngp_lon_adaptive_gap")
-  _adaptive_gap_cache = {"ts": now, "enabled": enabled}
-  return enabled
 
 
 def get_max_accel(v_ego):
