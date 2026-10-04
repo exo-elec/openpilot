@@ -17,7 +17,9 @@ def det(y=-2.6):
 
 
 class Builder:
-  pass
+  def init(self, name, n):
+    setattr(self, name, [0.0] * n)
+    return getattr(self, name)
 
 
 def test_step_nudges_away_from_a_truck_and_message_fields():
@@ -25,7 +27,8 @@ def test_step_nudges_away_from_a_truck_and_message_fields():
   sel, room, n = d.step(SM([det()]), 25.0)
   assert n == 1 and sel.offset_m > 0 and room[0] > 0
   pa = Builder()
-  fill_path_adjust(pa, sel, room, n, 12)
+  fill_path_adjust(pa, sel, room, n, 12, 25.0)
+  assert len(pa.offsetProfile) == len(pa.speedCapProfile) == 12 and pa.horizonDt == 0.25 and max(pa.speedCapProfile) <= 25.0 and pa.offsetProfile[-1] > 0
   assert pa.frameId == 12 and pa.offsetM > 0 and pa.speedFactor <= 1.0 and pa.reason in ('nudge', 'slow') and pa.numObjects == 1
 
 

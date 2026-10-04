@@ -137,5 +137,9 @@ struct PathAdjust @0x86ee74962cb31a1d {
   roomLeftM @5 :Float32;
   roomRightM @6 :Float32;
   numObjects @7 :UInt16;
+  # Horizon profile of the same request (append-only fields): element i is (i+1) * horizonDt seconds ahead.
+  horizonDt @8 :Float32;
+  offsetProfile @9 :List(Float32);      # lateral offsets, left positive
+  speedCapProfile @10 :List(Float32);   # m/s, never above the current speed
 }
 

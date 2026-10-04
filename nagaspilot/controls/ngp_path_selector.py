@@ -119,3 +119,30 @@ class PathSelector:
       reason = 'nudge'
     self.last_offset = best_off
     return Selection(best_off, factor, best_c, best_cost, reason)
+
+
+PROFILE_HORIZON_S = 3.0
+PROFILE_DT_S = 0.25
+PROFILE_SLEW_M_PER_S = 0.15     # same slew the consumers use, so the profile is what they would actually do
+PROFILE_SPEED_RAMP_S = 1.0
+
+
+def build_profile(sel: Selection, v_ego: float, start_offset: float = 0.0,
+                  horizon: float = PROFILE_HORIZON_S, dt: float = PROFILE_DT_S) -> tuple[list[float], list[float]]:
+  """Horizon profile of the request: lateral offsets (m, left positive) and speed caps (m/s) every `dt` seconds.
+
+  The first element is dt seconds from now. A planner/MPC can consume the whole profile; the scalar consumers
+  use only the first element. Offsets ramp from `start_offset` to the selection at the slew rate; speed caps ramp
+  from the current speed to v_ego * factor over PROFILE_SPEED_RAMP_S and never exceed v_ego.
+  """
+  n = max(int(round(horizon / dt)), 1)
+  offsets: list[float] = []
+  caps: list[float] = []
+  off = start_offset
+  for i in range(1, n + 1):
+    step = PROFILE_SLEW_M_PER_S * dt
+    off += min(max(sel.offset_m - off, -step), step)
+    offsets.append(off)
+    f = 1.0 - (1.0 - min(sel.speed_factor, 1.0)) * min(i * dt / PROFILE_SPEED_RAMP_S, 1.0)
+    caps.append(v_ego * f if math.isfinite(v_ego) else 0.0)
+  return offsets, caps

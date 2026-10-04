@@ -9,7 +9,7 @@ publishes `pathAdjust`. Publish-only: nothing consumes it until the shadow repla
 import math
 
 from nagaspilot.controls.ngp_cutin_speed import PlannedPath
-from nagaspilot.controls.ngp_path_selector import PathSelector
+from nagaspilot.controls.ngp_path_selector import PROFILE_DT_S, PathSelector, build_profile
 from nagaspilot.runtime.cutin_adapter import cutin_path
 from nagaspilot.runtime.path_adapter import lane_room, pobjects
 
@@ -26,7 +26,7 @@ class PathD:
     return sel, room, len(objs)
 
 
-def fill_path_adjust(pa, sel, room, n_objects: int, frame_id: int) -> None:
+def fill_path_adjust(pa, sel, room, n_objects: int, frame_id: int, v_ego: float = 0.0) -> None:
   pa.frameId = frame_id
   pa.offsetM = float(sel.offset_m)
   pa.speedFactor = float(min(sel.speed_factor, 1.0))
@@ -34,6 +34,13 @@ def fill_path_adjust(pa, sel, room, n_objects: int, frame_id: int) -> None:
   pa.reason = sel.reason
   pa.roomLeftM, pa.roomRightM = float(room[0]), float(room[1])
   pa.numObjects = int(n_objects)
+  pa.horizonDt = PROFILE_DT_S
+  offsets, caps = build_profile(sel, v_ego)
+  op = pa.init('offsetProfile', len(offsets))
+  sp = pa.init('speedCapProfile', len(caps))
+  for i, (o, c) in enumerate(zip(offsets, caps, strict=True)):
+    op[i] = float(o)
+    sp[i] = float(c)
 
 
 def main():
@@ -50,7 +57,7 @@ def main():
     v_ego = float(sm['carState'].vEgo)
     sel, room, n = pathd.step(sm, v_ego)
     msg = messaging.new_message('pathAdjust', valid=math.isfinite(sel.offset_m))
-    fill_path_adjust(msg.pathAdjust, sel, room, n, sm['modelV2'].frameId)
+    fill_path_adjust(msg.pathAdjust, sel, room, n, sm['modelV2'].frameId, v_ego)
     pm.send('pathAdjust', msg)
 
 

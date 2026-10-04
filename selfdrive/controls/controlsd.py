@@ -17,8 +17,10 @@ from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
-from nagaspilot.controls.ngp_pathd_consumer import PathAdjustFollower
-from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, curvature_bias, threats_from
+from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
+from nagaspilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
+from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
+from nagaspilot.runtime.path_adapter import lane_room
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -188,16 +190,21 @@ class Controls:
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
+    # Lateral add-ons (SOC, pathd) are proposers merged by the tighten-only arbiter: same-side offsets do not add,
+    # opposite sides cancel, and the result stays inside the lane room (nagaspilot/controls/ngp_arbiter.py).
+    proposals = []
+    if self.soc is not None and CC.latActive:
+      left, right = threats_from(CS, model_v2)
+      lines = tuple(tuple(line.y) for line in model_v2.laneLines)
+      soc_res = self.soc.update(SOCInput(CS.vEgo, left, right, lines, tuple(model_v2.laneLineProbs), tuple(model_v2.laneLineStds)))
+      if soc_res.active_suggestion:
+        proposals.append(Proposal('soc', soc_res.offset_m))
     if self.pathd_lat is not None:
       fresh = bool(self.sm.alive['pathAdjust'] and self.sm.valid['pathAdjust'])
       allowed = CC.latActive and not (CS.steeringPressed or CS.leftBlinker or CS.rightBlinker or CC.leftBlinker or CC.rightBlinker)
-      self.pathd_lat.update(self.sm['pathAdjust'].offsetM, fresh, allowed, DT_CTRL)
-      new_desired_curvature += self.pathd_lat.curvature_delta()
-    if self.soc is not None and self.pathd_lat is None and CC.latActive:
-      left, right = threats_from(CS, model_v2)
-      lines = tuple(tuple(line.y) for line in model_v2.laneLines)
-      new_desired_curvature += curvature_bias(self.soc.update(SOCInput(
-        CS.vEgo, left, right, lines, tuple(model_v2.laneLineProbs), tuple(model_v2.laneLineStds))))
+      proposals.append(Proposal('pathd', self.pathd_lat.update(self.sm['pathAdjust'].offsetM, fresh, allowed, DT_CTRL)))
+    if proposals:
+      new_desired_curvature += arbitrate(proposals, *lane_room(model_v2)).offset_m * BIAS_PER_METER
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
     actuators.curvature = self.desired_curvature

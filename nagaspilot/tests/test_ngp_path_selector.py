@@ -71,3 +71,14 @@ def test_smoothness_prefers_previous_offset():
 def test_enough_room_nudge_alone_is_enough():
   r = sel([o('truck', y=-2.8)])          # 3.2 m needed centre to centre: a 0.4 m nudge clears it
   assert 0.3 <= r.offset_m <= MAX_NUDGE_M and r.reason == 'nudge' and r.speed_factor == 1.0
+
+
+def test_profile_ramps_at_the_slew_rate_and_speed_never_exceeds_v_ego():
+  from nagaspilot.controls.ngp_path_selector import PROFILE_SLEW_M_PER_S, Selection, build_profile
+  sel = Selection(0.4, 0.9, -0.1, 1.0, 'slow')
+  offs, caps = build_profile(sel, 25.0)
+  assert len(offs) == len(caps) == 12
+  assert abs(offs[0] - PROFILE_SLEW_M_PER_S * 0.25) < 1e-9 and offs == sorted(offs) and offs[-1] <= 0.4 + 1e-9
+  assert abs(caps[0] - 25.0 * (1 - 0.1 * 0.25)) < 1e-9 and abs(caps[-1] - 22.5) < 1e-9 and max(caps) <= 25.0
+  offs, caps = build_profile(Selection(0.0, 1.0, None, 0.0, 'clear'), 25.0, start_offset=0.3)
+  assert offs[-1] < 0.3 and all(c == 25.0 for c in caps)           # releases toward zero, no speed request
