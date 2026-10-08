@@ -1,5 +1,106 @@
 <div align="center" style="text-align: center;">
 
+<h1>Openpilot EDP10</h1>
+
+<p><b>The EDP10 development branch of the ExoPilot openpilot repository.</b></p>
+
+<h3>
+  <a href="#project-features">Features</a> ·
+  <a href="#project-branches">Branches</a> ·
+  <a href="#project-install">Install</a> ·
+  <a href="#project-details">Details</a> ·
+  <a href="#project-bug-reports">Bug reports</a>
+</h3>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Branch](https://img.shields.io/badge/Branch-dev%2FEDP10-blue)](https://github.com/exo-elec/openpilot/tree/dev/EDP10)
+[![Latest commit](https://img.shields.io/github/last-commit/exo-elec/openpilot/dev%2FEDP10?label=Latest%20commit)](https://github.com/exo-elec/openpilot/commits/dev/EDP10)
+
+</div>
+
+------
+
+<a id="project-requirements"></a>
+
+Using Openpilot EDP10
+------
+
+1. **Hardware and tools:** The device, vehicle and harness appropriate to this branch; see its project notes below.
+2. **Software:** this branch, `dev/EDP10`.
+3. **Configuration:** use this branch's project settings and integration notes.
+4. **Setup:** follow *How to Install* and the detailed project guide below.
+
+<a id="project-features"></a>
+
+🌟 Highlight Features
+------
+
+- Driver-assistance planning and controls.
+- Vehicle interfaces and messaging.
+- Branch-specific NagasPilot or ExoPilot development.
+
+<a id="project-branches"></a>
+
+🔧 Branches
+------
+
+| Branch | Description | Use |
+|---|---|---|
+| [`audit/final-ngp10`](https://github.com/exo-elec/openpilot/tree/audit/final-ngp10) | Audit: final ngp10 | Development / review |
+| [`dev/EDP10` **(this branch)**](https://github.com/exo-elec/openpilot/tree/dev/EDP10) | Project variant: EDP10 | Project variant |
+| [`dev/EOP10`](https://github.com/exo-elec/openpilot/tree/dev/EOP10) | Shared ExoPilot application base | Project variant |
+| [`dev/NGP10`](https://github.com/exo-elec/openpilot/tree/dev/NGP10) | NagasPilot for comma 3 / 3X | Project variant |
+| [`dev/01M`](https://github.com/exo-elec/openpilot/tree/dev/01M) | ExoPilot 01M device edition | Project variant |
+| [`dev/02M`](https://github.com/exo-elec/openpilot/tree/dev/02M) | ExoPilot 02M device edition | Project variant |
+| [`nagaspilot`](https://github.com/exo-elec/openpilot/tree/nagaspilot) | Project development: nagaspilot | Project variant |
+
+Use the branch that matches your hardware and task. A branch name does not establish release or validation status.
+
+<a id="project-install"></a>
+
+🧰 How to Install
+------
+
+Check out this branch:
+
+```bash
+git clone --branch dev/EDP10 https://github.com/exo-elec/openpilot.git
+```
+
+Cloning only downloads the source. Complete the branch-specific build, setup or
+flashing steps under *Details* before running it.
+
+<a id="project-credits"></a>
+
+📋 Credits and Base Projects
+------
+
+- [comma.ai openpilot](https://github.com/commaai/openpilot)
+
+Branch-specific attribution, license notices and project additions are documented below.
+
+<a id="project-bug-reports"></a>
+
+🐞 Bug Reports / Feature Requests
+------
+
+Report problems to the repository maintainer through the available
+[GitHub channels](https://github.com/exo-elec/openpilot). If Issues is enabled, [open an issue](https://github.com/exo-elec/openpilot/issues).
+
+Include the branch, hardware, software/toolchain versions, steps to reproduce,
+expected behavior and what happened. Attach relevant logs or screenshots with
+credentials and personal data removed.
+
+<a id="project-details"></a>
+
+📖 Details
+------
+
+<details>
+<summary>Upstream reference documentation and notices</summary>
+
+<div align="center" style="text-align: center;">
+
 <h1>openpilot</h1>
 
 <p>
@@ -105,4 +206,6 @@ openpilot logs the road-facing cameras, CAN, GPS, IMU, magnetometer, thermal sen
 The driver-facing camera and microphone are only logged if you explicitly opt-in in settings.
 
 By using openpilot, you agree to [our Privacy Policy](https://comma.ai/privacy). You understand that use of this software or its related services will generate certain types of user data, which may be logged and stored at the sole discretion of comma. By accepting this agreement, you grant an irrevocable, perpetual, worldwide right to comma for the use of this data.
+</details>
+
 </details>
