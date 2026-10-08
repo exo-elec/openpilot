@@ -2,11 +2,42 @@
 
 <h1>NagasPilot</h1>
 
-**A fork of openpilot v0.10.0 with smarter cruise control, steering and lane changes.**
+<p>
+  <b>A fork of openpilot v0.10.0 with smarter cruise control, steering and lane changes.</b>
+</p>
+
+<h3>
+  <a href="#-branches">Branches</a>
+  <span> · </span>
+  <a href="#-how-to-install">Install</a>
+  <span> · </span>
+  <a href="docs/CARS.md">Cars</a>
+  <span> · </span>
+  <a href="docs/SAFETY.md">Safety</a>
+  <span> · </span>
+  <a href="https://github.com/exo-elec/openpilot/issues">Issues</a>
+</h3>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Branch](https://img.shields.io/badge/Branch-dev%2FNGP10-blue)](https://github.com/exo-elec/openpilot/tree/dev/NGP10)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-October%208th%2C%202026-brightgreen)](https://github.com/exo-elec/openpilot/commits/dev/NGP10)
+[![Issues](https://img.shields.io/github/issues/exo-elec/openpilot?label=Issues)](https://github.com/exo-elec/openpilot/issues)
 
 </div>
+
+------
+
+Using NagasPilot in a car
+------
+
+To use **NagasPilot** in a car, you need four things:
+
+1. **Device:** a **comma 3 / 3X**.
+2. **Software:** this branch (`dev/NGP10`). See *How to install* below.
+3. **Car:** a supported car. See [docs/CARS.md](docs/CARS.md).
+4. **Harness:** the harness that matches your car's make and model, to connect the device to the car.
+
+NagasPilot has not been tested on a real vehicle yet. Read *Safety and legal* before you drive.
 
 ------
 
@@ -78,7 +109,7 @@ openpilot v0.10.0 vs **NagasPilot**
 
 ------
 
-🌟 Highlights
+🌟 Highlight Features
 ------
 
 ### 🧠 Dynamic Longitudinal Profile (DLON)
@@ -88,6 +119,52 @@ openpilot's Experimental mode is switched on and off by hand. **DLON** decides f
 
 ### 🛣️ Dynamic Lateral Profile (DLAT)
 **DLAT** follows the lane lines when they are clear and switches to laneless steering when they fade, and switches early when it sees a tight curve coming.
+
+---
+
+And lots more! From safety to driving comfort, **NagasPilot** keeps growing. Check the tables above for everything it changes.
+
+---
+
+🔧 Branches
+------
+
+| Branch | Install | Description | Recommended&nbsp;For |
+|---|---|---|---|
+| `dev/EOP10` | `git clone -b dev/EOP10` | The shared ExoPilot base. Every ExoPilot device gets these features. | ExoPilot&nbsp;Developers |
+| `dev/01M` | `git clone -b dev/01M` | The base plus the new on-screen display for the ExoPilot 01M (1024×600). | ExoPilot&nbsp;01M&nbsp;owners |
+| `dev/02M` | `git clone -b dev/02M` | Adds the wide-screen display and the wireless corner radar (ExoPilot 02M, 1600×600). | ExoPilot&nbsp;02M&nbsp;owners |
+| `dev/NGP10`&nbsp;(this&nbsp;branch) | `git clone -b dev/NGP10` | NagasPilot: the smarter cruise, steering and lane-change features for the comma 3 / 3X. | comma&nbsp;3&nbsp;/&nbsp;3X&nbsp;owners |
+
+Every branch is in development and has not been tested on a real vehicle. **Do not** treat any of them as a release.
+
+🧰 How to Install
+------
+
+There is no installer URL yet. Clone this branch onto the device:
+
+```
+git clone -b dev/NGP10 https://github.com/exo-elec/openpilot.git
+```
+
+**DO NOT** drive with a build you have not read the notes for. Every `dev/` branch changes often and can break.
+
+🐞 Bug Reports / Feature Requests
+------
+
+If you run into bugs, issues, or have ideas for new features, please open an issue on **[GitHub](https://github.com/exo-elec/openpilot/issues)**.
+
+Please include as much detail as possible: which branch and device you use, what you did and what happened. Photos, videos, log files, or anything that can help explain the issue or idea are very helpful!
+
+📋 Credits
+------
+
+* [commaai/openpilot](https://github.com/commaai/openpilot): openpilot v0.10.0 (MIT)
+
+Star History
+------
+
+[![Star History Chart](https://api.star-history.com/svg?repos=exo-elec/openpilot&type=Date)](https://www.star-history.com/#exo-elec/openpilot&Date)
 
 ------
 
