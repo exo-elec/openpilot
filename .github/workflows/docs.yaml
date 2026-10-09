@@ -1,10 +1,14 @@
 name: docs
 
+# Disabled (2026-09-29): every push / PR check reported by email. Run the same
+# gate locally with ./test.sh (./test.sh --full for the upstream lint gate);
+# start this workflow by hand from the Actions tab (workflow_dispatch) when a
+# hosted run is wanted. Restore the push / pull_request triggers to re-enable.
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  # push:
+  #   branches:
+  #     - master
+  # pull_request:
   workflow_call:
     inputs:
       run_number:

@@ -90,11 +90,55 @@ RENAMED = {
   "ngp_ui_hide_hud_speed_kph": "UIHideHudSpeedKph",
 }
 
+# EOP10: fork-added params -> EOP<Feature><Param>, applied after the table above.
+RENAMES = {
+  "BLECornerPairs": "EOPBLECornerPairs",
+  "BLERadarPairingOpen": "EOPBLERadarPairingOpen",
+  "BLERadarRoster": "EOPBLERadarRoster",
+  "BluetoothPairingActive": "EOPBluetoothPairingActive",
+  "BluetoothPairingAddr": "EOPBluetoothPairingAddr",
+  "BluetoothPairingPin": "EOPBluetoothPairingPin",
+  "CameraCalibrationParams": "EOPCameraCalibrationParams",
+  "CarMake": "EOPCarMake",
+  "CarType": "EOPCarType",
+  "CarVin": "EOPCarVin",
+  "ChestnutDrivingActive": "EOPChestnutDrivingActive",
+  "ChestnutDrivingEnabled": "EOPChestnutDrivingEnabled",
+  "ChestnutDrivingLoading": "EOPChestnutDrivingLoading",
+  "CurrentMCAPRoute": "EOPCurrentMCAPRoute",
+  "EgpuDrivingActive": "EOPEgpuDrivingActive",
+  "EgpuDrivingEnabled": "EOPEgpuDrivingEnabled",
+  "EgpuDrivingLoading": "EOPEgpuDrivingLoading",
+  "FactoryCalibrationParams": "EOPFactoryCalibrationParams",
+  "LastGPSAltitude": "EOPLastGPSAltitude",
+  "LastGPSLatitude": "EOPLastGPSLatitude",
+  "LastGPSLongitude": "EOPLastGPSLongitude",
+  "NavDestination": "EOPNavDestination",
+  "NavDestinationWaypoints": "EOPNavDestinationWaypoints",
+  "NavPilotOAuthEmail": "EOPNavPilotOAuthEmail",
+  "NavPilotOAuthToken": "EOPNavPilotOAuthToken",
+  "NeuralNetworkLateralControl": "EOPNeuralNetworkLateralControl",
+  "OpenBLTFirmwareVersion": "EOPOpenBLTFirmwareVersion",
+  "OpenBLTState": "EOPOpenBLTState",
+  "OpenBLTUpdateAvailable": "EOPOpenBLTUpdateAvailable",
+  "PowerSaverEntryDuration": "EOPPowerSaverEntryDuration",
+  "QuietMode": "EOPQuietMode",
+  "SpeedLimitPolicy": "EOPSpeedLimitPolicy",
+  "SteamDAuthToken": "EOPSteamDAuthToken",
+  "SteamDControlRequest": "EOPSteamDControlRequest",
+  "SteamDEnabled": "EOPSteamDEnabled",
+  "SteamDGeofencePolygon": "EOPSteamDGeofencePolygon",
+  "SteamDJoystickInput": "EOPSteamDJoystickInput",
+  "SteamDRemoteControl": "EOPSteamDRemoteControl",
+  "UbloxAssistNowToken": "EOPUbloxAssistNowToken",
+  "UpdateStatus": "EOPUpdateStatus",
+}
+
 
 def migrate_renamed_params(param_dir: str) -> list[str]:
   """Rename stored old-name params to their new names. Returns the old names that were moved."""
   migrated = []
-  for old, new in sorted(RENAMED.items()):
+  for old, new in [*sorted(RENAMED.items()), *RENAMES.items()]:
     src, dst = os.path.join(param_dir, old), os.path.join(param_dir, new)
     if not os.path.lexists(src):
       continue
