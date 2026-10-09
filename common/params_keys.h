@@ -190,7 +190,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // monod: range road-camera boxes on the road plane with a radar-anchored scale (nagaspilot/runtime/eop_monod_ranging.py) instead of the class-height prior. Default off until validate_ranging passes on a stereo route.
     {"ngp_monod_ranger", {PERSISTENT, BOOL, "0"}},
     // pathd: use the corrected distance-scale lookup in compute_speed_reduction. EOP10's original lookup never reduced speed (nagaspilot/controls/ngp_speed_reduction.py). Default off = behaviour unchanged.
-    {"ngp_pathd_fix_scale", {PERSISTENT, BOOL, "0"}},
+    {"EOPPathdFixScaleEnabled", {PERSISTENT, BOOL, "0"}},
+    {"ngp_pathd_fix_scale", {PERSISTENT, BOOL, "0"}},  // legacy persisted alias
     // DPP ceiling (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both); DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
     // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
     // of this branch -- automatic ACC/E2E switching only. No master enable

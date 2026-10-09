@@ -75,3 +75,8 @@ The upstream footprint budget records the smaller turn hook (173 added lines,
 previously 177; one more upstream line replaced) and the inherited NGP replay
 README. Other upstream budgets remain unchanged. The direct parent parity
 check covers portable source independently of those documentation edits.
+
+The EOP-only distance-scale fix uses EOPPathdFixScaleEnabled (PDSF in the
+PyQt5 settings). Old ngp_pathd_fix_scale values remain a read fallback when
+the canonical key is absent. It stays off by default; this does not change
+existing speed-reduction behavior automatically.
