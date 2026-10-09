@@ -8,11 +8,11 @@ import math
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from nagaspilot.controls.ngp_curve_speed import blend_mtsc_vtsc, calculate_speed_for_curvature
-from nagaspilot.controls.ngp_ddsc import DDSC
-from nagaspilot.controls.ngp_mslc import MSLC
-from nagaspilot.controls.ngp_mtsc import MTSC
-from nagaspilot.controls.ngp_tlsc import TLSC
+from nagaspilot.controls.eop_curve_speed import blend_mtsc_vtsc, calculate_speed_for_curvature
+from nagaspilot.controls.eop_ddsc import DDSC
+from nagaspilot.controls.eop_mslc import MSLC
+from nagaspilot.controls.eop_mtsc import MTSC
+from nagaspilot.controls.eop_tlsc import TLSC
 
 G = json.loads((Path(__file__).parent / 'eop_golden_map.json').read_text())
 

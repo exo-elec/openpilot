@@ -229,8 +229,8 @@ Rule: anything in EOP10 that is pure logic moves into `nagaspilot/controls/` (sh
 
 | EOP10 piece | Status | Where | Proof |
 |---|---|---|---|
-| `LatNudge`, `LonNudge`, `predict` (`selfdrive/pathd`) | **ported verbatim** | `ngp_lat_nudge.py`, `ngp_lon_nudge.py`, `ngp_predict.py`; EOP10 files are shims | `eop_golden.json` (outputs of the originals) reproduced exactly; EOP10 `test_shared_cores.py` |
-| `compute_speed_reduction` (pathd) | **ported, one fix** | `ngp_speed_reduction.py` (`legacy_scale_bug=True` = EOP10's old behaviour); EOP10/01M/02M pathd call it, default unchanged | golden (legacy) + fix tests; sweep |
+| `LatNudge`, `LonNudge`, `predict` (`selfdrive/pathd`) | **ported verbatim** | `eop_lat_nudge.py`, `eop_lon_nudge.py`, `eop_predict.py`; EOP10 files are shims | `eop_golden.json` (outputs of the originals) reproduced exactly; EOP10 `test_shared_cores.py` |
+| `compute_speed_reduction` (pathd) | **ported, one fix** | `eop_speed_reduction.py` (`legacy_scale_bug=True` = EOP10's old behaviour); EOP10/01M/02M pathd call it, default unchanged | golden (legacy) + fix tests; sweep |
 | as proposers on camera-only inputs | **done** | `runtime/nudge_extras.py` (`NudgeExtras`: boundaries from `modelV2` lines, objects from gridd) -> `Extras` into `SharedPathdHost`; param `ngp_pathd_nudges` (default off) | sim controllers `eop`, `eop_legacy`; 9 tests |
 | `gridd` fused camera objects with velocity | done earlier | `runtime/fusion_tracks.py` + `runtime/gridd.py` | tests, capnp round trip |
 | `aeb.py` RSS/TTC core, `radar_zones.py`, `blindspot.py`, `lane_change.py` gate | **not ported**: need radar / corner radar / side cameras (NGP10 has none; no AEB product) | EOP-only for now; the AEB core could be split into a pure part later | - |
@@ -256,7 +256,7 @@ Rule: anything in EOP10 that is **not** tied to the extra hardware `../exopilot`
 | LDW | nothing to port | EOP10's `ldw.py` is identical to upstream's, already on NGP10 |
 | following distance, driver prefs | nothing to port | NGP10 already has `longitudinal_policy.py` and the speed offset |
 | adaptd (adaptive personality from vehicle telemetry) | **core portable, input is not** | its only input is `ncpVehicleData` from NavPilot over BLE (bluetoothd), i.e. the BLE hardware link: port the core and schema, the producer stays EOP-only |
-| RCD (road condition cap) | hysteresis + cap logic portable; **source is EOP-only** (surfaceStatus, card) and the camera-HSV classifier is never fed a frame in EOP10 | **ported 2026-10-04** (`ngp_rcd.py`, `runtime/rcd.py`, MapSpeed source `ngp_lon_rcd`, default off, idle without a source). Found and fixed: the smoothing filter sat at 0 with no cap, so the first cap was ~0.3 m/s and took ~10 s to reach 12 m/s (`legacy_filter_bug` reproduces it). HSV thresholds untuned: need real frames |
+| RCD (road condition cap) | hysteresis + cap logic portable; **source is EOP-only** (surfaceStatus, card) and the camera-HSV classifier is never fed a frame in EOP10 | **ported 2026-10-04** (`eop_rcd.py`, `runtime/rcd.py`, MapSpeed source `ngp_lon_rcd`, default off, idle without a source). Found and fixed: the smoothing filter sat at 0 with no cap, so the first cap was ~0.3 m/s and took ~10 s to reach 12 m/s (`legacy_filter_bug` reproduces it). HSV thresholds untuned: need real frames |
 | CSLB (curve speed learning DB), surface DB | sqlite | **not ported**: nothing writes the DB (learning is a placeholder in EOP10's planner), so the lookup always falls back to a physics speed NGP10 already has. A writer outside the planner loop would be a new feature |
 | mcapd (MCAP/Foxglove logging) | portable, tooling | optional |
 | AEB, FCW, RCW, `radar_zones`, `blindspot` | **not ported** (safety) | |

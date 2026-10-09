@@ -8,10 +8,10 @@ import math
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from nagaspilot.controls.ngp_lat_nudge import LatNudge
-from nagaspilot.controls.ngp_lon_nudge import LonNudge
-from nagaspilot.controls.ngp_predict import predict
-from nagaspilot.controls.ngp_speed_reduction import compute_speed_reduction
+from nagaspilot.controls.eop_lat_nudge import LatNudge
+from nagaspilot.controls.eop_lon_nudge import LonNudge
+from nagaspilot.controls.eop_predict import predict
+from nagaspilot.controls.eop_speed_reduction import compute_speed_reduction
 
 G = json.loads((Path(__file__).parent / 'eop_golden.json').read_text())
 

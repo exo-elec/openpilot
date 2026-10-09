@@ -1,6 +1,6 @@
 """EOP10's pathd proposers (LatNudge, LonNudge, trajectory speed reduction) running on camera-only inputs, as Extras.
 
-The same cores EOP10's pathd runs (`ngp_lat_nudge`, `ngp_lon_nudge`, `ngp_speed_reduction`), fed from what any branch has:
+The same cores EOP10's pathd runs (`eop_lat_nudge`, `eop_lon_nudge`, `eop_speed_reduction`), fed from what any branch has:
   - lane boundaries at 0, 5 ... 30 m from the `modelV2` inner lane lines (y-right frame, like EOP10's stereo boundaries);
     an unseen line means no lateral nudge;
   - tracked objects from gridd (PObj: dRel = x, yRel = y, vRel = vx);
@@ -11,9 +11,9 @@ its own pathd (`extras_from_eop`); the cores are the shared ones.
 import math
 from types import SimpleNamespace as NS
 
-from nagaspilot.controls.ngp_lat_nudge import BOUNDARY_DISTANCES, LatNudge
-from nagaspilot.controls.ngp_lon_nudge import LonNudge
-from nagaspilot.controls.ngp_speed_reduction import compute_speed_reduction
+from nagaspilot.controls.eop_lat_nudge import BOUNDARY_DISTANCES, LatNudge
+from nagaspilot.controls.eop_lon_nudge import LonNudge
+from nagaspilot.controls.eop_speed_reduction import compute_speed_reduction
 
 LINE_PROB_MIN = 0.5
 MAX_DEPTH_M = 80.0

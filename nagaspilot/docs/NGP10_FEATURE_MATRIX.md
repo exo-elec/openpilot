@@ -46,7 +46,7 @@ executed on this branch during that window, not just "unvalidated on road" —
 validation of any of them as of this fix.
 
 **Policy for unwired code:** NGP10 carries only add-ons that are wired into the runtime and
-work from comma 3 inputs. `ngp_mtsc`, `ngp_road_condition`, `ngp_traffic_control`,
+work from comma 3 inputs. `eop_mtsc`, `ngp_road_condition`, `ngp_traffic_control`,
 `ngp_profile`, `ngp_curvature`, `ngp_soc` and `ngp_trip` were unwired (no map route, OBD/BLE
 telemetry or camera classifier exists on this branch) and were removed; `dev/EOP10`
 holds them. See `EOP10_PARITY_CANDIDATES.md` for the per-feature comparison.

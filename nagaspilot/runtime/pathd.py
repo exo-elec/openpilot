@@ -17,6 +17,7 @@ The rule channel is idle (dppMode 0) unless `ngp_dpp_max_mode` > 0; the whole pr
 """
 import math
 import time
+from nagaspilot.runtime.feature_keys import OriginParams
 from dataclasses import dataclass, replace
 
 from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
@@ -163,7 +164,6 @@ class SharedPathdHost:
 
 def run(source=None) -> None:
   from nagaspilot.runtime.object_sources import GriddSource
-  from cereal import messaging
   from cereal.messaging import PubMaster, SubMaster
   from openpilot.common.params import Params
 
@@ -171,7 +171,7 @@ def run(source=None) -> None:
                  ignore_alive=['monoDetections', 'radarState', 'stereoObjects'])
   params = Params()
   provider = None
-  if params.get_bool("ngp_pathd_nudges"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
+  if OriginParams(params).get_bool("EOPPathdNudgesEnabled"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
     from nagaspilot.runtime.nudge_extras import NudgeExtras
     nudges = NudgeExtras()
     provider = lambda sm, objs, v_ego: nudges.update(sm['modelV2'], objs, v_ego)  # noqa: E731

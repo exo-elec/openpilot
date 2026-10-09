@@ -4,7 +4,6 @@ import time
 import numpy as np
 
 import cereal.messaging as messaging
-from cereal import log
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.common.constants import CV
 from openpilot.common.filter_simple import FirstOrderFilter
@@ -22,8 +21,7 @@ from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from nagaspilot.controls.longitudinal_policy import (
-  ACCELERATION_PROFILES, ADAPTIVE_ACCEL_CITY_SPEED_LIMIT,
-  acceleration_profile_limit, adaptive_follow_gap,
+  ACCELERATION_PROFILES, acceleration_profile_limit, adaptive_follow_gap,
   apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
@@ -41,6 +39,7 @@ from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
 from nagaspilot.controls.ngp_pathd_consumer import speed_cap
 from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
 from nagaspilot.runtime.map_speed import MapSpeed
+from nagaspilot.runtime.feature_keys import OriginParams
 from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
@@ -142,7 +141,8 @@ class LongitudinalPlanner:
     self.cutin = CutInSpeed()
     # Map / traffic-light / distraction speed caps (MTSC, MSLC, TLSC, DDSC); every one default off, they only lower the cruise speed
     _params = Params()
-    self.map_speed = MapSpeed(_params.get_bool, lambda k: _params.get(k))
+    origin_params = OriginParams(_params)
+    self.map_speed = MapSpeed(origin_params.get_bool, origin_params.get_text)
     # Parallel rule channel (pathd + DPP): blends pathd's accel into the policy accel per DPP's mode (policy unchanged without it)
     self.rule_consumer = RuleChannelConsumer()
 

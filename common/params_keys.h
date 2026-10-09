@@ -154,6 +154,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_trip_uptime_engaged", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_trip_uptime_onroad", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_map_enabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
+    // Canonical EOP-origin names; ngp_* entries below remain legacy read aliases.
+    {"EOPMTSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EOPMSLCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EOPTLSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EOPDDSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EOPRCDEnabled", {PERSISTENT, BOOL, "0"}},
+    {"EOPSharedSLCOffsets", {PERSISTENT, STRING, ""}},
+    {"EOPPathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"ngp_lon_tlsc", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)

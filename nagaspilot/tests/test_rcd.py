@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from nagaspilot.controls.ngp_rcd import RCD, RoadCondition, classify_metrics
+from nagaspilot.controls.eop_rcd import RCD, RoadCondition, classify_metrics
 from nagaspilot.runtime.rcd import RCDRuntime
 
 G = json.loads((Path(__file__).parent / 'eop_golden_rcd.json').read_text())

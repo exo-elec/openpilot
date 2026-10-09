@@ -23,20 +23,29 @@ settings and is not a porting-style improvement.
 
 ## Which prefix a module gets
 
-| Module runs on | Prefix | Lives in |
-| --- | --- | --- |
-| Inputs every product has (comma 3 and ExoPilot): model output, car state, IMU, GPS, radar tracks | `ngp_` | `nagaspilot/controls/`, identical on `dev/NGP10` and `dev/EOP10` |
-| Hardware only ExoPilot has (RK3588, stereo, side/rear cameras, accelerator detectors) | `eop_` | `dev/EOP10` and later `dev/01M`, `dev/02M` only; never on `dev/NGP10` |
+Prefixes describe the feature's owning baseline, not whichever device runs it.
+NGP-origin implementations retain `ngp_` / `NGP` when inherited by EOP10,
+01M and 02M. EOP-, 01M- and 02M-origin implementations use `eop_` / `EOP`,
+even when a portable core is subsequently made available on NGP10.
 
-Radar zones, blind-spot assessment, lane-change radar gating and collision/FCW/AEB
-advisories depend on side or rear radar that a comma 3 does not have, so they are
-`eop_` code and live only on EOP branches (the current `ngp_radar`, `ngp_lca` and
-`ngp_collision` remain on `dev/EOP10` until renamed there). NGP carries add-ons that work
-from model output, car state, IMU and GPS: DLAT, DLON, ALCC, TJA, BRSC, VTSC, MTSC and
-speed policy.
-When a shared module changes on one branch, mirror the change to the other in the same
-week; they currently differ in `ngp_dlon` and `ngp_lc_lead_handoff` until the EOP10
-mirror commit (`c5c4176`) is merged.
+The EOP-origin cores for LatNudge, LonNudge, prediction, speed reduction,
+MTSC, MSLC, TLSC, DDSC, RCD and curve-speed helpers now have canonical
+`eop_*` modules. Their old `ngp_*` modules are compatibility aliases only.
+DLAT/DLON's NGP implementation, NGP SOC, driving modes, blinker pause and
+green-light policy keep their established NGP ownership. Neutral shared
+plumbing (settings caching and geometry) needs no product prefix.
+
+Canonical EOP-origin map switches use `EOP*` keys. `OriginParams` falls back
+to old saved `ngp_lon_*` values only if the canonical key is absent; an explicit
+canonical off overrides a legacy on. Persisted keys and cereal field names
+already deployed are compatibility APIs: do not rename ordinals or discard
+saved settings merely to change spelling. Existing EOPDriveMode and related
+parameter mappings remain supported adapters for earlier device settings.
+
+Hardware availability determines adapter selection, not naming ownership.
+Do not rename an inherited feature because it runs on a different board.
+The lineage gate requires canonical cores and compatibility aliases to remain
+identical from NGP through EOP and both device profiles.
 
 ## Driver-facing lateral names
 
