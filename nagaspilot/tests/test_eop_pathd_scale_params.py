@@ -9,7 +9,7 @@ PATHD = Path(__file__).resolve().parents[1] / 'daemons/pathd/pathd.py'
 
 
 @pytest.mark.parametrize('canonical,legacy,expected', [
-  (None, False, False), (None, True, True), (b'0', True, False), (b'1', False, True),
+  (None, False, False), (None, True, True), (b'0', True, False), (b'1', False, True), (False, True, False), (True, False, True), ('1', False, True),
 ])
 def test_scale_switch_keeps_saved_settings_and_canonical_off_wins(canonical, legacy, expected):
   tree = ast.parse(PATHD.read_text())
