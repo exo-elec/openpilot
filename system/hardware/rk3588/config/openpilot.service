@@ -1,0 +1,30 @@
+[Unit]
+Description=openpilot (EOP RK3588)
+After=network-online.target rockchip.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=@@DIR@@
+Environment=OPENPILOT_PREFIX=rk3588
+EnvironmentFile=-/etc/openpilot/env
+
+# Source Rockchip environment
+ExecStartPre=/bin/bash -c 'source /etc/profile.d/99-rockchip-rk3588-env.sh 2>/dev/null || true'
+
+# Wait briefly for the expected road-camera link and report a useful error if
+# the camera stack is not ready. Avoid an unbounded systemd pre-start loop.
+ExecStartPre=/bin/bash -c 'for i in $(seq 60); do [ -e /dev/video-camera0 ] && exit 0; sleep 0.5; done; echo "camera node /dev/video-camera0 did not appear within 30s"; exit 1'
+
+# Main openpilot launch
+ExecStart=/bin/bash @@DIR@@/launch_openpilot.sh
+
+Restart=on-failure
+RestartSec=5
+
+# Do not cap virtual address space: vision and NPU processes map large shared
+# buffers and can fail with ENOMEM while physical memory remains available.
+
+[Install]
+WantedBy=multi-user.target

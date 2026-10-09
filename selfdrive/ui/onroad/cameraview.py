@@ -351,6 +351,6 @@ class CameraView(Widget):
 
 if __name__ == "__main__":
   gui_app.init_window("camera view")
-  road = CameraView("camerad", VisionStreamType.VISION_STREAM_ROAD)
+  road = CameraView("v4l2d", VisionStreamType.VISION_STREAM_ROAD)
   for _ in gui_app.render():
     road.render(rl.Rectangle(0, 0, gui_app.width, gui_app.height))

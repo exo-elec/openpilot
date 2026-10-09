@@ -1,0 +1,427 @@
+# RK3576 / ExoPilot 02M support
+
+> **Status, 2026-09-23** — 02M is openpilot's `dev/02M` line. The 2026-09-10
+> plan to move it to a separate stack is dropped. Only 02M has the antenna for
+> the ESP32 corner-radar WiFi add-on; the other boards are BLE-only.
+
+
+**Status, 2026-10-03**: platform registration, NPU-topology plumbing, and the
+five-role V4L2 camera path are implemented. Camera capture is **not yet
+operational on 02M hardware**: the HAL's `rk3576_camera_paths.py` is empty
+until video nodes are observed and verified on a real unit. The daemon fails
+closed rather than guessing sensor roles. No 02M hardware validation has been
+performed; see the Phase B checklist below.
+
+## Install
+
+On the 02M device, run ExoPilot's board setup first, then create the openpilot
+venv and install the service. The RK3576 installer adds Qt build/runtime
+packages, builds PyQt5 for the venv, and installs the systemd unit:
+
+```bash
+sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh
+sudo ./system/hardware/rk3576/config/install_openpilot.sh /data/openpilot
+```
+
+The installer installs the build/Qt system packages, runs `uv sync`, builds
+PyQt5 against system Qt, and installs the systemd unit. The service starts the
+UI and diagnostics while camera role discovery is
+pending. The 02M camera daemon opens no MIPI stream until each role has a
+hardware-confirmed path in ExoPilot HAL.
+
+## Why this exists
+
+Until 2026-08-26, this fork and the sibling `~/pilot/exopilot` repo both
+treated RK3576 (ExoPilot 02M) as out of scope for openpilot. That boundary
+has been overridden by product decision: EOP10 now targets both ExoPilot
+01M (RK3588) and 02M (RK3576).
+
+Scope note: the Hailo-8/DeepX (DX-M1M) PCIe accelerator support this repo
+already has is **camera-inference tier only** — drivable-area segmentation
+(TwinLiteNet+) for every camera, not detection — see
+`system/inferenced/compute.py`'s `WorkloadClass` docstring and
+`docs/eop/05_Features/CAMERA_ACCEL_TIER.md`. Object detection (YOLOv8) for
+every camera, including side/rear, runs on RKNN, same as the core driving
+model (`driving_vision`/`driving_policy`), which stays RKNN-only on both
+platforms; RKNN and Hailo/DeepX are different, incompatible NPU toolchains,
+and nobody has attempted running the driving model on either PCIe
+accelerator anywhere in this codebase or `~/pilot/exopilot`.
+
+Update (2026-09-27): the card (Hailo-8 or DX-M1M, chosen on price) is standard
+on both 01M and 02M and runs drivable-area segmentation for every camera
+(segd), which frees RKNN core 1 of SceneSeg/PP-LiteSeg. Object detection
+stays on RKNN, every camera at the 20 Hz foundation rate: on 02M core 1
+carries road, side left, side right, rear and telephoto YOLOv8 — 100
+inferences/s (80 without the telephoto), the tightest budget in the design;
+if the bench shows core 1 cannot hold it, load moves to core 0, and no
+camera's rate drops. 02M has one PCIe 2.1 x1 slot, so one card; a DX-M1M
+links at Gen2 x1 there. The USB eGPU runs openpilot's Chestnut driving model
+only. See `05_Features/CAMERA_ACCEL_TIER.md`.
+
+## What's implemented (Phase A)
+
+- `system/hardware/registry.py`: `rk3576` registered (alias `exopilot02m`),
+  `PlatformRegistry.detect()` checks the device-tree compatible string for
+  `rk3576`.
+- `system/hardware/rk3576/hardware.py`: `RK3576Hardware`, a thin subclass of
+  `RK3588Hardware` — most Rockchip/Linux-generic methods (reboot, network,
+  power) are inherited unchanged. Overridden: board identity
+  (`get_device_type`/`get_platform`/`detect`), pin/camera-geometry data
+  sources (`hal.platform.rk3576_pins`/`rk3576_camera_geometry`), the 5-camera
+  MIPI array + 160mm stereo baseline (see refactor note below), mono-speaker
+  and two-microphone audio support (`has_speaker`/`has_voice_input` → True,
+  matching the board's SAI1 MAX98357A + INMP441 pair), and cellular modem
+  power control (02M wires EC25 via direct GPIO bit-bang, not 01M's
+  Mini-PCIe USB-mode mux — genuinely different circuit, not just different
+  pin numbers).
+- **Refactor**: `RK3588Hardware.get_camera_array_config()`/
+  `get_stereo_baseline_mm()` used to hardcode `RK3588Hardware._cam_geo`
+  instead of `self._cam_geo`, which would have forced `RK3576Hardware` to
+  duplicate both method bodies just to plug in different data. Changed to
+  `self._cam_geo`/`self.MIPI_CAMERA_NAMES`/`self.PLATFORM_NAME`/
+  `self.SOC_NAME`/`self.HAS_TELE_ROAD`/`self._usb_cameras`, all now class
+  attributes a subclass can override without touching the method bodies.
+  `test_rk3576.py::test_shares_camera_array_logic_with_rk3588` is a
+  regression test for this staying true.
+- `system/hardware/camera_types.py` (new): `CameraSensor`/`HDRMode`/
+  `CameraConfig`/`find_camera()`, factored out of
+  `system/hardware/rk3588/camera_config.py` so `rk3576/camera_config.py`
+  doesn't duplicate the same dataclass/enum definitions.
+- `system/hardware/rk3576/camera_config.py`: mirrors
+  `rk3588/camera_config.py`'s `USB_CAMERAS` optional-`hal`-import pattern,
+  sourcing from `hal.platform.rk3576_camera_geometry`.
+- `selfdrive/locationd/calibration_storage.py`: missing stereo-baseline
+  metadata now defaults from the active board geometry, so RK3576 does not
+  inherit the legacy 80 mm RK3588 value when loading older/incomplete YAML.
+- `selfdrive/modeld/runners/rknn_platform.py`: `PlatformType.RK3576` (2
+  cores × 3 TOPS), `detect_platform()`/`get_core_count()` extended.
+  `NPU_ALLOCATION_MAP[PlatformType.RK3576]` is computed by `npu_pack.py`'s
+  board-agnostic LPT packer from `hal.tuning.npu`'s estimated `TASK_TOPS`
+  (the same function `dev/01M`'s RK3588 calls, just with this board's own
+  core count and per-core TOPS) — not an empty dict falling back to core 0
+  for everything. Per-task TOPS are still estimates, not measured on real
+  RK3576 hardware; `npu_bench.py` replaces them with a real, measured
+  `CORE_ALLOCATION`, which then overrides the computed one.
+- `~/pilot/exopilot` (separate repo): `hal/hal/platform/rk3576_camera_geometry.py`
+  was missing a `USB_CAMERAS` export that `rk3588_camera_geometry.py` has
+  (added, same 3 UVC cameras/specs). `hal/hal/platform/rk3576_pins.py` was
+  missing EC25 modem GPIO data that exists in `boards.py`'s
+  `BOARD_DATA["exopilot02m"]["cellular"]` but wasn't surfaced in the shape
+  `hardware.py` consumers expect (added, marked `"confirmed": False` since
+  the power-on sequence timing/polarity hasn't been validated against a
+  schematic).
+- `CLAUDE.md` / `common/core_config.py`: "RK3576 not supported" language
+  corrected.
+
+Not touched, deliberately: `system/inferenced/hailo_hef.py` and
+`system/inferenced/deepx_dxnn.py` (the camera-tier NPU backends) — both
+detect their hardware generically via `lspci`/device-node probing, not
+RK3588-specific mechanisms, and `BOARD_DATA["exopilot02m"]["features"]["pcie_2lane"]`
+is `True`, so there's no known reason either backend needs platform-specific
+changes to work on 02M. Not verified on real hardware either, same caveat
+as everything else here.
+
+## First-unit bring-up commands (2026-09-25)
+
+Everything left for 02M needs the board; each step is one read-only command
+that prints PASS/FAIL or what to record:
+
+| Step | Command | Records / checks |
+|---|---|---|
+| Cameras | `python3 -m openpilot.system.v4l2d.list_cameras` | each role's `/dev/videoN` by I2C id → hal `rk3576_camera_paths.py` (v4l2d opens no MIPI camera without it) |
+| Mic pair | `python3 -m openpilot.system.micd.check_mic` | `EOP02M-Simple-Audio` card, 16 kHz, both mics live and correlated |
+| NPU split | `python3 -m openpilot.selfdrive.modeld.runners.npu_bench --model TASK=PATH@HZ:SHAPE ...` | per-model latency on its `NPU_ALLOCATION_MAP` core, per-core load vs 85% |
+| WiFi band plan | exopilot `scripts/install/wifi_bandcheck.sh` | `ap0` 2.4 GHz + `wlan0` 5 GHz at once |
+| Rails | `powerState` (hardwared) | regulators found by name, none critical |
+
+Not measurable by a tool yet: the mic spacing on the PCB (needed to steer
+the beamformer toward the driver instead of straight ahead).
+
+## What's NOT implemented (Phase B — needs real RK3576 hardware)
+
+- **Camera capture** — *code ported 2026-09-24*: `system/v4l2d/v4l2d.py`
+  `CAMERAS_02M` covers all 5 roles (mono_tele → `tele_road`); the RK3576 BSP
+  provides the sensor/ISP layer. Left: record each role's `/dev/videoN` on a unit
+  (`python3 -m openpilot.system.v4l2d.list_cameras`) into hal
+  `rk3576_camera_paths.py`; v4l2d opens no MIPI camera without it.
+  `~/pilot/visionpilot/src/system/camera/camera/drivers/
+  {ox03c10_driver.py,gc4653_driver.py}` has real, working register-level
+  driver code for the same sensor models, but the active 02M capture path
+  uses the RK3576 BSP's V4L2/ISP drivers rather than that ROS2 implementation.
+  The remaining blocker is role-to-device verification and live-frame bring-up,
+  not a guessed `/dev/videoN` table. `../exopilot/hal/hal/platform/boards.py`
+  currently lists `/dev/video0`–`4` as board camera metadata, but its own
+  `rk3576_camera_paths.py` and Phase B checklist mark role-to-node mapping as
+  unverified. Openpilot deliberately consumes only the confirmed-path module;
+  the `boards.py` entries are not treated as capture assignments.
+- **Stereo depth math**: anything computing depth from a hardcoded 80mm
+  baseline constant needs to read `get_stereo_baseline_mm()` per-platform
+  instead (160mm on 02M).
+- **IMU/magnetometer**: RK3576's fitted parts are still unidentified, so
+  `rk3576_sensors.py` has no register map. `imud` keeps its kernel IIO probe
+  for a specifically named LSM6DS3, then skips raw-I2C fallback without a
+  confirmed LSM6DS3 HAL map; this avoids probing/writing the default address
+  and register zero. Sensor publication and locationd IMU operation still
+  need a real-unit bring-up after the actual parts and orientation are known.
+- **USB/UVC side+rear cameras**: `system/uvcd`/`selfdrive/sided` already
+  handle N USB cameras generically — should work once platform detection
+  recognizes `rk3576` and `RK3576Hardware.has_side_cameras()`/
+  `has_rear_camera()` return real results on actual hardware, but this is
+  unverified.
+- **Modem power-on sequence**: `RK3576Hardware.modem_power_on()`/
+  `modem_power_off()` use real GPIO numbers from `boards.py`, but the
+  bit-bang sequence itself (order, pulse widths, polarity) is a first guess
+  based on the 01M sequence's shape, not a confirmed 02M procedure — needs
+  validation against a schematic or real hardware before relying on it.
+- **NPU per-task core allocation** — *computed, not hand-authored, since
+  2026-09-28* (`rknn_platform.py`/`npu_pack.py`: board-agnostic LPT bin
+  packer over `hal.tuning.npu`'s estimated `TASK_TOPS`, same function
+  `dev/01M` calls). Superseded the earlier VisionPilot-ported split (core 0
+  driving+policy, core 1 all perception), which put ~4.05 estimated TOPS on
+  core 1 against a 2.55 TOPS/core budget. Left: measure per-task TOPS on
+  real RK3576 hardware with `npu_bench.py`.
+- **PMIC rails** — *2026-09-24*: `hardwared` discovers every regulator by
+  sysfs name and checks it against its device-tree constraint; no 02M rail
+  list is hardcoded (the PMIC node is not in our board DTS). The HAL supplies
+  RK3576 NPU/GPU devfreq paths and thermald can also discover them by sysfs
+  name. The shipped-kernel paths still need on-device confirmation. Since
+  `rk3576_thermal.py` intentionally has no operating trip points or fan
+  bands, thermald now skips its userland throttle/shutdown policy on RK3576
+  unless HAL data or an explicit configuration is provided. The kernel's
+  thermal protection must be confirmed on a real unit before relying on it.
+  Fan-band reporting is still generic and is not hardware fan control. PMIC
+  under-voltage monitoring is by discovered regulator name and device-tree
+  constraints; confirm coverage on a real unit.
+
+## Corrected while auditing for "clean dual support" (2026-08-26)
+
+Found by grepping for actual conditional branching on `rk3588` (not just
+comments/docstrings) across the whole tree — three real gaps beyond Phase A's
+original scope:
+
+- **`system/hardware/__init__.py`'s `ROCKCHIP`/`TICI` flags were RK3588-only**:
+  `ROCKCHIP = RK3588` (not `RK3588 or RK3576`), so on real RK3576 hardware
+  these would have silently evaluated `False`. Both flags gate real behavior
+  in `selfdrive/ui/onroad/cameraview.py` (EGL zero-copy rendering, shader
+  setup), `selfdrive/recordd/recordd.py` (encoding path), `system/updated.py`,
+  and `conftest.py`'s test-skipping — all of which would have silently
+  treated RK3576 as a PC/dev build. Fixed via
+  `ROCKCHIP = isinstance(HARDWARE, RK3588Hardware)`, which covers
+  `RK3576Hardware` through its subclass relationship and any future
+  Rockchip platform automatically, rather than an enumerated list that
+  would need updating again for a third platform. Also added the missing
+  `RK3576`/`RK3576_DETECTED`/`RK3576Hardware` exports (only `RK3588`'s
+  existed).
+- **`nagaspilot/runtime/eop_utils.py::detect_exopilot_platform()`**:
+  docstring said RK3588 was "the only platform openpilot supports" even
+  though the function's own code already correctly returned `'exopilot02m'`
+  for an RK3576 device tree — the code was ahead of the docs even before
+  this session's changes. Corrected the docstring, and added the same
+  `HARDWARE` env-var override `PlatformRegistry.detect()` already supports,
+  since this function previously had no way to exercise the RK3576 branch
+  without a real device tree.
+- **`common/realtime.py`'s `BIG_CORES`/`LITTLE_CORES` comment** said "RK3588
+  CPU cores" — the actual index arrays (`[0,1,2,3]`/`[4,5,6,7]`) are correct
+  for RK3576 too (same 4-big+4-little topology, A72 instead of A76), just
+  the comment was misleadingly platform-specific. Comment corrected, no
+  logic change.
+
+## Found in a second pass, more serious: v4l2d could mislabel cameras on RK3576
+
+`system/v4l2d/v4l2d.py` unconditionally imports
+`hal.platform.rk3588_camera_paths` and hardcodes 01M's 4-camera MIPI list
+(road/wide_road/stereo_left/stereo_right) — confirmed by diffing
+`~/pilot/exopilot/hal/hal/platform/`'s `rk3588_*` vs `rk3576_*` module
+coverage: RK3588 has `camera_paths`/`init`/`sensors`/`thermal` modules that
+RK3576 has none of. `device_type` was already being detected in `main()`
+but only used for a log line — the actual camera list was built regardless
+of platform, matching `/dev/videoN` existence against 01M's fallback path
+lists. On real RK3576 hardware, this wouldn't just fail to work (which
+would be an acceptable Phase B gap) — it would find *some* `/dev/videoN`
+nodes for 02M's differently-wired sensors and mislabel them as 01M's
+road/wide_road/stereo_left/stereo_right, publishing wrong camera identities
+on the VisionIPC bus. That's a real risk on a driving-relevant pipeline, not
+just an incomplete feature.
+
+Fixed on the 02M branch with a branch-specific five-camera role table and a
+platform whitelist that includes RK3576. Each stream opens only a HAL-confirmed
+device path; an absent path skips that camera and never reuses the 01M list.
+The initial host-side guard regression tests remain useful, but a real 02M
+capture check still requires device nodes and live images from the board.
+
+The same class of issue was checked for and *not* found in `uvcd.py`/
+`sided.py` — both already delegate camera detection to the polymorphic
+`HARDWARE.get_camera_config()`/`has_side_cameras()`/`has_rear_camera()`
+methods (fixed in Phase A) rather than importing `hal.platform.rk3588_*`
+directly, so they don't have this bug.
+
+Also confirmed and fixed: `RK3576Hardware.has_side_cameras()` previously
+only did direct device-path detection, with a comment saying 02M's USB hub
+chip was unconfirmed. `exopilot/scripts/install/setup_rk3576.sh`'s USB
+topology comment and DT overlay (`exopilot02m-usbhub-rts5411.dtbo`) confirm
+it's the same RTS5411S hub as 01M (side_left/side_right on hub ports 1/2) —
+now probes the hub too, matching `RK3588Hardware`. `CLAUDE.md`'s
+Prerequisites section also gained the `setup_rk3576.sh` BSP install step,
+which already existed but wasn't referenced from
+openpilot's own setup instructions.
+
+## Found in a third pass: DEVICE_CAMERAS had no RK3576 entries at all
+
+`common/transformations/camera.py`'s `get_device_camera_config()` — used
+across calibration and perception, not just camera capture — looks up
+`DEVICE_CAMERAS[(device_type, camera_type)]`. This dict had `("rk3588",
+...)` entries but no `("rk3576", ...)` entries at all, so a lookup on
+RK3576 would miss the dict entirely and silently fall back to **stock
+comma-3's `_ar_ox_config`** (1928×1208, focal length 2648.0/567.0) — not
+even RK3588's numbers, completely unrelated hardware. Worse than the
+v4l2d issue in one sense (this module is used by calibration/perception
+code, not just capture) and lower urgency in another (RK3576 camera
+capture doesn't produce real frames yet, so nothing feeds this path with
+real RK3576 images today) — fixed anyway since the data needed already
+exists and captures this exact class of dual-platform bug precisely.
+
+Added `("rk3576", "ox03c10"/"gc4653"/"unknown")` entries sourced from
+`hal.platform.rk3576_camera_geometry`'s already-existing `FOCAL_PX`/
+`IMAGE_SIZE_PX` data (same pattern as RK3588's entries, refactored into a
+shared `_load_eop_config()` helper instead of duplicating the loader body).
+Confirmed by reading `rk3576_camera_geometry.py` directly: `mono_narrow`/
+`mono_wide` use the identical lens/sensor specs as RK3588's `road`/
+`wide_road` (8.0mm/1.7mm OX03C10), so RK3576's fcam/ecam values come out
+numerically identical to RK3588's — not a coincidence to be suspicious of,
+confirmed against the source data. `mono_tele` (02M's third road-facing
+camera, 16.0mm) has no fcam/dcam/ecam slot in this 3-camera dataclass and
+isn't wired to anything — an open design question for whenever real 02M
+camera capture exists, not something to guess at here.
+
+Also fixed a comment (`get_device_camera_config()`'s "Fall back to rk3588
+ox03c10 config") that was already wrong before this session touched RK3576
+at all — the actual fallback is `_ar_ox_config` (stock comma), never an
+rk3588 config.
+
+5 new regression tests in `common/transformations/tests/test_eop_camera_config.py`,
+including an end-to-end check (subprocess-per-platform, since `HARDWARE`
+is a singleton computed at import time) confirming RK3576 no longer falls
+through to the stock comma-3 config.
+
+## Verification performed
+
+Host-side only, no hardware:
+- `system/hardware/rk3576/tests/test_rk3576.py`,
+  `selfdrive/modeld/runners/tests/test_rknn_platform.py` — both pass with
+  and without the `hal` package on `PYTHONPATH` (skipping hal-dependent
+  assertions gracefully when absent, matching this repo's existing
+  convention for `rk3588`'s test suite).
+- Fixed a pre-existing bug in `system/hardware/rk3588/tests/test_rk3588.py`
+  found while running it for comparison: `test_hardware_creation()`
+  asserted `has_side_cameras() is True`/`has_rear_camera() is True`
+  whenever `hal` was importable, but those methods probe real device
+  files/USB enumeration — the assertion only held on real RK3588 hardware,
+  and fails on any dev PC that happens to have `hal` on the path. Changed
+  to assert the methods are callable and return a `bool`, not a specific
+  value, matching this file's own "host-side, no hardware required" scope.
+
+## WiFi/BT/GPS hardware port + BGT60TR13C retirement (2026-09-13)
+
+02M genuinely differs from 01M in WiFi/BT silicon (AP6398S/SDIO vs
+RTL8822CE/PCIe+USB) and GNSS module (ZED-F9P, RTK-capable, vs NEO-M8U) —
+confirmed against `kernel/dts/rk3576-rpdzkj-exp02.dts`. Neither was in
+`hal.platform.rk3576_pins` before this pass; `RK3576Hardware` had a
+standing comment saying exactly that ("WiFi/BT chip data has not been
+ported yet").
+
+**HAL data added** (`~/pilot/exopilot`, `hal/hal/platform/rk3576_pins.py`
++ `boards.py`): `WIFI_CHIP`/`WIFI_INTERFACE`/`WIFI_TYPE`, `BT_CHIP`/
+`BT_TYPE`/`BT_HCI`, `UART["GPS"]` (uart2, ZED-F9P), `GPS_PPS` GPIO (the only
+GPS pin the DTS actually wires — no PWR_EN/RST_N/SAFEBOOT_N like 01M's
+NEO-M8U, so none invented), `wifi_chip_type="ap6398s"` on `boards.py`'s
+`exopilot02m` entry.
+
+**Real bug found and fixed**: `hal/hal/drivers/gps/ublox.py`'s
+`_platform_pins()` unconditionally imported `rk3588_pins` regardless of
+board — same bug class as the v4l2d/DEVICE_CAMERAS issues above, just in
+the GPS driver instead of camera. On 02M this silently returned `{}`, so
+`get_gps_device()` fell back to 01M's `/dev/ttyS7` and GPS power-cycle GPIO
+silently no-op'd. Now board-detects via `/proc/device-tree/compatible`,
+same convention `RK3576Hardware.detect()` already uses. Added
+`send_rtcm()` (a raw UART write — u-blox auto-detects RTCM3 framing
+alongside UBX on the same port) as the write-side primitive for whenever
+an RTCM correction source exists; none does yet, so nothing calls it.
+
+**`RK3576Hardware` (this repo)**: `WIFI_CHIP`/`BT_CHIP`/`UART` now pulled
+through from the HAL the same way `GPIO`/`CELLULAR` already were.
+
+**Correction (2026-09-17, user-directed)**: the "AP6398S" identity recorded
+above never matched the real trial board — it was a paper/planned spec
+that was never actually populated. The physical board has always had
+**AP6256** (single-antenna WiFi5). This was a real functional bug, not
+just stale prose: exopilot's DTS `wifi_chip_type = "ap6398s"` would have
+made brcmfmac try to load BCM4359 firmware onto real BCM43456 (AP6256)
+silicon and fail to bring WiFi up entirely. Fixed throughout exopilot
+(DTS, hal/platform/{rk3576_pins,boards}.py, docs) and here. Separately,
+the team decided to move to **AP6275S** (WiFi 6, RSDB — genuine
+concurrent 2.4GHz AP + 5GHz STA on one radio). **2026-09-24 (user
+decision): 02M is our own board with the AP6275S only; AP6256 support is
+removed** — see exopilot's `docs/02-HARDWARE/wifi_corner_nodes.md`. WiFi-based `radar4d` (ESP32_RADAR corner nodes) remains scoped to
+this branch (`dev/02M`) only — `dev/EOP10`/`dev/01M` do not support it.
+
+**Band plan (user decision, 2026-09-24):** `ap0` is a 2.4GHz hotspot for
+the ESP32 corner nodes; `wlan0` uses 5GHz for the vehicle's own WiFi LAN.
+exopilot's `setup_wifi_dualwan.sh` sets it up on the AP6275S and writes
+`/etc/exopilot/wifi-band.conf` (`LAN_BAND=a`). openpilot's WiFi screens
+(`selfdrive/ui/components/nm.py`, `system/ui/lib/wifi_manager.py`) read it
+through `common/wifi_band.py`: a network seen on 5GHz is pinned to `a`
+(with a 5GHz BSSID when one is pinned), a 2.4GHz-only one is left
+unpinned. The ESP32
+point cloud is consumed by `selfdrive/controls/radar4d.py` → gridd.
+`get_capabilities()` gained `WIFI`/`BLUETOOTH`/`GPS`/`CELLULAR` — **not**
+`RTK`, deliberately: no RTCM correction path exists (no NTRIP client), so
+claiming it would let `coordinationd/fusion.py`'s `is_rtk` branch trust an
+uncorrected 50m fix as centimeter-accurate.
+
+**BGT60TR13C (SPI2, radar4d) is retired on 02M** — the physical sensor
+connection no longer exists (confirmed directly by the hardware owner, not
+inferred). radar4d's close-range/corner-sensing role moves to the
+ESP32_RADAR WiFi/UDP corner nodes instead — already built for this board,
+see `docs/02-HARDWARE/wifi_corner_nodes.md` in `~/pilot/exopilot`, same
+mechanism 01M already uses. `&spi2` disabled in the DTS; the SPI/GPIO
+entries removed from `rk3576_pins.py`; the dead BGT60TR13C spidev/gpiod
+install and spidev-bufsiz-tuning steps removed from `setup_rk3576.sh`.
+Replaced with `UART["RADAR3D"]` — the NanoRadarCore 77GHz long-range
+sensor, confirmed used fleet-wide on both 01M and 02M (mirrors
+`rk3588_pins.py`'s existing, already-working entry; same USB-UART-dongle
+pattern, not a native SoC pin).
+
+**Two shared fixes landed on `dev/EOP10` too** (and `dev/01M` picked them
+up via a clean rebase, no conflicts): `eop_utils.py`'s
+`GPS_TOLERANCE_M`/`get_gps_tolerance()` comments claimed ExoPilot has no
+RTK at all, contradicting 02M's RTK-capable hardware and the existing
+`EOPRTKEnabled`/`EOPNTRIPEnabled` UI toggles (both UI-only today — the
+tolerance value itself, 50.0, is unchanged, since no correction path
+actually flows yet); `radar3d.py`'s docstring said "ExoPilot
+(RK3588/openpilot)" even though the daemon already resolved its UART port
+generically via `HARDWARE.hal_module("pins")` and runs on both boards.
+Also removed a duplicate `EOPNTRIPEnabled`/`EOPRTKEnabled` pair in this
+branch's `params_keys.h` (local to `dev/02M`, not inherited from EOP10).
+
+**Deferred on purpose, not half-built**: an actual NTRIP client daemon.
+`EOPRTKEnabled`/`EOPNTRIPEnabled` are UI toggles with no backend consumer
+today — building one is a new daemon + credential storage +
+`process_config.py` gating, a feature rather than a hardware port, and
+needs real caster host/mountpoint/credentials this session doesn't have.
+
+**Not confirmed, flagged rather than guessed**:
+- `UART["GPS"]`'s baud (460800, from the DTS) conflicts with
+  `selfdrive/ui/settings/descriptor.py`'s `EOPRTKEnabled` copy, which
+  describes negotiating 38400 (F9P factory default) up to 115200. Left
+  both in place rather than silently picking one — needs the team to
+  resolve which is actually right.
+- `BT_TYPE`/`UART["BT"]` are inferred from uart1's cts/rts flow-control
+  pins (the standard wiring for a Broadcom combo chip's BT-over-UART HCI
+  transport), not confirmed by any `bluetooth` DTS node or real hardware.
+  `setup_rk3576.sh` gained a best-effort `btattach` step on this
+  placeholder port/baud.
+- `UART["RADAR3D"]`'s device path is copied verbatim from 01M's confirmed
+  value, not independently confirmed for 02M's own USB enumeration.
+
+None of this has been run on real RK3576 hardware — same standing caveat
+as the rest of this document.

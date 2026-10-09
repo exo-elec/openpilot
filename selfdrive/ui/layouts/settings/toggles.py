@@ -19,6 +19,7 @@ DESCRIPTIONS = {
     "Receive alerts to steer back into the lane when your vehicle drifts over a detected lane line " +
     "without a turn signal activated while driving over 31 mph (50 km/h)."
   ),
+  "EOPRearCameraEnabled": "Enable rear camera for backup view and blind spot detection.",
   "IsMetric": "Display speed in km/h instead of mph.",
   "RecordAudio": "Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect.",
 }
@@ -60,6 +61,12 @@ class TogglesLayout(Widget):
         DESCRIPTIONS["IsLdwEnabled"],
         self._params.get_bool("IsLdwEnabled"),
         icon="warning.png",
+      ),
+      toggle_item(
+        "Rear Camera",
+        DESCRIPTIONS["EOPRearCameraEnabled"],
+        self._params.get_bool("EOPRearCameraEnabled"),
+        icon="monitoring.png",
       ),
       toggle_item(
         "Record Microphone Audio",

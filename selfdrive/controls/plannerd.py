@@ -1,70 +1,56 @@
 #!/usr/bin/env python3
 from cereal import car
 from openpilot.common.params import Params
-from openpilot.common.realtime import Priority, config_realtime_process
+from openpilot.common.realtime import Priority, config_realtime_process, DT_MDL
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning
-from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner, NGPFlags
-from nagaspilot.runtime.drive_mode import DriveModeApplier
+from nagaspilot.runtime.drive_mode import EOP_KEYS, DriveModeApplier
+from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner
 import cereal.messaging as messaging
 
 
-def main():
-  config_realtime_process(5, Priority.CTRL_LOW)
+def main() -> int:
+  try:
+    set_daemon_affinity("plannerd")
+    config_realtime_process(DT_MDL, Priority.CTRL_LOW)
 
-  cloudlog.info("plannerd is waiting for CarParams")
-  params = Params()
-  CP = messaging.log_from_bytes(params.get("CarParams", block=True), car.CarParams)
-  cloudlog.info("plannerd got CarParams: %s", CP.brand)
+    cloudlog.info("plannerd is waiting for CarParams")
+    params = Params()
+    _car_params = params.get("CarParams")
+    assert _car_params is not None, "CarParams not available"
+    CP = messaging.log_from_bytes(_car_params, car.CarParams)
+    cloudlog.info("plannerd got CarParams: %s", CP.brand)
 
-  ldw = LaneDepartureWarning()
-  # Driver preference: constant kph offset applied to the final v_cruise,
-  # matching EOP10's EOPSpeedLimitOffset. Default 0 is a no-op; read once,
-  # matching this branch's other panel/non-panel toggles (see
-  # NGP10_FEATURE_MATRIX.md's "Live vs. next-drive toggles").
-  speed_offset_kph = int(params.get("ngp_lon_speed_offset_kph", return_default=True))
-  longitudinal_planner = LongitudinalPlanner(CP, speed_offset_kph=speed_offset_kph)
-  drive_mode = DriveModeApplier(params)  # ngp_lon_drive_mode: eco / normal / sport write the style params; custom writes nothing
-  pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
-  # 'mapData' (mapd), 'stereoObjects' (gridd: traffic lights) and 'driverMonitoringState' feed the map/light/distraction speed
-  # caps (nagaspilot/runtime/map_speed.py). 'mapData' used to be left out because NGP10 had no MapData struct and no entry in
-  # cereal/services.py, which crashed SubMaster.__init__ with KeyError('mapData'); both now exist (see cereal/log.capnp).
-  sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapData', 'stereoObjects', 'driverMonitoringState'],
-                           poll='modelV2',
-                           ignore_alive=['navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapData', 'stereoObjects',
-                                         'driverMonitoringState'])
+    ldw = LaneDepartureWarning()
+    longitudinal_planner = LongitudinalPlanner(CP)
+    drive_mode = DriveModeApplier(params, EOP_KEYS)  # EOPDriveMode: eco / normal / sport write the style params; custom writes nothing
+    pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'speedLimitState', 'ttsRequest'])
+    sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
+                              'mapData', 'navInstruction', 'stereoObjects', 'surfaceStatus', 'liveLocationKalman',
+                              'enhancedTrajectory', 'accelerometer', 'pathAdjust'],
+                             poll='modelV2',
+                             ignore_alive=['mapData', 'navInstruction', 'stereoObjects',
+                                           'surfaceStatus', 'liveLocationKalman', 'enhancedTrajectory',
+                                           'accelerometer', 'pathAdjust'])
 
-  # DLON runs unconditionally -- a default, always-on behavior of this
-  # branch, not a user-selectable feature.
-  ngp_flags = 0
-  if params.get_bool("ngp_lon_brsc"):
-    ngp_flags |= NGPFlags.BRSC
-  if params.get_bool("ngp_lon_lc_lead_handoff"):
-    ngp_flags |= NGPFlags.LC_LEAD_HANDOFF
-  if params.get_bool("ngp_lon_vtsc"):
-    ngp_flags |= NGPFlags.VTSC
-  if params.get_bool("ngp_lon_nslc"):
-    ngp_flags |= NGPFlags.NSLC
-  if params.get_bool("ngp_lon_cutin"):
-    ngp_flags |= NGPFlags.CUTIN
-  if params.get_bool("ngp_lon_pathd"):
-    ngp_flags |= NGPFlags.PATHD
+    while True:
+      sm.update()
+      drive_mode.update()
+      if sm.updated['modelV2']:
+        longitudinal_planner.update(sm)
+        longitudinal_planner.publish(sm, pm)
 
-  while True:
-    sm.update()
-    drive_mode.update()
-    if sm.updated['modelV2']:
-      longitudinal_planner.update(sm, ngp_flags)
-      longitudinal_planner.publish(sm, pm)
-
-      ldw.update(sm.frame, sm['modelV2'], sm['carState'], sm['carControl'])
-      msg = messaging.new_message('driverAssistance')
-      msg.valid = sm.all_checks(['carState', 'carControl', 'modelV2', 'liveParameters'])
-      msg.driverAssistance.leftLaneDeparture = ldw.left
-      msg.driverAssistance.rightLaneDeparture = ldw.right
-      pm.send('driverAssistance', msg)
+        ldw.update(sm.frame, sm['modelV2'], sm['carState'], sm['carControl'])
+        msg = messaging.new_message('driverAssistance')
+        msg.valid = sm.all_checks(['carState', 'carControl', 'modelV2', 'liveParameters'])
+        msg.driverAssistance.leftLaneDeparture = ldw.left
+        msg.driverAssistance.rightLaneDeparture = ldw.right
+        pm.send('driverAssistance', msg)
+  except Exception as e:
+    cloudlog.exception(f"PlannerId fatal error: {e}")
+    raise
 
 
 if __name__ == "__main__":
-  main()
+  exit(main())

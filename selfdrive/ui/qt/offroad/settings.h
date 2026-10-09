@@ -28,6 +28,7 @@ protected:
 signals:
   void closeSettings();
   void reviewTrainingGuide();
+
   void expandToggleDescription(const QString &param);
   void scrollToToggle(const QString &param);
 
@@ -53,7 +54,6 @@ private slots:
 
 private:
   Params params;
-  ButtonControl *pair_device;
   ButtonControl *resetCalibBtn;
 };
 
@@ -99,6 +99,3 @@ private:
   Params params;
   ParamWatcher *fs_watch;
 };
-
-// Forward declaration
-class FirehosePanel;

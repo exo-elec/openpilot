@@ -1,5 +1,5 @@
-from openpilot.selfdrive.controls.lib.longitudinal_planner import (
-  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, _apply_adaptive_accel_limit,
+from nagaspilot.controls.longitudinal_policy import (
+  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
 )
 
 RAW_MAX_ACCEL = 2.0

@@ -1,0 +1,14 @@
+Import('env', 'common', 'messaging')
+
+# SocketD - Native Linux SocketCAN daemon (replaces pandad)
+socketd_sources = [
+    'can_capnp.py',
+    'socketd.py'
+]
+
+# Pure Python implementation using AF_CAN/CAN_RAW sockets
+# No C++ compilation needed (unlike pandad's USB libusb complexity)
+
+# The daemon is launched by system/manager as a PythonProcess
+# No build step needed - sources exported for reference only
+Export('socketd_sources')

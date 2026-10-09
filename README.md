@@ -1,9 +1,9 @@
 <div align="center" style="text-align: center;">
 
-<h1>NagasPilot</h1>
+<h1>ExoPilot</h1>
 
 <p>
-  <b>A fork of openpilot v0.10.0 with smarter cruise control, steering and lane changes.</b>
+  <b>A fork of openpilot v0.10.0 for our own ExoPilot device, with more cameras, radar and safety features.</b>
 </p>
 
 <h3>
@@ -19,29 +19,29 @@
 </h3>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Branch](https://img.shields.io/badge/Branch-dev%2FNGP10-blue)](https://github.com/exo-elec/openpilot/tree/dev/NGP10)
-[![Last Updated](https://img.shields.io/badge/Last%20Updated-October%209th%2C%202026-brightgreen)](https://github.com/exo-elec/openpilot/commits/dev/NGP10)
+[![Branch](https://img.shields.io/badge/Branch-dev%2FEOP10-blue)](https://github.com/exo-elec/openpilot/tree/dev/EOP10)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-October%209th%2C%202026-brightgreen)](https://github.com/exo-elec/openpilot/commits/dev/EOP10)
 [![Issues](https://img.shields.io/github/issues/exo-elec/openpilot?label=Issues)](https://github.com/exo-elec/openpilot/issues)
 
 </div>
 
 ------
 
-Using NagasPilot in a car
+Using ExoPilot in a car
 ------
 
-To use **NagasPilot** in a car, you need four things:
+To use **ExoPilot** in a car, you need four things:
 
-1. **Device:** a **comma 3 / 3X**.
-2. **Software:** this branch (`dev/NGP10`). See *How to install* below.
+1. **Device:** an **ExoPilot 01M or 02M device**, with its matching build profile.
+2. **Software:** the matching branch (`dev/EOP10`, `dev/01M`, or `dev/02M`). See *How to install* below.
 3. **Car:** a supported car. See [docs/CARS.md](docs/CARS.md).
 4. **Harness:** the harness that matches your car's make and model, to connect the device to the car.
 
-NagasPilot has not been tested on a real vehicle yet. Read *Safety and legal* before you drive.
+ExoPilot has not been tested on a real vehicle yet. Read *Safety and legal* before you drive.
 
 ------
 
-**NagasPilot** is based on **openpilot v0.10.0** (the full release, not v0.10.1 or later) and runs on the **comma 3 / 3X**. It is in development and has not yet been tested on a real vehicle.
+**ExoPilot** is based on **openpilot v0.10.0** (the full release, not v0.10.1 or later) and shares its runtime across the **ExoPilot 01M and 02M devices**. It is in development and has not yet been tested on a real vehicle.
 
 Feature comparison: openpilot → NGP10 → EOP10 → 01M → 02M
 ------
@@ -182,7 +182,9 @@ Implementation references: [portable monitoring](nagaspilot/docs/STEERING_ACTIVI
 | `dev/EOP10` | `git clone -b dev/EOP10` | The shared ExoPilot base. Every ExoPilot device gets these features. | ExoPilot&nbsp;Developers |
 | `dev/01M` | `git clone -b dev/01M` | Shared EOP features with a 1024×600 full-screen PyQt5 display. | ExoPilot&nbsp;01M&nbsp;owners |
 | `dev/02M` | `git clone -b dev/02M` | Shared EOP features with a 1600×600 PyQt5 display and floating side panels. | ExoPilot&nbsp;02M&nbsp;owners |
-| `dev/NGP10`&nbsp;(this&nbsp;branch) | `git clone -b dev/NGP10` | NagasPilot: the smarter cruise, steering and lane-change features for the comma 3 / 3X. | comma&nbsp;3&nbsp;/&nbsp;3X&nbsp;owners |
+| `dev/NGP10` | `git clone -b dev/NGP10` | NagasPilot: the smarter cruise, steering and lane-change features for the comma 3 / 3X. | comma&nbsp;3&nbsp;/&nbsp;3X&nbsp;owners |
+
+All three EOP branches inherit the same source; `common/build_profile.py` selects the UI backend, default SoC and display size. See [Shared pipeline](docs/eop/SHARED_PIPELINE.md).
 
 Every branch is in development and has not been tested on a real vehicle. **Do not** treat any of them as a release.
 
@@ -192,7 +194,7 @@ Every branch is in development and has not been tested on a real vehicle. **Do n
 There is no installer URL yet. Clone this branch onto the device:
 
 ```
-git clone -b dev/NGP10 https://github.com/exo-elec/openpilot.git
+git clone -b dev/EOP10 https://github.com/exo-elec/openpilot.git
 ```
 
 **DO NOT** drive with a build you have not read the notes for. Every `dev/` branch changes often and can break.
@@ -208,6 +210,7 @@ Please include as much detail as possible: which branch and device you use, what
 ------
 
 * [commaai/openpilot](https://github.com/commaai/openpilot): openpilot v0.10.0 (MIT)
+* NagasPilot: the cruise, steering and lane-change features in the tables above
 
 Star History
 ------
@@ -219,11 +222,10 @@ Star History
 ⚖️ Safety and legal
 ------
 
-- **NagasPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
-- Camera-based driver monitoring is removed from this software; SAM does not use a driver camera. Driver activity monitoring only warns and slows the car when you stop touching the wheel, brake or gas; it never switches off by itself. Keep watching the road.
-- Baseline safety concepts are inherited, but monitoring and optional control policies are modified. See [docs/SAFETY.md](docs/SAFETY.md); this fork has no vehicle safety validation.
+- **ExoPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
+- Baseline safety concepts are inherited, but the vehicle interface, monitoring and optional control policies are modified. See [docs/SAFETY.md](docs/SAFETY.md); this fork has no vehicle safety validation.
 - New features have **not** been validated on a real vehicle. Always stay attentive and ready to take over.
-
+- **There is no camera-based driver monitoring.** Driver activity monitoring only warns and slows the car when you stop touching the wheel, brake or gas; it never switches off by itself and does not check where you are looking. Keep watching the road and keep your hands ready at all times.
 
 **MIT licensed.** openpilot is released under the MIT license. Some parts of the software are released under other licenses as specified.
 

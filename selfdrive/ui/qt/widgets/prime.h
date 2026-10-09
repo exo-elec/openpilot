@@ -1,60 +1,24 @@
 #pragma once
 
-#include <QLabel>
+#include <QMouseEvent>
 #include <QStackedWidget>
-#include <QVBoxLayout>
 #include <QWidget>
 
-#include "selfdrive/ui/qt/widgets/input.h"
+// EOP: Prime widgets simplified — no cloud pairing/subscription.
+// Classes kept for ABI compatibility with upstream Qt build.
 
-// pairing QR code
-class PairingQRWidget : public QWidget {
-  Q_OBJECT
-
-public:
-  explicit PairingQRWidget(QWidget* parent = 0);
-  void paintEvent(QPaintEvent*) override;
-
-private:
-  QPixmap img;
-  QTimer *timer;
-  void updateQrCode(const QString &text);
-  void showEvent(QShowEvent *event) override;
-  void hideEvent(QHideEvent *event) override;
-
-private slots:
-  void refresh();
-};
-
-
-// pairing popup widget
-class PairingPopup : public DialogBase {
-  Q_OBJECT
-
-public:
-  explicit PairingPopup(QWidget* parent);
-  int exec() override;
-};
-
-
-// widget for paired users with prime
 class PrimeUserWidget : public QFrame {
   Q_OBJECT
-
 public:
   explicit PrimeUserWidget(QWidget* parent = 0);
 };
 
-
-// widget for paired users without prime
 class PrimeAdWidget : public QFrame {
   Q_OBJECT
 public:
   explicit PrimeAdWidget(QWidget* parent = 0);
 };
 
-
-// container widget
 class SetupWidget : public QFrame {
   Q_OBJECT
 
@@ -64,7 +28,13 @@ public:
 signals:
   void openSettings(int index = 0, const QString &param = "");
 
+protected:
+  // Upstream emitted openSettings() via the embedded WiFiPromptWidget this
+  // fork's rewrite removed; this keeps the widget clickable (home.cc still
+  // wires openSettings to OffroadHome::openSettings) instead of leaving it
+  // inert with no way to ever fire the signal it still declares.
+  void mousePressEvent(QMouseEvent *event) override;
+
 private:
-  PairingPopup *popup;
   QStackedWidget *mainLayout;
 };

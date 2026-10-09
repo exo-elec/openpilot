@@ -45,3 +45,14 @@ def test_green_light_needs_standstill_and_a_prior_force_stop():
   assert not g.update(False, False)  # already rolling
   g2 = NGPGreenLight()
   assert not g2.update(False, True)  # was never held
+
+
+def test_green_light_matches_the_inline_logic_selfdrived_used_before_it_called_the_shared_policy():
+  import random
+  rng = random.Random(5)
+  g, was_force_stopped = NGPGreenLight(), False
+  for _ in range(20000):
+    force_stop, standstill = rng.random() > 0.5, rng.random() > 0.4
+    expected = was_force_stopped and not force_stop and standstill
+    was_force_stopped = force_stop
+    assert g.update(force_stop, standstill) == expected

@@ -2,7 +2,7 @@ import re
 import pyray as rl
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.scroll_panel import GuiScrollPanel
 from openpilot.system.ui.lib.wrap_text import wrap_text
@@ -36,8 +36,8 @@ class HtmlElement:
 class HtmlRenderer(Widget):
   def __init__(self, file_path: str):
     self.elements: list[HtmlElement] = []
-    self._normal_font = gui_app.font(FontWeight.NORMAL)
-    self._bold_font = gui_app.font(FontWeight.BOLD)
+    self._normal_font = gui_app.font(cast(FontWeight, FontWeight.NORMAL))
+    self._bold_font = gui_app.font(cast(FontWeight, FontWeight.BOLD))
     self._scroll_panel = GuiScrollPanel()
 
     self.styles: dict[ElementType, dict[str, Any]] = {

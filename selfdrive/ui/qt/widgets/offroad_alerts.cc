@@ -28,13 +28,13 @@ AbstractAlert::AbstractAlert(bool hasRebootBtn, QWidget *parent) : QFrame(parent
   main_layout->addLayout(footer_layout);
 
   QPushButton *dismiss_btn = new QPushButton(tr("Close"));
-  dismiss_btn->setFixedSize(400, 125);
+  dismiss_btn->setFixedSize(140, 45);
   footer_layout->addWidget(dismiss_btn, 0, Qt::AlignBottom | Qt::AlignLeft);
   QObject::connect(dismiss_btn, &QPushButton::clicked, this, &AbstractAlert::dismiss);
 
   action_btn = new QPushButton();
   action_btn->setVisible(false);
-  action_btn->setFixedHeight(125);
+  action_btn->setFixedHeight(45);
   footer_layout->addWidget(action_btn, 0, Qt::AlignBottom | Qt::AlignRight);
   QObject::connect(action_btn, &QPushButton::clicked, [=]() {
     if (!alerts["Offroad_ExcessiveActuation"]->text().isEmpty()) {
@@ -48,9 +48,9 @@ AbstractAlert::AbstractAlert(bool hasRebootBtn, QWidget *parent) : QFrame(parent
 
   if (hasRebootBtn) {
     QPushButton *rebootBtn = new QPushButton(tr("Reboot and Update"));
-    rebootBtn->setFixedSize(600, 125);
+    rebootBtn->setFixedSize(195, 45);
     footer_layout->addWidget(rebootBtn, 0, Qt::AlignBottom | Qt::AlignRight);
-    QObject::connect(rebootBtn, &QPushButton::clicked, [=]() { Hardware::reboot(); });
+    QObject::connect(rebootBtn, &QPushButton::clicked, [=]() { system("reboot"); });
   }
 
   setStyleSheet(R"(

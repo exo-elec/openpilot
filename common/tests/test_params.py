@@ -1,6 +1,7 @@
 import pytest
 import datetime
 import os
+from openpilot.common.compat import UTC
 import threading
 import time
 import uuid
@@ -136,6 +137,6 @@ class TestParams:
     assert isinstance(self.params.get("AdbEnabled"), bool)
 
     # time
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.datetime.now(UTC)
     self.params.put("InstallDate", now)
     assert self.params.get("InstallDate") == now

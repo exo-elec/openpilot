@@ -1,15 +1,19 @@
-from nagaspilot.controls.ngp_radar2d import blindspot_blocked
+import time
 from cereal import log
-from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
-from nagaspilot.controls.ngp_turn_desire import NGPTurnDesire
-from nagaspilot.controls.ngp_lane_change import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
+from openpilot.common.params import Params
+from openpilot.selfdrive.controls.lib.dlat import DLAT, LANEFUL_TO_LANELESS_THRESH
+from nagaspilot.speed_zones import URBAN_SPEED_MPS
+from nagaspilot.controls.eop_lane_change import (Dir, MIN_LANE_WIDTH, blindspot_blocked, evaluate_gap,
+                                                 is_road_edge_blinker, validate_lane_width)
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
 
-LANE_CHANGE_SPEED_MIN = 20 * CV.MPH_TO_MS
+LANE_CHANGE_SPEED_MIN = URBAN_SPEED_MPS
 LANE_CHANGE_TIME_MAX = 10.
+ALC_CANCEL_DELAY = 1.75  # seconds before a cancelled ALC can restart
+
 
 DESIRES = {
   LaneChangeDirection.none: {
@@ -32,9 +36,15 @@ DESIRES = {
   },
 }
 
+TURN_DESIRES = {
+  log.Desire.none: log.Desire.none,
+  log.Desire.turnLeft: log.Desire.turnLeft,
+  log.Desire.turnRight: log.Desire.turnRight,
+}
+
 
 class DesireHelper:
-  def __init__(self, ngp_lca_speed_mph=20, ngp_lca_auto_sec=0.0, ngp_lca_gap_eval=False, ngp_lca_lane_width=False, ngp_turn_desire_mph=0):
+  def __init__(self):
     self.lane_change_state = LaneChangeState.off
     self.lane_change_direction = LaneChangeDirection.none
     self.lane_change_timer = 0.0
@@ -42,76 +52,182 @@ class DesireHelper:
     self.keep_pulse_timer = 0.0
     self.prev_one_blinker = False
     self.desire = log.Desire.none
-    self.ngp_lca_speed = float(ngp_lca_speed_mph) * CV.MPH_TO_MS
-    self.ngp_lca_auto_sec = max(0.0, float(ngp_lca_auto_sec))
-    self.ngp_lca_auto_timer = 0.0
-    self.ngp_lca_gap_eval = bool(ngp_lca_gap_eval)
-    self.ngp_lca_lane_width = bool(ngp_lca_lane_width)
-    self.ngp_turn = NGPTurnDesire(float(ngp_turn_desire_mph) * CV.MPH_TO_MS) if ngp_turn_desire_mph else None
 
-  def _lane_blocked(self, model_v2, direction, v_ego):
-    # Opt-in modelV2 guards (adjacent-lane TTC gap, target-lane width). Unknown data never blocks.
-    side = 'left' if direction == LaneChangeDirection.left else 'right'
-    if self.ngp_lca_gap_eval and not evaluate_gap(model_v2, side, v_ego)[0]:
-      return True
-    return self.ngp_lca_lane_width and not validate_lane_width(model_v2, side, MIN_LANE_WIDTH)
+    # EOP: LCA (Lane Change Assist) parameters
+    self.params = Params()
+    self.lane_change_delay_timer = 0.0
+    self.lane_change_delay_start = 0.0
+    self._last_param_update = 0.0
+    self._param_update_interval = 1.0  # seconds
+    self.lca_enabled = False
+    self.auto_lane_change = False
+    self.one_lane_change = False
+    self.lane_change_delay = 1.0
+    self.gap_eval_enabled = False
+    self.lane_width_check_enabled = False
+    self.min_lane_width = MIN_LANE_WIDTH
+    self.lane_change_completed = False
+    self.turn_direction = log.Desire.none
 
-  def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected=False, right_edge_detected=False,
-             low_lane_confidence=False, model_v2=None):
+    # ALC state guards (road-edge/cancel delay)
+    self.last_alc_cancel = 0.0
+    self.blinker_below_lane_change_speed = False
+    self.prev_blinker = None
+
+  def _load_params(self):
+    """Load EOP LCA parameters. Rate-limited to once per second via time.monotonic()."""
+    now = time.monotonic()
+    if now - self._last_param_update < self._param_update_interval:
+      return
+    self._last_param_update = now
+
+    self.lca_enabled = self.params.get_bool("EOPLCAControllerEnabled")
+    self.auto_lane_change = self.params.get_bool("EOPAutoLaneChange")
+    self.one_lane_change = self.params.get_bool("EOPOneLaneChange")
+    self.gap_eval_enabled = self.params.get_bool("EOPLCAGapEvalEnabled")
+    self.lane_width_check_enabled = self.params.get_bool("EOPLCALaneWidthEnabled")
+    try:
+      self.lane_change_delay = float(self.params.get("EOPLaneChangeDelay") or 1.0)
+      self.min_lane_width = float(self.params.get("EOPMinimumLaneWidth") or MIN_LANE_WIDTH)
+    except (ValueError, TypeError):
+      self.lane_change_delay = 1.0
+      self.min_lane_width = MIN_LANE_WIDTH
+
+  def _evaluate_gap(self, radar_state, model_v2, direction: str, v_ego: float) -> tuple[bool, float]:
+    return evaluate_gap(radar_state, model_v2, direction, v_ego)
+
+  def _validate_lane_width(self, model_v2, direction: str) -> bool:
+    return validate_lane_width(model_v2, direction, self.min_lane_width)
+
+  def _validate_lane_confidence(self, model_v2) -> bool:
+    """DLAT-based initiation safety gate: don't start an automatic/nudged lane
+    change while lane-line confidence is too low to trust the geometry.
+
+    Reuses DLAT's own calculate_lane_confidence() formula and its
+    LANEFUL_TO_LANELESS_THRESH -- the same threshold DLAT itself uses to
+    decide lane lines are unreliable -- rather than inventing a second
+    number. Missing/invalid model_v2 resolves to the neutral 0.5 confidence
+    built into calculate_lane_confidence(), so this never blocks on absent
+    data. Always on, no toggle: pairs with the blindspot check as core
+    initiation safety, not an opt-in feature.
+    """
+    return DLAT.calculate_lane_confidence(model_v2) >= LANEFUL_TO_LANELESS_THRESH
+
+  def _blindspot_blocked(self, carstate, blind_spot_alert, direction) -> bool:
+    return blindspot_blocked(carstate, blind_spot_alert, direction)
+
+  def update(self, carstate, lateral_active, lane_change_prob, model_v2=None, radar_state=None, blind_spot_alert=None):
+    # Load EOP parameters
+    self._load_params()
+
+    current_time = time.monotonic()
     v_ego = carstate.vEgo
-    one_blinker = carstate.leftBlinker != carstate.rightBlinker
-    below_lane_change_speed = self.ngp_lca_speed <= 0.0 or v_ego < self.ngp_lca_speed
+    left_blinker = carstate.leftBlinker
+    right_blinker = carstate.rightBlinker
+    one_blinker = left_blinker != right_blinker
+    below_lane_change_speed = v_ego < LANE_CHANGE_SPEED_MIN
+
+    # Track whether the blinker was first activated below ALC speed.
+    if one_blinker and self.prev_blinker is None:
+      self.blinker_below_lane_change_speed = below_lane_change_speed
+    elif not one_blinker:
+      self.blinker_below_lane_change_speed = False
+
+    # Direction-change detection for cancelling an in-progress ALC.
+    blinker_dir_changed = ((left_blinker and self.prev_blinker == Dir.RIGHT) or
+                           (right_blinker and self.prev_blinker == Dir.LEFT))
+
+    # Common guard: road edge on the blinker side means no adjacent lane.
+    road_edge_blinker = is_road_edge_blinker(model_v2, right_blinker, left_blinker)
+
+    can_start_lane_change = (one_blinker and not below_lane_change_speed and
+                             (current_time - self.last_alc_cancel >= ALC_CANCEL_DELAY) and
+                             not road_edge_blinker)
 
     if not lateral_active or self.lane_change_timer > LANE_CHANGE_TIME_MAX:
       self.lane_change_state = LaneChangeState.off
       self.lane_change_direction = LaneChangeDirection.none
     else:
       # LaneChangeState.off
-      if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker and not below_lane_change_speed:
+      if (self.lane_change_state == LaneChangeState.off and can_start_lane_change and
+          not self.blinker_below_lane_change_speed):
         self.lane_change_state = LaneChangeState.preLaneChange
-        self.lane_change_direction = LaneChangeDirection.left if carstate.leftBlinker else LaneChangeDirection.right
+        self.lane_change_direction = LaneChangeDirection.left if left_blinker else LaneChangeDirection.right
         self.lane_change_ll_prob = 1.0
-        self.ngp_lca_auto_timer = 0.0
 
       # LaneChangeState.preLaneChange
       elif self.lane_change_state == LaneChangeState.preLaneChange:
         # Set lane change direction
-        self.lane_change_direction = LaneChangeDirection.left if \
-          carstate.leftBlinker else LaneChangeDirection.right
+        self.lane_change_direction = LaneChangeDirection.left if left_blinker else LaneChangeDirection.right
 
         torque_applied = carstate.steeringPressed and \
                          ((carstate.steeringTorque > 0 and self.lane_change_direction == LaneChangeDirection.left) or
                           (carstate.steeringTorque < 0 and self.lane_change_direction == LaneChangeDirection.right))
 
-        blindspot_detected = (((blindspot_blocked(carstate.leftBlindspot, carstate.rightBlindspot, "left") or left_edge_detected) and self.lane_change_direction == LaneChangeDirection.left) or
-                              ((blindspot_blocked(carstate.leftBlindspot, carstate.rightBlindspot, "right") or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
+        blindspot_detected = self._blindspot_blocked(carstate, blind_spot_alert, self.lane_change_direction)
 
-        # DLAT lane-confidence gate: don't initiate (or accumulate toward a
-        # nudgeless auto-initiate) while lane-line confidence is too low to
-        # trust the geometry. Always on, no toggle -- see modeld.py caller.
-        blindspot_detected = blindspot_detected or self._lane_blocked(model_v2, self.lane_change_direction, v_ego)
-
-        if blindspot_detected or low_lane_confidence:
-          self.ngp_lca_auto_timer = 0.0
-        else:
-          self.ngp_lca_auto_timer += DT_MDL
-          if self.ngp_lca_auto_sec > 0.0 and self.ngp_lca_auto_timer >= self.ngp_lca_auto_sec:
-            torque_applied = True
-
-        if not one_blinker or below_lane_change_speed:
+        if not one_blinker or below_lane_change_speed or self.lane_change_completed or not can_start_lane_change:
           self.lane_change_state = LaneChangeState.off
           self.lane_change_direction = LaneChangeDirection.none
-        elif torque_applied and not blindspot_detected and not low_lane_confidence:
-          self.lane_change_state = LaneChangeState.laneChangeStarting
+          self.lane_change_delay_timer = 0.0
+          self.lane_change_delay_start = 0.0
+          if not self.lane_change_completed:
+            self.last_alc_cancel = current_time
+        else:
+          # EOP: Human-nudge is the default. Auto lane change (nudgeless) is opt-in.
+          should_start = torque_applied and not blindspot_detected
+
+          if self.lca_enabled and self.auto_lane_change and not blindspot_detected:
+            # EOP: Nudgeless mode — start after delay timer expires
+            if self.lane_change_delay_start == 0.0:
+              self.lane_change_delay_start = time.monotonic()
+            elapsed = time.monotonic() - self.lane_change_delay_start
+            if elapsed >= self.lane_change_delay:
+              should_start = True
+
+          # EOP: DLAT lane-confidence gate (always on, no toggle -- see docstring)
+          if should_start and not self._validate_lane_confidence(model_v2):
+            should_start = False
+
+          # EOP: Gap evaluation (if enabled)
+          if should_start and self.gap_eval_enabled:
+            direction_str = 'left' if self.lane_change_direction == LaneChangeDirection.left else 'right'
+            gap_safe, gap_confidence = self._evaluate_gap(radar_state, model_v2, direction_str, v_ego)
+            if not gap_safe:
+              should_start = False
+
+          # EOP: Lane width validation (if enabled)
+          if should_start and self.lane_width_check_enabled and model_v2 is not None:
+            direction_str = 'left' if self.lane_change_direction == LaneChangeDirection.left else 'right'
+            if not self._validate_lane_width(model_v2, direction_str):
+              should_start = False
+
+          if should_start and not self.blinker_below_lane_change_speed:
+            self.lane_change_state = LaneChangeState.laneChangeStarting
+            self.lane_change_completed = self.one_lane_change
+            self.lane_change_delay_timer = 0.0
+            self.lane_change_delay_start = 0.0
 
       # LaneChangeState.laneChangeStarting
       elif self.lane_change_state == LaneChangeState.laneChangeStarting:
-        # fade out over .5s
-        self.lane_change_ll_prob = max(self.lane_change_ll_prob - 2 * DT_MDL, 0.0)
+        # EOP: Abort mid-maneuver if BSD detects an object in the target lane.
+        # Go to `off` immediately — do NOT flip direction then laneChangeFinishing,
+        # which would command a sudden snap-back at highway speed.
+        blindspot_detected = self._blindspot_blocked(carstate, blind_spot_alert, self.lane_change_direction)
+        if blindspot_detected or (not one_blinker or blinker_dir_changed):
+          self.lane_change_state = LaneChangeState.off
+          self.lane_change_direction = LaneChangeDirection.none
+          self.lane_change_ll_prob = 1.0
+          self.lane_change_delay_start = 0.0
+          self.lane_change_completed = False
+          self.last_alc_cancel = current_time
+        else:
+          # fade out over .5s
+          self.lane_change_ll_prob = max(self.lane_change_ll_prob - 2 * DT_MDL, 0.0)
 
-        # 98% certainty
-        if lane_change_prob < 0.02 and self.lane_change_ll_prob < 0.01:
-          self.lane_change_state = LaneChangeState.laneChangeFinishing
+          # 98% certainty
+          if lane_change_prob < 0.02 and self.lane_change_ll_prob < 0.01:
+            self.lane_change_state = LaneChangeState.laneChangeFinishing
 
       # LaneChangeState.laneChangeFinishing
       elif self.lane_change_state == LaneChangeState.laneChangeFinishing:
@@ -120,23 +236,31 @@ class DesireHelper:
 
         if self.lane_change_ll_prob > 0.99:
           self.lane_change_direction = LaneChangeDirection.none
-          if one_blinker:
+          if one_blinker and can_start_lane_change:
             self.lane_change_state = LaneChangeState.preLaneChange
           else:
             self.lane_change_state = LaneChangeState.off
+            self.last_alc_cancel = current_time
 
     if self.lane_change_state in (LaneChangeState.off, LaneChangeState.preLaneChange):
       self.lane_change_timer = 0.0
     else:
       self.lane_change_timer += DT_MDL
 
+    self.lane_change_completed &= one_blinker
     self.prev_one_blinker = one_blinker
-    if self.lane_change_state == LaneChangeState.off:
-      self.ngp_lca_auto_timer = 0.0
+    self.prev_blinker = None if not one_blinker else (Dir.LEFT if left_blinker else Dir.RIGHT)
 
-    self.desire = DESIRES[self.lane_change_direction][self.lane_change_state]
+    # EOP: Turn desires below lane change speed (FrogPilot proven pattern).
+    # When blinker is on below 11 m/s and not stopped, send turnLeft/turnRight
+    # to the model so it anticipates the low-speed turn / intersection maneuver.
+    if one_blinker and below_lane_change_speed and not carstate.standstill:
+      self.turn_direction = log.Desire.turnLeft if left_blinker else log.Desire.turnRight
+      self.desire = TURN_DESIRES[self.turn_direction]
+    else:
+      self.turn_direction = log.Desire.none
+      self.desire = DESIRES[self.lane_change_direction][self.lane_change_state]
 
-    # Send keep pulse once per second during LaneChangeStart.preLaneChange
     if self.lane_change_state in (LaneChangeState.off, LaneChangeState.laneChangeStarting):
       self.keep_pulse_timer = 0.0
     elif self.lane_change_state == LaneChangeState.preLaneChange:
@@ -145,10 +269,3 @@ class DesireHelper:
         self.keep_pulse_timer = 0.0
       elif self.desire in (log.Desire.keepLeft, log.Desire.keepRight):
         self.desire = log.Desire.none
-
-    # Opt-in turn desire (ngp_lat_turn_desire_mph): a turnLeft/turnRight pulse for the model at low speed with a signal on
-    if self.ngp_turn is not None and self.desire == log.Desire.none:
-      turn = self.ngp_turn.update(v_ego, carstate.leftBlinker, carstate.rightBlinker, lateral_active,
-                                  self.lane_change_state != LaneChangeState.off)
-      if turn is not None:
-        self.desire = log.Desire.turnLeft if turn == 'left' else log.Desire.turnRight
