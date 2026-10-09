@@ -9,6 +9,11 @@ def retryWithDelay(int maxRetries, int delay, Closure body) {
   throw Exception("Failed after ${maxRetries} retries")
 }
 
+// The ExoPilot board this branch targets. One line per branch, matching
+// ROCKCHIP_SOCS in SConstruct, SUPPORTED_SOCS in system/hardware/rk_device_id.py
+// and RKNN_TARGETS in tools/convert_models_to_rknn.py -- see CLAUDE.md.
+EOP_BOARD = "rk3588"
+
 def device(String ip, String step_label, String cmd) {
   withCredentials([file(credentialsId: 'id_rsa', variable: 'key_file')]) {
     def ssh_cmd = """
@@ -271,6 +276,21 @@ node {
           // TODO: enable once new AGNOS is available
           // step("test esim", "pytest system/hardware/tici/tests/test_esim.py"),
           step("test qcomgpsd", "pytest system/qcomgpsd/tests/test_qcomgpsd.py", [diffPaths: ["system/qcomgpsd/"]]),
+        ])
+      },
+      // EOP: this branch's ExoPilot board. EOP_BOARD is declared once at the
+      // top and is the only line that differs between branches -- naming the
+      // board here meant dev/02M ran its code on 01M hardware, which is the
+      // one thing the one-board-per-branch split exists to prevent.
+      // The Jenkins lockable-resource label "<board>-needs-can" must exist,
+      // same convention as tici-needs-can.
+      "${EOP_BOARD} tests": {
+        deviceStage(EOP_BOARD, "${EOP_BOARD}-needs-can", ["UNSAFE=1"], [
+          step("build openpilot", "cd system/manager && ./build.py"),
+          step("check dirty", "release/check-dirty.sh"),
+          step("test socketd", "pytest system/socketd/tests/ -s", [diffPaths: ["system/socketd/"]]),
+          step("test v4l2d", "pytest system/v4l2d/tests/ -s", [diffPaths: ["system/v4l2d/"]]),
+          step("test pigeond", "pytest system/ubloxd/tests/test_pigeond.py", [diffPaths: ["system/ubloxd/"]]),
         ])
       },
 

@@ -4,7 +4,7 @@
 
 DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   adbToggle = new ParamControl("AdbEnabled", tr("Enable ADB"),
-            tr("ADB (Android Debug Bridge) allows connecting to your device over USB or over the network. See https://docs.comma.ai/how-to/connect-to-comma for more info."), "");
+            tr("USB/network debug access. See docs.exo-electronics.com for details."), "");
   addItem(adbToggle);
 
   // SSH keys
@@ -28,10 +28,7 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   experimentalLongitudinalToggle = new ParamControl(
     "AlphaLongitudinalEnabled",
     tr("openpilot Longitudinal Control (Alpha)"),
-    QString("<b>%1</b><br><br>%2")
-      .arg(tr("WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB)."))
-      .arg(tr("On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. "
-              "Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.")),
+    tr("WARNING: Disables stock AEB. Switches from car's ACC to openpilot longitudinal (alpha)."),
     ""
   );
   experimentalLongitudinalToggle->setConfirmation(true, false);
@@ -68,7 +65,7 @@ void DeveloperPanel::updateToggles(bool _offroad) {
     capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
     cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
 
-    if (!CP.getAlphaLongitudinalAvailable() || is_release) {
+    if (true || is_release) {  // EOP: getAlphaLongitudinalAvailable not in CarParams
       params.remove("AlphaLongitudinalEnabled");
       experimentalLongitudinalToggle->setEnabled(false);
     }
@@ -78,7 +75,7 @@ void DeveloperPanel::updateToggles(bool _offroad) {
      * - is not a release branch, and
      * - the car supports experimental longitudinal control (alpha)
      */
-    experimentalLongitudinalToggle->setVisible(CP.getAlphaLongitudinalAvailable() && !is_release);
+    experimentalLongitudinalToggle->setVisible(false);  // EOP: getAlphaLongitudinalAvailable not in CarParams
 
     longManeuverToggle->setEnabled(hasLongitudinalControl(CP) && _offroad);
   } else {
