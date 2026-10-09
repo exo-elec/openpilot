@@ -12,6 +12,7 @@ modelV2 y is right-positive, so model leads are flipped once in `threats_from`.
 from dataclasses import dataclass
 
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
+from nagaspilot.controls.soc_policy import SOCInput, geometry_valid
 
 ADJACENT_Y_MIN = 1.5  # m, a model lead beyond this lateral distance is in the neighbouring lane
 ADJACENT_Y_MAX = 4.5  # m
@@ -20,16 +21,6 @@ MIN_LEAD_PROB = 0.5
 RAMP_M_PER_S = 0.10  # the offset moves slowly in and out, so neither the start nor the release is a step
 DT = 0.05  # s, one model frame
 BIAS_PER_METER = 0.002  # 1/m of curvature bias per metre of offset (a 0.2 m offset -> 0.0004 1/m)
-
-
-@dataclass(frozen=True)
-class SOCInput:
-  v_ego: float
-  left_threat: bool
-  right_threat: bool
-  lane_line_y: tuple[tuple[float, ...], ...]
-  lane_line_probs: tuple[float, ...]
-  lane_line_stds: tuple[float, ...]
 
 
 @dataclass(frozen=True)
@@ -63,18 +54,7 @@ class NGPSOC:
     self._valid_frames = 0
     self._offset = 0.0
 
-  @staticmethod
-  def geometry_valid(sample: SOCInput) -> bool:
-    if len(sample.lane_line_y) < 4 or len(sample.lane_line_probs) < 4 or len(sample.lane_line_stds) < 4:
-      return False
-    if min(sample.lane_line_probs[:4]) < 0.60 or max(sample.lane_line_stds[:4]) > 0.35:
-      return False
-    try:
-      line_y = [line[5] for line in sample.lane_line_y[:4]]
-    except IndexError:
-      return False
-    widths = [line_y[i + 1] - line_y[i] for i in range(3)]
-    return all(2.8 <= w <= 3.6 for w in widths)
+  geometry_valid = staticmethod(geometry_valid)
 
   def update(self, sample: SOCInput) -> SOCResult:
     geometry_valid = self.geometry_valid(sample)
