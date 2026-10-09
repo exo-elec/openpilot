@@ -1,33 +1,34 @@
 #include "selfdrive/ui/qt/window.h"
 
 #include <QFontDatabase>
+#include <QPainter>
 
+#include "selfdrive/ui/qt/qt_window.h"
 #include "system/hardware/hw.h"
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
-  main_layout = new QStackedLayout(this);
-  main_layout->setMargin(0);
+  stack_layout = new QStackedLayout(this);
+  stack_layout->setContentsMargins(0, 0, 0, 0);
 
   homeWindow = new HomeWindow(this);
-  main_layout->addWidget(homeWindow);
+  stack_layout->addWidget(homeWindow);
   QObject::connect(homeWindow, &HomeWindow::openSettings, this, &MainWindow::openSettings);
   QObject::connect(homeWindow, &HomeWindow::closeSettings, this, &MainWindow::closeSettings);
 
   settingsWindow = new SettingsWindow(this);
-  main_layout->addWidget(settingsWindow);
+  stack_layout->addWidget(settingsWindow);
   QObject::connect(settingsWindow, &SettingsWindow::closeSettings, this, &MainWindow::closeSettings);
   QObject::connect(settingsWindow, &SettingsWindow::reviewTrainingGuide, [=]() {
     onboardingWindow->showTrainingGuide();
-    main_layout->setCurrentWidget(onboardingWindow);
+    stack_layout->setCurrentWidget(onboardingWindow);
   });
-
   onboardingWindow = new OnboardingWindow(this);
-  main_layout->addWidget(onboardingWindow);
+  stack_layout->addWidget(onboardingWindow);
   QObject::connect(onboardingWindow, &OnboardingWindow::onboardingDone, [=]() {
-    main_layout->setCurrentWidget(homeWindow);
+    stack_layout->setCurrentWidget(homeWindow);
   });
   if (!onboardingWindow->completed()) {
-    main_layout->setCurrentWidget(onboardingWindow);
+    stack_layout->setCurrentWidget(onboardingWindow);
   }
 
   QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
@@ -36,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
     }
   });
   QObject::connect(device(), &Device::interactiveTimeout, [=]() {
-    if (main_layout->currentWidget() == settingsWindow) {
+    if (stack_layout->currentWidget() == settingsWindow) {
       closeSettings();
     }
   });
@@ -62,13 +63,18 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   setAttribute(Qt::WA_NoSystemBackground);
 }
 
+void MainWindow::paintEvent(QPaintEvent *event) {
+  QPainter p(this);
+  p.fillRect(rect(), Qt::black);
+}
+
 void MainWindow::openSettings(int index, const QString &param) {
-  main_layout->setCurrentWidget(settingsWindow);
+  stack_layout->setCurrentWidget(settingsWindow);
   settingsWindow->setCurrentPanel(index, param);
 }
 
 void MainWindow::closeSettings() {
-  main_layout->setCurrentWidget(homeWindow);
+  stack_layout->setCurrentWidget(homeWindow);
 
   if (uiState()->scene.started) {
     homeWindow->showSidebar(false);

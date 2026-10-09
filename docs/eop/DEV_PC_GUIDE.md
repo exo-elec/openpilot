@@ -1,0 +1,277 @@
+# EOP Dev PC Development Guide
+
+**Workflow**: x86_64 dev PC → CARLA testing → ARM (RK3588) deployment
+
+---
+
+## Overview
+
+EOP uses a dual-backend inference system that works transparently on both:
+- **x86_64 dev PC**: ONNX Runtime (CPU or CUDA)
+- **ARM edge hardware**: RKNN NPU (RK3588)
+
+The `InferenceClient.inference_backend()` API automatically selects the best available backend.
+
+---
+
+## Setup
+
+### 1. Python environment
+
+```bash
+cd /home/vcar/pilot/openpilot
+# Python 3.12 venv (pre-created)
+.venv/bin/python --version   # 3.12.x
+```
+
+### 2. Install Python dependencies
+
+```bash
+uv pip install onnxruntime scipy --python .venv/bin/python
+```
+
+### 3. Model files
+
+Models are **not committed to git** (large binaries). Place them in `models/`:
+
+```
+models/
+  rknn/
+    driving_vision.rknn    # 79 MB — bukapilot KA2 (byd_sng_ka2), hash-verified
+    driving_policy.rknn    # 16 MB — bukapilot KA2, same source pair
+  hef/                     # Hailo HEF files (twinlitenet_plus_large_384x640.hef, built)
+  onnx/                    # Chestnut's big model only — this dev PC does not
+                            # run the driving model via ONNX Runtime
+```
+
+The driving RKNN pair is bukapilot's proven KA2 (RK3588) pair — EOP's own
+metadata pkls (`selfdrive/modeld/models/driving_{vision,policy}_metadata.pkl`)
+are verified to match them exactly (same input/output shapes and slices).
+Fetch it via `models/download_models.sh` from a local bukapilot checkout
+(hash-verified against `models/MODEL_MANIFEST.md`):
+```bash
+BUKAPILOT_DIR=/path/to/bukapilot ./models/download_models.sh rknn
+```
+Do not substitute another fork's driving_vision/driving_policy export here —
+it is a different, unverified generation coupled to a different input method
+(NHWC layout, float16 casting, the big_img affine mitigation — see
+`MODEL_MANIFEST.md` and `rockchip_npu.py`'s `_NHWC_VISION_MODELS`).
+
+---
+
+## Running daemons on dev PC
+
+### Import smoke test (all 22 daemons)
+
+```bash
+OPENPILOT_STUB_PARAMS_PYX=1 PYTHONPATH=. .venv/bin/python -m pytest \
+    selfdrive/test/test_daemon_imports.py --override-ini="addopts=" -v
+```
+
+### Test ONNX inference (driving vision model)
+
+```bash
+.venv/bin/python -c "
+from openpilot.system.inferenced import InferenceClient
+from openpilot.system.inferenced.compute import HAL, HALConfig, ModelConfig
+import numpy as np
+
+HAL(HALConfig()).initialize()
+client = InferenceClient('test')
+backend = client.inference_backend()
+print('Backend:', backend.backend_type.name)
+
+backend.load_model(ModelConfig(name='driving_vision', path=''))
+result = backend.infer('driving_vision', {
+    'img': np.zeros((1,12,128,256), dtype=np.uint8),
+    'big_img': np.zeros((1,12,128,256), dtype=np.uint8),
+})
+print('Output shape:', result.outputs['outputs'].shape)
+print('Inference time:', round(result.inference_time_ms, 1), 'ms')
+"
+```
+
+### Force ONNX backend (bypass mock RKNN)
+
+```bash
+export EOP_BACKEND=onnx
+```
+
+---
+
+## Simulation options
+
+### Option A — MetaDrive (low-resource PC, no GPU required)
+
+MetaDrive is a lightweight pure-Python simulator. Use it on any x86 PC
+(integrated GPU or CPU only). Ideal for this dev PC.
+
+```bash
+# Terminal 1 — openpilot daemons
+tools/sim/launch_openpilot.sh
+
+# Terminal 2 — MetaDrive bridge
+.venv/bin/python tools/sim/run_bridge.py --simulator metadrive
+```
+
+No server needed — MetaDrive runs in-process.
+
+---
+
+### Option B — CARLA (dedicated GPU required)
+
+CARLA 0.9.16 requires a **discrete NVIDIA or AMD GPU** for Vulkan rendering.
+Intel integrated graphics (HD/Iris/Xe) are not sufficient — CARLA exits on init.
+
+**Minimum:** NVIDIA GTX 1060 6GB or equivalent with NVIDIA Docker support.
+
+**Setup (on GPU machine):**
+
+```bash
+# 1. Install Docker + NVIDIA container toolkit
+sudo apt-get install docker.io nvidia-container-toolkit
+sudo systemctl restart docker
+
+# 2. Pull image (~29GB)
+sudo docker pull carlasim/carla:0.9.16
+
+# 3. Install CARLA Python client (extract from image)
+sudo docker create --name carla_whl carlasim/carla:0.9.16
+sudo docker cp carla_whl:/workspace/PythonAPI/carla/dist/carla-0.9.16-cp312-cp312-manylinux_2_31_x86_64.whl /tmp/
+sudo docker rm carla_whl
+uv pip install /tmp/carla-0.9.16-cp312-cp312-manylinux_2_31_x86_64.whl \
+    --python .venv/bin/python
+
+# 4. Launch (3 terminals)
+sudo tools/sim/start_carla.sh 0.9.16          # Terminal 1: CARLA server
+tools/sim/launch_openpilot.sh                  # Terminal 2: openpilot daemons
+.venv/bin/python tools/sim/run_bridge.py \    # Terminal 3: bridge
+    --simulator carla --dual_camera --stereo_camera
+```
+
+---
+
+### Known dev PC limitations (both simulators)
+
+| Component | Dev PC behavior |
+|---|---|
+| `modeld` | Falls back to mock RKNN (no ONNX driving-model files stored on this dev PC — see `MODEL_MANIFEST.md`); no CL frame prep (numpy fallback) |
+| `monod` | Starts but skips models if `models/onnx/yolo_640.onnx` missing |
+| `stereod` | ACL backend unavailable; falls back to CPU numpy SGM |
+| `inferenced` | ONNX initialized; RKNN/ACL/Hailo skipped |
+| `v4l2d` | Blocked in sim launch script; simulator bridge provides camera feed |
+
+---
+
+## Inference backend priority
+
+```
+inference_backend() selection:
+  1. RKNN NPU  (ARM hardware only; skipped when _use_mock=True)
+  2. ONNX Runtime  (x86 dev PC — loads from models/onnx/)
+  3. Mock RKNN  (last resort — random outputs, framework smoke only)
+
+Override: EOP_BACKEND=onnx  forces ONNX on any platform
+```
+
+---
+
+## Testing on Dev PC
+
+### The Cython `.so` problem
+
+EOP commits **ARM aarch64** `.so` files (e.g. `common/params_pyx.so`) for RK3588 deployment. These cannot load on x86_64 dev PC:
+
+```
+ImportError: .../params_pyx.so: cannot open shared object file: No such file or directory
+```
+
+This affects **any test that imports `conftest.py`** (which pulls in `common.params` → `params_pyx`).
+
+### What works without rebuilding
+
+Tests that don't touch `common.params` or cereal messaging:
+
+```bash
+# InferenceD HAL tests — pure Python, no Cython deps
+python3 -m pytest system/inferenced/tests/test_hal.py -v
+python3 -m pytest system/inferenced/tests/test_performance.py -v
+python3 -m pytest system/inferenced/tests/test_ipc_communication.py -v
+
+# Daemon integration tests
+python3 -m pytest selfdrive/gridd/test_gridd_integration.py -v
+python3 -m pytest selfdrive/recordd/test_recordd_integration.py -v
+```
+
+### Running with stub params (bypass conftest)
+
+For tests that need params but you don't want to rebuild:
+
+```bash
+# Skip the root conftest.py
+python3 -m pytest selfdrive/controls/tests/test_long_mpc_personality.py \
+    --confcutdir=selfdrive/controls/tests/ -v
+```
+
+### Full test suite: temporary x86_64 rebuild
+
+To run tests that require `params_pyx`, `msgq`, etc.:
+
+```bash
+# 1. Save ARM .so files (don't lose them!)
+mkdir -p /tmp/arm_so_backup
+find . -name "*.so" -not -path "./.venv/*" -not -path "./third_party/*" \
+    | xargs -I{} cp {} /tmp/arm_so_backup/
+
+# 2. Build x86_64 versions
+# Requires: scons, python3-dev, g++
+python3 -m SCons -j$(nproc)
+
+# 3. Run tests
+python3 -m pytest selfdrive/modeld/ system/manager/ -v --tb=short
+
+# 4. Restore ARM originals before committing!
+git checkout -- "*.so"
+# Or restore from backup:
+# cp /tmp/arm_so_backup/*.so common/
+```
+
+### Docker (upstream approach)
+
+Upstream openpilot tests in Ubuntu 24.04 Docker where `scons` rebuilds all `.so` for x86_64:
+
+```bash
+# Build Docker image with all deps
+docker build -f Dockerfile.openpilot_base -t openpilot-base .
+
+# Run tests inside container
+docker run --rm -v $PWD:/tmp/openpilot -w /tmp/openpilot \
+    openpilot-base /bin/bash -c "scons -j$(nproc) && pytest selfdrive/ -v"
+```
+
+**Trade-off**: Docker is clean but slow. Direct rebuild is faster for iterative dev.
+
+### ARM-only tests (skip on dev PC)
+
+| Test | Why skipped on dev PC |
+|------|----------------------|
+| `test_modeld_integration.py` (RKNN path) | RKNNLite is ARM-only |
+| `test_stereod_integration.py` (ACL path) | `libarm_compute.so` not on x86_64 |
+| `test_ipc_communication.py` (shm/ACL) | cereal shared memory + ACL libs missing |
+| Any test importing `common.params` | `params_pyx.so` is ARM aarch64 |
+
+---
+
+## Note on model formats
+
+| Format | Runtime | Used by |
+|---|---|---|
+| `.rknn` | RKNNLite (ARM only) | Production deployment |
+| `.onnx` | ONNX Runtime | Dev PC + CARLA testing |
+| `.hef` | HailoRT (Hailo-8) | Camera-tier card: segmentation, every camera |
+| `.dxnn` | DX-RT (DX-M1M) | Camera-tier card: drivable area (TwinLiteNet+ Large) |
+| `.onnx` via tinygrad | tinygrad v0.13 | USB eGPU: openpilot's Chestnut driving model only; Python 3.11+ required (EOP `.venv` is 3.12) |
+
+---
+
+**Last updated:** 2026-08-23

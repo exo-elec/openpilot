@@ -20,6 +20,7 @@ except ImportError:
   # Params/Cythonized modules are not available in zipapp
   Params = None
 from openpilot.common.swaglog import cloudlog
+from openpilot.common.wifi_band import is_5ghz, lan_band_for
 
 T = TypeVar("T")
 
@@ -66,6 +67,8 @@ class NetworkInfo:
   path: str
   bssid: str
   is_saved: bool = False
+  bssid_5ghz: str = ""     # strongest 5GHz BSS of this SSID, "" if none (band plan)
+  strength_5ghz: int = -1
   # saved_path: str
 
 
@@ -218,6 +221,15 @@ class WifiManager:
         },
         'ipv6': {'method': Variant('s', 'ignore')},
       }
+
+      # ExoPilot band plan (common/wifi_band.py): the vehicle LAN on 5GHz when
+      # this network offers it. A pinned BSSID must then be a 5GHz one.
+      seen = next((n for n in self.networks if n.ssid == ssid), None)
+      band = lan_band_for(has_5ghz=bool(seen and seen.bssid_5ghz))
+      if band is not None:
+        connection['802-11-wireless']['band'] = Variant('s', band)
+        if band == 'a' and bssid and seen is not None:
+          bssid = seen.bssid_5ghz
 
       if bssid:
         connection['802-11-wireless']['bssid'] = Variant('ay', bssid.encode('utf-8'))
@@ -539,6 +551,7 @@ class WifiManager:
         flags = properties['Flags'].value
         wpa_flags = properties['WpaFlags'].value
         rsn_flags = properties['RsnFlags'].value
+        frequency = properties.get('Frequency', Variant('u', 0)).value
 
         # May be multiple access points for each SSID. Use first for ssid
         # and security type, then update the rest using all APs
@@ -558,6 +571,9 @@ class WifiManager:
           existing_network.strength = strength
           existing_network.path = ap_path
           existing_network.bssid = bssid
+        if is_5ghz(frequency) and existing_network.strength_5ghz < strength:
+          existing_network.strength_5ghz = strength
+          existing_network.bssid_5ghz = bssid
         if self.active_ap_path == ap_path:
           existing_network.is_connected = self._current_connection_ssid != ssid
 

@@ -1,0 +1,316 @@
+# Chestnut-pattern eGPU adoption for RK3588
+
+> **Superseded in part (2026-09-27): the eGPU runs the Chestnut driving model
+> and nothing else.** The plan below for the same USB GPU to also serve side,
+> rear and segmentation work is withdrawn. Camera and rule-based
+> Autoware-style models run elsewhere: detection on RKNN, segmentation on the
+> Hailo-8 / DX-M1M card (`BackendType.ACCEL`,
+> `CAMERA_ACCEL_TIER.md`), which degrades on failure with no fallback. `egpu.py`
+> enforces this (`EGPU_ALLOWED_MODELS`). The driving-model decision, the
+> single-owner rule and the one-way RKNN failover below still stand.
+
+## Decision
+
+EOP will follow current upstream openpilot's Chestnut architecture for any
+driving model placed on the external USB GPU, with the RK3588 RKNN model kept
+loaded as the on-device safety fallback.
+
+"Chestnut" is comma's ASM2464 external-GPU hardware/release path, not a model
+runner class. The upstream pattern was audited at `commaai/openpilot` master
+commit `084747c75d2cbd23af65ab7a9e770bbd7b98bac9` (2026-08-21). Upstream
+0.11.2 documents an 880M-parameter big model and external-GPU support.
+
+This is an architectural port, not a blind file copy. Upstream uses Qualcomm
+devices and lets `modeld` exclusively open Chestnut. EOP uses RK3588 and needs
+a single process to own the USB GPU across restarts and health reporting, so
+`inferenced` remains the sole hardware owner while `modeld` remains the sole
+owner of driving-model state and output semantics.
+
+## Implementation status (2026-08-23): renamed Chestnut* to Egpu*, dual firmware
+
+EOP builds its own eGPU board on the same ASM2464PD bridge chip comma's
+Chestnut hardware uses, and supports flashing either our own generic bridge
+firmware (primary/default) or comma's official Chestnut firmware on it — both
+recognized on the same `EGPU_VID_PIDS`, distinguished only by USB product
+string (`"USB 3.2 PCIe TinyEnclosure"` for ours vs.
+`f"custom {CHESTNUT_FW_VERSION}-CLEAN"` for comma's, confirmed byte-identical
+to upstream's own `common/hardware/usb.py`). Since the driving-side code
+isn't specific to one firmware, it's now named `Egpu*` throughout, with
+`Chestnut*` kept as backward-compatible aliases (not removed — external
+tooling/docs may still reference the old names):
+
+- `selfdrive/modeld/runners/egpu_driving_runner.py` (renamed from
+  `chestnut_driving_runner.py`) — `EgpuDrivingRunner` is the real class,
+  `ChestnutDrivingRunner = EgpuDrivingRunner` is an alias. Same fail-closed
+  stub behavior described below — `load()` still unconditionally raises
+  until the compiled artifact and validation gates exist.
+- `common/params_keys.h` — `EgpuDrivingEnabled`/`EgpuDrivingLoading`/
+  `EgpuDrivingActive` alongside the existing `ChestnutDriving*` keys (both
+  read at startup: `params.get_bool(EGPU_DRIVING_ENABLED_PARAM) or
+  params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)`).
+- `system/inferenced/egpu.py` — `_detect_egpu()` now returns which firmware
+  was found (`'own'` / `'chestnut'` / `None`) instead of a bare bool, same
+  dual product-string recognition as above.
+
+**Two regressions found and fixed while reviewing this rename** (commit
+`ae37ac0de4`): the rename's diff had accidentally deleted the unrelated
+`{"CarVin", {PERSISTENT, STRING}}` entry from `params_keys.h` (adjacent to
+where the new keys were inserted) — `selfdrive/obd2d/obd2d.py` still writes
+that param, so this would have raised `UnknownKeyName` on any real
+invocation; restored. Separately, `msgq_repo`/`opendbc_repo`/`rednose_repo`
+had all been repinned to exactly `dev/NGP10`'s submodule commits (not
+anything specific to this change) — a branch-switch-in-one-working-directory
+mistake, notably downgrading `opendbc_repo` off a newer safety-relevant
+commit; restored to this branch's actual prior pins. Neither regression was
+in the actual eGPU/Chestnut feature logic, which was sound as written.
+
+The equivalent dual-firmware-detection and `Egpu*`-primary-naming work was
+done the same day on `dev/NGP10` (`selfdrive/modeld/egpu_detect.py`,
+`nagaspilot/docs/EGPU_INTEGRATION.md`) — independently, since NGP10 has no
+`system/inferenced/` HAL and ports this pattern directly into `modeld.py`'s
+own `EGPU`/`EGPU_FIRMWARE` module-level gate instead.
+
+## What upstream actually does
+
+The relevant upstream files are:
+
+- `selfdrive/modeld/modeld.py`: one `ModelState` contract for big and small
+  models, big-model load/warmup timeout, preloaded small fallback, finite-output
+  check and one-way runtime failover.
+- `selfdrive/modeld/compile_modeld.py`: compiles ONNX preprocessing and model
+  execution into serialized tinygrad JITs; verifies capture/replay and pickle
+  round trips with deterministic randomized inputs.
+- `selfdrive/modeld/SConscript`: builds device-specific small/big artifacts,
+  places image warping on the on-device accelerator and queues model tensors on
+  AMD, chunks large compiled artifacts, and serializes builds touching the USB GPU.
+- `selfdrive/modeld/helpers.py`: selects compiled small/big artifacts and accepts
+  the device only when VID:PID and firmware product string match.
+- `system/hardware/chestnut/flash.py` and `hardwared.py`: validate and flash a
+  versioned firmware image only while offroad, with bounded retries and recovery.
+- `selfdrive/selfdrived/selfdrived.py`: blocks engagement while the big model is
+  loading, applies a settling period, and soft-disables if an active big model fails.
+
+Upstream's runtime sequence is:
+
+1. Require both an exactly recognized flashed device and a compiled big-model artifact.
+2. Mark the USB GPU as loading.
+3. Load and warm the big model in a bounded background operation (60 seconds upstream).
+4. Keep the small model constructed even when the big model succeeds.
+5. Publish the normal openpilot model messages from either runner; consumers do
+   not receive a second driving API.
+6. On an exception, non-finite output, device disappearance or dead model stream,
+   mark the big model failed, switch to the small model and do not switch back onroad.
+7. If the failure occurs while engaged, request a soft disable and tell the driver
+   that the small model remains available for a later engagement.
+
+## EOP adaptation
+
+### Selected model lineage
+
+The two production roles intentionally use different artifacts:
+
+| Role | Selected source | Artifact identity | Notes |
+|---|---|---|---|
+| external high-capacity model | current official openpilot Chestnut big model | `big_driving_supercombo.onnx`, LFS SHA-256 `a501760a9d1d5fef0eab2b8c5d122d06124fc26dc8e0782e0aa94b82a208f0ff`, 1,757,355,221 bytes at audited upstream commit | Monolithic supercombo; compile with the upstream tinygrad/Chestnut pipeline after stable-tag compatibility is proven |
+| local fallback | `../bukapilot` KA2 (RK3588) branch `byd_sng_ka2` | split `driving_vision.rknn` + `driving_policy.rknn` (default, `USE_RKNN=1`); separate `dmonitoring_model.rknn` for non-driving | Matches EOP's existing split RKNN runner; bukapilot casts inputs to float16 before inference |
+
+Bukapilot's current KA2 (RK3588) branch runs **separate** vision and policy
+RKNN models — not a monolithic supercombo. A monolithic nine-input
+`supercombo.rknn` (single 6,504-float output, RKNN compiler 2.3.0,
+165,403,347 bytes, SHA-256 `39155c9cf03b5fe8bfc2949192ef954fd8cd325ee6f1442db19db06335fb5e5a`)
+exists only in its older v10.0.5-era history (`origin/harmeet`, commit
+`0c6977fc6970255b0eb09073c9c4951b8a7448d1`), with source ONNX LFS SHA-256
+`d21daa542227ecc5972da45df4e26f018ba113c0461f270e367d57e3ad89221a`
+(51,461,700 bytes). It remains a reference artifact if a monolithic local
+fallback is ever wanted, but the proven KA2 driving configuration is the split
+one. Its separate models (`dmonitoring_model.rknn`, nav) are independent
+tasks, not driving-model components.
+
+Any RK3588 RKNN binary must not be reused on RK3576. RKNN reports
+target-platform mismatch for an incompatible binary. Package the split
+conversion per SoC with independently checked artifacts:
+
+- `driving_vision_rk3588.rknn` + `driving_policy_rk3588.rknn`, target `rk3588`;
+- `driving_vision_rk3576.rknn` + `driving_policy_rk3576.rknn`, target `rk3576`.
+
+Record the ONNX hash, conversion script hash, rknn-toolkit version, quantization
+settings, calibration dataset hash, target SoC and final RKNN hash for each.
+RK3576 is not considered proven until replay parity and real-hardware timing pass.
+
+### Same-model parity mode
+
+Before attempting the 1.76 GB upstream big graph, compile the exact Bukapilot
+source ONNX for tinygrad/eGPU and compare it against the SoC-specific RKNN
+conversion on identical prepared inputs. This `egpu_parity` mode isolates backend,
+preprocessing, transport and quantization differences while model semantics are
+held constant.
+
+The eventual `egpu_big` mode uses the official upstream big model. It cannot be
+expected to numerically match the older Bukapilot fallback because it is a
+different model generation. Compatibility is instead defined at the parsed
+openpilot output/message contract, followed by replay behavior and safe-transition
+tests. A big-to-local fallback while engaged still soft-disables; it does not
+silently continue controlling through a model-generation discontinuity.
+
+### One driving contract
+
+`selfdrive/modeld` continues to own:
+
+- camera-frame selection and synchronization;
+- calibrated image transforms;
+- desire, traffic-convention, action-delay, feature-history and previous-action state;
+- output slicing and `Parser` processing;
+- `modelV2`, `drivingModelData` and `cameraOdometry` publication.
+
+Both executors must satisfy one internal openpilot driving-runner contract:
+
+| Executor | Hardware | Purpose |
+|---|---|---|
+| external big runner | ASM2464 + AMD GPU via tinygrad | Optional higher-capacity model |
+| local fallback runner | RK3588 RKNN NPU | Always-available small/openpilot model |
+
+The two executors use different graph shapes, both behind the one contract
+(`selfdrive/modeld/runners/driving_runner.py`): the external Chestnut runner is
+a monolithic supercombo (`run()` over the full input set), while the local RKNN
+runner is split vision + policy (`run_vision()`/`run_policy()`), matching
+bukapilot's KA2 architecture that EOP already validates on hardware.
+The adapter boundary is the parsed openpilot output dictionary, not an Autoware
+trajectory, AutoSteer lane vector or AutoDrive curvature tuple.
+
+Temporal state must live above the hardware executor or be updated consistently
+for both paths. The preloaded RKNN fallback must never resume with stale desire,
+feature or previous-action history.
+
+### Single hardware owner
+
+Upstream says only `modeld` may access Chestnut. EOP preserves the important
+invariant—exactly one process opens the USB GPU—but assigns that responsibility
+to `inferenced`. (It originally cited side, rear and segmentation jobs also
+using the device; those were moved to the camera-tier card on 2026-09-27.)
+
+`modeld` submits critical driving work and retains all driving semantics.
+`inferenced` owns device lifetime, compiled artifacts, serialization, deadlines
+and health. No camera daemon may instantiate an AMD/tinygrad USB device directly.
+
+### Local preprocessing and bounded USB traffic
+
+Follow upstream's split between local warp and external model execution:
+
+- perform decode, resize/warp, normalization and packing on RK3588 using the
+  appropriate RGA/Mali/CPU path;
+- upload the model-ready FP16 tensor, not a raw camera frame;
+- retain it on the external GPU for model stages that share an identical input
+  contract;
+- never share a tensor merely because two models use the same camera when their
+  color space, geometry, normalization or resolution differs.
+
+The present cereal job messages copy one tensor in and one tensor out. That is
+acceptable for detection shadow bring-up, but it is not the production driving
+transport. Use a private versioned shared-memory/multi-tensor transport before
+adding driving or high-rate segmentation. Do not change public cereal schemas
+without explicit approval.
+
+### Compiled artifacts, not dynamic ONNX for driving
+
+The current EOP `EgpuBackend` dynamically constructs `OnnxRunner` and is suitable
+only for early shadow compatibility work. Driving should follow upstream by:
+
+- compiling and warming device-specific tinygrad JIT artifacts offroad;
+- storing model hash, tinygrad commit/tag, firmware identifier, input/output
+  metadata and camera-resolution compatibility with the artifact;
+- testing deterministic compile/replay and serialization round trips;
+- refusing activation if any part of that identity does not match;
+- using an exclusive compile/device lock.
+
+EOP remains pinned to official tinygrad `v0.13.0`. The audited upstream commit
+pins tinygrad `138fb4a783d82f4e877ad2fe3692aaf8d1de2e46`, which is 948 commits
+after v0.13.0 and is not the selected stable tag. Therefore the architecture may
+be ported now, but EOP must not claim Chestnut compile/JIT compatibility until
+the v0.13.0 path is tested. Do not float to upstream tinygrad `master`; evaluate
+the next official release tag separately.
+
+## Failover state machine
+
+```text
+BOOT / OFFROAD
+  ├─ no exact firmware, no compiled artifact, or load/warmup fails
+  │    └─ warm RKNN → RKNN_ACTIVE
+  └─ exact eGPU + compiled artifact
+       ├─ warm RKNN fallback
+       ├─ load and warm eGPU within deadline
+       └─ eGPU_ACTIVE
+
+eGPU_ACTIVE
+  ├─ valid finite output before deadline → remain active
+  └─ exception / timeout / non-finite / hot-unplug / stale stream
+       ├─ discard failed frame
+       ├─ atomically mark eGPU failed
+       ├─ switch to already-warm RKNN
+       ├─ soft-disable if controls are engaged
+       └─ no onroad eGPU retry; retry after offroad/ignition restart
+```
+
+Activation must fail closed. A missing Params key, stale health value, partial
+artifact or unrecognized product string means RKNN, never eGPU.
+
+## Other camera workloads and fallback
+
+Only the driving model is an eGPU workload (2026-09-27). Every other camera
+workload has its own home and never touches the USB GPU:
+
+| Workload | Runs on | Fallback | Failure authority |
+|---|---|---|---|
+| openpilot driving | eGPU: official upstream Chestnut big model compiled for tinygrad | preloaded/warm, SoC-specific split Bukapilot KA2 RKNN (`driving_vision` + `driving_policy`) | soft-disable if active external model fails; continue later on RKNN |
+| object detection, every camera (road, tele, side, rear) | RKNN (YOLOv8) | — | local, always present |
+| semantic segmentation, every camera | Hailo-8 / DX-M1M (`seg_*`) | — | degrades if the card fails (`gridStatus.segmentationDegraded`) |
+
+Side and rear do not share model IDs, artifacts, class maps, postprocessing,
+deadlines or health. A side failure must not evict rear work, and neither camera
+failure may trigger the driving-model fallback state machine.
+
+## Scheduler policy
+
+The external GPU worker is single-owner and non-preemptive initially. Admission
+must reserve the driving deadline before accepting optional work:
+
+1. External driving model, when explicitly activated and validated — the
+   only job the eGPU accepts (2026-09-27). Side/rear/segmentation and
+   Autoware-style work that used to follow here is on the camera-tier card.
+
+If the measured remaining USB and compute budget cannot meet a job's deadline,
+reject it before upload and run its local fallback. Queue priority alone is not
+enough; admission must account for transfer time, queued execution and frame age.
+
+## Required validation before implementation is promoted
+
+- Golden-route parity of small RKNN output before and after introducing the runner interface.
+- Exact-input parity between Bukapilot source ONNX on eGPU and each SoC-specific
+  Bukapilot RKNN artifact, with tolerances justified for conversion/quantization.
+- Separate RK3588 and RK3576 artifact inspection; reject target-platform mismatch.
+- Big-eGPU versus expected openpilot output-shape, units, parser and message tests.
+- Forced load timeout, inference exception, non-finite output, deadline miss,
+  USB reset and hot-unplug tests.
+- Proof that RKNN is loaded, warmed and temporally current before eGPU activation.
+- Proof that engaged failure produces one soft-disable and never oscillates back to eGPU.
+- Offroad firmware backup, image validation, bounded retry and ROM-recovery tests
+  before adopting automatic flashing.
+- Sustained USB 3.0 Gen1, thermal and multi-workload soak tests on RK3588 hardware.
+- Replay/HIL/closed-course gates before any external driving result gains authority.
+
+## 3D reconstruction on the eGPU (2026-08-24)
+
+Researched separately — see `EGPU_3D_RECONSTRUCTION_BANDWIDTH.md`. Short
+version: don't re-upload a stereo camera pair to the eGPU for this;
+`stereod`/`gridd` already do 3D reconstruction locally on RK3588 for free.
+If the eGPU's extra compute is ever genuinely needed, derive it from the
+driving model's own already-resident feature tensor (zero extra input
+bandwidth) rather than a second camera stream.
+
+## Upstream references
+
+- [openpilot 0.11.2 release notes](https://github.com/commaai/openpilot/blob/master/RELEASES.md)
+- [upstream modeld Chestnut selection and failover](https://github.com/commaai/openpilot/blob/master/openpilot/selfdrive/modeld/modeld.py)
+- [upstream tinygrad compile/build rules](https://github.com/commaai/openpilot/blob/master/openpilot/selfdrive/modeld/SConscript)
+- [upstream model helper and exact-device checks](https://github.com/commaai/openpilot/blob/master/openpilot/selfdrive/modeld/helpers.py)
+- [upstream hardware flashing lifecycle](https://github.com/commaai/openpilot/blob/master/openpilot/system/hardware/hardwared.py)
+- [upstream control-state failure handling](https://github.com/commaai/openpilot/blob/master/openpilot/selfdrive/selfdrived/selfdrived.py)

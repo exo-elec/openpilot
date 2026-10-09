@@ -1,7 +1,10 @@
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cctype>
 #include <fstream>
 #include <map>
+#include <utility>
 
 #include "common/swaglog.h"
 #include "common/util.h"
@@ -158,7 +161,6 @@ void cloneFinished(int exitCode) {
   const std::string ssh_keys = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMX2kU8eBZyEWmbq0tjMPxksWWVuIV/5l64GabcYbdpI";
   std::map<std::string, std::string> params = {
     {"SshEnabled", "1"},
-    {"RecordFrontLock", "1"},
     {"GithubSshKeys", ssh_keys},
   };
   for (const auto& [key, value] : params) {
@@ -188,8 +190,14 @@ void cloneFinished(int exitCode) {
   finishInstall();
 }
 
+std::pair<int, int> getInstallerResolution() {
+  // ExoPilot 01M (RK3588) or PC dev
+  return {1024, 600};
+}
+
 int main(int argc, char *argv[]) {
-  InitWindow(2160, 1080, "Installer");
+  auto [w, h] = getInstallerResolution();
+  InitWindow(w, h, "Installer");
   font = LoadFontFromMemory(".ttf", inter_ttf, inter_ttf_end - inter_ttf, FONT_SIZE, NULL, 0);
   SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
 

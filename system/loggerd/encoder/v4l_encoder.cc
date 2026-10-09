@@ -1,3 +1,7 @@
+// TODO: This file is Qualcomm-specific and needs to be ported to Rockchip MPP
+// See: https://github.com/rockchip-linux/mpp
+// Currently excluded from build in system/loggerd/SConscript
+
 #include <cassert>
 #include <string>
 #include <sys/ioctl.h>
@@ -8,13 +12,17 @@
 #include "common/timing.h"
 
 #include "third_party/libyuv/include/libyuv.h"
-#include "third_party/linux/include/msm_media_info.h"
 
-// has to be in this order
-#include "third_party/linux/include/v4l2-controls.h"
+// Qualcomm msm_vidc headers - not available on Rockchip
+// #include "third_party/linux/include/msm_media_info.h"
+// #include "third_party/linux/include/v4l2-controls.h"
+
 #include <linux/videodev2.h>
-#define V4L2_QCOM_BUF_FLAG_CODECCONFIG 0x00020000
-#define V4L2_QCOM_BUF_FLAG_EOS 0x02000000
+
+// Qualcomm-specific flags - need Rockchip MPP equivalents
+// #define V4L2_QCOM_BUF_FLAG_CODECCONFIG 0x00020000
+// #define V4L2_QCOM_BUF_FLAG_EOS 0x02000000
+#define V4L2_BUF_FLAG_CODECCONFIG 0x00020000  // Standard V4L2 flag
 
 /*
   kernel debugging:

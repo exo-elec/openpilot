@@ -3,12 +3,16 @@ import os
 import time
 import numpy as np
 from cereal import log
-from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
+# EOP-CLEANUP: Import from vehicled to avoid hardcoded duplication with longitudinal_planner.py
+from openpilot.system.socketd.vehicle.tesla.values import CarControllerParams
+ACCEL_MIN = CarControllerParams.ACCEL_MIN
+ACCEL_MAX = CarControllerParams.ACCEL_MAX
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
 from openpilot.selfdrive.modeld.constants import index_function
 from openpilot.selfdrive.controls.radard import _LEAD_ACCEL_TAU
+from typing import cast
 
 if __name__ == '__main__':  # generating code
   from openpilot.third_party.acados.acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
@@ -58,26 +62,73 @@ STOP_DISTANCE = 6.0
 CRUISE_MIN_ACCEL = -1.2
 CRUISE_MAX_ACCEL = 1.6
 
+# Custom personality defaults (merged from FrogPilot)
+_PERSONALITY_DEFAULTS = {
+  log.LongitudinalPersonality.aggressive: {'jerk': 0.5, 't_follow': 1.25},
+  log.LongitudinalPersonality.standard:   {'jerk': 1.0, 't_follow': 1.45},
+  log.LongitudinalPersonality.relaxed:    {'jerk': 1.0, 't_follow': 1.75},
+  log.LongitudinalPersonality.traffic:    {'jerk': 0.8, 't_follow': 1.35},
+}
+
+# Param cache to avoid file I/O every MPC iteration
+_personality_param_cache = {'ts': 0.0, 'vals': {}}
+
+
+def _load_personality_params(now: float = None):
+  global _personality_param_cache
+  if now is None:
+    now = time.monotonic()
+  if now - cast(float, _personality_param_cache['ts']) < 2.0:
+    return _personality_param_cache['vals']
+
+  try:
+    from openpilot.common.params import Params
+    p = Params()
+  except Exception:
+    # No params store available (e.g. acados codegen in a clean build env) —
+    # fall back to compile-time defaults.
+    vals = {pname: _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)].copy()
+            for pname in ('aggressive', 'standard', 'relaxed', 'traffic')}
+    _personality_param_cache = {'ts': now, 'vals': vals}
+    return vals
+  vals = {}
+  for pname in ('aggressive', 'standard', 'relaxed', 'traffic'):
+    prefix = f"EOP{pname.title()}"
+    try:
+      jerk_val = p.get(f"{prefix}Jerk")
+      follow_val = p.get(f"{prefix}Follow")
+      default = _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)]
+      vals[pname] = {
+        'jerk': float(jerk_val) if jerk_val is not None else default['jerk'],
+        't_follow': float(follow_val) if follow_val is not None else default['t_follow'],
+      }
+    except (ValueError, TypeError):
+      vals[pname] = _PERSONALITY_DEFAULTS[getattr(log.LongitudinalPersonality, pname)].copy()
+  _personality_param_cache = {'ts': now, 'vals': vals}
+  return vals
+
+
+_PERSONALITY_NAME_MAP = {v: k for k, v in log.LongitudinalPersonality.schema.enumerants.items()}
+
+
+def _personality_key(personality) -> int:
+  """Enum value as a plain int. A personality read from a message is a capnp _DynamicEnum, which compares equal
+  to the int but hashes differently, so it cannot be used to index the int-keyed dicts above."""
+  return int(getattr(personality, 'raw', personality))
+
+
+def _personality_params(personality) -> dict:
+  key = _personality_key(personality)
+  default = _PERSONALITY_DEFAULTS.get(key, _PERSONALITY_DEFAULTS[log.LongitudinalPersonality.standard])
+  return _load_personality_params().get(_PERSONALITY_NAME_MAP.get(key, 'standard'), default)
+
+
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
-  if personality==log.LongitudinalPersonality.relaxed:
-    return 1.0
-  elif personality==log.LongitudinalPersonality.standard:
-    return 1.0
-  elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.5
-  else:
-    raise NotImplementedError("Longitudinal personality not supported")
+  return _personality_params(personality)['jerk']
 
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
-  if personality==log.LongitudinalPersonality.relaxed:
-    return 1.75
-  elif personality==log.LongitudinalPersonality.standard:
-    return 1.45
-  elif personality==log.LongitudinalPersonality.aggressive:
-    return 1.25
-  else:
-    raise NotImplementedError("Longitudinal personality not supported")
+  return _personality_params(personality)['t_follow']
 
 def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
