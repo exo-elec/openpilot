@@ -73,7 +73,7 @@ from openpilot.system.hardware import HARDWARE
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.nagaspilot.daemons.pathd.track import ObjectTracker
 from openpilot.nagaspilot.daemons.pathd.predict import predict as predict_clusters
-from nagaspilot.controls.ngp_speed_reduction import compute_speed_reduction as _shared_speed_reduction
+from nagaspilot.controls.eop_speed_reduction import compute_speed_reduction as _shared_speed_reduction
 from openpilot.nagaspilot.daemons.pathd.path_corridor_fusion import (
     fuse_corridor_boundaries,
     validate_corridor_boundaries,
