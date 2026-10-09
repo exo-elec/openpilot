@@ -36,6 +36,14 @@ for arg in "$@"; do
 done
 set -- "${args[@]}"
 
+# Compare against the reviewed parent when its branch ref is present locally.
+ngp_parent_ref="${NGP_PARENT_REF:-dev/NGP10}"
+if git rev-parse --verify "$ngp_parent_ref^{commit}" >/dev/null 2>&1; then
+  python3 nagaspilot/lineage.py --parent "$ngp_parent_ref" --child HEAD
+else
+  echo "==> NGP source parity skipped: fetch $ngp_parent_ref or set NGP_PARENT_REF"
+fi
+
 echo "==> Running focused ruff checks"
 ruff check \
   system/hardware/rk3588 \
