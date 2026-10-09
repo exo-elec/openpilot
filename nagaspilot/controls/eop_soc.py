@@ -3,16 +3,7 @@
 from dataclasses import dataclass
 
 from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
-
-
-@dataclass(frozen=True)
-class SOCInput:
-  v_ego: float
-  left_threat: bool
-  right_threat: bool
-  lane_line_y: tuple[tuple[float, ...], ...]
-  lane_line_probs: tuple[float, ...]
-  lane_line_stds: tuple[float, ...]
+from nagaspilot.controls.soc_policy import SOCInput, geometry_valid
 
 
 @dataclass(frozen=True)
@@ -31,18 +22,7 @@ class EOPSOC:
     self.confirmation_frames = max(1, int(confirmation_frames))
     self._valid_frames = 0
 
-  @staticmethod
-  def _geometry_valid(sample: SOCInput):
-    if len(sample.lane_line_y) < 4 or len(sample.lane_line_probs) < 4 or len(sample.lane_line_stds) < 4:
-      return False
-    if min(sample.lane_line_probs[:4]) < 0.60 or max(sample.lane_line_stds[:4]) > 0.35:
-      return False
-    try:
-      line_y = [line[5] for line in sample.lane_line_y[:4]]
-    except IndexError:
-      return False
-    widths = [line_y[index + 1] - line_y[index] for index in range(3)]
-    return all(2.8 <= width <= 3.6 for width in widths)
+  _geometry_valid = staticmethod(geometry_valid)
 
   def update(self, sample: SOCInput) -> SOCResult:
     geometry_valid = self._geometry_valid(sample)

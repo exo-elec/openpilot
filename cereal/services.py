@@ -30,16 +30,13 @@ _services: dict[str, tuple] = {
   "controlsState": (True, 100., 10),
   "selfdriveState": (True, 100., 10),
   "peripheralState": (True, 2., 1),
-  "mapData": (True, 1., 1),             # OSM speed limits and curvature (mapd)
-  "stereoObjects": (True, 20., 5),     # fused camera objects (gridd / gridd)
-  "pathAdjust": (True, 20., 5),         # nagaspilot pathd add-on
-  "monoDetections": (True, 20., 5),    # road-camera YOLO detections (nagaspilot monod)
   "radarState": (True, 20., 5),
   "roadEncodeIdx": (False, 20., 1),
   "driverEncodeIdx": (False, 20., 1),
   "radar3d": (True, 20.),   # long-range UART radar (was liveTracks / car OEM CAN radar)
-  "radar2d": (True, 20.),   # ESP32-S3 corner radars — tracked objects + legacy zone presence
-  "radar4d": (True, 20.),   # ESP32 corner radars' WiFi point cloud (02M add-on)
+  "radarCornerTracks": (True, 20.),  # internal BLE 3D tracked-object input to radar4d
+  "radar2d": (True, 20.),   # planar BSD compatibility view (CAN flags + projected BLE tracks)
+  "radar4d": (True, 20.),   # canonical surround BLE tracks + optional WiFi point cloud
   "stereoObjects": (True, 20.),
   "stereoGround": (True, 20.),
   "gridObjects": (True, 20.),
