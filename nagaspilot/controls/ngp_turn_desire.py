@@ -9,6 +9,13 @@ is between a floor and a driver-chosen ceiling. Whether a given model reacts to 
 MIN_SPEED_MPS = 2.0
 
 
+def turn_signal_direction(left_blinker: bool, right_blinker: bool, eligible: bool) -> str | None:
+  """Resolve one signal after the caller applies its product-specific turn gates."""
+  if not eligible or left_blinker == right_blinker:
+    return None
+  return 'left' if left_blinker else 'right'
+
+
 class NGPTurnDesire:
   def __init__(self, max_speed_mps: float, min_speed_mps: float = MIN_SPEED_MPS):
     self.max_speed = float(max_speed_mps)
@@ -18,6 +25,4 @@ class NGPTurnDesire:
     """'left', 'right' or None."""
     if self.max_speed <= 0.0 or not lateral_active or lane_change_active:
       return None
-    if left_blinker == right_blinker or not (self.min_speed <= v_ego < self.max_speed):
-      return None
-    return 'left' if left_blinker else 'right'
+    return turn_signal_direction(left_blinker, right_blinker, self.min_speed <= v_ego < self.max_speed)

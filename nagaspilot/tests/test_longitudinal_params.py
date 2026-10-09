@@ -1,42 +1,53 @@
-from nagaspilot.runtime import longitudinal_params as lp
+import pytest
+
+from nagaspilot.runtime.feature_keys import EOP_KEYS, NGP_KEYS
+from nagaspilot.runtime.longitudinal_params import LongitudinalSettings
 
 
-class _Params:
-  def __init__(self, profile=b"sport", gap=True):
-    self.profile, self.gap, self.reads = profile, gap, 0
+class Params:
+  def __init__(self, values):
+    self.values, self.reads = values, []
 
   def get(self, key):
-    self.reads += 1
-    return self.profile
-
-  def get_bool(self, key):
-    self.reads += 1
-    return self.gap
+    self.reads.append(key)
+    return self.values.get(key)
 
 
-def _reset(monkeypatch, params):
-  monkeypatch.setattr(lp, "_params", lambda: params)
-  monkeypatch.setattr(lp, "_accel_profile_cache", {"ts": 0.0, "profile": "normal"})
-  monkeypatch.setattr(lp, "_adaptive_gap_cache", {"ts": 0.0, "enabled": False})
+@pytest.mark.parametrize('keys', [NGP_KEYS, EOP_KEYS])
+def test_settings_preserve_defaults_and_refresh_after_two_seconds(keys):
+  params = Params({})
+  now = [0.0]
+  settings = LongitudinalSettings(keys, lambda: params, lambda: now[0])
+  assert settings.load_accel_profile() == 'normal'
+  assert settings.load_adaptive_gap_enabled() is False
+  params.values.update({keys['accel']: b'sport', keys['gap']: b'1'})
+  now[0] = 1.99
+  assert settings.load_accel_profile() == 'normal'
+  assert settings.load_adaptive_gap_enabled() is False
+  assert len(params.reads) == 2
+  now[0] = 2.0
+  assert settings.load_accel_profile() == 'sport'
+  assert settings.load_adaptive_gap_enabled() is True
+  assert params.reads == [keys['accel'], keys['gap']] * 2
 
 
-def test_accel_profile_is_cached_and_unknown_values_fall_back(monkeypatch):
-  params = _Params(profile=b"warp-speed")
-  _reset(monkeypatch, params)
-  assert lp.load_accel_profile() == "normal"
-  assert lp.load_accel_profile() == "normal"
-  assert params.reads == 1  # second call served from the 2 s cache
+def test_product_settings_have_independent_caches_and_never_read_other_keys():
+  params = Params({NGP_KEYS['accel']: b'eco', EOP_KEYS['accel']: b'sport', EOP_KEYS['gap']: b'1'})
+  ngp = LongitudinalSettings(NGP_KEYS, lambda: params)
+  eop = LongitudinalSettings(EOP_KEYS, lambda: params)
+  assert ngp.load_accel_profile() == 'eco'
+  assert eop.load_accel_profile() == 'sport'
+  assert ngp.load_adaptive_gap_enabled() is False
+  assert eop.load_adaptive_gap_enabled() is True
 
 
-def test_known_profile_is_returned(monkeypatch):
-  name = next(iter(lp.ACCELERATION_PROFILES))
-  _reset(monkeypatch, _Params(profile=name.encode()))
-  assert lp.load_accel_profile() == name
+@pytest.mark.parametrize('raw', [None, b'', b'warp-speed'])
+def test_unknown_acceleration_profiles_fall_back(raw):
+  settings = LongitudinalSettings(params_factory=lambda: Params({NGP_KEYS['accel']: raw}))
+  assert settings.load_accel_profile() == 'normal'
 
 
-def test_adaptive_gap_flag_is_cached(monkeypatch):
-  params = _Params(gap=True)
-  _reset(monkeypatch, params)
-  assert lp.load_adaptive_gap_enabled() is True
-  assert lp.load_adaptive_gap_enabled() is True
-  assert params.reads == 1
+def test_gap_accepts_only_the_enabled_parameter_value():
+  for raw in [None, b'', b'0', b'true', b'1']:
+    settings = LongitudinalSettings(params_factory=lambda raw=raw: Params({NGP_KEYS['gap']: raw}))
+    assert settings.load_adaptive_gap_enabled() is (raw == b'1')

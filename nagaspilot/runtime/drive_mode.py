@@ -5,8 +5,7 @@ from nagaspilot.controls.ngp_drive_mode import CUSTOM, detect, settings_for
 
 POLL_S = 1.0
 
-NGP_KEYS = {"mode": "ngp_lon_drive_mode", "accel": "ngp_lon_accel_profile", "personality": "LongitudinalPersonality",
-            "gap": "ngp_lon_adaptive_gap"}
+from nagaspilot.runtime.feature_keys import EOP_KEYS, NGP_KEYS  # noqa: F401 -- compatibility exports
 
 
 class DriveModeApplier:
