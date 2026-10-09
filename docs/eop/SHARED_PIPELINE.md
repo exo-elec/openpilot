@@ -54,3 +54,19 @@ msgq and is excluded from that host-only UI gate. No full native C++/SCons
 build, live Google call or vehicle/hardware integration run was performed.
 Tests used the existing Python 3.13 test venv; production project metadata
 still declares Python >=3.11,<3.13. Real deployment uses its pinned toolchain.
+
+## NGP parent refresh and prefixes
+
+The parent chain is now NGP10 → EOP10 → 01M → 02M. The NGP parent includes
+the newer portable map/planning ports. Canonical policy prefixes describe
+ownership: EOP-origin map and path-nudge cores retain eop_* names even in
+NGP; NGP-origin policy keeps ngp_* names in descendants. Existing imports
+and saved settings have explicit compatibility aliases. The parity gate
+compares all inherited controls, runtime and map Python files.
+
+The EOP-only planner preserves its existing controller adapters and sensor
+inputs; importing a portable core does not enable a second controller.
+EOPDDSCEnabled, EOPPathdNudgesEnabled and EOPSharedSLCOffsets are canonical
+keys for NGP's portable adapter and are deliberately excluded from the EOP
+UI. EOP retains its existing distraction path, EOPNudgeEnabled and speed
+limit offset controls.
