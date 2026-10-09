@@ -15,6 +15,10 @@ from __future__ import annotations
 
 # key -> why it is not a user-facing setting
 TRIAGED: dict[str, str] = {
+  'EOPDDSCEnabled': 'Canonical EOP-origin switch for NGP MapSpeed; the EOP planner retains its existing distraction path.',
+  'EOPPathdNudgesEnabled': 'NGP camera-only proposer adapter; EOP sensor nudges use EOPNudgeEnabled and must not be applied twice.',
+  'EOPSharedSLCOffsets': 'NGP MapSpeed compatibility configuration; EOP speed-limit offsets retain their existing individual settings.',
+
   'EOPBLECornerPairs': 'Credential, identity or structured provisioning data; never an ordinary on/off setting.',
   'EOPBLERadarPairingOpen': 'No verified switch consumer/semantics in this audit; see FEATURE_PARITY_AND_SWITCHES.md.',
   'EOPBLERadarRoster': 'Credential, identity or structured provisioning data; never an ordinary on/off setting.',
