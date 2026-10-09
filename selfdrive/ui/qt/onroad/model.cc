@@ -33,9 +33,21 @@ void ModelRenderer::draw(QPainter &painter, const QRect &surface_rect) {
   const auto &radar_state = sm["radarState"].getRadarState();
   const auto &lead_one = radar_state.getLeadOne();
 
+  // BSD / blinker state
+  if (sm.rcv_frame("carState") >= s->scene.started_frame) {
+    const auto &cs = sm["carState"].getCarState();
+    left_blinker = cs.getLeftBlinker();
+    right_blinker = cs.getRightBlinker();
+    // EOP: Fuse vehicle-native BSD with controlsState BSD (radar + Hailo camera)
+    const auto &ctrl = sm["controlsState"].getControlsState();
+    left_blindspot = cs.getLeftBlindspot() || ctrl.getLeftBlindSpot() > 0;
+    right_blindspot = cs.getRightBlindspot() || ctrl.getRightBlindSpot() > 0;
+  }
+
   update_model(model, lead_one);
   drawLaneLines(painter);
   drawPath(painter, model, surface_rect.height());
+  drawBlindSpotPath(painter, model, surface_rect.height());
 
   if (longitudinal_control && sm.alive("radarState")) {
     update_leads(radar_state, model.getPosition());
@@ -186,6 +198,51 @@ QColor ModelRenderer::blendColors(const QColor &start, const QColor &end, float 
       (1 - t) * start.alphaF() + t * end.alphaF());
 }
 
+void ModelRenderer::drawBlindSpotPath(QPainter &painter, const cereal::ModelDataV2::Reader &model, int height) {
+  // FrogPilot-style red adjacent-lane overlay when blind spot is occupied
+  // and blinker is active during a lane change attempt.
+  bool show_left = left_blinker && left_blindspot;
+  bool show_right = right_blinker && right_blindspot;
+  if (!show_left && !show_right) return;
+
+  const auto &road_edges = model.getRoadEdges();
+  const auto &lane_lines = model.getLaneLines();
+  const auto &model_position = model.getPosition();
+  float max_distance = std::clamp(*(model_position.getX().end() - 1), MIN_DRAW_DISTANCE, MAX_DRAW_DISTANCE);
+  int max_idx = get_path_length_idx(model_position, max_distance);
+
+  QPolygonF poly;
+
+  // Left adjacent lane: between left road edge and left ego lane line
+  if (show_left) {
+    mapDualLineToPolygon(road_edges[0], lane_lines[1], path_offset_z, &poly, max_idx);
+    if (!poly.isEmpty()) {
+      QLinearGradient grad(0, height, 0, 0);
+      // FrogPilot exact colors: HSL(0°, 75%, 50%) with alpha fade
+      grad.setColorAt(0.0f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.6f));
+      grad.setColorAt(0.5f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.4f));
+      grad.setColorAt(1.0f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.2f));
+      painter.setPen(Qt::NoPen);
+      painter.setBrush(grad);
+      painter.drawPolygon(poly);
+    }
+  }
+
+  // Right adjacent lane: between right ego lane line and right road edge
+  if (show_right) {
+    mapDualLineToPolygon(lane_lines[2], road_edges[1], path_offset_z, &poly, max_idx);
+    if (!poly.isEmpty()) {
+      QLinearGradient grad(0, height, 0, 0);
+      grad.setColorAt(0.0f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.6f));
+      grad.setColorAt(0.5f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.4f));
+      grad.setColorAt(1.0f, QColor::fromHslF(0.0f, 0.75f, 0.5f, 0.2f));
+      painter.setPen(Qt::NoPen);
+      painter.setBrush(grad);
+      painter.drawPolygon(poly);
+    }
+  }
+}
+
 void ModelRenderer::drawLead(QPainter &painter, const cereal::RadarState::LeadData::Reader &lead_data,
                              const QPointF &vd, const QRect &surface_rect) {
   const float speedBuff = 10.;
@@ -245,6 +302,31 @@ void ModelRenderer::mapLineToPolygon(const cereal::XYZTData::Reader &line, float
       }
       pvd->push_back(left);
       pvd->push_front(right);
+    }
+  }
+}
+
+void ModelRenderer::mapDualLineToPolygon(const cereal::XYZTData::Reader &left_line,
+                                         const cereal::XYZTData::Reader &right_line,
+                                         float z_off, QPolygonF *pvd, int max_idx) {
+  const auto ll_x = left_line.getX(), ll_y = left_line.getY(), ll_z = left_line.getZ();
+  const auto rl_x = right_line.getX(), rl_y = right_line.getY(), rl_z = right_line.getZ();
+  QPointF pt;
+  pvd->clear();
+
+  // Left boundary (forward)
+  for (int i = 0; i <= max_idx; i++) {
+    if (ll_x[i] < 0) continue;
+    if (mapToScreen(ll_x[i], ll_y[i], ll_z[i] + z_off, &pt)) {
+      pvd->push_back(pt);
+    }
+  }
+
+  // Right boundary (reverse)
+  for (int i = max_idx; i >= 0; i--) {
+    if (rl_x[i] < 0) continue;
+    if (mapToScreen(rl_x[i], rl_y[i], rl_z[i] + z_off, &pt)) {
+      pvd->push_back(pt);
     }
   }
 }

@@ -72,3 +72,4 @@ def test_applier_polls_at_most_once_a_second_and_defaults_to_custom():
   p.store[KEYS["mode"]] = "eco"
   assert not a.update(now=5.5)  # inside the poll interval
   assert a.update(now=6.1)
+

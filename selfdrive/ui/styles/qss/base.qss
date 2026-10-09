@@ -1,0 +1,29 @@
+/* Structural defaults shared by every theme. Colour lives in the theme
+   sheets; anything here is layout, sizing or typography that holds
+   regardless of light or dark. Sized for the 1600x600 panel. */
+
+QWidget {
+  font-family: "Inter", "Noto Sans", sans-serif;
+}
+
+QLabel#topBar, QLabel#bottomBar {
+  min-height: 50px;
+  max-height: 50px;
+  padding: 0 20px;
+  font-size: 20px;
+}
+
+QPushButton {
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 20px;
+  min-height: 56px;   /* touch target on a panel used while driving */
+}
+
+QTabWidget::pane { border: 0; }
+
+QTabBar::tab {
+  min-height: 44px;
+  padding: 8px 28px;
+  font-size: 19px;
+}
