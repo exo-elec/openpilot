@@ -191,9 +191,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_monod_ranger", {PERSISTENT, BOOL, "0"}},
     // pathd: use the corrected distance-scale lookup in compute_speed_reduction. EOP10's original lookup never reduced speed (nagaspilot/controls/ngp_speed_reduction.py). Default off = behaviour unchanged.
     {"ngp_pathd_fix_scale", {PERSISTENT, BOOL, "0"}},
-    {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
     // DPP ceiling (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both); DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
-    {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
     // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
     // of this branch -- automatic ACC/E2E switching only. No master enable
     // toggle and no mode param: users cannot force pure E2E (Experimental)
@@ -429,7 +427,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPRecorddSnapAutoG", {PERSISTENT, FLOAT, "2.0"}},
     {"EOPRecorddSnapImuMs", {PERSISTENT, INT, "500"}},
     // Pause lateral assistance with a turn signal on below this speed (mph); 0 = off. Shared with NGP10 (ngp_ prefix).
-    {"ngp_lat_blinker_pause_mph", {PERSISTENT, INT, "0"}},
     {"EOPRedControllerEnabled", {PERSISTENT, BOOL, "1"}},
     {"EOPRelaxedFollow", {PERSISTENT, FLOAT, "1.75"}},
     {"EOPRelaxedJerk", {PERSISTENT, FLOAT, "1.0"}},
@@ -571,9 +568,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // ASM2464PD / Chestnut eGPU driving path (mirrors upstream UsbGpu*; named
     // Egpu* to cover both our own flashed firmware and comma's Chestnut
     // firmware on the same physical chip).
-    {"EOPEgpuDrivingEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPEgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
-    {"EOPEgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"EOPChestnutDrivingEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPChestnutDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"EOPChestnutDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
@@ -590,7 +584,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // BRSC: Bumpy Road Speed Controller — shared across EOP10/NGP10/EDP10 via
     // nagaspilot/controls/ngp_brsc.py; NGP prefix (not EOP) marks features
     // ported verbatim across all three branches. See docs/eop/03_Software/Controllers/BRSC.md
-    {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
     {"EOPNavPilotOAuthEmail", {PERSISTENT | DONT_LOG, STRING}},
     {"EOPNavPilotOAuthToken", {PERSISTENT | DONT_LOG, STRING}},
     {"EOPOpenBLTFirmwareVersion", {PERSISTENT, STRING}},
