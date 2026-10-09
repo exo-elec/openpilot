@@ -1,5 +1,6 @@
 import datetime
 import os
+from openpilot.common.compat import UTC
 import pytest
 import time
 import tempfile
@@ -163,7 +164,7 @@ class TestUpdated:
   def _check_update_state(self, update_available):
     # make sure LastUpdateTime is recent
     last_update_time = self._read_param("LastUpdateTime")
-    td = datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - last_update_time
+    td = datetime.datetime.now(UTC).replace(tzinfo=None) - last_update_time
     assert td.total_seconds() < 10
     self.params.remove("LastUpdateTime")
 
