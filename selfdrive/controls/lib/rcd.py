@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 
 from openpilot.common.params import Params
-from nagaspilot.controls.rcd import (SPEED_LIMITS, RCDState, RoadCondition, RoadConditionResult,  # noqa: F401
+from nagaspilot.controls.rcd import (SPEED_LIMITS, RCDState, RoadCondition, RoadConditionResult,
                                          classify_metrics)
 from nagaspilot.runtime.rcd import RCDRuntime
 
