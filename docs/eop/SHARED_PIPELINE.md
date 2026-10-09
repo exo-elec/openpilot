@@ -70,3 +70,8 @@ EOPDDSCEnabled, EOPPathdNudgesEnabled and EOPSharedSLCOffsets are canonical
 keys for NGP's portable adapter and are deliberately excluded from the EOP
 UI. EOP retains its existing distraction path, EOPNudgeEnabled and speed
 limit offset controls.
+
+The upstream footprint budget records the smaller turn hook (173 added lines,
+previously 177; one more upstream line replaced) and the inherited NGP replay
+README. Other upstream budgets remain unchanged. The direct parent parity
+check covers portable source independently of those documentation edits.
