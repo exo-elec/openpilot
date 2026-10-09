@@ -2,7 +2,8 @@
 
 // has to be in this order
 #ifdef __linux__
-#include "third_party/linux/include/v4l2-controls.h"
+// system header replaces the deleted vendored Qualcomm copy (third_party/linux)
+#include <linux/v4l2-controls.h>
 #include <linux/videodev2.h>
 #else
 #define V4L2_BUF_FLAG_KEYFRAME 8

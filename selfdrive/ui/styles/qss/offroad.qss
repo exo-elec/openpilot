@@ -1,0 +1,43 @@
+/* Offroad settings. Row heights and type sizes assume a touch target reached
+   at arm's length in a parked car, not a desktop pointer. */
+
+QWidget#offroadRoot { background-color: #0d1113; }
+
+QLabel#controlTitle { font-size: 22px; color: #e6ebea; }
+QLabel#controlDesc  { font-size: 16px; color: #7c8b8d; }
+
+QScrollArea { border: 0; background: transparent; }
+
+QCheckBox::indicator { width: 56px; height: 32px; }
+
+QSpinBox, QDoubleSpinBox {
+  font-size: 20px;
+  min-width: 160px;
+  min-height: 48px;
+  background-color: #1d2629;
+  border: 1px solid #2a3639;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+/* On-screen keyboard */
+QWidget#keyboard        { background-color: #0d1113; }
+QLabel#kbPrompt         { font-size: 20px; color: #b3c0c0; }
+QLabel#kbPreview        { font-size: 28px; color: #e6ebea;
+                          background: #131a1c; border-radius: 8px; padding: 12px 16px; }
+QPushButton#kbKey       { font-size: 24px; min-width: 56px; }
+QPushButton#kbKeyWide   { font-size: 20px; min-width: 96px; }
+
+/* Onboarding */
+QWidget#onboardRoot      { background-color: #0d1113; }
+QLabel#onboardTitle      { font-size: 40px; font-weight: 700; color: #ffffff; }
+QLabel#onboardBody       { font-size: 22px; color: #b3c0c0; }
+QPushButton#primaryButton { background-color: #2f7566; color: #ffffff; }
+
+/* DVR */
+QWidget#dvrRoot    { background-color: #0d1113; }
+QWidget#dvrSurface { background-color: #000000; border-radius: 8px; }
+QListWidget#dvrList { font-size: 16px; min-width: 420px;
+                      background: #131a1c; border: 1px solid #2a3639; border-radius: 8px; }
+QListWidget#dvrList::item { padding: 10px 12px; }
+QLabel#dvrStatus   { font-size: 15px; color: #7c8b8d; padding: 6px 2px; }

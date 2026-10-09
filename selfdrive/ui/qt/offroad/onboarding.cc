@@ -33,10 +33,6 @@ void TrainingGuide::mouseReleaseEvent(QMouseEvent *e) {
   };
 
   if (contains(boundingRect[currentIndex], e->pos())) {
-    if (currentIndex == 9) {
-      const QRect yes = QRect(707, 804, 531, 164);
-      Params().putBool("RecordFront", contains(yes, e->pos()));
-    }
     currentIndex += 1;
   } else if (currentIndex == (boundingRect.size() - 2) && contains(boundingRect.last(), e->pos())) {
     currentIndex = 0;
@@ -84,28 +80,28 @@ void TrainingGuide::paintEvent(QPaintEvent *event) {
 
 void TermsPage::showEvent(QShowEvent *event) {
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  main_layout->setContentsMargins(45, 35, 45, 45);
+  main_layout->setContentsMargins(25, 20, 25, 20);
   main_layout->setSpacing(0);
 
   QVBoxLayout *vlayout = new QVBoxLayout();
-  vlayout->setContentsMargins(165, 165, 165, 0);
+  vlayout->setContentsMargins(40, 40, 40, 0);
   main_layout->addLayout(vlayout);
 
-  QLabel *title = new QLabel(tr("Welcome to openpilot"));
-  title->setStyleSheet("font-size: 90px; font-weight: 500;");
+  QLabel *title = new QLabel(tr("EXO-ELECTRONICS"));
+  title->setStyleSheet("font-size: 48px; font-weight: 500;");
   vlayout->addWidget(title, 0, Qt::AlignTop | Qt::AlignLeft);
 
-  vlayout->addSpacing(90);
-  QLabel *desc = new QLabel(tr("You must accept the Terms and Conditions to use openpilot. Read the latest terms at <span style='color: #465BEA;'>https://comma.ai/terms</span> before continuing."));
+  vlayout->addSpacing(30);
+  QLabel *desc = new QLabel(tr("You must accept the Terms and Conditions to use openpilot. Read the latest terms at <span style='color: #465BEA;'>https://exo-electronics.com/terms</span> before continuing."));
   desc->setWordWrap(true);
-  desc->setStyleSheet("font-size: 80px; font-weight: 300;");
+  desc->setStyleSheet("font-size: 36px; font-weight: 300;");
   vlayout->addWidget(desc, 0);
 
   vlayout->addStretch();
 
   QHBoxLayout* buttons = new QHBoxLayout;
   buttons->setMargin(0);
-  buttons->setSpacing(45);
+  buttons->setSpacing(20);
   main_layout->addLayout(buttons);
 
   QPushButton *decline_btn = new QPushButton(tr("Decline"));
@@ -131,17 +127,17 @@ void DeclinePage::showEvent(QShowEvent *event) {
   }
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  main_layout->setMargin(45);
-  main_layout->setSpacing(40);
+  main_layout->setMargin(25);
+  main_layout->setSpacing(20);
 
   QLabel *text = new QLabel(this);
   text->setText(tr("You must accept the Terms and Conditions in order to use openpilot."));
-  text->setStyleSheet(R"(font-size: 80px; font-weight: 300; margin: 200px;)");
+  text->setStyleSheet(R"(font-size: 36px; font-weight: 300; margin: 40px;)");
   text->setWordWrap(true);
   main_layout->addWidget(text, 0, Qt::AlignCenter);
 
   QHBoxLayout* buttons = new QHBoxLayout;
-  buttons->setSpacing(45);
+  buttons->setSpacing(20);
   main_layout->addLayout(buttons);
 
   QPushButton *back_btn = new QPushButton(tr("Back"));
@@ -200,8 +196,8 @@ OnboardingWindow::OnboardingWindow(QWidget *parent) : QStackedWidget(parent) {
       background-color: black;
     }
     QPushButton {
-      height: 160px;
-      font-size: 55px;
+      height: 80px;
+      font-size: 28px;
       font-weight: 400;
       border-radius: 10px;
       background-color: #4F4F4F;

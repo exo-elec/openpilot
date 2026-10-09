@@ -10,7 +10,7 @@ from openpilot.tools.sim.bridge.common import QueueMessage, QueueMessageType
 from openpilot.tools.sim.bridge.metadrive.metadrive_process import (metadrive_process, metadrive_simulation_state,
                                                                     metadrive_vehicle_state)
 from openpilot.tools.sim.lib.common import SimulatorState, World
-from openpilot.tools.sim.lib.camerad import W, H
+from openpilot.tools.sim.lib.common import W, H
 
 
 class MetaDriveWorld(World):

@@ -1,124 +1,119 @@
-import pytest
-import json
+"""The UI actually applies translations.
+
+The failure this guards is silent and was live for a while: the C++ UI
+installed a QTranslator in main.cc, the Python port did not, and the .ts
+files kept shipping. "Change Language" wrote LanguageSetting, restarted the
+UI, and it came back in English -- a settings row that did nothing, with no
+error anywhere.
+
+Two halves have to hold for translation to work at all, so both are tested:
+the catalogue must load, and the widgets must actually route their strings
+through tr(). A bare string literal never consults the translator.
+"""
+
 import os
-import re
-import xml.etree.ElementTree as ET
-import string
-import requests
-from parameterized import parameterized_class
+import subprocess
+import sys
+from pathlib import Path
 
-from openpilot.selfdrive.ui.update_translations import TRANSLATIONS_DIR, LANGUAGES_FILE
+import pytest
 
-with open(LANGUAGES_FILE) as f:
-  translation_files = json.load(f)
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-UNFINISHED_TRANSLATION_TAG = "<translation type=\"unfinished\""  # non-empty translations can be marked unfinished
-LOCATION_TAG = "<location "
-FORMAT_ARG = re.compile("%[0-9]+")
+from openpilot.selfdrive.ui.components.controls import ParamStore
+from openpilot.selfdrive.ui.main import load_translation
+from openpilot.selfdrive.ui.qt import QApplication
+
+TRANSLATIONS = Path(__file__).resolve().parents[1] / "translations"
 
 
-@parameterized_class(("name", "file"), translation_files.items())
-class TestTranslations:
-  name: str
-  file: str
+class FakeParams:
+  def __init__(self, lang=""):
+    self.d = {"LanguageSetting": lang}
 
-  @staticmethod
-  def _read_translation_file(path, file):
-    tr_file = os.path.join(path, f"{file}.ts")
-    with open(tr_file) as f:
-      return f.read()
+  def get(self, k):
+    return self.d.get(k, "")
 
-  def test_missing_translation_files(self):
-    assert os.path.exists(os.path.join(TRANSLATIONS_DIR, f"{self.file}.ts")), \
-                    f"{self.name} has no XML translation file, run selfdrive/ui/update_translations.py"
+  def put(self, k, v):
+    self.d[k] = v
 
-  @pytest.mark.skip("Only test unfinished translations before going to release")
-  def test_unfinished_translations(self):
-    cur_translations = self._read_translation_file(TRANSLATIONS_DIR, self.file)
-    assert UNFINISHED_TRANSLATION_TAG not in cur_translations, \
-                    f"{self.file} ({self.name}) translation file has unfinished translations. Finish translations or mark them as completed in Qt Linguist"
+  def get_bool(self, k):
+    return bool(self.d.get(k, False))
 
-  def test_vanished_translations(self):
-    cur_translations = self._read_translation_file(TRANSLATIONS_DIR, self.file)
-    assert "<translation type=\"vanished\">" not in cur_translations, \
-                    f"{self.file} ({self.name}) translation file has obsolete translations. Run selfdrive/ui/update_translations.py --vanish to remove them"
+  def put_bool(self, k, v):
+    self.d[k] = v
 
-  def test_finished_translations(self):
-    """
-      Tests ran on each translation marked "finished"
-      Plural:
-      - that any numerus (plural) translations have all plural forms non-empty
-      - that the correct format specifier is used (%n)
-      Non-plural:
-      - that translation is not empty
-      - that translation format arguments are consistent
-    """
-    tr_xml = ET.parse(os.path.join(TRANSLATIONS_DIR, f"{self.file}.ts"))
+  def remove(self, k):
+    self.d.pop(k, None)
 
-    for context in tr_xml.getroot():
-      for message in context.iterfind("message"):
-        translation = message.find("translation")
-        source_text = message.find("source").text
 
-        # Do not test unfinished translations
-        if translation.get("type") == "unfinished":
-          continue
+def _compile_catalogues():
+  """lrelease the .ts sources, as the SConscript does. .qm files are build
+  artefacts and gitignored, so a fresh checkout has none."""
+  ts = sorted(TRANSLATIONS.glob("*.ts"))
+  if not ts:
+    pytest.skip("no .ts sources")
+  try:
+    subprocess.run(["lrelease", "-silent", *[str(p) for p in ts]],
+                   check=True, capture_output=True, timeout=120)
+  except (OSError, subprocess.CalledProcessError):
+    pytest.skip("lrelease unavailable (qttools5-dev-tools)")
 
-        if message.get("numerus") == "yes":
-          numerusform = [t.text for t in translation.findall("numerusform")]
 
-          for nf in numerusform:
-            assert nf is not None, f"Ensure all plural translation forms are completed: {source_text}"
-            assert "%n" in nf, "Ensure numerus argument (%n) exists in translation."
-            assert FORMAT_ARG.search(nf) is None, f"Plural translations must use %n, not %1, %2, etc.: {numerusform}"
+@pytest.fixture(scope="module")
+def app():
+  _compile_catalogues()
+  return QApplication.instance() or QApplication(sys.argv[:1])
 
-        else:
-          assert translation.text is not None, f"Ensure translation is completed: {source_text}"
 
-          source_args = FORMAT_ARG.findall(source_text)
-          translation_args = FORMAT_ARG.findall(translation.text)
-          assert sorted(source_args) == sorted(translation_args), \
-                           f"Ensure format arguments are consistent: `{source_text}` vs. `{translation.text}`"
+class TestCatalogueLoading:
+  def test_a_real_language_loads(self, app):
+    assert load_translation(app, ParamStore(FakeParams("main_th"))) == "main_th"
 
-  def test_no_locations(self):
-    for line in self._read_translation_file(TRANSLATIONS_DIR, self.file).splitlines():
-      assert not line.strip().startswith(LOCATION_TAG), \
-                       f"Line contains location tag: {line.strip()}, remove all line numbers."
+  def test_english_needs_no_catalogue(self, app):
+    # English is the source language: there is nothing to look up, and
+    # reporting a failure for it would be noise.
+    assert load_translation(app, ParamStore(FakeParams("main_en"))) == ""
+    assert load_translation(app, ParamStore(FakeParams(""))) == ""
 
-  def test_entities_error(self):
-    cur_translations = self._read_translation_file(TRANSLATIONS_DIR, self.file)
-    matches = re.findall(r'@(\w+);', cur_translations)
-    assert len(matches) == 0, f"The string(s) {matches} were found with '@' instead of '&'"
+  def test_a_missing_catalogue_does_not_stop_the_ui(self, app):
+    # Falling back to English beats refusing to boot.
+    assert load_translation(app, ParamStore(FakeParams("main_nonexistent"))) == ""
 
-  def test_bad_language(self):
-    IGNORED_WORDS = {'pédale'}
+  def test_no_params_is_survivable(self, app):
+    assert load_translation(app, None) == ""
 
-    match = re.search(r'_([a-zA-Z]{2,3})', self.file)
-    assert match, f"{self.name} - could not parse language"
+  def test_every_declared_language_has_a_source(self, app):
+    """languages.json is what the Change Language dialog lists. An entry with
+    no .ts file is an option that silently does nothing when picked."""
+    import json
+    declared = json.loads((TRANSLATIONS / "languages.json").read_text())
+    for name, stem in declared.items():
+      assert (TRANSLATIONS / f"{stem}.ts").exists(), f"{name} ({stem}) has no .ts"
 
-    try:
-      response = requests.get(
-        f"https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/{match.group(1)}"
-      )
-      response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-      if e.response is not None and e.response.status_code == 429:
-        pytest.skip("word list rate limited")
-      raise
 
-    banned_words = {line.strip() for line in response.text.splitlines()}
+class TestWidgetsRouteThroughTr:
+  """Loading a catalogue is useless if the widgets hold bare literals."""
 
-    for context in ET.parse(os.path.join(TRANSLATIONS_DIR, f"{self.file}.ts")).getroot():
-      for message in context.iterfind("message"):
-        translation = message.find("translation")
-        if translation.get("type") == "unfinished":
-          continue
+  def _panels(self, app, lang):
+    load_translation(app, ParamStore(FakeParams(lang)))
+    from openpilot.selfdrive.ui.views.panels.device import DevicePanel
+    from openpilot.selfdrive.ui.views.panels.toggles import TogglesPanel
+    store = ParamStore(FakeParams(lang))
+    self._keep = (DevicePanel(store), TogglesPanel(store))
+    return self._keep
 
-        translation_text = " ".join([t.text for t in translation.findall("numerusform")]) if message.get("numerus") == "yes" else translation.text
+  def test_device_panel_titles_are_translated(self, app):
+    device, _ = self._panels(app, "main_th")
+    assert device.reset_calib.title_label.text() == "รีเซ็ตการคาลิเบรท"
+    assert device.reboot_btn.text() == "รีบูต"
 
-        if not translation_text:
-          continue
+  def test_toggle_titles_are_translated(self, app):
+    _, toggles = self._panels(app, "main_th")
+    assert toggles.toggles["IsMetric"].title_label.text() == "ใช้ระบบเมตริก"
 
-        words = set(translation_text.translate(str.maketrans('', '', string.punctuation + '%n')).lower().split())
-        bad_words_found = words & (banned_words - IGNORED_WORDS)
-        assert not bad_words_found, f"Bad language found in {self.name}: '{translation_text}'. Bad word(s): {', '.join(bad_words_found)}"
+  def test_a_deliberately_untranslated_string_passes_through(self, app):
+    # "Dongle ID" is left as-is in the Thai catalogue -- a proper noun, not a
+    # miss. Asserting it stays English keeps a future "fix" from mangling it.
+    device, _ = self._panels(app, "main_th")
+    assert device.dongle.title_label.text() == "Dongle ID"

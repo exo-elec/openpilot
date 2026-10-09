@@ -1,71 +1,37 @@
-# Multilanguage
+# Translations
 
-[![languages](https://raw.githubusercontent.com/commaai/openpilot/badges/translation_badge.svg)](#)
+The `.ts` files here are the translation sources. They came from the C++/Qt
+UI and are still used: the UI is now `selfdrive/ui`, a Qt Widgets UI in
+Python, and it loads them at runtime.
 
-## Contributing
+## How it works now
 
-Before getting started, make sure you have set up the openpilot Ubuntu development environment by reading the [tools README.md](/tools/README.md).
+- **Compile**: the `lrelease` step in `selfdrive/ui/SConscript` turns each
+  `.ts` into a `.qm` next to it (`scons translations`). The C++ UI baked the
+  `.qm` files into the binary with `rcc`; the Python UI has no binary to bake
+  into, so they are read from disk.
+- **Load**: `main.load_translation()` reads the `LanguageSetting` param and
+  installs a `QTranslator` for `translations/<stem>.qm`. It must run **before
+  the first widget is constructed** — Qt resolves `tr()` when a string is
+  used, so a widget built earlier keeps its English text.
+- **Fallback**: a missing or unreadable `.qm` warns on stderr and leaves the
+  UI in English rather than refusing to start. English is the source
+  language and needs no catalogue.
 
-### Policy
+Translation contexts are class names. The Python port kept upstream's class
+names and user-facing strings verbatim, so most existing entries still
+resolve against the new UI without being re-translated.
 
-Most of the languages supported by openpilot come from and are maintained by the community via pull requests. A pull request likely to be merged is one that [fixes a translation or adds missing translations.](https://github.com/commaai/openpilot/blob/master/selfdrive/ui/translations/README.md#improving-an-existing-language)
+## Extraction is the part that is still outstanding
 
-We also generally merge pull requests adding support for a new language if there are community members willing to maintain it. Maintaining a language is ensuring quality and completion of translations before each openpilot release.
+`lupdate` scanned `.cc`/`.h` for `tr(...)`. Nothing currently re-scans the
+Python sources, so a **newly added** string will not appear in the `.ts`
+files until that is wired up:
 
-comma may remove or hide language support from releases depending on translation quality and completeness.
+- the Python equivalent is `pylupdate5` over `selfdrive/ui/**/*.py`;
+- `update_translations.py` still drives the `.ts` files but needs its
+  extraction step retargeted, and is not wired into any build today.
 
-### Adding a New Language
-
-openpilot provides a few tools to help contributors manage their translations and to ensure quality. To get started:
-
-1. Add your new language to [languages.json](/selfdrive/ui/translations/languages.json) with the appropriate [language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) and the localized language name (Traditional Chinese is `中文（繁體）`).
-2. Generate the XML translation file (`*.ts`):
-   ```shell
-   selfdrive/ui/update_translations.py
-   ```
-3. Edit the translation file, marking each translation as completed:
-   ```shell
-   linguist selfdrive/ui/translations/your_language_file.ts
-   ```
-4. View your finished translations by compiling and starting the UI, then find it in the language selector:
-   ```shell
-   scons -j$(nproc) selfdrive/ui && selfdrive/ui/ui
-   ```
-5. Read [Checking the UI](#checking-the-ui) to double-check your translations fit in the UI.
-
-### Improving an Existing Language
-
-Follow step 3. above, you can review existing translations and add missing ones. Once you're done, just open a pull request to openpilot.
-
-### Checking the UI
-Different languages use varying space to convey the same message, so it's a good idea to double-check that your translations do not overlap and fit into each widget. Start the UI (step 4. above) and view each page, making adjustments to translations as needed.
-
-#### To view offroad alerts:
-
-With the UI started, you can view the offroad alerts with:
-```shell
-selfdrive/ui/tests/cycle_offroad_alerts.py
-```
-
-### Updating the UI
-
-Any time you edit source code in the UI, you need to update the translations to ensure the line numbers and contexts are up to date (first step above).
-
-### Testing
-
-openpilot has a few unit tests to make sure all translations are up-to-date and that all strings are wrapped in a translation marker. They are run in CI, but you can also run them locally.
-
-Tests translation files up to date:
-
-```shell
-selfdrive/ui/tests/test_translations.py
-```
-
-Tests all static source strings are wrapped:
-
-```shell
-selfdrive/ui/tests/create_test_translations.sh && selfdrive/ui/tests/test_translations
-```
-
----
-![multilanguage_onroad](https://user-images.githubusercontent.com/25857203/178912800-2c798af8-78e3-498e-9e19-35906e0bafff.png)
+Note this only affects extraction. `tr()` on a variable still resolves
+correctly at runtime — only the tooling that *finds* strings to translate
+needs literals.

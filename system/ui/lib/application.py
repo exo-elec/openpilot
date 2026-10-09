@@ -7,7 +7,7 @@ import threading
 from collections.abc import Callable
 from collections import deque
 from dataclasses import dataclass
-from enum import StrEnum
+from openpilot.common.compat import StrEnum
 from typing import NamedTuple
 from importlib.resources import as_file, files
 from openpilot.common.swaglog import cloudlog
@@ -400,4 +400,4 @@ class GuiApplication:
       os._exit(1)
 
 
-gui_app = GuiApplication(2160, 1080)
+gui_app = GuiApplication(1024, 600)

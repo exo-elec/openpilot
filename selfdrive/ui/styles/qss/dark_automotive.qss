@@ -1,0 +1,15 @@
+/* Dark automotive theme. Near-black ground so the camera feed carries the
+   brightness, with a cool grey chrome that does not compete with the amber
+   and red the blind-spot bands use for meaning. */
+
+QWidget            { background-color: #0d1113; color: #e6ebea; }
+QWidget#onroadRoot { background-color: #000000; }
+
+QLabel#topBar, QLabel#bottomBar { background-color: #131a1c; color: #b3c0c0; }
+
+QPushButton           { background-color: #1d2629; border: 1px solid #2a3639; color: #e6ebea; }
+QPushButton:pressed   { background-color: #131a1c; }
+QPushButton:disabled  { background-color: #131a1c; color: #5c6b6d; }
+
+QTabBar::tab          { background: #131a1c; color: #7c8b8d; }
+QTabBar::tab:selected { background: #1d2629; color: #e6ebea; }

@@ -1,0 +1,99 @@
+name: EOP10 Lint
+
+# Lint gate for the EOP10 branch.
+# - Focused gate (./test.sh) is required to pass.
+# - Full upstream lint gate (./test.sh --full) runs as an informational job
+#   while mypy debt is still being cleared.
+
+# Disabled (2026-09-29): every push / PR check reported by email. Run the same
+# gate locally with ./test.sh (./test.sh --full for the upstream lint gate);
+# start this workflow by hand from the Actions tab (workflow_dispatch) when a
+# hosted run is wanted. Restore the push / pull_request triggers to re-enable.
+on:
+  # push:
+  #   branches:
+  #     - dev/EOP10
+  # pull_request:
+  #   branches:
+  #     - dev/EOP10
+  workflow_dispatch:
+
+concurrency:
+  group: eop10-lint-${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  focused:
+    name: Focused dev gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Init tinygrad submodule only
+        # `submodules: true` above would fetch every submodule in
+        # .gitmodules, including large unrelated ones (third_party/carla,
+        # arm_compute, hailort, valhalla, ...). tinygrad_repo is the only
+        # one this job actually needs (pyproject.toml's tool.uv.sources
+        # declares tinygrad as a local editable path dependency there).
+        run: git submodule update --init tinygrad_repo
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: '0.11.20'
+
+      - name: Install project + dev dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run focused gate
+        # --no-pytest: this bare runner has no scons build step, so cereal's
+        # compiled msgq.ipc_pyx extension the RK3588/Rockchip pytest suite
+        # needs doesn't exist here. ruff + shebang checks below don't need it.
+        run: uv run ./test.sh --no-pytest
+
+      - name: RKNN model local-placement check
+        run: python3 .github/scripts/check_rknn_local.py
+
+  full:
+    name: Full upstream lint gate
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    # Informational only (never blocks) and mypy debt is tracked separately
+    # (see docs/eop/CODE_QUALITY_LINT_CLEANUP.md) -- skip on plain pushes to
+    # avoid a second noisy run per commit; still runs on PRs and manual dispatch.
+    if: github.event_name != 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Init tinygrad submodule only
+        # `submodules: true` above would fetch every submodule in
+        # .gitmodules, including large unrelated ones (third_party/carla,
+        # arm_compute, hailort, valhalla, ...). tinygrad_repo is the only
+        # one this job actually needs (pyproject.toml's tool.uv.sources
+        # declares tinygrad as a local editable path dependency there).
+        run: git submodule update --init tinygrad_repo
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: '0.11.20'
+
+      - name: Install project + dev dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run full lint gate
+        run: uv run ./test.sh --full --no-pytest

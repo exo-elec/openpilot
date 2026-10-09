@@ -1,7 +1,12 @@
 name: stale
 on:
-  schedule:
-    - cron: '30 1 * * *'
+  # Disabled: daily schedule generated a notification every run. Unlike the
+  # other scheduled workflows disabled alongside this one, this job has no
+  # `github.repository` guard and does actually mark/close stale issues/PRs
+  # on this fork -- disabling it is a real behavior change (no more
+  # automatic stale triage), not just noise removal. Still runnable manually.
+  # schedule:
+  #   - cron: '30 1 * * *'
   workflow_dispatch:
 
 env:

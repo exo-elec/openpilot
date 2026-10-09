@@ -7,13 +7,12 @@ from openpilot.system.ui.widgets.scroller import Scroller
 # Description constants
 DESCRIPTIONS = {
   'enable_adb': (
-    "ADB (Android Debug Bridge) allows connecting to your device over USB or over the network. " +
-    "See https://docs.comma.ai/how-to/connect-to-comma for more info."
+    "ADB (Android Debug Bridge) allows connecting to your device over USB or over the network."
   ),
-  'joystick_debug_mode': "Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)",
+  'joystick_debug_mode': "Enable external control mode (SteamD / joystick debug).",
   'ssh_key': (
-    "Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a GitHub username " +
-    "other than your own. A comma employee will NEVER ask you to add their GitHub username."
+    "Warning: This grants SSH access to all public keys in your GitHub settings. Never enter a username " +
+    "other than your own. An employee will NEVER ask you to add their username."
   ),
 }
 

@@ -33,7 +33,14 @@ MessageContext message_context;
 struct SubMaster::SubMessage {
   std::string name;
   SubSocket *socket = nullptr;
-  int freq = 0;
+  // float, not int. Four services are slower than 1 Hz -- thumbnail at
+  // 0.0167, carParams at 0.02, clocks at 0.1, procLog at 0.5 -- and an int
+  // truncates every one of them to 0. The liveness check below then takes
+  // the `freq <= 1e-5` branch, which means "no rate to check against", so
+  // those four would be reported alive forever whether or not they ever
+  // arrived. That 1e-5 comparison is itself against a float, which is what
+  // this field was always meant to be.
+  float freq = 0;
   bool updated = false, alive = false, valid = false, ignore_alive;
   uint64_t rcv_time = 0, rcv_frame = 0;
   void *allocated_msg_reader = nullptr;

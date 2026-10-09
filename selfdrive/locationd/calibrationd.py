@@ -17,6 +17,7 @@ from openpilot.system.hardware import HARDWARE
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process
+from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.transformations.orientation import rot_from_euler, euler_from_rot
 from openpilot.common.swaglog import cloudlog
 
@@ -33,6 +34,7 @@ INPUTS_NEEDED = 5   # Minimum blocks needed for valid calibration
 INPUTS_WANTED = 50   # We want a little bit more than we need for stability
 MAX_ALLOWED_YAW_SPREAD = np.radians(2)
 MAX_ALLOWED_PITCH_SPREAD = np.radians(4)
+MAX_ALLOWED_HEIGHT_SPREAD = 0.10  # meters — mounting height shift triggers recalibration
 RPY_INIT = np.array([0.0,0.0,0.0])
 WIDE_FROM_DEVICE_EULER_INIT = np.array([0.0, 0.0, 0.0])
 HEIGHT_INIT = np.array([1.22])
@@ -138,7 +140,9 @@ class Calibrator:
     valid_idxs = self.get_valid_idxs()
     if valid_idxs:
       self.wide_from_device_euler = np.mean(self.wide_from_device_eulers[valid_idxs], axis=0)
-      self.height = np.mean(self.heights[valid_idxs], axis=0)
+      heights = self.heights[valid_idxs]
+      self.height = np.mean(heights, axis=0)
+      self.height_spread = float(np.abs(np.max(heights) - np.min(heights)))
       rpys = self.rpys[valid_idxs]
       self.rpy = np.mean(rpys, axis=0)
       max_rpy_calib = np.array(np.max(rpys, axis=0))
@@ -146,6 +150,7 @@ class Calibrator:
       self.calib_spread = np.abs(max_rpy_calib - min_rpy_calib)
     else:
       self.calib_spread = np.zeros(3)
+      self.height_spread = 0.0
 
     if self.valid_blocks < INPUTS_NEEDED:
       if self.cal_status == log.LiveCalibrationData.Status.recalibrating:
@@ -159,8 +164,9 @@ class Calibrator:
 
     # If spread is too high, assume mounting was changed and reset to last block.
     # Make the transition smooth. Abrupt transitions are not good for feedback loop through supercombo model.
-    # TODO: add height spread check with smooth transition too
-    spread_too_high = self.calib_spread[1] > MAX_ALLOWED_PITCH_SPREAD or self.calib_spread[2] > MAX_ALLOWED_YAW_SPREAD
+    spread_too_high = (self.calib_spread[1] > MAX_ALLOWED_PITCH_SPREAD or
+                       self.calib_spread[2] > MAX_ALLOWED_YAW_SPREAD or
+                       self.height_spread > MAX_ALLOWED_HEIGHT_SPREAD)
     if spread_too_high and self.cal_status == log.LiveCalibrationData.Status.calibrated:
       self.reset(self.rpys[self.block_idx - 1], valid_blocks=1, smooth_from=self.rpy)
       self.cal_status = log.LiveCalibrationData.Status.recalibrating
@@ -259,7 +265,8 @@ class Calibrator:
 
 
 def main() -> NoReturn:
-  config_realtime_process([0, 1, 2, 3], 5)
+  set_daemon_affinity("calibrationd")
+  config_realtime_process(0.01, 5)
 
   pm = messaging.PubMaster(['liveCalibration'])
   sm = messaging.SubMaster(['cameraOdometry', 'carState'], poll='cameraOdometry')

@@ -16,8 +16,6 @@ from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 from openpilot.common.timeout import Timeout
 from openpilot.system.hardware.hw import Paths
-from openpilot.system.loggerd.xattr_cache import getxattr
-from openpilot.system.loggerd.deleter import PRESERVE_ATTR_NAME, PRESERVE_ATTR_VALUE
 from openpilot.system.manager.process_config import managed_processes
 from openpilot.system.version import get_version
 from openpilot.tools.lib.helpers import RE
@@ -101,12 +99,12 @@ class TestLoggerd:
     d = DEVICE_CAMERAS[("tici", "ar0231")]
     streams = [
       (VisionStreamType.VISION_STREAM_ROAD, (d.fcam.width, d.fcam.height, 2048 * 2346, 2048, 2048 * 1216), "roadCameraState"),
-      (VisionStreamType.VISION_STREAM_DRIVER, (d.dcam.width, d.dcam.height, 2048 * 2346, 2048, 2048 * 1216), "driverCameraState"),
+      (VisionStreamType.VISION_STREAM_REAR, (d.dcam.width, d.dcam.height, 2048 * 2346, 2048, 2048 * 1216), "rearCameraState"),
       (VisionStreamType.VISION_STREAM_WIDE_ROAD, (d.ecam.width, d.ecam.height, 2048 * 2346, 2048, 2048 * 1216), "wideRoadCameraState"),
     ]
 
     pm = messaging.PubMaster([s for _, _, s in streams] + ["rawAudioData"])
-    vipc_server = VisionIpcServer("camerad")
+    vipc_server = VisionIpcServer("v4l2d")
     for stream_type, frame_spec, _ in streams:
       vipc_server.create_buffers_with_sizes(stream_type, 40, *(frame_spec))
     vipc_server.start_listener()
@@ -182,9 +180,9 @@ class TestLoggerd:
 
   @pytest.mark.xdist_group("camera_encoder_tests")  # setting xdist group ensures tests are run in same worker, prevents encoderd from crashing
   def test_rotation(self):
-    Params().put("RecordFront", True)
+    Params().put("EOPRearCameraEnabled", True)
 
-    expected_files = {"rlog.zst", "qlog.zst", "qcamera.ts", "fcamera.hevc", "dcamera.hevc", "ecamera.hevc"}
+    expected_files = {"rlog.zst", "qlog.zst", "qcamera.ts", "fcamera.hevc", "rcamera.hevc", "ecamera.hevc"}
 
     num_segs = random.randint(2, 3)
     length = random.randint(4, 5) # H264 encoder uses 40 lookahead frames and does B-frame reordering, so minimum 3 seconds before qcam output
@@ -282,30 +280,19 @@ class TestLoggerd:
       sent.clear_write_flag()
       assert sent.to_bytes() == m.as_builder().to_bytes()
 
-  def test_preserving_bookmarked_segments(self):
-    services = set(random.sample(CEREAL_SERVICES, random.randint(5, 10))) | {"userBookmark"}
-    self._publish_random_messages(services)
-
-    segment_dir = self._get_latest_log_dir()
-    assert getxattr(segment_dir, PRESERVE_ATTR_NAME) == PRESERVE_ATTR_VALUE
-
-  def test_not_preserving_nonbookmarked_segments(self):
-    services = set(random.sample(CEREAL_SERVICES, random.randint(5, 10))) - {"userBookmark", "audioFeedback"}
-    self._publish_random_messages(services)
-
-    segment_dir = self._get_latest_log_dir()
-    assert getxattr(segment_dir, PRESERVE_ATTR_NAME) is None
+  # NOTE: upstream preserve-bookmarked-segments tests removed — EOP deleter
+  # dropped the xattr preserve feature along with userBookmark publishing.
 
   @pytest.mark.xdist_group("camera_encoder_tests")  # setting xdist group ensures tests are run in same worker, prevents encoderd from crashing
-  @pytest.mark.parametrize("record_front", [True, False])
-  def test_record_front(self, record_front):
+  @pytest.mark.parametrize("record_rear", [True, False])
+  def test_record_rear(self, record_rear):
     params = Params()
-    params.put_bool("RecordFront", record_front)
+    params.put_bool("EOPRearCameraEnabled", record_rear)
 
     self._publish_camera_and_audio_messages()
 
-    dcamera_hevc_exists = os.path.exists(os.path.join(self._get_latest_log_dir(), 'dcamera.hevc'))
-    assert dcamera_hevc_exists == record_front
+    rcamera_hevc_exists = os.path.exists(os.path.join(self._get_latest_log_dir(), 'rcamera.hevc'))
+    assert rcamera_hevc_exists == record_rear
 
   @pytest.mark.xdist_group("camera_encoder_tests")  # setting xdist group ensures tests are run in same worker, prevents encoderd from crashing
   @pytest.mark.parametrize("record_audio", [True, False])

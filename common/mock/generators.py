@@ -11,4 +11,5 @@ def generate_livePose():
   msg.livePose.inputsOK = True
   msg.livePose.posenetOK = True
   msg.livePose.sensorsOK = True
+  msg.livePose.deviceStable = True
   return msg

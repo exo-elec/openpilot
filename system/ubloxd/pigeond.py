@@ -1,309 +1,145 @@
 #!/usr/bin/env python3
+"""Pigeon GNSS Daemon for U-blox GPS modules.
+
+Low-level UBX protocol handling and GPIO power control live in
+`exopilot/hal/hal/drivers/gps`. This daemon opens the HAL, injects optional
+AssistNow data from application params, and publishes raw UBX messages.
+"""
+from __future__ import annotations
+
+import signal
 import sys
 import time
-import signal
-import serial
-import struct
-import requests
-import urllib.parse
-from datetime import datetime, UTC
+from pathlib import Path
 
 from cereal import messaging
 from openpilot.common.time_helpers import system_time_valid
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.hardware import TICI
-from openpilot.common.gpio import gpio_init, gpio_set
-from openpilot.system.hardware.tici.pins import GPIO
+from openpilot.system.hardware import HARDWARE, ROCKCHIP
 
-UBLOX_TTY = "/dev/ttyHS0"
-
-UBLOX_ACK = b"\xb5\x62\x05\x01\x02\x00"
-UBLOX_NACK = b"\xb5\x62\x05\x00\x02\x00"
-UBLOX_SOS_ACK = b"\xb5\x62\x09\x14\x08\x00\x02\x00\x00\x00\x01\x00\x00\x00"
-UBLOX_SOS_NACK = b"\xb5\x62\x09\x14\x08\x00\x02\x00\x00\x00\x00\x00\x00\x00"
-UBLOX_BACKUP_RESTORE_MSG = b"\xb5\x62\x09\x14\x08\x00\x03"
-UBLOX_ASSIST_ACK = b"\xb5\x62\x13\x60\x08\x00"
-
-def set_power(enabled: bool) -> None:
-  gpio_init(GPIO.UBLOX_SAFEBOOT_N, True)
-  gpio_init(GPIO.GNSS_PWR_EN, True)
-  gpio_init(GPIO.UBLOX_RST_N, True)
-
-  gpio_set(GPIO.UBLOX_SAFEBOOT_N, True)
-  gpio_set(GPIO.GNSS_PWR_EN, enabled)
-  gpio_set(GPIO.UBLOX_RST_N, enabled)
-
-def add_ubx_checksum(msg: bytes) -> bytes:
-  A = B = 0
-  for b in msg[2:]:
-    A = (A + b) % 256
-    B = (B + A) % 256
-  return msg + bytes([A, B])
-
-def get_assistnow_messages(token: str) -> list[bytes]:
-  # make request
-  # TODO: implement adding the last known location
-  r = requests.get("https://online-live2.services.u-blox.com/GetOnlineData.ashx", params=urllib.parse.urlencode({
-    'token': token,
-    'gnss': 'gps,glo',
-    'datatype': 'eph,alm,aux',
-  }, safe=':,'), timeout=5)
-  assert r.status_code == 200, "Got invalid status code"
-  dat = r.content
-
-  # split up messages
-  msgs = []
-  while len(dat) > 0:
-    assert dat[:2] == b"\xB5\x62"
-    msg_len = 6 + (dat[5] << 8 | dat[4]) + 2
-    msgs.append(dat[:msg_len])
-    dat = dat[msg_len:]
-  return msgs
+# Low-level u-blox driver is board-support code in ExoPilot HAL.
+try:
+    from hal.drivers.gps import (
+        TTYPigeon,
+        init_baudrate,
+        initialize_pigeon,
+        deinitialize_pigeon,
+        set_power,
+        get_gps_device,
+    )
+except Exception:
+    cloudlog.exception("PigeonD: failed to import hal.drivers.gps")
+    TTYPigeon = None  # type: ignore[misc,assignment]
 
 
-class TTYPigeon:
-  def __init__(self):
-    self.tty = serial.VTIMESerial(UBLOX_TTY, baudrate=9600, timeout=0)
-
-  def send(self, dat: bytes) -> None:
-    self.tty.write(dat)
-
-  def receive(self) -> bytes:
-    dat = b''
-    while len(dat) < 0x1000:
-      d = self.tty.read(0x40)
-      dat += d
-      if len(d) == 0:
-        break
-    return dat
-
-  def set_baud(self, baud: int) -> None:
-    self.tty.baudrate = baud
-
-  def wait_for_ack(self, ack: bytes = UBLOX_ACK, nack: bytes = UBLOX_NACK, timeout: float = 0.5) -> bool:
-    dat = b''
-    st = time.monotonic()
-    while True:
-      dat += self.receive()
-      if ack in dat:
-        cloudlog.debug("Received ACK from ublox")
-        return True
-      elif nack in dat:
-        cloudlog.error("Received NACK from ublox")
-        return False
-      elif time.monotonic() - st > timeout:
-        cloudlog.error("No response from ublox")
-        raise TimeoutError('No response from ublox')
-      time.sleep(0.001)
-
-  def send_with_ack(self, dat: bytes, ack: bytes = UBLOX_ACK, nack: bytes = UBLOX_NACK) -> None:
-    self.send(dat)
-    self.wait_for_ack(ack, nack)
-
-  def wait_for_backup_restore_status(self, timeout: float = 1.) -> int:
-    dat = b''
-    st = time.monotonic()
-    while True:
-      dat += self.receive()
-      position = dat.find(UBLOX_BACKUP_RESTORE_MSG)
-      if position >= 0 and len(dat) >= position + 11:
-        return dat[position + 10]
-      elif time.monotonic() - st > timeout:
-        cloudlog.error("No backup restore response from ublox")
-        raise TimeoutError('No response from ublox')
-      time.sleep(0.001)
-
-  def reset_device(self) -> bool:
-    # deleting the backup does not always work on first try (mostly on second try)
-    for _ in range(5):
-      # device cold start
-      self.send(b"\xb5\x62\x06\x04\x04\x00\xff\xff\x00\x00\x0c\x5d")
-      time.sleep(1) # wait for cold start
-      init_baudrate(self)
-
-      # clear configuration
-      self.send_with_ack(b"\xb5\x62\x06\x09\x0d\x00\x1f\x1f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x17\x71\xd7")
-
-      # clear flash memory (almanac backup)
-      self.send_with_ack(b"\xB5\x62\x09\x14\x04\x00\x01\x00\x00\x00\x22\xf0")
-
-      # try restoring backup to verify it got deleted
-      self.send(b"\xB5\x62\x09\x14\x00\x00\x1D\x60")
-      # 1: failed to restore, 2: could restore, 3: no backup
-      status = self.wait_for_backup_restore_status()
-      if status == 1 or status == 3:
-        return True
-    return False
-
-def save_almanac(pigeon: TTYPigeon) -> None:
-  # store almanac in flash
-  pigeon.send(b"\xB5\x62\x09\x14\x04\x00\x00\x00\x00\x00\x21\xEC")
-  try:
-    if pigeon.wait_for_ack(ack=UBLOX_SOS_ACK, nack=UBLOX_SOS_NACK):
-      cloudlog.info("Done storing almanac")
-    else:
-      cloudlog.error("Error storing almanac")
-  except TimeoutError:
-    pass
-
-def init_baudrate(pigeon: TTYPigeon):
-  # ublox default setting on startup is 9600 baudrate
-  pigeon.set_baud(9600)
-
-  # $PUBX,41,1,0007,0003,460800,0*15\r\n
-  pigeon.send(b"\x24\x50\x55\x42\x58\x2C\x34\x31\x2C\x31\x2C\x30\x30\x30\x37\x2C\x30\x30\x30\x33\x2C\x34\x36\x30\x38\x30\x30\x2C\x30\x2A\x31\x35\x0D\x0A")
-  time.sleep(0.1)
-  pigeon.set_baud(460800)
+def _hal_available() -> bool:
+    return TTYPigeon is not None
 
 
-def init_pigeon(pigeon: TTYPigeon) -> bool:
-  # try initializing a few times
-  for _ in range(10):
-    try:
+class PigeonD:
+    """Pigeon GNSS Daemon - Multi-platform GPS driver."""
 
-      # setup port config
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x14\x00\x03\xFF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\x1E\x7F")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x14\x00\x00\xFF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x19\x35")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x14\x00\x01\x00\x00\x00\xC0\x08\x00\x00\x00\x08\x07\x00\x01\x00\x01\x00\x00\x00\x00\x00\xF4\x80")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x14\x00\x04\xFF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1D\x85")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x00\x00\x06\x18")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x01\x00\x01\x08\x22")
-      pigeon.send_with_ack(b"\xb5\x62\x06\x00\x01\x00\x03\x0A\x24")
+    def __init__(self):
+        self.params = Params()
+        self.pm = messaging.PubMaster(['ubloxRaw'])
 
-      # UBX-CFG-RATE (0x06 0x08)
-      pigeon.send_with_ack(b"\xB5\x62\x06\x08\x06\x00\x64\x00\x01\x00\x00\x00\x79\x10")
+        self.pigeon: TTYPigeon | None = None
+        self.running = False
 
-      # UBX-CFG-NAV5 (0x06 0x24)
-      pigeon.send_with_ack(b"\xB5\x62\x06\x24\x24\x00\x05\x00\x04\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x5A\x63")
+    def run(self) -> None:
+        # Gate on "is this an ExoPilot board", not on one board's name: the
+        # GPS is the same u-blox part on every ExoPilot board, and naming a
+        # board here made this daemon fail to import on a branch that does
+        # not carry that board.
+        if not ROCKCHIP:
+            cloudlog.warning("PigeonD: not a Rockchip platform, exiting")
+            return
 
-      # UBX-CFG-ODO (0x06 0x1E)
-      pigeon.send_with_ack(b"\xB5\x62\x06\x1E\x14\x00\x00\x00\x00\x00\x01\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x3C\x37")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x39\x08\x00\xFF\xAD\x62\xAD\x1E\x63\x00\x00\x83\x0C")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x23\x28\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x56\x24")
+        if not _hal_available():
+            cloudlog.warning("PigeonD: GPS HAL not available, exiting")
+            return
 
-      # UBX-CFG-NAV5 (0x06 0x24)
-      pigeon.send_with_ack(b"\xB5\x62\x06\x24\x00\x00\x2A\x84")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x23\x00\x00\x29\x81")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x1E\x00\x00\x24\x72")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x39\x00\x00\x3F\xC3")
+        pins = HARDWARE.hal_module("pins")
+        gps_uart = getattr(pins, "UART", {}).get("GPS") if pins else None
+        if HARDWARE.get_device_type() == "rk3576" and (gps_uart is None or not gps_uart.get("confirmed", True)):
+            cloudlog.warning("PigeonD: GPS UART path is unavailable or not hardware-confirmed, exiting")
+            return
 
-      # UBX-CFG-MSG (set message rate)
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x01\x07\x01\x13\x51")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x02\x15\x01\x22\x70")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x02\x13\x01\x20\x6C")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x0A\x09\x01\x1E\x70")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x0A\x0B\x01\x20\x74")
-      pigeon.send_with_ack(b"\xB5\x62\x06\x01\x03\x00\x01\x35\x01\x41\xAD")
-      cloudlog.debug("pigeon configured")
+        device = get_gps_device()
+        if not Path(device).exists():
+            cloudlog.warning(f"PigeonD: GPS device {device} not present, exiting")
+            return
 
-      # try restoring almanac backup
-      pigeon.send(b"\xB5\x62\x09\x14\x00\x00\x1D\x60")
-      restore_status = pigeon.wait_for_backup_restore_status()
-      if restore_status == 2:
-        cloudlog.warning("almanac backup restored")
-      elif restore_status == 3:
-        cloudlog.warning("no almanac backup found")
-      else:
-        cloudlog.error(f"failed to restore almanac backup, status: {restore_status}")
+        set_power(False)
+        time.sleep(0.1)
+        set_power(True)
+        time.sleep(0.5)
 
-      # sending time to ublox
-      if system_time_valid():
-        t_now = datetime.now(UTC).replace(tzinfo=None)
-        cloudlog.warning("Sending current time to ublox")
+        self.pigeon = TTYPigeon(baudrate=9600)
+        init_baudrate(self.pigeon)
 
-        # UBX-MGA-INI-TIME_UTC
-        msg = add_ubx_checksum(b"\xB5\x62\x13\x40\x18\x00" + struct.pack("<BBBBHBBBBBxIHxxI",
-          0x10,
-          0x00,
-          0x00,
-          0x80,
-          t_now.year,
-          t_now.month,
-          t_now.day,
-          t_now.hour,
-          t_now.minute,
-          t_now.second,
-          0,
-          30,
-          0
-        ))
-        pigeon.send_with_ack(msg, ack=UBLOX_ASSIST_ACK)
+        token = self.params.get('AssistNowToken')
+        if not initialize_pigeon(
+            self.pigeon,
+            system_time_valid=system_time_valid(),
+            assistnow_token=token,
+            last_gps_lat=float(self.params.get('EOPLastGPSLatitude') or 0.0),
+            last_gps_lon=float(self.params.get('EOPLastGPSLongitude') or 0.0),
+            last_gps_alt=float(self.params.get('EOPLastGPSAltitude') or 0.0),
+        ):
+            deinitialize_pigeon(self.pigeon)
+            return
 
-      # try getting AssistNow if we have a token
-      token = Params().get('AssistNowToken')
-      if token is not None:
-        try:
-          for msg in get_assistnow_messages(token):
-            pigeon.send_with_ack(msg, ack=UBLOX_ASSIST_ACK)
-          cloudlog.warning("AssistNow messages sent")
-        except Exception:
-          cloudlog.warning("failed to get AssistNow messages")
+        self.params.put_bool('UbloxAvailable', True)
+        self.running = True
+        last_almanac = time.monotonic()
 
-      cloudlog.warning("Pigeon GPS on!")
-      break
-    except TimeoutError:
-      cloudlog.warning("Initialization failed, trying again!")
-  else:
-    cloudlog.warning("Failed to initialize pigeon")
-    return False
-  return True
+        while self.running:
+            try:
+                dat = self.pigeon.receive()
+                if len(dat) > 0:
+                    if dat[0] == 0x00:
+                        cloudlog.warning("PigeonD: invalid data from ublox, re-initializing")
+                        init_baudrate(self.pigeon)
+                        if not initialize_pigeon(self.pigeon, system_time_valid=system_time_valid()):
+                            break
+                        continue
 
-def deinitialize_and_exit(pigeon: TTYPigeon | None):
-  if pigeon is not None:
-    # controlled GNSS stop
-    pigeon.send(b"\xB5\x62\x06\x04\x04\x00\x00\x00\x08\x00\x16\x74")
+                    msg = messaging.new_message('ubloxRaw', len(dat), valid=True)
+                    msg.ubloxRaw = dat[:]
+                    self.pm.send('ubloxRaw', msg)
+                else:
+                    time.sleep(0.001)
 
-  # turn off power and exit cleanly
-  set_power(False)
-  sys.exit(0)
+                # Save almanac every 5 minutes
+                if time.monotonic() - last_almanac > 300:
+                    try:
+                        self.pigeon.send(b"\xB5\x62\x09\x14\x04\x00\x00\x00\x00\x00\x21\xEC")
+                        last_almanac = time.monotonic()
+                    except Exception:
+                        cloudlog.warning("PigeonD: periodic almanac save failed")
+            except Exception:
+                cloudlog.exception("PigeonD: error in receive loop")
+                time.sleep(0.1)
 
-def init(pigeon: TTYPigeon) -> None:
-  # register exit handler
-  signal.signal(signal.SIGINT, lambda sig, frame: deinitialize_and_exit(pigeon))
+        deinitialize_pigeon(self.pigeon)
+        sys.exit(0)
 
-  # power cycle ublox
-  set_power(False)
-  time.sleep(0.1)
-  set_power(True)
-  time.sleep(0.5)
-
-  init_baudrate(pigeon)
-  init_pigeon(pigeon)
-
-def run_receiving(duration: int = 0):
-  pm = messaging.PubMaster(['ubloxRaw'])
-
-  pigeon = TTYPigeon()
-  init(pigeon)
-
-  start_time = time.monotonic()
-  last_almanac_save = time.monotonic()
-  while (duration == 0) or (time.monotonic() - start_time < duration):
-    dat = pigeon.receive()
-    if len(dat) > 0:
-      if dat[0] == 0x00:
-        cloudlog.warning("received invalid data from ublox, re-initing!")
-        init(pigeon)
-        continue
-
-      # send out to socket
-      msg = messaging.new_message('ubloxRaw', len(dat), valid=True)
-      msg.ubloxRaw = dat[:]
-      pm.send('ubloxRaw', msg)
-
-      # save almanac every 5 minutes
-      if (time.monotonic() - last_almanac_save) > 60*5:
-        save_almanac(pigeon)
-        last_almanac_save = time.monotonic()
-    else:
-      # prevent locking up a CPU core if ublox disconnects
-      time.sleep(0.001)
+    def stop(self) -> None:
+        self.running = False
 
 
 def main():
-  assert TICI, "unsupported hardware for pigeond"
-  run_receiving()
+    daemon = PigeonD()
+
+    def handler(sig, frame):
+        daemon.stop()
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+    daemon.run()
+
 
 if __name__ == "__main__":
-  main()
+    main()

@@ -62,12 +62,18 @@ class SimulatorState:
 
 
 class World(ABC):
-  def __init__(self, dual_camera):
+  def __init__(self, dual_camera, stereo_camera=False):
     self.dual_camera = dual_camera
+    self.stereo_camera = stereo_camera
 
     self.image_lock = multiprocessing.Semaphore(value=0)
     self.road_image = np.zeros((H, W, 3), dtype=np.uint8)
     self.wide_road_image = np.zeros((H, W, 3), dtype=np.uint8)
+    self.tele_image = np.zeros((H, W, 3), dtype=np.uint8)
+    self.stereo_left_image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    self.stereo_right_image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    self.side_left_image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    self.side_right_image = np.zeros((720, 1280, 3), dtype=np.uint8)
 
     self.exit_event = multiprocessing.Event()
 

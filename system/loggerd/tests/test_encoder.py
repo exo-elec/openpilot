@@ -22,7 +22,7 @@ FULL_SIZE = 2507572
 def hevc_size(w): return FULL_SIZE // 2 if w <= 1344 else FULL_SIZE
 CAMERAS = [
   ("fcamera.hevc", 20, hevc_size, "roadEncodeIdx"),
-  ("dcamera.hevc", 20, hevc_size, "driverEncodeIdx"),
+  ("rcamera.hevc", 20, hevc_size, "rearEncodeIdx"),
   ("ecamera.hevc", 20, hevc_size, "wideRoadEncodeIdx"),
   ("qcamera.ts", 20, lambda x: 130000, None),
 ]
@@ -52,15 +52,14 @@ class TestEncoder:
 
   # TODO: this should run faster than real time
   @parameterized.expand([(True, ), (False, )])
-  def test_log_rotation(self, record_front):
-    Params().put_bool("RecordFront", record_front)
+  def test_log_rotation(self, record_rear):
+    Params().put_bool("EOPRearCameraEnabled", record_rear)
 
-    managed_processes['sensord'].start()
     managed_processes['loggerd'].start()
     managed_processes['encoderd'].start()
 
     time.sleep(1.0)
-    managed_processes['camerad'].start()
+    managed_processes['v4l2d'].start()
 
     num_segments = int(os.getenv("SEGMENTS", random.randint(2, 8)))
 
@@ -78,7 +77,7 @@ class TestEncoder:
       counts = []
       first_frames = []
       for camera, fps, size_lambda, encode_idx_name in CAMERAS:
-        if not record_front and "dcamera" in camera:
+        if not record_rear and "dcamera" in camera:
           continue
 
         file_path = f"{route_prefix_path}--{i}/{camera}"
@@ -148,5 +147,5 @@ class TestEncoder:
     finally:
       managed_processes['loggerd'].stop()
       managed_processes['encoderd'].stop()
-      managed_processes['camerad'].stop()
-      managed_processes['sensord'].stop()
+      managed_processes['v4l2d'].stop()
+      managed_processes['imud'].stop()

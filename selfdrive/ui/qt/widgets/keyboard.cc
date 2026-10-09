@@ -17,8 +17,8 @@ const QMap<QString, int> KEY_STRETCH = {{"  ", 3}, {ENTER_KEY, 2}};
 
 const QStringList CONTROL_BUTTONS = {SHIFT_KEY, CAPS_LOCK_KEY, "ABC", "#+=", "123", BACKSPACE_KEY, ENTER_KEY};
 
-const float key_spacing_vertical = 20;
-const float key_spacing_horizontal = 15;
+const float key_spacing_vertical = 8;
+const float key_spacing_horizontal = 6;
 
 KeyButton::KeyButton(const QString &text, QWidget *parent) : QPushButton(text, parent) {
   setAttribute(Qt::WA_AcceptTouchEvents);
@@ -53,7 +53,7 @@ KeyboardLayout::KeyboardLayout(QWidget* parent, const std::vector<QVector<QStrin
     hlayout->setSpacing(0);
 
     if (main_layout->count() == 1) {
-      hlayout->addSpacing(90);
+      hlayout->addSpacing(50);
     }
 
     for (const QString &p : s) {
@@ -70,13 +70,13 @@ KeyboardLayout::KeyboardLayout(QWidget* parent, const std::vector<QVector<QStrin
           }
         )");
       }
-      btn->setFixedHeight(135 + key_spacing_vertical);
+      btn->setFixedHeight(80 + key_spacing_vertical);
       btn_group->addButton(btn);
       hlayout->addWidget(btn, KEY_STRETCH.value(p, 1));
     }
 
     if (main_layout->count() == 1) {
-      hlayout->addSpacing(90);
+      hlayout->addSpacing(50);
     }
 
     main_layout->addLayout(hlayout);
@@ -84,7 +84,7 @@ KeyboardLayout::KeyboardLayout(QWidget* parent, const std::vector<QVector<QStrin
 
   setStyleSheet(QString(R"(
     QPushButton {
-      font-size: 75px;
+      font-size: 45px;
       margin-left: %1px;
       margin-right: %1px;
       margin-top: %2px;

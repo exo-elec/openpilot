@@ -1,0 +1,15 @@
+/* Onroad-only chrome. The camera fills the view, so everything here is an
+   overlay and must stay legible against arbitrary video. */
+
+QLabel#speed      { font-size: 96px; font-weight: 700; color: #ffffff; }
+QLabel#speedUnit  { font-size: 22px; color: #b3c0c0; }
+QLabel#alertText  { font-size: 34px; color: #ffffff; }
+
+/* Navigation */
+QWidget#navRoot          { background-color: #0d1113; }
+QWidget#maneuverCard     { background-color: #131a1c; border-radius: 12px; }
+QLabel#navDistance       { font-size: 34px; font-weight: 700; color: #ffffff; }
+QLabel#navInstruction    { font-size: 20px; color: #b3c0c0; }
+QLabel#navEta            { font-size: 18px; color: #e6ebea; }
+QWidget#routeStep        { background-color: #131a1c; border-radius: 8px; }
+QLabel#routeStepText     { font-size: 17px; color: #b3c0c0; }

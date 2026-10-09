@@ -207,16 +207,12 @@ assumed from the feature name:
      session. Not attempted — would require new hardware-interface daemons
      and a schema change, out of this document's scope.
 
-This list is now fully resolved: every item is either done (Tier 1, this
-session) or verified-blocked on missing infrastructure (Tier 2.5), not
-pending a decision. Not recommending Tier 4 items be attempted at all on
-comma-3 — they're correctly out of scope, not just deprioritized. Tier 2.5
-items aren't recommended either, for a different reason: not hardware-gated,
-just missing infrastructure (a data source, or a consumer, or — for
-Adaptive personality/gap profile — both) this doc's scope (see the top of
-this file) doesn't cover building.
+The portable acceleration-profile and adaptive-follow-gap items above are now shared with NGP10. Tier 2.5 and Tier 4 rows remain blocked by missing input publishers, consumers, or hardware-specific perception; those are infrastructure gaps rather than policy-porting work. The OBD/BLE adaptive-personality daemon remains separately blocked on its missing data path.
 
-Per the scope correction above: there is no next item to pick up from this
-list. Tier 1 is the proven set. Treat any future Tier 2.5/4 row the same
-way — verify the actual blocker before touching it, and if it's
-infrastructure rather than wiring, that's the answer, not a todo.
+The portable acceleration-profile and adaptive-follow-gap items above are now
+shared with NGP10. Tier 2.5 and Tier 4 rows remain blocked by missing input
+publishers, consumers, or hardware-specific perception; those are infrastructure
+gaps rather than policy-porting work. The OBD/BLE adaptive-personality daemon
+remains separately blocked on its missing data path. Continue auditing EOP
+changes for portable policies that consume stock comma-3 services, and keep
+hardware-dependent inputs behind EOP adapters.
