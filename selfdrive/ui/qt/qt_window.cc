@@ -1,31 +1,35 @@
 #include "selfdrive/ui/qt/qt_window.h"
 
-void setMainWindow(QWidget *w) {
-  const float scale = util::getenv("SCALE", 1.0f);
-  const QSize sz = QGuiApplication::primaryScreen()->size();
+#include <algorithm>
 
-  if (Hardware::PC() && scale == 1.0 && !(sz - DEVICE_SCREEN_SIZE).isValid()) {
-    w->setMinimumSize(QSize(640, 480)); // allow resize smaller than fullscreen
-    w->setMaximumSize(DEVICE_SCREEN_SIZE);
-    w->resize(sz);
-  } else {
-    w->setFixedSize(DEVICE_SCREEN_SIZE * scale);
+void setMainWindow(QWidget *w) {
+  const QSize panel = deviceScreenSize();
+
+  // One supported size, fixed. The SCALE env knob and the old PC branch
+  // (minimum 640x480, resize to whatever the host screen was) let the
+  // layout be exercised at arbitrary sizes and aspect ratios it is not
+  // written for -- every coordinate here is absolute against 1024x600.
+  QSize size = panel;
+
+  // The single exception, and it is not a second supported size: a dev PC
+  // whose screen cannot physically fit the panel. Scale the whole thing
+  // down uniformly so the aspect ratio -- and therefore the layout -- is
+  // preserved. On device this never triggers.
+  if (Hardware::PC()) {
+    const QSize host = QGuiApplication::primaryScreen()->size();
+    if (!(host - panel).isValid()) {
+      const qreal fit = std::min(qreal(host.width()) / panel.width(),
+                                 qreal(host.height()) / panel.height());
+      size = panel * fit;
+    }
   }
+
+  w->setFixedSize(size);
   w->show();
 
-#ifdef QCOM2
-  QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
-  wl_surface *s = reinterpret_cast<wl_surface*>(native->nativeResourceForWindow("surface", w->windowHandle()));
-  wl_surface_set_buffer_transform(s, WL_OUTPUT_TRANSFORM_270);
-  wl_surface_commit(s);
-
-  w->setWindowState(Qt::WindowFullScreen);
-  w->setVisible(true);
-
-  // ensure we have a valid eglDisplay, otherwise the ui will silently fail
-  void *egl = native->nativeResourceForWindow("egldisplay", w->windowHandle());
-  assert(egl != nullptr);
-#endif
+// QCOM2-specific Wayland display rotation removed
+// Rockchip/ExoPilot uses standard display orientation
+// TODO: Add EOP-specific display handling if screen rotation needed
 }
 
 

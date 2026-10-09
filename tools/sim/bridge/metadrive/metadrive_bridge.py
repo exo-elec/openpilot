@@ -7,7 +7,7 @@ from metadrive.component.map.pg_map import MapGenerateMethod
 from openpilot.tools.sim.bridge.common import SimulatorBridge
 from openpilot.tools.sim.bridge.metadrive.metadrive_common import RGBCameraRoad, RGBCameraWide
 from openpilot.tools.sim.bridge.metadrive.metadrive_world import MetaDriveWorld
-from openpilot.tools.sim.lib.camerad import W, H
+from openpilot.tools.sim.lib.common import W, H
 
 
 def straight_block(length):

@@ -7,15 +7,17 @@
 
 #include "selfdrive/ui/ui.h"
 #include "selfdrive/ui/qt/network/networking.h"
+#include "selfdrive/ui/qt/util.h"
 
 typedef QPair<QPair<QString, QString>, QColor> ItemStatus;
 Q_DECLARE_METATYPE(ItemStatus);
 
 class Sidebar : public QFrame {
   Q_OBJECT
-  Q_PROPERTY(ItemStatus connectStatus MEMBER connect_status NOTIFY valueChanged);
   Q_PROPERTY(ItemStatus pandaStatus MEMBER panda_status NOTIFY valueChanged);
   Q_PROPERTY(ItemStatus tempStatus MEMBER temp_status NOTIFY valueChanged);
+  Q_PROPERTY(ItemStatus bleStatus MEMBER ble_status NOTIFY valueChanged);
+  Q_PROPERTY(ItemStatus wifiStatus MEMBER wifi_status NOTIFY valueChanged);
   Q_PROPERTY(QString netType MEMBER net_type NOTIFY valueChanged);
   Q_PROPERTY(int netStrength MEMBER net_strength NOTIFY valueChanged);
   Q_PROPERTY(bool recordingAudio MEMBER recording_audio NOTIFY valueChanged);
@@ -49,18 +51,29 @@ protected:
     {cereal::DeviceState::NetworkType::CELL5_G, tr("5G")}
   };
 
-  const QRect home_btn = QRect(60, 860, 180, 180);
-  const QRect settings_btn = QRect(50, 35, 200, 117);
-  const QRect mic_indicator_btn = QRect(158, 252, 75, 40);
+  // Resized for 600px height / ~260px width
+  const QRect home_btn = QRect(40, 520, 180, 75);
+  const QRect settings_btn = QRect(30, 15, 200, 80);
+  const QRect mic_indicator_btn = QRect(140, 115, 55, 28);
   const QColor good_color = QColor(255, 255, 255);
   const QColor warning_color = QColor(218, 202, 37);
   const QColor danger_color = QColor(201, 34, 49);
 
-  ItemStatus connect_status, panda_status, temp_status;
+  ItemStatus panda_status, temp_status, ble_status, wifi_status;
   QString net_type;
   int net_strength = 0;
 
 private:
   std::unique_ptr<PubMaster> pm;
   Networking *networking = nullptr;
+
+  // BLE pairing status, cached from ParamWatcher instead of a synchronous
+  // Params().get() on every updateState() tick (UI_FREQ = 20 Hz) -- see
+  // eop_panel.cc for the same pattern.
+  ParamWatcher *ble_watch = nullptr;
+  std::string cached_pairing_pin;
+  bool cached_pairing_active = false;
+  bool cached_spp_connected = false;
+  bool cached_gatt_connected = false;
+  void refreshBleCache();
 };

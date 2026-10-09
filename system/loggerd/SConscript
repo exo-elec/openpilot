@@ -1,19 +1,26 @@
-Import('env', 'arch', 'messaging', 'common', 'visionipc')
+Import('env', 'arch', 'soc', 'messaging', 'common', 'visionipc')
 
 libs = [common, messaging, visionipc,
         'avformat', 'avcodec', 'avutil',
         'yuv', 'OpenCL', 'pthread', 'zstd']
 
-src = ['logger.cc', 'zstd_writer.cc', 'video_writer.cc', 'encoder/encoder.cc', 'encoder/v4l_encoder.cc', 'encoder/jpeg_encoder.cc']
-if arch != "larch64":
-  src += ['encoder/ffmpeg_encoder.cc']
+# v4l_encoder.cc is Qualcomm-specific (V4L2_QCOM_*/VIDC controls from the
+# deleted vendored headers) and is not built — EOP encodes via Rockchip MPP
+# on RK3588 hardware (see encoderd.cc). Source kept for reference.
+src = ['logger.cc', 'zstd_writer.cc', 'video_writer.cc', 'encoder/encoder.cc', 'encoder/jpeg_encoder.cc', 'encoder/ffmpeg_encoder.cc']
+
+# Every Rockchip board in this tree has MPP, so this follows "a supported
+# SoC was detected" rather than one board's name -- gating on the name
+# silently dropped hardware encoding on the other board. Must stay in step
+# with -DROCKCHIP_MPP in SConstruct, which is what encoderd.cc tests.
+if arch == "aarch64" and soc:
+  src += ['encoder/mpp_encoder.cc']
+  libs += ['rockchip_mpp', 'rga']
 
 if arch == "Darwin":
   # fix OpenCL
   del libs[libs.index('OpenCL')]
   env['FRAMEWORKS'] = ['OpenCL']
-  # exclude v4l
-  del src[src.index('encoder/v4l_encoder.cc')]
 
 logger_lib = env.Library('logger', src)
 libs.insert(0, logger_lib)

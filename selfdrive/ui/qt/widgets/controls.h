@@ -119,7 +119,7 @@ class ToggleControl : public AbstractControl {
 
 public:
   ToggleControl(const QString &title, const QString &desc = "", const QString &icon = "", const bool state = false, QWidget *parent = nullptr) : AbstractControl(title, desc, icon, parent) {
-    toggle.setFixedSize(150, 100);
+    toggle.setFixedSize(110, 55);
     if (state) {
       toggle.togglePosition();
     }
@@ -187,14 +187,14 @@ class MultiButtonControl : public AbstractControl {
   Q_OBJECT
 public:
   MultiButtonControl(const QString &title, const QString &desc, const QString &icon,
-                     const std::vector<QString> &button_texts, const int minimum_button_width = 225) : AbstractControl(title, desc, icon) {
+                     const std::vector<QString> &button_texts, const int minimum_button_width = 100) : AbstractControl(title, desc, icon) {
     const QString style = R"(
       QPushButton {
-        border-radius: 50px;
-        font-size: 40px;
+        border-radius: 10px;
+        font-size: 18px;
         font-weight: 500;
-        height:100px;
-        padding: 0 25 0 25;
+        height: 44px;
+        padding: 0 10px;
         color: #E4E4E4;
         background-color: #393939;
       }
@@ -248,7 +248,7 @@ class ButtonParamControl : public MultiButtonControl {
   Q_OBJECT
 public:
   ButtonParamControl(const QString &param, const QString &title, const QString &desc, const QString &icon,
-                     const std::vector<QString> &button_texts, const int minimum_button_width = 225) : MultiButtonControl(title, desc, icon,
+                     const std::vector<QString> &button_texts, const int minimum_button_width = 100) : MultiButtonControl(title, desc, icon,
                                                                                                                           button_texts, minimum_button_width) {
     key = param.toStdString();
     int value = atoi(params.get(key).c_str());

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from typing import cast
 from openpilot.tools.lib.logreader import LogReader, ReadMode
 
 
@@ -42,5 +43,5 @@ if __name__ == "__main__":
     print("Usage: ./fingerprint_from_route.py <route>")
     sys.exit(1)
 
-  lr = LogReader(sys.argv[1], ReadMode.QLOG)
+  lr = LogReader(sys.argv[1], cast(ReadMode, ReadMode.QLOG))
   get_fingerprint(lr)

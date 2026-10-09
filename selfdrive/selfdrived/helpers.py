@@ -1,12 +1,22 @@
 import math
-from enum import StrEnum, auto
+try:
+  from enum import StrEnum, auto
+except ImportError:
+  # Python 3.10 fallback
+  from enum import Enum, auto
+  class StrEnum(str, Enum):
+    pass
 
 from cereal import car, messaging
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.helpers import Pose
-from opendbc.car import ACCELERATION_DUE_TO_GRAVITY
-from opendbc.car.lateral import ISO_LATERAL_ACCEL
-from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
+# Physical constants (replaces opendbc)
+ACCELERATION_DUE_TO_GRAVITY = 9.81  # m/s^2
+ISO_LATERAL_ACCEL = 3.6  # m/s^2
+
+# Tesla accel limits
+ACCEL_MIN = -3.48  # m/s^2
+ACCEL_MAX = 2.0    # m/s^2
 
 MIN_EXCESSIVE_ACTUATION_COUNT = int(0.25 / DT_CTRL)
 MIN_LATERAL_ENGAGE_BUFFER = int(1 / DT_CTRL)

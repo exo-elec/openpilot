@@ -11,7 +11,7 @@ SSH into the device and run following in separate terminals:
 
 `cd /data/openpilot/system/loggerd && ./encoderd`
 
-`cd /data/openpilot/system/camerad && ./camerad`
+`cd /data/openpilot/system/v4l2d && python3 v4l2d.py`
 
 Note that both the device and your PC must be on the same openpilot commit.
 
@@ -21,8 +21,8 @@ Alternatively paste this as a single command:
   cd /data/openpilot/cereal/messaging/
   ./bridge &
 
-  cd /data/openpilot/system/camerad/
-  ./camerad &
+  cd /data/openpilot/system/v4l2d/
+  python3 v4l2d.py &
 
   cd /data/openpilot/system/loggerd/
   ./encoderd &

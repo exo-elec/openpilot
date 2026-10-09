@@ -12,6 +12,12 @@ import urllib.parse
 import warnings
 import zstandard as zstd
 
+try:
+  from enum import StrEnum  # type: ignore[attr-defined]
+except ImportError:
+  class StrEnum(str, enum.Enum):  # type: ignore[no-redef]
+    pass
+
 from collections.abc import Callable, Iterable, Iterator
 from typing import cast
 from urllib.parse import parse_qs, urlparse
@@ -132,7 +138,7 @@ class _LogFileReader:
         yield ent
 
 
-class ReadMode(enum.StrEnum):
+class ReadMode(StrEnum):
   RLOG = "r"  # only read rlogs
   QLOG = "q"  # only read qlogs
   AUTO = "a"  # default to rlogs, fallback to qlogs

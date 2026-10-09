@@ -1,6 +1,6 @@
 from collections import namedtuple
 from msgq.visionipc import VisionStreamType
-from openpilot.common.realtime import DT_MDL, DT_DMON
+from openpilot.common.realtime import DT_MDL
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 
 VideoStreamMeta = namedtuple("VideoStreamMeta", ["camera_state", "encode_index", "stream", "dt", "frame_sizes"])
@@ -11,7 +11,7 @@ VIPC_STREAM_METADATA = [
   # metadata: (state_msg_type, encode_msg_type, stream_type, dt, frame_sizes)
   ("roadCameraState", "roadEncodeIdx", VisionStreamType.VISION_STREAM_ROAD, DT_MDL, ROAD_CAMERA_FRAME_SIZES),
   ("wideRoadCameraState", "wideRoadEncodeIdx", VisionStreamType.VISION_STREAM_WIDE_ROAD, DT_MDL, WIDE_ROAD_CAMERA_FRAME_SIZES),
-  ("driverCameraState", "driverEncodeIdx", VisionStreamType.VISION_STREAM_DRIVER, DT_DMON, DRIVER_CAMERA_FRAME_SIZES),
+  ("rearCameraState", "rearEncodeIdx", VisionStreamType.VISION_STREAM_REAR, DT_MDL, ROAD_CAMERA_FRAME_SIZES),
 ]
 
 

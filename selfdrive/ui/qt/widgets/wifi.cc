@@ -8,11 +8,11 @@
 WiFiPromptWidget::WiFiPromptWidget(QWidget *parent) : QFrame(parent) {
   // Setup Firehose Mode
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  main_layout->setContentsMargins(56, 40, 56, 40);
+  main_layout->setContentsMargins(30, 20, 30, 20);
   main_layout->setSpacing(42);  
   
   QLabel *title = new QLabel(tr("<span style='font-family: \"Noto Color Emoji\";'>🔥</span> Firehose Mode <span style='font-family: Noto Color Emoji;'>🔥</span>"));
-  title->setStyleSheet("font-size: 64px; font-weight: 500;");
+  title->setStyleSheet("font-size: 38px; font-weight: 500;");
   main_layout->addWidget(title);
 
   QLabel *desc = new QLabel(tr("Maximize your training data uploads to improve openpilot's driving models."));

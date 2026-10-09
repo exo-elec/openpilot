@@ -8,13 +8,19 @@ from enum import Enum
 from multiprocessing import Process, Queue, Value
 from abc import ABC, abstractmethod
 
-from opendbc.car.honda.values import CruiseButtons
+# Simulated cruise control button constants (replaces opendbc.car.honda.values.CruiseButtons)
+class CruiseButtons:
+  DECEL_SET = 1
+  RES_ACCEL = 2
+  CANCEL = 3
+  MAIN = 4
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.selfdrive.test.helpers import set_params_enabled
 from openpilot.tools.sim.lib.common import SimulatorState, World
 from openpilot.tools.sim.lib.simulated_car import SimulatedCar
 from openpilot.tools.sim.lib.simulated_sensors import SimulatedSensors
+from openpilot.tools.sim.lib.simulated_uvc import SimulatedUvc
 
 QueueMessage = namedtuple("QueueMessage", ["type", "info"], defaults=[None])
 
@@ -37,7 +43,7 @@ def rk_loop(function, hz, exit_event: threading.Event):
 class SimulatorBridge(ABC):
   TICKS_PER_FRAME = 5
 
-  def __init__(self, dual_camera, high_quality):
+  def __init__(self, dual_camera, high_quality, tele_camera=None, stereo_camera=None):
     set_params_enabled()
     self.params = Params()
     self.params.put_bool("AlphaLongitudinalEnabled", True)
@@ -46,6 +52,9 @@ class SimulatorBridge(ABC):
 
     self.dual_camera = dual_camera
     self.high_quality = high_quality
+    # ExoPilot 01M (RK3588) has no tele camera — that's an ExoPilot 02M feature
+    self.tele_camera = False
+    self.stereo_camera = stereo_camera if stereo_camera is not None else self.params.get_bool("EOPStereoEnabled")
 
     self._exit_event: threading.Event | None = None
     self._threads = []
@@ -82,6 +91,13 @@ class SimulatorBridge(ABC):
     if self.world is not None:
       self.world.close(reason)
 
+    if getattr(self, 'simulated_sensors', None) is not None:
+      self.simulated_sensors.close()
+    if getattr(self, 'simulated_car', None) is not None:
+      self.simulated_car.close()
+    if getattr(self, 'simulated_uvc', None) is not None:
+      self.simulated_uvc.close()
+
   def run(self, queue, retries=-1):
     bridge_p = Process(name="bridge", target=self.bridge_keep_alive, args=(queue, retries))
     bridge_p.start()
@@ -102,7 +118,8 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
     self.world = self.spawn_world(q)
 
     self.simulated_car = SimulatedCar()
-    self.simulated_sensors = SimulatedSensors(self.dual_camera)
+    self.simulated_sensors = SimulatedSensors(self.dual_camera, self.tele_camera, self.stereo_camera)
+    self.simulated_uvc = SimulatedUvc()
 
     self._exit_event = threading.Event()
 
@@ -113,6 +130,11 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
     self.simulated_camera_thread = threading.Thread(target=rk_loop, args=(functools.partial(self.simulated_sensors.send_camera_images, self.world),
                                                                         20, self._exit_event))
     self.simulated_camera_thread.start()
+
+    if self.simulated_uvc.enabled:
+      self.simulated_uvc_thread = threading.Thread(target=rk_loop, args=(functools.partial(self.simulated_uvc.send_side_images, self.world),
+                                                                          20, self._exit_event))
+      self.simulated_uvc_thread.start()
 
     # Simulation tends to be slow in the initial steps. This prevents lagging later
     for _ in range(20):
@@ -179,7 +201,7 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
 
         self.past_startup_engaged = True
       elif not self.past_startup_engaged and self.simulated_car.sm['selfdriveState'].engageable:
-        self.simulator_state.cruise_button = CruiseButtons.DECEL_SET if self.startup_button_prev else CruiseButtons.MAIN # force engagement on startup
+        self.simulator_state.cruise_button = CruiseButtons.DECEL_SET if self.startup_button_prev else CruiseButtons.MAIN  # force engagement on startup
         self.startup_button_prev = not self.startup_button_prev
 
       throttle_out = throttle_op if self.simulator_state.is_engaged else throttle_manual
@@ -197,7 +219,7 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
         self.world.tick()
         self.world.read_cameras()
 
-      # don't print during test, so no print/IO Block between OP and metadrive processes
+      # don't print during test, so no print/IO Block between OP and simulator processes
       if not self.test_run and self.rk.frame % 25 == 0:
         self.print_status()
 

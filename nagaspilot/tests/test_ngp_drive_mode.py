@@ -1,6 +1,6 @@
 from nagaspilot.controls.ngp_drive_mode import CUSTOM, MODES, detect, settings_for
 from nagaspilot.controls.longitudinal_policy import ACCELERATION_PROFILES
-from nagaspilot.runtime.drive_mode import NGP_KEYS, DriveModeApplier
+from nagaspilot.runtime.drive_mode import EOP_KEYS, NGP_KEYS, DriveModeApplier
 
 
 class _Params:
@@ -71,3 +71,11 @@ def test_applier_polls_at_most_once_a_second_and_defaults_to_custom():
   p.store[NGP_KEYS["mode"]] = "eco"
   assert not a.update(now=5.5)  # inside the poll interval
   assert a.update(now=6.1)
+
+
+def test_exopilot_uses_its_own_keys_through_the_same_applier():
+  p = _Params({EOP_KEYS["mode"]: "eco"})
+  a = DriveModeApplier(p, EOP_KEYS)
+  assert a.update(now=3.0)
+  assert p.store[EOP_KEYS["accel"]] == "eco" and p.store[EOP_KEYS["personality"]] == 2 and p.store[EOP_KEYS["gap"]] is False
+  assert NGP_KEYS["accel"] not in p.store and a.current() == "eco"

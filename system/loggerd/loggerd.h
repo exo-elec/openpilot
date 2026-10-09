@@ -72,6 +72,7 @@ public:
   const char *thread_name;
   int fps = MAIN_FPS;
   VisionStreamType stream_type;
+  const char *vipc_server_name = "v4l2d";
   std::vector<EncoderInfo> encoder_infos;
 };
 
@@ -90,12 +91,12 @@ const EncoderInfo main_wide_road_encoder_info = {
   INIT_ENCODE_FUNCTIONS(WideRoadEncode),
 };
 
-const EncoderInfo main_driver_encoder_info = {
-  .publish_name = "driverEncodeData",
-  .filename = "dcamera.hevc",
-  .record = Params().getBool("RecordFront"),
+const EncoderInfo main_rear_encoder_info = {
+  .publish_name = "rearEncodeData",
+  .filename = "rcamera.hevc",
+  .record = Params().getBool("EOPRearCameraEnabled"),
   .get_settings = [](int in_width){return EncoderSettings::MainEncoderSettings(in_width);},
-  INIT_ENCODE_FUNCTIONS(DriverEncode),
+  INIT_ENCODE_FUNCTIONS(RearEncode),
 };
 
 const EncoderInfo stream_road_encoder_info = {
@@ -113,11 +114,46 @@ const EncoderInfo stream_wide_road_encoder_info = {
   INIT_ENCODE_FUNCTIONS(LivestreamWideRoadEncode),
 };
 
-const EncoderInfo stream_driver_encoder_info = {
-  .publish_name = "livestreamDriverEncodeData",
+const EncoderInfo stream_rear_encoder_info = {
+  .publish_name = "livestreamRearEncodeData",
   .record = false,
   .get_settings = [](int){return EncoderSettings::StreamEncoderSettings();},
-  INIT_ENCODE_FUNCTIONS(LivestreamDriverEncode),
+  INIT_ENCODE_FUNCTIONS(LivestreamRearEncode),
+};
+
+const EncoderInfo main_tele_road_encoder_info = {
+  .publish_name = "teleRoadEncodeData",
+  .filename = "tcamera.hevc",
+  .get_settings = [](int in_width){return EncoderSettings::MainEncoderSettings(in_width);},
+  INIT_ENCODE_FUNCTIONS(TeleRoadEncode),
+};
+
+const EncoderInfo main_stereo_left_encoder_info = {
+  .publish_name = "stereoLeftCameraEncodeData",
+  .filename = "lcamera.hevc",
+  .get_settings = [](int in_width){return EncoderSettings::MainEncoderSettings(in_width);},
+  INIT_ENCODE_FUNCTIONS(StereoLeftCameraEncode),
+};
+
+const EncoderInfo main_stereo_right_encoder_info = {
+  .publish_name = "stereoRightCameraEncodeData",
+  .filename = "rcamera.hevc",
+  .get_settings = [](int in_width){return EncoderSettings::MainEncoderSettings(in_width);},
+  INIT_ENCODE_FUNCTIONS(StereoRightCameraEncode),
+};
+
+const EncoderInfo stream_stereo_left_encoder_info = {
+  .publish_name = "livestreamStereoLeftEncodeData",
+  .record = false,
+  .get_settings = [](int){return EncoderSettings::StreamEncoderSettings();},
+  INIT_ENCODE_FUNCTIONS(LivestreamStereoLeftEncode),
+};
+
+const EncoderInfo stream_stereo_right_encoder_info = {
+  .publish_name = "livestreamStereoRightEncodeData",
+  .record = false,
+  .get_settings = [](int){return EncoderSettings::StreamEncoderSettings();},
+  INIT_ENCODE_FUNCTIONS(LivestreamStereoRightEncode),
 };
 
 const EncoderInfo qcam_encoder_info = {
@@ -142,10 +178,11 @@ const LogCameraInfo wide_road_camera_info{
   .encoder_infos = {main_wide_road_encoder_info}
 };
 
-const LogCameraInfo driver_camera_info{
-  .thread_name = "driver_cam_encoder",
-  .stream_type = VISION_STREAM_DRIVER,
-  .encoder_infos = {main_driver_encoder_info}
+const LogCameraInfo rear_camera_info{
+  .thread_name = "rear_cam_encoder",
+  .stream_type = VISION_STREAM_REAR,
+  .vipc_server_name = "uvcd",
+  .encoder_infos = {main_rear_encoder_info}
 };
 
 const LogCameraInfo stream_road_camera_info{
@@ -160,11 +197,48 @@ const LogCameraInfo stream_wide_road_camera_info{
   .encoder_infos = {stream_wide_road_encoder_info}
 };
 
-const LogCameraInfo stream_driver_camera_info{
-  .thread_name = "driver_cam_encoder",
-  .stream_type = VISION_STREAM_DRIVER,
-  .encoder_infos = {stream_driver_encoder_info}
+const LogCameraInfo stream_rear_camera_info{
+  .thread_name = "rear_cam_encoder",
+  .stream_type = VISION_STREAM_REAR,
+  .vipc_server_name = "uvcd",
+  .encoder_infos = {stream_rear_encoder_info}
 };
 
-const LogCameraInfo cameras_logged[] = {road_camera_info, wide_road_camera_info, driver_camera_info};
-const LogCameraInfo stream_cameras_logged[] = {stream_road_camera_info, stream_wide_road_camera_info, stream_driver_camera_info};
+const LogCameraInfo tele_road_camera_info{
+  .thread_name = "tele_road_cam_encoder",
+  .stream_type = VISION_STREAM_TELE_ROAD,
+  .encoder_infos = {main_tele_road_encoder_info}
+};
+
+const LogCameraInfo stereo_left_camera_info{
+  .thread_name = "stereo_left_cam_encoder",
+  .stream_type = VISION_STREAM_STEREO_LEFT,
+  .encoder_infos = {main_stereo_left_encoder_info}
+};
+
+const LogCameraInfo stereo_right_camera_info{
+  .thread_name = "stereo_right_cam_encoder",
+  .stream_type = VISION_STREAM_STEREO_RIGHT,
+  .encoder_infos = {main_stereo_right_encoder_info}
+};
+
+const LogCameraInfo stream_stereo_left_camera_info{
+  .thread_name = "stereo_left_cam_encoder",
+  .stream_type = VISION_STREAM_STEREO_LEFT,
+  .encoder_infos = {stream_stereo_left_encoder_info}
+};
+
+const LogCameraInfo stream_stereo_right_camera_info{
+  .thread_name = "stereo_right_cam_encoder",
+  .stream_type = VISION_STREAM_STEREO_RIGHT,
+  .encoder_infos = {stream_stereo_right_encoder_info}
+};
+
+const LogCameraInfo cameras_logged[] = {
+  road_camera_info, wide_road_camera_info, rear_camera_info,
+  tele_road_camera_info, stereo_left_camera_info, stereo_right_camera_info
+};
+const LogCameraInfo stream_cameras_logged[] = {
+  stream_road_camera_info, stream_wide_road_camera_info, stream_rear_camera_info,
+  stream_stereo_left_camera_info, stream_stereo_right_camera_info
+};

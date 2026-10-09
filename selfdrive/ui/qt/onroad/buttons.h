@@ -4,7 +4,7 @@
 
 #include "selfdrive/ui/ui.h"
 
-const int btn_size = 192;
+const int btn_size = 110;
 const int img_size = (btn_size / 4) * 3;
 
 class ExperimentalButton : public QPushButton {

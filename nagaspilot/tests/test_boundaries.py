@@ -11,7 +11,8 @@ PURE_DIRS = ("controls",)
 FORBIDDEN_PREFIXES = ("openpilot.selfdrive", "openpilot.system", "openpilot.common.params", "cereal.messaging")
 
 # NGP/EOP-prefixed files may live outside nagaspilot/ only at these reviewed UI hooks.
-ALLOWED_OUTSIDE = {"selfdrive/ui/qt/offroad/ngp_panel.cc", "selfdrive/ui/qt/offroad/ngp_panel.h", "selfdrive/ui/qt/offroad/ngp_controls.h"}
+ALLOWED_OUTSIDE = {"selfdrive/ui/qt/offroad/ngp_panel.cc", "selfdrive/ui/qt/offroad/ngp_panel.h", "selfdrive/ui/qt/offroad/ngp_controls.h",
+                   "selfdrive/ui/qt/offroad/eop_panel.cc", "selfdrive/ui/qt/offroad/eop_panel.h", "selfdrive/assets/images/eop_qr.png"}
 SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "nagaspilot"}
 
 

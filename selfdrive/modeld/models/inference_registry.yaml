@@ -1,0 +1,210 @@
+models:
+  # Main forward camera models (RKNN - Primary NPU Core 0)
+  # NOTE: modeld uses RKNN runtime on RK3588 NPU
+  # Convert ONNX models to RKNN format using: tools/convert_models_to_rknn.py
+  - id: vision_model
+    task: vision
+    backend: rknn
+    path: /data/openpilot/models/rknn/driving_vision.rknn
+    input_size: [512, 256]
+    priority: 0
+    cores: "0"
+    metadata:
+      model_type: supercombo
+      outputs: ["path", "lane_lines", "road_edges", "lead"]
+      runtime: "rknn"
+      onnx_source: selfdrive/modeld/models/driving_vision.onnx
+      
+  - id: policy_model
+    task: policy
+    backend: rknn
+    path: /data/openpilot/models/rknn/driving_policy.rknn
+    input_size: [512, 256]
+    priority: 0
+    cores: "0"
+    metadata:
+      model_type: supercombo
+      outputs: ["desired_curvature", "desired_speed"]
+      runtime: "rknn"
+      onnx_source: selfdrive/modeld/models/driving_policy.onnx
+      
+  # NOTE: Dead RKNN wrappers removed:
+  # - autospeed_rknn.py - REDUNDANT: driving_vision handles lead detection
+  # - domainseg_rknn.py - NOT INTEGRATED
+  # - scene3d_rknn.py - NOT INTEGRATED  
+  # - depth_anything_rknn.py - NOT INTEGRATED
+  # - driving_policy_rknn.py - REPLACED by direct RKNNRunner usage
+  # - driving_vision_rknn.py - REPLACED by direct RKNNRunner usage
+
+  # No segmentation on RKNN: it runs on the camera-tier card (seg_* below).
+  # SceneSeg and the PP-LiteSeg fallback are gone -- a card failure degrades
+  # segmentation, nothing takes over.
+
+  # NOTE: Pothole YOLO detection removed - using stereo depth-based shock detection
+  # surfaced daemon uses stereo point cloud analysis (SGBM) instead of AI model
+  # This avoids NPU load and provides better depth estimation
+  
+  # NOTE: License plate detection removed per AGENTS.md. It targeted an AXCL
+  # backend on an AX650N accelerator, which is HumRobot's (ExoRobot 01H)
+  # hardware, not ExoPilot's -- there is no AX-M1/AXCL tier here.
+  #     runs_on_vehicle_crops: true
+  #     # NOTE: subscribed_streams outdated - stereoObjects empty, griddObjects doesn't exist
+  #     subscribed_streams: ["stereoObjects", "leftObjects", "rightObjects"]
+  #     publishes: "gridObjects"  # NOTE: was "griddObjects" - typo
+
+  # Object detection: YOLOv8 on the SoC's RKNN NPU for every camera. RKNN is
+  # on the die; it cannot be unfitted or drop off a bus. Side/rear/telephoto
+  # use core 1, which segmentation used to occupy; road uses the last core.
+  - id: yolo_road
+    task: detection
+    backend: rknn
+    path: /data/openpilot/models/rknn/yolo_640.rknn
+    input_size: [640, 640]
+    priority: 1
+    cores: "last"
+    metadata:
+      model: YOLOv8n (Ultralytics export, [1, 84, 8400] head)
+      cameras: ["road"]
+      daemon: monod
+      rate: 20Hz
+
+  - id: yolo_tele
+    task: detection
+    backend: rknn
+    path: /data/openpilot/models/rknn/yolo_640.rknn
+    input_size: [640, 640]
+    priority: 1
+    cores: "last"
+    metadata:
+      model: YOLOv8n (Ultralytics export, [1, 84, 8400] head)
+      cameras: ["tele_road"]
+      daemon: monod
+      rate: 20Hz, 02M only
+
+  - id: yolo_sided
+    task: detection
+    backend: rknn
+    path: /data/openpilot/models/rknn/yolo_640.rknn
+    input_size: [640, 640]
+    priority: 1
+    cores: "1"
+    metadata:
+      model: YOLOv8n (Ultralytics export, [1, 84, 8400] head)
+      cameras: ["side_left", "side_right"]
+      daemon: sided
+      rate: 20Hz each
+
+  - id: yolo_reard
+    task: detection
+    backend: rknn
+    path: /data/openpilot/models/rknn/yolo_640.rknn
+    input_size: [640, 640]
+    priority: 1
+    cores: "1"
+    metadata:
+      model: YOLOv8n (Ultralytics export, [1, 84, 8400] head)
+      cameras: ["rear"]
+      daemon: reard
+      rate: 20Hz
+
+  # Drivable-area segmentation: the camera-tier card (Hailo-8 or DX-M1M,
+  # chosen on price) for every camera. Both cards run the same network,
+  # TwinLiteNet+ Large at 384x640 (BDD100K drivable area + lane lines, 1.94 M
+  # params, one Hailo-8 context), so the answer does not depend on the card:
+  # both compiled from one ONNX by tools/card_drivable_model.py (fine-tuned
+  # for Thai / off-road roads by tools/finetune_drivable.py). BackendType.ACCEL;
+  # inferenced letterboxes the frame and returns an OTHER/DRIVABLE/LANE map
+  # (system/inferenced/drivable.py). One artifact per card, no alternatives:
+  # a card that fails degrades (gridStatus.segmentationDegraded), nothing
+  # takes over.
+  - id: seg_road
+    task: segmentation
+    backend: accel
+    path: models/hef/twinlitenet_plus_large_384x640.hef
+    input_size: [640, 384]
+    priority: 1
+    metadata:
+      artifacts:
+        hailo_8: models/hef/twinlitenet_plus_large_384x640.hef
+        dx_m1m: models/dxnn/twinlitenet_plus_large_384x640.dxnn
+      model: TwinLiteNet+ Large (drivable area + lane lines; BDD100K, fine-tuned)
+      classes: [other, drivable, lane]
+      cameras: ["road"]
+      rate: gridd 10Hz + segd 2Hz
+
+  - id: seg_wide
+    task: segmentation
+    backend: accel
+    path: models/hef/twinlitenet_plus_large_384x640.hef
+    input_size: [640, 384]
+    priority: 2
+    metadata:
+      artifacts:
+        hailo_8: models/hef/twinlitenet_plus_large_384x640.hef
+        dx_m1m: models/dxnn/twinlitenet_plus_large_384x640.dxnn
+      model: TwinLiteNet+ Large (drivable area + lane lines; BDD100K, fine-tuned)
+      classes: [other, drivable, lane]
+      cameras: ["wide_road"]
+      rate: 4-6Hz
+
+  - id: seg_tele
+    task: segmentation
+    backend: accel
+    path: models/hef/twinlitenet_plus_large_384x640.hef
+    input_size: [640, 384]
+    priority: 2
+    metadata:
+      artifacts:
+        hailo_8: models/hef/twinlitenet_plus_large_384x640.hef
+        dx_m1m: models/dxnn/twinlitenet_plus_large_384x640.dxnn
+      model: TwinLiteNet+ Large (drivable area + lane lines; BDD100K, fine-tuned)
+      classes: [other, drivable, lane]
+      cameras: ["tele_road"]
+      rate: 2Hz, 02M only
+
+  - id: seg_side
+    task: segmentation
+    backend: accel
+    path: models/hef/twinlitenet_plus_large_384x640.hef
+    input_size: [640, 384]
+    priority: 2
+    metadata:
+      artifacts:
+        hailo_8: models/hef/twinlitenet_plus_large_384x640.hef
+        dx_m1m: models/dxnn/twinlitenet_plus_large_384x640.dxnn
+      model: TwinLiteNet+ Large (drivable area + lane lines; BDD100K, fine-tuned)
+      classes: [other, drivable, lane]
+      cameras: ["side_left", "side_right"]
+      rate: 4Hz each
+
+  - id: seg_rear
+    task: segmentation
+    backend: accel
+    path: models/hef/twinlitenet_plus_large_384x640.hef
+    input_size: [640, 384]
+    priority: 2
+    metadata:
+      artifacts:
+        hailo_8: models/hef/twinlitenet_plus_large_384x640.hef
+        dx_m1m: models/dxnn/twinlitenet_plus_large_384x640.dxnn
+      model: TwinLiteNet+ Large (drivable area + lane lines; BDD100K, fine-tuned)
+      classes: [other, drivable, lane]
+      cameras: ["rear"]
+      rate: 4Hz
+
+  # USB eGPU: openpilot's Chestnut big driving model ONLY (modeld's eGPU
+  # runner, one-way failover to the RKNN driving model; egpu.py refuses any
+  # other model). The side/rear/front eGPU shadow sessions that used to be
+  # listed here were removed on 2026-09-27: camera and rule-based
+  # Autoware-style models belong on the Hailo-8 / DX-M1 card (entries above).
+  #
+  # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
+  # These models require voxeld daemon which was never created
+  # Kept for reference only
+  #
+  # Lidar processing models (HAILO - HAILO M8 PCIe accelerator)
+  # - id: pointpillars
+  #   task: detection
+  #   backend: hailo
+  #   path: selfdrive/voxeld/models/pointpillars.hef  # NOTE: voxeld/ doesn't exist
+  #   ...

@@ -345,9 +345,9 @@ void loggerd_thread() {
 int main(int argc, char** argv) {
   if (!Hardware::PC()) {
     int ret;
-    ret = util::set_core_affinity({0, 1, 2, 3});
+    ret = util::set_core_type(util::CoreType::BIG);
     assert(ret == 0);
-    // TODO: why does this impact camerad timings?
+    // TODO: why does this impact v4l2d timings?
     //ret = util::set_realtime_priority(1);
     //assert(ret == 0);
   }
