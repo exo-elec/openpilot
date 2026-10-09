@@ -1,6 +1,10 @@
-# Shared EOP10 / 01M / 02M pipeline
+# Shared NGP10 / EOP10 / 01M / 02M pipeline
 
-All three builds use the same runtime source tree. `common/build_profile.py`
+NGP10 is the portable policy parent. EOP10 inherits its control, map and
+runtime helpers unchanged, and adapts hardware and parameter names. See
+`docs/integration/SHARED_NGP_EOP_PIPELINE.md` for the parent parity gate.
+
+EOP10, 01M and 02M use the same runtime source tree. `common/build_profile.py`
 selects the UI backend, default SoC and logical display size:
 
 | Build | UI backend | Default SoC | Display |
