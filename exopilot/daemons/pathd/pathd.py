@@ -793,7 +793,7 @@ class PathD:
     self._last_param_t = now
     self._aeb_enabled = self.params.get_bool("EOPAEBEnabled")
     scale_fix = self.params.get("EOPPathdFixScaleEnabled")
-    set_scale_fix(self.params.get_bool("ngp_pathd_fix_scale") if scale_fix is None else scale_fix == b"1")
+    set_scale_fix(self.params.get_bool("ngp_pathd_fix_scale") if scale_fix is None else scale_fix in (True, b"1", "1"))
     self._soc_enabled = self.params.get_bool("EOPSOCControllerEnabled")
     stereo_enabled = self.params.get_bool("EOPStereoEnabled")
     nudge_enabled = self.params.get_bool("EOPNudgeEnabled")

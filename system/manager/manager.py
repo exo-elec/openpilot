@@ -37,6 +37,9 @@ def manager_init() -> None:
   if build_metadata.release_channel:
     params.clear_all(ParamKeyFlag.DEVELOPMENT_ONLY)
 
+  from nagaspilot.runtime.feature_keys import migrate_origin_params
+  migrate_origin_params(params)
+
   # set unset params to their default value
   for k in params.all_keys():
     default_value = params.get_default_value(k)
