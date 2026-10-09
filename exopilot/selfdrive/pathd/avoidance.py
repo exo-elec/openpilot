@@ -248,7 +248,7 @@ class OccupancyGridView:
 
 
 def set_scale_fix(enabled: bool) -> None:
-  """PathdFixScaleEnabled: use the corrected distance-scale lookup (see exopilot/selfdrive/controls/lib/speed_reduction.py)."""
+  """EOPPathdFixScaleEnabled: use the corrected lookup in controls/speed_reduction.py."""
   global _SCALE_FIX
   _SCALE_FIX = bool(enabled)
 
@@ -792,7 +792,8 @@ class PathD:
       return
     self._last_param_t = now
     self._aeb_enabled = self.params.get_bool("EOPAEBEnabled")
-    set_scale_fix(self.params.get_bool("PathdFixScaleEnabled"))
+    scale_fix = self.params.get("EOPPathdFixScaleEnabled")
+    set_scale_fix(self.params.get_bool("PathdFixScaleEnabled") if scale_fix is None else scale_fix == b"1")
     self._soc_enabled = self.params.get_bool("EOPSOCControllerEnabled")
     stereo_enabled = self.params.get_bool("EOPStereoEnabled")
     nudge_enabled = self.params.get_bool("EOPNudgeEnabled")
