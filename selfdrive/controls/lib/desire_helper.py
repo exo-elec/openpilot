@@ -4,6 +4,7 @@ from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.dlat import DLAT, LANEFUL_TO_LANELESS_THRESH
 from nagaspilot.speed_zones import URBAN_SPEED_MPS
+from nagaspilot.controls.ngp_turn_desire import turn_signal_direction
 from nagaspilot.controls.eop_lane_change import (Dir, MIN_LANE_WIDTH, blindspot_blocked, evaluate_gap,
                                                  is_road_edge_blinker, validate_lane_width)
 
@@ -35,13 +36,6 @@ DESIRES = {
     LaneChangeState.laneChangeFinishing: log.Desire.laneChangeRight,
   },
 }
-
-TURN_DESIRES = {
-  log.Desire.none: log.Desire.none,
-  log.Desire.turnLeft: log.Desire.turnLeft,
-  log.Desire.turnRight: log.Desire.turnRight,
-}
-
 
 class DesireHelper:
   def __init__(self):
@@ -254,9 +248,10 @@ class DesireHelper:
     # EOP: Turn desires below lane change speed (FrogPilot proven pattern).
     # When blinker is on below 11 m/s and not stopped, send turnLeft/turnRight
     # to the model so it anticipates the low-speed turn / intersection maneuver.
-    if one_blinker and below_lane_change_speed and not carstate.standstill:
-      self.turn_direction = log.Desire.turnLeft if left_blinker else log.Desire.turnRight
-      self.desire = TURN_DESIRES[self.turn_direction]
+    turn = turn_signal_direction(left_blinker, right_blinker, below_lane_change_speed and not carstate.standstill)
+    if turn is not None:
+      self.turn_direction = log.Desire.turnLeft if turn == 'left' else log.Desire.turnRight
+      self.desire = self.turn_direction
     else:
       self.turn_direction = log.Desire.none
       self.desire = DESIRES[self.lane_change_direction][self.lane_change_state]

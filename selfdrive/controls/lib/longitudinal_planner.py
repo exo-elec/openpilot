@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import math
 import time
 import numpy as np
 
@@ -29,10 +28,11 @@ from nagaspilot.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEE
                                     longitudinal_accel_max, longitudinal_jerk_up)
 from openpilot.selfdrive.controls.lib.tja import TrafficJamAssist
 from nagaspilot.runtime.eop_runtime_policy import limit_accel_in_turns
+from nagaspilot.runtime.feature_keys import EOP_KEYS
+from nagaspilot.runtime.longitudinal_params import LongitudinalSettings
 from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 from nagaspilot.controls.longitudinal_policy import (
   ACCELERATION_PROFILES, acceleration_profile_limit, adaptive_follow_gap,
-  ADAPTIVE_ACCEL_CITY_SPEED_LIMIT as CITY_SPEED_LIMIT,
   apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
 )
 
@@ -80,37 +80,10 @@ CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 ALLOW_THROTTLE_THRESHOLD = 0.4
 MIN_ALLOW_THROTTLE_SPEED = 2.5
 
-# Param caches (module-level to avoid per-frame I/O)
-_accel_profile_cache = {'ts': 0.0, 'profile': 'normal'}
-_adaptive_gap_cache = {'ts': 0.0, 'enabled': False}
-
-
-def _load_accel_profile():
-  """Read acceleration profile from params (cached, 2s TTL)."""
-  global _accel_profile_cache
-  now = time.monotonic()
-  if now - _accel_profile_cache['ts'] < 2.0:
-    return _accel_profile_cache['profile']
-  from openpilot.common.params import Params
-  p = Params().get("EOPAccelerationProfile")
-  profile = p.decode('utf-8') if p else 'normal'
-  if profile not in _A_CRUISE_PROFILES:
-    profile = 'normal'
-  _accel_profile_cache = {'ts': now, 'profile': profile}
-  return profile
-
-
-def _load_adaptive_gap_enabled():
-  """Read adaptive gap toggle from params (cached, 2s TTL)."""
-  global _adaptive_gap_cache
-  now = time.monotonic()
-  if now - _adaptive_gap_cache['ts'] < 2.0:
-    return _adaptive_gap_cache['enabled']
-  from openpilot.common.params import Params
-  p = Params().get("EOPAdaptiveGapEnabled")
-  enabled = p == b"1" if p else False
-  _adaptive_gap_cache = {'ts': now, 'enabled': enabled}
-  return enabled
+# Product names stay at this boundary; policies and cache implementation are shared.
+_longitudinal_settings = LongitudinalSettings(EOP_KEYS)
+_load_accel_profile = _longitudinal_settings.load_accel_profile
+_load_adaptive_gap_enabled = _longitudinal_settings.load_adaptive_gap_enabled
 
 
 def get_max_accel(v_ego):
@@ -132,7 +105,6 @@ def _load_brsc_enabled():
   now = time.monotonic()
   if now - _brsc_enabled_cache['ts'] < 2.0:
     return _brsc_enabled_cache['enabled']
-  from openpilot.common.params import Params
   p = Params().get("ngp_lon_brsc")
   enabled = p != b"0" if p else True
   _brsc_enabled_cache = {'ts': now, 'enabled': enabled}
