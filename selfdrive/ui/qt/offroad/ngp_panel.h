@@ -18,6 +18,7 @@ private:
 
   void add_lateral_toggles();
   void add_longitudinal_toggles();
+  void add_extended_controls();
   void updateStates();
   void showEvent(QShowEvent *event) override;
 

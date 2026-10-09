@@ -30,4 +30,13 @@ class OriginParams:
   def get_bool(self, key):
     if key not in EOP_LEGACY_KEYS and key not in EOP_LEGACY_KEYS.values():
       return self.params.get_bool(key)
-    return self.get(key) in (b"1", "1")
+    return self.get(key) in (True, b"1", "1")
+
+
+def migrate_origin_params(params):
+  """Preserve saved aliases before manager initialization writes canonical defaults."""
+  for canonical, legacy in EOP_LEGACY_KEYS.items():
+    if params.get(canonical) is None:
+      value = params.get(legacy)
+      if value is not None:
+        params.put(canonical, value)

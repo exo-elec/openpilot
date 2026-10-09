@@ -23,6 +23,7 @@ from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
 from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
 from nagaspilot.runtime.path_adapter import lane_room
 from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
+from nagaspilot.runtime.lateral_authorization import lateral_authorized
 from nagaspilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -49,7 +50,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pathAdjust'], poll='selfdriveState')
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pathAdjust', 'pandaStates'], poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'])
 
     self.steer_limited_by_safety = False
@@ -155,7 +156,10 @@ class Controls:
       gear_ok=gear_ok,
       safety_ok=safety_ok,
     ))
-    self.alcc_active = alcc_status.active_suggestion and alcc_status.available
+    authorized = lateral_authorized(self.sm['pandaStates'], self.CP.safetyConfigs, self.CP.alternativeExperience,
+                                    self.sm.valid['pandaStates'] and self.sm.alive['pandaStates']
+                                    and time.monotonic() - self.sm.recv_time['pandaStates'] < 0.5)
+    self.alcc_active = alcc_status.active_suggestion and alcc_status.available and authorized
     lat_active = self.sm['selfdriveState'].active or self.alcc_active
     CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)

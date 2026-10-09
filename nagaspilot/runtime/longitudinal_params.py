@@ -36,7 +36,7 @@ class LongitudinalSettings:
     return self._read("accel", "normal", decode)
 
   def load_adaptive_gap_enabled(self):
-    return self._read("gap", False, lambda raw: raw == b"1")
+    return self._read("gap", False, lambda raw: raw in (True, b"1", "1"))
 
 
 _default_settings = LongitudinalSettings()

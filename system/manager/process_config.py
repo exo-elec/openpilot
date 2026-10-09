@@ -9,6 +9,9 @@ from openpilot.system.manager.process import PythonProcess, NativeProcess, Daemo
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
 
+def dashboard_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return params.get_bool("ngp_dashboard_enabled")
+
 def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("ngp_monod_enabled")
 
@@ -107,6 +110,7 @@ procs = [
   PythonProcess("gridd", "nagaspilot.runtime.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
   PythonProcess("mapd", "nagaspilot.mapd.mapd", map_enabled),
+  PythonProcess("ngp_dashboard", "nagaspilot.runtime.dashboard", dashboard_enabled),
   PythonProcess("tripd", "nagaspilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),

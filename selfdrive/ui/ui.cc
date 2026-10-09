@@ -68,6 +68,8 @@ static void update_state(UIState *s) {
 void ui_update_params(UIState *s) {
   auto params = Params();
   s->scene.is_metric = params.getBool("IsMetric");
+  s->scene.ngp_hide_hud_speed_kph = std::clamp(std::atoi(params.get("ngp_ui_hide_hud_speed_kph").c_str()), 0, 120);
+  s->scene.ngp_brightness = std::clamp(std::atoi(params.get("ngp_ui_brightness").c_str()), 0, 100);
 }
 
 void UIState::updateStatus() {
@@ -173,6 +175,7 @@ void Device::updateBrightness(const UIState &s) {
     clipped_brightness = std::clamp(100.0f * clipped_brightness, 10.0f, 100.0f);
   }
 
+  if (s.scene.ngp_brightness > 0) clipped_brightness = s.scene.ngp_brightness;
   int brightness = brightness_filter.update(clipped_brightness);
   if (!awake) {
     brightness = 0;

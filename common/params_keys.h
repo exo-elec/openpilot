@@ -90,6 +90,15 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LongitudinalManeuverMode", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, BOOL}},
     {"LongitudinalPersonality", {PERSISTENT, INT, std::to_string(static_cast<int>(cereal::LongitudinalPersonality::STANDARD))}},
     {"NetworkMetered", {PERSISTENT, BOOL}},
+    {"ngp_dashboard_enabled", {PERSISTENT, BOOL, "0"}},
+    {"ngp_device_shutdown_minutes", {PERSISTENT, INT, "-1"}},
+    {"ngp_device_logger_delay_seconds", {PERSISTENT, INT, "0"}},
+    {"ngp_device_audible_mode", {PERSISTENT, INT, "0"}},
+    {"ngp_ui_hide_hud_speed_kph", {PERSISTENT, INT, "0"}},
+    {"ngp_ui_brightness", {PERSISTENT, INT, "0"}},
+    {"ngp_device_vehicle_selected", {PERSISTENT, STRING, ""}},
+    {"ngp_device_vehicle_list", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
+    {"ngp_lon_brownpanda_radar", {PERSISTENT, BOOL, "1"}},
     {"ngp_lat_alcc", {PERSISTENT, BOOL, "0"}},
     // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/

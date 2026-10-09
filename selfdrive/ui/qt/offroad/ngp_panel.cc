@@ -1,4 +1,7 @@
 #include "selfdrive/ui/qt/offroad/ngp_panel.h"
+#include <QComboBox>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 void NGPPanel::add_lateral_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
@@ -10,7 +13,7 @@ void NGPPanel::add_lateral_toggles() {
     {
       "ngp_lat_alcc",
       tr("Always-on Lane Centering Control (ALCC)"),
-      "",
+      tr("Requires live authorization from the configured Panda. Vehicle safety limits remain active."),
     },
     {
       "ngp_lat_road_edge_detection",
@@ -20,7 +23,7 @@ void NGPPanel::add_lateral_toggles() {
     {
       "ngp_lat_dlp_curves",
       tr("Curve Assist (DLP)"),
-      tr("Switch to laneless mode pre-emptively for tight curves."),
+      tr("Adjust lane-confidence policy for tight curves. This does not select a different steering trajectory."),
     },
   };
   // Default values below match the registered defaults in common/params_keys.h
@@ -112,9 +115,86 @@ void NGPPanel::add_longitudinal_toggles() {
   }
 }
 
+void NGPPanel::add_extended_controls() {
+  addItem(new LabelControl(tr("Additional Features"), ""));
+  const std::vector<std::tuple<QString, QString, QString>> definitions{
+    {"ngp_lat_soc", tr("SOC · Smart Offset"), tr("Optional bounded offset away from adjacent threats.")},
+    {"ngp_lat_edge_guard", tr("RED · Edge Guard"), tr("Optional curvature guard near a road edge.")},
+    {"ngp_lat_cat", tr("CAT · Adaptive Tuning"), tr("Use filtered live vehicle parameters.")},
+    {"ngp_lat_lca_gap_eval", tr("LCA · Gap Check"), tr("Check the adjacent lane before lane changes.")},
+    {"ngp_lat_lca_lane_width", tr("LCA · Lane Width Check"), tr("Check that the adjacent lane has sufficient width.")},
+    {"ngp_lon_adaptive_gap", tr("AFG · Adaptive Following Gap"), tr("Adjust following comfort from lead motion.")},
+    {"ngp_lon_lc_lead_handoff", tr("LCH · Lane Change Lead Handoff"), tr("Consider camera leads in the target lane.")},
+    {"ngp_lon_green_light", tr("GLN · Green Light Notice"), tr("Notify when a planner stop is released.")},
+    {"ngp_lon_lead_departure", tr("LDN · Lead Departure Notice"), tr("Notify when the lead vehicle moves away.")},
+    {"ngp_lon_brownpanda_radar", tr("BPR · BrownPanda Radar"), tr("Use the translated Continental stream on Tesla Model 3/Y party bus 0.")},
+    {"ngp_map_enabled", tr("OSM · Map Data"), tr("Fetch map data for speed and curve policies.")},
+    {"EOPMTSCEnabled", tr("MTSC · Map Turn Speed"), tr("EOP-origin policy for upcoming map curves.")},
+    {"EOPMSLCEnabled", tr("MSLC · Map Speed Limit"), tr("EOP-origin posted speed-limit policy.")},
+    {"EOPTLSCEnabled", tr("TLSC · Traffic Light Speed"), tr("Requires a valid traffic-light perception source.")},
+    {"EOPDDSCEnabled", tr("DDSC · Distraction Speed"), tr("Requires valid driver-awareness data.")},
+    {"EOPRCDEnabled", tr("RCD · Road Condition Speed"), tr("Requires a valid road-condition source.")},
+    {"ngp_monod_enabled", tr("MONO · Camera Detection"), tr("Requires a provisioned detector model.")},
+    {"ngp_pathd_enabled", tr("PATH · Object Protection Planner"), tr("Publish bounded protection proposals. Consumer switches are separate.")},
+    {"ngp_lat_pathd", tr("PATH · Lateral Proposals"), tr("Requires the protection planner.")},
+    {"ngp_lon_pathd", tr("PATH · Speed Proposals"), tr("Requires the protection planner.")},
+    {"EOPPathdNudgesEnabled", tr("NUDGE · Camera Proposals"), tr("Run EOP-origin nudge policies on camera-only inputs.")},
+    {"ngp_lon_cutin", tr("CUT · Cut-in Speed"), tr("Requires valid tracked objects.")},
+    {"ngp_dashboard_enabled", tr("WEB · Status Viewer"), tr("Read-only device and trip viewer at localhost:9091. Remote viewing uses an SSH tunnel.")},
+    {"ngp_tripd_enabled", tr("TRIP · Trip Statistics"), tr("Record non-controlling trip statistics.")},
+  };
+  for (const auto &[key, title, description] : definitions) {
+    auto control = new ParamControl(key, title, description, "", this);
+    control->setEnabled(!params.getBool((key + "Lock").toStdString()));
+    addItem(control);
+    toggles[key.toStdString()] = control;
+  }
+  addItem(new ParamSpinBoxControl("ngp_lat_blinker_pause_mph", tr("BP · Blinker Pause Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
+  addItem(new ParamSpinBoxControl("ngp_lat_turn_desire_mph", tr("TURN · Turn Hint Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
+  addItem(new ParamSpinBoxControl("ngp_lon_speed_offset_kph", tr("SPO · Cruise Speed Offset"), "", "", -20, 20, 1, tr(" km/h")));
+  auto add_choice = [this](const QString &key, const QString &title, const QStringList &options) {
+    auto widget = new QWidget(this);
+    auto layout = new QHBoxLayout(widget);
+    layout->addWidget(new QLabel(title, widget));
+    auto combo = new QComboBox(widget);
+    combo->addItems(options);
+    const auto value = QString::fromStdString(params.get(key.toStdString()));
+    combo->setCurrentIndex(std::max(0, combo->findText(value)));
+    layout->addWidget(combo);
+    addItem(widget);
+    connect(combo, qOverload<int>(&QComboBox::activated), this, [=](int index) {
+      params.put(key.toStdString(), options[index].toStdString());
+    });
+  };
+  add_choice("ngp_lon_drive_mode", tr("DRV · Drive Mode"), {"custom", "eco", "normal", "sport"});
+  add_choice("ngp_lon_accel_profile", tr("ACC · Acceleration Profile"), {"normal", "eco", "sport"});
+  addItem(new ParamSpinBoxControl("ngp_dpp_max_mode", tr("DPP · Maximum Planner Mode"), tr("0 idle, 1 shadow, 2 supervise, 3 longitudinal, 4 lateral, 5 both. Requires valid planner inputs."), "", 0, 5, 1));
+  addItem(new LabelControl(tr("Device and Display"), ""));
+  addItem(new ParamSpinBoxControl("ngp_device_shutdown_minutes", tr("ASD · Offroad Shutdown"), tr("Stock power policy at -1. Configured timeouts retain a five-minute grace and power safeguards."), "", -1, 300, 5, tr(" min"), tr("Stock"), -1));
+  addItem(new ParamSpinBoxControl("ngp_device_logger_delay_seconds", tr("RDL · Recording Start Delay"), tr("Delay recorded logs and video at drive start. Diagnostics and control processes keep running."), "", 0, 300, 5, tr(" s"), tr("Off")));
+  addItem(new ParamSpinBoxControl("ngp_ui_hide_hud_speed_kph", tr("HUD · Hide Above Speed"), tr("Camera and alerts remain visible."), "", 0, 120, 5, tr(" km/h"), tr("Off")));
+  addItem(new ParamSpinBoxControl("ngp_ui_brightness", tr("BRI · Display Brightness"), "", "", 0, 100, 5, tr(" %"), tr("Automatic")));
+  addItem(new ButtonParamControl("ngp_device_audible_mode", tr("SND · Engagement Chimes"), tr("Safety warnings remain audible."), "", {tr("Standard"), tr("Quiet")}));
+  auto selector = new QComboBox(this);
+  selector->addItem(tr("Automatic vehicle detection"), "");
+  const auto models = QJsonDocument::fromJson(QByteArray::fromStdString(params.get("ngp_device_vehicle_list"))).array();
+  for (const auto &model : models) selector->addItem(model.toString(), model.toString());
+  selector->setCurrentIndex(std::max(0, selector->findData(QString::fromStdString(params.get("ngp_device_vehicle_selected")))));
+  auto vehicle = new QWidget(this);
+  auto row = new QHBoxLayout(vehicle);
+  row->addWidget(new QLabel(tr("VEH · Vehicle Selection"), vehicle));
+  row->addWidget(selector);
+  addItem(vehicle);
+  connect(selector, qOverload<int>(&QComboBox::activated), this, [=](int index) {
+    params.put("ngp_device_vehicle_selected", selector->itemData(index).toString().toStdString());
+    params.remove("CarParamsCache");
+  });
+}
+
 NGPPanel::NGPPanel(SettingsWindow *parent) : ListWidget(parent) {
   add_lateral_toggles();
   add_longitudinal_toggles();
+  add_extended_controls();
 
   fs_watch = new ParamWatcher(this);
   QObject::connect(fs_watch, &ParamWatcher::paramChanged, [=](const QString &param_name, const QString &param_value) {

@@ -37,6 +37,9 @@ def manager_init() -> None:
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True)
 
+  from nagaspilot.runtime.feature_keys import migrate_origin_params
+  migrate_origin_params(params)
+
   # set unset params to their default value
   for k in params.all_keys():
     default_value = params.get_default_value(k)
@@ -111,6 +114,9 @@ def manager_thread() -> None:
   cloudlog.info({"environ": os.environ})
 
   params = Params()
+  from opendbc.car.car_helpers import interfaces
+  import json
+  params.put("ngp_device_vehicle_list", json.dumps(sorted(interfaces)))
 
   ignore: list[str] = []
   if params.get("DongleId") in (None, UNREGISTERED_DONGLE_ID):
@@ -125,6 +131,8 @@ def manager_thread() -> None:
   write_onroad_params(False, params)
   ensure_running(managed_processes.values(), False, params=params, CP=sm['carParams'], not_run=ignore)
 
+  from nagaspilot.runtime.device_policy import RecordingDelay
+  recording_delay = RecordingDelay()
   started_prev = False
   ignition_prev = False
 
@@ -149,7 +157,8 @@ def manager_thread() -> None:
     started_prev = started
     ignition_prev = ignition
 
-    ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore)
+    delayed = recording_delay.blocked(started, time.monotonic(), params.get("ngp_device_logger_delay_seconds"))
+    ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore + delayed)
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)
                        for p in managed_processes.values() if p.proc)

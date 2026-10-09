@@ -6,6 +6,7 @@ import wave
 
 from cereal import car, messaging
 from openpilot.common.basedir import BASEDIR
+from openpilot.common.params import Params
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.retry import retry
@@ -52,6 +53,9 @@ def check_selfdrive_timeout_alert(sm):
 
 class Soundd:
   def __init__(self):
+    self.params = Params()
+    self.audible_mode = 0
+    self.settings_updated = -1.0
     self.load_sounds()
 
     self.current_alert = AudibleAlert.none
@@ -104,6 +108,15 @@ class Soundd:
     data_out[:frames, 0] = self.get_sound_data(frames)
 
   def update_alert(self, new_alert):
+    from nagaspilot.runtime.device_policy import audible_alert
+    now = time.monotonic()
+    if now - self.settings_updated >= 1.0:
+      self.audible_mode = self.params.get("ngp_device_audible_mode")
+      self.settings_updated = now
+    mode = self.audible_mode
+    names = {AudibleAlert.engage: 'engage', AudibleAlert.disengage: 'disengage'}
+    if audible_alert(names.get(new_alert, 'safety'), mode) == 'none':
+      new_alert = AudibleAlert.none
     current_alert_played_once = self.current_alert == AudibleAlert.none or self.current_sound_frame > len(self.loaded_sounds[self.current_alert])
     if self.current_alert != new_alert and (new_alert != AudibleAlert.none or current_alert_played_once):
       self.current_alert = new_alert
