@@ -1,14 +1,23 @@
 #include <cassert>
+#include <set>
 
 #include "system/loggerd/loggerd.h"
 #include "system/loggerd/encoder/jpeg_encoder.h"
 
-#ifdef QCOM2
-#include "system/loggerd/encoder/v4l_encoder.h"
-#define Encoder V4LEncoder
+// Encoder selection:
+// - QCOM2: Used V4LEncoder (Qualcomm-specific, now excluded from build)
+// - Rockchip (any supported SoC): native MppEncoder (MPP + RGA)
+// - Other / dev PC: FfmpegEncoder
+//
+// ROCKCHIP_MPP is set by SConstruct exactly when system/loggerd/SConscript
+// compiles mpp_encoder.cc. Testing a single board's macro here meant the
+// other Rockchip board fell back to software encoding without a word.
+#if defined(ROCKCHIP_MPP)
+  #include "system/loggerd/encoder/mpp_encoder.h"
+  #define Encoder MppEncoder
 #else
-#include "system/loggerd/encoder/ffmpeg_encoder.h"
-#define Encoder FfmpegEncoder
+  #include "system/loggerd/encoder/ffmpeg_encoder.h"
+  #define Encoder FfmpegEncoder
 #endif
 
 ExitHandler do_exit;
@@ -19,8 +28,8 @@ struct EncoderdState {
   // Sync logic for startup
   std::atomic<int> encoders_ready = 0;
   std::atomic<uint32_t> start_frame_id = 0;
-  bool camera_ready[VISION_STREAM_WIDE_ROAD + 1] = {};
-  bool camera_synced[VISION_STREAM_WIDE_ROAD + 1] = {};
+  bool camera_ready[VISION_STREAM_MAX] = {};
+  bool camera_synced[VISION_STREAM_MAX] = {};
 };
 
 // Handle initial encoder syncing by waiting for all encoders to reach the same frame id
@@ -49,7 +58,7 @@ void encoder_thread(EncoderdState *s, const LogCameraInfo &cam_info) {
   util::set_thread_name(cam_info.thread_name);
 
   std::vector<std::unique_ptr<Encoder>> encoders;
-  VisionIpcClient vipc_client = VisionIpcClient("camerad", cam_info.stream_type, false);
+  VisionIpcClient vipc_client = VisionIpcClient(cam_info.vipc_server_name, cam_info.stream_type, false);
 
   std::unique_ptr<JpegEncoder> jpeg_encoder;
 
@@ -128,9 +137,20 @@ template <size_t N>
 void encoderd_thread(const LogCameraInfo (&cameras)[N]) {
   EncoderdState s;
 
+  // Collect unique server names from camera configs
+  std::set<std::string> servers;
+  for (const auto &cam : cameras) {
+    servers.insert(cam.vipc_server_name);
+  }
+
+  // Query all servers for available streams
   std::set<VisionStreamType> streams;
   while (!do_exit) {
-    streams = VisionIpcClient::getAvailableStreams("camerad", false);
+    streams.clear();
+    for (const auto &server : servers) {
+      auto server_streams = VisionIpcClient::getAvailableStreams(server, false);
+      streams.insert(server_streams.begin(), server_streams.end());
+    }
     if (!streams.empty()) {
       break;
     }
@@ -156,7 +176,7 @@ int main(int argc, char* argv[]) {
     int ret;
     ret = util::set_realtime_priority(52);
     assert(ret == 0);
-    ret = util::set_core_affinity({3});
+    ret = util::set_core_type(util::CoreType::BIG);
     assert(ret == 0);
   }
   if (argc > 1) {

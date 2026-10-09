@@ -1,0 +1,1 @@
+"""ExoPilot hardware state daemon."""

@@ -1,16 +1,21 @@
-import os
-from typing import cast
+#!/usr/bin/env python3
+"""Compatibility exports for ExoPilot's hardware adapter.
 
-from openpilot.system.hardware.base import HardwareBase
-from openpilot.system.hardware.tici.hardware import Tici
-from openpilot.system.hardware.pc.hardware import Pc
+The product-specific platform selection lives in ``nagaspilot.hardware``;
+shared openpilot callers keep importing this stable path. Exports are lazy
+because the product adapter itself depends on ``system.hardware.base``.
+"""
 
-TICI = os.path.isfile('/TICI')
-AGNOS = os.path.isfile('/AGNOS')
-PC = not TICI
+__all__ = [
+    'HARDWARE', 'HardwareBase', 'HardwareCapability', 'PlatformRegistry',
+    'RK3588', 'RK3588_DETECTED', 'RK3588Hardware',
+    'RK3576', 'RK3576_DETECTED', 'RK3576Hardware', 'ROCKCHIP', 'TICI',
+    'PC', 'HAS_SPEAKER', 'HAS_VOICE_INPUT', 'HAS_SIDE_CAMERAS', 'HAS_REAR_CAMERA',
+]
 
 
-if TICI:
-  HARDWARE = cast(HardwareBase, Tici())
-else:
-  HARDWARE = cast(HardwareBase, Pc())
+def __getattr__(name):
+    if name not in __all__:
+        raise AttributeError(name)
+    from nagaspilot.hardware import hal
+    return getattr(hal, name)

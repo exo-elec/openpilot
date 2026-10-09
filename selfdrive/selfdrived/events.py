@@ -11,8 +11,8 @@ from openpilot.common.constants import CV
 from openpilot.common.git import get_short_branch
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
-from openpilot.system.micd import SAMPLE_RATE, SAMPLE_BUFFER
-from openpilot.selfdrive.ui.feedback.feedbackd import FEEDBACK_MAX_DURATION
+from openpilot.system.micd.micd import SAMPLE_RATE, SAMPLE_BUFFER
+from openpilot.system.ui.feedback.feedbackd import FEEDBACK_MAX_DURATION
 
 AlertSize = log.SelfdriveState.AlertSize
 AlertStatus = log.SelfdriveState.AlertStatus
@@ -47,7 +47,6 @@ class ET:
 
 # get event name from enum
 EVENT_NAME = {v: k for k, v in EventName.schema.enumerants.items()}
-
 
 class Events:
   def __init__(self):
@@ -290,7 +289,7 @@ def comm_issue_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaste
 
 
 def camera_malfunction_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
-  all_cams = ('roadCameraState', 'wideRoadCameraState')
+  all_cams = ('roadCameraState', 'driverCameraState', 'wideRoadCameraState')
   bad_cams = [s.replace('State', '') for s in all_cams if s in sm.data.keys() and not sm.all_checks([s, ])]
   return NormalPermanentAlert("Camera Malfunction", ', '.join(bad_cams))
 
@@ -790,7 +789,6 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   # For example if the device is pointed too much to the left or the right.
   # Usually this can only be solved by removing the mount from the windshield completely,
   # and attaching while making sure the device is pointed straight forward and is level.
-  # See https://comma.ai/setup for more information
   EventName.calibrationInvalid: {
     ET.PERMANENT: calibration_invalid_alert,
     ET.SOFT_DISABLE: soft_disable_alert("Calibration Invalid: Remount Device & Recalibrate"),
@@ -1011,22 +1009,26 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.PERMANENT: audio_feedback_alert,
   },
 
-  EventName.greenLightAlert: {
-    ET.PERMANENT: Alert(
-      "Light Turned Green",
-      "",
-      AlertStatus.userPrompt, AlertSize.small,
-      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
-  },
-
-  EventName.leadDepartingAlert: {
-    ET.PERMANENT: Alert(
-      "Lead Vehicle Departing",
-      "",
-      AlertStatus.userPrompt, AlertSize.small,
-      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
-  },
 }
+
+from openpilot.nagaspilot.manager.eop_events import register_eop_events
+
+register_eop_events(
+  EVENTS,
+  EventName=EventName,
+  ET=ET,
+  Alert=Alert,
+  AlertStatus=AlertStatus,
+  AlertSize=AlertSize,
+  Priority=Priority,
+  VisualAlert=VisualAlert,
+  AudibleAlert=AudibleAlert,
+  ImmediateDisableAlert=ImmediateDisableAlert,
+  NoEntryAlert=NoEntryAlert,
+  NormalPermanentAlert=NormalPermanentAlert,
+  EngagementAlert=EngagementAlert,
+  soft_disable_alert=soft_disable_alert,
+)
 
 
 if __name__ == '__main__':
