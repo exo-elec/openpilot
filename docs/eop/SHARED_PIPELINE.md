@@ -80,3 +80,12 @@ The EOP-only distance-scale fix uses EOPPathdFixScaleEnabled (PDSF in the
 PyQt5 settings). Old ngp_pathd_fix_scale values remain a read fallback when
 the canonical key is absent. It stays off by default; this does not change
 existing speed-reduction behavior automatically.
+
+The NGP refresh passed 72 focused parent policy/naming tests, 132 integrated
+EOP policy/adapter tests, four daemon scale-switch refresh tests and the
+212-test offscreen UI gate. Both upstream footprint gates and the renderer
+selection tests pass. The NGP schema was also loaded from real source in a
+host fixture: personality values and six pipeline messages were checked.
+All 448 original parameter definitions are preserved; EOP log/custom schema
+blobs and native C++ UI source remain unchanged. Host tests do not replace
+compiled IPC, a native UI build, driving replay or hardware validation.
