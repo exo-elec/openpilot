@@ -1,16 +1,9 @@
-<div align="center" style="text-align: center;">
+<div align="center">
 
-<h1>Openpilot EDP10</h1>
+<h1>EDP10 🐉</h1>
+<p><b>The independent DragonPilot 0.10.0 development line for original comma 3 and BYD Atto 3.</b></p>
 
-<p><b>The EDP10 development branch of the ExoPilot openpilot repository.</b></p>
-
-<h3>
-  <a href="#project-features">Features</a> ·
-  <a href="#project-branches">Branches</a> ·
-  <a href="#project-install">Install</a> ·
-  <a href="#project-details">Details</a> ·
-  <a href="#project-bug-reports">Bug reports</a>
-</h3>
+<h3><a href="#openpilot-vs-edp10">Features</a> · <a href="#-highlight-features">Highlights</a> · <a href="#-branches">Branches</a> · <a href="#-how-to-install">Install</a> · <a href="docs/SAFETY.md">Safety</a></h3>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Branch](https://img.shields.io/badge/Branch-dev%2FEDP10-blue)](https://github.com/exo-elec/openpilot/tree/dev/EDP10)
@@ -18,78 +11,144 @@
 
 </div>
 
-------
+---
 
-<a id="project-requirements"></a>
+## Using EDP10 in a car
 
-Using Openpilot EDP10
-------
+1. **Device:** original comma 3, with its wide/narrow road cameras. This branch does not target Exopilot Rockchip boards.
+2. **Software:** `dev/EDP10`, built and configured for this project.
+3. **Vehicle:** the BYD Atto 3 development target; identification, harness and Panda safety support must match the build.
+4. **Validation:** follow the [branch concept](nagaspilot/docs/BRANCH_CONCEPT.md) and [migration plan](nagaspilot/docs/MIGRATION_PLAN.md). Factory longitudinal/AEB is the project default; openpilot longitudinal is a separate trial.
 
-1. **Hardware and tools:** The device, vehicle and harness appropriate to this branch; see its project notes below.
-2. **Software:** this branch, `dev/EDP10`.
-3. **Configuration:** use this branch's project settings and integration notes.
-4. **Setup:** follow *How to Install* and the detailed project guide below.
+EDP10 remains development-only. “Conservative” describes project scope, not a tested release or a safety certification.
 
-<a id="project-features"></a>
+## openpilot vs EDP10
 
-🌟 Highlight Features
-------
+**Base:** DragonPilot 0.10.0 · **Reference:** openpilot v0.10.0 · **Reviewed:** 2026-10-09
 
-- Driver-assistance planning and controls.
-- Vehicle interfaces and messaging.
-- Branch-specific NagasPilot or ExoPilot development.
+✅ Implemented / inherited · ❌ Absent · ⏳ Deferred / incomplete
 
-<a id="project-branches"></a>
-
-🔧 Branches
-------
-
-| Branch | Description | Use |
-|---|---|---|
-| [`audit/final-ngp10`](https://github.com/exo-elec/openpilot/tree/audit/final-ngp10) | Audit: final ngp10 | Development / review |
-| [`dev/EDP10` **(this branch)**](https://github.com/exo-elec/openpilot/tree/dev/EDP10) | Project variant: EDP10 | Project variant |
-| [`dev/EOP10`](https://github.com/exo-elec/openpilot/tree/dev/EOP10) | Shared ExoPilot application base | Project variant |
-| [`dev/NGP10`](https://github.com/exo-elec/openpilot/tree/dev/NGP10) | NagasPilot for comma 3 / 3X | Project variant |
-| [`dev/01M`](https://github.com/exo-elec/openpilot/tree/dev/01M) | ExoPilot 01M device edition | Project variant |
-| [`dev/02M`](https://github.com/exo-elec/openpilot/tree/dev/02M) | ExoPilot 02M device edition | Project variant |
-| [`nagaspilot`](https://github.com/exo-elec/openpilot/tree/nagaspilot) | Project development: nagaspilot | Project variant |
-
-Use the branch that matches your hardware and task. A branch name does not establish release or validation status.
-
-<a id="project-install"></a>
-
-🧰 How to Install
-------
-
-Check out this branch:
-
-```bash
-git clone --branch dev/EDP10 https://github.com/exo-elec/openpilot.git
+```mermaid
+flowchart LR
+  OP["openpilot v0.10.0"] --> NGP["NGP10 · comma"]
+  NGP --> EOP["EOP10 · Exopilot"]
+  EOP --> M1["01M · 1024×600"]
+  M1 --> M2["02M · 1600×600"]
+  OP --> DP["DragonPilot 0.10.0"]
+  DP --> EDP["EDP10 · independent"]
 ```
 
-Cloning only downloads the source. Complete the branch-specific build, setup or
-flashing steps under *Details* before running it.
+#### Core Features
 
-<a id="project-credits"></a>
+| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+|---|---|---|---|
+| Adaptive Cruise Control (ACC) | ✅ | ✅ | Factory BYD longitudinal remains the project default |
+| Experimental driving mode (EXP) | ✅ | ✅ | Openpilot longitudinal requires separate validation |
+| Adaptive Experimental Mode (AEM) | ❌ | ✅ | `dp_lon_aem`; ACC/blended arbitration, not NGP DLON |
+| Adaptive Coasting Mode (ACM) | ❌ | ✅ | Optional `dp_lon_acm`, downhill option; not validated BYD braking behavior |
+| Camera Driver Monitoring (DM) | ✅ | ✅ | Legacy configuration/disable behavior requires deployment review |
+| Shared NGP Steering Activity Monitoring (SAM) | ❌ | ❌ | Current NGP driveractivityd replacement is not ported here |
+| DLON / DLAT fork profiles | ❌ | ❌ | Deferred/rejected by EDP port plan; AEM remains distinct |
 
-📋 Credits and Base Projects
-------
+#### Device & Hardware
 
-- [comma.ai openpilot](https://github.com/commaai/openpilot)
+| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+|---|---|---|---|
+| Original comma 3 | ✅ | ✅ | Snapdragon 845 target |
+| Vehicle integration | ✅ | ✅ | Separate BYD port and Panda safety work |
+| Exopilot HAL / RK3588 / RK3576 | ❌ | ❌ | EOP-only hardware; not imported into EDP |
+| Native Qt UI / offroad settings | ✅ | ✅ | `dp_*` settings and device-specific controls |
+| Driving model selector | ❌ | ✅ | Model provisioning and compatibility required |
+| Dashy dashboard / beep / logging delay / shutdown | ❌ | ✅ | Optional/configuration-dependent, not a blanket enabled claim |
+| Modern NGP Chestnut runner / USB eGPU | ❌ | ❌ | Latest NGP integration is not carried into EDP |
 
-Branch-specific attribution, license notices and project additions are documented below.
+#### Gas / Brake
 
-<a id="project-bug-reports"></a>
+| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+|---|---|---|---|
+| Bumpy Road Speed Controller (BRSC) | ❌ | ✅ | `ngp_lon_brsc` with EDP DPFlags/plannerd integration |
+| Vision Turn Speed Controller (VTSC) | ❌ | ⏳ | Previous “ported” documentation was corrected; remains deferred |
+| Dynamic TJA / lane-change lead handoff | ❌ | ⏳ | Not equivalent to NGP/EOP additions |
+| Map / navigation / traffic-light controllers (MTSC / MSLC / NSLC / TLSC) | ❌ | ❌ | No current NGP/EOP feature carryover claim |
+| Radar AEB / RCD / SQSC | ❌ | ❌ | Preserve stock BYD AEB; no EOP perception intervention port |
+| External radar option | ✅ | ✅ | `dp_lon_ext_radar`; not Exopilot forward UART Radar3D |
 
-🐞 Bug Reports / Feature Requests
-------
+#### Steering & Lane Changes
 
-Report problems to the repository maintainer through the available
-[GitHub channels](https://github.com/exo-elec/openpilot). If Issues is enabled, [open an issue](https://github.com/exo-elec/openpilot/issues).
+| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+|---|---|---|---|
+| Lane Centering (LKAS) | ✅ | ✅ | Supported interface and validated safety model required |
+| Always-on Lane Centering (ALCC) | ❌ | ✅ | Driver label ALCC; internal `dp_lat_alka` compatibility retained |
+| Lane Change Assist (LCA) | ✅ | ✅ | Minimum speed and optional delay via `dp_lat_lca_*` |
+| Road-edge lane-change guard (RED) | ✅ | ✅ | Blocks lane changes; not EOP curvature nudge/side-camera classification |
+| Smart Offset Control / CAT / LatNudge / LonNudge | ❌ | ❌ | EOP implementations not adopted by the conservative port |
 
-Include the branch, hardware, software/toolchain versions, steps to reproduce,
-expected behavior and what happened. Attach relevant logs or screenshots with
-credentials and personal data removed.
+#### Radar, UI & Voice
+
+| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+|---|---|---|---|
+| OEM blind-spot flags | ✅ | ✅ | Actual BSM flags; no invented surround objects |
+| Canonical Radar2D / Radar3D / Radar4D EOP pipeline | ❌ | ❌ | Distinct from DragonPilot external radar support |
+| MonoD / GridD / PathD / DPP | ❌ | ❌ | Current shared NGP/EOP perception pipeline not ported |
+| PyQt5 Nagasware layout / floating OSM widgets | ❌ | ❌ | EDP retains native Qt, not 01M/02M presentation |
+| Google cloudd voice / CPU wake / animated voice card | ❌ | ❌ | EOP implementation not carried here |
+| Portable TripD | ❌ | ⏳ | Listed as an optional later port, not implemented support |
+
+## 🌟 Highlight Features
+
+| | Feature | Origin / behavior |
+|---|---|---|
+| 🐉 | AEM / ACM / ALCC / LCA | Carried from DragonPilot |
+| 🛞 | BRSC | Portable NGP policy + EDP planner glue |
+| 🚘 | BYD Atto 3 target | Factory longitudinal/AEB by default |
+| 🧱 | Independent baseline | No Exopilot HAL or 01M/02M UI |
+
+| Branch | Parent | Main difference |
+|---|---|---|
+| EDP10 | DragonPilot 0.10.0 | Independent comma 3 / BYD line |
+| NGP10 | openpilot v0.10.0 | Portable controls / SAM / camera pipeline |
+| EOP10 | NGP10 | Extended Exopilot vehicle / sensors / cloud |
+| 01M | EOP10 | Shared 1024×600 PyQt5 profile |
+| 02M | 01M | Shared 1600×600 profile + floating panels |
+
+[EDP branch concept](nagaspilot/docs/BRANCH_CONCEPT.md) · [Migration plan](nagaspilot/docs/MIGRATION_PLAN.md) · [Other branches: full comparison](https://github.com/exo-elec/openpilot/blob/dev/NGP10/nagaspilot/docs/BRANCH_FEATURE_COMPARISON.md)
+
+## 🔧 Branches
+
+| Branch | Hardware / purpose | Status |
+|---|---|---|
+| `dev/EDP10` **(this branch)** | Original comma 3 / BYD Atto 3, DragonPilot base | Independent development line |
+| `dev/NGP10` | Comma portable feature baseline | Development |
+| `dev/EOP10` | Exopilot platform base | Development |
+| `dev/01M` | 1024×600 PyQt5 display | Development |
+| `dev/02M` | 1600×600 PyQt5 display | Development |
+
+## 🧰 How to Install
+
+No EDP installer URL is advertised. Download this branch and its pinned submodules:
+
+```bash
+git clone --recurse-submodules --branch dev/EDP10 https://github.com/exo-elec/openpilot.git
+```
+
+Complete the [migration/setup requirements](nagaspilot/docs/MIGRATION_PLAN.md) before building or running. Cloning source is not device installation or vehicle validation. The upstream installer examples in the reference section below install upstream software, not EDP10.
+
+## 🐞 Bug Reports / Feature Requests
+
+Use [GitHub Issues](https://github.com/exo-elec/openpilot/issues). Include branch, device, vehicle, versions, reproduction steps and relevant logs.
+
+## 📋 Credits
+
+- [comma.ai openpilot](https://github.com/commaai/openpilot): baseline software and MIT notices.
+- [DragonPilot / Rick Lan](https://github.com/dragonpilot/dragonpilot): inherited DragonPilot implementation and history.
+- NagasPilot: selected portable policy ports, including BRSC.
+- README presentation inspired by [FrogPilot](https://github.com/FrogAi/FrogPilot/blob/FrogPilot/README.md); feature claims remain specific to this branch.
+
+## ⚖️ Safety & Validation
+
+Inherited source and project plans do not establish a tested release. Vehicle identification, camera/process configuration, Panda safety and longitudinal trial gates remain deployment requirements. EDP10 does not inherit NGP's new SAM producer or EOP's radar emergency-braking implementation. Read [SAFETY.md](docs/SAFETY.md) and the branch-specific migration notes. Original license and upstream reference notices follow.
+
+---
 
 <a id="project-details"></a>
 
@@ -176,7 +235,7 @@ Safety and Testing
 ----
 
 * openpilot observes [ISO26262](https://en.wikipedia.org/wiki/ISO_26262) guidelines, see [SAFETY.md](docs/SAFETY.md) for more details.
-* openpilot has software-in-the-loop [tests](.github/workflows/selfdrive_tests.yaml) that run on every commit.
+* openpilot has software-in-the-loop [tests](https://github.com/commaai/openpilot/blob/v0.10.0/.github/workflows/selfdrive_tests.yaml) that run on every commit.
 * The code enforcing the safety model lives in panda and is written in C, see [code rigor](https://github.com/commaai/panda#code-rigor) for more details.
 * panda has software-in-the-loop [safety tests](https://github.com/commaai/panda/tree/master/tests/safety).
 * Internally, we have a hardware-in-the-loop Jenkins test suite that builds and unit tests the various processes.
