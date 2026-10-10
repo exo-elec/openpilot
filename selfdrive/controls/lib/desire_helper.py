@@ -1,3 +1,4 @@
+from nagaspilot.controls.ngp_radar2d import blindspot_blocked
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
@@ -82,8 +83,8 @@ class DesireHelper:
                          ((carstate.steeringTorque > 0 and self.lane_change_direction == LaneChangeDirection.left) or
                           (carstate.steeringTorque < 0 and self.lane_change_direction == LaneChangeDirection.right))
 
-        blindspot_detected = (((carstate.leftBlindspot or left_edge_detected) and self.lane_change_direction == LaneChangeDirection.left) or
-                              ((carstate.rightBlindspot or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
+        blindspot_detected = (((blindspot_blocked(carstate.leftBlindspot, carstate.rightBlindspot, "left") or left_edge_detected) and self.lane_change_direction == LaneChangeDirection.left) or
+                              ((blindspot_blocked(carstate.leftBlindspot, carstate.rightBlindspot, "right") or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
 
         # DLAT lane-confidence gate: don't initiate (or accumulate toward a
         # nudgeless auto-initiate) while lane-line confidence is too low to
