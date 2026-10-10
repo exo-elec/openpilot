@@ -1,0 +1,5002 @@
+[
+ {
+  "messages": [
+   [
+    599,
+    "17803e0000000000",
+    0
+   ],
+   [
+    280,
+    "9900800000000000",
+    0
+   ],
+   [
+    325,
+    "8600004000000000",
+    0
+   ],
+   [
+    880,
+    "000008022000009d",
+    0
+   ],
+   [
+    646,
+    "db20320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000000056",
+    0
+   ],
+   [
+    785,
+    "34200000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000000de",
+    2
+   ],
+   [
+    297,
+    "0000000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000000bb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 0.0,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -0.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": false,
+    "speed": 0.0010000000474974513,
+    "available": false,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "unknown",
+   "steeringRateDeg": -0.0,
+   "aEgo": 0.0,
+   "vEgoRaw": 0.0,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": true,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "48b13e0000000000",
+    0
+   ],
+   [
+    280,
+    "9d01800003000000",
+    0
+   ],
+   [
+    325,
+    "4701000000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860050179",
+    0
+   ],
+   [
+    646,
+    "dc21320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000001066",
+    0
+   ],
+   [
+    785,
+    "36210001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000010be",
+    2
+   ],
+   [
+    297,
+    "0001000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000020db",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.177778244018555,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -0.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 0.0,
+   "vEgoRaw": 11.177778244018555,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "69d23e0000000000",
+    0
+   ],
+   [
+    280,
+    "9b02800000000000",
+    0
+   ],
+   [
+    325,
+    "4802000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a00a0229",
+    0
+   ],
+   [
+    646,
+    "dd22320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000002076",
+    0
+   ],
+   [
+    785,
+    "36220000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000020fe",
+    2
+   ],
+   [
+    297,
+    "0002000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000040fb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.185514450073242,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -1.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 0.07374413311481476,
+   "vEgoRaw": 11.222222328186035,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "8af33e0000000000",
+    0
+   ],
+   [
+    280,
+    "9f03800003000000",
+    0
+   ],
+   [
+    325,
+    "8903004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e00f0305",
+    0
+   ],
+   [
+    646,
+    "de23320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000003086",
+    0
+   ],
+   [
+    785,
+    "38230001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000030de",
+    2
+   ],
+   [
+    297,
+    "0003000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000601b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.200377464294434,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -1.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 0.20839646458625793,
+   "vEgoRaw": 11.266666412353516,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "bc243f0000000000",
+    0
+   ],
+   [
+    280,
+    "9d04800000000000",
+    0
+   ],
+   [
+    325,
+    "4a04000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802201404b5",
+    0
+   ],
+   [
+    646,
+    "df24320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000004096",
+    0
+   ],
+   [
+    785,
+    "38240000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000401e",
+    2
+   ],
+   [
+    297,
+    "0004000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000803b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.225603103637695,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -2.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 0.4290045499801636,
+   "vEgoRaw": 11.333333015441895,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "ed553f0000000000",
+    0
+   ],
+   [
+    280,
+    "a105800003000000",
+    0
+   ],
+   [
+    325,
+    "4b05000000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860190591",
+    0
+   ],
+   [
+    646,
+    "e025320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000050a6",
+    0
+   ],
+   [
+    785,
+    "3a250001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000050fe",
+    2
+   ],
+   [
+    297,
+    "0005000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000a05b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.260249137878418,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -2.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 0.718372642993927,
+   "vEgoRaw": 11.399999618530273,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "0e763f0000000000",
+    0
+   ],
+   [
+    280,
+    "9f06800000000000",
+    0
+   ],
+   [
+    325,
+    "8c06004000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a01e0641",
+    0
+   ],
+   [
+    646,
+    "e126320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000060b6",
+    0
+   ],
+   [
+    785,
+    "3a260000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000603e",
+    2
+   ],
+   [
+    297,
+    "0006000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000c07b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.299493789672852,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -3.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 1.024000644683838,
+   "vEgoRaw": 11.44444465637207,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "3fa73f0000000000",
+    0
+   ],
+   [
+    280,
+    "a307800003000000",
+    0
+   ],
+   [
+    325,
+    "4d07000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e023071d",
+    0
+   ],
+   [
+    646,
+    "e227320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000070c6",
+    0
+   ],
+   [
+    785,
+    "3c270001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000701e",
+    2
+   ],
+   [
+    297,
+    "0007000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000e09b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.34656810760498,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -3.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 1.3751282691955566,
+   "vEgoRaw": 11.51111125946045,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "60c83f0000000000",
+    0
+   ],
+   [
+    280,
+    "a108800000000000",
+    0
+   ],
+   [
+    325,
+    "4e08000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802202808cd",
+    0
+   ],
+   [
+    646,
+    "e328320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000080d6",
+    0
+   ],
+   [
+    785,
+    "3c280000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000805e",
+    2
+   ],
+   [
+    297,
+    "0008000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000000bb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.396696090698242,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -4.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 1.7218917608261108,
+   "vEgoRaw": 11.55555534362793,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "91f93f0000000000",
+    0
+   ],
+   [
+    280,
+    "a509800003000000",
+    0
+   ],
+   [
+    325,
+    "8f09004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898602d09a9",
+    0
+   ],
+   [
+    646,
+    "e429320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000090e6",
+    0
+   ],
+   [
+    785,
+    "3e290001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000903e",
+    2
+   ],
+   [
+    297,
+    "0009000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000020db",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.453169822692871,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -4.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 2.096097707748413,
+   "vEgoRaw": 11.622221946716309,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "b31a400000000000",
+    0
+   ],
+   [
+    280,
+    "a30a800000000000",
+    0
+   ],
+   [
+    325,
+    "500a000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0320a59",
+    0
+   ],
+   [
+    646,
+    "e52a320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000a0f6",
+    0
+   ],
+   [
+    785,
+    "3e2a0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000a07e",
+    2
+   ],
+   [
+    297,
+    "000a000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000040fb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.511292457580566,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -5.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 2.4503440856933594,
+   "vEgoRaw": 11.666666984558105,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "e44b400000000000",
+    0
+   ],
+   [
+    280,
+    "a70b800003000000",
+    0
+   ],
+   [
+    325,
+    "510b000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e0370b35",
+    0
+   ],
+   [
+    646,
+    "e62b320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000b006",
+    0
+   ],
+   [
+    785,
+    "402b0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000b05e",
+    2
+   ],
+   [
+    297,
+    "000b000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000601b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.574443817138672,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -5.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 2.818767786026001,
+   "vEgoRaw": 11.733333587646484,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "056c400000000000",
+    0
+   ],
+   [
+    280,
+    "a50c800000000000",
+    0
+   ],
+   [
+    325,
+    "920c004000000000",
+    0
+   ],
+   [
+    880,
+    "00000802203c0ce5",
+    0
+   ],
+   [
+    646,
+    "e72c320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000c016",
+    0
+   ],
+   [
+    785,
+    "402c0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000c09e",
+    2
+   ],
+   [
+    297,
+    "000c000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000803b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.63802433013916,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -6.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 3.1561501026153564,
+   "vEgoRaw": 11.777777671813965,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "369d400000000000",
+    0
+   ],
+   [
+    280,
+    "a90d800003000000",
+    0
+   ],
+   [
+    325,
+    "530d000000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860410dc1",
+    0
+   ],
+   [
+    646,
+    "e82d320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000d026",
+    0
+   ],
+   [
+    785,
+    "422d0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000d07e",
+    2
+   ],
+   [
+    297,
+    "000d000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000a05b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.705514907836914,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -6.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 3.4986538887023926,
+   "vEgoRaw": 11.844444274902344,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "57be400000000000",
+    0
+   ],
+   [
+    280,
+    "a70e800000000000",
+    0
+   ],
+   [
+    325,
+    "540e000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0460e71",
+    0
+   ],
+   [
+    646,
+    "e92e320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000e036",
+    0
+   ],
+   [
+    785,
+    "422e0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000e0be",
+    2
+   ],
+   [
+    297,
+    "000e000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000c07b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.772419929504395,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -7.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 3.8029184341430664,
+   "vEgoRaw": 11.88888931274414,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "88ef400000000000",
+    0
+   ],
+   [
+    280,
+    "ab0f800003000000",
+    0
+   ],
+   [
+    325,
+    "950f004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e04b0f4d",
+    0
+   ],
+   [
+    646,
+    "ea2f320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000f046",
+    0
+   ],
+   [
+    785,
+    "442f0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000f09e",
+    2
+   ],
+   [
+    297,
+    "000f000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000e09b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.842326164245605,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -7.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 4.10678768157959,
+   "vEgoRaw": 11.95555591583252,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "9a00410000000000",
+    0
+   ],
+   [
+    280,
+    "9900800000000000",
+    0
+   ],
+   [
+    325,
+    "4600000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802205000ed",
+    0
+   ],
+   [
+    646,
+    "db20320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000000056",
+    0
+   ],
+   [
+    785,
+    "34200000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000000de",
+    2
+   ],
+   [
+    297,
+    "0000000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000000bb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.91083812713623,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -8.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 4.368409633636475,
+   "vEgoRaw": 12.0,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "cb31410000000000",
+    0
+   ],
+   [
+    280,
+    "9d01800003000000",
+    0
+   ],
+   [
+    325,
+    "4701000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898605501c9",
+    0
+   ],
+   [
+    646,
+    "dc21320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000001066",
+    0
+   ],
+   [
+    785,
+    "36210001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000010be",
+    2
+   ],
+   [
+    297,
+    "0001000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000020db",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 11.981646537780762,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -8.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 4.6269683837890625,
+   "vEgoRaw": 12.066666603088379,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "ec52410000000000",
+    0
+   ],
+   [
+    280,
+    "9b02800000000000",
+    0
+   ],
+   [
+    325,
+    "8802004000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a05a0279",
+    0
+   ],
+   [
+    646,
+    "dd22320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000002076",
+    0
+   ],
+   [
+    785,
+    "36220000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000020fe",
+    2
+   ],
+   [
+    297,
+    "0002000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000040fb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.050450325012207,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -9.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 4.841783046722412,
+   "vEgoRaw": 12.11111068725586,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "1d83410000000000",
+    0
+   ],
+   [
+    280,
+    "9f03800003000000",
+    0
+   ],
+   [
+    325,
+    "4903000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e05f0355",
+    0
+   ],
+   [
+    646,
+    "de23320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000003086",
+    0
+   ],
+   [
+    785,
+    "38230001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000030de",
+    2
+   ],
+   [
+    297,
+    "0003000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000601b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.121030807495117,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -9.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.0530524253845215,
+   "vEgoRaw": 12.177778244018555,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "3ea4410000000000",
+    0
+   ],
+   [
+    280,
+    "9d04800000000000",
+    0
+   ],
+   [
+    325,
+    "4a04000000000000",
+    0
+   ],
+   [
+    880,
+    "0000080220640405",
+    0
+   ],
+   [
+    646,
+    "df24320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000004096",
+    0
+   ],
+   [
+    785,
+    "38240000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000401e",
+    2
+   ],
+   [
+    297,
+    "0004000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000803b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.18917465209961,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -10.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.220954895019531,
+   "vEgoRaw": 12.222222328186035,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "6fd5410000000000",
+    0
+   ],
+   [
+    280,
+    "a105800003000000",
+    0
+   ],
+   [
+    325,
+    "8b05004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898606905e1",
+    0
+   ],
+   [
+    646,
+    "e025320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000050a6",
+    0
+   ],
+   [
+    785,
+    "3a250001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000050fe",
+    2
+   ],
+   [
+    297,
+    "0005000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000a05b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.258740425109863,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -10.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.386405944824219,
+   "vEgoRaw": 12.288888931274414,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "90f6410000000000",
+    0
+   ],
+   [
+    280,
+    "9f06800000000000",
+    0
+   ],
+   [
+    325,
+    "4c06000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a06e0691",
+    0
+   ],
+   [
+    646,
+    "e126320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000060b6",
+    0
+   ],
+   [
+    785,
+    "3a260000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000603e",
+    2
+   ],
+   [
+    297,
+    "0006000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000c07b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.32558822631836,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -11.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.510173797607422,
+   "vEgoRaw": 12.333333015441895,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "c227420000000000",
+    0
+   ],
+   [
+    280,
+    "a307800003000000",
+    0
+   ],
+   [
+    325,
+    "4d07000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e073076d",
+    0
+   ],
+   [
+    646,
+    "e227320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000070c6",
+    0
+   ],
+   [
+    785,
+    "3c270001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000701e",
+    2
+   ],
+   [
+    297,
+    "0007000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000e09b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.39364242553711,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -11.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.633640766143799,
+   "vEgoRaw": 12.399999618530273,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "e348420000000000",
+    0
+   ],
+   [
+    280,
+    "a108800000000000",
+    0
+   ],
+   [
+    325,
+    "8e08004000000000",
+    0
+   ],
+   [
+    880,
+    "000008022078081d",
+    0
+   ],
+   [
+    646,
+    "e328320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000080d6",
+    0
+   ],
+   [
+    785,
+    "3c280000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000805e",
+    2
+   ],
+   [
+    297,
+    "0008000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000000bb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.458821296691895,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -12.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.717935085296631,
+   "vEgoRaw": 12.44444465637207,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "1479420000000000",
+    0
+   ],
+   [
+    280,
+    "a509800003000000",
+    0
+   ],
+   [
+    325,
+    "4f09000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898607d09f9",
+    0
+   ],
+   [
+    646,
+    "e429320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000090e6",
+    0
+   ],
+   [
+    785,
+    "3e290001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000903e",
+    2
+   ],
+   [
+    297,
+    "0009000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000020db",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.525102615356445,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -12.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.8046979904174805,
+   "vEgoRaw": 12.51111125946045,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "359a420000000000",
+    0
+   ],
+   [
+    280,
+    "a30a800000000000",
+    0
+   ],
+   [
+    325,
+    "500a000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0820aa9",
+    0
+   ],
+   [
+    646,
+    "e52a320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000a0f6",
+    0
+   ],
+   [
+    785,
+    "3e2a0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000a07e",
+    2
+   ],
+   [
+    297,
+    "000a000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000040fb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.588449478149414,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -13.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.855227470397949,
+   "vEgoRaw": 12.55555534362793,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "66cb420000000000",
+    0
+   ],
+   [
+    280,
+    "a70b800003000000",
+    0
+   ],
+   [
+    325,
+    "910b004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e0870b85",
+    0
+   ],
+   [
+    646,
+    "e62b320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000b006",
+    0
+   ],
+   [
+    785,
+    "402b0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000b05e",
+    2
+   ],
+   [
+    297,
+    "000b000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000601b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.652880668640137,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -13.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.911263942718506,
+   "vEgoRaw": 12.622221946716309,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "87ec420000000000",
+    0
+   ],
+   [
+    280,
+    "a50c800000000000",
+    0
+   ],
+   [
+    325,
+    "520c000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802208c0c35",
+    0
+   ],
+   [
+    646,
+    "e72c320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000c016",
+    0
+   ],
+   [
+    785,
+    "402c0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000c09e",
+    2
+   ],
+   [
+    297,
+    "000c000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000803b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.71439266204834,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -14.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.934139251708984,
+   "vEgoRaw": 12.666666984558105,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "b91d430000000000",
+    0
+   ],
+   [
+    280,
+    "a90d800003000000",
+    0
+   ],
+   [
+    325,
+    "530d000000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860910d11",
+    0
+   ],
+   [
+    646,
+    "e82d320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000d026",
+    0
+   ],
+   [
+    785,
+    "422d0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000d07e",
+    2
+   ],
+   [
+    297,
+    "000d000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000a05b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.777030944824219,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -14.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.965566635131836,
+   "vEgoRaw": 12.733333587646484,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "da3e430000000000",
+    0
+   ],
+   [
+    280,
+    "a70e800000000000",
+    0
+   ],
+   [
+    325,
+    "940e004000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0960ec1",
+    0
+   ],
+   [
+    646,
+    "e92e320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000e036",
+    0
+   ],
+   [
+    785,
+    "422e0000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000e0be",
+    2
+   ],
+   [
+    297,
+    "000e000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000c07b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.836816787719727,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -15.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.966805458068848,
+   "vEgoRaw": 12.777777671813965,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "0b6f430000000000",
+    0
+   ],
+   [
+    280,
+    "ab0f800003000000",
+    0
+   ],
+   [
+    325,
+    "550f000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e09b0f9d",
+    0
+   ],
+   [
+    646,
+    "ea2f320100000000",
+    0
+   ],
+   [
+    341,
+    "000000000000f046",
+    0
+   ],
+   [
+    785,
+    "442f0001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000f09e",
+    2
+   ],
+   [
+    297,
+    "000f000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000e09b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.897812843322754,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -15.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.979461669921875,
+   "vEgoRaw": 12.844444274902344,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "1c80430000000000",
+    0
+   ],
+   [
+    280,
+    "9900800000000000",
+    0
+   ],
+   [
+    325,
+    "4600000000000000",
+    0
+   ],
+   [
+    880,
+    "0000080220a0003d",
+    0
+   ],
+   [
+    646,
+    "db20320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000000056",
+    0
+   ],
+   [
+    785,
+    "34200000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000000de",
+    2
+   ],
+   [
+    297,
+    "0000000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000000bb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 12.956053733825684,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -16.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.964655876159668,
+   "vEgoRaw": 12.88888931274414,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "4db1430000000000",
+    0
+   ],
+   [
+    280,
+    "9d01800003000000",
+    0
+   ],
+   [
+    325,
+    "8701004000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860a50119",
+    0
+   ],
+   [
+    646,
+    "dc21320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000001066",
+    0
+   ],
+   [
+    785,
+    "36210001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000010be",
+    2
+   ],
+   [
+    297,
+    "0001000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000020db",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.015613555908203,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -16.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.963829517364502,
+   "vEgoRaw": 12.95555591583252,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "6ed2430000000000",
+    0
+   ],
+   [
+    280,
+    "9b02800000000000",
+    0
+   ],
+   [
+    325,
+    "4802000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0aa02c9",
+    0
+   ],
+   [
+    646,
+    "dd22320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000002076",
+    0
+   ],
+   [
+    785,
+    "36220000000000",
+    0
+   ],
+   [
+    923,
+    "40000000000020fe",
+    2
+   ],
+   [
+    297,
+    "0002000004200000",
+    2
+   ],
+   [
+    697,
+    "00000000000040fb",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.072534561157227,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -17.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.937922477722168,
+   "vEgoRaw": 13.0,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "a003440000000000",
+    0
+   ],
+   [
+    280,
+    "9f03800003000000",
+    0
+   ],
+   [
+    325,
+    "4903000000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e0af03a5",
+    0
+   ],
+   [
+    646,
+    "de23320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000003086",
+    0
+   ],
+   [
+    785,
+    "38230001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000030de",
+    2
+   ],
+   [
+    297,
+    "0003000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000601b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.130891799926758,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -17.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.928186416625977,
+   "vEgoRaw": 13.066666603088379,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "c124440000000000",
+    0
+   ],
+   [
+    280,
+    "9d04800000000000",
+    0
+   ],
+   [
+    325,
+    "8a04004000000000",
+    0
+   ],
+   [
+    880,
+    "0000080220b40455",
+    0
+   ],
+   [
+    646,
+    "df24320100000000",
+    0
+   ],
+   [
+    341,
+    "0000000000004096",
+    0
+   ],
+   [
+    785,
+    "38240000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000401e",
+    2
+   ],
+   [
+    297,
+    "0004000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000803b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.186731338500977,
+   "gasPressed": false,
+   "brakePressed": true,
+   "steeringAngleDeg": -18.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.895363807678223,
+   "vEgoRaw": 13.11111068725586,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "f255440000000000",
+    0
+   ],
+   [
+    280,
+    "a105800003000000",
+    0
+   ],
+   [
+    325,
+    "4b05000000000000",
+    0
+   ],
+   [
+    880,
+    "0000089860b90531",
+    0
+   ],
+   [
+    646,
+    "e025320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000050a6",
+    0
+   ],
+   [
+    785,
+    "3a250001000000",
+    0
+   ],
+   [
+    923,
+    "10000000000050fe",
+    2
+   ],
+   [
+    297,
+    "0005000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000a05b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.244126319885254,
+   "gasPressed": true,
+   "brakePressed": false,
+   "steeringAngleDeg": -18.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.880508899688721,
+   "vEgoRaw": 13.177778244018555,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "1376440000000000",
+    0
+   ],
+   [
+    280,
+    "9f06800000000000",
+    0
+   ],
+   [
+    325,
+    "4c06000000000000",
+    0
+   ],
+   [
+    880,
+    "00000802a0be06e1",
+    0
+   ],
+   [
+    646,
+    "e126320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000060b6",
+    0
+   ],
+   [
+    785,
+    "3a260000000000",
+    0
+   ],
+   [
+    923,
+    "400000000000603e",
+    2
+   ],
+   [
+    297,
+    "0006000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000c07b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.299118995666504,
+   "gasPressed": false,
+   "brakePressed": false,
+   "steeringAngleDeg": -19.0,
+   "steeringTorque": -0.0,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.844164848327637,
+   "vEgoRaw": 13.222222328186035,
+   "standstill": false,
+   "leftBlinker": false,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": false,
+   "rightBlindspot": true,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": false,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ },
+ {
+  "messages": [
+   [
+    599,
+    "44a7440000000000",
+    0
+   ],
+   [
+    280,
+    "a307800003000000",
+    0
+   ],
+   [
+    325,
+    "8d07004000000000",
+    0
+   ],
+   [
+    880,
+    "00000898e0c307bd",
+    0
+   ],
+   [
+    646,
+    "e227320100000000",
+    0
+   ],
+   [
+    341,
+    "00000000000070c6",
+    0
+   ],
+   [
+    785,
+    "3c270001000000",
+    0
+   ],
+   [
+    923,
+    "100000000000701e",
+    2
+   ],
+   [
+    297,
+    "0007000004200000",
+    2
+   ],
+   [
+    697,
+    "000000000000e09b",
+    2
+   ]
+  ],
+  "expected": {
+   "deprecated": {
+    "gas": 0.0,
+    "brake": 0.0,
+    "brakeLights": false,
+    "clutchPressed": false,
+    "steeringRateLimited": false,
+    "engineRpm": 0.0,
+    "canRcvTimeout": false
+   },
+   "vEgo": 13.355779647827148,
+   "gasPressed": true,
+   "brakePressed": true,
+   "steeringAngleDeg": -19.5,
+   "steeringTorque": -1.5,
+   "steeringPressed": false,
+   "cruiseState": {
+    "enabled": true,
+    "speed": 13.88888931274414,
+    "available": true,
+    "deprecated": {
+     "speedOffset": 0.0
+    },
+    "standstill": false,
+    "nonAdaptive": false,
+    "speedCluster": 0.0
+   },
+   "gearShifter": "drive",
+   "steeringRateDeg": -2.0,
+   "aEgo": 5.82719087600708,
+   "vEgoRaw": 13.288888931274414,
+   "standstill": false,
+   "leftBlinker": true,
+   "rightBlinker": false,
+   "yawRate": 0.0,
+   "genericToggle": false,
+   "doorOpen": false,
+   "seatbeltUnlatched": false,
+   "canValid": false,
+   "steeringTorqueEps": 0.0,
+   "stockAeb": false,
+   "stockFcw": false,
+   "espDisabled": false,
+   "leftBlindspot": true,
+   "rightBlindspot": false,
+   "steerFaultTemporary": true,
+   "steerFaultPermanent": false,
+   "steeringAngleOffsetDeg": 0.0,
+   "brakeHoldActive": false,
+   "parkingBrake": false,
+   "canTimeout": false,
+   "fuelGauge": 0.0,
+   "accFaulted": false,
+   "charging": false,
+   "vEgoCluster": 0.0,
+   "regenBraking": false,
+   "carFaultedNonCritical": false,
+   "canErrorCounter": 0,
+   "cumLagMs": 0.0,
+   "espActive": false,
+   "vehicleSensorsInvalid": false,
+   "vCruise": 0.0,
+   "vCruiseCluster": 0.0,
+   "invalidLkasSetting": false,
+   "lowSpeedAlert": false,
+   "buttonEnable": false,
+   "steeringDisengage": true,
+   "stockLkas": false,
+   "blockPcmEnable": false,
+   "carNotReady": false
+  }
+ }
+]

@@ -1143,6 +1143,8 @@ struct Radar4DPoint @0xa1b2c3d4e5f60718 {
   isStatic      @7 :Bool;     # ego-velocity compensated: true = stationary clutter
   dynProp       @8 :UInt8;    # ARS-style: 0=stationary, 1=moving, 2=stopped
   aRel          @9 :Float32;  # longitudinal relative acceleration (m/s^2), negative = braking
+  corner        @10 :UInt8;
+  source        @11 :UInt8;   # 2=WiFi raw point cloud
 }
 
 struct Radar4DObject @0xb3c4d5e6f7a80921 {
@@ -1162,11 +1164,13 @@ struct Radar4DObject @0xb3c4d5e6f7a80921 {
   widthM        @11 :Float32; # estimated object width (m), lateral axis
   heightM       @12 :Float32; # estimated object height (m), vertical axis
   yawRad        @13 :Float32; # estimated object heading (rad), 0=forward
-  pointCount    @14 :UInt8;   # number of radar points in the cluster
+  pointCount    @14 :UInt8;   # 0=BLE track, otherwise supporting radar points
+  corner        @15 :UInt8;
+  source        @16 :UInt8;   # 1=BLE tracked 3D object; 2=WiFi cluster
 }
 
 struct Radar4D @0xf2a3b4c5d6e7f8e1 {
-  # Socket: radar4d  |  Published by: selfdrive/controls/radar4d.py (02M only)
+  # Socket: radar4d | Canonical surround output on every Exopilot board
   # Consumed by: selfdrive/gridd/gridd.py (_fuse_radar4d)
   points  @0 :List(Radar4DPoint);
   objects @1 :List(Radar4DObject);  # lidar-style clustered objects (new)
@@ -1178,6 +1182,8 @@ struct Radar4D @0xf2a3b4c5d6e7f8e1 {
   visionBlocked @8 :Bool;     # contamination film blocks all far returns — road not visible to radar
   dropOffHazard @3 :Bool;     # negative obstacle ahead (cliff edge / ditch)
   dropOffDistM  @4 :Float32;  # distance to the drop-off evidence (m, 0 = none)
+  bleCorners    @9 :List(UInt8);  # corners with positioned BLE tracks
+  wifiCorners   @10 :List(UInt8); # corners with fresh point-cloud frames
 }
 
 struct Radar2DReturn @0xd2a3b4c5e6f70819 {

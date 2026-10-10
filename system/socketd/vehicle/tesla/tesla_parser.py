@@ -1,8 +1,8 @@
-"""OpenDBC Tesla parser adapter for the BrownPanda SocketCAN topology."""
+"""EOP-native Tesla parser adapter for the BrownPanda SocketCAN topology."""
 
 import time
 
-from opendbc.can import CANParser
+from openpilot.system.socketd.vehicle.protocol.parser import CANParser
 
 
 TESLA_MESSAGE_ADDRESSES = (
@@ -12,7 +12,7 @@ TESLA_MESSAGE_ADDRESSES = (
 
 
 class SimpleCANParser:
-  """Small boundary wrapper; all decoding is performed by OpenDBC."""
+  """Small boundary wrapper; all decoding is performed by EOP-native."""
 
   def __init__(self, dbc_name: str, signals, bus: int):
     self.bus = bus

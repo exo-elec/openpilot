@@ -53,10 +53,10 @@ class Params:
     return val.encode() if isinstance(val, str) else val
 
   def get_bool(self, key: str) -> bool:
-    return self._data.get(key) == b"1"
+    return self._data.get(key) in (True, b"1", "1")
 
   def put(self, key: str, val: str | bytes) -> None:
-    self._data[key] = val.decode() if isinstance(val, bytes) else val
+    self._data[key] = val
 
   def put_bool(self, key: str, val: bool) -> None:
     self._data[key] = "1" if val else "0"

@@ -11,14 +11,18 @@ describes that contract.)*
 
 ## Radar classification (current)
 
-| Socket | Source | Range | Consumers | Purpose |
-|--------|--------|-------|-----------|---------|
-| `radar2d` | ESP32-S3 corner radar nodes, BLE tracked objects | 0-10m presence | `gridd.py` → `stereoObjects` | blind-spot / lane-change gating |
-| `radar3d` | long-range UART radar (`system/radar3d/radar3d.py`) | 15-200m | `radard.py` → `radarState` (ACC), `gridd.py` → `stereoObjects` (adjacent-lane) | ACC lead tracking + forward merge/cut-in awareness |
-| `radar4d` | not in the EOP10 foundation: 02M WiFi point-cloud layer | 0-30m | 02M gridd costmap | close-range occupancy (02M) |
+| Layer | Source | Role |
+|---|---|---|
+| NGP radar2d | vehicle CAN BSD flags and portable planar logic | presence-only, no Exopilot drivers |
+| EOP radar3d | built-in forward UART hardware | ACC lead tracking |
+| EOP radar4d | BLE tracked 3D surround objects; optional WiFi point clouds | canonical surrounding object tracking and occupancy |
+| EOP radar2d view | radar4d BLE ground-plane projection plus CAN BSD flags | compatibility for BSD/navigation consumers |
 
-`radar3d` is the only one of the three that feeds two independent
-consumers — see "Two consumers, one producer" below.
+BLE and WiFi are transports, not dimensional classifications. BLE preserves
+range, azimuth, elevation, radial velocity and track IDs; it does not provide
+point-cloud shapes. WiFi points complement these tracks in the same radar4d
+message. The pipeline publishes each BLE object once; gridd selects canonical
+radar4d and uses the radar2d object path only as a compatibility fallback.
 
 ## Driver ownership — shared with the rest of the radar HAL
 

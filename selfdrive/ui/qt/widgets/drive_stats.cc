@@ -588,7 +588,7 @@ EopInfoDialog::EopInfoDialog(QWidget *parent) : DialogBase(parent) {
     tr("• Adaptive Lane Centering (ALC) — laneful and laneless\n"
        "• Adaptive Cruise Control with speed sign recognition\n"
        "• Blind Spot Detection (BSD) with proximity chime\n"
-       "• Driver Attention Monitoring via steering + rear camera\n"
+       "• Steering Activity Monitoring (SAM)\n"
        "• NavPilot — OSM turn-by-turn routing\n"
        "• Bird's Eye View (BEV) object overlay\n"
        "• Bluetooth NavPilot app pairing (iOS + Android)\n"

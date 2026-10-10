@@ -46,7 +46,7 @@ class TestCoverage:
   def test_descriptor_only_declares_real_params(self):
     # The other direction: a control for a key that no longer exists in the
     # header is dead UI that silently does nothing when toggled.
-    unknown = declared_keys() - eop_keys()
+    unknown = declared_keys() - {p.name for p in all_params()}
     assert not unknown, f"controls for non-existent params: {sorted(unknown)}"
 
   def test_nothing_is_both_declared_and_excluded(self):

@@ -358,19 +358,28 @@ class TestUIState:
     assert nav.valid and nav.modifier == "left"
     assert nav.primary_text == "Sukhumvit Rd" and nav.distance_m == pytest.approx(180.0)
 
-  def test_driver_monitor_merges_both_daemons(self, app):
-    sm = onroad_sm(driverPoseState=Msg(attentionProb=0.8),
-                   driverStatus=Msg(faceDetected=True, faceForward=True, faceX=0.4,
-                                    faceY=0.5, faceYaw=3.0, facePitch=-2.0))
+  def test_driver_monitor_reads_same_service_as_controls(self, app):
+    sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.8))
     d = ui_state(sm, EOPIgnitionOn=True)._read().driver
-    assert d.valid and d.attention_prob == pytest.approx(0.8)
-    assert d.face_detected and d.face_forward
+    assert d.valid and d.awareness == pytest.approx(0.8)
+    assert d.stage == "ok"
 
   def test_driver_monitor_works_without_a_camera(self, app):
-    # The steering-based monitor runs on its own; driverStatus may never come.
-    sm = onroad_sm(driverPoseState=Msg(attentionProb=0.3))
+    sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.3))
     d = ui_state(sm, EOPIgnitionOn=True)._read().driver
-    assert d.valid and not d.face_detected
+    assert d.valid and d.stage == "soft"
+
+  def test_driver_monitor_rejects_stale_or_nonfinite_awareness(self, app):
+    sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.8))
+    sm.go_quiet("driverMonitoringState", 1.0)
+    assert not ui_state(sm, EOPIgnitionOn=True)._read().driver.valid
+    sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=float("nan")))
+    assert not ui_state(sm, EOPIgnitionOn=True)._read().driver.valid
+
+  def test_critical_awareness_has_zero_display_availability(self, app):
+    sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=-0.1))
+    d = ui_state(sm, EOPIgnitionOn=True)._read().driver
+    assert d.valid and d.awareness == -0.1 and d.stage == "critical"
 
   def test_panda_is_connected_when_any_panda_reports_a_type(self, app):
     sm = onroad_sm(pandaStates=[Msg(pandaType="unknown"), Msg(pandaType="dos")])
