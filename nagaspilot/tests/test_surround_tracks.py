@@ -11,8 +11,9 @@ def test_ble_3d_track_retains_elevation_and_projects_ground_geometry():
   result = surround_tracks([track()], {0: (1, 2, 0)})
   assert len(result) == 1
   obj = result[0]
-  assert math.isclose(obj['rangM'], math.hypot(6, 2))
-  assert obj['elevation'] == 60 and obj['source'] == 1 and obj['pointCount'] == 0
+  assert math.isclose(obj['rangM'], math.sqrt(6**2 + 2**2 + (10 * math.sin(math.radians(60)))**2))
+  assert obj['sensorElevationDeg'] == 60 and obj['sensorRangeM'] == 10
+  assert obj['source'] == 1 and obj['pointCount'] == 0
   assert 'lengthM' not in obj and 'heightM' not in obj
   obj.update(dynProp=1, lengthM=0, widthM=0)
   obstacles = tracked_obstacles([NS(**obj)])

@@ -1167,6 +1167,8 @@ struct Radar4DObject @0xb3c4d5e6f7a80921 {
   pointCount    @14 :UInt8;   # 0=BLE track, otherwise supporting radar points
   corner        @15 :UInt8;
   source        @16 :UInt8;   # 1=BLE tracked 3D object; 2=WiFi cluster
+  sensorRangeM  @17 :Float32; # original BLE slant range; no planar flattening
+  sensorElevationDeg @18 :Float32; # original leveled BLE elevation before mounting translation
 }
 
 struct Radar4D @0xf2a3b4c5d6e7f8e1 {
