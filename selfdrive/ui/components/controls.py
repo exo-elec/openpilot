@@ -196,6 +196,14 @@ class ControlRow(QWidget):
       w.valueChanged.connect(self._on_number)
       return w
 
+    if c.kind is Kind.CHOICE:
+      w = QtWidgets.QComboBox()
+      w.addItems(c.options)
+      raw = self._store.get_text(c.key)
+      w.setCurrentIndex(c.values.index(raw) if raw in c.values else 0)
+      w.activated[int].connect(self._on_choice)
+      return w
+
     # BUTTONS: a horizontal exclusive group, index stored as the param value.
     box = QWidget()
     lay = QtWidgets.QHBoxLayout(box)
@@ -246,6 +254,9 @@ class ControlRow(QWidget):
         integral = float(c.step).is_integer() and float(c.min).is_integer()
         cast = int if integral else float
         w.setValue(cast(self._store.get_number(c.key, c.min)))
+      elif c.kind is Kind.CHOICE:
+        raw = self._store.get_text(c.key)
+        w.setCurrentIndex(c.values.index(raw) if raw in c.values else 0)
       else:
         current = int(self._store.get_number(c.key, 0))
         for i, b in enumerate(self._buttons):
@@ -264,3 +275,8 @@ class ControlRow(QWidget):
       b.setChecked(i == index)
     self._store.put_number(self.control.key, index)
     self.changed.emit(self.control.key, index)
+
+  def _on_choice(self, index: int) -> None:
+    value = self.control.values[index]
+    self._store.put_text(self.control.key, value)
+    self.changed.emit(self.control.key, value)
