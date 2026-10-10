@@ -31,6 +31,26 @@ OK, SOFT, PROMPT, CRITICAL = "ok", "soft", "prompt", "critical"
 EVENT_FOR_STAGE = {SOFT: "preDriverUnresponsive", PROMPT: "promptDriverUnresponsive", CRITICAL: "driverUnresponsive"}
 
 
+def monitoring_stage(awareness: float) -> str:
+  if awareness <= 0.0:
+    return CRITICAL
+  if awareness <= PROMPT_AT:
+    return PROMPT
+  if awareness <= SOFT_AT:
+    return SOFT
+  return OK
+
+
+def monitoring_force_decel(awareness: float, soft_disabling: bool) -> bool:
+  """Keep the established controls deceleration contract for every platform."""
+  return bool(awareness < 0.0 or soft_disabling)
+
+
+def monitoring_speed_target(v_cruise: float, force_decel: bool) -> float:
+  """Apply last so preference offsets cannot raise a forced stop target."""
+  return 0.0 if force_decel else v_cruise
+
+
 @dataclass(frozen=True)
 class MonitorStatus:
   awareness: float
@@ -74,11 +94,5 @@ class DriverActivityMonitor:
       # The legacy controls interface tests strictly < 0, so the critical
       # warning and forced deceleration must agree even at exactly zero.
       self.awareness = MIN_AWARENESS
-      stage = CRITICAL
-    elif self.awareness <= PROMPT_AT:
-      stage = PROMPT
-    elif self.awareness <= SOFT_AT:
-      stage = SOFT
-    else:
-      stage = OK
+    stage = monitoring_stage(self.awareness)
     return MonitorStatus(self.awareness, stage, self.band, EVENT_FOR_STAGE.get(stage), stage == CRITICAL)

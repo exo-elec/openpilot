@@ -12,7 +12,10 @@ camera monitoring producer while retaining the control interface:
 - `controlsd` sets `forceDecel` when `awarenessStatus < 0`; the critical stage
   always publishes a negative value, including the exact-zero boundary.
 - The planner consumes that forced-deceleration request through the existing
-  controls path. Optional DDSC remains a separate speed-cap feature.
+  controls path. Shared `monitoring_force_decel` and `monitoring_speed_target`
+  hooks preserve this contract in both controllers and planners. The final MPC
+  target is zero during forced deceleration, even with positive cruise offsets.
+  Optional DDSC remains a separate speed-cap feature.
 - Driver steeringPressed, brakePressed or gasPressed restores awareness.
   Automated steering torque, wheel angle and vehicle motion never restore it.
 - Disengaging restores awareness. Standstill holds awareness. Changing speed

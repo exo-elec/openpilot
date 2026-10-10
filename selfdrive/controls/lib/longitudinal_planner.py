@@ -26,6 +26,7 @@ from nagaspilot.controls.longitudinal_policy import (
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
 from nagaspilot.controls.ngp_tja import TrafficJamAssist
+from nagaspilot.controls.ngp_driver_activity import monitoring_speed_target
 from nagaspilot.runtime.longitudinal_params import (
   load_accel_profile as _load_accel_profile, load_adaptive_gap_enabled as _load_adaptive_gap_enabled,
 )
@@ -357,6 +358,7 @@ class LongitudinalPlanner:
         now=time.monotonic(),
       )
 
+    v_cruise = monitoring_speed_target(v_cruise, force_slow_decel)
     self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=personality,
                     t_follow_override=self._adaptive_gap_t_follow)
 

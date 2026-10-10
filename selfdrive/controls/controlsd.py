@@ -11,12 +11,13 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
-from opendbc.car.vehicle_model import VehicleModel
+from nagaspilot.controls.ngp_vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
 from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
 from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
+from nagaspilot.controls.ngp_driver_activity import monitoring_force_decel
 from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
 from nagaspilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
 from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
@@ -288,8 +289,8 @@ class Controls:
     cs.upAccelCmd = float(self.LoC.pid.p)
     cs.uiAccelCmd = float(self.LoC.pid.i)
     cs.ufAccelCmd = float(self.LoC.pid.f)
-    cs.forceDecel = bool((self.sm['driverMonitoringState'].awarenessStatus < 0.) or
-                         (self.sm['selfdriveState'].state == State.softDisabling))
+    cs.forceDecel = monitoring_force_decel(self.sm['driverMonitoringState'].awarenessStatus,
+                                         self.sm['selfdriveState'].state == State.softDisabling)
     cs.ngpAlccActive = bool(self.alcc_active)
     cs.ngpDlatUseLaneless = bool(self.dlat_use_laneless)
     cs.ngpDlatLaneConfidence = float(self.dlat_lane_confidence)
