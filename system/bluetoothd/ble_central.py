@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BLE GATT central for ESP32-S3 corner radars — publishes cereal `radar2d`.
+"""BLE GATT central for ESP32-S3 corner radars — publishes cereal `radarCornerTracks`.
 
 This module is the BLE CENTRAL counterpart to ble_gatt.py (which is the
 PERIPHERAL for the NavPilot phone app). It connects to up to 4 ESP32-S3
@@ -108,7 +108,7 @@ datagrams before any corner state is touched.
 NOTE: this is a host-side SOFTWARE check — BLE gating here is NOT
 radio-level admission control. WiFi's MAC ACL (hostapd denies association)
 remains the stronger boundary; a rogue BLE peripheral can still occupy the
-link layer, it just never reaches radar2d.
+link layer, it just never reaches radarCornerTracks.
 EOPBLERadarPairingOpen is deliberately NOT EOPBluetoothPairWindow — the latter
 is the PHONE discoverable window in bluetoothd.py, a different concern.
 
@@ -144,9 +144,9 @@ because without the roster cross-vehicle protection is much weaker
 re-qualification: it proved its identity when it was learned.
 
 MSGQ SINGLE-PUBLISHER WARNING: msgq allows exactly ONE publisher per
-service. When EOPBluetoothRadarEnabled is set, THIS module owns `radar2d`.
+service. When EOPBluetoothRadarEnabled is set, THIS module owns `radarCornerTracks`.
 Any other corner-radar daemon (e.g. a WiFi/UDP point-cloud receiver)
-MUST NOT publish `radar2d` at the same time or msgq will reject one of them.
+MUST NOT publish `radarCornerTracks` at the same time or msgq will reject one of them.
 """
 from __future__ import annotations
 
@@ -176,7 +176,7 @@ except ImportError:
     Params = None
 
 try:
-    from hal.drivers.radar.radar2d import CORNER_UNKNOWN, decode_object_datagram
+    from hal.drivers.radar.radar_ble import CORNER_UNKNOWN, decode_object_datagram
     HAL_RADAR2D_AVAILABLE = True
 except ImportError:
     HAL_RADAR2D_AVAILABLE = False
@@ -207,7 +207,7 @@ OBJMGR_IFACE    = 'org.freedesktop.DBus.ObjectManager'
 ADAPTER_PATH    = '/org/bluez/hci0'
 
 # ── Wire format ─────────────────────────────────────────────────────────────
-# Struct layout + decode_object_datagram() live in hal.drivers.radar.radar2d
+# Struct layout + decode_object_datagram() live in hal.drivers.radar.radar_ble
 # (pure wire decode, no D-Bus/Params — shared-hal ownership pattern, same as
 # radar3d.py/radar4d.py in that package). CORNER_UNKNOWN imported above.
 
@@ -355,7 +355,7 @@ CORNER_TO_SIDE = {
     3: 3,  # RR → RR
 }
 
-PUBLISH_HZ = 20.0               # matches cereal services.py radar2d rate
+PUBLISH_HZ = 20.0               # matches cereal services.py radarCornerTracks rate
 CORNER_STALE_S = 0.5            # corner with no frame this long drops out of returns
 RECONNECT_SCAN_S = 5.0          # discovery/connect sweep period
 BACKOFF_INITIAL_S = 1.0         # per-node reconnect backoff…
@@ -799,7 +799,7 @@ class BLECentral:
             state['last_rx'] = time.monotonic()
             state['seq'] = frame['seq']
 
-    # ── radar2d publish ───────────────────────────────────────────────────────
+    # ── radarCornerTracks publish ───────────────────────────────────────────────────────
 
     def _fill_objects(self, r2d, entries: list[tuple[int, dict]]) -> None:
         """Fill the extended objects list. The `objects` field is being added
@@ -830,7 +830,7 @@ class BLECentral:
             # existenceProb/measured/dynProp/ttcS/ttcValid all lost their wire
             # source 2026-09-16: the BLE record was simplified to strictly
             # match the real NanoRadarCore Radar3D vendor protocol (id/range/
-            # velocity/azimuth/elevation/SNR only — see hal's radar2d.py
+            # velocity/azimuth/elevation/SNR only — see hal's radarCornerTracks.py
             # header comment) with existence-probability/measured-vs-coasted/
             # TTC removed as tracker-derived value-adds no vendor sensor
             # carries. The on-node Kalman tracker + occlusion coasting still
@@ -851,7 +851,7 @@ class BLECentral:
             objects[i].ttcValid = False
 
     def _publish(self) -> bool:
-        """GLib timeout: publish merged radar2d at PUBLISH_HZ from latest frames."""
+        """GLib timeout: publish merged radarCornerTracks at PUBLISH_HZ from latest frames."""
         if not self._running:
             return False
         now = time.monotonic()
@@ -859,8 +859,8 @@ class BLECentral:
             live = {c: s for c, s in self._corners.items()
                     if now - s['last_rx'] <= CORNER_STALE_S}
 
-        msg = messaging.new_message('radar2d')
-        r2d = msg.radar2d
+        msg = messaging.new_message('radarCornerTracks')
+        r2d = msg.radarCornerTracks
 
         # Extended objects list (parallel schema work — see _fill_objects)
         entries = [(c, o) for c in sorted(live) for o in live[c]['objects']]
@@ -888,7 +888,7 @@ class BLECentral:
             ret.present = bool(corner_objects)
             approaching = [o['vRel'] for o in corner_objects if o['vRel'] < 0.0]
             ret.vRel = min(approaching) if approaching else math.nan
-        self._pm.send('radar2d', msg)
+        self._pm.send('radarCornerTracks', msg)
         return True
 
     # ── Host → node vehicle state ─────────────────────────────────────────────
@@ -944,8 +944,8 @@ class BLECentral:
         if not DBUS_AVAILABLE or self._bus is None:
             logger.warning('BLE central: no D-Bus — disabled')
             return
-        # Single radar2d publisher for this process — see module docstring warning
-        self._pm = messaging.PubMaster(['radar2d'])
+        # Single radarCornerTracks publisher for this process — see module docstring warning
+        self._pm = messaging.PubMaster(['radarCornerTracks'])
         self._sm = messaging.SubMaster(['carState', 'livePose'])
         self._running = True
         GLib.timeout_add(int(1000 / PUBLISH_HZ), self._publish)
