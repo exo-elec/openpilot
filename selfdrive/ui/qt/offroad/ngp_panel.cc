@@ -139,7 +139,7 @@ void NGPPanel::add_extended_controls() {
     {"ngp_lon_pathd", tr("PATH · Speed Proposals"), tr("Requires the protection planner.")},
     {"EOPPathdNudgesEnabled", tr("NUDGE · Camera Proposals"), tr("Run EOP-origin nudge policies on camera-only inputs.")},
     {"ngp_lon_cutin", tr("CUT · Cut-in Speed"), tr("Requires valid tracked objects.")},
-    {"EgpuDrivingEnabled", tr("CHES · Chestnut Driving Model"), tr("Requires detected Chestnut hardware and rebuilt big-model artifacts. Falls back to the small model if loading or warmup fails.")},
+    {"EOPEgpuDrivingEnabled", tr("CHES · Chestnut Driving Model"), tr("Requires detected Chestnut hardware and rebuilt big-model artifacts. Falls back to the small model if loading or warmup fails.")},
     {"ngp_dashboard_enabled", tr("WEB · Status Viewer"), tr("Read-only device and trip viewer at localhost:9091. Remote viewing uses an SSH tunnel.")},
     {"ngp_tripd_enabled", tr("TRIP · Trip Statistics"), tr("Record non-controlling trip statistics.")},
   };

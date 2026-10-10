@@ -98,8 +98,7 @@ SERVICES = [
   # byte-identical on both branches so component fixes cherry-pick cleanly.
   "carParams",
   "pandaStates",
-  "driverPoseState",
-  "driverStatus",
+  "driverMonitoringState",
   "navInstruction",
   "audioStatus",
   "navRoute",
@@ -121,20 +120,15 @@ class UIStatus(Enum):
 
 @dataclass(frozen=True)
 class DriverMonitor:
-  """driverPoseState (steering-based) merged with driverStatus (camera-based).
-
-  Two daemons, two messages, one thing the driver sees -- so they are merged
-  here rather than leaving each view to remember that face geometry lives in
-  one and attention probability in the other.
-  """
+  """Driver input availability from the same steering monitor controls consume."""
   valid: bool = False
-  attention_prob: float = 0.0
-  face_detected: bool = False
-  face_forward: bool = False
-  face_x: float = 0.0
-  face_y: float = 0.0
-  face_yaw: float = 0.0
-  face_pitch: float = 0.0
+  awareness: float = 0.0
+
+  @property
+  def stage(self) -> str:
+    from nagaspilot.controls.ngp_driver_activity import monitoring_stage
+    return monitoring_stage(self.awareness)
+
 
 
 @dataclass(frozen=True)
@@ -800,29 +794,12 @@ class UIState(QObject):
 
   @staticmethod
   def _read_driver(sm) -> DriverMonitor:
-    """driverPoseState carries attention; driverStatus carries the face box.
-    Either may be absent -- the steering-based monitor runs without a camera."""
-    valid = False
-    attention = 0.0
-    if _sm_valid(sm, "driverPoseState"):
-      valid = True
-      attention = float(getattr(sm["driverPoseState"], "attentionProb", 0.0))
-
-    detected = forward = False
-    fx = fy = yaw = pitch = 0.0
-    if _sm_valid(sm, "driverStatus"):
-      valid = True
-      fs = sm["driverStatus"]
-      detected = bool(getattr(fs, "faceDetected", False))
-      forward = bool(getattr(fs, "faceForward", False))
-      fx = float(getattr(fs, "faceX", 0.0))
-      fy = float(getattr(fs, "faceY", 0.0))
-      yaw = float(getattr(fs, "faceYaw", 0.0))
-      pitch = float(getattr(fs, "facePitch", 0.0))
-
-    return DriverMonitor(valid=valid, attention_prob=attention,
-                         face_detected=detected, face_forward=forward,
-                         face_x=fx, face_y=fy, face_yaw=yaw, face_pitch=pitch)
+    if not _sm_valid(sm, "driverMonitoringState") or _seconds_since(sm, "driverMonitoringState") > 0.5:
+      return DriverMonitor()
+    awareness = float(getattr(sm["driverMonitoringState"], "awarenessStatus", 0.0))
+    if not math.isfinite(awareness):
+      return DriverMonitor()
+    return DriverMonitor(valid=True, awareness=max(-0.1, min(1.0, awareness)))
 
   @staticmethod
   def _read_nav(sm) -> NavManeuver:

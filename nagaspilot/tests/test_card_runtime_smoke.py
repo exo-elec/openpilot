@@ -1,6 +1,6 @@
-"""card.py's CarState path must work against opendbc's CANParser (update, not the old update_strings)."""
+"""The EOP-native vehicle path must publish state and pass requests through safety."""
 from cereal import car
-from opendbc.car.can_definitions import CanData
+from openpilot.system.socketd.vehicle.protocol import CanData
 from openpilot.system.socketd.vehicle.car.card import Car
 
 

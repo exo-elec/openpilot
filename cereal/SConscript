@@ -7,7 +7,7 @@ gen_dir = Dir('gen')
 schema_files = ['log.capnp', 'car.capnp', 'legacy.capnp', 'custom.capnp']
 env.Command([f'gen/cpp/{s}.c++' for s in schema_files] + [f'gen/cpp/{s}.h' for s in schema_files],
             schema_files,
-            f"capnpc -I opendbc_repo/opendbc/car --src-prefix={cereal_dir.path} $SOURCES -o c++:{gen_dir.path}/cpp/")
+            f"capnpc -I cereal --src-prefix={cereal_dir.path} $SOURCES -o c++:{gen_dir.path}/cpp/")
 
 cereal = env.Library('cereal', [f'gen/cpp/{s}.c++' for s in schema_files])
 

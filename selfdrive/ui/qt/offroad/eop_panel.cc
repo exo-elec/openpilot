@@ -692,7 +692,7 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
   ensure_on("EOPMapdEnabled");    // auto-started by MTSC/MSLC/NAV
   ensure_on("EOPCATEnabled");     // always learns from driving
   ensure_on("EOPBSDEnabled");     // safety: blind spot detection always active
-  ensure_on("EOPDriverDEnabled"); // safety: driver attention always monitored
+  // driveractivityd is always registered onroad; there is no monitoring-off key.
 
   // ── DRIVING ─────────────────────────────────────────
   addItem(makeDivider(QString::fromUtf8("🚗  ") + tr("Driving")));
