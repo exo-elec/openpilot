@@ -35,3 +35,17 @@ def test_mono_source_passes_monod_tracks_through():
   d = NS(trackId=3, className='truck', x=25.0, y=-1.0, vx=-2.0, vy=0.3, confidence=0.8)
   objs, fresh = MonoDetectionsSource().objects(SM('monoDetections', [d]))
   assert fresh and objs[0].name == 'truck' and objs[0].vy == 0.3
+
+
+def test_gridd_preserves_detector_subclasses_with_legacy_fallback():
+  objects = [g(className='truck'), g(className='bus'), g('motorcycle', className='bicycle'),
+             g(className=''), g(className='person'), g('trafficLight', className='truck')]
+  result, fresh = GriddSource().objects(SM('stereoObjects', objects))
+  assert fresh and [o.name for o in result] == ['truck', 'bus', 'bicycle', 'car', 'car']
+
+
+def test_invalid_fused_geometry_or_probability_never_reaches_pathd():
+  objects = [g(**{key: value}) for key in ('dRel', 'yRel', 'vRel', 'vyRel', 'prob')
+             for value in (float('nan'), float('inf'), -float('inf'))]
+  objects += [g(prob=1.1)]
+  assert GriddSource().objects(SM('stereoObjects', objects)) == ([], True)

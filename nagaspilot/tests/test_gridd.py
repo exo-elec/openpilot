@@ -90,3 +90,18 @@ def test_traffic_lights_pass_through_with_lamp_state_and_are_never_tracked():
   items = pm.sent[-1].stereoObjects.objects
   assert len(items) == 1 and items[0].obstacleType == 'trafficLight' and items[0].trafficLightState == 'red'
   assert abs(items[0].trafficLightConfidence - 0.4) < 1e-9 and items[0].dRel == 40.0 and items[0].vyRel == 0.0 and not g.annotator.tracker.tracks
+
+
+def test_detector_classes_survive_real_fused_wire_message():
+  import cereal.messaging as messaging
+  from nagaspilot.runtime.gridd import fill_stereo_objects
+  message = messaging.new_message('stereoObjects')
+  objects = [dict(trackId=i + 1, obstacleType=name, dRel=20.0, yRel=2.0,
+                  vRel=-1.0, vyRel=-0.2, confidence=0.9)
+             for i, name in enumerate(('truck', 'bus', 'bicycle'))]
+  fill_stereo_objects(message.stereoObjects, objects)
+  sm = type('S', (dict,), {})({'stereoObjects': message.stereoObjects.as_reader()})
+  sm.alive, sm.valid = {'stereoObjects': True}, {'stereoObjects': True}
+  result, fresh = GriddSource().objects(sm)
+  assert fresh and [o.name for o in result] == ['truck', 'bus', 'bicycle']
+  assert [str(o.obstacleType) for o in message.stereoObjects.objects] == ['vehicle', 'vehicle', 'motorcycle']

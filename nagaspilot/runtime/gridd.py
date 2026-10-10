@@ -46,6 +46,7 @@ def fill_stereo_objects(so, objs: list[dict]) -> None:
     it.dRel, it.yRel, it.vRel, it.vyRel = float(o['dRel']), float(o['yRel']), float(o['vRel']), float(o['vyRel'])
     it.prob = float(o['confidence'])
     it.obstacleType = OBSTACLE_OF_CLASS[o['obstacleType']]
+    it.className = o['obstacleType']
     if o['obstacleType'] == LIGHT:
       it.trafficLightState = TL_STATE.get(int(o.get('trafficLightState', 0)), 'unknown')
       it.trafficLightConfidence = float(o.get('trafficLightConfidence', 0.0))

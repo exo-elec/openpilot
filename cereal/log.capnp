@@ -2612,6 +2612,7 @@ struct CameraObject @0xf3d1e4a9b2c5d6e7 {
   }
   laneZone @16 :LaneZone = unknown;
   vyRel @17 :Float32; # Lateral relative speed (m/s), left positive; gridd's Kalman track of camera objects (0 = unknown)
+  className @18 :Text; # Original detector class; empty on legacy/radar-only objects
 }
 
 struct StereoObjects @0xa1b2c3d4e5f67890 {

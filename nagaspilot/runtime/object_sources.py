@@ -7,11 +7,14 @@
 Both return `(list[PObj], fresh)`; pathd and everything behind it (selector, rule planner, cut-in, DPP) are the same
 code on every branch. pathd does no tracking and no sensor fusion itself.
 """
+import math
+
 from nagaspilot.controls.ngp_path_selector import PObj
 from nagaspilot.runtime.path_adapter import pobjects
 
 OBSTACLE_NAMES = {'vehicle': 'car', 'motorcycle': 'motorcycle', 'person': 'person'}
 MIN_PROB = 0.5
+CLASSES_BY_CATEGORY = {'vehicle': {'car', 'truck', 'bus'}, 'motorcycle': {'motorcycle', 'bicycle'}, 'person': {'person'}}
 
 
 class MonoDetectionsSource:
@@ -30,8 +33,13 @@ class GriddSource:
       return [], False
     out = []
     for o in sm['stereoObjects'].objects:
-      name = OBSTACLE_NAMES.get(str(o.obstacleType))
-      if name is None or float(o.prob) < MIN_PROB:
-        continue                                   # traffic lights, bumps, radar-only points: not for the cut-in / selector logic
-      out.append(PObj(int(o.trackId), name, float(o.dRel), float(o.yRel), float(o.vRel), float(getattr(o, 'vyRel', 0.0)), float(o.prob)))
+      category = str(o.obstacleType)
+      name = OBSTACLE_NAMES.get(category)
+      values = (float(o.dRel), float(o.yRel), float(o.vRel), float(getattr(o, 'vyRel', 0.0)), float(o.prob))
+      if name is None or not all(math.isfinite(v) for v in values) or not MIN_PROB <= values[-1] <= 1.0:
+        continue                                   # invalid geometry or non-road-user category cannot authorize a proposal
+      detail = str(getattr(o, 'className', '')).lower()
+      if detail in CLASSES_BY_CATEGORY[category]:
+        name = detail                              # retain truck/bus/bicycle semantics without changing the legacy enum
+      out.append(PObj(int(o.trackId), name, *values))
     return out, True
