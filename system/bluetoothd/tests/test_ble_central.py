@@ -12,12 +12,12 @@ import time
 import pytest
 
 try:
-    from hal.drivers.radar.radar2d import (
+    from hal.drivers.radar.radar_ble import (
         HEADER_STRUCT, OBJECT_STRUCT, MAX_OBJECTS_PER_DATAGRAM,
         decode_object_datagram,
     )
 except ImportError:
-    pytest.skip("hal.drivers.radar.radar2d not available on this platform", allow_module_level=True)
+    pytest.skip("hal.drivers.radar.radar_ble not available on this platform", allow_module_level=True)
 
 from openpilot.system.bluetoothd.ble_central import (
     GATT_CHAR_IFACE,

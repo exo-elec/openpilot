@@ -29,6 +29,7 @@ from exopilot.common.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX
                                     longitudinal_accel_max, longitudinal_jerk_up)
 from openpilot.selfdrive.controls.lib.tja import TrafficJamAssist
 from exopilot.selfdrive.controls.lib.runtime_policy import limit_accel_in_turns
+from exopilot.selfdrive.controls.lib.driver_activity import monitoring_speed_target
 from exopilot.selfdrive.controls.lib.feature_keys import EOP_KEYS
 from exopilot.selfdrive.controls.lib.longitudinal_params import LongitudinalSettings
 from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_accel
@@ -567,9 +568,10 @@ class LongitudinalPlanner:
           v_cruise = self._apply_speed_limit(v_cruise, target_speed)
 
     # Apply speed offset to final v_cruise (after all other limits)
-    v_cruise_kph = v_cruise * CV.MS_TO_KPH
-    v_cruise_kph_with_offset = self.driver_prefs.get_speed_with_offset(v_cruise_kph)
-    v_cruise = v_cruise_kph_with_offset * CV.KPH_TO_MS
+    if not force_slow_decel:
+      v_cruise_kph = v_cruise * CV.MS_TO_KPH
+      v_cruise_kph_with_offset = self.driver_prefs.get_speed_with_offset(v_cruise_kph)
+      v_cruise = v_cruise_kph_with_offset * CV.KPH_TO_MS
 
     # Apply adaptive-gap adjusted jerk factor to MPC weights
     jerk_override = self._adaptive_gap_jerk_factor if self._adaptive_gap_jerk_factor is not None else None
