@@ -18,8 +18,8 @@
    1
   ],
   "selfdrive/controls/lib/latcontrol_torque.py": [
-   220,
-   54
+   221,
+   55
   ],
   "selfdrive/controls/lib/longcontrol.py": [
    149,
@@ -34,7 +34,7 @@
    21
   ],
   "selfdrive/controls/lib/longitudinal_planner.py": [
-   582,
+   557,
    30
   ],
   "selfdrive/controls/plannerd.py": [
@@ -102,8 +102,8 @@
    2
   ],
   "selfdrive/selfdrived/events.py": [
-   22,
-   4
+   24,
+   6
   ],
   "selfdrive/selfdrived/helpers.py": [
    14,
@@ -130,7 +130,7 @@
    1
   ],
   "selfdrive/test/test_onroad.py": [
-   20,
+   18,
    32
   ],
   "selfdrive/test/test_updated.py": [
