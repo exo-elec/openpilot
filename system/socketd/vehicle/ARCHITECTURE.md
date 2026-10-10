@@ -1,3 +1,13 @@
+# Current vehicle ownership
+
+EOP owns socketd/vehicled, the BrownPanda Tesla-party wire protocol and cereal
+car schema. OpenDBC is no longer an EOP runtime dependency. See
+`MIGRATION_SUMMARY.md` and `protocol/NOTICE.md` for preserved source provenance.
+Forward radar is Exopilot UART radar3d; surround is BLE/WiFi radar4d with a planar
+radar2d BSD compatibility view. No synthetic car radar is transmitted or decoded.
+
+The historical architecture notes below describe the previous arrangement.
+
 # socketd Vehicle Adapter Architecture
 
 ## Overview

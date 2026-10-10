@@ -43,21 +43,13 @@ void HudRenderer::updateState(const UIState &s) {
   float sl_ms = s.scene.nav_speed_limit_ms;
   nav_speed_limit = (sl_ms > 0.0f) ? std::round(sl_ms * (is_metric ? MS_TO_KPH : MS_TO_MPH)) : 0.0f;
 
-  // EOP: Driver pose status (steering-based monitor — no face fields here)
-  show_driver_status = sm.rcv_frame("driverPoseState") >= s.scene.started_frame;
+  // Same steering availability message consumed by selfdrived/controlsd.
+  show_driver_status = sm.valid("driverMonitoringState") && sm.alive("driverMonitoringState") &&
+                       sm.rcv_frame("driverMonitoringState") >= s.scene.started_frame;
   if (show_driver_status) {
-    const auto &driver = sm["driverPoseState"].getDriverPoseState();
-    attention_prob = driver.getAttentionProb();
-  }
-  // Driver overlay data from driverStatus (camera-based: face fields live here)
-  if (sm.rcv_frame("driverStatus") >= s.scene.started_frame) {
-    const auto &fs = sm["driverStatus"].getDriverStatus();
-    driver_detected = fs.getFaceDetected();
-    driver_forward = fs.getFaceForward();
-    driver_x = fs.getFaceX();
-    driver_y = fs.getFaceY();
-    driver_yaw = fs.getFaceYaw();
-    driver_pitch = fs.getFacePitch();
+    const auto &driver = sm["driverMonitoringState"].getDriverMonitoringState();
+    awareness = driver.getAwarenessStatus();
+    show_driver_status = std::isfinite(awareness);
   }
 
   // BSD / blinker state
@@ -166,10 +158,19 @@ void HudRenderer::drawCurrentSpeed(QPainter &p, const QRect &surface_rect) {
 }
 
 void HudRenderer::drawDriverStatus(QPainter &p, const QRect &surface_rect) {
-  // Small driver status pill in top-right corner
-  QString label = driver_detected ? (driver_forward ? tr("DRIVER") : tr("AWAY")) : tr("NO DRIVER");
-  QColor bg_color = driver_detected ? (driver_forward ? QColor(0x00, 0xd8, 0x4a, 0xcc) : QColor(0xff, 0xa5, 0x00, 0xcc))
-                                      : QColor(0xff, 0x33, 0x33, 0xcc);
+  // Availability decay, not camera presence or gaze.
+  QString label = tr("SAM · READY");
+  QColor bg_color(0x00, 0xd8, 0x4a, 0xcc);
+  if (awareness <= 0.0f) {
+    label = tr("TAKE CONTROL");
+    bg_color = QColor(0xff, 0x33, 0x33, 0xcc);
+  } else if (awareness <= 0.25f) {
+    label = tr("RESPOND NOW");
+    bg_color = QColor(0xff, 0xa5, 0x00, 0xcc);
+  } else if (awareness <= 0.5f) {
+    label = tr("HANDS ON WHEEL");
+    bg_color = QColor(0xff, 0xa5, 0x00, 0xcc);
+  }
 
   QFont font = InterFont(16, QFont::DemiBold);
   font.setStyleStrategy(QFont::PreferAntialias);
@@ -190,26 +191,6 @@ void HudRenderer::drawDriverStatus(QPainter &p, const QRect &surface_rect) {
   p.setPen(QColor(0xff, 0xff, 0xff, 0xee));
   p.drawText(pill, Qt::AlignCenter, label);
 
-  // Driver bounding box + gaze arrow overlay
-  if (driver_detected) {
-    int box_size = 70;
-    int fx = int((1.0f - driver_x) * surface_rect.width());
-    int fy = int(driver_y * surface_rect.height());
-    int alpha = int(180 * (1.0f - attention_prob) + 50);
-
-    // Bounding box with std-modulated alpha
-    p.setPen(QPen(QColor(0xff, 0xff, 0xff, alpha), 2));
-    p.setBrush(Qt::NoBrush);
-    p.drawRoundedRect(fx - box_size / 2, fy - box_size / 2, box_size, box_size, 8, 8);
-
-    // Gaze arrow
-    float arrow_len = 25.0f;
-    int ax = fx + int(arrow_len * sinf(driver_yaw * 3.14159f / 180.0f));
-    int ay = fy - int(arrow_len * sinf(driver_pitch * 3.14159f / 180.0f));
-    p.setPen(QPen(QColor(0x00, 0xd8, 0x4a, alpha), 2));
-    p.drawLine(fx, fy, ax, ay);
-    p.drawEllipse(QPoint(ax, ay), 3, 3);
-  }
 }
 
 void HudRenderer::drawText(QPainter &p, int x, int y, const QString &text, int alpha) {

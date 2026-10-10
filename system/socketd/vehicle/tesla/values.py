@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# CANBUS and the accel/jerk limits are canonical in the shared OpenDBC fork
-# (pinned submodule, also used by dev/NGP10) — re-exported here so this
-# module stays the single import path for socketd/vehicle consumers without
-# keeping a second copy of numbers that can drift out of sync (see
-# MIGRATION_SUMMARY.md for the accel-limit bug this caused previously).
-from opendbc.car.tesla.values import CANBUS, CarControllerParams as _OpenDBCCarControllerParams
+from enum import IntFlag
+
+class CANBUS:
+  party = 0
+  vehicle = 1
+  autopilot_party = 2
+
+class TeslaFlags(IntFlag):
+  LONG_CONTROL = 1
+  FSD_14 = 2
+  MISSING_DAS_SETTINGS = 4
 
 __all__ = ["CANBUS", "VEHICLE", "PlatformConfig", "CarControllerParams"]
 
@@ -151,14 +156,15 @@ class CarControllerParams:
   MAX_LATERAL_ACCEL = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)  # ~3.6 m/s^2
   MAX_LATERAL_JERK = 3.0 + (9.81 * AVERAGE_ROAD_ROLL)   # ~3.6 m/s^3
 
-  # Longitudinal — sourced from the shared OpenDBC fork's tesla/values.py,
-  # the canonical numbers for Tesla's DAS_control accel encoding.
-  ACCEL_MAX = _OpenDBCCarControllerParams.ACCEL_MAX          # m/s^2
-  ACCEL_MIN = _OpenDBCCarControllerParams.ACCEL_MIN           # m/s^2
-  JERK_LIMIT_MAX = _OpenDBCCarControllerParams.JERK_LIMIT_MAX  # m/s^3, ACC faults at 5.0
-  JERK_LIMIT_MIN = _OpenDBCCarControllerParams.JERK_LIMIT_MIN  # m/s^3, ACC faults at 5.0
+  # Tesla DAS_control wire limits preserved from the reviewed protocol baseline.
+  ACCEL_MAX = 2.0          # m/s^2
+  ACCEL_MIN = -3.48           # m/s^2
+  JERK_LIMIT_MAX = 4.9  # m/s^3, ACC faults at 5.0
+  JERK_LIMIT_MIN = -4.9  # m/s^3, ACC faults at 5.0
 
   # Speed thresholds
   V_EGO_STOPPING = 0.1        # m/s
   V_EGO_STARTING = 0.1        # m/s
   STOPPING_DECEL_RATE = 0.3   # m/s^3
+
+CarControllerParams.ACCEL_MIN_COMFORT = -2.5

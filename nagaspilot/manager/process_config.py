@@ -147,15 +147,14 @@ procs = [
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", ignition_on),
   # No driver camera on our devices: driver activity (wheel, brake, gas) is the driver monitor (publishes driverMonitoringState).
   PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", ignition_on),
-  # socketd owns SocketCAN transport and the OpenDBC vehicle adapter loop.
+  # socketd owns SocketCAN transport and the native Tesla-party vehicle loop.
   # radar3d: long-range UART radar producer (car.RadarData -> 'radar3d' socket).
   # Not gated on a presence param — the vehicle's forward-radar hardware is a
   # fixed part of this build.
   PythonProcess("radar3d", "nagaspilot.daemons.radar3d.radar3d", ignition_on),
-  # radar4d: ESP32_RADAR dev/ATR24 corner nodes' WiFi point cloud (UDP 47000) ->
-  # 'radar4d' socket -> gridd costmap. 02M only (WiFi AP antenna); idles if
-  # hal is missing, publishes nothing until a corner pose is confirmed.
-  PythonProcess("radar4d", "nagaspilot.daemons.radar4d.radar4d", corner_wifi_enabled),
+  # radar4d owns surround BLE 3D tracks, optional RK3576 WiFi point clouds,
+  # and the planar radar2d compatibility view. BLE is not gated by WiFi hardware.
+  PythonProcess("radar4d", "nagaspilot.daemons.radar4d.radar4d", ignition_on),
   # radard: fuses camera (modelV2) leads with 'radar3d' points -> radarState -> ACC.
   # Renamed from this repo's old radar3d.py to match upstream openpilot's name,
   # now that radar3d.py itself is the sensor producer, not the fusion daemon.

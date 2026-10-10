@@ -144,11 +144,11 @@ void UIState::updateStatus() {
 UIState::UIState(QObject *parent) : QObject(parent) {
   sm = std::make_unique<SubMaster>(std::vector<const char*>{
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
-    "carParams", "driverPoseState", "carState",
+    "carParams", "driverMonitoringState", "carState",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
     "navInstruction", "navRoute", "liveLocationKalman", "mapData",
     "obdState", "voiceState", "ttsStatus", "micStatus",
-    "driverStatus", "gpsLocation", "gpsLocationExternal",
+    "gpsLocation", "gpsLocationExternal",
     "pandaState", "sensorEvents", "alccState",
   });
   prime_state = new PrimeState(this);

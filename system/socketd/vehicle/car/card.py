@@ -24,7 +24,7 @@ from openpilot.system.socketd.vehicle.safety.safety_manager import SafetyManager
 from openpilot.system.socketd.vehicle.car.cruise import VCruiseHelper
 from openpilot.system.socketd.vehicle.car.events import VehicleEvents
 from openpilot.system.socketd import can_capnp_to_list, can_list_to_can_capnp
-from opendbc.car.can_definitions import CanData
+from openpilot.system.socketd.vehicle.protocol import CanData
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
@@ -130,8 +130,8 @@ class Car:
 
     # Longitudinal
     CP.openpilotLongitudinalControl = self.params.get_bool("AlphaLongitudinalEnabled")
-    # EOP10 parses BrownPanda v2's converted ARS4-B frames on party bus 0. The parser
-    # reports unavailable itself when that stream is absent or stale.
+    # Forward radar is Exopilot's built-in UART radar3d producer, independent
+    # of vehicle CAN. Its producer reports missing or stale sensor data.
     CP.radarUnavailable = False
     CP.minEnableSpeed = -1.0
     CP.minSteerSpeed = 0.0

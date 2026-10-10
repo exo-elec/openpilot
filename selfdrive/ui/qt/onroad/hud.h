@@ -31,15 +31,9 @@ private:
   // Speed limit display (0 = hide sign)
   float nav_speed_limit = 0;  // km/h or mph depending on is_metric
 
-  // EOP: Driver pose status indicator
-  bool driver_detected = false;
-  bool driver_forward = false;
-  float attention_prob = 1.0f;
+  // Shared steering activity availability (no driver camera).
+  float awareness = 1.0f;
   bool show_driver_status = false;
-  float driver_x = 0.5f;
-  float driver_y = 0.5f;
-  float driver_yaw = 0.0f;
-  float driver_pitch = 0.0f;
   // BSD / blind spot state
   bool left_blinker = false;
   bool right_blinker = false;

@@ -188,7 +188,7 @@ env = Environment(
     "#third_party",
     "#third_party/raylib/src",
     "#msgq",
-    "#cereal/gen/cpp",  # log.capnp includes <car.capnp.h> (opendbc owns car.capnp)
+    "#cereal/gen/cpp",  # EOP cereal owns car.capnp and log.capnp.
   ],
   CC='clang',
   CXX='clang++',
@@ -344,8 +344,8 @@ Export('common', 'gpucommon')
 env_swaglog = env.Clone()
 env_swaglog['CXXFLAGS'].append('-DSWAGLOG="\\"common/swaglog.h\\""')
 SConscript(['msgq_repo/SConscript'], exports={'env': env_swaglog})
-# EOP vehicled remains the transport/safety adapter; OpenDBC is available as a
-# pinned protocol/model submodule for Tesla definitions and future adapters.
+# EOP vehicled owns the native Tesla-party protocol and safety adapter.
+# NGP retains OpenDBC separately; EOP has no external OpenDBC dependency.
 
 SConscript(['cereal/SConscript'])
 

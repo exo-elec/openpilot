@@ -126,6 +126,21 @@ class TestPanelGestures:
 
 
 class TestControls:
+  def test_monitor_policy_choice_stores_strings_and_refreshes_without_writing(self, app):
+    from openpilot.selfdrive.ui.settings.descriptor import page
+    c = next(control for control in page("device").controls if control.key == "ngp_dm_policy")
+    p = FakeParams({c.key: b"strict"})
+    row = ControlRow(c, ParamStore(p))
+    assert row.widget.currentIndex() == 0
+    assert p.d[c.key] == b"strict"  # opening settings preserves the legacy value
+    row.widget.setCurrentIndex(1)
+    row.widget.activated[int].emit(1)
+    assert p.d[c.key] == "tight"
+    p.d[c.key] = "relaxed"
+    row.refresh()
+    assert row.widget.currentIndex() == 0
+    assert p.d[c.key] == "relaxed"
+
   def test_toggle_writes_through(self, app):
     p = FakeParams()
     row = ControlRow(Control("EOPX", Kind.TOGGLE, "X"), ParamStore(p))

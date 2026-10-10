@@ -133,7 +133,7 @@ class BluetoothD:
                 cloudlog.warning('bluetoothd: BLE GATT not available')
 
         # Start BLE central for ESP32 corner radars — only when its param is on.
-        # When enabled, ble_central is the SOLE radar2d publisher (msgq allows
+        # When enabled, ble_central is the SOLE radarCornerTracks publisher (msgq allows
         # one publisher per service — see ble_central.py docstring warning).
         if self.bus and self.ble_central.enabled:
             if self.ble_central.setup(self.bus):
