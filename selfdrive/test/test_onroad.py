@@ -83,7 +83,7 @@ TIMINGS = {
   "roadCameraState": [2.5, 0.35],
   "rearCameraState": [2.5, 0.35],
   "modelV2": [2.5, 0.35],
-  "driverPoseState": [2.5, 0.40],
+  "driverMonitoringState": [2.5, 0.40],
   "livePose": [2.5, 0.35],
   "liveParameters": [2.5, 0.35],
   "wideRoadCameraState": [1.5, 0.35],
@@ -386,8 +386,6 @@ class TestOnroad:
       # these numbers are not fully self-contained.
       ("modelV2", 0.06, 0.040),
 
-      # can miss cycles here and there, just important the avg frequency is 10Hz
-      ("driverPoseState", 0.15, 0.10),
     ]
     for (s, instant_max, avg_max) in cfgs:
       ts = [getattr(m, s).modelExecutionTime for m in self.msgs[s]]
