@@ -5,9 +5,9 @@ NGP-origin settings retain `ngp_` names; EOP-origin shared policy uses `EOP` nam
 
 Implemented:
 
-- Match official openpilot v0.10's OpenDBC API and pin (4b203ff5). Preserve the
-  former BrownPanda Continental radar consumer in a portable NGP adapter, with
-  complete-set, pair-index, bus, freshness and fault checks. EOP retains its own
+- Match official openpilot v0.10's OpenDBC API and pin (4b203ff5). Remove the
+  former BrownPanda synthetic Continental radar consumer. BYD blind-spot flags
+  remain presence-only; Exopilot owns forward UART radar and corner radar2d. EOP retains its own
   hardware-compatible OpenDBC pin.
 - Require fresh (under 500 ms), matching live Panda controls authorization for
   ALCC suggestions. This does not add firmware authority for independent lateral
@@ -29,7 +29,6 @@ vehicle support. BrownPanda firmware and on-device operation require separate
 hardware validation.
 
 Validation: 86 focused policy/parser/HTTP/migration tests passed using the actual
-pinned OpenDBC and NGP schemas. All 230 installed interfaces imported; BrownPanda
-adapter construction passed. Changed native UI translation units passed GCC
+pinned OpenDBC and NGP schemas. All 230 installed interfaces imported. Changed native UI translation units passed GCC
 syntax checking with Qt5 and generated Cap'n Proto headers (existing deprecation
 warnings). These checks do not constitute a full device build or road test.

@@ -127,7 +127,6 @@ void NGPPanel::add_extended_controls() {
     {"ngp_lon_lc_lead_handoff", tr("LCH · Lane Change Lead Handoff"), tr("Consider camera leads in the target lane.")},
     {"ngp_lon_green_light", tr("GLN · Green Light Notice"), tr("Notify when a planner stop is released.")},
     {"ngp_lon_lead_departure", tr("LDN · Lead Departure Notice"), tr("Notify when the lead vehicle moves away.")},
-    {"ngp_lon_brownpanda_radar", tr("BPR · BrownPanda Radar"), tr("Use the translated Continental stream on Tesla Model 3/Y party bus 0.")},
     {"ngp_map_enabled", tr("OSM · Map Data"), tr("Fetch map data for speed and curve policies.")},
     {"EOPMTSCEnabled", tr("MTSC · Map Turn Speed"), tr("EOP-origin policy for upcoming map curves.")},
     {"EOPMSLCEnabled", tr("MSLC · Map Speed Limit"), tr("EOP-origin posted speed-limit policy.")},

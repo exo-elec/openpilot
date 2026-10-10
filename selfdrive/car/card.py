@@ -16,7 +16,6 @@ from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallabl
 from opendbc.car.carlog import carlog
 from opendbc.car.fw_versions import ObdCallback
 from opendbc.car.car_helpers import get_car, interfaces
-from nagaspilot.runtime.brownpanda_radar import BrownPandaRadarInterface, BROWNPANDA_RADAR_CARS
 from nagaspilot.runtime.device_policy import vehicle_override
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 from openpilot.selfdrive.pandad import can_capnp_to_list, can_list_to_can_capnp
@@ -114,10 +113,6 @@ class Car:
     else:
       self.CI, self.CP = CI, CI.CP
       self.RI = RI
-
-    use_brownpanda = self.params.get("ngp_lon_brownpanda_radar")
-    if self.CP.carFingerprint in BROWNPANDA_RADAR_CARS and use_brownpanda not in (False, b"0", "0"):
-      self.RI = BrownPandaRadarInterface(self.CP)
 
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")
     controller_available = self.CI.CC is not None and openpilot_enabled_toggle and not self.CP.dashcamOnly

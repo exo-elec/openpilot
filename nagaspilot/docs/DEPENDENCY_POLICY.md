@@ -17,13 +17,8 @@ Submodule rules shared with EOP10:
 5. Different product pins are allowed when runtime/API requirements differ,
    but the reason and upstream/fork authority must be documented.
 
-NGP10 keeps the official v0.10.0 Panda, msgq, rednose, teleoprtc, and tinygrad
-gitlinks unchanged. BrownPanda radar requires an OpenDBC change, so NGP10 pins
-public commit `62c915ce4b9ca5d0ce561f7d59b7fff5dac6b5c1` from
-[`exo-electronics/opendbc:master`](https://github.com/exo-electronics/opendbc/tree/master).
-The branch name documents the update line; the gitlink is the reproducible
-authority. There is no OpenDBC `dev/NGP10` branch.
-
-If EOP10 adopts OpenDBC as a dependency, it must pin the same fork master commit
-when API-compatible. EOP10 must not depend on NGP10's API generation or on an
-unpublished local OpenDBC directory merely to share the repository.
+NGP10 uses official openpilot v0.10.0's OpenDBC API and public pin
+`4b203ff5d1ad867de127de6b27382ba73e6e31a7`. It has no BrownPanda radar patch.
+Other official dependency gitlinks remain unchanged. EOP10 retains its
+hardware-compatible OpenDBC generation; sharing portable policy does not require
+identical dependency ABIs. Pins must remain publicly reproducible.

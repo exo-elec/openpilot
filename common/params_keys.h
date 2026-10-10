@@ -98,7 +98,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_ui_brightness", {PERSISTENT, INT, "0"}},
     {"ngp_device_vehicle_selected", {PERSISTENT, STRING, ""}},
     {"ngp_device_vehicle_list", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
-    {"ngp_lon_brownpanda_radar", {PERSISTENT, BOOL, "1"}},
     {"ngp_lat_alcc", {PERSISTENT, BOOL, "0"}},
     // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/

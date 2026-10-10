@@ -31,8 +31,8 @@ DFLASH because the Tesla-compatible CAN contract has no verified geometry
 update frame.
 
 Read [`DEPENDENCY_POLICY.md`](DEPENDENCY_POLICY.md) before changing a gitlink.
-NGP10's BrownPanda radar adapter is pinned from the shared OpenDBC fork; it is
-not copied into this repository.
+NGP10 uses the official v0.10 OpenDBC generation; BrownPanda synthetic radar
+is removed. Exopilot sensor daemons begin in EOP10.
 
 ## 3. Validation rule
 
