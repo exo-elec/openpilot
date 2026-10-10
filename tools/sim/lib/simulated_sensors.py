@@ -15,7 +15,7 @@ class SimulatedSensors:
   """Simulates the C3 sensors (acc, gyro, gps, peripherals, dm state, cameras) to OpenPilot"""
 
   def __init__(self, dual_camera=False, tele_camera=None, stereo_camera=None):
-    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'driverPoseState', 'peripheralState'])
+    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'peripheralState'])
     self.v4l2d = CameraSim(dual_camera=dual_camera, tele_camera=tele_camera, stereo_camera=stereo_camera)
     self.tele_camera = self.v4l2d.tele_camera
     self.stereo_camera = self.v4l2d.stereo_camera
@@ -83,18 +83,6 @@ class SimulatedSensors:
     }
     self.pm.send('peripheralState', dat)
 
-  def send_fake_driver_monitoring(self):
-    # EOP uses steering monitoring (hands-on-wheel), not face tracking.
-    # DriverPoseState fields: steeringActive, attentionProb, steerState, detectMode
-    dat = messaging.new_message('driverPoseState', valid=True)
-    dat.driverPoseState = {
-      "steeringActive": True,   # hands on wheel — sim always engaged
-      "attentionProb": 1.0,
-      "steerState": "attentive",
-      "detectMode": "sim",
-    }
-    self.pm.send('driverPoseState', dat)
-
   def send_camera_images(self, world: 'World'):
     world.image_lock.acquire()
     yuv = self.v4l2d.rgb_to_yuv(world.road_image)
@@ -124,7 +112,8 @@ class SimulatedSensors:
     self.send_gps_message(simulator_state)
 
     if (now - self.last_dmon_update) > DT_DMON/2:
-      self.send_fake_driver_monitoring()
+      # driveractivityd produces monitoring from the simulator's carState,
+      # using the same availability/decay path as a real vehicle.
       self.last_dmon_update = now
 
     if (now - self.last_perp_update) > 0.25:

@@ -15,7 +15,7 @@ other name, so the eGPU cannot quietly become a general-purpose accelerator.
 The backend is not part of a WorkloadClass tier either.
 
 Requires tinygrad (tinygrad.nn.onnx, tinygrad.tensor), pinned through the
-official tinygrad_repo submodule at release tag v0.13.0. initialize() still
+official tinygrad_repo gitlink inherited from the NGP Chestnut linkage. initialize() still
 guards the import so an incomplete deployment degrades cleanly.
 
 Detection: post-flash device enumerates as 0xADD1:0x0001 or 0x3801:0x0001
@@ -156,7 +156,9 @@ class EgpuBackend(HardwareBackend):
       return False
 
     try:
-      runner = self._onnx_runner_cls(str(path)).to("AMD")
+      from tinygrad import Context
+      with Context(DEV="USB+AMD:LLVM"):
+        runner = self._onnx_runner_cls(str(path)).to("AMD")
       input_names = tuple(runner.graph_inputs)
       self._models[config.name] = _EgpuModelHandle(name=config.name, path=str(path), runner=runner, input_names=input_names)
       config.loaded = True
@@ -208,17 +210,19 @@ class EgpuBackend(HardwareBackend):
       if set(inputs) == {'input'} and len(handle.input_names) == 1:
         model_inputs = {handle.input_names[0]: inputs['input']}
 
-      tg_inputs = {}
-      for name, value in model_inputs.items():
-        tensor = value.to("AMD") if isinstance(value, Tensor) else Tensor(value, device="AMD")
-        input_spec = handle.runner.graph_inputs.get(name)
-        if input_spec is not None and tensor.dtype is not input_spec.dtype:
-          # Camera tensors can travel as FP16 to halve USB traffic, then
-          # cast in VRAM to the model's declared dtype (normally FP32).
-          tensor = tensor.cast(input_spec.dtype)
-        tg_inputs[name] = tensor
-      raw_outputs = handle.runner(tg_inputs)
-      outputs = {k: v.numpy() for k, v in raw_outputs.items()}
+      from tinygrad import Context
+      with Context(DEV="USB+AMD:LLVM"):
+        tg_inputs = {}
+        for name, value in model_inputs.items():
+          tensor = value.to("AMD") if isinstance(value, Tensor) else Tensor(value, device="AMD")
+          input_spec = handle.runner.graph_inputs.get(name)
+          if input_spec is not None and tensor.dtype is not input_spec.dtype:
+            # Camera tensors can travel as FP16 to halve USB traffic, then
+            # cast in VRAM to the model's declared dtype (normally FP32).
+            tensor = tensor.cast(input_spec.dtype)
+          tg_inputs[name] = tensor
+        raw_outputs = handle.runner(tg_inputs)
+        outputs = {k: v.numpy() for k, v in raw_outputs.items()}
       inference_time_ms = (time.monotonic() - start) * 1000
 
       self._stats.tasks_completed += 1

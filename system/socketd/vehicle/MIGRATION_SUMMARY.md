@@ -1,9 +1,18 @@
-# socketd Vehicle Adapter Migration Summary
+# EOP vehicle and sensor ownership
 
-`selfdrive/vehicled/` was renamed in place to `system/socketd/vehicle/` and
-folded into the `socketd` process. There is no `vehicled` daemon anymore.
+EOP10 uses native SocketCAN/socketd and vehicled for the BrownPanda gateway.
+The runtime no longer depends on the OpenDBC package or submodule. A minimal,
+MIT-licensed Tesla-party protocol (packing, parsing, checksums, counters, state
+interpretation and control limits) is retained under `vehicle/protocol`, with
+provenance in its NOTICE.md. Multi-brand dispatch and car radar are excluded.
+The car schema is owned by cereal; all prior wire IDs/ordinals are preserved.
 
-## Directory Structure
+NGP10 continues to use normal comma card/OpenDBC and portable radar2d/BSD logic.
+EOP10 introduces UART forward radar3d and canonical surround radar4d: BLE 3D
+tracks now, optional WiFi point clouds on supported hardware. Radar2d is the
+planar compatibility view. Presence-only CAN flags never fabricate geometry.
+
+## Historical migration (superseded): Directory Structure
 
 ```
 system/socketd/vehicle/

@@ -21,6 +21,7 @@ from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.controls.lib.cat import CAT
 from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
+from nagaspilot.controls.ngp_driver_activity import monitoring_force_decel
 from openpilot.selfdrive.controls.lib.dlat import DLAT
 from openpilot.selfdrive.controls.lib.red import RED
 from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
@@ -58,7 +59,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'onroadEvents', 'driverAssistance', 'pandaStates',
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'pandaStates',
                                    'enhancedTrajectory',  # EOP: pathd
                                    'surfaceStatus', 'radarState',
                                    'monoDetections', 'stereoDetections', 'stereoObjects', 'pathAdjust',
@@ -479,9 +480,8 @@ class Controls:
     cs.upAccelCmd = float(self.LoC.pid.p)
     cs.uiAccelCmd = float(self.LoC.pid.i)
     cs.ufAccelCmd = float(self.LoC.pid.f)
-    # EOP: driverMonitoringState removed (EOP uses its own monitoring daemons).
-    # Inattention escalation is handled by monod → selfdriveState.state transitions.
-    cs.forceDecel = bool(self.sm['selfdriveState'].state == State.softDisabling)
+    cs.forceDecel = monitoring_force_decel(self.sm['driverMonitoringState'].awarenessStatus,
+                                         self.sm['selfdriveState'].state == State.softDisabling)
 
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:

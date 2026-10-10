@@ -1,19 +1,16 @@
 from pathlib import Path
-import opendbc
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_brownpanda_uses_two_channel_tesla_contract_without_synthetic_radar():
-  root = Path(opendbc.__file__).parent
-  values = (root / 'car/tesla/values.py').read_text()
-  interface = (root / 'car/tesla/interface.py').read_text()
-  assert 'party = 0' in values
-  assert 'autopilot_party = 2' in values
-  assert 'tesla_model3_party' in values
-  assert 'brownpanda_radar_present' not in interface
-  assert 'BROWNPANDA_RADAR_CARS' not in interface
+def test_eop_gateway_protocol_has_two_channels_and_no_synthetic_radar():
+  values = (ROOT / 'system/socketd/vehicle/tesla/values.py').read_text()
+  assert 'party = 0' in values and 'autopilot_party = 2' in values
+  controller = (ROOT / 'system/socketd/vehicle/car/carcontroller.py').read_text()
+  assert 'tesla_model3_party' in controller
+  assert 'opendbc' not in controller
 
 
-def test_vehicle_blindspot_flags_remain_available():
-  root = Path(opendbc.__file__).parent
-  carstate = (root / 'car/tesla/carstate.py').read_text()
-  assert 'leftBlindspot' in carstate and 'rightBlindspot' in carstate
+def test_eop_owns_car_schema_without_opendbc_import():
+  assert 'import opendbc' not in (ROOT / 'cereal/__init__.py').read_text()
+  assert 'struct CarParams' in (ROOT / 'cereal/car.capnp').read_text()

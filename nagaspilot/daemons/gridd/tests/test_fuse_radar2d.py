@@ -153,17 +153,9 @@ class TestFuseRadar2DObjects:
         msg = _radar2d_msg(objects=[{'corner': 0xFF, 'rangM': 2.0, 'azimuthDeg': 0.0}])
         assert host._fuse_radar2d([], msg) == []
 
-    def test_legacy_returns_fallback_when_no_objects(self):
-        """A presence-only message (empty objects list) still flows through the
-        legacy zone path unchanged."""
+    def test_presence_only_does_not_fabricate_tracks_or_positions(self):
         host = _FuseHost()
         host._active_costmap = _Costmap()
         msg = _radar2d_msg(returns=[{'side': 0, 'present': True, 'vRel': -2.0}])
-        objects = host._fuse_radar2d([], msg)
-        assert len(objects) == 1
-        d_rel, y_rel = _FuseHost._R2D_ZONE_POS[0]
-        assert objects[0]['dRel'] == d_rel
-        assert objects[0]['yRel'] == y_rel
-        assert objects[0]['trackId'] == encode_corner_track_id(0, 0)
-        assert objects[0]['confidence'] == _FuseHost._R2D_PROB
-        assert len(host._active_costmap.calls) == 1
+        assert host._fuse_radar2d([], msg) == []
+        assert host._active_costmap.calls == []

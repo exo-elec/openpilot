@@ -301,7 +301,7 @@ class RockchipHardware(HardwareBase):
         """Detect the rear camera at runtime (UVC via the shared HOST0 port).
 
         The original driver-facing camera is repurposed as a 170-degree rear
-        UVC camera; driverd runs in steering-torque-only mode.
+        UVC camera; driveractivityd monitors driver steering/pedal availability.
         """
         return self._detect_uvc_device("/dev/video-rear")
 

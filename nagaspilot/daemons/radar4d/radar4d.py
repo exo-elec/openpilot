@@ -1,26 +1,10 @@
 #!/usr/bin/env python3
-"""
-radar4d — ESP32 corner-radar WiFi point-cloud producer (dev/02M only)
+"""Canonical surround radar4d producer on all Exopilot boards.
 
-Publishes Custom.Radar4D to cereal 'radar4d' at 20Hz, consumed by
-selfdrive/gridd/gridd.py (_fuse_radar4d). 02M is the only hardware with the
-antenna for the corner-node WiFi AP; the corner nodes' critical link is BLE
-(radar2d via bluetoothd), this point cloud is an add-on on top of it.
-
-Source: 4 ESP32_RADAR dev/ATR24 nodes (ESP32-S3 + Infineon BGT60ATR24C), each
-forwarding its radar's Radar4D frames over UDP 47000 in chunks.
-hal.drivers.radar.radar4d.RadarCornerReceiver reassembles and decodes them
-(exopilot `hal` package: dev PC `pip3 install -e ../exopilot/hal`; on-device
-the first-boot setup script installs it). If `hal` is not importable or the
-port cannot be bound, the daemon idles (logged once), same convention as
-radar3d.py.
-
-Each corner's points are placed in the vehicle frame with the confirmed
-corner-pose registry (radar_corner_geometry.load_corner_poses(), same as
-gridd's BLE Radar2D path); a corner without a confirmed pose, or with an
-unresolved strap (0xFF), is not published. Points are raw radar detections,
-not tracks: trackId and existenceProb are 0. isStatic/dynProp come from the
-ego-speed Doppler check in lib/radar4d_points.py (carState.vEgo).
+BLE radarCornerTracks provides tracked 3D objects without point-cloud shapes.
+Optional RK3576 WiFi supplies raw points alongside these tracks. One producer
+owns radar4d and its flattened radar2d BSD compatibility view. Forward UART
+radar3d remains separate. Confirmed corner poses are required for placement.
 """
 
 import time
@@ -32,6 +16,8 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.nagaspilot.daemons.radar4d.radar4d_points import CornerCloudCache
 from openpilot.selfdrive.controls.radar_corner_geometry import load_corner_poses
 from openpilot.system.hardware import HARDWARE
+from nagaspilot.controls.ngp_radar2d import ground_range
+from openpilot.nagaspilot.daemons.radar4d.surround_tracks import surround_tracks
 
 _radar_hal = HARDWARE.hal_import("drivers.radar")   # exopilot's hal, through the one seam
 HAL_AVAILABLE = _radar_hal is not None and hasattr(_radar_hal, "RadarCornerReceiver")
@@ -46,8 +32,8 @@ POSE_WARN_S = 30.0
 
 class Radar4DD:
   def __init__(self):
-    self.pm = messaging.PubMaster(['radar4d'])
-    self.sm = messaging.SubMaster(['carState'])
+    self.pm = messaging.PubMaster(['radar4d', 'radar2d'])
+    self.sm = messaging.SubMaster(['carState', 'radarCornerTracks'])
     self.receiver = None
     self.running = False
     self.cache = CornerCloudCache()
@@ -55,8 +41,8 @@ class Radar4DD:
     self._pose_t = -POSE_RELOAD_S
     self._pose_warn_t = -POSE_WARN_S
 
-    if not HAL_AVAILABLE:
-      cloudlog.error("radar4d: hal package not installed -- no corner point cloud. " +
+    if not HAL_AVAILABLE or HARDWARE.get_device_type() != "rk3576":
+      cloudlog.info("radar4d: hal package not installed -- WiFi point cloud unavailable; BLE surround remains active. " +
                      "Dev PC: pip3 install -e ../exopilot/hal.")
       return
     try:
@@ -75,7 +61,7 @@ class Radar4DD:
       cloudlog.warning("radar4d: waiting for a confirmed corner pose")
       self._pose_warn_t = now
 
-  def _publish(self, points, fresh: bool) -> None:
+  def _publish(self, points, fresh: bool, tracks=(), wifi_corners=()) -> None:
     msg = messaging.new_message('radar4d')
     out = msg.radar4d.init('points', len(points))
     for i, p in enumerate(points):
@@ -90,28 +76,54 @@ class Radar4DD:
       o.isStatic = p.is_static
       o.dynProp = 0 if p.is_static else 1
       o.aRel = float('nan')
+      o.corner = p.corner
+      o.source = 2
+    msg.radar4d.objects = list(tracks)
+    msg.radar4d.bleCorners = sorted({t['corner'] for t in tracks})
+    msg.radar4d.wifiCorners = list(wifi_corners)
     msg.valid = fresh
     self.pm.send('radar4d', msg)
 
+  def _publish_planar(self, raw, now):
+    msg = messaging.new_message('radar2d')
+    if raw is not None:
+      msg.radar2d = raw.as_builder()
+      for obj in msg.radar2d.objects:
+        obj.rangM = ground_range(obj.rangM, obj.elevationDeg)
+        obj.elevationDeg = 0.0
+    else:
+      msg.radar2d.init('returns', 4)
+      for side, entry in enumerate(msg.radar2d.returns):
+        entry.side = side
+        entry.vRel = float('nan')
+    car_fresh = self.sm.valid['carState'] and now - self.sm.recv_time['carState'] <= 0.25
+    if car_fresh:
+      for entry in msg.radar2d.returns:
+        presence = self.sm['carState'].leftBlindspot if entry.side < 2 else self.sm['carState'].rightBlindspot
+        entry.present = entry.present or presence
+    msg.valid = raw is not None or car_fresh
+    self.pm.send('radar2d', msg)
+
   def run(self):
     self.running = True
-    if self.receiver is None:
-      while self.running:
-        time.sleep(IDLE_POLL_S)
-      return
-
     rk = Ratekeeper(FRAME_RATE_HZ, print_delay_threshold=None)
     while self.running:
       self.sm.update(0)
       now = time.monotonic()
       self._refresh_poses(now)
       try:
-        self.cache.update(self.receiver.recv_all(), now)
+        if self.receiver is not None:
+          self.cache.update(self.receiver.recv_all(), now)
       except OSError as e:
         cloudlog.warning(f"radar4d: UDP receive failed: {e}")
       v_ego = float(self.sm['carState'].vEgo) if self.sm.valid['carState'] else 0.0
       points = self.cache.points(self._poses, v_ego, now)
-      self._publish(points, fresh=bool(self.cache.fresh_corners(now)))
+      ble_fresh = self.sm.valid['radarCornerTracks'] and now - self.sm.recv_time['radarCornerTracks'] <= 0.25
+      raw = self.sm['radarCornerTracks'] if ble_fresh else None
+      tracks = surround_tracks(raw.objects, self._poses) if raw is not None else []
+      wifi_corners = self.cache.fresh_corners(now)
+      self._publish(points, fresh=ble_fresh or bool(wifi_corners), tracks=tracks, wifi_corners=wifi_corners)
+      self._publish_planar(raw, now)
       rk.keep_time()
 
   def stop(self):

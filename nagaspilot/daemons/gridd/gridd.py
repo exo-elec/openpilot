@@ -55,6 +55,9 @@ See: docs/eop/daemons/GRIDD.md
 """
 from __future__ import annotations
 
+from nagaspilot.controls.ngp_radar2d import ground_range
+from openpilot.nagaspilot.daemons.radar4d.surround_tracks import tracked_obstacles
+
 import logging
 import math
 import os
@@ -639,7 +642,7 @@ class GridD:
                 })
         return objects
 
-    def _fuse_radar4d(self, radar4d) -> None:
+    def _fuse_radar4d(self, radar4d, objects=None):
         """Stamp the ESP32 corner nodes' WiFi point cloud into the costmap.
 
         Points are already vehicle-frame polar (selfdrive/controls/radar4d.py
@@ -648,12 +651,21 @@ class GridD:
         Radar2D tracks from the same nodes already do). Static points get a
         lower cost than moving ones.
         """
-        if radar4d is None or self._active_costmap is None:
-            return
+        objects = [] if objects is None else objects
+        if radar4d is None:
+            return objects
+        tracks = tracked_obstacles(getattr(radar4d, "objects", ()))
+        objects.extend(tracks)
+        if self._active_costmap is None:
+            return objects
+        for obj in tracks:
+            self._active_costmap.add_obstacle(obj["dRel"], obj["yRel"], 0.6, 0.6, COST_OBSTACLE)
         for d_rel, y_rel, radius, cost in points_to_obstacles(radar4d.points):
             # points_to_obstacles costs are 0-1; the cost layer is 0-COST_OBSTACLE
             self._active_costmap.add_obstacle(d_rel, y_rel, 2.0 * radius, 2.0 * radius,
                                               int(round(cost * COST_OBSTACLE)))
+
+        return objects
 
     def _fuse_radar2d(self, objects: list, radar2d) -> list:
         """Orchestrate radar2d corner fusion.
@@ -686,7 +698,7 @@ class GridD:
                 # without a mounting pose we cannot place the track.
                 continue
             d_rel, y_rel = self._corner_local_to_vehicle_frame(
-                obj_msg.rangM, obj_msg.azimuthDeg, self._r2d_corner_pose[obj_msg.corner])
+                ground_range(obj_msg.rangM, getattr(obj_msg, "elevationDeg", 0.0)), obj_msg.azimuthDeg, self._r2d_corner_pose[obj_msg.corner])
 
             snr_frac = min(obj_msg.snrDb / self._R2D_SNR_REF_DB, 1.0)
             existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)
@@ -729,22 +741,7 @@ class GridD:
         return objects
 
     def _fuse_radar2d_returns(self, objects: list, radar2d) -> list:
-        """Map corner-sensor zone presence to costmap obstacles and stereoObjects entries."""
-        for r in radar2d.returns:
-            if not r.present:
-                continue
-            d_rel, y_rel = self._R2D_ZONE_POS[r.side]
-            v_rel = float(r.vRel) if not math.isnan(float(r.vRel)) else 0.0
-
-            if self._active_costmap is not None:
-                size = 2.0 * self._R2D_ZONE_RADIUS
-                self._active_costmap.add_obstacle(d_rel, y_rel, size, size, COST_OBSTACLE)
-
-            objects.append({
-                'dRel': d_rel, 'yRel': y_rel, 'vRel': v_rel,
-                'confidence': self._R2D_PROB, 'prob': self._R2D_PROB,
-                'trackId': encode_corner_track_id(r.side, 0), 'obstacleType': 0,
-            })
+        """Presence-only warnings have no measured geometry; do not fabricate tracks."""
         return objects
 
     def _merge_detections(self, mono_objects: list, model_objects: list) -> list:
@@ -956,7 +953,7 @@ class GridD:
             _radar3d_msg = self.sm['radar3d'] if self.sm.updated['radar3d'] else None
             _radar2d_msg = self.sm['radar2d'] if self.sm.updated['radar2d'] else None
             _radar4d_msg = (self.sm['radar4d']
-                            if self.sm.updated['radar4d'] and self.sm.valid['radar4d'] else None)
+                            if self.sm.valid['radar4d'] and time.monotonic() - self.sm.recv_time['radar4d'] <= 0.25 else None)
             self._refresh_corner_poses()
 
             inference_success = True
@@ -1000,9 +997,9 @@ class GridD:
             self._active_costmap = self.costmap_gen
             if _radar3d_msg is not None:
                 all_objects = self._fuse_radar3d(all_objects, _radar3d_msg)
-            if _radar2d_msg is not None:
+            if _radar2d_msg is not None and _radar4d_msg is None:
                 all_objects = self._fuse_radar2d(all_objects, _radar2d_msg)
-            self._fuse_radar4d(_radar4d_msg)
+            all_objects = self._fuse_radar4d(_radar4d_msg, all_objects)
 
             # Annotate every fused object with 8-class lane zone (curve-aware, full-taxonomy)
             for obj in all_objects:

@@ -3513,7 +3513,7 @@ struct Event {
     pandaStates @81 :List(PandaState);
     peripheralState @80 :PeripheralState;
     radarState @13 :RadarState;
-    radar3d @131 :Car.RadarData;    # car OEM CAN radar tracks (was liveTracks)
+    radar3d @131 :Car.RadarData;    # Exopilot built-in forward UART radar tracks
     stereoObjects @155 :StereoObjects;
     stereoGround @211 :StereoGround;
     leftObjects @156 :LeftObjects;
@@ -3893,7 +3893,8 @@ struct Event {
     livestreamRearRightEncodeIdx @297 :EncodeIndex;
     livestreamRearLeftEncodeData @298 :EncodeData;
     livestreamRearRightEncodeData @299 :EncodeData;
-    radar4d @300 :Custom.Radar4D;   # ESP32 corner WiFi point cloud, 02M (radar4d.py → gridd)
+    radar4d @300 :Custom.Radar4D;   # canonical surround BLE tracks + optional WiFi point cloud
+    radarCornerTracks @307 :Custom.Radar2D; # internal BLE inlet; retains 3D range/elevation
     radar2d @301 :Custom.Radar2D;   # ESP32-S3 corner radars — tracked objects + legacy zone presence
     voiceFrame @306 :AudioData;     # voiced -> waked: beamformed PCM, not logged
     cloudAudioData @305 :AudioData;  # cloudd decoded speech -> spkd (not logged)

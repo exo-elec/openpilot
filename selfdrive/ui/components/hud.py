@@ -180,11 +180,15 @@ class HudOverlay(QWidget):
 
   def _draw_driver(self, p: QPainter, s: Snapshot) -> None:
     d = s.driver
-    if d.face_detected:
-      label = "DRIVER" if d.face_forward else "AWAY"
-      bg = QColor(0x00, 0xd8, 0x4a, 0xcc) if d.face_forward else QColor(0xff, 0xa5, 0x00, 0xcc)
-    else:
-      label, bg = "NO DRIVER", QColor(0xff, 0x33, 0x33, 0xcc)
+    if not d.valid:
+      return
+    label, color = {
+      "ok": ("SAM · READY", (0x00, 0xd8, 0x4a)),
+      "soft": ("HANDS ON WHEEL", (0xff, 0xa5, 0x00)),
+      "prompt": ("RESPOND NOW", (0xff, 0xa5, 0x00)),
+      "critical": ("TAKE CONTROL", (0xff, 0x33, 0x33)),
+    }[d.stage]
+    bg = QColor(*color, 0xcc)
 
     font = inter(16, QFont.DemiBold)
     font.setStyleStrategy(QFont.PreferAntialias)
@@ -201,30 +205,6 @@ class HudOverlay(QWidget):
     p.setPen(QColor(255, 255, 255, 0xee))
     p.drawText(pill, Qt.AlignCenter, label)
 
-    if d.face_detected:
-      self._draw_gaze(p, d)
-
-  def _draw_gaze(self, p: QPainter, d) -> None:
-    """Face box and gaze vector, faded by how attentive the driver is: the
-    more attention, the fainter the box. It is a warning, not a HUD element,
-    so it should recede when everything is fine."""
-    box = 70
-    # The driver camera is mirrored relative to the screen, so face_x is
-    # flipped to put the box on the side the driver's head actually is.
-    fx = int((1.0 - d.face_x) * self.width())
-    fy = int(d.face_y * self.height())
-    alpha = int(180 * (1.0 - d.attention_prob) + 50)
-
-    p.setPen(QPen(QColor(255, 255, 255, alpha), 2))
-    p.setBrush(Qt.NoBrush)
-    p.drawRoundedRect(fx - box // 2, fy - box // 2, box, box, 8, 8)
-
-    arrow = 25.0
-    ax = fx + int(arrow * math.sin(math.radians(d.face_yaw)))
-    ay = fy - int(arrow * math.sin(math.radians(d.face_pitch)))
-    p.setPen(QPen(QColor(0x00, 0xd8, 0x4a, alpha), 2))
-    p.drawLine(fx, fy, ax, ay)
-    p.drawEllipse(QPoint(ax, ay), 3, 3)
 
   def _draw_blind_spot_bars(self, p: QPainter, s: Snapshot) -> None:
     """A pulsing red bar plus a vertical BLIND SPOT label, shown only when the

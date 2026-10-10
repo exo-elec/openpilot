@@ -29,6 +29,7 @@ class Kind(Enum):
   TOGGLE = "toggle"
   SPINBOX = "spinbox"
   BUTTONS = "buttons"
+  CHOICE = "choice"
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class Control:
   step: float | None = None
   unit: str = ""
   options: tuple[str, ...] = ()
+  values: tuple[str, ...] = ()
 
   @property
   def feature_id(self) -> str:
@@ -52,6 +54,8 @@ class Control:
       raise ValueError(f"{self.key}: SPINBOX needs a range")
     if self.kind is Kind.BUTTONS and not self.options:
       raise ValueError(f"{self.key}: BUTTONS needs options")
+    if self.kind is Kind.CHOICE and (not self.options or len(self.options) != len(self.values)):
+      raise ValueError(f"{self.key}: CHOICE needs matching labels and stored values")
 
 
 @dataclass(frozen=True)
@@ -69,6 +73,9 @@ PAGES: list[Page] = [
     Control("EOPTSCTargetLatAccel", Kind.SPINBOX, "Curve Speed Limit:", desc="Max lateral acceleration for curve speed control. Lower = more cautious.", min=1.0, max=2.5, step=0.1, unit="m/s²"),
   ]),
   Page("device", [
+    Control("ngp_dm_policy", Kind.CHOICE, "SAM · Steering Activity Decay",
+            desc="Relaxed retains the deployed 60/30/15 second decay; Tight uses 30/15/10 seconds across the 11/22/33 m/s bands. Monitoring stays active. Changes preserve accumulated awareness. These are custom timings, not ISO certification.",
+            options=("Relaxed (legacy)", "Tight"), values=("relaxed", "tight")),
     # Options come from a std::vector variable (audible_alert_mode_texts) rather than
     # an inline list, so the generator could not see them -- filled in by hand, and
     # caught by Control.__post_init__ rather than shipping empty.

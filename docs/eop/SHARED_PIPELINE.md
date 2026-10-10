@@ -4,6 +4,21 @@ NGP10 is the portable policy parent. EOP10 inherits its control, map and
 runtime helpers unchanged, and adapts hardware and parameter names. See
 `docs/integration/SHARED_NGP_EOP_PIPELINE.md` for the parent parity gate.
 
+The shared steering activity producer is `driveractivityd` in NGP10. All
+descendants consume the same `driverMonitoringState` for warning events,
+controlsd forced deceleration and UI availability status. No separate
+steeringd, driverd or camera dmonitoring daemon is registered. The NGP-origin
+`ngp_dm_policy` selector offers deployed relaxed timing and a tighter decay
+policy without resetting accumulated awareness; see
+`nagaspilot/docs/STEERING_ACTIVITY_MONITORING.md`.
+
+NGP retains comma card/OpenDBC. Starting at EOP, OpenDBC is removed as a
+dependency; vehicled/socketd owns a minimal MIT-derived Tesla-party protocol,
+and cereal owns its wire-compatible car schema. The protocol is checked
+against recorded reference state and byte-level controller outputs. Both
+controlsd paths use the NGP vehicle-model equations; EOP only adapts its existing
+fallback parameters. Board HAL selection never changes those equations.
+
 EOP10, 01M and 02M use the same runtime source tree. `common/build_profile.py`
 selects the UI backend, default SoC and logical display size:
 
@@ -26,7 +41,7 @@ MIPI roles. Neither profile invents missing camera, GPS, IMU or thermal data.
 Measured NPU allocation applies only to the matching SoC; the same allocator
 packs task groups for either core count.
 
-The shared manager starts radar4d only on RK3576 with ignition on. Its IPC and
+The shared manager starts canonical surround radar4d on all Exopilot boards with ignition on; optional WiFi reception remains RK3576-specific. Its IPC and
 costmap consumer are present everywhere and inactive without data. Existing
 controllers, feature switches, recording, BLE, navigation, localization,
 planning, audio and inference implementations are inherited from this common

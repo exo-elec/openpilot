@@ -17,25 +17,29 @@ Submodule rules shared with NGP10:
 5. Different product pins are allowed when runtime/API requirements differ,
    but the reason and upstream/fork authority must be documented.
 
-EOP10 uses commaai msgq directly because its pinned commit
-`0e1ec5eb42404bfed9f5ad6ca06f3044488b3a15` exists upstream and carries no EOP
-patch. `opendbc_repo/` is an explicit submodule because the Tesla CAN adapter
-and safety envelope are shared with the EXO vehicle stack; `panda/` remains a
-build/reference directory and is not an OpenPilot runtime dependency.
+EOP10 uses commaai msgq directly at public commit
+`0e1ec5eb42404bfed9f5ad6ca06f3044488b3a15`. Starting at EOP10,
+OpenDBC is removed as a runtime and submodule dependency. NGP10 retains
+normal comma card/OpenDBC at official public commit
+`4b203ff5d1ad867de127de6b27382ba73e6e31a7`.
 
-The shared modified OpenDBC authority is `exo-electronics/opendbc`. EOP10 and
-NGP10 pin the same EXO commit, `49d48498` (the full SHA is recorded by the
-parent gitlink).
-It is descended from the official `v0.2.1` release and includes the Tesla
-BrownPanda radar/safety work required by both products.
+EOP owns the minimal MIT-derived Tesla-party CAN protocol under
+`system/socketd/vehicle/protocol/`; NOTICE identifies the original reference
+commit. The decoder/controller retain their existing checksum, cadence,
+vehicle-model steering limits, driver override and AEB guards. Reference
+fixtures compare emitted CAN bytes and decoded vehicle state before/after
+removing the dependency. `cereal/car.capnp` is the wire-identical owned copy;
+its MIT provenance is in `cereal/LICENSE.car-schema`.
 
-The official `v0.2.1` tag is a compatibility reference, not the selected
-runtime pin: it declares Python 3.9+ but does not contain the BrownPanda safety
-tree. Rebasing to that tag would remove required safety APIs. The shared fork
-also carries a small Python 3.10 compatibility layer for Ubuntu 22.04 and ROS
-2 Humble. Do not replace this pin with upstream `v0.2.1`.
+The inherited tinygrad pin is
+`d3f09c9bbd542fbfbe68c8569a1173550c408969`, matching official openpilot
+`b9c815d56a2827796ad73ca8f09d186243dd8c17`. NGP compiled driving/YOLO
+artifacts must be rebuilt with that compiler. EOP keeps RKNN as the default
+Rockchip driving backend; the private Chestnut driving transport remains
+closed until its existing replay/HIL readiness gates are satisfied.
 
-Tinygrad is pinned to the official `v0.13.0` tag and is not floated on
-`master`. Msgq and rednose intentionally follow their commaai `master` pins;
-the remaining `third_party` entries are exact gitlinks with tag/branch hints
-in `.gitmodules` and should not be mass-upgraded without RK3588 ABI validation.
+The shared steering activity core remains NGP-owned and has no Exopilot
+hardware dependency. Forward UART radar3d and surround BLE/WiFi radar4d
+belong to EOP; radar2d is a planar compatibility view and portable BSD logic.
+The BrownPanda gateway exports actual left/right blind-spot flags and no
+fabricated Continental radar targets.

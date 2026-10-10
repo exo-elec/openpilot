@@ -95,7 +95,7 @@ class SelfdriveD:
     if not self.params.get_bool("EOPRearCameraEnabled"):
       ignore += ['rearCameraState']
     _eop_status = ['stereoStatus', 'monoStatus', 'gridStatus', 'pointcloudStatus',
-                   'rgaStatus', 'mppStatus', 'inferencedStatus', 'driverStatus', 'blindSpotAlert']
+                   'rgaStatus', 'mppStatus', 'inferencedStatus', 'blindSpotAlert']
     # Optional perception sockets (absent when the feature param is off)
     # radar4d is a 02M-only service; subscribing to a service this branch does not define raises in SubMaster
     _eop_optional = [svc for svc in ['radar4d'] if svc in SERVICE_LIST]
