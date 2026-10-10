@@ -23,6 +23,11 @@ range, azimuth, elevation, radial velocity and track IDs; it does not provide
 point-cloud shapes. WiFi points complement these tracks in the same radar4d
 message. The pipeline publishes each BLE object once; gridd selects canonical
 radar4d and uses the radar2d object path only as a compatibility fallback.
+Canonical radar4d range/elevation stay geometrically consistent in 3D; the
+original sensor slant range and elevation are retained separately. Current
+confirmed mounting poses are planar, so vertical position remains relative to
+the leveled sensor plane; no unmeasured mount height is invented. Only the
+radar2d/BSD view is flattened.
 
 ## Driver ownership — shared with the rest of the radar HAL
 
