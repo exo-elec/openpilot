@@ -2,18 +2,19 @@
 from functools import cached_property
 import os
 from openpilot.system.hardware import TICI
-from openpilot.selfdrive.modeld.egpu_detect import egpu_present
-os.environ['DEV'] = 'QCOM' if TICI else 'LLVM'
+from openpilot.selfdrive.modeld.egpu_detect import egpu_present, wait_for_chestnut
+from nagaspilot.runtime.tinygrad_model import TinygradModel
+os.environ['DEV'] = 'QCOM' if TICI else 'CPU:LLVM'
+os.environ['GMMU'] = '0'
+os.environ.setdefault('AM_POWER_LIMIT', '100')
 
-EGPU_FIRMWARE = egpu_present() if "EGPU" in os.environ else None
+EGPU_FIRMWARE = egpu_present()
 EGPU = EGPU_FIRMWARE is not None
-if EGPU:
-  os.environ['DEV'] = 'AMD'
-  os.environ['AMD_IFACE'] = 'USB'
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
 from tinygrad.device import Device
 import struct
+import ctypes
 import threading
 import time
 import pickle
@@ -113,7 +114,9 @@ class EgpuState:
       try:
         smu = Device["AMD"].iface.dev_impl.smu
         smu._send_msg(smu.smu_mod.PPSMC_MSG_TransferTableSmu2Dram, smu.smu_mod.TABLE_SMU_METRICS, timeout=100)
-        metrics = smu.read_table(smu.smu_mod.SmuMetricsExternal_t, smu.smu_mod.TABLE_SMU_METRICS).SmuMetrics
+        metrics_t = smu.smu_mod.SmuMetricsExternal_t
+        metrics_buf = bytearray(smu.adev.vram.view(smu.driver_table_paddr, ctypes.sizeof(metrics_t))[:])
+        metrics = metrics_t.from_buffer(metrics_buf).SmuMetrics
         self.metrics = {'tempC': metrics.AvgTemperature[smu.smu_mod.TEMP_HOTSPOT],
                         'memoryTempC': metrics.AvgTemperature[smu.smu_mod.TEMP_MEM],
                         'powerDrawW': metrics.AverageSocketPower,
@@ -191,17 +194,19 @@ class ModelState:
     }
 
     # img buffers are managed in openCL transform code
-    self.vision_inputs: dict[str, Tensor] = {}
+    self.vision_inputs: dict[str, Tensor | np.ndarray] = {}
     self.vision_output = np.zeros(vision_output_size, dtype=np.float32)
-    self.policy_inputs = {k: Tensor(v, device='NPY').realize() for k,v in self.numpy_inputs.items()}
+    self.policy_inputs = self.numpy_inputs
     self.policy_output = np.zeros(policy_output_size, dtype=np.float32)
     self.parser = Parser()
 
-    with open(_model_path('driving_vision_tinygrad.pkl', usbgpu), "rb") as f:
-      self.vision_run = pickle.load(f)
+    device = 'USB+AMD:LLVM' if usbgpu else 'QCOM' if TICI else 'CPU:LLVM'
+    self.vision_run = TinygradModel(_model_path('driving_vision_tinygrad.pkl', usbgpu), device=device)
+    self.policy_run = TinygradModel(_model_path('driving_policy_tinygrad.pkl', usbgpu), device=device)
 
-    with open(_model_path('driving_policy_tinygrad.pkl', usbgpu), "rb") as f:
-      self.policy_run = pickle.load(f)
+  def warmup(self):
+    self.vision_run.warmup()
+    self.policy_run.warmup()
 
   def slice_outputs(self, model_outputs: np.ndarray, output_slices: dict[str, slice]) -> dict[str, np.ndarray]:
     parsed_model_outputs = {k: model_outputs[np.newaxis, v] for k,v in output_slices.items()}
@@ -221,7 +226,7 @@ class ModelState:
     self.numpy_inputs['traffic_convention'][:] = inputs['traffic_convention']
     imgs_cl = {name: self.frames[name].prepare(bufs[name], transforms[name].flatten()) for name in self.vision_input_names}
 
-    if TICI and not EGPU:
+    if TICI and not self.usbgpu:
       # The imgs tensors are backed by opencl memory, only need init once
       for key in imgs_cl:
         if key not in self.vision_inputs:
@@ -229,19 +234,19 @@ class ModelState:
     else:
       for key in imgs_cl:
         frame_input = self.frames[key].buffer_from_cl(imgs_cl[key]).reshape(self.vision_input_shapes[key])
-        self.vision_inputs[key] = Tensor(frame_input, dtype=dtypes.uint8).realize()
+        self.vision_inputs[key] = np.array(frame_input, dtype=np.uint8, copy=True)
 
     if prepare_only:
       return None
 
-    self.vision_output = self.vision_run(**self.vision_inputs).contiguous().realize().uop.base.buffer.numpy()
+    self.vision_output = self.vision_run(**self.vision_inputs).reshape(-1)
     vision_outputs_dict = self.parser.parse_vision_outputs(self.slice_outputs(self.vision_output, self.vision_output_slices))
 
     self.full_features_buffer[0,:-1] = self.full_features_buffer[0,1:]
     self.full_features_buffer[0,-1] = vision_outputs_dict['hidden_state'][0, :]
     self.numpy_inputs['features_buffer'][:] = self.full_features_buffer[0, self.temporal_idxs]
 
-    self.policy_output = self.policy_run(**self.policy_inputs).contiguous().realize().uop.base.buffer.numpy()
+    self.policy_output = self.policy_run(**self.policy_inputs).reshape(-1)
     policy_outputs_dict = self.parser.parse_policy_outputs(self.slice_outputs(self.policy_output, self.policy_output_slices))
 
     combined_outputs_dict = {**vision_outputs_dict, **policy_outputs_dict}
@@ -277,23 +282,22 @@ def main(demo=False):
   # Param are required before even attempting a big-model load -- matches
   # EOP10's ChestnutDrivingEnabled gate (defaults off; PERSISTENT so it's a
   # deliberate choice, not incidental to whatever happens to be plugged in).
-  if EGPU and egpu_driving_enabled:
+  big_artifacts = all(_model_path(name, True).is_file() for name in (
+    'driving_vision_tinygrad.pkl', 'driving_policy_tinygrad.pkl',
+    'driving_vision_metadata.pkl', 'driving_policy_metadata.pkl'))
+  if egpu_driving_enabled and big_artifacts:
     params.put_bool("EgpuDrivingLoading", True)
     big_model = None
     def load_big():
       nonlocal big_model
       try:
+        global EGPU, EGPU_FIRMWARE
+        EGPU_FIRMWARE = wait_for_chestnut()
+        EGPU = True
+        from tinygrad.runtime.ops_amd import AMDDevice
+        AMDDevice.wait_timeout_ms = 3000
         m = ModelState(cl_context, usbgpu=True)
-        # NOTE: unlike upstream's ModelState.warmup(), this only proves the
-        # compiled pkl deserialized -- it does not run a dummy inference to
-        # prove the graph actually executes before being trusted. Upstream's
-        # own warmup() takes plain numpy dummy frames; this run() needs real
-        # VisionBuf camera objects bound to this CL context (see run()'s
-        # self.frames[name].prepare(bufs[name], ...) call), so a synthetic
-        # warmup can't be written and verified without real hardware here.
-        # Whoever wires in a real big-model artifact must add a genuine
-        # warmup call using real camera frames before removing this note --
-        # do not trust "it loaded" as proof "it runs".
+        m.warmup()
         big_model = m
       except Exception:
         cloudlog.exception("eGPU model load failed")

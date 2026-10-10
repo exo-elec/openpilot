@@ -62,6 +62,26 @@ def test_no_devices_present(usb_devices_dir):
   assert egpu_detect.egpu_present() is None
 
 
+def test_waits_for_enumeration_without_requiring_environment_flag(monkeypatch):
+  states = iter([None, None, "chestnut"])
+  monkeypatch.setattr(egpu_detect, "egpu_present", lambda: next(states))
+  elapsed = [0.0]
+  def advance(seconds):
+    elapsed[0] += seconds
+  assert egpu_detect.wait_for_chestnut(clock=lambda: elapsed[0], sleep=advance) == "chestnut"
+  assert elapsed[0] == pytest.approx(0.2)
+
+
+def test_wait_timeout_is_bounded(monkeypatch):
+  monkeypatch.setattr(egpu_detect, "egpu_present", lambda: None)
+  elapsed = [0.0]
+  def advance(seconds):
+    elapsed[0] += seconds
+  with pytest.raises(TimeoutError):
+    egpu_detect.wait_for_chestnut(timeout=0.2, clock=lambda: elapsed[0], sleep=advance)
+  assert elapsed[0] == pytest.approx(0.2)
+
+
 def test_skips_unreadable_device_entries(usb_devices_dir):
   # A device dir missing idVendor/idProduct/product (e.g. a hub) must not crash the scan.
   (usb_devices_dir / "1-0:1.0").mkdir()

@@ -521,7 +521,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
 
   EventName.preDriverUnresponsive: {
     ET.PERMANENT: Alert(
-      "Touch Steering Wheel",
+      "Keep Hands on Steering Wheel",
       "",
       AlertStatus.normal, AlertSize.small,
       Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .1),
@@ -530,7 +530,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   EventName.promptDriverUnresponsive: {
     ET.PERMANENT: Alert(
       "Touch Steering Wheel",
-      "Driver Unresponsive",
+      "No Driver Input Detected",
       AlertStatus.userPrompt, AlertSize.mid,
       Priority.MID, VisualAlert.steerRequired, AudibleAlert.promptDistracted, .1),
   },

@@ -8,7 +8,6 @@ Drop-in for `dmonitoringd`: same message, same 20 Hz, so `selfdrived` (events), 
 import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.realtime import DT_DMON, Ratekeeper
-from openpilot.selfdrive.selfdrived.events import Events
 from nagaspilot.controls.ngp_driver_activity import DEFAULT_POLICY, DriverActivityMonitor, MonitorStatus
 
 EventName = log.OnroadEvent.EventName
@@ -20,12 +19,14 @@ def driver_engaged(CS) -> bool:
 
 
 def state_msg(status: MonitorStatus, valid: bool):
-  events = Events()
+  events = []
   if status.event is not None:
-    events.add(getattr(EventName, status.event))
+    # These existing warning events are permanent alerts. Build the wire event
+    # directly so this portable producer does not import controller hardware.
+    events.append(log.OnroadEvent.new_message(name=getattr(EventName, status.event), permanent=True))
   msg = messaging.new_message('driverMonitoringState', valid=valid)
   msg.driverMonitoringState = {
-    "events": events.to_msg(),
+    "events": events,
     "faceDetected": False,
     "isDistracted": False,
     "distractedType": 0,
@@ -51,17 +52,22 @@ class DriverActivityD:
 
 def main():
   from openpilot.common.params import Params
-  policy = (Params().get("ngp_dm_policy", return_default=True) or DEFAULT_POLICY)
+  params = Params()
+  policy = (params.get("ngp_dm_policy") or DEFAULT_POLICY)
   policy = policy.decode() if isinstance(policy, bytes) else str(policy)
   daemon = DriverActivityD(policy)
   sm = messaging.SubMaster(['carState', 'selfdriveState'], poll='carState')
   pm = messaging.PubMaster(['driverMonitoringState'])
   rk = Ratekeeper(1.0 / DT_DMON, print_delay_threshold=None)
+  frame = 0
   while True:
     sm.update(0)
+    if frame % 20 == 0:
+      daemon.monitor.set_policy(params.get("ngp_dm_policy") or DEFAULT_POLICY)
     status = daemon.step(sm['carState'], bool(sm['selfdriveState'].enabled))
     pm.send('driverMonitoringState', state_msg(status, sm.all_checks(['carState', 'selfdriveState'])))
     rk.keep_time()
+    frame += 1
 
 
 if __name__ == '__main__':

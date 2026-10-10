@@ -1,6 +1,6 @@
 """Driver-activity monitoring for devices without a driver camera (replaces camera-based driver monitoring).
 
-The goal is only that the driver does not fall asleep. Awareness starts full and drains while openpilot is engaged and the
+This measures driver input availability, not gaze or whether the driver is awake. Awareness starts full and drains while openpilot is engaged and the
 car is moving fast enough, at a rate that depends on the speed band; any driver input refills it at once: hands on the wheel
 (the car's own `steeringPressed`) or a press of the brake or gas pedal. Stages are proportional to awareness:
 soft alert at 50 %, prompt at 25 %, critical at 0. At critical the monitor asks for a gentle forced deceleration; it never
@@ -17,6 +17,9 @@ from dataclasses import dataclass
 # strict: no drain below 11 m/s; 60 s in 11-22 m/s; 30 s in 22-33 m/s; 15 s above 33 m/s (the 15/30/60 s long-form timing)
 POLICIES = {
   "strict": ((11.0, None), (22.0, 60.0), (33.0, 30.0), (float("inf"), 15.0)),
+  # "strict" remains an alias for the deployed relaxed timing table.
+  "relaxed": ((11.0, None), (22.0, 60.0), (33.0, 30.0), (float("inf"), 15.0)),
+  "tight": ((11.0, None), (22.0, 30.0), (33.0, 15.0), (float("inf"), 10.0)),
 }
 DEFAULT_POLICY = "strict"
 HYSTERESIS_MPS = 0.5
@@ -39,10 +42,16 @@ class MonitorStatus:
 
 class DriverActivityMonitor:
   def __init__(self, policy: str = DEFAULT_POLICY, dt: float = 0.05):
-    self.table = POLICIES.get(policy, POLICIES[DEFAULT_POLICY])
+    self.set_policy(policy)
     self.dt = float(dt)
     self.awareness = 1.0
     self.band = 0
+
+  def set_policy(self, policy: str) -> None:
+    """Change decay rate without resetting accumulated awareness or alerts."""
+    if isinstance(policy, bytes):
+      policy = policy.decode(errors="replace")
+    self.table = POLICIES.get(str(policy), POLICIES[DEFAULT_POLICY])
 
   def _update_band(self, v_ego: float) -> int:
     band = self.band
@@ -62,6 +71,9 @@ class DriverActivityMonitor:
         self.awareness = max(self.awareness - self.dt / seconds, MIN_AWARENESS)
 
     if self.awareness <= 0.0:
+      # The legacy controls interface tests strictly < 0, so the critical
+      # warning and forced deceleration must agree even at exactly zero.
+      self.awareness = MIN_AWARENESS
       stage = CRITICAL
     elif self.awareness <= PROMPT_AT:
       stage = PROMPT

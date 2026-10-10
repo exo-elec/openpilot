@@ -1,11 +1,11 @@
 """
 ddsc.py - Driver Distraction Speed Controller (moved verbatim from EOP10; fed by the driver-activity monitor, see runtime/map_speed.py)
 
-Reads DMS status (driverStatus), vehicle state (carState), and lead car
+Reads an availability adapter (driverStatus-like fields), vehicle state (carState), and lead car
 speed (radarState), then returns a speed CAP for the longitudinal planner.
 
-Boundary: DDSC consumes DMS outputs; it does NOT do driver monitoring or
-attention tracking. That is driverd.py's responsibility.
+Boundary: DDSC consumes the shared steering activity adapter; driveractivityd
+owns monitoring. This module does not measure gaze or consciousness.
 
 Rules:
 - DMS provides a base safe-speed signal (safeSpeedLimitMps > 0 when
@@ -18,8 +18,8 @@ too_distracted). DDSC turns that into a traffic-aware CAP.
 - Returns None when inactive (no limit)
 - Gentle deceleration when the cap drops
 
-UNCONSCIOUS MODE (medical emergency - heart attack, seizure, etc.):
-- Triggered by DMS unconsciousActive flag (no driver detected + no steering for 20s)
+PROLONGED UNRESPONSIVE MODE (legacy field name unconsciousActive):
+- Triggered by the adapter after sustained critical availability; this does not diagnose a medical emergency
 - Immediate speed reduction, hazard lights auto-activate
 - Follow lead car if present; decelerate to standstill if traffic light/police
 - Once at standstill: latch stop, require gas press to resume

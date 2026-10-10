@@ -130,7 +130,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
-    // Driver-activity monitoring policy (devices without a driver camera): strict. See ngp_driver_activity.py.
+    // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.

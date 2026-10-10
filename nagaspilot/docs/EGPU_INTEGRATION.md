@@ -1,3 +1,50 @@
+# Chestnut inference linkage (2026-10-09)
+
+NGP10 supports official comma Chestnut through tinygrad, without Exopilot HAL
+imports. EOP10/01M/02M inherit the dependency and portable compiled-model
+adapter while retaining their Rockchip hardware selection.
+
+Authority: official openpilot commit
+`b9c815d56a2827796ad73ca8f09d186243dd8c17`, whose tinygrad gitlink is
+`d3f09c9bbd542fbfbe68c8569a1173550c408969`.
+[Official loader](https://github.com/commaai/openpilot/blob/b9c815d56a2827796ad73ca8f09d186243dd8c17/openpilot/selfdrive/modeld/helpers.py)
+and the matching modeld telemetry code are the reference.
+
+NGP keeps its v0.10 split vision/policy ONNX, metadata, history buffers and
+output parser. This is an inference linkage upgrade, not a switch to the
+latest upstream combined driving model or its different output contract.
+`TinygradModel` loads the current artifact dictionary (`run`, `input_specs`,
+`output_specs`), supplies output buffers and validates input shapes and finite
+outputs. Mutable policy arrays are uploaded afresh each frame.
+
+Rebuild all compiled driving and optional YOLO pickle artifacts with the
+pinned `examples/openpilot/compile_onnx.py`. Old artifact objects are rejected
+with a rebuild error. CPU uses `CPU:LLVM`, comma hardware uses `QCOM`, and
+Chestnut artifacts compile/run with `DEV=USB+AMD:LLVM`, `GMMU=0`, and a default
+`AM_POWER_LIMIT=100`. The explicit `USBGPU` build option compiles the USB GPU
+artifacts serially; runtime hardware detection does not require that flag.
+
+Runtime recognizes the official USB IDs ADD1:0001 / 3801:0001 and pinned
+`custom ed4e39b7-CLEAN` firmware, plus the existing generic TinyEnclosure
+compatibility string. The persisted `EgpuDrivingEnabled` opt-in remains off
+by default. Both big vision/policy compiled artifacts and metadata must exist.
+Loading waits up to 10 seconds for enumeration, applies the upstream 3000 ms
+AMD wait timeout, then warms up both graphs before activating them. The small
+model remains loaded for startup and inference failure fallback. GPU telemetry
+uses the current SMU VRAM metrics table API; failures mark it invalid.
+
+The checked-in big ONNX names are links to the existing small models, not a
+new trained model. Hardware-specific compilation needs a real device; no new
+model weights, GPU performance measurement or road validation is implied.
+The artifact ABI and mutable-input behavior are tested with a small ONNX graph
+compiled by the pinned compiler using CPU:CLANG on the host. Host LLVM 14 is
+too old for the latest CPU:LLVM compiler output; target LLVM must be compatible.
+
+## Historical design record
+
+The notes below describe the earlier audit and are retained for provenance.
+Use the current configuration above when building or running the pipeline.
+
 # eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19, 2026-08-23)
 
 **Naming (2026-08-19):** this branch's `EGPU` flag/constants/functions were

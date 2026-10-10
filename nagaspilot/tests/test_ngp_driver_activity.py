@@ -80,3 +80,40 @@ def test_hysteresis_stops_speed_noise_flipping_the_rate_at_an_edge():
 
 def test_unknown_policy_falls_back_to_strict():
   assert _time_to(CRITICAL, 25.0, policy="nope") == pytest.approx(30.0, abs=0.2)
+
+
+@pytest.mark.parametrize("v,relaxed,tight", [(15.0, 60.0, 30.0), (25.0, 30.0, 15.0), (35.0, 15.0, 10.0)])
+def test_relaxed_preserves_deployed_timing_and_tight_warns_sooner(v, relaxed, tight):
+  assert _time_to(CRITICAL, v, policy="relaxed") == pytest.approx(relaxed, abs=0.2)
+  assert _time_to(CRITICAL, v, policy="tight") == pytest.approx(tight, abs=0.2)
+
+
+def test_live_policy_change_preserves_critical_awareness():
+  m = DriverActivityMonitor("relaxed")
+  m.awareness = -0.1
+  m.set_policy(b"tight")
+  assert m.update(25.0, True, False, False).stage == CRITICAL
+  m.set_policy("relaxed")
+  assert m.update(25.0, True, False, False).stage == CRITICAL
+  assert m.update(25.0, True, False, True).stage == OK
+
+
+def test_exactly_empty_awareness_matches_legacy_control_deceleration():
+  m = DriverActivityMonitor()
+  m.awareness = 0.0
+  status = m.update(0.0, True, True, False)
+  assert status.stage == CRITICAL
+  assert status.force_decel == (status.awareness < 0.0)
+
+
+@pytest.mark.parametrize("edge", [11.0, 22.0, 33.0])
+def test_speed_edges_use_hysteresis_without_resetting_decay(edge):
+  m = DriverActivityMonitor()
+  m.update(edge - 0.6, True, False, False)
+  lower_band = m.band
+  m.awareness = 0.6
+  assert m.update(edge + 0.4, True, False, False).band == lower_band
+  assert m.update(edge + 0.5, True, False, False).band == lower_band + 1
+  assert m.awareness <= 0.6
+  assert m.update(edge - 0.4, True, False, False).band == lower_band + 1
+  assert m.update(edge - 0.6, True, False, False).band == lower_band

@@ -159,17 +159,15 @@ def fill_detections(md, tracks: list[Track], frame_id: int, timestamp_s: float, 
 class TinygradYolo:
   """Compiled detector. Not exercised off-device. Input: RGB 640x640 uint8 -> float [0,1], NCHW."""
 
-  def __init__(self, pkl: Path = MODEL_PKL):
-    import pickle
-    from tinygrad.tensor import Tensor
-    self._Tensor = Tensor
-    with open(pkl, 'rb') as f:
-      self.run = pickle.load(f)
+  def __init__(self, pkl: Path = MODEL_PKL, device: str | None = None):
+    from nagaspilot.runtime.tinygrad_model import TinygradModel
+    from openpilot.system.hardware import TICI
+    self.run = TinygradModel(pkl, device=device or ('QCOM' if TICI else 'CPU:LLVM'))
+    self.run.warmup()
 
   def __call__(self, rgb640: np.ndarray) -> np.ndarray:
     x = (rgb640.astype(np.float32) / 255.0).transpose(2, 0, 1)[None]
-    out = self.run(**{INPUT_NAME: self._Tensor(x, device='NPY').realize()})
-    return out.contiguous().realize().uop.base.buffer.numpy()
+    return self.run(**{INPUT_NAME: x})
 
 
 def nv12_to_rgb(buf) -> np.ndarray:

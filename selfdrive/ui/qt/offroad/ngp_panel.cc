@@ -139,6 +139,7 @@ void NGPPanel::add_extended_controls() {
     {"ngp_lon_pathd", tr("PATH · Speed Proposals"), tr("Requires the protection planner.")},
     {"EOPPathdNudgesEnabled", tr("NUDGE · Camera Proposals"), tr("Run EOP-origin nudge policies on camera-only inputs.")},
     {"ngp_lon_cutin", tr("CUT · Cut-in Speed"), tr("Requires valid tracked objects.")},
+    {"EgpuDrivingEnabled", tr("CHES · Chestnut Driving Model"), tr("Requires detected Chestnut hardware and rebuilt big-model artifacts. Falls back to the small model if loading or warmup fails.")},
     {"ngp_dashboard_enabled", tr("WEB · Status Viewer"), tr("Read-only device and trip viewer at localhost:9091. Remote viewing uses an SSH tunnel.")},
     {"ngp_tripd_enabled", tr("TRIP · Trip Statistics"), tr("Record non-controlling trip statistics.")},
   };
@@ -167,6 +168,7 @@ void NGPPanel::add_extended_controls() {
   };
   add_choice("ngp_lon_drive_mode", tr("DRV · Drive Mode"), {"custom", "eco", "normal", "sport"});
   add_choice("ngp_lon_accel_profile", tr("ACC · Acceleration Profile"), {"normal", "eco", "sport"});
+  add_choice("ngp_dm_policy", tr("SAM · Steering Activity Decay"), {"strict", "relaxed", "tight"});
   addItem(new ParamSpinBoxControl("ngp_dpp_max_mode", tr("DPP · Maximum Planner Mode"), tr("0 idle, 1 shadow, 2 supervise, 3 longitudinal, 4 lateral, 5 both. Requires valid planner inputs."), "", 0, 5, 1));
   addItem(new LabelControl(tr("Device and Display"), ""));
   addItem(new ParamSpinBoxControl("ngp_device_shutdown_minutes", tr("ASD · Offroad Shutdown"), tr("Stock power policy at -1. Configured timeouts retain a five-minute grace and power safeguards."), "", -1, 300, 5, tr(" min"), tr("Stock"), -1));
