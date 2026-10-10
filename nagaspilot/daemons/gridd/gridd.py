@@ -79,7 +79,7 @@ from openpilot.system.hardware.camera_geometry import CameraGeometry
 from openpilot.system.hardware.registry import PlatformRegistry
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.hardware.paths import Paths
-from nagaspilot.runtime.fusion_tracks import CameraTrackAnnotator
+from nagaspilot.runtime.fusion_tracks import CAMERA_CLASSES, CameraTrackAnnotator
 from openpilot.selfdrive.controls.radar_corner_geometry import (
     corner_local_to_vehicle_frame, encode_corner_track_id, load_corner_poses)
 from openpilot.nagaspilot.daemons.radar4d.radar4d_points import points_to_obstacles
@@ -877,6 +877,7 @@ class GridD:
                 items[idx].aRel = obj.get('aRel', 0.0)
                 items[idx].vyRel = obj.get('vyRel', 0.0)
                 items[idx].obstacleType = obstacle_type(obj['obstacleType'])
+                items[idx].className = str(obj['obstacleType']).lower() if str(obj['obstacleType']).lower() in CAMERA_CLASSES else ''
                 items[idx].trafficLightState = obj.get('trafficLightState', 0)
                 items[idx].trafficLightConfidence = obj.get('trafficLightConfidence', 0.0)
                 items[idx].prob = obj.get('confidence', obj.get('prob', 0.5))
