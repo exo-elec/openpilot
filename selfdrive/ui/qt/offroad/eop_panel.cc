@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <QFile>
+#include <QComboBox>
 #include <QFrame>
 #include <QLabel>
 #include <QProcess>
@@ -762,6 +763,20 @@ void EopPanel::add_safety_toggles() {
   addItem(new LabelControl(
       tr("Safety"),
       tr("Blind spot detection and driver safety.")));
+
+  auto monitor_row = new QWidget(this);
+  auto monitor_layout = new QHBoxLayout(monitor_row);
+  monitor_layout->addWidget(new QLabel(tr("SAM · Steering Activity Decay"), monitor_row));
+  auto monitor_policy = new QComboBox(monitor_row);
+  monitor_policy->addItem(tr("Relaxed (legacy)"), "relaxed");
+  monitor_policy->addItem(tr("Tight"), "tight");
+  monitor_policy->setCurrentIndex(std::max(0, monitor_policy->findData(
+    QString::fromStdString(params.get("ngp_dm_policy")))));
+  monitor_layout->addWidget(monitor_policy);
+  addItem(monitor_row);
+  connect(monitor_policy, qOverload<int>(&QComboBox::activated), this, [=](int index) {
+    params.put("ngp_dm_policy", monitor_policy->itemData(index).toString().toStdString());
+  });
 
   // BSD chime — user audio preference (BSD itself is always on)
   auto bsd_chime_toggle = new ParamControl(
