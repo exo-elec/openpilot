@@ -19,16 +19,13 @@ Runtime code follows the same order:
    that composes `nagaspilot/controls/ngp_dlon.py` and `ngp_tja.py`.
 4. `selfdrive/controls/controlsd.py` and car control produce commands.
 5. OpenDBC/Panda enforces vehicle-model steering safety.
-6. BrownPanda translates Tesla-format steering to learned BYD geometry.
+6. NGP10 uses standard comma card/OpenDBC; EOP10 owns BrownPanda vehicled/socketd integration.
 
 ## 2. Gateway and vehicle validation
 
-Read [`BROWNPANDA_RADAR.md`](BROWNPANDA_RADAR.md), then the source BYD port
-evidence and BrownPanda HIL documents for target-car capture requirements.
-Host `paramsd` persists `LiveParametersV2`;
-the BrownPanda learner independently persists validated gateway geometry in
-DFLASH because the Tesla-compatible CAN contract has no verified geometry
-update frame.
+Read [`BROWNPANDA_RADAR.md`](BROWNPANDA_RADAR.md) for the radar ownership boundary.
+NGP10 relies on normal OpenDBC/Panda vehicle safety and upstream paramsd.
+BrownPanda gateway geometry and HIL validation belong to EOP10.
 
 Read [`DEPENDENCY_POLICY.md`](DEPENDENCY_POLICY.md) before changing a gitlink.
 NGP10 uses the official v0.10 OpenDBC generation; BrownPanda synthetic radar

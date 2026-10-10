@@ -29,9 +29,8 @@
 | Longitudinal | Adaptive following gap | `adaptive_follow_gap()` in `nagaspilot/controls/longitudinal_policy.py` → planner/MPC | Integrated, default off via `ngp_lon_adaptive_gap`; uses only standard `radarState.leadOne` and personality. MPC overrides are optional and retain upstream behavior when absent. On-road validation remains required before enabling. |
 | Longitudinal | Driver preference speed offset | `_apply_speed_offset()` in `longitudinal_planner.py` | Integrated, default 0 (no-op) via `ngp_lon_speed_offset_kph`, no panel toggle (matches EOP10's `EOPSpeedLimitOffset`). Applied last, but skipped while `force_slow_decel` is active — deliberate divergence from EOP10, which has no such guard; see EOP10_PARITY_CANDIDATES.md |
 | Adaptation | ratio/stiffness | upstream `paramsd` / `LiveParametersV2` | Integrated and persistent |
-| Gateway | BYD learned geometry | BrownPanda vehicle learner | Integrated and DFLASH-persistent |
-| Radar | Converted BYD objects | BrownPanda + shared OpenDBC Tesla adapter on party bus 0 | NGP10 only; unavailable when frames are absent or with an unmodified fork |
-| Radar / BSD | Blind-spot zones, radar tracker, lane-change radar gate, collision advisory | Not in NGP10: they need side/rear radar a comma 3 does not have. Native vehicle BSM stays the fallback. Lives in EOP10 | EOP only |
+| Radar / BSD | Radar2d presence and ground-plane geometry | `ngp_radar2d.py`; standard vehicle CAN blind-spot flags | NGP baseline; no Exopilot hardware drivers |
+| Radar hardware | UART forward radar3d; BLE/WiFi surround radar4d | Exopilot HAL and EOP daemons | EOP10 onward only |
 | Perception | Tracked-object SOC, lane geometry | Not in NGP10 (needs ExoPilot tracks; the basic SOC above is separate). GridD, MonoD, BEV, side/rear overlays, radar zones are EOP-only | EOP only |
 
 Vehicle actuation still requires the branch’s normal safety model and hardware
