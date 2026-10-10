@@ -10,11 +10,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize('backend,soc,process_type,radar', [
-  ('cpp', 'rk3588', 'NativeProcess', False),
-  ('pyqt5', 'rk3588', 'PythonProcess', False),
+  ('cpp', 'rk3588', 'NativeProcess', True),
+  ('pyqt5', 'rk3588', 'PythonProcess', True),
   ('pyqt5', 'rk3576', 'PythonProcess', True),
 ])
-def test_shared_registry_selects_renderer_and_corner_wifi(backend, soc, process_type, radar):
+def test_shared_registry_selects_renderer_and_surround_radar_on_every_board(backend, soc, process_type, radar):
   code = '''
 import json,sys,types
 profile = types.ModuleType('openpilot.common.build_profile')
