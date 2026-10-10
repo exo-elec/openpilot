@@ -1,4 +1,5 @@
 import math
+import pytest
 
 from openpilot.selfdrive.controls.lib.radar4d_points import VehiclePoint
 from openpilot.selfdrive.controls.radar4d import Radar4DD
@@ -10,6 +11,30 @@ class _PM:
 
   def send(self, name, msg):
     self.sent.append((name, msg))
+
+
+@pytest.mark.parametrize('soc,wifi', [('rk3588', False), ('rk3576', True)])
+def test_surround_ble_stays_active_when_wifi_hardware_is_absent(monkeypatch, soc, wifi):
+  import sys
+  from types import SimpleNamespace as NS
+  module = sys.modules[Radar4DD.__module__]
+  publishers, subscribers = [], []
+  monkeypatch.setattr(module.messaging, 'PubMaster', lambda services: publishers.extend(services) or _PM())
+  monkeypatch.setattr(module.messaging, 'SubMaster', lambda services: subscribers.extend(services) or {})
+  monkeypatch.setattr(module, 'HARDWARE', NS(get_device_type=lambda: soc))
+  monkeypatch.setattr(module, 'HAL_AVAILABLE', True)
+  class Receiver:
+    def __init__(self, **kwargs):
+      self.opened = False
+    def open(self):
+      self.opened = True
+  monkeypatch.setattr(module, 'RadarCornerReceiver', Receiver)
+  daemon = Radar4DD()
+  assert publishers == ['radar4d', 'radar2d']
+  assert subscribers == ['carState', 'radarCornerTracks']
+  assert (daemon.receiver is not None) is wifi
+  if wifi:
+    assert daemon.receiver.opened
 
 
 def test_publish_fills_radar4d_points():
