@@ -50,20 +50,20 @@
    15
   ],
   "selfdrive/modeld/modeld.py": [
-   192,
-   28
+   204,
+   29
   ],
   "selfdrive/selfdrived/alerts_offroad.json": [
    12,
    0
   ],
   "selfdrive/selfdrived/events.py": [
-   19,
+   28,
    3
   ],
   "selfdrive/selfdrived/selfdrived.py": [
-   13,
-   3
+   21,
+   6
   ],
   "selfdrive/selfdrived/state.py": [
    3,
