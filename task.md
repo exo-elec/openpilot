@@ -29,14 +29,17 @@ Can be done without hardware:
 5. [ ] Decide whether to keep `cereal/car.capnp` changes when NGP10 bumps its opendbc pin past `7e3a0703`
    ("the one true car.capnp"): NGP10's `cereal/__init__.py` will need the same one-`car`-module treatment.
 6. [~] Big model on the phone over USB (T16 on NGP10, T17 here; 2026-10-11, local branch `jetlink/eop10-bigmodel-gate`, not pushed).
-   Done here, shared part only: `cereal` `bigModelLoading @100`, `bigModelFailed @102` (renamed reserved placeholders, same as NGP10),
-   `ModelDataV2.big @27`; `ngp_bigmodel_gate.py` and its tests byte-identical to NGP10's; `selfdrived` reads it with EOP10's names
-   (`EOPBigModel*`, `EOPEgpuDriving*`, `EOPChestnutDriving*`); alerts in `eop_events.py`. `selfdrived.py` budget +311 -> +317, named.
-   Nothing writes `EOPBigModelLoading/Active` yet, so behaviour is unchanged. NOT done: the model side. EOP10's modeld is RKNN
-   (split vision/policy behind `DrivingRunner`), so NGP10's modeld hook, OpenCL warp source and Jetlink adapter do not carry; it
-   needs a phone runner behind that contract with RKNN as the one-way fallback, `bluetoothd` NCP over the cable, and a check that
-   the RK3588/RK3576 USB-C port can run the NCM/FunctionFS gadget (comma-specific USB-PD code in Jetlink does not apply). See
-   NGP10 `nagaspilot/docs/JETLINK_BIGMODEL.md`. 01M and 02M take this by rebase once EOP10 has it.
+   Landed in small steps on NGP10 first, then carried: (a) cereal `bigModelLoading @100`, `bigModelFailed @102` (renamed reserved
+   placeholders), `ModelDataV2.big @27`, the gate, the alerts (`eop_events.py`) and `selfdrived` reading it with EOP names;
+   (b) the runtime modules, byte-identical to NGP10's (`jetlink_adapter.py`, `bigmodel.py`, `bigmodel_warp.py`,
+   `bigmodel_face.py`, `ngp_bigmodel_{action,frames,gate}.py` and their tests); only `nagaspilot/runtime/bigmodel_platform.py`
+   differs per branch (EOP param names, static USB role, PC check); (c) `EOPBigModelLink` + Jetlink records, `jetlinkd` in the
+   manager (needs a Jetlink checkout); (d) the `modeld` hook, default off, +10 lines (budget +733 -> +743, named).
+   EOP10's `ModelState` has the same `DrivingModelFrame` preprocessing and host-side history as NGP10's, so the OpenCL warp
+   source and reset carry unchanged; the RKNN split runner stays the always-warm small model. NOT done: the hardware side.
+   The USB-C port is the eGPU port (`&usbdrd3_0` on 01M, `&usb_drd0_dwc3` on 02M, `dr_mode = "host"` in exopilot's
+   `*-egpu-*.dts`); the phone needs a sibling overlay with `dr_mode = "peripheral"` and a kernel with configfs/FunctionFS and
+   DWC3 gadget, and Jetlink's root script needs a static-role platform (no USB-PD). Never built or run on a device.
 
 Needs hardware, a model artifact or a decision (not doable here):
 - [ ] Driving-model `driving_policy.onnx` / `driving_vision.onnx` (only remaining full-`scons` error).
