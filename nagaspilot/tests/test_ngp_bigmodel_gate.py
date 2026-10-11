@@ -51,3 +51,15 @@ def test_tier_flag_combines_sources():
   assert tier_flag(None, None) is None
   assert tier_flag(None, False) is False
   assert tier_flag(False, True) is True
+
+
+def test_events_reads_both_sources_and_names_events():
+  params = {}
+  g = NGPBigModelGate()
+  assert g.events(params.get) == []
+  params["EgpuDrivingLoading"] = True
+  assert g.events(params.get) == ["bigModelLoading"]
+  params.update(EgpuDrivingLoading=False, BigModelActive=True)
+  assert g.events(params.get) == []
+  params["BigModelActive"] = False
+  assert g.events(params.get) == ["bigModelFailed"]

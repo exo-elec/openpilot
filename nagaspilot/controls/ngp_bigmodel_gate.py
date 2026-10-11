@@ -49,3 +49,10 @@ class NGPBigModelGate:
     self._failed = failed
     return BigModelGateOut(loading=bool(loading), failed=failed, announce_failed=announce,
                            soft_disable=failed and self._was_active)
+
+  def events(self, get, model_dead: bool = False) -> list[str]:
+    """EventName names to raise this cycle. `get` is Params().get (BOOL params decode to True/False/None);
+    the loading flags of both big-model sources are combined, as are the active flags."""
+    out = self.update(bool(get("BigModelLoading")) or bool(get("EgpuDrivingLoading")),
+                      tier_flag(get("BigModelActive"), get("EgpuDrivingActive")), model_dead)
+    return (["bigModelLoading"] if out.loading else []) + (["bigModelFailed"] if out.announce_failed or out.soft_disable else [])
