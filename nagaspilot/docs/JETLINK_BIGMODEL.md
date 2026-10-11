@@ -1,6 +1,6 @@
 # Big model on the phone over USB (Jetlink port)
 
-Status 2026-10-11: **comma side implemented on NGP10, default off; nothing built, replayed or run on a device.** Branch
+Status 2026-10-11: **comma side implemented on NGP10 and carried to EOP10, 01M and 02M (branches `jetlink/*`), default off; nothing built, replayed or run on a device.** Hardware side (USB-C device-mode overlays, eGPU-xor-phone switch) is in `exopilot` branch `feat/phone-bigmodel-usb-port`. Branch
 `jetlink/ngp10-bigmodel` off `origin/dev/NGP10`. Base unchanged: official
 openpilot v0.10.0 `c085b8af1` plus NGP10 commits (decision: keep the base, port
 the features; no rebase onto newer upstream).
@@ -76,8 +76,8 @@ On NGP10 that adapter must supply:
 - **A hand-back soft-disables while engaged, and is one-way for the drive.** Decided by the requirement to behave like
   upstream's Chestnut ([`CHESTNUT_PARITY.md`](CHESTNUT_PARITY.md)): fail, fall back to the small model, never switch back onroad.
   Jetlink's own late join and rejoin is the `JETLINK` policy in `bigmodel.py`, not the default.
-- **No settling window** after a load (upstream's `big_model_settling`): it exists because the Chestnut load holds
-  `modelV2` back; Jetlink's small model keeps publishing, so there is nothing to settle.
+- **Settling window: 5 s** after a load ends and after a failure, as upstream's `big_model_settling`: `commIssue`, the
+  localizer checks and `frameDropPerc` are suppressed (`NGPBigModelGate.settling()`; see [`CHESTNUT_PARITY.md`](CHESTNUT_PARITY.md) row 13).
 - **Dropped camera frames while the big model drives still run it**, as upstream does (it has no `prepare_only`):
   the server's history advances once per frame sent, and skipping one would lose a second frame and leave a
   hand-back one short. On the small model a dropped frame stays prepare-only.
@@ -132,7 +132,6 @@ named by Jetlink.
 
 ## Not done / decisions pending
 
-- Ordinal choice for the two big-model events (above).
 - Own USB PID before any distribution (Jetlink uses the pid.codes test `1209:0001`).
 - Model licensing and LFS catalog access for distributed builds.
 - No device was available for any of this: nothing is build- or replay-tested.
