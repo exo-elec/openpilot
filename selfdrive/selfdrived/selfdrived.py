@@ -327,7 +327,7 @@ class SelfdriveD:
       self.events.add(EventName.greenLightAlert)
     if self.lead_departure and self.lead_departure.update(CS.standstill, self.sm['radarState'].leadOne):
       self.events.add(EventName.leadDepartingAlert)
-    for name in self.big_model_gate.events(self.params.get, self.sm.seen['modelV2'] and not self.sm.alive['modelV2']):
+    for name in self.big_model_gate.events(self.params.get, self.enabled, self.sm.seen['modelV2'] and not self.sm.alive['modelV2']):
       self.events.add(getattr(EventName, name))
     if not self.sm.valid['pandaStates']:
       self.events.add(EventName.usbError)

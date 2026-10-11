@@ -56,10 +56,28 @@ def test_tier_flag_combines_sources():
 def test_events_reads_both_sources_and_names_events():
   params = {}
   g = NGPBigModelGate()
-  assert g.events(params.get) == []
+  assert g.events(params.get, True) == []
   params["EgpuDrivingLoading"] = True
-  assert g.events(params.get) == ["bigModelLoading"]
+  assert g.events(params.get, True) == ["bigModelLoading"]
   params.update(EgpuDrivingLoading=False, BigModelActive=True)
-  assert g.events(params.get) == []
+  assert g.events(params.get, True) == []
   params["BigModelActive"] = False
-  assert g.events(params.get) == ["bigModelFailed"]
+  assert g.events(params.get, True) == ["bigModelFailed"]
+
+
+def test_reengaging_on_the_small_model_after_a_handback_does_not_soft_disable_again():
+  g = NGPBigModelGate()
+  g.update(False, True)
+  engaged_fail = g.update(False, False, enabled=True)
+  assert engaged_fail.soft_disable
+  # the soft disable lands: the driver is disengaged, the latch clears
+  g.update(False, False, enabled=False)
+  again = g.update(False, False, enabled=True)
+  assert again.failed and not again.soft_disable and not again.announce_failed
+
+
+def test_a_stalled_stream_keeps_the_latch_while_disengaged():
+  g = NGPBigModelGate()
+  g.update(False, True)
+  g.update(False, True, enabled=False, model_dead=True)
+  assert g.update(False, True, enabled=True, model_dead=True).soft_disable

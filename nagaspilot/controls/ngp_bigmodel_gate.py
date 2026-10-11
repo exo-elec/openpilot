@@ -7,9 +7,10 @@ Chestnut model (UsbGpuLoading / UsbGpuActive), so both big-model sources share o
 - loading: the big model is joining or proving. Engaging is refused ("Big Model Loading", NO_ENTRY).
 - active: True while the big model drives, False once it handed back after having driven or failed to
   load, None when it was never started (the param is removed at modeld start). A transition to False
-  announces "Big Model Failed" once; if the big model had been driving, it also soft-disables, so the
-  driver is never left on a different model without being asked. The small model keeps driving
-  for a later engagement.
+  announces "Big Model Failed" once; if the big model had been driving while engaged, it also
+  soft-disables, so the driver is never left on a different model without being asked. Once the
+  driver is disengaged that is over (as in upstream's selfdrived): the small model is available
+  for a later engagement without another soft-disable.
 - model_dead: modelV2 was seen and has stopped (the big model stalled the frame loop).
 
 modeld writes BigModelActive=False only after the big model has been active or failed to load, never
@@ -41,18 +42,24 @@ class NGPBigModelGate:
     self._failed = False
     self._was_active = False
 
-  def update(self, loading: bool, active: bool | None, model_dead: bool = False) -> BigModelGateOut:
+  def update(self, loading: bool, active: bool | None, enabled: bool = True, model_dead: bool = False) -> BigModelGateOut:
     if active:
       self._was_active = True
+    out = self._step(loading, active, model_dead)
+    if not enabled and not (model_dead and bool(active)):
+      self._was_active = False
+    return out
+
+  def _step(self, loading: bool, active: bool | None, model_dead: bool) -> BigModelGateOut:
     failed = active is False or (model_dead and bool(active))
     announce = failed and not self._failed
     self._failed = failed
     return BigModelGateOut(loading=bool(loading), failed=failed, announce_failed=announce,
                            soft_disable=failed and self._was_active)
 
-  def events(self, get, model_dead: bool = False) -> list[str]:
+  def events(self, get, enabled: bool, model_dead: bool = False) -> list[str]:
     """EventName names to raise this cycle. `get` is Params().get (BOOL params decode to True/False/None);
     the loading flags of both big-model sources are combined, as are the active flags."""
     out = self.update(bool(get("BigModelLoading")) or bool(get("EgpuDrivingLoading")),
-                      tier_flag(get("BigModelActive"), get("EgpuDrivingActive")), model_dead)
+                      tier_flag(get("BigModelActive"), get("EgpuDrivingActive")), enabled, model_dead)
     return (["bigModelLoading"] if out.loading else []) + (["bigModelFailed"] if out.announce_failed or out.soft_disable else [])
