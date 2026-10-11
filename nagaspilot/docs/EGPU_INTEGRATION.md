@@ -47,6 +47,8 @@ Use the current configuration above when building or running the pipeline.
 
 # eGPU (ASM2464PD) integration — design notes (2026-08-17, updated 2026-08-19, 2026-08-23)
 
+> **2026-10-11:** the phone-over-USB big-model tier ([`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md), task T16) needs the same big-model contract in `modeld`, `selfdrived` and cereal as this eGPU tier. Plan them together; the Chestnut USB IDs stay a stand-aside list for Jetlink's gadget owner.
+
 **Naming (2026-08-19):** this branch's `EGPU` flag/constants/functions were
 previously named `USBGPU` (inherited from comma's own variable name).
 Renamed to `EGPU` to match the single canonical name now used everywhere

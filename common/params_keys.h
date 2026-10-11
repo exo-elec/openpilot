@@ -15,6 +15,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
+    // Big model (phone over USB, nagaspilot/bigmodel): loading/proving blocks engagement, active is false once it
+    // handed back or failed. Read by selfdrived with the EgpuDriving* flags (nagaspilot/controls/ngp_bigmodel_gate.py).
+    {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
     {"CameraDebugExpGain", {CLEAR_ON_MANAGER_START, STRING}},
@@ -130,6 +134,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
+    // Run the big driving model on a phone over the USB cable (Jetlink link, JETLINK_BIGMODEL.md). Default off; the
+    // small model stays loaded and drives until the phone model is proven.
+    {"ngp_bigmodel_link", {PERSISTENT, BOOL, "0"}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.

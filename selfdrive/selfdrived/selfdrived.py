@@ -22,6 +22,7 @@ from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
+from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate, tier_flag
 from nagaspilot.controls.ngp_green_light import NGPGreenLight
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
@@ -96,6 +97,7 @@ class SelfdriveD:
     self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
     self.green_light = NGPGreenLight() if self.params.get_bool("ngp_lon_green_light") else None
     self.lead_departure = NGPLeadDeparture() if self.params.get_bool("ngp_lon_lead_departure") else None
+    self.big_model_gate = NGPBigModelGate()
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     car_recognized = self.CP.brand != 'mock'
@@ -325,6 +327,13 @@ class SelfdriveD:
       self.events.add(EventName.greenLightAlert)
     if self.lead_departure and self.lead_departure.update(CS.standstill, self.sm['radarState'].leadOne):
       self.events.add(EventName.leadDepartingAlert)
+    big = self.big_model_gate.update(self.params.get_bool("BigModelLoading") or self.params.get_bool("EgpuDrivingLoading"),
+                                     tier_flag(self.params.get("BigModelActive"), self.params.get("EgpuDrivingActive")),
+                                     self.sm.seen['modelV2'] and not self.sm.alive['modelV2'])
+    if big.loading:
+      self.events.add(EventName.bigModelLoading)
+    if big.announce_failed or big.soft_disable:
+      self.events.add(EventName.bigModelFailed)
     if not self.sm.valid['pandaStates']:
       self.events.add(EventName.usbError)
     if CS.canTimeout:
