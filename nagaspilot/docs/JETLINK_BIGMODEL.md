@@ -58,7 +58,7 @@ On NGP10 that adapter must supply:
   newer pipeline; whether NGP10 can feed Jetlink from its existing OpenCL warp
   instead is T16.1, answered below.
 
-## What is implemented (branch `jetlink/ngp10-bigmodel`, local commits)
+## What is implemented (branch `jetlink/ngp10-bigmodel`, pushed 2026-10-11)
 
 | Task | State |
 | --- | --- |
@@ -66,7 +66,7 @@ On NGP10 that adapter must supply:
 | T16.3 modeld | ☑ hook (+12 lines, budgeted) over `nagaspilot/runtime/bigmodel.py`: facade between modeld and Jetlink's joining model, `action_t`, `prepare_only`, `modelV2.big`, handover reset |
 | T16.4 cereal | ☑ `bigModelLoading @100`, `bigModelFailed @102` (renamed placeholders), `ModelDataV2.big @27` |
 | T16.5 selfdrived | ☑ `ngp_bigmodel_gate.py`: loading blocks entry; failure announces once and soft-disables only if it was driving while engaged; latch clears on disengage |
-| T16.6 adapter | ◐ `jetlink_adapter.py` passes Jetlink's `conformance()`; uses Jetlink's new optional `warp_source` seam (jetlink branch `ngp10-warp-seam`, local commit). **Gitlink not pinned**: the seam commit is not pushed (policy rule 4) |
+| T16.6 adapter | ☑ `jetlink_adapter.py` passes Jetlink's `conformance()` and uses Jetlink's optional `warp_source` seam; the Jetlink changes are on `exo-elec/jetlink` branch `static-role-platform` and `jetlink_repo` is pinned to `37e89e32` (see `DEPENDENCY_POLICY.md`) |
 | T16.7 setting | ☑ `ngp_bigmodel_link` INT (0 off, 1 USB/Android, 2 iOS) + Jetlink's JSON keys; manager starts `jetlinkd` (TICI only). No UI toggle yet |
 | T16.8 footprint | ☑ budget raised by name (events +9, selfdrived +4, modeld +12) |
 | T16.2, T16.9 device | ☐ needs a comma 3X |
