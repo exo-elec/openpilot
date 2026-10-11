@@ -112,6 +112,13 @@ def register_eop_events(events: dict[int, dict[str, Any]], *, EventName, ET, Ale
       ET.PERMANENT: Alert("Lead Vehicle Departing", "", AlertStatus.userPrompt, AlertSize.small,
                           Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
     },
+    EventName.bigModelLoading: {
+      ET.NO_ENTRY: NoEntryAlert("Big Model Loading"),
+    },
+    EventName.bigModelFailed: {
+      ET.SOFT_DISABLE: soft_disable_alert("Big Model Failed"),
+      ET.PERMANENT: NormalPermanentAlert("Big Model Failed", "Small model is still available", duration=20.),
+    },
     EventName.driverAttention: {
       ET.PERMANENT: Alert("Hand on Wheel", "Please Keep Hands on Steering Wheel",
                           AlertStatus.normal, AlertSize.small, Priority.LOW,
