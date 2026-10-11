@@ -28,10 +28,11 @@ import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_action import action_times
 from nagaspilot.runtime import bigmodel_platform as platform
-from nagaspilot.runtime.bigmodel_link import UDC_ROOT, cable_connected  # noqa: F401 (re-exported: the facade's default probe)
+from nagaspilot.runtime.bigmodel_link import UDC_ROOT, cable_connected, host_enumerated  # noqa: F401 (re-exported probes)
 
 PROVING_FRAMES = 20  # jetlink.openpilot.model_state.PROVING_FRAMES: engagement stays off this long after a swap
 BIG_MODEL_TIMEOUT = 60.0  # upstream modeld's: how long a Chestnut load may hold engagement off at the start
+ENUMERATION_TIMEOUT = 10.0  # upstream helpers.wait_for_chestnut(): how long a connected cable may take to enumerate
 
 
 @dataclass(frozen=True)
@@ -81,7 +82,7 @@ class BigModelFacade:
   """What modeld holds as `model` once the big model is attached."""
 
   def __init__(self, joining, small, params, fallback_action, policy: BigModelPolicy = CHESTNUT,
-               clock=time.monotonic, cable=cable_connected):
+               clock=time.monotonic, cable=cable_connected, enumerated=host_enumerated, runnable=lambda: True):
     self._joining = joining
     self._small = small
     self._params = params
@@ -89,8 +90,12 @@ class BigModelFacade:
     self.policy = policy
     self._clock = clock
     self._cable = cable
+    self._enumerated = enumerated
+    self._runnable = runnable    # a big model is built to run (upstream: chestnut_compiled())
     self._started = clock()
     self._cable_seen = False     # a phone's cable was connected during the window: a big model is expected
+    self._cable_seen_at = 0.0
+    self._host_up = False        # the phone has enumerated us
     self._cable_checked = float('-inf')
     self._given_up = False       # the join was stopped: no phone in time, or a one-way hand-back
     self._load_failed = False    # a phone was expected inside the window and never became the driving model
@@ -152,13 +157,22 @@ class BigModelFacade:
       self._joining.close()
 
   def _expecting(self, now: float) -> bool:
-    """Is a big model expected and not yet driving: the cable was seen connected inside the start window?"""
+    """Is a big model expected and not yet driving? Upstream tries one only if it is compiled and the cable is connected at
+    start. Here: a model is built, and the cable was seen connected inside the window."""
     if now - self._started >= self.policy.window_s:
       return False
-    if not self._cable_seen and now - self._cable_checked >= 0.5:   # at most twice a second until it is seen
+    if now - self._cable_checked >= 0.5:   # the probes are sysfs and file reads: at most twice a second
       self._cable_checked = now
-      self._cable_seen = bool(self._cable())
+      if not self._runnable():
+        return False                       # nothing built to run: nothing is attempted or said (upstream: UNCOMPILED)
+      if not self._cable_seen and self._cable():
+        self._cable_seen, self._cable_seen_at = True, now
+      self._host_up = self._host_up or (self._cable_seen and bool(self._enumerated()))
     return self._cable_seen
+
+  def _enumeration_timed_out(self, now: float) -> bool:
+    """The cable was seen and the phone has not enumerated us in ENUMERATION_TIMEOUT: upstream's wait_for_chestnut() raising."""
+    return self._cable_seen and not self._host_up and now - self._cable_seen_at >= ENUMERATION_TIMEOUT
 
   def _publish(self) -> None:
     now = self._clock()
@@ -169,6 +183,11 @@ class BigModelFacade:
       self._was_running = True
     window_over = now - self._started >= self.policy.window_s
     waiting = not running and not self._was_running and not self._given_up and self._expecting(now)
+    if waiting and self._enumeration_timed_out(now):
+      # a cable nobody enumerated over (the app is not open): engagement is released at 10 s, not 60, and it is a failed load
+      self._give_up()
+      self._load_failed = True
+      waiting = False
     if not running:
       if self._was_running and self.policy.one_way:
         self._give_up()
@@ -206,6 +225,14 @@ class BigModelHook:
     # unset key is a no-op, and this runs once before the frame loop
     params.remove(platform.LOADING)
     params.remove(platform.ACTIVE)
+
+  def _runnable(self) -> bool:
+    """Is a big model built to run (Jetlink's record of the built engine)? Unknown counts as no: engagement is never held off
+    for a model that may not exist."""
+    try:
+      return bool(self.jetlink.status().runnable)
+    except Exception:
+      return False
 
   def mode(self) -> int:
     from nagaspilot.runtime.jetlink_adapter import jetlink_present
@@ -248,4 +275,4 @@ class BigModelHook:
       return small_model
     if joining is None or joining is shim:
       return small_model
-    return BigModelFacade(joining, shim, self.params, self.fallback_action, policy=self.policy)
+    return BigModelFacade(joining, shim, self.params, self.fallback_action, policy=self.policy, runnable=self._runnable)

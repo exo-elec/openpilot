@@ -7,8 +7,9 @@ import numpy as np
 import pytest
 
 from nagaspilot.runtime import bigmodel_platform as platform
-from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, CHESTNUT, JETLINK, PROVING_FRAMES, BigModelFacade, NgpSmallModel,
-                                         cable_connected)
+from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, CHESTNUT, ENUMERATION_TIMEOUT, JETLINK, PROVING_FRAMES, BigModelFacade,
+                                         NgpSmallModel)
+from nagaspilot.runtime.bigmodel_link import cable_connected, host_enumerated
 
 LOADING, ACTIVE = platform.LOADING, platform.ACTIVE
 
@@ -400,27 +401,47 @@ class Clock:
     return self.t
 
 
-def chestnut(cable=True):
+def chestnut(cable=True, enumerated=True, runnable=True):
   inner = FakeInner()
   small = NgpSmallModel(inner)
   joining = FakeJoining(small)
   params = FakeParams()
   clock = Clock()
-  cable_state = {'on': cable}
+  probes = {'on': cable, 'enumerated': enumerated, 'runnable': runnable}
   facade = BigModelFacade(joining, small, params, lambda *a: 'small-action', policy=CHESTNUT, clock=clock,
-                          cable=lambda: cable_state['on'])
+                          cable=lambda: probes['on'], enumerated=lambda: probes['enumerated'],
+                          runnable=lambda: probes['runnable'])
   facade.delays = (0.2, 0.15)
-  return joining, params, facade, clock, cable_state
+  return joining, params, facade, clock, probes
 
 
-def test_cable_connected_is_any_controller_state_but_not_attached(tmp_path):
-  assert not cable_connected(tmp_path / 'none')
-  udc = tmp_path / 'fc000000.usb'
-  udc.mkdir()
+def test_cable_connected_follows_upstreams_cc_orientation_and_falls_back_to_the_controller_state(tmp_path):
+  cc = tmp_path / 'typec_cc_orientation'
+  udc_root = tmp_path / 'udc'
+  assert not cable_connected(udc_root, cc)                       # nothing to read at all
+  udc = udc_root / 'fc000000.usb'
+  udc.mkdir(parents=True)
   for state, expected in (('not attached', False), ('', False), ('powered', True), ('default', True),
                           ('addressed', True), ('configured', True)):
     (udc / 'state').write_text(state + '\n')
-    assert cable_connected(tmp_path) is expected, state
+    assert cable_connected(udc_root, cc) is expected, state
+  # upstream's signal: the CC pin says a cable is there while the controller still says nothing (the role negotiation)
+  (udc / 'state').write_text('not attached\n')
+  cc.write_text('0\n')
+  assert not cable_connected(udc_root, cc)
+  cc.write_text('1\n')
+  assert cable_connected(udc_root, cc)
+  cc.write_text('2\n')
+  assert cable_connected(udc_root, cc)
+
+
+def test_the_host_has_enumerated_us_only_when_the_controller_is_configured(tmp_path):
+  assert not host_enumerated(tmp_path / 'none')
+  udc = tmp_path / 'fc000000.usb'
+  udc.mkdir()
+  for state, expected in (('not attached', False), ('powered', False), ('addressed', False), ('configured', True)):
+    (udc / 'state').write_text(state + '\n')
+    assert host_enumerated(tmp_path) is expected, state
 
 
 def test_the_chestnut_policy_is_upstreams_numbers():
@@ -574,3 +595,68 @@ def test_chestnut_policy_through_jetlinks_real_joining_model_a_hand_back_is_not_
   finally:
     state.close()
     state._thread.join(5)
+
+
+def test_with_no_model_built_nothing_is_awaited_even_with_the_cable_connected():
+  joining, params, facade, clock, _ = chestnut(cable=True, runnable=False)
+  joining.state = 'joining'
+  facade.run({}, {}, {})
+  assert params.values.get(LOADING) is False                      # upstream: not compiled -> no attempt, no loading
+  clock.t += BIG_MODEL_TIMEOUT + 1
+  facade.run({}, {}, {})
+  assert ACTIVE not in params.values and params.values[LOADING] is False   # and no model error either
+
+
+def test_a_cable_that_never_enumerates_releases_engagement_at_ten_seconds_as_a_failed_load():
+  joining, params, facade, clock, _ = chestnut(cable=True, enumerated=False)
+  joining.state = 'joining'
+  facade.run({}, {}, {})
+  assert params.values[LOADING] is True
+  clock.t += ENUMERATION_TIMEOUT - 1
+  facade.run({}, {}, {})
+  assert params.values[LOADING] is True
+  clock.t += 2
+  facade.run({}, {}, {})                                          # upstream's wait_for_chestnut(10) raised
+  assert params.values[LOADING] is False and params.values[ACTIVE] is False and joining.closed == 1
+
+
+def test_a_cable_that_enumerated_is_waited_for_the_whole_window_not_ten_seconds():
+  joining, params, facade, clock, probes = chestnut(cable=True, enumerated=False)
+  joining.state = 'joining'
+  facade.run({}, {}, {})
+  clock.t += 5
+  probes['enumerated'] = True                                     # the app opened and the host enumerated us
+  facade.run({}, {}, {})
+  clock.t += 30
+  facade.run({}, {}, {})
+  assert params.values[LOADING] is True and joining.closed == 0   # 35 s in, still awaiting the model
+  clock.t += 30
+  facade.run({}, {}, {})
+  assert params.values[ACTIVE] is False and joining.closed == 1   # 65 s: the window ended without a big model
+
+
+def test_the_hook_counts_a_model_as_built_only_when_jetlinks_record_says_so():
+  from nagaspilot.runtime.bigmodel import BigModelHook
+
+  class Status:
+    def __init__(self, runnable):
+      self.runnable = runnable
+
+  class Jet:
+    def __init__(self, status):
+      self._status = status
+
+    def status(self):
+      if isinstance(self._status, Exception):
+        raise self._status
+      return self._status
+
+  hook = BigModelHook(FakeParams(), lambda *a: None)
+  hook.jetlink = Jet(Status(True))
+  assert hook._runnable() is True
+  hook.jetlink = Jet(Status(False))
+  assert hook._runnable() is False
+  hook.jetlink = Jet(OSError('records unreadable'))
+  assert hook._runnable() is False       # unknown never holds engagement off
+  hook.jetlink = None
+  assert hook._runnable() is False
