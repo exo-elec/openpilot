@@ -14,6 +14,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
+    // Big model (phone over USB / eGPU): loading blocks engagement, active is false once it handed back or failed.
+    // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Nothing writes them on this branch yet.
+    {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
     {"CameraDebugExpGain", {CLEAR_ON_MANAGER_START, STRING}},
