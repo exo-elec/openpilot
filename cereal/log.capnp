@@ -132,9 +132,9 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     audioFeedback @97;
     reserved98DEPRECATED @98;
     reserved99DEPRECATED @99;
-    reserved100DEPRECATED @100;
+    bigModelLoading @100;
     reserved101DEPRECATED @101;
-    reserved102DEPRECATED @102;
+    bigModelFailed @102;
 
     # ALCC / lateral-only engagement events
     lkasEnable @103;
@@ -1742,6 +1742,8 @@ struct ModelDataV2 {
 
   # e2e lateral planner
   action @26: Action;
+  # the model that produced this frame is the big one (phone over USB, or the eGPU); upstream's ordinal and name
+  big @27 :Bool;
 
   gpuExecutionTimeDEPRECATED @17 :Float32;
   navEnabledDEPRECATED @22 :Bool;

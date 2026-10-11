@@ -25,6 +25,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
+from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate
 from nagaspilot.controls.ngp_green_light import NGPGreenLight
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
@@ -156,6 +157,8 @@ class SelfdriveD:
     # EOP: Green light / lead departing alert state
     self._green_light = NGPGreenLight()
     self._lead_departure = NGPLeadDeparture()
+    self._big_model_gate = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading", "EOPChestnutDrivingLoading"),
+                                           ("EOPBigModelActive", "EOPEgpuDrivingActive", "EOPChestnutDrivingActive"))
 
     # EOP: Health Monitor — graduated system degradation on thermal/CPU/memory stress
     self._health_monitor_enabled = self.params.get_bool("EOPHealthMonitorEnabled")
@@ -584,6 +587,9 @@ class SelfdriveD:
         self._tts_green_light_active = True
     else:
       self._tts_green_light_active = False
+
+    for name in self._big_model_gate.events(self.params.get, self.enabled, self.sm.seen['modelV2'] and not self.sm.alive['modelV2']):
+      self.events.add(getattr(EventName, name))
 
     # EOP: Lead departing alert — lead moves away while we're stopped (policy: nagaspilot/controls/ngp_lead_departure.py)
     radar_state = self.sm['radarState']
