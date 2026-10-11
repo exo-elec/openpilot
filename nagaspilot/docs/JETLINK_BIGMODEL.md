@@ -1,6 +1,6 @@
 # Big model on the phone over USB (Jetlink port)
 
-Status 2026-10-11: **design and task list only, no code yet.** Branch
+Status 2026-10-11: **comma side implemented on NGP10, default off; nothing built, replayed or run on a device.** Branch
 `jetlink/ngp10-bigmodel` off `origin/dev/NGP10`. Base unchanged: official
 openpilot v0.10.0 `c085b8af1` plus NGP10 commits (decision: keep the base, port
 the features; no rebase onto newer upstream).
@@ -57,6 +57,38 @@ On NGP10 that adapter must supply:
   `driving_warp_{w}x{h}_tinygrad.pkl` and `make_input_queues` from upstream's
   newer pipeline; whether NGP10 can feed Jetlink from its existing OpenCL warp
   instead is T16.1, answered below.
+
+## What is implemented (branch `jetlink/ngp10-bigmodel`, local commits)
+
+| Task | State |
+| --- | --- |
+| T16.1 warp source | ☑ spike below; implemented as `nagaspilot/runtime/bigmodel_warp.py` |
+| T16.3 modeld | ☑ hook (+12 lines, budgeted) over `nagaspilot/runtime/bigmodel.py`: facade between modeld and Jetlink's joining model, `action_t`, `prepare_only`, `modelV2.big`, handover reset |
+| T16.4 cereal | ☑ `bigModelLoading @100`, `bigModelFailed @102` (renamed placeholders), `ModelDataV2.big @27` |
+| T16.5 selfdrived | ☑ `ngp_bigmodel_gate.py`: loading blocks entry; failure announces once and soft-disables only if it was driving while engaged; latch clears on disengage |
+| T16.6 adapter | ◐ `jetlink_adapter.py` passes Jetlink's `conformance()`; uses Jetlink's new optional `warp_source` seam (jetlink branch `ngp10-warp-seam`, local commit). **Gitlink not pinned**: the seam commit is not pushed (policy rule 4) |
+| T16.7 setting | ☑ `ngp_bigmodel_link` INT (0 off, 1 USB/Android, 2 iOS) + Jetlink's JSON keys; manager starts `jetlinkd` (TICI only). No UI toggle yet |
+| T16.8 footprint | ☑ budget raised by name (events +9, selfdrived +4, modeld +12) |
+| T16.2, T16.9 device | ☐ needs a comma 3X |
+
+## Behaviour choices to confirm
+
+- **Hand-back while engaged soft-disables.** Jetlink itself stays engaged on the small model and shows TAKE
+  CONTROL. The gate follows NGP10's Chestnut doc and upstream (soft-disable, small model available for the next
+  engagement). A short cable glitch therefore costs a disengagement. Changing this is a one-line policy in
+  `ngp_bigmodel_gate.py`.
+- **No settling window** after a load (upstream's `big_model_settling`): it exists because the Chestnut load holds
+  `modelV2` back; Jetlink's small model keeps publishing, so there is nothing to settle.
+- **Big-model smoothing is upstream's** (lateral 0.0 s, longitudinal 0.3 s), not NGP10's small-model 0.1 s.
+
+## Unverified (needs hardware or a recorded route)
+
+- OpenCL warp vs the warp the big models were trained with (frame parity), and NGP10's `Parser` against a real
+  big-model output (slice names/shapes, `action` head units).
+- That AGNOS on NGP10 has FunctionFS, configfs and the charger debugfs voter `jetlink-root.sh` uses (comma 3X);
+  the original comma 3 is not named by Jetlink.
+- Rebuilding `common/params` (new keys) and cereal; `modeld.py` has only been byte-compiled.
+- Timing: the facade, shim and frame copy add CPU work on modeld's frame thread; measure against the 50 ms budget.
 
 ## T16.1 result: the warp (2026-10-11, read from source, not run)
 
