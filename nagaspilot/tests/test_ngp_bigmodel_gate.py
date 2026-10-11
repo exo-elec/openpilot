@@ -1,4 +1,4 @@
-from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate, tier_flag
+from nagaspilot.controls.ngp_bigmodel_gate import SETTLING_S, NGPBigModelGate, tier_flag
 
 
 def test_nothing_written_raises_nothing():
@@ -118,3 +118,33 @@ def test_a_change_is_seen_within_one_period_and_the_gate_state_still_updates_eve
   params["BigModelActive"] = False
   assert g.events(params.get, True, now=0.1) == []                 # still the cached reading
   assert g.events(params.get, True, now=0.26) == ["bigModelFailed"]  # read again
+
+
+def test_settling_is_upstreams_five_seconds_around_a_load_and_after_a_failure():
+  assert SETTLING_S == 5.0
+  g = NGPBigModelGate()
+  assert not g.settling(now=0.0)                                   # nothing configured: never settling
+  g.update(True, None, now=10.0)
+  assert g.settling(now=10.0) and g.settling(now=500.0)           # while loading, however long
+  g.update(False, True, now=20.0)                                  # the load ended
+  assert g.settling(now=24.9) and not g.settling(now=25.1)
+  g.update(False, False, now=100.0)                                # a failure restarts it
+  assert g.settling(now=104.0) and not g.settling(now=105.1)
+
+
+def test_a_failure_that_is_already_announced_does_not_restart_settling():
+  g = NGPBigModelGate()
+  g.update(False, False, now=0.0)
+  assert g.settling(now=1.0)
+  g.update(False, False, now=50.0)                                 # same failed state, no new announcement
+  assert not g.settling(now=51.0)
+
+
+def test_events_feeds_the_settling_clock():
+  params = {"BigModelLoading": True}
+  g = NGPBigModelGate()
+  g.events(params.get, True, now=0.0)
+  assert g.settling(now=1.0)
+  params["BigModelLoading"] = False
+  g.events(params.get, True, now=1.0)
+  assert g.settling(now=5.0) and not g.settling(now=6.1)

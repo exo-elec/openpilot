@@ -38,6 +38,10 @@ def tier_flag(*values: bool | None) -> bool | None:
   return None
 
 
+# upstream selfdrived's `warmup_sec`: how long after a big-model load ends (or fails) the liveness, localizer and frame-drop
+# checks are held back, so a swap's stall is not read as a system fault
+SETTLING_S = 5.0
+
 # How often the params are read. selfdrived runs at 100 Hz and the flags only change at a swap or a hand-back, so
 # 4 Hz keeps a branch with no big-model source from paying file reads every cycle.
 READ_PERIOD = 0.25
@@ -55,11 +59,20 @@ class NGPBigModelGate:
     self._was_active = False
     self._read_at = float('-inf')
     self._flags: tuple[bool, bool | None] = (False, None)
+    self._loading = False
+    self._ready_t = float('-inf')
 
-  def update(self, loading: bool, active: bool | None, enabled: bool = True, model_dead: bool = False) -> BigModelGateOut:
+  def update(self, loading: bool, active: bool | None, enabled: bool = True, model_dead: bool = False,
+             now: float | None = None) -> BigModelGateOut:
+    t = time.monotonic() if now is None else now
+    if self._loading and not loading:
+      self._ready_t = t                    # the load ended: upstream's `big_model_ready_t`
+    self._loading = bool(loading)
     if active:
       self._was_active = True
     out = self._step(loading, active, model_dead)
+    if out.announce_failed:
+      self._ready_t = t                    # and a failure restarts it
     if not enabled and not (model_dead and bool(active)):
       self._was_active = False
     return out
@@ -80,5 +93,11 @@ class NGPBigModelGate:
       self._read_at = t
       self._flags = (any(bool(get(k)) for k in self._loading_keys),
                      tier_flag(*(get(k) for k in self._active_keys)))
-    out = self.update(self._flags[0], self._flags[1], enabled, model_dead)
+    out = self.update(self._flags[0], self._flags[1], enabled, model_dead, t)
     return (["bigModelLoading"] if out.loading else []) + (["bigModelFailed"] if out.announce_failed or out.soft_disable else [])
+
+  def settling(self, now: float | None = None) -> bool:
+    """Upstream's `big_model_settling`: a big model is loading, or the load ended (or failed) within SETTLING_S. While it
+    is true selfdrived holds back the liveness (commIssue), localizer and frame-drop checks."""
+    t = time.monotonic() if now is None else now
+    return self._loading or t < self._ready_t + SETTLING_S

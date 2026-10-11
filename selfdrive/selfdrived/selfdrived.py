@@ -339,7 +339,8 @@ class SelfdriveD:
     # generic catch-all. ideally, a more specific event should be added above instead
     has_disable_events = self.events.contains(ET.NO_ENTRY) and (self.events.contains(ET.SOFT_DISABLE) or self.events.contains(ET.IMMEDIATE_DISABLE))
     no_system_errors = (not has_disable_events) or (len(self.events) == num_events)
-    if not self.sm.all_checks() and no_system_errors:
+    settling = self.big_model_gate.settling()  # upstream's big_model_settling: hold these checks back around a big-model load
+    if not self.sm.all_checks() and no_system_errors and not settling:
       if not self.sm.all_alive():
         self.events.add(EventName.commIssue)
       elif not self.sm.all_freq_ok():
@@ -358,7 +359,7 @@ class SelfdriveD:
     else:
       self.logged_comm_issue = None
 
-    if not self.CP.notCar:
+    if not self.CP.notCar and not settling:
       if not self.sm['livePose'].posenetOK:
         self.events.add(EventName.posenetInvalid)
       if not self.sm['livePose'].inputsOK:
@@ -410,7 +411,7 @@ class SelfdriveD:
 
     # TODO: fix simulator
     if not SIMULATION or REPLAY:
-      if self.sm['modelV2'].frameDropPerc > 20:
+      if self.sm['modelV2'].frameDropPerc > 20 and not settling:
         self.events.add(EventName.modeldLagging)
 
     # Decrement personality on distance button press
