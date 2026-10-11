@@ -5,6 +5,8 @@ from openpilot.common.build_profile import UI_BACKEND
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.params import Params
 from openpilot.system.manager.process import PythonProcess, NativeProcess
+from nagaspilot.runtime import bigmodel_platform
+from nagaspilot.runtime.jetlink_adapter import jetlink_present
 
 
 # EOP-CLEANUP: TTL-cached param wrapper for process conditions.
@@ -40,6 +42,11 @@ def logging(started: bool, params: Params, CP: car.CarParams) -> bool:
 
 def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
+
+def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # the gadget owner holds the USB-C port for the phone while the link is on, onroad and offroad alike. Only with a
+  # Jetlink checkout: a jetlinkd that cannot start is a processNotRunning event, which blocks engagement
+  return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) != 0 and jetlink_present()
 
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
@@ -112,6 +119,7 @@ procs = [
   PythonProcess("spkd", "system.spkd.spkd", always_run),     # Speaker (I2S)
   PythonProcess("rtcd", "system.rtcd.rtcd", always_run),     # RTC time sync
   PythonProcess("socketd", "system.socketd.socketd", always_run),
+  PythonProcess("jetlinkd", "nagaspilot.runtime.jetlink_adapter", bigmodel_link),  # phone-hosted big model: USB gadget owner
   PythonProcess("pigeond", "system.ubloxd.pigeond", always_run),
   PythonProcess("inferenced", "system.inferenced.inferenced", always_run),  # Centralized compute HAL
   PythonProcess("subscribed", "system.subscribed.subscribed", always_run),  # EOP: NavPilot subscription & hardware auth
