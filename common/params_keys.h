@@ -17,6 +17,13 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Big model (phone over USB / eGPU): loading blocks engagement, active is false once it handed back or failed.
     // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Nothing writes them on this branch yet.
     {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
+    // The phone-hosted big model link (Jetlink): 0 off, 1 Android phone (USB host), 2 iPhone (USB network); its progress,
+    // built-model and model-pointer records. The USB-C port the phone uses is the eGPU port: one role at a time.
+    {"EOPBigModelLink", {PERSISTENT, INT, "0"}},
+    {"EOPBigModelProgress", {CLEAR_ON_MANAGER_START, JSON}},
+    {"EOPBigModelSpec", {PERSISTENT, JSON}},
+    {"EOPBigModelPointers", {PERSISTENT, JSON}},
+    {"EOPBigModelChargePhone", {PERSISTENT, BOOL, "0"}},
     {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
