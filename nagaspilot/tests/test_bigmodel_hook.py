@@ -342,3 +342,24 @@ def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
   finally:
     state.close()
     state._thread.join(5)
+
+
+def test_a_static_board_tells_jetlink_before_it_is_imported(monkeypatch):
+  from nagaspilot.runtime import jetlink_adapter
+  monkeypatch.setenv('JETLINK_PLATFORM', 'placeholder')  # registers the undo for what the adapter writes
+  monkeypatch.delenv('JETLINK_PLATFORM')
+  monkeypatch.setattr(platform, 'USB_PLATFORM', 'agnos')
+  jetlink_adapter._jetlink_path()
+  assert 'JETLINK_PLATFORM' not in os.environ
+  monkeypatch.setattr(platform, 'USB_PLATFORM', 'static')
+  jetlink_adapter._jetlink_path()
+  assert os.environ['JETLINK_PLATFORM'] == 'static'
+
+
+def test_the_provisioning_run_gets_the_platform_too(monkeypatch):
+  _jetlink()
+  from nagaspilot.runtime import jetlink_adapter
+  monkeypatch.setattr(platform, 'USB_PLATFORM', 'static')
+  assert jetlink_adapter.owner_config().env['JETLINK_PLATFORM'] == 'static'
+  monkeypatch.setattr(platform, 'USB_PLATFORM', 'agnos')
+  assert 'JETLINK_PLATFORM' not in jetlink_adapter.owner_config().env
