@@ -14,19 +14,19 @@ import os
 import sys
 from pathlib import Path
 
+from nagaspilot.runtime import bigmodel_platform as platform
+
 ROOT = Path(__file__).resolve().parents[2]
 ADAPTER = 'nagaspilot.runtime.jetlink_adapter'
 
-# the setting is an INT index into jetlink's MODES ('off', 'usb', 'ios'): 1 is an Android phone, 2 an iPhone
-KEYS = dict(link='ngp_bigmodel_link', offroad='IsOffroad', progress='ngp_bigmodel_progress', spec='ngp_bigmodel_spec',
-            pointers='ngp_bigmodel_pointers', charge_phone='ngp_bigmodel_charge_phone')
+KEYS = dict(link=platform.LINK, offroad='IsOffroad', progress=platform.PROGRESS, spec=platform.SPEC,
+            pointers=platform.POINTERS, charge_phone=platform.CHARGE_PHONE)
 # comma's chestnut and our own eGPU firmware, which the gadget owner must never take as a host
 CHESTNUT_IDS = frozenset({(0xADD1, 0x0001), (0x3801, 0x0001), (0x174C, 0x2464), (0x174C, 0x2463)})
-DEVICE_CAMERA = (1928, 1208, 512, 256)  # comma 3 / 3X road camera, model frame
 
 
-def _on_agnos() -> bool:
-  return Path('/AGNOS').is_file()
+def _on_device() -> bool:
+  return platform.on_device()
 
 
 def comma_home() -> Path:
@@ -36,12 +36,12 @@ def comma_home() -> Path:
 def params_dir() -> Path:
   """The params store's directory by params.cc's rule: PARAMS_ROOT, else ~/.comma/params on a PC and /data/params on
   a device, then /d (or OPENPILOT_PREFIX)."""
-  root = os.environ.get('PARAMS_ROOT') or (str(comma_home() / 'params') if not _on_agnos() else '/data/params')
+  root = os.environ.get('PARAMS_ROOT') or (str(comma_home() / 'params') if not _on_device() else '/data/params')
   return Path(root) / os.environ.get('OPENPILOT_PREFIX', 'd')
 
 
 def log_file() -> Path:
-  return (Path('/data/log') if _on_agnos() else comma_home() / 'log') / 'jetlink-owner.log'
+  return (Path('/data/log') if _on_device() else comma_home() / 'log') / 'jetlink-owner.log'
 
 
 def _checkout() -> Path:
@@ -123,18 +123,17 @@ class NgpOpenpilot:
     self._params().remove(key)
 
   def chestnut_present(self) -> bool:
-    from openpilot.selfdrive.modeld.egpu_detect import egpu_present
-    return egpu_present() is not None
+    return platform.egpu_in_use()
 
   def camera(self) -> tuple[int, int, int, int]:
-    return DEVICE_CAMERA
+    return platform.DEVICE_CAMERA
 
   def warp_path(self, cam_w: int, cam_h: int, model_w: int, model_h: int) -> Path:
     # never read: the warp is OpenCL (warp_source), there is no pickle
     return ROOT / 'selfdrive' / 'modeld' / 'models' / f'driving_warp_{cam_w}x{cam_h}_tinygrad.pkl'
 
   def model_root(self) -> Path:
-    return Path('/data/media/0/models') if _on_agnos() else comma_home() / 'models'
+    return Path('/data/media/0/models') if _on_device() else comma_home() / 'models'
 
   def model_face(self):
     from nagaspilot.runtime.bigmodel_face import model_face

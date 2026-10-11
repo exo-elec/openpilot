@@ -19,6 +19,7 @@ Not exercised on a device.
 import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_action import action_times
+from nagaspilot.runtime import bigmodel_platform as platform
 
 PROVING_FRAMES = 20  # jetlink.openpilot.model_state.PROVING_FRAMES: engagement stays off this long after a swap
 
@@ -122,13 +123,13 @@ class BigModelFacade:
       active = False if self._was_running else None
     if loading != self._loading:
       self._loading = loading
-      self._params.put_bool_nonblocking("BigModelLoading", loading)
+      self._params.put_bool_nonblocking(platform.LOADING, loading)
     if active != self._active:
       self._active = active
       if active is None:
-        self._params.remove("BigModelActive")
+        self._params.remove(platform.ACTIVE)
       else:
-        self._params.put_bool_nonblocking("BigModelActive", active)
+        self._params.put_bool_nonblocking(platform.ACTIVE, active)
 
 
 class BigModelHook:
@@ -139,15 +140,15 @@ class BigModelHook:
     self.fallback_action = fallback_action
     self.jetlink = None
     self.adapter = None
-    params.put_bool("BigModelLoading", False)  # before the frame loop: blocking is fine here
-    params.remove("BigModelActive")
+    params.put_bool(platform.LOADING, False)  # before the frame loop: blocking is fine here
+    params.remove(platform.ACTIVE)
 
   def mode(self) -> int:
     from nagaspilot.runtime.jetlink_adapter import jetlink_present
     if not jetlink_present():
       return 0  # nothing to run: stay a plain small-model modeld
     try:
-      return int(self.params.get("ngp_bigmodel_link", return_default=True) or 0)
+      return int(self.params.get(platform.LINK, return_default=True) or 0)
     except Exception:
       return 0
 
