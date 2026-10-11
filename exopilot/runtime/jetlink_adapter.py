@@ -55,6 +55,10 @@ def jetlink_present() -> bool:
 
 
 def _jetlink_path() -> None:
+  """Make Jetlink importable and tell it which USB platform this board is, before anything imports it (jetlink.comma.root
+  reads JETLINK_PLATFORM once, at import). Called first in every process that touches Jetlink."""
+  if platform.USB_PLATFORM == 'static':
+    os.environ.setdefault('JETLINK_PLATFORM', 'static')
   checkout = _checkout()
   if checkout.is_dir() and str(checkout) not in sys.path:
     sys.path.insert(0, str(checkout))
@@ -71,12 +75,15 @@ def owner_config():
   from jetlink.openpilot.interface import OwnerConfig
   paths = [str(ROOT)] + ([str(ROOT / 'jetlink_repo')] if (ROOT / 'jetlink_repo').is_dir() else [])
   env = {'PYTHONPATH': os.pathsep.join(paths + [p for p in os.environ.get('PYTHONPATH', '').split(os.pathsep) if p])}
+  if platform.USB_PLATFORM == 'static':
+    env['JETLINK_PLATFORM'] = 'static'  # the provisioning run is a process of its own
   return OwnerConfig(params_dir=params_dir(), keys=keys(), chestnut_ids=CHESTNUT_IDS, adapter=ADAPTER, cwd=ROOT,
                      env=env, log_file=log_file())
 
 
 def main() -> None:
   """jetlinkd: hold the USB gadget until manager stops this process."""
+  _jetlink_path()
   from jetlink.openpilot import owner
   owner.main(owner_config())
 
