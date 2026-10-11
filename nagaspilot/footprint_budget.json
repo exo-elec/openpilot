@@ -53,6 +53,10 @@
    192,
    28
   ],
+  "selfdrive/selfdrived/alerts_offroad.json": [
+   12,
+   0
+  ],
   "selfdrive/selfdrived/events.py": [
    19,
    3

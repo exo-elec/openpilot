@@ -71,12 +71,11 @@ On NGP10 that adapter must supply:
 | T16.8 footprint | ☑ budget raised by name (events +9, selfdrived +4, modeld +12) |
 | T16.2, T16.9 device | ☐ needs a comma 3X |
 
-## Behaviour choices to confirm
+## Behaviour choices
 
-- **Hand-back while engaged soft-disables.** Jetlink itself stays engaged on the small model and shows TAKE
-  CONTROL. The gate follows NGP10's Chestnut doc and upstream (soft-disable, small model available for the next
-  engagement). A short cable glitch therefore costs a disengagement. Changing this is a one-line policy in
-  `ngp_bigmodel_gate.py`.
+- **A hand-back soft-disables while engaged, and is one-way for the drive.** Decided by the requirement to behave like
+  upstream's Chestnut ([`CHESTNUT_PARITY.md`](CHESTNUT_PARITY.md)): fail, fall back to the small model, never switch back onroad.
+  Jetlink's own late join and rejoin is the `JETLINK` policy in `bigmodel.py`, not the default.
 - **No settling window** after a load (upstream's `big_model_settling`): it exists because the Chestnut load holds
   `modelV2` back; Jetlink's small model keeps publishing, so there is nothing to settle.
 - **Dropped camera frames while the big model drives still run it**, as upstream does (it has no `prepare_only`):
