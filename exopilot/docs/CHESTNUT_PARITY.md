@@ -26,7 +26,7 @@ Nothing below has run on a device. "Matches" means the logic is the same and tes
 | 10 | `modeld` sets realtime after loading | `prepare()` runs before the process goes realtime (Jetlink requires it, its GPU init spawns a thread) | Different order, same intent |
 | 11 | Dropped camera frames: the big model has no `prepare_only` and runs every frame | Dropped frames run the big model; the small model stays prepare-only | Matches |
 | 12 | `action_t = lateralDelay + smoothing + frame + half-frame` with the big model's smoothing | `action_times()`, same formula | Matches |
-| 13 | **Settling window**: `big_model_settling` suppresses `all_checks`, `frameDropPerc > 1` and localizer checks for a while after the load | Not implemented. The load does not hold `modelV2` back here (the small model keeps publishing); a swap stalls a frame or two, covered by resetting modeld's drop filter on a handover | **Not done**: a swap frame could still trip the `modeldLagging` check |
+| 13 | **Settling window**: `big_model_settling` (`warmup_sec = 5`) suppresses `all_checks` (commIssue), the localizer checks and `frameDropPerc` for 5 s after the load ends, and again after a failure | `NGPBigModelGate.settling()`, the same rule and 5 s, applied to the same three checks in `selfdrived` | Matches. NGP10's own frame-drop threshold is still its v0.10.0 20 % |
 | 14 | `after_enqueue` publishes `chestnutGpuState` (temps, power, fan) while the GPU computes; `hardwared` merges it into `chestnutState` | The phone's own telemetry (Jetlink `WANT_STATE`) is not mapped to any message | **Not done** |
 | 15 | `hardwared` `ChestnutStatus`: offroad alerts NotDetected, UsbSlow, ModelError, Overheated, PcieUnavailable, UpdateFailed, Branch | NotDetected, UsbSlow (< 5000 Mbps), ModelError with the same rules and thresholds, severity 0 (`ngp_bigmodel_status.py`, `bigmodel_link.py`) | Matches where a phone equivalent exists. Overheated, PCIe/12 V power, firmware update, branch check have none |
 | 16 | UI: `ChestnutState` icon on the home screen and the onroad HUD (loading pulses, ready green, failed orange, active) | Not wired. Jetlink's `Status.icon()` already returns the same state names (`loading`, `ready`, `failed`, `uncompiled`, `active`) | **Not done** |
@@ -45,5 +45,4 @@ Nothing below has run on a device. "Matches" means the logic is the same and tes
 
 ## Open
 
-Rows 13, 14 and 16. Row 13 is the one that matters for safety: confirm on a device that a swap does not trip `modeldLagging`, and
-add a settling window to the gate if it does.
+Rows 14 and 16. Also confirm on a device that a swap does not trip `modeldLagging` or `commIssue` even with the settling window.
