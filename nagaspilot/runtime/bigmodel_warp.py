@@ -12,10 +12,9 @@ trained with, which needs a replay comparison before the phone model may drive.
 import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_frames import OUTPUT_SHAPE, fill_output
+from nagaspilot.runtime import bigmodel_platform as platform
 
 CAMERA_NAMES = ('img', 'big_img')  # narrow, then wide: the order of the output's first axis
-# a comma 3 / 3X road camera and the model frame DrivingModelFrame warps to
-DEVICE_GEOMETRY = (1928, 1208, 512, 256)
 
 
 class NgpWarp:
@@ -55,8 +54,8 @@ def reset_function(model):
 class NgpWarpSource:
   """Jetlink's `warp_source` (interface.WarpSource) for NGP10."""
 
-  def __init__(self, geometry=DEVICE_GEOMETRY):
-    self._geometry = tuple(geometry)
+  def __init__(self, geometry=None):
+    self._geometry = tuple(geometry or platform.DEVICE_CAMERA)
     self._small = None
 
   def built(self) -> bool:
@@ -73,6 +72,6 @@ class NgpWarpSource:
   def make(self, cam_w: int, cam_h: int, model_w: int, model_h: int, frame_size: int) -> NgpWarp:
     if self._small is None:
       raise RuntimeError("the small model was not given before the warp")
-    if (model_w, model_h) != (DEVICE_GEOMETRY[2], DEVICE_GEOMETRY[3]):
-      raise RuntimeError(f"the warp makes {DEVICE_GEOMETRY[2]}x{DEVICE_GEOMETRY[3]} frames, not {model_w}x{model_h}")
+    if (model_w, model_h) != self._geometry[2:]:
+      raise RuntimeError(f"the warp makes {self._geometry[2]}x{self._geometry[3]} frames, not {model_w}x{model_h}")
     return NgpWarp(self._small.frames)
