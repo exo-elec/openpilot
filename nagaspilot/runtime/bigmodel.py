@@ -11,17 +11,56 @@ to NGP10's loop:
   frame it is sent, and skipping one would cost a second frame and leave a hand-back one short.
 - NGP10's inputs have no `action_t`; the facade builds it as upstream does from the lateral delay and the
   longitudinal actuator delay (the big model's smoothing, not the small model's), which modeld hands over.
-- BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py): loading while the big model proves
-  itself right after a swap (engagement held off), active while it drives, false once it has handed back.
+- BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py), with the same meaning as upstream's
+  ChestnutLoading / ChestnutActive: loading while a big model is expected and not yet driving or still proving itself,
+  active true while it drives and false once it failed or handed back.
+- The default policy (CHESTNUT) reproduces upstream's Chestnut behaviour with the phone in the GPU's place: if the
+  cable is connected at start, engagement is held off (loading) for up to BIG_MODEL_TIMEOUT while the phone joins; a
+  phone that has not joined by then is not used this drive; and a big model that hands back is not used again until the
+  next start (upstream: "fall back to small", never switched back onroad). Jetlink's own behaviour, joining at any time
+  and rejoining after a hand-back, is the JETLINK policy.
 
 Not exercised on a device.
 """
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
 import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_action import action_times
 from nagaspilot.runtime import bigmodel_platform as platform
 
 PROVING_FRAMES = 20  # jetlink.openpilot.model_state.PROVING_FRAMES: engagement stays off this long after a swap
+BIG_MODEL_TIMEOUT = 60.0  # upstream modeld's: how long a Chestnut load may hold engagement off at the start
+UDC_ROOT = Path('/sys/class/udc')
+
+
+@dataclass(frozen=True)
+class BigModelPolicy:
+  """When the big model may come and go during a drive."""
+  window_s: float      # a connected phone is waited for this long from the start, with engagement held off
+  one_way: bool        # after a hand-back the big model is not used again this drive
+  late_join: bool      # a phone may join after the window (needs window_s to have passed without one)
+
+
+# upstream's Chestnut: loaded (or not) at the start, one-way fallback, never switched back onroad
+CHESTNUT = BigModelPolicy(window_s=BIG_MODEL_TIMEOUT, one_way=True, late_join=False)
+# Jetlink's own: the small model drives until the phone is there, which may be at any time, and it may rejoin
+JETLINK = BigModelPolicy(window_s=0.0, one_way=False, late_join=True)
+
+
+def cable_connected(root: Path = UDC_ROOT) -> bool:
+  """Is a USB host attached to the gadget? Upstream's cable_connected(): the cable is there before the host has
+  enumerated us. Any device controller state but 'not attached' counts ('powered', 'default', 'addressed',
+  'configured'); no controller at all does not."""
+  try:
+    for udc in root.iterdir():
+      if (udc / 'state').read_text().strip() not in ('', 'not attached'):
+        return True
+  except OSError:
+    pass
+  return False
 
 
 class NgpSmallModel:
@@ -56,11 +95,20 @@ class NgpSmallModel:
 class BigModelFacade:
   """What modeld holds as `model` once the big model is attached."""
 
-  def __init__(self, joining, small, params, fallback_action):
+  def __init__(self, joining, small, params, fallback_action, policy: BigModelPolicy = CHESTNUT,
+               clock=time.monotonic, cable=cable_connected):
     self._joining = joining
     self._small = small
     self._params = params
     self._fallback = fallback_action
+    self.policy = policy
+    self._clock = clock
+    self._cable = cable
+    self._started = clock()
+    self._cable_seen = False     # a phone's cable was connected during the window: a big model is expected
+    self._cable_checked = float('-inf')
+    self._given_up = False       # the join was stopped: no phone in time, or a one-way hand-back
+    self._load_failed = False    # a phone was expected inside the window and never became the driving model
     self.delays: tuple[float, float] | None = None  # (lateral delay, longitudinal actuator delay), set by modeld
     self._handovers = joining.handovers
     self._big_frames = 0
@@ -112,15 +160,43 @@ class BigModelFacade:
     self._joining.close()
 
   # -- BigModelLoading / BigModelActive
+  def _give_up(self) -> None:
+    """Stop joining: the big model will not be used again this drive (upstream never switches back onroad)."""
+    if not self._given_up:
+      self._given_up = True
+      self._joining.close()
+
+  def _expecting(self, now: float) -> bool:
+    """Is a big model expected and not yet driving: the cable was seen connected inside the start window?"""
+    if now - self._started >= self.policy.window_s:
+      return False
+    if not self._cable_seen and now - self._cable_checked >= 0.5:   # at most twice a second until it is seen
+      self._cable_checked = now
+      self._cable_seen = bool(self._cable())
+    return self._cable_seen
+
   def _publish(self) -> None:
+    now = self._clock()
     running = self._joining.big_model_state == 'running'
     self._big_frames = self._big_frames + 1 if running else 0
-    loading = running and self._big_frames <= PROVING_FRAMES
+    proving = running and self._big_frames <= PROVING_FRAMES
+    if running:
+      self._was_running = True
+    window_over = now - self._started >= self.policy.window_s
+    waiting = not running and not self._was_running and not self._given_up and self._expecting(now)
+    if not running:
+      if self._was_running and self.policy.one_way:
+        self._give_up()
+      elif not self._was_running and window_over and not self.policy.late_join:
+        # the load window ended without a big model: upstream's load timeout. If a phone was expected this is a failed
+        # load (ChestnutActive False); with no cable there was nothing to attempt and nothing is said.
+        self._give_up()
+        self._load_failed = self._cable_seen
+    loading = proving or waiting
     if running:
       active = True
-      self._was_running = True
     else:
-      active = False if self._was_running else None
+      active = False if (self._was_running or self._load_failed) else None
     if loading != self._loading:
       self._loading = loading
       self._params.put_bool_nonblocking(platform.LOADING, loading)
@@ -135,9 +211,10 @@ class BigModelFacade:
 class BigModelHook:
   """prepare() and attach() for modeld.main(); both return what modeld should keep doing if the link is off."""
 
-  def __init__(self, params, fallback_action):
+  def __init__(self, params, fallback_action, policy: BigModelPolicy = CHESTNUT):
     self.params = params
     self.fallback_action = fallback_action
+    self.policy = policy
     self.jetlink = None
     self.adapter = None
     # stale flags from a previous drive must not read as a big model that is loading or has failed; removing an
@@ -186,4 +263,4 @@ class BigModelHook:
       return small_model
     if joining is None or joining is shim:
       return small_model
-    return BigModelFacade(joining, shim, self.params, self.fallback_action)
+    return BigModelFacade(joining, shim, self.params, self.fallback_action, policy=self.policy)
