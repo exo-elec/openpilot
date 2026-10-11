@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from nagaspilot.controls.ngp_bigmodel_frames import FRAME_BYTES
+from nagaspilot.runtime import bigmodel_platform as platform
 from nagaspilot.runtime.bigmodel_warp import NgpWarp, NgpWarpSource, reset_function
 
 
@@ -69,13 +70,13 @@ def test_the_reset_zeroes_the_small_models_recurrent_state_in_place():
 
 def test_the_source_needs_the_small_model_before_it_makes_a_warp():
   with pytest.raises(RuntimeError):
-    NgpWarpSource().make(1928, 1208, 512, 256, 0)
+    NgpWarpSource().make(*platform.DEVICE_CAMERA, 0)
 
 
 def test_the_source_builds_for_its_geometry_only():
   src = NgpWarpSource()
-  assert src.built() and src.geometry() == (1928, 1208, 512, 256)
+  assert src.built() and src.geometry() == platform.DEVICE_CAMERA
   src.prepare_reset(small_model())
-  assert isinstance(src.make(1928, 1208, 512, 256, 0), NgpWarp)
+  assert isinstance(src.make(*platform.DEVICE_CAMERA, 0), NgpWarp)
   with pytest.raises(RuntimeError):
-    src.make(1928, 1208, 1024, 512, 0)
+    src.make(*platform.DEVICE_CAMERA[:2], 1024, 512, 0)

@@ -6,7 +6,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from nagaspilot.runtime import bigmodel_platform as platform
 from nagaspilot.runtime.bigmodel import PROVING_FRAMES, BigModelFacade, NgpSmallModel
+
+LOADING, ACTIVE = platform.LOADING, platform.ACTIVE
 
 
 class FakeParams:
@@ -120,29 +123,29 @@ def test_the_action_function_follows_the_model_that_drives():
 def test_loading_blocks_engagement_for_the_proving_frames_then_active_stays_true():
   _, _, joining, params, facade = make()
   facade.run({}, {}, {})
-  assert params.values.get("BigModelLoading") is False and "BigModelActive" not in params.values
+  assert params.values.get(LOADING) is False and ACTIVE not in params.values
   joining.state = 'running'
   for _ in range(PROVING_FRAMES):
     facade.run({}, {}, {})
-  assert params.values["BigModelLoading"] is True and params.values["BigModelActive"] is True
+  assert params.values[LOADING] is True and params.values[ACTIVE] is True
   facade.run({}, {}, {})
-  assert params.values["BigModelLoading"] is False and params.values["BigModelActive"] is True
+  assert params.values[LOADING] is False and params.values[ACTIVE] is True
 
 
 def test_a_handback_after_driving_sets_active_false_once_and_never_for_a_link_that_never_joined():
   _, _, joining, params, facade = make()
   for _ in range(3):
     facade.run({}, {}, {})
-  assert ("BigModelActive", False) not in params.writes
+  assert (ACTIVE, False) not in params.writes
   joining.state = 'running'
   facade.run({}, {}, {})
   joining.state = 'ready'
   facade.run({}, {}, {})
   facade.run({}, {}, {})
-  assert params.writes.count(("BigModelActive", False)) == 1
+  assert params.writes.count((ACTIVE, False)) == 1
   joining.state = 'running'
   facade.run({}, {}, {})
-  assert params.values["BigModelActive"] is True
+  assert params.values[ACTIVE] is True
 
 
 def test_handovers_are_reported_once_so_modeld_resets_its_drop_filter():
@@ -172,7 +175,7 @@ def test_the_adapter_conforms_to_jetlinks_interface_and_api():
   adapter = jetlink_adapter.adapter()
   adapter._log = logging.getLogger('test')  # cloudlog is lazy and needs openpilot
   assert interface.conformance(adapter, interface.Openpilot) == []
-  assert adapter.warp_source.built() and adapter.keys.link == 'ngp_bigmodel_link'
+  assert adapter.warp_source.built() and adapter.keys.link == platform.LINK
 
 
 def test_the_owner_config_is_standard_library_and_names_this_adapter(monkeypatch, tmp_path):
@@ -189,7 +192,7 @@ def test_param_writes_on_the_frame_thread_do_not_block():
   _, _, joining, params, facade = make()
   joining.state = 'running'
   facade.run({}, {}, {})
-  assert set(params.nonblocking) == {"BigModelLoading", "BigModelActive"}
+  assert set(params.nonblocking) == {LOADING, ACTIVE}
 
 
 # -- in_control: the check that keeps a swap off a steering frame must fail towards "in control"
@@ -316,12 +319,12 @@ def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
     in_control[0] = False
     assert facade.run({}, {}, dict(inputs)) == {'big': True}
     assert facade.is_big and facade.action_from_output({}, None, 0, 0, 0) == 'big-action'
-    assert params.values["BigModelLoading"] is True and params.values["BigModelActive"] is True
+    assert params.values[LOADING] is True and params.values[ACTIVE] is True
     assert list(big.inputs[0]['action_t']) == pytest.approx([0.275, 0.525])
     assert facade.handed_over()
     for _ in range(PROVING_FRAMES):
       facade.run({}, {}, dict(inputs))
-    assert params.values["BigModelLoading"] is False
+    assert params.values[LOADING] is False
 
     # a dropped frame while the big model drives still runs it
     before = len(big.inputs)
@@ -334,7 +337,7 @@ def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
     in_control[0] = True
     assert facade.run({}, {}, dict(inputs)) == {'small': True}
     assert not facade.is_big
-    assert params.values["BigModelActive"] is False
+    assert params.values[ACTIVE] is False
     assert facade.handed_over()
   finally:
     state.close()
