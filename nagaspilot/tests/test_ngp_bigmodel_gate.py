@@ -81,3 +81,16 @@ def test_a_stalled_stream_keeps_the_latch_while_disengaged():
   g.update(False, True)
   g.update(False, True, enabled=False, model_dead=True)
   assert g.update(False, True, enabled=True, model_dead=True).soft_disable
+
+
+def test_another_branch_names_its_own_keys_and_never_reads_the_defaults():
+  asked = []
+  params = {"EOPBigModelLoading": True}
+
+  def get(key):
+    asked.append(key)
+    return params.get(key)
+
+  g = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading"), ("EOPBigModelActive", "EOPEgpuDrivingActive"))
+  assert g.events(get, True) == ["bigModelLoading"]
+  assert set(asked) == {"EOPBigModelLoading", "EOPEgpuDrivingLoading", "EOPBigModelActive", "EOPEgpuDrivingActive"}

@@ -37,8 +37,15 @@ def tier_flag(*values: bool | None) -> bool | None:
   return None
 
 
+# Param names read on NGP10 (the phone link, then the eGPU). A branch with another naming rule passes its own.
+LOADING_KEYS = ("BigModelLoading", "EgpuDrivingLoading")
+ACTIVE_KEYS = ("BigModelActive", "EgpuDrivingActive")
+
+
 class NGPBigModelGate:
-  def __init__(self):
+  def __init__(self, loading_keys: tuple[str, ...] = LOADING_KEYS, active_keys: tuple[str, ...] = ACTIVE_KEYS):
+    self._loading_keys = loading_keys
+    self._active_keys = active_keys
     self._failed = False
     self._was_active = False
 
@@ -59,7 +66,7 @@ class NGPBigModelGate:
 
   def events(self, get, enabled: bool, model_dead: bool = False) -> list[str]:
     """EventName names to raise this cycle. `get` is Params().get (BOOL params decode to True/False/None);
-    the loading flags of both big-model sources are combined, as are the active flags."""
-    out = self.update(bool(get("BigModelLoading")) or bool(get("EgpuDrivingLoading")),
-                      tier_flag(get("BigModelActive"), get("EgpuDrivingActive")), enabled, model_dead)
+    the loading flags of every big-model source are combined, as are the active flags."""
+    out = self.update(any(bool(get(k)) for k in self._loading_keys),
+                      tier_flag(*(get(k) for k in self._active_keys)), enabled, model_dead)
     return (["bigModelLoading"] if out.loading else []) + (["bigModelFailed"] if out.announce_failed or out.soft_disable else [])
