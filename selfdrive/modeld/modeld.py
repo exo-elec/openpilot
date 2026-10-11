@@ -35,6 +35,7 @@ from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
 from nagaspilot.controls.ngp_road_edge import evaluate_road_edges
 from nagaspilot.controls.ngp_dlat import NGPDLAT, DEFAULT_ENTER_THRESHOLD
+from nagaspilot.runtime.bigmodel import BigModelHook
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState
@@ -260,6 +261,9 @@ def main(demo=False):
   cloudlog.warning("modeld init")
   cloudlog.warning(f"eGPU {'active (' + EGPU_FIRMWARE + ' firmware)' if EGPU else 'not active'}")
 
+  bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (ngp_bigmodel_link, default off)
+  bigmodel.prepare()  # Jetlink needs this before the process goes realtime
+
   if not EGPU:
     # USB GPU currently saturates a core so can't do this yet,
     # also need to move the aux USB interrupts for good timings
@@ -334,6 +338,9 @@ def main(demo=False):
   cloudlog.warning(f"connected main cam with buffer size: {vipc_client_main.buffer_len} ({vipc_client_main.width} x {vipc_client_main.height})")
   if use_extra_client:
     cloudlog.warning(f"connected extra cam with buffer size: {vipc_client_extra.buffer_len} ({vipc_client_extra.width} x {vipc_client_extra.height})")
+
+  if not egpu_active:
+    model = bigmodel.attach(model, vipc_client_main.width, vipc_client_main.height)
 
   # messaging
   pub_socks = ["modelV2", "drivingModelData", "cameraOdometry"] + (["egpuState"] if EGPU else [])
@@ -452,6 +459,7 @@ def main(demo=False):
     }
 
     mt1 = time.perf_counter()
+    model.frame_drop_ratio, model.action_t = frame_drop_ratio, (lat_delay + DT_MDL, long_delay + DT_MDL)
     try:
       model_output = model.run(bufs, transforms, inputs, prepare_only)
     except Exception:
@@ -471,17 +479,20 @@ def main(demo=False):
       model_output = None
     mt2 = time.perf_counter()
     model_execution_time = mt2 - mt1
+    if getattr(model, 'handed_over', lambda: False)():
+      run_count = 0  # a swap or hand-back stalls a frame: not lag
 
     if model_output is not None:
       modelv2_send = messaging.new_message('modelV2')
       drivingdata_send = messaging.new_message('drivingModelData')
       posenet_send = messaging.new_message('cameraOdometry')
 
-      action = get_action_from_model(model_output, prev_action, lat_delay + DT_MDL, long_delay + DT_MDL, v_ego)
+      action = getattr(model, 'action_from_output', get_action_from_model)(model_output, prev_action, lat_delay + DT_MDL, long_delay + DT_MDL, v_ego)
       prev_action = action
       fill_model_msg(drivingdata_send, modelv2_send, model_output, action,
                      publish_state, meta_main.frame_id, meta_extra.frame_id, frame_id,
                      frame_drop_ratio, meta_main.timestamp_eof, model_execution_time, live_calib_seen)
+      modelv2_send.modelV2.big = bool(getattr(model, 'is_big', False) or egpu_active)
 
       desire_state = modelv2_send.modelV2.meta.desireState
       l_lane_change_prob = desire_state[log.Desire.laneChangeLeft]
