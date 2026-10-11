@@ -28,6 +28,9 @@ from cereal import messaging
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
 from openpilot.common.core_config import set_daemon_affinity
+from openpilot.common.params import Params
+from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
+from nagaspilot.runtime.bigmodel_link import PhoneLinkMonitor
 
 
 class RailStatus(IntEnum):
@@ -114,6 +117,8 @@ class HardwareD:
         set_daemon_affinity("hardwared")
 
         self.pm = messaging.PubMaster(['powerState'])
+        self.params = Params()
+        self.phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's ChestnutStatus alerts
 
         # Power rails, discovered from sysfs (see class docstring)
         self.rail_dirs = discover_regulators()
@@ -266,6 +271,8 @@ class HardwareD:
             entry.enabled = rail.enabled
 
         self.pm.send('powerState', msg)
+
+        self.phone_link.update(self.params, self.params.get_bool("IsOffroad"), set_offroad_alert)
 
     def run(self):
         """Main daemon loop."""
