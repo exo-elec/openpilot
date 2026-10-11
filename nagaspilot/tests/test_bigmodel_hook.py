@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -166,9 +164,10 @@ def test_drop_ratio_reaches_the_joining_model():
 
 # -- the adapter against Jetlink's own conformance check (needs a Jetlink checkout: JETLINK_REPO)
 def _jetlink():
-  repo = os.environ.get('JETLINK_REPO')
-  if repo and Path(repo).is_dir() and repo not in sys.path:
-    sys.path.insert(0, repo)
+  """Jetlink's interface from the pinned `jetlink_repo` checkout (or JETLINK_REPO), the way the adapter itself finds it; the
+  tests that need it skip only when neither is there."""
+  from nagaspilot.runtime import jetlink_adapter
+  jetlink_adapter._jetlink_path()
   return pytest.importorskip('jetlink.openpilot.interface')
 
 
