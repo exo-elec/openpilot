@@ -40,6 +40,10 @@ Can be done without hardware:
    The USB-C port is the eGPU port (`&usbdrd3_0` on 01M, `&usb_drd0_dwc3` on 02M, `dr_mode = "host"` in exopilot's
    `*-egpu-*.dts`); the phone needs a sibling overlay with `dr_mode = "peripheral"` and a kernel with configfs/FunctionFS and
    DWC3 gadget, and Jetlink's root script needs a static-role platform (no USB-PD). Never built or run on a device.
+   NCP over the cable (iPhone mode only): `system/bluetoothd/ncp_cable.py`, TCP on 192.168.60.1:5598 as a third transport on the
+   shared `NCPSession`, started by `BluetoothD` when `EOPBigModelLink = 2` (only while Bluetooth itself is enabled, because it lives
+   in that daemon); 10 loopback tests; phone side is NavPilot `CableTransportService`. Android has no cable network, so no NCP
+   over the cable there yet. Not run on a device.
 
 Needs hardware, a model artifact or a decision (not doable here):
 - [ ] Driving-model `driving_policy.onnx` / `driving_vision.onnx` (only remaining full-`scons` error).
