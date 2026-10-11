@@ -44,6 +44,9 @@ Can be done without hardware:
    shared `NCPSession`, started by `BluetoothD` when `EOPBigModelLink = 2` (only while Bluetooth itself is enabled, because it lives
    in that daemon); 10 loopback tests; phone side is NavPilot `CableTransportService`. Android has no cable network, so no NCP
    over the cable there yet. Not run on a device.
+   Parity with upstream's Chestnut (master 6f4c0faf1) is in `nagaspilot/docs/CHESTNUT_PARITY.md`: the default policy waits up to 60 s
+   for a connected, enumerated phone with engagement held off, falls back one-way, and raises NotDetected/UsbSlow/ModelError offroad
+   alerts; `alerts_offroad.json` +12/-0 is in the footprint budget by name (the alert commit had left that test red).
 
 Needs hardware, a model artifact or a decision (not doable here):
 - [ ] Driving-model `driving_policy.onnx` / `driving_vision.onnx` (only remaining full-`scons` error).
