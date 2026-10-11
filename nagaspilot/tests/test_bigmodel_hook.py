@@ -363,3 +363,27 @@ def test_the_provisioning_run_gets_the_platform_too(monkeypatch):
   assert jetlink_adapter.owner_config().env['JETLINK_PLATFORM'] == 'static'
   monkeypatch.setattr(platform, 'USB_PLATFORM', 'agnos')
   assert 'JETLINK_PLATFORM' not in jetlink_adapter.owner_config().env
+
+
+def test_with_the_link_off_the_hook_touches_neither_the_camera_client_nor_any_param_but_a_clear():
+  from nagaspilot.runtime.bigmodel import BigModelHook
+
+  class Exploding:
+    @property
+    def width(self):
+      raise AssertionError('the camera size must not be read while the link is off')
+
+    height = width
+
+  class OffParams(FakeParams):
+    def get(self, key, return_default=False):
+      assert key == platform.LINK
+      return 0
+
+  params = OffParams()
+  hook = BigModelHook(params, lambda *a: None)
+  assert hook.prepare() is False
+  small = object()
+  assert hook.attach(small, Exploding()) is small
+  # only the clear of stale flags at start: no put_bool, nothing else
+  assert params.writes == [(platform.LOADING, None), (platform.ACTIVE, None)]

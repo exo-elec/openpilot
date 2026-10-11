@@ -340,7 +340,7 @@ def main(demo=False):
     cloudlog.warning(f"connected extra cam with buffer size: {vipc_client_extra.buffer_len} ({vipc_client_extra.width} x {vipc_client_extra.height})")
 
   if not egpu_active:
-    model = bigmodel.attach(model, vipc_client_main.width, vipc_client_main.height)
+    model = bigmodel.attach(model, vipc_client_main)
 
   # messaging
   pub_socks = ["modelV2", "drivingModelData", "cameraOdometry"] + (["egpuState"] if EGPU else [])

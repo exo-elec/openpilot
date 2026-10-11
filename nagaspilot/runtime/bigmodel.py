@@ -140,7 +140,9 @@ class BigModelHook:
     self.fallback_action = fallback_action
     self.jetlink = None
     self.adapter = None
-    params.put_bool(platform.LOADING, False)  # before the frame loop: blocking is fine here
+    # stale flags from a previous drive must not read as a big model that is loading or has failed; removing an
+    # unset key is a no-op, and this runs once before the frame loop
+    params.remove(platform.LOADING)
     params.remove(platform.ACTIVE)
 
   def mode(self) -> int:
@@ -170,14 +172,15 @@ class BigModelHook:
       self.jetlink = None
       return False
 
-  def attach(self, small_model, cam_w: int, cam_h: int):
-    """Once the camera is up and the small model is built: the facade, or the small model if it cannot join."""
+  def attach(self, small_model, vipc_client):
+    """Once the camera is up and the small model is built: the facade, or the small model if it cannot join. The camera
+    size is read only if the link is on (a client reports None before it has buffers)."""
     if self.jetlink is None:
       return small_model
     from openpilot.common.swaglog import cloudlog
     shim = NgpSmallModel(small_model)
     try:
-      joining = self.jetlink.attach(shim, cam_w, cam_h)
+      joining = self.jetlink.attach(shim, vipc_client.width, vipc_client.height)
     except Exception:
       cloudlog.exception("bigmodel: Jetlink did not attach, staying on the small model")
       return small_model

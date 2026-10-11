@@ -56,13 +56,13 @@ def test_tier_flag_combines_sources():
 def test_events_reads_both_sources_and_names_events():
   params = {}
   g = NGPBigModelGate()
-  assert g.events(params.get, True) == []
+  assert g.events(params.get, True, now=0) == []
   params["EgpuDrivingLoading"] = True
-  assert g.events(params.get, True) == ["bigModelLoading"]
+  assert g.events(params.get, True, now=1) == ["bigModelLoading"]
   params.update(EgpuDrivingLoading=False, BigModelActive=True)
-  assert g.events(params.get, True) == []
+  assert g.events(params.get, True, now=2) == []
   params["BigModelActive"] = False
-  assert g.events(params.get, True) == ["bigModelFailed"]
+  assert g.events(params.get, True, now=3) == ["bigModelFailed"]
 
 
 def test_reengaging_on_the_small_model_after_a_handback_does_not_soft_disable_again():
@@ -92,6 +92,29 @@ def test_another_branch_names_its_own_keys_and_never_reads_the_defaults():
     return params.get(key)
 
   g = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading"), ("EOPBigModelActive", "EOPEgpuDrivingActive"))
-  assert g.events(get, True) == ["bigModelLoading"]
+  assert g.events(get, True, now=0) == ["bigModelLoading"]
   assert not {"BigModelLoading", "BigModelActive", "EgpuDrivingLoading", "EgpuDrivingActive"} & set(asked)
   assert {"EOPBigModelLoading", "EOPBigModelActive", "EOPEgpuDrivingActive"} <= set(asked)
+
+
+def test_params_are_read_at_most_every_period_not_every_cycle():
+  reads = []
+
+  def get(key):
+    reads.append(key)
+    return None
+
+  g = NGPBigModelGate()
+  for i in range(100):  # a second of selfdrived cycles at 100 Hz
+    g.events(get, True, now=i * 0.01)
+  per_pass = len(g._loading_keys) + len(g._active_keys)
+  assert len(reads) == 4 * per_pass  # reads at t = 0, 0.25, 0.5, 0.75
+
+
+def test_a_change_is_seen_within_one_period_and_the_gate_state_still_updates_every_cycle():
+  params = {"BigModelActive": True}
+  g = NGPBigModelGate()
+  g.events(params.get, True, now=0.0)
+  params["BigModelActive"] = False
+  assert g.events(params.get, True, now=0.1) == []                 # still the cached reading
+  assert g.events(params.get, True, now=0.26) == ["bigModelFailed"]  # read again
