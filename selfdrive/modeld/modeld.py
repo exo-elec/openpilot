@@ -587,7 +587,7 @@ def main(demo=False) -> int:
 
     cloudlog.warning(f"Vision stream ready, main_wide_camera={main_wide_camera}")
     if not egpu_active:
-        model = bigmodel.attach(model, vipc_client_main.width, vipc_client_main.height)
+        model = bigmodel.attach(model, vipc_client_main)
 
     # Setup messaging
     pm = messaging.PubMaster(["modelV2", "drivingModelData", "cameraOdometry"])

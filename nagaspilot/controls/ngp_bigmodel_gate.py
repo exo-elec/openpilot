@@ -16,6 +16,7 @@ Chestnut model (UsbGpuLoading / UsbGpuActive), so both big-model sources share o
 modeld writes BigModelActive=False only after the big model has been active or failed to load, never
 for a link that simply is not there.
 """
+import time
 from dataclasses import dataclass
 
 
@@ -37,6 +38,10 @@ def tier_flag(*values: bool | None) -> bool | None:
   return None
 
 
+# How often the params are read. selfdrived runs at 100 Hz and the flags only change at a swap or a hand-back, so
+# 4 Hz keeps a branch with no big-model source from paying file reads every cycle.
+READ_PERIOD = 0.25
+
 # Param names read on NGP10 (the phone link, then the eGPU). A branch with another naming rule passes its own.
 LOADING_KEYS = ("BigModelLoading", "EgpuDrivingLoading")
 ACTIVE_KEYS = ("BigModelActive", "EgpuDrivingActive")
@@ -48,6 +53,8 @@ class NGPBigModelGate:
     self._active_keys = active_keys
     self._failed = False
     self._was_active = False
+    self._read_at = float('-inf')
+    self._flags: tuple[bool, bool | None] = (False, None)
 
   def update(self, loading: bool, active: bool | None, enabled: bool = True, model_dead: bool = False) -> BigModelGateOut:
     if active:
@@ -64,9 +71,14 @@ class NGPBigModelGate:
     return BigModelGateOut(loading=bool(loading), failed=failed, announce_failed=announce,
                            soft_disable=failed and self._was_active)
 
-  def events(self, get, enabled: bool, model_dead: bool = False) -> list[str]:
-    """EventName names to raise this cycle. `get` is Params().get (BOOL params decode to True/False/None);
-    the loading flags of every big-model source are combined, as are the active flags."""
-    out = self.update(any(bool(get(k)) for k in self._loading_keys),
-                      tier_flag(*(get(k) for k in self._active_keys)), enabled, model_dead)
+  def events(self, get, enabled: bool, model_dead: bool = False, now: float | None = None) -> list[str]:
+    """EventName names to raise this cycle. `get` is Params().get (BOOL params decode to True/False/None); the loading
+    flags of every big-model source are combined, as are the active flags. The params are read every READ_PERIOD
+    seconds (`now` is time.monotonic() unless a test supplies it), the rest of the cycles reuse the last reading."""
+    t = time.monotonic() if now is None else now
+    if t - self._read_at >= READ_PERIOD:
+      self._read_at = t
+      self._flags = (any(bool(get(k)) for k in self._loading_keys),
+                     tier_flag(*(get(k) for k in self._active_keys)))
+    out = self.update(self._flags[0], self._flags[1], enabled, model_dead)
     return (["bigModelLoading"] if out.loading else []) + (["bigModelFailed"] if out.announce_failed or out.soft_disable else [])
