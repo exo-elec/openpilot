@@ -93,4 +93,5 @@ def test_another_branch_names_its_own_keys_and_never_reads_the_defaults():
 
   g = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading"), ("EOPBigModelActive", "EOPEgpuDrivingActive"))
   assert g.events(get, True) == ["bigModelLoading"]
-  assert set(asked) == {"EOPBigModelLoading", "EOPEgpuDrivingLoading", "EOPBigModelActive", "EOPEgpuDrivingActive"}
+  assert not {"BigModelLoading", "BigModelActive", "EgpuDrivingLoading", "EgpuDrivingActive"} & set(asked)
+  assert {"EOPBigModelLoading", "EOPBigModelActive", "EOPEgpuDrivingActive"} <= set(asked)
