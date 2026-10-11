@@ -24,16 +24,14 @@ Not exercised on a device.
 """
 import time
 from dataclasses import dataclass
-from pathlib import Path
-
 import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_action import action_times
 from nagaspilot.runtime import bigmodel_platform as platform
+from nagaspilot.runtime.bigmodel_link import UDC_ROOT, cable_connected  # noqa: F401 (re-exported: the facade's default probe)
 
 PROVING_FRAMES = 20  # jetlink.openpilot.model_state.PROVING_FRAMES: engagement stays off this long after a swap
 BIG_MODEL_TIMEOUT = 60.0  # upstream modeld's: how long a Chestnut load may hold engagement off at the start
-UDC_ROOT = Path('/sys/class/udc')
 
 
 @dataclass(frozen=True)
@@ -48,19 +46,6 @@ class BigModelPolicy:
 CHESTNUT = BigModelPolicy(window_s=BIG_MODEL_TIMEOUT, one_way=True, late_join=False)
 # Jetlink's own: the small model drives until the phone is there, which may be at any time, and it may rejoin
 JETLINK = BigModelPolicy(window_s=0.0, one_way=False, late_join=True)
-
-
-def cable_connected(root: Path = UDC_ROOT) -> bool:
-  """Is a USB host attached to the gadget? Upstream's cable_connected(): the cable is there before the host has
-  enumerated us. Any device controller state but 'not attached' counts ('powered', 'default', 'addressed',
-  'configured'); no controller at all does not."""
-  try:
-    for udc in root.iterdir():
-      if (udc / 'state').read_text().strip() not in ('', 'not attached'):
-        return True
-  except OSError:
-    pass
-  return False
 
 
 class NgpSmallModel:

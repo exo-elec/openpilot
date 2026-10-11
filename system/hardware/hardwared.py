@@ -25,6 +25,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.power_monitoring import PowerMonitoring
 from openpilot.system.hardware.fan_controller import TiciFanController
 from openpilot.system.version import terms_version, training_version
+from nagaspilot.runtime.bigmodel_link import PhoneLinkMonitor
 from openpilot.system.athena.registration import UNREGISTERED_DONGLE_ID
 
 ThermalStatus = log.DeviceState.ThermalStatus
@@ -194,6 +195,7 @@ def hardware_thread(end_event, hw_queue) -> None:
   all_temp_filter = FirstOrderFilter(0., TEMP_TAU, DT_HW, initialized=False)
   offroad_temp_filter = FirstOrderFilter(0., TEMP_TAU, DT_HW, initialized=False)
   should_start_prev = False
+  phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's ChestnutStatus alerts
   in_car = False
   engaged_prev = False
   offroad_cycle_count = 0
@@ -326,6 +328,7 @@ def hardware_thread(end_event, hw_queue) -> None:
     extra_text = f"{offroad_comp_temp:.1f}C"
     show_alert = (not onroad_conditions["device_temp_good"] or not startup_conditions["device_temp_engageable"]) and onroad_conditions["ignition"]
     set_offroad_alert_if_changed("Offroad_TemperatureTooHigh", show_alert, extra_text=extra_text)
+    phone_link.update(params, started_ts is None or not onroad_conditions["ignition"], set_offroad_alert_if_changed)
 
     # *** registration check ***
     if not PC:
