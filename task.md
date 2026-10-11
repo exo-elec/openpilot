@@ -28,7 +28,7 @@ Can be done without hardware:
    (card `state_update` raised every batch). Not smoke-run: modeld, pathd, gridd main loop, the other daemons.
 5. [ ] Decide whether to keep `cereal/car.capnp` changes when NGP10 bumps its opendbc pin past `7e3a0703`
    ("the one true car.capnp"): NGP10's `cereal/__init__.py` will need the same one-`car`-module treatment.
-6. [~] Big model on the phone over USB (T16 on NGP10, T17 here; 2026-10-11, local branch `jetlink/eop10-bigmodel-gate`, not pushed).
+6. [~] Big model on the phone over USB (T16 on NGP10, T17 here; 2026-10-11, branch `jetlink/eop10-bigmodel-gate`, pushed; `jetlink_repo` pinned to exo-elec/jetlink `static-role-platform` @ 37e89e32).
    Landed in small steps on NGP10 first, then carried: (a) cereal `bigModelLoading @100`, `bigModelFailed @102` (renamed reserved
    placeholders), `ModelDataV2.big @27`, the gate, the alerts (`eop_events.py`) and `selfdrived` reading it with EOP names;
    (b) the runtime modules, byte-identical to NGP10's (`jetlink_adapter.py`, `bigmodel.py`, `bigmodel_warp.py`,
