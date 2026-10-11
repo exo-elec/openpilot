@@ -61,6 +61,10 @@ def qcomgps(started: bool, params: Params, CP: car.CarParams) -> bool:
 def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
 
+def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # the gadget owner holds the USB port for the phone while the link is on, onroad and offroad alike
+  return int(params.get("ngp_bigmodel_link", return_default=True) or 0) != 0
+
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
 
@@ -113,6 +117,7 @@ procs = [
   PythonProcess("ngp_dashboard", "nagaspilot.runtime.dashboard", dashboard_enabled),
   PythonProcess("tripd", "nagaspilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
+  PythonProcess("jetlinkd", "nagaspilot.runtime.jetlink_adapter", bigmodel_link, enabled=TICI),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),
