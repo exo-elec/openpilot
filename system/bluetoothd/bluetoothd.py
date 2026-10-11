@@ -24,7 +24,8 @@ except ImportError:
 
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central
+from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central, ncp_cable
+from nagaspilot.runtime import bigmodel_platform
 
 
 def _set_adapter_name(bus: dbus.Bus, name: str) -> None:
@@ -79,6 +80,7 @@ class BluetoothD:
 
         self.sppd  = spp.SPPD(params=self.params,      session=self._session)
         self.gattd = ble_gatt.GATTD(params=self.params, session=self._session)
+        self._cable = ncp_cable.CableNCP(self._session)  # NCP over the iPhone's USB cable, same session
         self._pairing_agent = None
 
     def _device_name(self) -> str:
@@ -120,6 +122,11 @@ class BluetoothD:
         self._session.start()
         cloudlog.info('bluetoothd: NCP session started')
 
+        # NCP over the phone's USB cable, only in the iPhone mode of the big-model link (the cable has a network there)
+        if int(self.params.get(bigmodel_platform.LINK, return_default=True) or 0) == 2:
+            self._cable.start()
+            cloudlog.info('bluetoothd: NCP over the USB cable started')
+
         # Start Classic SPP (RFCOMM) — legacy OBD scanners + NavPilot fallback
         self.sppd.run()
         cloudlog.info('bluetoothd: SPP started')
@@ -155,6 +162,7 @@ class BluetoothD:
     def stop(self) -> None:
         cloudlog.info('bluetoothd: stopping')
         self._session.stop()
+        self._cable.stop()
         self.gattd.stop()
         self.ble_central.stop()
         pairing_agent.unregister_agent(self._pairing_agent)
