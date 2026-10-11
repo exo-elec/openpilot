@@ -43,10 +43,18 @@ def logging(started: bool, params: Params, CP: car.CarParams) -> bool:
 def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
 
+_bigmodel_link_cache = (float("-inf"), False)
+
+
 def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
   # the gadget owner holds the USB-C port for the phone while the link is on, onroad and offroad alike. Only with a
-  # Jetlink checkout: a jetlinkd that cannot start is a processNotRunning event, which blocks engagement
-  return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) != 0 and jetlink_present()
+  # Jetlink checkout: a jetlinkd that cannot start is a processNotRunning event, which blocks engagement. The mode is an
+  # INT (not a bool the helper above caches), so it gets the same TTL here: one read and one stat per period, not per poll.
+  global _bigmodel_link_cache
+  now = time.monotonic()
+  if now - _bigmodel_link_cache[0] >= _PARAM_TTL_S:
+    _bigmodel_link_cache = (now, int(params.get(bigmodel_platform.LINK, return_default=True) or 0) != 0 and jetlink_present())
+  return _bigmodel_link_cache[1]
 
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
