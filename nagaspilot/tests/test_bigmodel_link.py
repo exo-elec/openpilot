@@ -33,17 +33,17 @@ def test_speed_names_map_to_mbps_and_unknown_is_none(tmp_path):
 def test_the_monitor_sets_the_three_alerts_through_the_hardwared_helper(tmp_path):
   udc(tmp_path, 'configured', 'high-speed')
   calls = []
-  monitor = PhoneLinkMonitor(clock=lambda: 100.0, root=tmp_path)
+  monitor = PhoneLinkMonitor(clock=lambda: 100.0, root=tmp_path, cc_orientation=tmp_path / 'cc')
   monitor.update(Params(**{platform.LINK: 2}), True, lambda name, show, extra: calls.append((name, show, extra)))
   assert {c[0] for c in calls} == {NOT_DETECTED, USB_SLOW, MODEL_ERROR}
   assert [c for c in calls if c[0] == USB_SLOW] == [(USB_SLOW, True, '480 Mbps')]
   assert not [c for c in calls if c[0] in (NOT_DETECTED, MODEL_ERROR) and c[1]]
-  assert cable_connected(tmp_path)
+  assert cable_connected(tmp_path, tmp_path / 'cc')
 
 
 def test_an_unset_link_shows_nothing(tmp_path):
   calls = []
-  PhoneLinkMonitor(clock=lambda: 1000.0, root=tmp_path).update(Params(), True, lambda n, s, e: calls.append((n, s, e)))
+  PhoneLinkMonitor(clock=lambda: 1000.0, root=tmp_path, cc_orientation=tmp_path / 'cc').update(Params(), True, lambda n, s, e: calls.append((n, s, e)))
   assert calls and not any(show for _, show, _ in calls)
 
 
@@ -53,14 +53,14 @@ def test_a_monitor_failure_never_reaches_hardwared(tmp_path):
       raise OSError('params')
 
   calls = []
-  PhoneLinkMonitor(root=tmp_path).update(Broken(), True, lambda *a: calls.append(a))
+  PhoneLinkMonitor(root=tmp_path, cc_orientation=tmp_path / 'cc').update(Broken(), True, lambda *a: calls.append(a))
   assert calls == []
 
 
 def test_the_monitor_only_sets_an_alert_when_it_changes(tmp_path):
   udc(tmp_path, 'configured', 'high-speed')
   calls = []
-  monitor = PhoneLinkMonitor(clock=lambda: 100.0, root=tmp_path)
+  monitor = PhoneLinkMonitor(clock=lambda: 100.0, root=tmp_path, cc_orientation=tmp_path / 'cc')
   params = Params(**{platform.LINK: 2})
   for _ in range(5):
     monitor.update(params, True, lambda name, show, extra: calls.append((name, show, extra)))
