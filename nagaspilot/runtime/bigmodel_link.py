@@ -46,6 +46,7 @@ class PhoneLinkMonitor:
     self._clock = clock
     self._root = root
     self._status = PhoneLinkStatus(clock())
+    self._last: dict[str, tuple[bool, str | None]] = {}
 
   def update(self, params, offroad: bool, set_alert) -> None:
     try:
@@ -55,5 +56,6 @@ class PhoneLinkMonitor:
     except Exception:
       return   # a monitor must never take hardwared down; the alerts simply keep their last state
     for name in ALERTS:
-      show, extra = alerts[name]
-      set_alert(name, show, extra)
+      if self._last.get(name) != alerts[name]:   # only a change reaches the params: this runs every cycle
+        self._last[name] = alerts[name]
+        set_alert(name, *alerts[name])

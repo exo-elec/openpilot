@@ -55,3 +55,16 @@ def test_a_monitor_failure_never_reaches_hardwared(tmp_path):
   calls = []
   PhoneLinkMonitor(root=tmp_path).update(Broken(), True, lambda *a: calls.append(a))
   assert calls == []
+
+
+def test_the_monitor_only_sets_an_alert_when_it_changes(tmp_path):
+  udc(tmp_path, 'configured', 'high-speed')
+  calls = []
+  monitor = PhoneLinkMonitor(clock=lambda: 100.0, root=tmp_path)
+  params = Params(**{platform.LINK: 2})
+  for _ in range(5):
+    monitor.update(params, True, lambda name, show, extra: calls.append((name, show, extra)))
+  assert len(calls) == 3                                          # once each, not five cycles of three
+  udc(tmp_path, 'configured', 'super-speed')
+  monitor.update(params, True, lambda name, show, extra: calls.append((name, show, extra)))
+  assert calls[3:] == [(USB_SLOW, False, None)]                   # and again only for what changed
