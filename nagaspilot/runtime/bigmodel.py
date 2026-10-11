@@ -6,15 +6,19 @@ model. Jetlink's joining model (jetlink.openpilot.joining) does the join, swap, 
 to NGP10's loop:
 
 - NGP10 calls model.run(bufs, transforms, inputs, prepare_only); Jetlink's takes (.., after_enqueue). The facade
-  maps them: a dropped camera frame (prepare_only) is skipped while the big model drives, since the server keeps
-  its own history, and is a prepare-only run of the small model otherwise.
-- NGP10's inputs have no `action_t`; the facade adds it from modeld's two action times.
+  maps them: a dropped camera frame (prepare_only) is a prepare-only run of the small model, and is run normally
+  while the big model drives, as upstream does (it has no prepare_only): the server's history advances once per
+  frame it is sent, and skipping one would cost a second frame and leave a hand-back one short.
+- NGP10's inputs have no `action_t`; the facade builds it as upstream does from the lateral delay and the
+  longitudinal actuator delay (the big model's smoothing, not the small model's), which modeld hands over.
 - BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py): loading while the big model proves
   itself right after a swap (engagement held off), active while it drives, false once it has handed back.
 
 Not exercised on a device.
 """
 import numpy as np
+
+from nagaspilot.controls.ngp_bigmodel_action import action_times
 
 PROVING_FRAMES = 20  # jetlink.openpilot.model_state.PROVING_FRAMES: engagement stays off this long after a swap
 
@@ -56,7 +60,7 @@ class BigModelFacade:
     self._small = small
     self._params = params
     self._fallback = fallback_action
-    self.action_t: tuple[float, float] | None = None
+    self.delays: tuple[float, float] | None = None  # (lateral delay, longitudinal actuator delay), set by modeld
     self._handovers = joining.handovers
     self._big_frames = 0
     self._was_running = False
@@ -78,10 +82,11 @@ class BigModelFacade:
     return bool(self._joining.chestnut)
 
   def run(self, bufs, transforms, inputs, prepare_only=False):
-    if self.action_t is not None:
-      inputs['action_t'] = np.array(self.action_t, dtype=np.float32)
-    if prepare_only:
-      return None if self.is_big else self._small.run(bufs, transforms, inputs, None, True)
+    if self.delays is None:
+      raise RuntimeError("modeld has not given the big model its delays")
+    inputs['action_t'] = np.array(action_times(*self.delays), dtype=np.float32)
+    if prepare_only and not self.is_big:
+      return self._small.run(bufs, transforms, inputs, None, True)
     out = self._joining.run(bufs, transforms, inputs)
     self._publish()
     return out
@@ -117,13 +122,13 @@ class BigModelFacade:
       active = False if self._was_running else None
     if loading != self._loading:
       self._loading = loading
-      self._params.put_bool("BigModelLoading", loading)
+      self._params.put_bool_nonblocking("BigModelLoading", loading)
     if active != self._active:
       self._active = active
       if active is None:
         self._params.remove("BigModelActive")
       else:
-        self._params.put_bool("BigModelActive", active)
+        self._params.put_bool_nonblocking("BigModelActive", active)
 
 
 class BigModelHook:
@@ -134,10 +139,13 @@ class BigModelHook:
     self.fallback_action = fallback_action
     self.jetlink = None
     self.adapter = None
-    params.put_bool("BigModelLoading", False)
+    params.put_bool("BigModelLoading", False)  # before the frame loop: blocking is fine here
     params.remove("BigModelActive")
 
   def mode(self) -> int:
+    from nagaspilot.runtime.jetlink_adapter import jetlink_present
+    if not jetlink_present():
+      return 0  # nothing to run: stay a plain small-model modeld
     try:
       return int(self.params.get("ngp_bigmodel_link", return_default=True) or 0)
     except Exception:

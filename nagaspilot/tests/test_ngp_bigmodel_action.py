@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from nagaspilot.controls.ngp_bigmodel_action import action_from_head, should_stop
+from nagaspilot.controls.ngp_bigmodel_action import action_from_head, action_times, should_stop
 
 
 def smooth(val, prev, tau):  # drive_helpers.smooth_value with dt = 0.05
@@ -43,3 +43,11 @@ def test_stop_uses_the_raw_acceleration_before_smoothing():
   assert not should_stop(0.1, 0.5)
   _, _, stop = action_from_head(act(0.0, 0.0), 0.1, 2.0, 0.0, smooth)
   assert stop
+
+
+def test_action_times_follow_upstream_not_the_small_models_smoothing():
+  lat, lon = action_times(0.2, 0.15)
+  assert lat == pytest.approx(0.2 + 0.0 + 0.05 + 0.025)
+  assert lon == pytest.approx(0.15 + 0.3 + 0.05 + 0.025)
+  # NGP10's small model adds 0.1 s of lateral smoothing; the big model's input must not
+  assert lat < 0.2 + 0.1 + 0.05

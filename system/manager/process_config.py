@@ -6,6 +6,7 @@ from cereal import car
 from openpilot.common.params import Params
 from openpilot.system.hardware import PC, TICI
 from openpilot.system.manager.process import PythonProcess, NativeProcess, DaemonProcess
+from nagaspilot.runtime.jetlink_adapter import jetlink_present
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
 
@@ -62,8 +63,9 @@ def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
 
 def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
-  # the gadget owner holds the USB port for the phone while the link is on, onroad and offroad alike
-  return int(params.get("ngp_bigmodel_link", return_default=True) or 0) != 0
+  # the gadget owner holds the USB port for the phone while the link is on, onroad and offroad alike. Only with a
+  # Jetlink checkout: a jetlinkd that cannot start is a processNotRunning event, which blocks engagement
+  return int(params.get("ngp_bigmodel_link", return_default=True) or 0) != 0 and jetlink_present()
 
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started

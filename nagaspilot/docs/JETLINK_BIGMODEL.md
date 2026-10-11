@@ -44,11 +44,11 @@ On NGP10 that adapter must supply:
   link (0.2 s) hands back, an engaged failure soft-disables.
 - Footprint budget is ratcheted per hook (`nagaspilot/footprint.py`); every
   added hook line is named in the budget diff.
-- Cereal: new enumerants keep the cross-branch ordinal policy of T15 (an
-  ordinal means the same on NGP10 and EOP10). **Open:** upstream uses
-  `bigModelLoading @100`, `bigModelFailed @102`, which collide with the
-  reserved slots NGP10/EOP10 already hold at `@98` to `@102`. Decide before
-  touching `log.capnp`.
+- Cereal: ordinals keep the cross-branch policy of T15 (an ordinal means the same on NGP10 and EOP10).
+  **Decided:** upstream's own `bigModelLoading @100` and `bigModelFailed @102` take over NGP10's reserved
+  placeholders `reserved100DEPRECATED` and `reserved102DEPRECATED` (nothing was ever emitted there), and
+  `ModelDataV2.big @27` is free on both branches. No ordinal is added or moved, so EOP10's `@109+` are untouched.
+  EOP10, 01M and 02M must carry the same rename (T17).
 - Dependency: Jetlink would be a gitlink pinned to an exact public commit
   (policy rules 2 to 4). The comma and the phone's embedded server must pin
   the same Jetlink commit (protocol 3 has no negotiation).
@@ -79,6 +79,16 @@ On NGP10 that adapter must supply:
   `ngp_bigmodel_gate.py`.
 - **No settling window** after a load (upstream's `big_model_settling`): it exists because the Chestnut load holds
   `modelV2` back; Jetlink's small model keeps publishing, so there is nothing to settle.
+- **Dropped camera frames while the big model drives still run it**, as upstream does (it has no `prepare_only`):
+  the server's history advances once per frame sent, and skipping one would lose a second frame and leave a
+  hand-back one short. On the small model a dropped frame stays prepare-only.
+- **`action_t` is built the way upstream builds it** from the raw lateral delay and the longitudinal actuator
+  delay plus the *big* model's smoothing (`ngp_bigmodel_action.action_times`), not modeld's small-model values,
+  because the model is conditioned on it.
+- **`in_control()` fails towards "in control"**: until `carControl` and `selfdriveState` have both been seen and are
+  alive it says True, so a swap never lands on a frame nobody can vouch for.
+- **A dead `jetlinkd` is a `processNotRunning` event** (NO_ENTRY and SOFT_DISABLE), so the manager only starts it
+  when a Jetlink checkout exists (`jetlink_present()`), and `modeld` stays a plain small-model `modeld` without one.
 - **Big-model smoothing is upstream's** (lateral 0.0 s, longitudinal 0.3 s), not NGP10's small-model 0.1 s.
 
 ## Unverified (needs hardware or a recorded route)

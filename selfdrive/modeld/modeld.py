@@ -459,7 +459,7 @@ def main(demo=False):
     }
 
     mt1 = time.perf_counter()
-    model.frame_drop_ratio, model.action_t = frame_drop_ratio, (lat_delay + DT_MDL, long_delay + DT_MDL)
+    model.frame_drop_ratio, model.delays = frame_drop_ratio, (sm["liveDelay"].lateralDelay, CP.longitudinalActuatorDelay)
     try:
       model_output = model.run(bufs, transforms, inputs, prepare_only)
     except Exception:

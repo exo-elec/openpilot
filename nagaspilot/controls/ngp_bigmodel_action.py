@@ -11,6 +11,7 @@ The big model's smoothing is upstream's, not NGP10's small-model value: LAT 0.0 
 BIG_LAT_SMOOTH_SECONDS = 0.0
 BIG_LONG_SMOOTH_SECONDS = 0.3
 MIN_LAT_CONTROL_SPEED = 0.3  # m/s, as modeld
+MODEL_DT = 0.05  # 20 Hz (modeld's DT_MDL)
 
 
 def should_stop(v_ego: float, a_target: float) -> bool:
@@ -33,3 +34,17 @@ def action_from_head(action, v_ego: float, prev_accel: float, prev_curvature: fl
   else:
     desired_curvature = prev_curvature
   return float(desired_curvature), float(desired_accel), stop
+
+
+def action_times(lateral_delay: float, longitudinal_actuator_delay: float,
+                 lat_smooth_s: float = BIG_LAT_SMOOTH_SECONDS, long_smooth_s: float = BIG_LONG_SMOOTH_SECONDS,
+                 dt: float = MODEL_DT) -> tuple[float, float]:
+  """The big model's `action_t` input, (lateral, longitudinal) seconds ahead, as upstream builds it.
+
+  delay (plus the model's own smoothing) + frame_delay (the camera frame is already a frame old) +
+  action_delay (half a frame: the middle of the interval to the next model output). The model is conditioned
+  on this input, so it uses the big model's smoothing, not NGP10's small-model value.
+  """
+  frame_delay, action_delay = dt, dt / 2
+  return (lateral_delay + lat_smooth_s + frame_delay + action_delay,
+          longitudinal_actuator_delay + long_smooth_s + frame_delay + action_delay)

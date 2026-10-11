@@ -44,8 +44,18 @@ def log_file() -> Path:
   return (Path('/data/log') if _on_agnos() else comma_home() / 'log') / 'jetlink-owner.log'
 
 
+def _checkout() -> Path:
+  return Path(os.environ.get('JETLINK_REPO') or ROOT / 'jetlink_repo')
+
+
+def jetlink_present() -> bool:
+  """Is a Jetlink checkout there to run? Without one nothing on the link side can start, and the manager must not
+  try (a dead jetlinkd is a processNotRunning event, which blocks engagement)."""
+  return (_checkout() / 'jetlink').is_dir()
+
+
 def _jetlink_path() -> None:
-  checkout = Path(os.environ.get('JETLINK_REPO') or ROOT / 'jetlink_repo')
+  checkout = _checkout()
   if checkout.is_dir() and str(checkout) not in sys.path:
     sys.path.insert(0, str(checkout))
 
@@ -136,8 +146,13 @@ class NgpOpenpilot:
       if self._sm is None:
         import cereal.messaging as messaging
         self._sm = messaging.SubMaster(['carControl', 'selfdriveState'])
-      self._sm.update(0)
-      return bool(self._sm['selfdriveState'].enabled or self._sm['carControl'].latActive or self._sm['carControl'].longActive)
+      sm = self._sm
+      sm.update(0)
+      # a SubMaster hands back default (disengaged) messages until the first arrives, and stale ones when a
+      # service dies: neither says "not in control", so a swap waits for both services to be seen and alive
+      if not all(sm.seen[s] and sm.alive[s] for s in ('carControl', 'selfdriveState')):
+        return True
+      return bool(sm['selfdriveState'].enabled or sm['carControl'].latActive or sm['carControl'].longActive)
     except Exception:
       return True
 
