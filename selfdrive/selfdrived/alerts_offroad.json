@@ -45,5 +45,17 @@
     "text": "openpilot detected excessive %1 actuation on your last drive. Please contact support at https://comma.ai/support and share your device's Dongle ID for troubleshooting.",
     "severity": 1,
     "_comment": "Set extra field to lateral or longitudinal."
+  },
+  "Offroad_BigModelNotDetected": {
+    "text": "Phone not detected. Check the USB cable and that Jetlink is open on the phone, then restart the car.",
+    "severity": 0
+  },
+  "Offroad_BigModelUsbSlow": {
+    "text": "Phone USB link is slow. Use a USB 3 data cable and port. The current speed is %1.",
+    "severity": 0
+  },
+  "Offroad_BigModelModelError": {
+    "text": "Big model error. Restart the car to retry.",
+    "severity": 0
   }
 }
