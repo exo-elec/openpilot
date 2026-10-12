@@ -31,8 +31,10 @@ OK, NOT_FINITE, NOT_READY, INTERNAL = 0, 1, 2, 3
 # (the first of the comma's list that it supports) and says which in HELLO_ACK.
 CONTRACT_SPLIT = 'ngp-v0.10-split'       # NGP10's vision + policy graphs; the comma knows the layout
 CONTRACT_QUEUED = 'ngp-spec-queued'      # one combined graph, history as stacked inputs; the phone announces a ModelSpec and the comma allow-lists it
+CONTRACT_STATEFUL = 'ngp-spec-stateful'  # a combined graph that keeps its own history (openpilot #38916); same spec and allow-list, no queues
 CONTRACT = CONTRACT_SPLIT                # the default, and what the earlier single-contract hello meant
-CONTRACTS = (CONTRACT_SPLIT, CONTRACT_QUEUED)
+CONTRACTS = (CONTRACT_SPLIT, CONTRACT_QUEUED, CONTRACT_STATEFUL)
+SPEC_CONTRACTS = (CONTRACT_QUEUED, CONTRACT_STATEFUL)
 FRAME_SHAPE = (2, 6, 128, 256)       # narrow then wide camera, the newest warped frame of each
 FRAME_BYTES = 2 * 6 * 128 * 256      # 393,216
 DESIRE_LEN = 8

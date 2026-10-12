@@ -119,7 +119,7 @@ request/response pair) must pass.
 | 5 | Comma check: kernel USB Ethernet host drivers, comma holds its port as host | ☐ needs a comma 3X |
 | 6 | Phone inference backend spike (see the survey below) on one iPhone Pro and one Android flagship, with a real model | ☐ needs phones |
 | 7 | Wire `packages/npbm` into the app: dependency, host service ☑ (Flutter tests pass); provider registration and the tethering guide screen ☐ next |
-| 8 | `modeld` rework: combined-model contract as a second contract id, in six steps: [`NAVPILOT_COMBINED_MODEL.md`](NAVPILOT_COMBINED_MODEL.md). Steps 1 to 5b done and tested (spec, queues against openpilot's own digests, contract negotiation with a comma allow-list, `RemoteSpecModelState`, the Dart queued server, the allow-list tool); step 6 (`modeld` itself) needs a real model file | ◐ done except step 6 |
+| 8 | `modeld` rework: combined-model contract as a second contract id, in six steps: [`NAVPILOT_COMBINED_MODEL.md`](NAVPILOT_COMBINED_MODEL.md). Steps 1 to 5c done and tested (spec, queues against openpilot's own digests, contract negotiation with a comma allow-list, `RemoteSpecModelState`, the Dart queued and stateful servers, the allow-list tool); step 6 (`modeld` itself) needs a real model file | ◐ done except step 6 |
 | 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
 | 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
 | 11 | Remove the eGPU / Chestnut path | ☐ gated, see below |
