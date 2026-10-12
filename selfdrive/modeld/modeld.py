@@ -516,7 +516,7 @@ def main(demo=False) -> int:
     client = InferenceClient("modeld")
 
     bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (EOPBigModelLink, default off)
-    bigmodel.prepare()  # Jetlink needs this before the process goes realtime
+    bigmodel.prepare()  # reads the model metadata and opens the phone listener before the process goes realtime
 
     # Setup process
     set_daemon_affinity("modeld")

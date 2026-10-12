@@ -1,10 +1,9 @@
 """NGP10's camera path for the big model: the small model's own OpenCL warp.
 
-Jetlink's comma side expects openpilot's compiled tinygrad warp. NGP10 (v0.10.0) warps with OpenCL
-(`DrivingModelFrame`, selfdrive/modeld/models/commonmodel.cc), which the small model already runs every
-frame. This implements Jetlink's optional `WarpSource` seam over those same frame objects: each frame the
-big model needs is the newest frame of each camera, so there is no second warp and no extra GPU work. See
-`nagaspilot/controls/ngp_bigmodel_frames.py` for the layout and nagaspilot/docs/JETLINK_BIGMODEL.md.
+NGP10 (v0.10.0) warps with OpenCL (`DrivingModelFrame`, selfdrive/modeld/models/commonmodel.cc), which the small model
+already runs every frame. NgpWarp reads those same frame objects: each frame the big model needs is the newest frame of
+each camera, so there is no second warp and no extra GPU work. See `nagaspilot/controls/ngp_bigmodel_frames.py` for the
+layout and nagaspilot/docs/NAVPILOT_BIGMODEL.md.
 
 Not exercised on a device: the OpenCL warp is not numerically identical to the warp the big models were
 trained with, which needs a replay comparison before the phone model may drive.
@@ -12,13 +11,12 @@ trained with, which needs a replay comparison before the phone model may drive.
 import numpy as np
 
 from nagaspilot.controls.ngp_bigmodel_frames import OUTPUT_SHAPE, fill_output
-from nagaspilot.runtime import bigmodel_platform as platform
 
 CAMERA_NAMES = ('img', 'big_img')  # narrow, then wide: the order of the output's first axis
 
 
 class NgpWarp:
-  """start_buffers / wait / output, as joining and JetlinkModelState use a warp."""
+  """start_buffers / wait / output, as RemoteModelState uses a warp."""
 
   def __init__(self, frames):
     self._frames = frames
@@ -49,29 +47,3 @@ def reset_function(model):
       a.fill(0)
 
   return reset
-
-
-class NgpWarpSource:
-  """Jetlink's `warp_source` (interface.WarpSource) for NGP10."""
-
-  def __init__(self, geometry=None):
-    self._geometry = tuple(geometry or platform.DEVICE_CAMERA)
-    self._small = None
-
-  def built(self) -> bool:
-    return True  # OpenCL is always there; there is no pickle to build
-
-  def geometry(self) -> tuple[int, int, int, int]:
-    return self._geometry
-
-  def prepare_reset(self, small):
-    # join() calls this before make(), with the model it will warp for
-    self._small = small
-    return reset_function(small)
-
-  def make(self, cam_w: int, cam_h: int, model_w: int, model_h: int, frame_size: int) -> NgpWarp:
-    if self._small is None:
-      raise RuntimeError("the small model was not given before the warp")
-    if (model_w, model_h) != self._geometry[2:]:
-      raise RuntimeError(f"the warp makes {self._geometry[2]}x{self._geometry[3]} frames, not {model_w}x{model_h}")
-    return NgpWarp(self._small.frames)

@@ -1,11 +1,10 @@
 import logging
-import os
 
 import numpy as np
 import pytest
 
 from nagaspilot.runtime import bigmodel_platform as platform
-from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, CHESTNUT, ENUMERATION_TIMEOUT, JETLINK, PROVING_FRAMES, BigModelFacade,
+from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, CHESTNUT, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
                                          NgpSmallModel)
 from nagaspilot.runtime.bigmodel_link import cable_connected, host_enumerated
 
@@ -65,7 +64,7 @@ class FakeJoining:
     self.closed += 1
 
 
-def make(policy=JETLINK):
+def make(policy=LATE_JOIN):
   inner = FakeInner()
   small = NgpSmallModel(inner)
   joining = FakeJoining(small)
@@ -162,34 +161,6 @@ def test_drop_ratio_reaches_the_joining_model():
   assert joining.frame_drop_ratio == 0.02
 
 
-# -- the adapter against Jetlink's own conformance check (needs a Jetlink checkout: JETLINK_REPO)
-def _jetlink():
-  """Jetlink's interface from the pinned `jetlink_repo` checkout (or JETLINK_REPO), the way the adapter itself finds it; the
-  tests that need it skip only when neither is there."""
-  from nagaspilot.runtime import jetlink_adapter
-  jetlink_adapter._jetlink_path()
-  return pytest.importorskip('jetlink.openpilot.interface')
-
-
-def test_the_adapter_conforms_to_jetlinks_interface_and_api():
-  interface = _jetlink()
-  from nagaspilot.runtime import jetlink_adapter
-  adapter = jetlink_adapter.adapter()
-  adapter._log = logging.getLogger('test')  # cloudlog is lazy and needs openpilot
-  assert interface.conformance(adapter, interface.Openpilot) == []
-  assert adapter.warp_source.built() and adapter.keys.link == platform.LINK
-
-
-def test_the_owner_config_is_standard_library_and_names_this_adapter(monkeypatch, tmp_path):
-  _jetlink()
-  monkeypatch.setenv('PARAMS_ROOT', str(tmp_path))
-  from nagaspilot.runtime import jetlink_adapter
-  config = jetlink_adapter.owner_config()
-  assert config.params_dir == tmp_path / 'd'
-  assert config.adapter == 'nagaspilot.runtime.jetlink_adapter'
-  assert (0xADD1, 0x0001) in config.chestnut_ids and (0x3801, 0x0001) in config.chestnut_ids
-
-
 def test_param_writes_on_the_frame_thread_do_not_block():
   _, _, joining, params, facade = make()
   joining.state = 'running'
@@ -212,42 +183,33 @@ class FakeSub:
     return self.msgs[k]
 
 
-def adapter_with(sm):
-  _jetlink()
-  from nagaspilot.runtime import jetlink_adapter
-  a = jetlink_adapter.adapter()
+def in_control_with(sm):
+  from nagaspilot.runtime.bigmodel import InControl
+  a = InControl()
   a._sm = sm
   return a
 
 
 def test_in_control_is_true_before_any_message_arrives():
-  assert adapter_with(FakeSub(seen=False)).in_control() is True
+  assert in_control_with(FakeSub(seen=False))() is True
 
 
 def test_in_control_is_true_when_a_service_died():
-  assert adapter_with(FakeSub(alive=False)).in_control() is True
+  assert in_control_with(FakeSub(alive=False))() is True
 
 
 def test_in_control_follows_the_messages_once_they_are_live():
-  assert adapter_with(FakeSub()).in_control() is False
-  assert adapter_with(FakeSub(enabled=True)).in_control() is True
-  assert adapter_with(FakeSub(lat=True)).in_control() is True
-  assert adapter_with(FakeSub(lon=True)).in_control() is True
+  assert in_control_with(FakeSub())() is False
+  assert in_control_with(FakeSub(enabled=True))() is True
+  assert in_control_with(FakeSub(lat=True))() is True
+  assert in_control_with(FakeSub(lon=True))() is True
 
 
 def test_in_control_is_true_when_the_read_fails():
   class Broken(FakeSub):
     def update(self, t):
       raise OSError('socket')
-  assert adapter_with(Broken()).in_control() is True
-
-
-def test_without_a_jetlink_checkout_the_link_is_not_started(monkeypatch, tmp_path):
-  monkeypatch.setenv('JETLINK_REPO', str(tmp_path))
-  from nagaspilot.runtime import jetlink_adapter
-  assert not jetlink_adapter.jetlink_present()
-  (tmp_path / 'jetlink').mkdir()
-  assert jetlink_adapter.jetlink_present()
+  assert in_control_with(Broken())() is True
 
 
 class Quiet:
@@ -262,13 +224,12 @@ class Quiet:
     return self
 
 
-# -- the real pieces together: Jetlink's JoiningModelState over the shim, behind the facade
-def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
-  _jetlink()
+# -- the real pieces together: the joining model over the shim, behind the facade
+def test_a_swap_and_a_handback_through_the_real_joining_model(monkeypatch):
   import threading
   import time
 
-  from jetlink.openpilot import joining as joining_module
+  from nagaspilot.bigmodel import joining as joining_module
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
@@ -295,16 +256,15 @@ def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
   in_control = [True]
   joined = threading.Event()
 
-  def connect(should_stop=None):
+  def connect():
     joined.set()
     return Quiet(), 'spec'
 
-  state = joining_module.JoiningModelState(shim, connect, lambda client, spec: big, None,
-                                           progress=Quiet(), log=logging.getLogger('test'),
-                                           in_control=lambda: in_control[0])
+  state = joining_module.Joining(shim, connect, lambda client, spec: big, None,
+                                  log=logging.getLogger('test'), in_control=lambda: in_control[0])
   try:
     params = FakeParams()
-    facade = BigModelFacade(state, shim, params, lambda *a: 'small-action', policy=JETLINK)
+    facade = BigModelFacade(state, shim, params, lambda *a: 'small-action', policy=LATE_JOIN)
     facade.delays = (0.2, 0.15)
     inputs = {'desire': np.zeros(8, np.float32), 'traffic_convention': np.zeros(2, np.float32)}
     deadline = time.monotonic() + 5
@@ -344,27 +304,6 @@ def test_a_swap_and_a_handback_through_jetlinks_real_joining_model(monkeypatch):
   finally:
     state.close()
     state._thread.join(5)
-
-
-def test_a_static_board_tells_jetlink_before_it_is_imported(monkeypatch):
-  from nagaspilot.runtime import jetlink_adapter
-  monkeypatch.setenv('JETLINK_PLATFORM', 'placeholder')  # registers the undo for what the adapter writes
-  monkeypatch.delenv('JETLINK_PLATFORM')
-  monkeypatch.setattr(platform, 'USB_PLATFORM', 'agnos')
-  jetlink_adapter._jetlink_path()
-  assert 'JETLINK_PLATFORM' not in os.environ
-  monkeypatch.setattr(platform, 'USB_PLATFORM', 'static')
-  jetlink_adapter._jetlink_path()
-  assert os.environ['JETLINK_PLATFORM'] == 'static'
-
-
-def test_the_provisioning_run_gets_the_platform_too(monkeypatch):
-  _jetlink()
-  from nagaspilot.runtime import jetlink_adapter
-  monkeypatch.setattr(platform, 'USB_PLATFORM', 'static')
-  assert jetlink_adapter.owner_config().env['JETLINK_PLATFORM'] == 'static'
-  monkeypatch.setattr(platform, 'USB_PLATFORM', 'agnos')
-  assert 'JETLINK_PLATFORM' not in jetlink_adapter.owner_config().env
 
 
 def test_with_the_link_off_the_hook_touches_neither_the_camera_client_nor_any_param_but_a_clear():
@@ -446,7 +385,7 @@ def test_the_host_has_enumerated_us_only_when_the_controller_is_configured(tmp_p
 def test_the_chestnut_policy_is_upstreams_numbers():
   assert BIG_MODEL_TIMEOUT == 60.0
   assert CHESTNUT.window_s == 60.0 and CHESTNUT.one_way and not CHESTNUT.late_join
-  assert JETLINK.window_s == 0.0 and not JETLINK.one_way and JETLINK.late_join
+  assert LATE_JOIN.window_s == 0.0 and not LATE_JOIN.one_way and LATE_JOIN.late_join
 
 
 def test_with_the_cable_connected_engagement_is_held_off_while_the_phone_joins():
@@ -519,9 +458,9 @@ def test_a_hand_back_is_one_way_the_join_is_stopped_and_active_stays_false():
   assert joining.closed == 1
 
 
-def test_the_jetlink_policy_never_stops_the_join_and_takes_a_rejoin():
+def test_the_late_join_policy_never_stops_the_join_and_takes_a_rejoin():
   joining, params, facade, clock, _ = chestnut(cable=True)
-  facade.policy = JETLINK
+  facade.policy = LATE_JOIN
   joining.state = 'running'
   facade.run({}, {}, {})
   joining.state = 'ready'
@@ -531,12 +470,11 @@ def test_the_jetlink_policy_never_stops_the_join_and_takes_a_rejoin():
   assert joining.closed == 0 and params.values[ACTIVE] is True
 
 
-def test_chestnut_policy_through_jetlinks_real_joining_model_a_hand_back_is_not_followed_by_a_rejoin(monkeypatch):
-  _jetlink()
+def test_chestnut_policy_through_the_real_joining_model_a_hand_back_is_not_followed_by_a_rejoin(monkeypatch):
   import threading
   import time
 
-  from jetlink.openpilot import joining as joining_module
+  from nagaspilot.bigmodel import joining as joining_module
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
@@ -559,13 +497,13 @@ def test_chestnut_policy_through_jetlinks_real_joining_model_a_hand_back_is_not_
   connects = []
   joined = threading.Event()
 
-  def connect(should_stop=None):
+  def connect():
     connects.append(1)
     joined.set()
     return Quiet(), 'spec'
 
-  state = joining_module.JoiningModelState(shim, connect, lambda client, spec: big, None, progress=Quiet(),
-                                           log=logging.getLogger('test'), in_control=lambda: False)
+  state = joining_module.Joining(shim, connect, lambda client, spec: big, None,
+                                  log=logging.getLogger('test'), in_control=lambda: False)
   try:
     params = FakeParams()
     clock = Clock()
@@ -634,28 +572,109 @@ def test_a_cable_that_enumerated_is_waited_for_the_whole_window_not_ten_seconds(
   assert params.values[ACTIVE] is False and joining.closed == 1   # 65 s: the window ended without a big model
 
 
-def test_the_hook_counts_a_model_as_built_only_when_jetlinks_record_says_so():
+def test_the_hook_counts_a_model_as_built_only_when_the_metadata_is(tmp_path):
+  import pickle
+
+  from nagaspilot.runtime.bigmodel import BigModelHook
+  hook = BigModelHook(FakeParams(), lambda *a: None, models_dir=tmp_path)
+  assert hook._runnable() is False          # nothing read yet: unknown never holds engagement off
+  from nagaspilot.bigmodel import metadata
+  assert metadata.load(tmp_path) is None     # no files
+  for name, size in (('vision', 12), ('policy', 8)):
+    with open(tmp_path / f'driving_{name}_metadata.pkl', 'wb') as f:
+      pickle.dump({'output_slices': {name: slice(0, size)}, 'output_shapes': {'outputs': (1, size)}}, f)
+  hook.contract = metadata.load(tmp_path)
+  assert hook._runnable() is True
+  assert (hook.contract.vision_floats, hook.contract.policy_floats) == (12, 8)
+  with open(tmp_path / 'driving_policy_metadata.pkl', 'wb') as f:
+    f.write(b'not a pickle')
+  assert metadata.load(tmp_path) is None     # unreadable counts as not built
+
+
+# -- prepare() and attach() with a metadata directory and a fake listener
+@pytest.fixture
+def stub_swaglog(monkeypatch):
+  import sys
+  import types
+  mod = types.ModuleType('openpilot.common.swaglog')
+  mod.cloudlog = logging.getLogger('test-cloudlog')
+  monkeypatch.setitem(sys.modules, 'openpilot.common.swaglog', mod)
+
+
+def write_metadata(path):
+  import pickle
+  for name, size in (('vision', 12), ('policy', 8)):
+    with open(path / f'driving_{name}_metadata.pkl', 'wb') as f:
+      pickle.dump({'output_slices': {name: slice(0, size)}, 'output_shapes': {'outputs': (1, size)}}, f)
+
+
+class FakeListener:
+  started = 0
+
+  def start(self):
+    FakeListener.started += 1
+    return self
+
+  def take(self, timeout):
+    return None
+
+  def close(self):
+    pass
+
+
+class LinkParams(FakeParams):
+  def get(self, key, return_default=False):
+    return 1 if key == platform.LINK else None
+
+
+def test_prepare_does_nothing_with_the_link_off(stub_swaglog, tmp_path):
+  from nagaspilot.runtime.bigmodel import BigModelHook
+  write_metadata(tmp_path)
+  FakeListener.started = 0
+  hook = BigModelHook(FakeParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
+  assert hook.prepare() is False and hook.contract is None and FakeListener.started == 0
+
+
+def test_prepare_without_built_metadata_stays_on_the_small_model(stub_swaglog, tmp_path):
+  from nagaspilot.runtime.bigmodel import BigModelHook
+  FakeListener.started = 0
+  hook = BigModelHook(LinkParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
+  assert hook.prepare() is False and hook.contract is None and FakeListener.started == 0
+  small = object()
+  assert hook.attach(small, object()) is small
+
+
+def test_prepare_then_attach_gives_the_facade_over_a_joining_model(stub_swaglog, tmp_path):
+  from nagaspilot.runtime.bigmodel import BigModelFacade, BigModelHook
+  write_metadata(tmp_path)
+  FakeListener.started = 0
+  hook = BigModelHook(LinkParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
+  assert hook.prepare() is True and FakeListener.started == 1 and hook._runnable()
+  small = FakeInner()
+  small.full_features_buffer = np.ones((1, 4, 2), np.float32)
+  small.full_desire = np.ones((1, 4, 2), np.float32)
+  small.prev_desire = np.ones(2, np.float32)
+  small.frames = {}
+  facade = hook.attach(small, object())
+  try:
+    assert isinstance(facade, BigModelFacade) and facade.policy is CHESTNUT
+    assert facade.big_model_state in ('joining', 'retrying')
+    assert facade.is_big is False
+  finally:
+    hook.joining.close()
+
+
+def test_the_setting_picks_the_listener_for_the_phone():
+  from nagaspilot.bigmodel.ffs import FfsListener
+  from nagaspilot.bigmodel.listener import Listener
   from nagaspilot.runtime.bigmodel import BigModelHook
 
-  class Status:
-    def __init__(self, runnable):
-      self.runnable = runnable
+  class P(FakeParams):
+    def __init__(self, mode):
+      super().__init__()
+      self.mode_value = mode
 
-  class Jet:
-    def __init__(self, status):
-      self._status = status
-
-    def status(self):
-      if isinstance(self._status, Exception):
-        raise self._status
-      return self._status
-
-  hook = BigModelHook(FakeParams(), lambda *a: None)
-  hook.jetlink = Jet(Status(True))
-  assert hook._runnable() is True
-  hook.jetlink = Jet(Status(False))
-  assert hook._runnable() is False
-  hook.jetlink = Jet(OSError('records unreadable'))
-  assert hook._runnable() is False       # unknown never holds engagement off
-  hook.jetlink = None
-  assert hook._runnable() is False
+    def get(self, key, return_default=False):
+      return self.mode_value if key == platform.LINK else None
+  assert BigModelHook(P(2), lambda *a: None)._default_listener() is Listener      # iPhone: the USB network
+  assert BigModelHook(P(1), lambda *a: None)._default_listener() is FfsListener   # Android: the bulk interface

@@ -15,15 +15,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
     // Big model (phone over USB / eGPU): loading blocks engagement, active is false once it handed back or failed.
-    // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Nothing writes them on this branch yet.
+    // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Written by modeld's BigModelHook.
     {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
-    // The phone-hosted big model link (Jetlink): 0 off, 1 Android phone (USB host), 2 iPhone (USB network); its progress,
-    // built-model and model-pointer records. The USB-C port the phone uses is the eGPU port: one role at a time.
+    // The phone-hosted big model link (NavPilot NPBM, NAVPILOT_BIGMODEL.md): 0 off, 3 USB tethering (recommended), 2 iPhone
+    // (the board's NCM gadget), 1 Android (FunctionFS bulk gadget). The USB-C port the phone uses is the eGPU port: one role at a time.
     {"EOPBigModelLink", {PERSISTENT, INT, "0"}},
-    {"EOPBigModelProgress", {CLEAR_ON_MANAGER_START, JSON}},
-    {"EOPBigModelSpec", {PERSISTENT, JSON}},
-    {"EOPBigModelPointers", {PERSISTENT, JSON}},
-    {"EOPBigModelChargePhone", {PERSISTENT, BOOL, "0"}},
     {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},

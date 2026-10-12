@@ -2,7 +2,7 @@
 
 Pure layout helpers. NGP10's `DrivingModelFrame` (selfdrive/modeld/models/commonmodel.cc) warps a camera
 frame to 512x256 and packs it as 6 planes of 128x256 (four Y phases, U, V): 196,608 bytes. It keeps two
-of them back to back, the older one `temporal_skip` frames back and the newest second. Jetlink's server
+of them back to back, the older one `temporal_skip` frames back and the newest second. NavPilot's server
 keeps its own frame history and wants only the newest frame of each camera, narrow then wide, as a
 (2, 6, 128, 256) uint8 array. So the frame to send is the second half of each camera's buffer, which costs
 no GPU work beyond the warp the small model already runs.

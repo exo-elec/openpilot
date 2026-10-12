@@ -1,17 +1,14 @@
 """What differs per branch in the big-model link (T16/T17): the one file a branch rewrites.
 
 This is dev/EOP10's (RK3588 / ExoPilot). Param names follow the EOP rule; the USB-C port role is fixed by the
-device tree (peripheral, see exopilot's kernel overlays), so Jetlink's gadget owner needs no USB-PD handling.
-Everything else under nagaspilot/runtime/bigmodel*.py and jetlink_adapter.py, and nagaspilot/controls/ngp_bigmodel_*.py,
-is byte-identical to NGP10's. Standard library only at import time: the resident gadget owner imports it.
+device tree (peripheral, see exopilot's kernel overlays) when a gadget mode is used. Everything else under
+nagaspilot/bigmodel/, nagaspilot/runtime/bigmodel*.py and nagaspilot/controls/ngp_bigmodel_*.py is byte-identical to NGP10's. Standard library only at import time: the resident gadget owner imports it.
 """
 
-# the setting (an INT index into jetlink's MODES: 0 off, 1 USB/Android, 2 iOS) and Jetlink's JSON records
+# the setting: 0 off; 3 USB tethering, the phone is the USB device and the board its host (RECOMMENDED: the boards are USB hosts, so
+# no overlay swap); 2 an iPhone as host of the board's CDC-NCM gadget; 1 an Android phone as host of a FunctionFS bulk gadget
+# (2 and 1 need exopilot's peripheral overlay). One NPBM protocol on all three.
 LINK = "EOPBigModelLink"
-PROGRESS = "EOPBigModelProgress"
-SPEC = "EOPBigModelSpec"
-POINTERS = "EOPBigModelPointers"
-CHARGE_PHONE = "EOPBigModelChargePhone"
 
 # written by modeld, read by selfdrived's gate (nagaspilot/controls/ngp_bigmodel_gate.py)
 LOADING = "EOPBigModelLoading"

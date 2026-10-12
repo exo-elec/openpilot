@@ -47,7 +47,7 @@
     "_comment": "Set extra field to lateral or longitudinal."
   },
   "Offroad_BigModelNotDetected": {
-    "text": "Phone not detected. Check the USB cable and that Jetlink is open on the phone, then restart the car.",
+    "text": "Phone not detected. Check the USB cable and that NavPilot is open on the phone, then restart the car.",
     "severity": 0
   },
   "Offroad_BigModelUsbSlow": {
