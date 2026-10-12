@@ -1,7 +1,7 @@
 # Big model on the phone: NavPilot-owned link (port plan and status)
 
 Status 2026-10-12: **comma side written and unit-tested on a PC (159 tests, loopback sockets and a fake configfs); the phone side is specified here and has a Python
-reference server; nothing has run on a device and the Swift server is not written.** Branch `native/ngp10-bigmodel`, off `jetlink/ngp10-bigmodel`.
+reference server; nothing has run on a device and the native core is not written.** Branch `native/ngp10-bigmodel`, off `jetlink/ngp10-bigmodel`.
 
 This replaces [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md). Decision (2026-10-12): NavPilot owns the whole feature. There is
 no dependency on `exo-elec/jetlink`: no `jetlink_repo` gitlink, no Jetlink protocol, no JetlinkKit. What the Jetlink port
@@ -15,12 +15,13 @@ Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md
 | # | Decision | Why |
 | --- | --- | --- |
 | D1 | **Model contract A: the phone runs the same v0.10 split vision + policy contract NGP10 already parses.** A contract id travels in the hello, so a later combined-model contract can be added without a protocol break. | No `modeld` rework, reuses NGP10's `Parser`, `fill_model_msg` and warp. Proves the whole pipeline. Gains capability only when a larger model with this contract exists. |
-| D2 | **One transport: TCP over a CDC-NCM USB network.** The comma owns `192.168.60.1:5600` and listens on that address only; the phone gets an address by DHCP and **dials** in. The protocol roles do not follow the TCP roles: the comma sends HELLO and asks for frames. No FunctionFS, no vendor interface. | iPhone needs it; NavPilot's `CableTransportService` already assumes it; configfs NCM is a few lines instead of Jetlink's FunctionFS stack. Android, Lightning iPhones and USB-host-only computers are out of scope (D7). |
+| D2 | **iPhone transport: TCP over a CDC-NCM USB network** (Android: D7). The comma owns `192.168.60.1:5600` and listens on that address only; the phone gets an address by DHCP and **dials** in. The protocol roles do not follow the TCP roles: the comma sends HELLO and asks for frames. No FunctionFS, no vendor interface. | iPhone needs it; NavPilot's `CableTransportService` already assumes it; configfs NCM is a few lines instead of Jetlink's FunctionFS stack. Android uses the other transport (D7); Lightning iPhones, Wi-Fi and USB-host-only computers are out of scope. |
 | D3 | **The phone keeps the history; the comma sends only the newest warped frame per camera** (393,216 bytes) plus `desire` and `traffic_convention`. | Same bandwidth reasoning as Jetlink (a per-frame second frame would double a cost the comma's kernel pays per packet). The server's state is rebuilt by a RESET flag, so it is never trusted across a restart. |
 | D4 | **The reply is the raw vision output followed by the raw policy output** (float32), sliced on the comma with NGP10's own metadata. | The comma keeps the parser, so output parity is checked in one place and the server needs no openpilot knowledge. |
 | D5 | **Fallback behaviour is unchanged from the Jetlink port**: the small model is always loaded; one-way hand-back; engagement held off while loading/proving; a hand-back while engaged soft-disables; settling window 5 s. | Already decided and documented in `CHESTNUT_PARITY.md`. |
 | D6 | Setting `ngp_bigmodel_link` stays, but is now **0 off / nonzero on** (no iOS vs USB split). | One transport. Old value 2 still reads as on. |
-| D7 | **Scope (2026-10-12): iPhone with a USB-C port only. No Lightning, no Android.** Android would need a second comma transport (FunctionFS vendor interface read through usbfs, as Jetlink's Android app does) because it does not reliably host a CDC-NCM gadget; that is dropped, not deferred. USB 3 speeds need an iPhone 15 Pro or later; the base iPhone 15 and 16 have USB-C at USB 2 speed and will raise the existing `USB slow` alert. | Owner decision. Keeps the single NCM transport of D2. |
+| D7 | **Scope (2026-10-12, revised): iPhone with a USB-C port and Android with USB-C, both over the USB-C cable. No Lightning, no Wi-Fi.** Two comma transports carry the same NPBM bytes, chosen by `ngp_bigmodel_link` (2 = iPhone: CDC-NCM network, TCP; 1 = Android: FunctionFS vendor bulk interface that the phone reads as USB host, with `framing.py` padding). An iPhone 15 Pro or later gives USB 3; the base iPhone 15/16 are USB 2 and raise the `USB slow` alert. | Owner decision, reversing the iPhone-only scope of the same day. Android cannot be reached over NCM, and tethering/Wi-Fi are less reliable than a cable. |
+| D8 | **The phone app is NavPilot's Flutter app.** Dart does screens, settings, model download and status (`BigModelLinkService`). The 20 Hz loop (393 KB a frame, the history, inference) is not Dart: it is one native core, written once, that both platforms call through `dart:ffi` so frames never cross a method channel. Per-platform parts are only the inference backend (ONNX Runtime with CoreML on iOS; QNN, NNAPI or LiteRT on Android) and the link (TCP dial on iOS; usbfs bulk pipes on Android). `server_ref.py`, `framing.HostBulkSocket` and `npbm_golden.json` are the spec the core must reproduce. | A Dart or method-channel hot loop risks the 50 ms budget; a shared core keeps one implementation of the history and protocol for two platforms. |
 
 ## Architecture
 
@@ -63,6 +64,8 @@ per `INFER_REQ`. A reply that is not finite leaves the phone's state as it was b
 | Module | Replaces (Jetlink) | Does |
 | --- | --- | --- |
 | `protocol.py` | `jetlink/protocol.py` | Header, message codecs, constants. Pure, golden-vector tested. |
+| `framing.py` | `transport/` | Bulk framing for Android: burst padding out, one pad byte in, `BulkSocket` (comma) and `HostBulkSocket` (the phone's spec). |
+| `ffs.py` | `transport/ffs.py` | FunctionFS descriptors, `FfsControl` (ep0 owner in `bigmodeld`), `FfsEndpoint` (signal-masked IO threads in `modeld`), `FfsListener`. **Not run on a device.** |
 | `listener.py` | `transport/` | Binds the cable address only (retried until the gadget's netdev exists), keeps the newest phone connection. |
 | `client.py` | `jetlink/client.py` | Blocking client over the accepted socket: hello, `send_frame`, `recv_response(deadline)`, ping, leave. Every failure is a `LinkError`. |
 | `metadata.py` | (jetlink spec) | Reads NGP10's own model metadata for the slices and float counts the reply is checked and sliced with. |
@@ -82,8 +85,8 @@ adapter's `in_control`), `runtime/bigmodel_warp.py` (`NgpWarp` and `reset_functi
 
 1. Dart `BigModelLinkService`: controls and status for the UI. Its channel contract changes from Jetlink's `ControlEvent`s to
    NavPilot's own (`start`, `stop`, `status`, `model`, events `link`, `engine`, `stats`).
-2. Native iOS (`ios/Runner`, Swift): the NPBM server state machine dialling the comma on the NCM interface, and a CoreML
-   backend. No Android module.
+2. The shared native core (D8) with an iOS build (CoreML) and an Android build (usbfs bulk pipes, QNN/NNAPI/LiteRT), called from Flutter through `dart:ffi`.
+   Jetlink's `JetlinkKit` (MIT) is a worked reference for both, including its usbfs pipes and ORT profiles; copying from it needs its notice kept.
 3. Model delivery: NavPilot downloads or bundles the split vision/policy models and converts them to the device runtime.
 
 The Python reference server is the conformance target: the same golden vectors (`protocol` fixtures, a recorded
@@ -98,10 +101,16 @@ request/response pair) must pass.
 | P2 ☑ | `remote_state.py`, `joining.py` with fakes for sockets, clock and the small model, and one end-to-end test over a real socket. | Swap, hold, hand-back, backoff and drop-ratio rules tested against a fake host. |
 | P3 ☑ | Rewire the hook, manager, docs; remove Jetlink. | Facade/gate/status tests pass; the two real-joining-model integration tests now run on `Joining`. No Jetlink import or checkout anywhere. |
 | P4 ☑ | `gadget.py`, root script. | Script run against a fake configfs (gadget, bind, net before and after the netdev, refusal to fight another gadget, teardown); owner decisions tested. |
-| P5 | Phone side: Dart contract, Swift server. | Needs Xcode: not buildable in this environment. |
+| P4b ☑ | Android transport: `framing.py`, `ffs.py`, `gadget --bulk`, owner mode switch, listener choice by setting. | Protocol round trip over bulk framing, over real pipes through `FfsEndpoint`; descriptors checked against the FunctionFS v2 layout; script against a fake configfs. |
+| P5 | Phone side: Dart contract, shared native core (iOS and Android builds) behind `dart:ffi`. | Needs Xcode and the Android SDK/NDK: not buildable in this environment. |
 | P6 | Device: comma 3X bench. | p99 frame < 50 ms with NavPilot's map running, 10+ min heat, forced-failure hand-backs. |
 
 ## Unverified (needs hardware or a recorded route)
+
+- The FunctionFS path (`ffs.py`, `gadget --bulk`) has only run against pipes and a fake sysfs. Known device-only risks: the descriptor write
+  (EINVAL on a wrong layout), a wedged gadget if an endpoint is opened early, writes that never time out, the mount's ownership, and
+  switching functions on a live controller. Jetlink's `transport/ffs.py` records the lessons; its AIO writes (not used here) were needed to
+  keep a frame's write off the caller's thread.
 
 - `modeld.py` has only been byte-compiled, and `attach()` was exercised with a stubbed `swaglog` and a fake listener; the real `Parser`, cereal and
   OpenCL objects were not importable in this environment. The first run is on the bench.

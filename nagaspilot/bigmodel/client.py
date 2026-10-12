@@ -56,7 +56,8 @@ class Client:
     try:
       if self._sock is None:
         self._sock = socket.create_connection((self.host, self.port), timeout=CONNECT_TIMEOUT)
-      self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+      if isinstance(self._sock, socket.socket):
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
       self._send(P.pack(P.HELLO, self._next(), P.hello_payload()))
       msg = self._recv(self._clock() + HELLO_TIMEOUT)
     except OSError as e:

@@ -11,6 +11,7 @@ import json
 
 import numpy as np
 
+from nagaspilot.bigmodel import framing as F
 from nagaspilot.bigmodel import protocol as P
 from nagaspilot.bigmodel import server_ref as S
 
@@ -44,6 +45,14 @@ def build() -> dict:
     'bad_headers': {'bad_magic': (b'XXXX' + P.pack(P.PING, 1)[4:]).hex(),
                     'bad_version': (P.pack(P.PING, 1)[:4] + bytes([2]) + P.pack(P.PING, 1)[5:]).hex(),
                     'bad_crc': (P.pack(P.PING, 1)[:-1] + bytes([P.pack(P.PING, 1)[-1] ^ 1])).hex()},
+    'bulk_framing': {
+      'note': 'Android only. comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte when the length is an exact multiple of packet.',
+      'burst': F.BURST, 'packet': F.PACKET,
+      'ping_wire_length': len(F.pad_to_burst(P.pack(P.PING, 7))),
+      'infer_req_wire_length': len(F.pad_to_burst(req)),
+      'resp_exactly_512': {'wire_length_before_pad': 512, 'wire_length_sent': len(F.pad_for_packet(P.pack_infer_resp(3, 1, P.OK, 5, bytes(480))))},
+      'resp_not_multiple': {'wire_length_sent': len(F.pad_for_packet(P.pack_infer_resp(3, 1, P.OK, 5, bytes(8))))},
+    },
     'stub_server': {'vision_floats': backend.vision_floats, 'policy_floats': backend.policy_floats,
                     'note': 'one connection, HELLO then three INFER_REQs (first with RESET); StubBackend is defined in server_ref.py',
                     'steps': steps},

@@ -2,7 +2,8 @@
 # Root side of the phone big-model link: a CDC-NCM USB gadget on the comma's USB-C port, 192.168.60.1/24 on its netdev, and
 # DHCP for the phone. Run as `sudo -n bash ngp-bigmodel-root.sh <command>` by nagaspilot.bigmodel.gadget; nothing else is root.
 #
-#   gadget    create the gadget (idempotent) without binding it
+#   gadget [--bulk]  create the gadget (idempotent) without binding it: CDC-NCM for an iPhone, or with --bulk a FunctionFS
+#             vendor interface for an Android phone (the owner then writes the descriptors and binds the controller itself)
 #   bind      bind the gadget to the device controller (the phone enumerates us)
 #   net       address the netdev and start DHCP (the netdev exists only after bind)
 #   unbind    release the controller, keep the gadget
@@ -19,6 +20,10 @@ RUN=${NGP_RUN_DIR:-/dev/shm}
 TEST=${NGP_TEST:-0}
 GADGET=$CONFIGFS/usb_gadget/ngpbigmodel
 NET_FN=ncm.usb0
+FFS_NAME=ngpbigmodel
+FFS_FN=ffs.$FFS_NAME
+FFS_MOUNT=${NGP_FFS_MOUNT:-/dev/ffs-ngpbigmodel}
+OPENPILOT_USER=${NGP_USER:-comma}
 ADDR=192.168.60.1
 PREFIX=24
 DHCP_RANGE=192.168.60.2,192.168.60.254,10m
@@ -50,6 +55,12 @@ first_udc() {
 }
 
 cmd_gadget() {
+  local bulk=0
+  case "${1:-}" in
+    '') ;;
+    --bulk) bulk=1 ;;
+    *) echo "usage: $0 gadget [--bulk]" >&2; exit 2 ;;
+  esac
   need_root
   if [[ $TEST != 1 ]]; then
     mountpoint -q "$CONFIGFS" || mount -t configfs none "$CONFIGFS" 2>/dev/null || true
@@ -80,6 +91,26 @@ cmd_gadget() {
   echo "NCM link" > "$GADGET/configs/c.1/strings/0x409/configuration"
   echo 0xC0 > "$GADGET/configs/c.1/bmAttributes"   # self-powered
   echo 8 > "$GADGET/configs/c.1/MaxPower"
+  # one function at a time: switching between iPhone and Android is a teardown first, because unlinking a function from a
+  # bound config force-unbinds the controller
+  if [[ $bulk -eq 1 ]]; then
+    [[ -L $GADGET/configs/c.1/$NET_FN ]] && fail "the gadget is in network mode; run teardown before switching to bulk"
+    # the mkdir instantiates the function and registers functionfs, so a kernel without it fails here
+    mkdir -p "$GADGET/functions/$FFS_FN" || fail "kernel has no ffs gadget function (CONFIG_USB_CONFIGFS_F_FS)"
+    [[ -L $GADGET/configs/c.1/$FFS_FN ]] || ln -s "$GADGET/functions/$FFS_FN" "$GADGET/configs/c.1/$FFS_FN"
+    mkdir -p "$FFS_MOUNT"
+    if [[ $TEST != 1 ]]; then
+      # owned by the user openpilot runs as: bigmodeld writes ep0 and modeld reads ep1/ep2
+      mountpoint -q "$FFS_MOUNT" || mount -t functionfs -o "uid=$(id -u "$OPENPILOT_USER"),gid=$(id -g "$OPENPILOT_USER")" \
+        "$FFS_NAME" "$FFS_MOUNT" || fail "could not mount functionfs at $FFS_MOUNT"
+      [[ -e $FFS_MOUNT/ep0 ]] || fail "functionfs mounted at $FFS_MOUNT but has no ep0"
+      # the owner binds the controller as the openpilot user, so hand it that one attribute
+      chown "$OPENPILOT_USER" "$GADGET/UDC" 2>/dev/null || true
+    fi
+    echo "gadget ready at $GADGET (bulk), functionfs at $FFS_MOUNT"
+    return 0
+  fi
+  [[ -L $GADGET/configs/c.1/$FFS_FN ]] && fail "the gadget is in bulk mode; run teardown before switching to network"
   mkdir -p "$GADGET/functions/$NET_FN"
   # link once: unlinking from a bound config force-unbinds the controller, so an unconditional ln -sf would drop a live link
   [[ -L $GADGET/configs/c.1/$NET_FN ]] || ln -s "$GADGET/functions/$NET_FN" "$GADGET/configs/c.1/$NET_FN"
@@ -136,9 +167,10 @@ cmd_teardown() {
   if [[ $TEST != 1 && -f $DNSMASQ_PID ]]; then kill "$(cat "$DNSMASQ_PID")" 2>/dev/null || true; fi
   rm -f "$DNSMASQ_PID" "$DNSMASQ_IF" "$STATUS"
   if [[ -d $GADGET ]]; then
-    rm -f "$GADGET/configs/c.1/$NET_FN"
+    rm -f "$GADGET/configs/c.1/$NET_FN" "$GADGET/configs/c.1/$FFS_FN"
+    if [[ $TEST != 1 ]] && mountpoint -q "$FFS_MOUNT" 2>/dev/null; then umount "$FFS_MOUNT" 2>/dev/null || true; fi
     if [[ $TEST == 1 ]]; then rm -rf "$GADGET"; else
-      rmdir "$GADGET/configs/c.1/strings/0x409" "$GADGET/configs/c.1" "$GADGET/functions/$NET_FN" "$GADGET/strings/0x409" "$GADGET" 2>/dev/null || true
+      rmdir "$GADGET/configs/c.1/strings/0x409" "$GADGET/configs/c.1" "$GADGET/functions/$NET_FN" "$GADGET/functions/$FFS_FN" "$GADGET/strings/0x409" "$GADGET" 2>/dev/null || true
     fi
   fi
   echo "torn down"
@@ -153,7 +185,7 @@ cmd_status() {
 }
 
 case "${1:-}" in
-  gadget) cmd_gadget ;;
+  gadget) shift; cmd_gadget "$@" ;;
   bind) cmd_bind ;;
   net) cmd_net ;;
   unbind) cmd_unbind ;;

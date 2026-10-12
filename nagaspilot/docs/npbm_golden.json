@@ -4,6 +4,20 @@
   "bad_magic": "585858580105000001000000000000000c8df010",
   "bad_version": "4e50424d0205000001000000000000000c8df010"
  },
+ "bulk_framing": {
+  "burst": 16384,
+  "infer_req_wire_length": 409600,
+  "note": "Android only. comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte when the length is an exact multiple of packet.",
+  "packet": 512,
+  "ping_wire_length": 16384,
+  "resp_exactly_512": {
+   "wire_length_before_pad": 512,
+   "wire_length_sent": 513
+  },
+  "resp_not_multiple": {
+   "wire_length_sent": 40
+  }
+ },
  "contract": "ngp-v0.10-split",
  "frame_bytes": 393216,
  "frame_shape": [

@@ -232,7 +232,8 @@ class Server:
     self._serve(conn)
 
   def _serve(self, conn: socket.socket) -> None:
-    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    if isinstance(conn, socket.socket):
+      conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     hello_done = False
     try:
       while not self._stop.is_set():

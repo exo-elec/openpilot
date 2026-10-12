@@ -662,3 +662,19 @@ def test_prepare_then_attach_gives_the_facade_over_a_joining_model(stub_swaglog,
     assert facade.is_big is False
   finally:
     hook.joining.close()
+
+
+def test_the_setting_picks_the_listener_for_the_phone():
+  from nagaspilot.bigmodel.ffs import FfsListener
+  from nagaspilot.bigmodel.listener import Listener
+  from nagaspilot.runtime.bigmodel import BigModelHook
+
+  class P(FakeParams):
+    def __init__(self, mode):
+      super().__init__()
+      self.mode_value = mode
+
+    def get(self, key, return_default=False):
+      return self.mode_value if key == platform.LINK else None
+  assert BigModelHook(P(2), lambda *a: None)._default_listener() is Listener      # iPhone: the USB network
+  assert BigModelHook(P(1), lambda *a: None)._default_listener() is FfsListener   # Android: the bulk interface

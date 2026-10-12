@@ -244,19 +244,26 @@ class BigModelHook:
     if self.mode() == 0:
       return False
     from nagaspilot.bigmodel import metadata
-    from nagaspilot.bigmodel.listener import Listener
     from openpilot.common.swaglog import cloudlog
     try:
       self.contract = metadata.load(self.models_dir) if self.models_dir else metadata.load()
       if self.contract is None:
         cloudlog.warning("bigmodel: no model metadata is built, staying on the small model")
         return False
-      self.listener = (self._listener_factory or Listener)().start()
+      self.listener = (self._listener_factory or self._default_listener())().start()
       return True
     except Exception:
       cloudlog.exception("bigmodel: could not be prepared, staying on the small model")
       self.contract = None
       return False
+
+  def _default_listener(self):
+    """2 (iPhone): the TCP listener on the USB network. Anything else nonzero (Android): the FunctionFS bulk endpoints."""
+    if self.mode() == 2:
+      from nagaspilot.bigmodel.listener import Listener
+      return Listener
+    from nagaspilot.bigmodel.ffs import FfsListener
+    return FfsListener
 
   def attach(self, small_model, vipc_client):
     """Once the camera is up and the small model is built: the facade, or the small model if it cannot join."""

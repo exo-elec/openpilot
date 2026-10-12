@@ -54,30 +54,77 @@ def net_ok(path: Path = NET_STATUS) -> bool:
     return False
 
 
+NETWORK, BULK = 2, 1     # the ngp_bigmodel_link values: 2 an iPhone (USB network), 1 an Android phone (vendor bulk interface)
+
+
 class GadgetOwner:
-  """One decision per step(): what to ask of the root script, given the setting and whether a Chestnut holds the port."""
+  """One decision per step(): what to ask of the root script, given the setting and whether a Chestnut holds the port.
 
-  def __init__(self, mode, chestnut, run=run, net_ok=net_ok):
+  The setting picks the function: 2 is CDC-NCM for an iPhone, anything else nonzero is the FunctionFS bulk interface an
+  Android phone reads as USB host. Changing it tears the gadget down and builds the other one. For bulk this process also
+  holds ep0 (descriptors, bind, events) for as long as the gadget is up: closing ep0 would take the function with it."""
+
+  def __init__(self, mode, chestnut, run=run, net_ok=net_ok, control_factory=None):
     self._mode, self._chestnut, self._run, self._net_ok = mode, chestnut, run, net_ok
-    self.up = False            # the gadget has been created and bound by this owner
+    self._control_factory = control_factory
+    self.kind: int | None = None   # NETWORK or BULK while up
+    self.control = None
 
-  def wanted(self) -> bool:
+  @property
+  def up(self) -> bool:
+    return self.kind is not None
+
+  def wanted(self) -> int:
+    """0 when nothing is wanted: off, a Chestnut on the port, or an unreadable setting (unknown never takes the port)."""
     try:
-      return self._mode() != 0 and not self._chestnut()
+      m = int(self._mode())
+      return 0 if m == 0 or self._chestnut() else (NETWORK if m == NETWORK else BULK)
     except Exception:
-      return False             # unknown never takes the port
+      return 0
+
+  def _release(self) -> None:
+    if self.control is not None:
+      try:
+        self.control.unbind()
+        self.control.close()
+      finally:
+        self.control = None
+    self._run('teardown')
+    self.kind = None
+
+  def _make_control(self):
+    if self._control_factory is not None:
+      return self._control_factory()
+    from nagaspilot.bigmodel.ffs import FfsControl
+    return FfsControl(gadget='/sys/kernel/config/usb_gadget/ngpbigmodel')
 
   def step(self) -> str:
     """'off' (nothing wanted, port released), 'up' (all in place) or 'working' (a step was taken or failed; try again)."""
-    if not self.wanted():
-      if self.up:
-        self._run('teardown')
-        self.up = False
+    want = self.wanted()
+    if self.up and want != self.kind:
+      self._release()
+    if not want:
       return 'off'
     if not self.up:
-      if not (self._run('gadget') and self._run('bind')):
-        return 'working'
-      self.up = True
+      if want == NETWORK:
+        if not (self._run('gadget') and self._run('bind')):
+          return 'working'
+      else:
+        if not self._run('gadget', '--bulk'):
+          return 'working'
+        control = self._make_control()
+        try:
+          control.open(bind=True)
+        except Exception:
+          log.exception("could not write the FunctionFS descriptors and bind")
+          control.close()
+          self._run('teardown')
+          return 'working'
+        self.control = control
+      self.kind = want
+    if want == BULK:
+      self.control.events()      # keep ep0 serviced
+      return 'up'
     if not self._net_ok():
       self._run('net')
       if not self._net_ok():
@@ -86,8 +133,7 @@ class GadgetOwner:
 
   def close(self) -> None:
     if self.up:
-      self._run('teardown')
-      self.up = False
+      self._release()
 
 
 def main() -> None:
