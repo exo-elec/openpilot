@@ -1,4 +1,5 @@
 import base64
+import math
 import json
 import pickle
 
@@ -66,3 +67,30 @@ def test_the_tool_refuses_what_the_comma_cannot_serve(tmp_path, capsys):
 def test_evidence_is_required(tmp_path):
   with pytest.raises(SystemExit):
     allow_model.main([str(write_model(tmp_path / 'm.onnx')), '--name', 'n'])
+
+
+STATEFUL = {'new_img': (2, 6, 128, 256), 'desire': (1, 8), 'traffic_convention': (1, 2), 'action_t': (1, 2),
+            'state_feat': (1, 16), 'state_hist': (1, 4, 3)}
+
+
+def write_stateful(path, out_shapes=None):
+  from onnx import TensorProto, helper
+  outs = out_shapes or {'outputs': (1, 24), 'next_state_feat': (1, 16), 'next_state_hist': (1, 4, 3)}
+  inputs = [helper.make_tensor_value_info(k, TensorProto.FLOAT, list(v)) for k, v in STATEFUL.items()]
+  outputs = [helper.make_tensor_value_info(k, TensorProto.FLOAT, list(v)) for k, v in outs.items()]
+  nodes = [helper.make_node('Constant', [], [k], value=helper.make_tensor('c' + k, TensorProto.FLOAT, list(v), [0.0] * int(math.prod(v))))
+           for k, v in outs.items()]
+  model = helper.make_model(helper.make_graph(nodes, 'g', inputs, outputs))
+  model.metadata_props.add(key='output_slices', value=base64.encodebytes(pickle.dumps({'plan': slice(0, 6), 'meta': slice(6, 24)})).decode())
+  onnx.save(model, str(path))
+  return path
+
+
+def test_a_stateful_graph_is_accepted_now_and_a_broken_one_is_not(tmp_path, capsys):
+  entry = allow_model.entry_for(spec_from_onnx(str(write_stateful(tmp_path / 's.onnx'))), 'cinque terre v3 stand-in', 'e')
+  assert entry['name'].startswith('cinque') and 'state_feat' in entry['input_shapes']
+  bad = write_stateful(tmp_path / 'b.onnx', {'outputs': (1, 24), 'next_state_feat': (1, 17), 'next_state_hist': (1, 4, 3)})
+  assert allow_model.main([str(bad), '--name', 'n', '--evidence', 'e']) == 2
+  assert 'state_feat' in capsys.readouterr().err
+  no_pairs = write_stateful(tmp_path / 'n.onnx', {'outputs': (1, 24)})
+  assert allow_model.main([str(no_pairs), '--name', 'n', '--evidence', 'e']) == 2
