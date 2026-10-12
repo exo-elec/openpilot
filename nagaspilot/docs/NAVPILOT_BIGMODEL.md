@@ -1,7 +1,7 @@
 # Big model on the phone: NavPilot-owned link (port plan and status)
 
 Status 2026-10-12: **comma side written and unit-tested on a PC (159 tests, loopback sockets and a fake configfs); the phone side is specified here and has a Python
-reference server; nothing has run on a device and the Swift/Kotlin servers are not written.** Branch `native/ngp10-bigmodel`, off `jetlink/ngp10-bigmodel`.
+reference server; nothing has run on a device and the Swift server is not written.** Branch `native/ngp10-bigmodel`, off `jetlink/ngp10-bigmodel`.
 
 This replaces [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md). Decision (2026-10-12): NavPilot owns the whole feature. There is
 no dependency on `exo-elec/jetlink`: no `jetlink_repo` gitlink, no Jetlink protocol, no JetlinkKit. What the Jetlink port
@@ -15,12 +15,12 @@ Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md
 | # | Decision | Why |
 | --- | --- | --- |
 | D1 | **Model contract A: the phone runs the same v0.10 split vision + policy contract NGP10 already parses.** A contract id travels in the hello, so a later combined-model contract can be added without a protocol break. | No `modeld` rework, reuses NGP10's `Parser`, `fill_model_msg` and warp. Proves the whole pipeline. Gains capability only when a larger model with this contract exists. |
-| D2 | **One transport: TCP over a CDC-NCM USB network.** The comma owns `192.168.60.1:5600` and listens on that address only; the phone gets an address by DHCP and **dials** in. The protocol roles do not follow the TCP roles: the comma sends HELLO and asks for frames. No FunctionFS, no vendor interface. | iPhone needs it; NavPilot's `CableTransportService` already assumes it; configfs NCM is a few lines instead of Jetlink's FunctionFS stack. Android and USB-host-only computers are out of scope until a tether path is decided. |
+| D2 | **One transport: TCP over a CDC-NCM USB network.** The comma owns `192.168.60.1:5600` and listens on that address only; the phone gets an address by DHCP and **dials** in. The protocol roles do not follow the TCP roles: the comma sends HELLO and asks for frames. No FunctionFS, no vendor interface. | iPhone needs it; NavPilot's `CableTransportService` already assumes it; configfs NCM is a few lines instead of Jetlink's FunctionFS stack. Android, Lightning iPhones and USB-host-only computers are out of scope (D7). |
 | D3 | **The phone keeps the history; the comma sends only the newest warped frame per camera** (393,216 bytes) plus `desire` and `traffic_convention`. | Same bandwidth reasoning as Jetlink (a per-frame second frame would double a cost the comma's kernel pays per packet). The server's state is rebuilt by a RESET flag, so it is never trusted across a restart. |
 | D4 | **The reply is the raw vision output followed by the raw policy output** (float32), sliced on the comma with NGP10's own metadata. | The comma keeps the parser, so output parity is checked in one place and the server needs no openpilot knowledge. |
 | D5 | **Fallback behaviour is unchanged from the Jetlink port**: the small model is always loaded; one-way hand-back; engagement held off while loading/proving; a hand-back while engaged soft-disables; settling window 5 s. | Already decided and documented in `CHESTNUT_PARITY.md`. |
 | D6 | Setting `ngp_bigmodel_link` stays, but is now **0 off / nonzero on** (no iOS vs USB split). | One transport. Old value 2 still reads as on. |
-| D7 | **Correction (2026-10-12): NCM alone covers iPhone only.** Jetlink's Android app is a USB *host* talking to a vendor (FunctionFS) bulk interface on the comma through usbfs, not to a network; Android does not reliably host a CDC-NCM gadget. Android support therefore needs a second comma transport (FunctionFS gadget plus bulk-pipe framing and padding), selected by the setting (1 = Android/USB host, 2 = iPhone/NCM, as before). Not built. `jetlink/transport/ffs.py` and `jetlink/comma/{gadget,owner}.py` (MIT) are the reference. | Found by reading `docs/backends.md` and `android/README.md` in Jetlink after D2 was written. |
+| D7 | **Scope (2026-10-12): iPhone with a USB-C port only. No Lightning, no Android.** Android would need a second comma transport (FunctionFS vendor interface read through usbfs, as Jetlink's Android app does) because it does not reliably host a CDC-NCM gadget; that is dropped, not deferred. USB 3 speeds need an iPhone 15 Pro or later; the base iPhone 15 and 16 have USB-C at USB 2 speed and will raise the existing `USB slow` alert. | Owner decision. Keeps the single NCM transport of D2. |
 
 ## Architecture
 
@@ -82,11 +82,11 @@ adapter's `in_control`), `runtime/bigmodel_warp.py` (`NgpWarp` and `reset_functi
 
 1. Dart `BigModelLinkService`: controls and status for the UI. Its channel contract changes from Jetlink's `ControlEvent`s to
    NavPilot's own (`start`, `stop`, `status`, `model`, events `link`, `engine`, `stats`).
-2. Native iOS (`ios/Runner`, Swift): TCP listener or client on the NCM interface, the NPBM server state machine, a CoreML
-   backend. Android: ORT + QNN backend, transport pending D2.
+2. Native iOS (`ios/Runner`, Swift): the NPBM server state machine dialling the comma on the NCM interface, and a CoreML
+   backend. No Android module.
 3. Model delivery: NavPilot downloads or bundles the split vision/policy models and converts them to the device runtime.
 
-The Python reference server is the conformance target for both: the same golden vectors (`protocol` fixtures, a recorded
+The Python reference server is the conformance target: the same golden vectors (`protocol` fixtures, a recorded
 request/response pair) must pass.
 
 ## Phases and exit criteria

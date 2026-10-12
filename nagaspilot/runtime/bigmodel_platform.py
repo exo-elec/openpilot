@@ -7,7 +7,7 @@ and 02M. Standard library only at import time: the resident gadget owner imports
 """
 from pathlib import Path
 
-# the setting: 0 off, nonzero on (the one transport is TCP over a CDC-NCM USB network; 1 and 2 both mean on)
+# the setting: 0 off, nonzero on (the one transport is TCP over a CDC-NCM USB network to an iPhone with USB-C; 1 and 2 both mean on)
 LINK = "ngp_bigmodel_link"
 
 # written by modeld, read by selfdrived's gate (nagaspilot/controls/ngp_bigmodel_gate.py)
