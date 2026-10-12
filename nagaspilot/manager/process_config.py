@@ -5,6 +5,7 @@ from openpilot.common.build_profile import UI_BACKEND
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.params import Params
 from openpilot.system.manager.process import PythonProcess, NativeProcess
+from nagaspilot.runtime import bigmodel_platform
 
 
 # EOP-CLEANUP: TTL-cached param wrapper for process conditions.
@@ -40,6 +41,19 @@ def logging(started: bool, params: Params, CP: car.CarParams) -> bool:
 
 def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
+
+_bigmodel_link_cache = (float("-inf"), False)
+
+
+def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # the gadget owner holds the USB-C port for the phone while a gadget mode (1 or 2) is on, onroad and offroad alike. Tethering
+  # (3) needs no owner: the board stays the USB host. The mode is an INT (not a bool the helper above caches), so it gets the
+  # same TTL here: one read per period, not per poll.
+  global _bigmodel_link_cache
+  now = time.monotonic()
+  if now - _bigmodel_link_cache[0] >= _PARAM_TTL_S:
+    _bigmodel_link_cache = (now, int(params.get(bigmodel_platform.LINK, return_default=True) or 0) in (1, 2))
+  return _bigmodel_link_cache[1]
 
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
@@ -112,6 +126,7 @@ procs = [
   PythonProcess("spkd", "system.spkd.spkd", always_run),     # Speaker (I2S)
   PythonProcess("rtcd", "system.rtcd.rtcd", always_run),     # RTC time sync
   PythonProcess("socketd", "system.socketd.socketd", always_run),
+  PythonProcess("bigmodeld", "nagaspilot.bigmodel.gadget", bigmodel_link),  # phone-hosted big model: USB gadget owner (modes 1 and 2)
   PythonProcess("pigeond", "system.ubloxd.pigeond", always_run),
   PythonProcess("inferenced", "system.inferenced.inferenced", always_run),  # Centralized compute HAL
   PythonProcess("subscribed", "system.subscribed.subscribed", always_run),  # EOP: NavPilot subscription & hardware auth
