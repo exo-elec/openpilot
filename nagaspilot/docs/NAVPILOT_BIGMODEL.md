@@ -1,12 +1,13 @@
 # Big model on the phone: NavPilot-owned link (port plan and status)
 
-Status 2026-10-12: **comma side written and unit-tested on a PC (159 tests, loopback sockets and a fake configfs); the phone side is specified here and has a Python
-reference server; nothing has run on a device and the native core is not written.** Branch `native/ngp10-bigmodel`, off `jetlink/ngp10-bigmodel`.
+Status 2026-10-12 (end of day): **the comma side is merged on `dev/NGP10` and carried onto `dev/EOP10`, `dev/01M` and `dev/02M`; the phone core is a pure-Dart package in NavPilot; nothing has run on a comma, a board or a phone.**
+Everything is default off (`ngp_bigmodel_link` = 0). 199 comma-side tests and 16 Dart tests pass on a PC; the bulk and FunctionFS paths have only run against fakes.
 
 This replaces [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md). Decision (2026-10-12): NavPilot owns the whole feature. There is
 no dependency on `exo-elec/jetlink`: no `jetlink_repo` gitlink, no Jetlink protocol, no JetlinkKit. What the Jetlink port
 already settled on the openpilot side (cereal slots, the `selfdrived` gate, the settling window, the `modeld` hook, the
-OpenCL warp source, the Chestnut-parity policy, the alerts) is kept unchanged. What Jetlink supplied is rewritten here.
+OpenCL warp source, the Chestnut-parity policy, the alerts) is kept unchanged. What Jetlink supplied is rewritten here, following
+Jetlink's design lessons with attribution (`nagaspilot/bigmodel/THIRD_PARTY_NOTICES.md`; Jetlink is MIT and the project is open source).
 
 Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md`, updated to point here).
 
@@ -106,6 +107,50 @@ request/response pair) must pass.
 | P4b ☑ | Android transport: `framing.py`, `ffs.py`, `gadget --bulk`, owner mode switch, listener choice by setting. | Protocol round trip over bulk framing, over real pipes through `FfsEndpoint`; descriptors checked against the FunctionFS v2 layout; script against a fake configfs. |
 | P5 | Phone side: Dart contract, shared native core (iOS and Android builds) behind `dart:ffi`. | Needs Xcode and the Android SDK/NDK: not buildable in this environment. |
 | P6 | Device: comma 3X bench. | p99 frame < 50 ms with NavPilot's map running, 10+ min heat, forced-failure hand-backs. |
+
+## Task list (2026-10-12)
+
+| # | Task | State |
+| --- | --- | --- |
+| 1 | Comma side: protocol, client, state, joining, three transports, gadget script, owner, hook | ☑ merged on NGP10, carried to EOP10, 01M, 02M |
+| 2 | Python reference server and golden vectors | ☑ |
+| 3 | Dart core `packages/npbm` (NavPilot): protocol, history, server, tether interface choice | ☑ 16 tests, bit-exact with the Python client |
+| 4 | ExoPilot kernel drivers for tethering (`feat/usb-tether-host`) | ☑ merged on exopilot `main`, not built |
+| 5 | Comma check: kernel USB Ethernet host drivers, comma holds its port as host | ☐ needs a comma 3X |
+| 6 | Phone inference backend spike (see the survey below) on one iPhone Pro and one Android flagship, with a real model | ☐ needs phones |
+| 7 | Wire `packages/npbm` into the app: dependency, service, tethering guide screen | ☐ next (needs the Flutter SDK; being set up) |
+| 8 | `modeld` rework: combined-model contract (`action_t`, hidden state or history queues, new constants and parser) as a second contract id | ☐ blocked on 6 for a real model |
+| 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
+| 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
+| 11 | Remove the eGPU / Chestnut path | ☐ gated, see below |
+
+## Inference backend survey (pub.dev, 2026-10-12)
+
+The Dart core needs one native piece, `Backend` (run the vision and policy models). Packages that exist:
+
+| Package | Engine | Fit |
+| --- | --- | --- |
+| `flutter_onnxruntime` 1.9.0 (published 2026-10-06, ORT 1.28) | iOS: `onnxruntime-objc` (CoreML EP available); Android: the stock `onnxruntime-android` AAR (XNNPACK, NNAPI; **no QNN**) | The closest drop-in. Method-channel API, so each frame's tensors are copied through a channel: measure. Does not carry the model-preparation work Jetlink needed for the Neural Engine (fp16-safe LayerNorm scaling, a vision/heads split). |
+| `onnxruntime_plus` 1.5.0 | FFI over ORT **1.15.1** (old) | FFI avoids channel copies, but the engine is years behind the 1.28 / 1.29 the models were validated on. |
+| `onnxruntime` 1.4.1 (2024) | ORT 1.15.1 | Stale. |
+| `flutter_litert` 3.9.4 (published 2026-10-12) | LiteRT through FFI: XNNPACK, GPU, Metal, CoreML, NPU delegates | Needs the model converted to `.tflite`; Jetlink did that conversion on the phone for Android and found it a project of its own (op lowering for the GPU delegate). |
+
+Nothing off the shelf gives a ready Android NPU path for a Chestnut-class model. Plan on a thin NavPilot native layer (an FFI to the ORT C API,
+the way Jetlink's Swift does it) for production, and use `flutter_onnxruntime` only to get a first number on an iPhone.
+
+## Removing the eGPU / Chestnut path (gated, not done)
+
+Owner intent (2026-10-12): if a phone can run a Chestnut-class model, drop the GPU and keep only the phone backend. Not yet met: no phone has run such a model for us,
+NGP10 cannot consume the combined model (task 8), and Android is unproven (Jetlink reports no Snapdragon run). Remove only when **all** hold:
+
+1. Task 8 is done and a real combined model runs through the phone backend.
+2. One iPhone and one Android phone run it on the bench for 10+ minutes, p99 frame under 50 ms, with the map running (task 10).
+3. A drive test shows the hand-back to the small model.
+
+Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfdrive/modeld/egpu_detect.py` and its test; the eGPU parts of `modeld.py`
+(`EgpuState`, the `egpuState` service and cereal message); `nagaspilot/runtime/tinygrad_model.py` and its test; the `Egpu*` params; the eGPU panel
+(`selfdrive/ui/qt/offroad/ngp_panel.cc`); the SConscript entries; `EGPU_INTEGRATION.md` and `NGP10_CHESTNUT_MIGRATION_PLAN.md`; the Chestnut-parity shim in the gate;
+`egpu_in_use()` in the platform file. In exopilot: the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
 
 ## Unverified (needs hardware or a recorded route)
 
