@@ -20,6 +20,7 @@ Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md
 | D4 | **The reply is the raw vision output followed by the raw policy output** (float32), sliced on the comma with NGP10's own metadata. | The comma keeps the parser, so output parity is checked in one place and the server needs no openpilot knowledge. |
 | D5 | **Fallback behaviour is unchanged from the Jetlink port**: the small model is always loaded; one-way hand-back; engagement held off while loading/proving; a hand-back while engaged soft-disables; settling window 5 s. | Already decided and documented in `CHESTNUT_PARITY.md`. |
 | D6 | Setting `ngp_bigmodel_link` stays, but is now **0 off / nonzero on** (no iOS vs USB split). | One transport. Old value 2 still reads as on. |
+| D7 | **Correction (2026-10-12): NCM alone covers iPhone only.** Jetlink's Android app is a USB *host* talking to a vendor (FunctionFS) bulk interface on the comma through usbfs, not to a network; Android does not reliably host a CDC-NCM gadget. Android support therefore needs a second comma transport (FunctionFS gadget plus bulk-pipe framing and padding), selected by the setting (1 = Android/USB host, 2 = iPhone/NCM, as before). Not built. `jetlink/transport/ffs.py` and `jetlink/comma/{gadget,owner}.py` (MIT) are the reference. | Found by reading `docs/backends.md` and `android/README.md` in Jetlink after D2 was written. |
 
 ## Architecture
 
