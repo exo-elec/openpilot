@@ -14,6 +14,13 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
+    // Big model (phone over USB / eGPU): loading blocks engagement, active is false once it handed back or failed.
+    // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Written by modeld's BigModelHook.
+    {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
+    // The phone-hosted big model link (NavPilot NPBM, NAVPILOT_BIGMODEL.md): 0 off, 3 USB tethering (recommended), 2 iPhone
+    // (the board's NCM gadget), 1 Android (FunctionFS bulk gadget). The USB-C port the phone uses is the eGPU port: one role at a time.
+    {"EOPBigModelLink", {PERSISTENT, INT, "0"}},
+    {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
     {"CameraDebugExpGain", {CLEAR_ON_MANAGER_START, STRING}},
@@ -234,6 +241,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
+    // The phone-hosted big model's counterparts of upstream's Offroad_Chestnut* alerts (ngp_bigmodel_status.py)
+    {"Offroad_BigModelModelError", {CLEAR_ON_MANAGER_START, JSON}},
+    {"Offroad_BigModelNotDetected", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
+    {"Offroad_BigModelUsbSlow", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_CarUnrecognized", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
     {"Offroad_ConnectivityNeeded", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_ConnectivityNeededPrompt", {CLEAR_ON_MANAGER_START, JSON}},

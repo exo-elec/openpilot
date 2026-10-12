@@ -188,3 +188,13 @@ pytest system/bluetoothd/tests/
 ## Cross-project protocol
 
 `protocol.py` is the single source of truth. Any `MessageType` or frame format change must also be applied to NavPilot's `navpilot/src/lib/src/protocol/frame_protocol.dart`.
+
+## NCP over the USB cable (iPhone mode of the big-model link)
+
+`ncp_cable.py` serves the same NCP v4.1 frames over TCP on the comma's end of the phone's USB network (`192.168.60.1:5598`),
+as a third transport on the shared `NCPSession` next to SPP and BLE GATT. It starts only when `EOPBigModelLink = 2`, because
+the cable has a network only in Jetlink's iOS gadget mode (Android's Jetlink link is a USB vendor interface with no
+network, so Android has no NCP-over-cable yet). It binds the cable address only (never `0.0.0.0`), drops peers outside
+`192.168.60.0/24`, cuts a link whose frame header is malformed, and serves one phone at a time. The phone side is NavPilot's
+`CableTransportService`. A BLE bond is OS-level trust; here the cable is the trust anchor and NCP's own pairing messages are
+unchanged. Tests: `tests/test_ncp_cable.py` (loopback). Not run on a device.

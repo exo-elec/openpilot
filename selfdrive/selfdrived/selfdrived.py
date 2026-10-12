@@ -25,6 +25,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
+from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate
 from nagaspilot.controls.ngp_green_light import NGPGreenLight
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
@@ -156,6 +157,8 @@ class SelfdriveD:
     # EOP: Green light / lead departing alert state
     self._green_light = NGPGreenLight()
     self._lead_departure = NGPLeadDeparture()
+    self._big_model_gate = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading", "EOPChestnutDrivingLoading"),
+                                           ("EOPBigModelActive", "EOPEgpuDrivingActive", "EOPChestnutDrivingActive"))
 
     # EOP: Health Monitor — graduated system degradation on thermal/CPU/memory stress
     self._health_monitor_enabled = self.params.get_bool("EOPHealthMonitorEnabled")
@@ -512,7 +515,8 @@ class SelfdriveD:
     # generic catch-all. ideally, a more specific event should be added above instead
     has_disable_events = self.events.contains(ET.NO_ENTRY) and (self.events.contains(ET.SOFT_DISABLE) or self.events.contains(ET.IMMEDIATE_DISABLE))
     no_system_errors = (not has_disable_events) or (len(self.events) == num_events)
-    if not self.sm.all_checks() and no_system_errors:
+    settling = self._big_model_gate.settling()  # upstream's big_model_settling: hold these checks back around a big-model load
+    if not self.sm.all_checks() and no_system_errors and not settling:
       if not self.sm.all_alive():
         self.events.add(EventName.commIssue)
       elif not self.sm.all_freq_ok():
@@ -531,7 +535,7 @@ class SelfdriveD:
     else:
       self.logged_comm_issue = None
 
-    if not self.CP.notCar:
+    if not self.CP.notCar and not settling:
       if not self.sm['livePose'].posenetOK:
         self.events.add(EventName.posenetInvalid)
       if not self.sm['livePose'].deviceStable:
@@ -585,6 +589,9 @@ class SelfdriveD:
     else:
       self._tts_green_light_active = False
 
+    for name in self._big_model_gate.events(self.params.get, self.enabled, self.sm.seen['modelV2'] and not self.sm.alive['modelV2']):
+      self.events.add(getattr(EventName, name))
+
     # EOP: Lead departing alert — lead moves away while we're stopped (policy: nagaspilot/controls/ngp_lead_departure.py)
     radar_state = self.sm['radarState']
     if self._lead_departure.update(CS.standstill, radar_state.leadOne):
@@ -605,7 +612,7 @@ class SelfdriveD:
 
     # TODO: fix simulator
     if not SIMULATION or REPLAY:
-      if self.sm['modelV2'].frameDropPerc > 20:
+      if self.sm['modelV2'].frameDropPerc > 20 and not settling:
         self.events.add(EventName.modeldLagging)
 
     # Decrement personality on distance button press (4 personalities with traffic mode)

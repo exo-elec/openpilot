@@ -42,6 +42,7 @@ from openpilot.selfdrive.modeld.runners import create_driving_runner, DrivingRun
 
 # Centralized inference HAL - ONLY way to access NPU
 from openpilot.system.inferenced import InferenceClient
+from nagaspilot.runtime.bigmodel import BigModelHook
 
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
@@ -514,6 +515,9 @@ def main(demo=False) -> int:
     # Create InferenceD client - ONLY way to access NPU
     client = InferenceClient("modeld")
 
+    bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (EOPBigModelLink, default off)
+    bigmodel.prepare()  # reads the model metadata and opens the phone listener before the process goes realtime
+
     # Setup process
     set_daemon_affinity("modeld")
     config_realtime_process(DT_MDL, 54)
@@ -582,6 +586,8 @@ def main(demo=False) -> int:
         time.sleep(0.1)
 
     cloudlog.warning(f"Vision stream ready, main_wide_camera={main_wide_camera}")
+    if not egpu_active:
+        model = bigmodel.attach(model, vipc_client_main)
 
     # Setup messaging
     pm = messaging.PubMaster(["modelV2", "drivingModelData", "cameraOdometry"])
@@ -706,6 +712,7 @@ def main(demo=False) -> int:
 
             # Run inference with upstream-style eGPU-runner failover.
             mt1 = time.perf_counter()
+            model.frame_drop_ratio, model.delays = frame_drop_ratio, (sm["liveDelay"].lateralDelay, CP.longitudinalActuatorDelay)
             try:
                 model_output = model.run(bufs, transforms, inputs, prepare_only)
             except Exception:
@@ -720,6 +727,8 @@ def main(demo=False) -> int:
                 model_output = None
             mt2 = time.perf_counter()
             model_execution_time = mt2 - mt1
+            if getattr(model, 'handed_over', lambda: False)():
+                run_count = 0  # a swap or hand-back stalls a frame: not lag
 
             # Publish results
             if model_output is not None:
@@ -727,7 +736,7 @@ def main(demo=False) -> int:
                 drivingdata_send = messaging.new_message('drivingModelData')
                 posenet_send = messaging.new_message('cameraOdometry')
 
-                action = get_action_from_model(
+                action = getattr(model, 'action_from_output', get_action_from_model)(
                     model_output, prev_action,
                     lat_delay + DT_MDL, long_delay + DT_MDL, v_ego
                 )
@@ -738,6 +747,7 @@ def main(demo=False) -> int:
                     publish_state, meta_main.frame_id, meta_extra.frame_id, frame_id,
                     frame_drop_ratio, meta_main.timestamp_eof, model_execution_time, live_calib_seen
                 )
+                modelv2_send.modelV2.big = bool(getattr(model, 'is_big', False) or egpu_active)
 
                 desire_state = modelv2_send.modelV2.meta.desireState
                 l_lane_change_prob = desire_state[log.Desire.laneChangeLeft]
