@@ -94,6 +94,9 @@ class RemoteModelState:
     self._frames_since_swap = 0
 
   # -- what is sent and what comes back
+  def _flags(self) -> int:
+    return P.RESET if self._need_reset else 0
+
   def _packed(self, inputs: dict) -> np.ndarray:
     """The floats that go with the frame: the desire and traffic_convention the small model gets."""
     return np.concatenate([np.asarray(inputs['desire'], np.float32).reshape(-1), np.asarray(inputs['traffic_convention'], np.float32).reshape(-1)])
@@ -108,10 +111,11 @@ class RemoteModelState:
       combined['raw_pred'] = out.copy()
     return combined
 
-  def _take(self, resp: P.InferResp) -> dict | None:
-    """The parsed output of a reply, or None when the phone refused the frame but kept its state (NOT_FINITE)."""
+  def _take(self, resp: P.InferResp) -> dict:
+    """The parsed output of a reply. A refused frame raises (Jetlink's NOT_FINITE -> LinkError): the comma then demotes to the small model,
+    as it does for a Chestnut that returns a non-finite output. The phone has kept its last good state."""
     if resp.status == P.NOT_FINITE:
-      return None
+      raise LinkError('the phone refused the frame: its output was not finite')
     if resp.status != P.OK:
       raise LinkError(f'the phone failed the frame (status {resp.status})')
     out = np.frombuffer(resp.out, np.float32)
@@ -139,10 +143,8 @@ class RemoteModelState:
         self._check_alive(sent)
         return self._hold()           # still not back: this frame is held and nothing new is sent
       self._pending = None
-      late = self._take(resp)
-      if late is not None:
-        self._last = late
-    flags = P.RESET if self._need_reset else 0
+      self._last = self._take(resp)
+    flags = self._flags()
     self._frame_id += 1
     seq = self.client.send_frame_packed(self._frame_id, flags, self._packed(inputs), self.warp.output)
     self._need_reset = False
@@ -157,10 +159,6 @@ class RemoteModelState:
       return self._hold()
     self._pending = None
     parsed = self._take(resp)
-    if parsed is None:                # the phone refused a non-finite frame and kept its state
-      if self._last is None:
-        raise LinkError('the phone refused the first frame')
-      return self._hold()
     self._holds_in_a_row = 0
     self._last = parsed
     self.trips.record(self._clock() - t0, resp.server_us)
@@ -205,7 +203,6 @@ class RemoteSpecModelState(RemoteModelState):
     if info.spec is None:
       raise ValueError('a spec contract needs the phone\'s model spec')
     self.spec = info.spec
-    self._reply_slices = self.spec.reply_slices
     self._parse_outputs = parse
     self._prev_desire = np.zeros(self.spec.packed_shapes['desire'][0], np.float32)
     super().__init__(client, info, warp, parser=None, vision_slices={}, policy_slices={}, get_action_from_model=get_action_from_model, log=log,
@@ -233,21 +230,28 @@ class RemoteSpecModelState(RemoteModelState):
       out.append(parts[name])
     return np.concatenate(out)
 
+  def _flags(self) -> int:
+    # like Jetlink's client: with the raw output being logged, ask for the whole vector so the log carries the real hidden state, not zeros
+    return super()._flags() | (P.WANT_HIDDEN if SEND_RAW_PRED else 0)
+
   def _parse(self, out: np.ndarray) -> dict:
-    sliced = {k: out[np.newaxis, s] for k, s in self._reply_slices.items()}
-    combined = self._parse_outputs(sliced)
+    """Jetlink's path: the full-length output (zeros where the hidden state stays on the phone), cut by the spec's own output_slices, then the
+    fork's Parser.parse_outputs. A new dict per call: the parser's softmax works in place, so a held frame republishes the dict it parsed."""
+    whole = self.spec.whole_output(out, whole=bool(SEND_RAW_PRED))
+    combined = self._parse_outputs({k: whole[np.newaxis, s] for k, s in self.spec.output_slices.items()})
     if SEND_RAW_PRED:
-      combined['raw_pred'] = out.copy()
+      combined['raw_pred'] = whole.copy()
     return combined
 
-  def _take(self, resp: P.InferResp) -> dict | None:
+  def _take(self, resp: P.InferResp) -> dict:
     if resp.status == P.NOT_FINITE:
-      return None
+      raise LinkError('the phone refused the frame: its output was not finite')
     if resp.status != P.OK:
       raise LinkError(f'the phone failed the frame (status {resp.status})')
     out = np.frombuffer(resp.out, np.float32)
-    if out.size != self.spec.reply_nelem:
-      raise LinkError(f'reply of {out.size} floats, the model promised {self.spec.reply_nelem}')
+    expect = self.spec.output_nelem if SEND_RAW_PRED else self.spec.reply_nelem
+    if out.size != expect:
+      raise LinkError(f'reply of {out.size} floats, the model promised {expect}')
     if not np.isfinite(out).all():
       raise LinkError('the reply is not finite')
     return self._parse(out)

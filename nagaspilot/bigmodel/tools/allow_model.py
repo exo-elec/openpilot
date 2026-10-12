@@ -28,8 +28,13 @@ def entry_for(spec: ModelSpec, name: str, evidence: str) -> dict:
   for inp in needed:
     if inp not in spec.input_shapes:
       raise ValueError(f'the model has no {inp} input')
+  h = spec.hidden_range
+  for slice_name, sl in spec.output_slices.items():     # the parser reads zeros where the hidden state stays on the phone: no other slice may touch them
+    if h and slice_name != 'hidden_state':
+      start, stop, _ = sl.indices(spec.output_nelem)
+      if start < h[1] and stop > h[0]:
+        raise ValueError(f'output slice {slice_name!r} overlaps hidden_state')
   make_history(spec)            # a queued graph needs a hidden_state to feed back; a stateful one needs matching state_/next_state_ pairs
-  _ = spec.reply_slices         # raises if a slice overlaps the hidden state
   d = spec.to_dict()
   return {'name': name, 'sha256': spec.sha256, 'evidence': evidence, **{k: d[k] for k in PINNED}}
 

@@ -201,11 +201,12 @@ def test_many_holds_in_a_window_is_behind_even_if_never_in_a_row():
   assert state.behind == R.BEHIND_RATE
 
 
-def test_a_non_finite_frame_is_held_not_published():
+def test_a_non_finite_frame_raises_so_the_comma_demotes_as_it_does_for_a_chestnut():
   state, client, _ = make()
-  first = run(state)
+  run(state)
   client.status = P.NOT_FINITE
-  assert run(state) is first and state.trips.held == 1
+  with pytest.raises(LinkError, match='not finite'):
+    run(state)
 
 
 def test_a_refused_first_frame_is_an_error():

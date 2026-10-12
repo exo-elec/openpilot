@@ -23,6 +23,7 @@ TYPE_NAMES = {HELLO: 'HELLO', HELLO_ACK: 'HELLO_ACK', INFER_REQ: 'INFER_REQ', IN
 
 # INFER_REQ req_flags
 RESET = 1
+WANT_HIDDEN = 2          # reply with the whole output, hidden_state included (what Jetlink's WANT_HIDDEN does for SEND_RAW_PRED logging)
 
 # INFER_RESP status
 OK, NOT_FINITE, NOT_READY, INTERNAL = 0, 1, 2, 3
