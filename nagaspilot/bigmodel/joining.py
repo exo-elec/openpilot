@@ -5,7 +5,7 @@ in control, and modeld, which re-reads `model` every frame, sees `modelV2.big` c
 goes with the ignition and the app: joining must never block modeld's frame thread, so connecting is a background thread
 that does link IO only; everything that touches the small model happens on the frame thread.
 
-Rules (ported from the Jetlink link, they are why this is safe):
+Rules (carried over from the Jetlink port, they are why this is safe):
 - never swap while anything is in control: the two models disagree by ~195 m of planned path and the swap costs a frame
 - the small model drives the first SMALL_WARMUP_FRAMES of a modeld start: its first frames in a process are slow
 - the phone starts from a reset history on the swap frame; the first frames after it are its proof (engagement is held off

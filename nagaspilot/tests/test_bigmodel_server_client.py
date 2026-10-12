@@ -193,3 +193,52 @@ def test_a_comma_on_another_contract_is_refused(server, monkeypatch):
   monkeypatch.setattr(P, 'hello_payload', lambda: P.encode_json({'contract': 'something-else', 'frame': list(P.FRAME_SHAPE), 'desire': 8, 'traffic': 2}))
   with pytest.raises(LinkError, match='contract'):
     Client('127.0.0.1', server.port).connect()
+
+
+def test_the_phone_dials_the_comma_and_the_comma_drives_the_protocol():
+  import threading
+  from nagaspilot.bigmodel.listener import Listener
+  listener = Listener('127.0.0.1', 0).start()
+  for _ in range(100):
+    if listener.bound:
+      break
+    time.sleep(0.01)
+  stop = threading.Event()
+  t = threading.Thread(target=S.dial, args=(S.StubBackend(), '127.0.0.1', listener.port), kwargs=dict(retry=0.05, stop=stop), daemon=True)
+  t.start()
+  try:
+    sock = listener.take(2.0)
+    assert sock is not None
+    with Client(sock=sock) as c:
+      assert c.connect().model == 'stub'
+      assert infer(c, 1, 3).status == P.OK
+  finally:
+    stop.set()
+    listener.close()
+
+
+def test_the_listener_keeps_only_the_newest_phone():
+  from nagaspilot.bigmodel.listener import Listener
+  listener = Listener('127.0.0.1', 0).start()
+  for _ in range(100):
+    if listener.bound:
+      break
+    time.sleep(0.01)
+  a = socket.create_connection(('127.0.0.1', listener.port))
+  time.sleep(0.1)
+  b = socket.create_connection(('127.0.0.1', listener.port))
+  time.sleep(0.1)
+  got = listener.take(1.0)
+  assert got is not None and got.getpeername() == b.getsockname()
+  assert listener.take(0.05) is None
+  got.close(), a.close(), b.close()
+  listener.close()
+
+
+def test_the_listener_waits_for_the_cable_interface_to_exist():
+  from nagaspilot.bigmodel import listener as L
+  l = L.Listener('203.0.113.9', 0)         # an address this machine does not have
+  l.start()
+  time.sleep(0.2)
+  assert not l.bound and l.take(0.05) is None
+  l.close()

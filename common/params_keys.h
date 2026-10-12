@@ -134,14 +134,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
-    // Run the big driving model on a phone over the USB cable (Jetlink link, JETLINK_BIGMODEL.md). 0 off, 1 Android
-    // phone (USB host), 2 iPhone (USB network). Default off; the small model stays loaded and drives until the phone
-    // model is proven. The other ngp_bigmodel_* keys are Jetlink's progress, built-model record and model pointers.
+    // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
+    // nonzero on (USB network to the phone). Default off; the small model stays loaded and drives until the phone
+    // model is proven.
     {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
-    {"ngp_bigmodel_progress", {CLEAR_ON_MANAGER_START, JSON}},
-    {"ngp_bigmodel_spec", {PERSISTENT, JSON}},
-    {"ngp_bigmodel_pointers", {PERSISTENT, JSON}},
-    {"ngp_bigmodel_charge_phone", {PERSISTENT, BOOL, "0"}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.

@@ -1,3 +1,7 @@
+> **Superseded 2026-10-12** by [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md): the link is now NavPilot's own and Jetlink is no longer a
+> dependency (no `jetlink_repo`, no `jetlinkd`, no `jetlink_adapter.py`). What follows is the record of the Jetlink port; the cereal,
+> `selfdrived`, settling, alert and Chestnut-parity decisions in it still stand.
+
 # Big model on the phone over USB (Jetlink port)
 
 Status 2026-10-11: **comma side implemented on NGP10 and carried to EOP10, 01M and 02M (branches `jetlink/*`), default off; nothing built, replayed or run on a device.** Hardware side (USB-C device-mode overlays, eGPU-xor-phone switch) is in `exopilot` branch `feat/phone-bigmodel-usb-port`. Branch

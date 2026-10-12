@@ -291,4 +291,4 @@ def test_reads_follow_the_model_that_drives():
   j.lat_delay = 0.3
   assert j._big.lat_delay == 0.3 and j.test.small.lat_delay == 0.3
   with pytest.raises(AttributeError):
-    j._nothing
+    _ = j._nothing

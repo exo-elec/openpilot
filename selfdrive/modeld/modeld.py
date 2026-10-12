@@ -262,7 +262,7 @@ def main(demo=False):
   cloudlog.warning(f"eGPU {'active (' + EGPU_FIRMWARE + ' firmware)' if EGPU else 'not active'}")
 
   bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (ngp_bigmodel_link, default off)
-  bigmodel.prepare()  # Jetlink needs this before the process goes realtime
+  bigmodel.prepare()  # reads the model metadata and opens the phone listener before the process goes realtime
 
   if not EGPU:
     # USB GPU currently saturates a core so can't do this yet,

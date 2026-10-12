@@ -12,7 +12,7 @@
 7. [`EGPU_INTEGRATION.md`](EGPU_INTEGRATION.md) — ASM2464PD eGPU additive-tier design notes; big-model load/failover/telemetry scaffolding ported 2026-08-23 (dual firmware detection, `EgpuState`, `EgpuDriving*` Params), still blocked on a real big-model asset and hardware to verify against.
 8. [`STEERING_ACTIVITY_MONITORING.md`](STEERING_ACTIVITY_MONITORING.md) — shared decay policies and the existing controlsd warning/deceleration contract.
 
-8. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) — big model hosted on the phone over USB (Jetlink port); design and task list T16/T17, no code yet.
+8. [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) — big model hosted on the phone over USB, NavPilot-owned link (NPBM protocol, no external dependency); plan, decisions, status. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) is the superseded Jetlink-port record.
 
 Runtime code follows the same order:
 

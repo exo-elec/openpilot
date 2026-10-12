@@ -1,6 +1,6 @@
 """Driving action from the big model's `action` head.
 
-Pure policy. The big models (Jetlink's catalog, upstream's Chestnut model) output `action`, a
+Pure policy. Combined big models (upstream's Chestnut model) output `action`, a
 (curvature * v_ego^2, acceleration) pair the model itself decides, where the v0.10.0 model has only the
 plan, from which NGP10's `get_action_from_model` derives the action. Ported from upstream's
 `get_action_from_model` (commit 084747c75, `action` branch): the same conversion, stop rule and smoothing,

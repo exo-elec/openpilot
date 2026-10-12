@@ -5,7 +5,7 @@ the parser, the action. The phone is a function: the newest warped frame of each
 `traffic_convention` in, the raw vision and policy outputs out. It keeps the frame, feature and desire history
 (server_ref.State is the reference); this side sends RESET on its first frame so a phone is never trusted across a restart.
 
-Timing rules, ported from the Jetlink link and kept because they are what makes a slow host safe:
+Timing rules, carried over from the Jetlink port and kept because they are what makes a slow host safe:
 - a reply not back HOLD_FRAME into the frame is not waited for; the previous output is published again (a held frame) and the
   late reply is read at the start of the next frame
 - HOLDS_IN_A_ROW held frames, or more than HOLDS_ALLOWED within HOLD_WINDOW, make the model `behind` and Joining hands back
@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 import time
 from collections import deque
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -33,8 +33,8 @@ HOLDS_ALLOWED = 20
 HOLD_WINDOW = 10.0
 PROVING_FRAMES = 20       # engagement is held off this long after a swap (runtime.bigmodel.PROVING_FRAMES)
 SETTLING_FRAMES = 3
-BEHIND_ROW = 'held %d frames in a row' % HOLDS_IN_A_ROW
-BEHIND_RATE = 'held more than %d frames in %d s' % (HOLDS_ALLOWED, HOLD_WINDOW)
+BEHIND_ROW = f'held {HOLDS_IN_A_ROW} frames in a row'
+BEHIND_RATE = f'held more than {HOLDS_ALLOWED} frames in {HOLD_WINDOW:.0f} s'
 BEHIND_PROVING = 'held a frame while proving itself'
 
 

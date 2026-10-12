@@ -179,7 +179,7 @@ class Client:
       try:
         self._sock.settimeout(max(left, 1e-4))
         chunk = self._sock.recv(n - len(buf))
-      except (socket.timeout, TimeoutError):
+      except TimeoutError:
         if not buf and may_idle:
           return None
         self._fail('timed out' if not buf else 'timed out mid-message')

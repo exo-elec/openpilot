@@ -81,7 +81,8 @@ def make(clock=None, latency=0.01):
   return state, client, clock
 
 
-INPUTS = lambda: {'desire': np.zeros(8, np.float32), 'traffic_convention': np.array([[1, 0]], np.float32)}
+def INPUTS():
+  return {'desire': np.zeros(8, np.float32), 'traffic_convention': np.array([[1, 0]], np.float32)}
 
 
 def run(state, **kw):

@@ -4,7 +4,8 @@ Python, numpy and the standard library. It holds the state `ModelState.run` keep
 and desire history), runs a pluggable backend, and answers the protocol. `StubBackend` is deterministic and needs no model
 (tests, protocol bring-up); `OnnxBackend` runs the split v0.10 vision and policy ONNX with ONNX Runtime on a PC.
 
-    python -m nagaspilot.bigmodel.server_ref --stub            # listen on 0.0.0.0:5600
+    python -m nagaspilot.bigmodel.server_ref --stub --dial 192.168.60.1   # the phone's mode: dial the comma on the cable
+    python -m nagaspilot.bigmodel.server_ref --stub            # listen on 0.0.0.0:5600 (tests, a LAN)
     python -m nagaspilot.bigmodel.server_ref --vision v.onnx --policy p.onnx --hidden-slice 0:512 --vision-floats 1024 --policy-floats 6000
 """
 from __future__ import annotations
@@ -92,7 +93,7 @@ class OnnxBackend(Backend):
     self.name = 'onnx'
 
   def run_vision(self, imgs):
-    return np.asarray(self.vision.run(None, {k: v for k, v in imgs.items()})[0], np.float32).reshape(-1)
+    return np.asarray(self.vision.run(None, dict(imgs))[0], np.float32).reshape(-1)
 
   def hidden_state(self, vision_out):
     return vision_out[self.hidden]
@@ -148,24 +149,43 @@ def step(state: State, backend: Backend, desire, traffic, frame: np.ndarray) -> 
   return out
 
 
-class Server:
-  """Accepts one comma at a time; a new HELLO replaces the old connection."""
+def dial(backend: Backend, host: str = P.COMMA_ADDR, port: int = P.DEFAULT_PORT, *, retry: float = 1.0,
+         stop: threading.Event | None = None) -> None:
+  """The phone's real mode: dial the comma on the cable and serve it, redialling when it drops. Blocks until `stop`."""
+  stop = stop or threading.Event()
+  server = Server(backend, listen=False)
+  while not stop.is_set():
+    try:
+      conn = socket.create_connection((host, port), timeout=2.0)
+    except OSError:
+      stop.wait(retry)
+      continue
+    server.serve(conn)
+    stop.wait(retry)
 
-  def __init__(self, backend: Backend, host: str = '0.0.0.0', port: int = P.DEFAULT_PORT):
+
+class Server:
+  """Serves a comma over a connection. In `listen` mode (tests, a PC on a LAN) it accepts one at a time and a new HELLO
+  replaces the old connection; `dial()` serves connections the phone opened itself."""
+
+  def __init__(self, backend: Backend, host: str = '0.0.0.0', port: int = P.DEFAULT_PORT, *, listen: bool = True):
     self.backend = backend
-    self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    self.listener.bind((host, port))
-    self.listener.listen(2)
-    self.port = self.listener.getsockname()[1]
     self.state = State()
     self.frames_served = 0
     self.leaves: list[dict] = []
     self._conn: socket.socket | None = None
     self._lock = threading.Lock()
     self._stop = threading.Event()
-    self.thread = threading.Thread(target=self._accept_loop, daemon=True)
-    self.thread.start()
+    self.listener = None
+    self.port = 0
+    if listen:
+      self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      self.listener.bind((host, port))
+      self.listener.listen(2)
+      self.port = self.listener.getsockname()[1]
+      self.thread = threading.Thread(target=self._accept_loop, daemon=True)
+      self.thread.start()
 
   def close(self) -> None:
     self._stop.set()
@@ -205,6 +225,11 @@ class Server:
         raise ConnectionError('closed')
       buf += chunk
     return bytes(buf)
+
+  def serve(self, conn: socket.socket) -> None:
+    """Answer one connection until it closes or breaks."""
+    self._conn = conn
+    self._serve(conn)
 
   def _serve(self, conn: socket.socket) -> None:
     conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -268,6 +293,7 @@ def main() -> None:
   ap.add_argument('--hidden-slice', default='0:512')
   ap.add_argument('--vision-floats', type=int), ap.add_argument('--policy-floats', type=int)
   ap.add_argument('--host', default='0.0.0.0'), ap.add_argument('--port', type=int, default=P.DEFAULT_PORT)
+  ap.add_argument('--dial', metavar='HOST', help=f'dial the comma at HOST:PORT (the phone\'s mode; the cable address is {P.COMMA_ADDR}) instead of listening')
   a = ap.parse_args()
   logging.basicConfig(level=logging.INFO)
   if a.stub:
@@ -277,6 +303,10 @@ def main() -> None:
       ap.error('give --stub, or --vision --policy --vision-floats --policy-floats')
     lo, hi = (int(x) for x in a.hidden_slice.split(':'))
     backend = OnnxBackend(a.vision, a.policy, slice(lo, hi), a.vision_floats, a.policy_floats)
+  if a.dial:
+    log.info('dialling %s:%d with %s', a.dial, a.port, backend.name)
+    dial(backend, a.dial, a.port)
+    return
   server = Server(backend, a.host, a.port)
   log.info('serving %s on %s:%d', backend.name, a.host, server.port)
   server.thread.join()
