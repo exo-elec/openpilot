@@ -199,15 +199,15 @@ def test_the_phone_dials_the_comma_and_the_comma_drives_the_protocol():
   import threading
   from nagaspilot.bigmodel.listener import Listener
   listener = Listener('127.0.0.1', 0).start()
-  for _ in range(100):
-    if listener.bound:
-      break
+  deadline = time.monotonic() + 10
+  while not listener.bound and time.monotonic() < deadline:
     time.sleep(0.01)
+  assert listener.bound, 'the listener never bound'
   stop = threading.Event()
   t = threading.Thread(target=S.dial, args=(S.StubBackend(), '127.0.0.1', listener.port), kwargs=dict(retry=0.05, stop=stop), daemon=True)
   t.start()
   try:
-    sock = listener.take(2.0)
+    sock = listener.take(10.0)
     assert sock is not None
     with Client(sock=sock) as c:
       assert c.connect().model == 'stub'
@@ -220,10 +220,10 @@ def test_the_phone_dials_the_comma_and_the_comma_drives_the_protocol():
 def test_the_listener_keeps_only_the_newest_phone():
   from nagaspilot.bigmodel.listener import Listener
   listener = Listener('127.0.0.1', 0).start()
-  for _ in range(100):
-    if listener.bound:
-      break
+  deadline = time.monotonic() + 10
+  while not listener.bound and time.monotonic() < deadline:
     time.sleep(0.01)
+  assert listener.bound, 'the listener never bound'
   a = socket.create_connection(('127.0.0.1', listener.port))
   time.sleep(0.1)
   b = socket.create_connection(('127.0.0.1', listener.port))

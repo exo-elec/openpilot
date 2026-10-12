@@ -63,7 +63,8 @@ class GadgetOwner:
 
   The setting picks the function: 2 is CDC-NCM for an iPhone, 1 the FunctionFS bulk interface an Android phone reads as USB
   host, and 3 (tethering) no function at all: the comma stays the USB host and any gadget is released. Changing it tears the
-  gadget down and builds the other one. For bulk this process also holds ep0 (descriptors, bind, events) for as long as the gadget is up: closing ep0 would take the function with it."""
+  gadget down and builds the other one. For bulk this process also holds ep0 (descriptors, bind, events) for as long as the
+  gadget is up: closing ep0 would take the function with it."""
 
   def __init__(self, mode, chestnut, run=run, net_ok=net_ok, control_factory=None):
     self._mode, self._chestnut, self._run, self._net_ok = mode, chestnut, run, net_ok

@@ -75,10 +75,10 @@ def test_remote_state_over_a_socket_matches_the_servers_own_replay():
 
 def test_a_phone_that_dials_in_is_joined_swapped_in_and_dropped_when_the_cable_goes():
   listener = Listener('127.0.0.1', 0).start()
-  for _ in range(200):
-    if listener.bound:
-      break
+  deadline = time.monotonic() + 10
+  while not listener.bound and time.monotonic() < deadline:
     time.sleep(0.01)
+  assert listener.bound, 'the listener never bound'
   stop = threading.Event()
   threading.Thread(target=S.dial, args=(S.StubBackend(VISION, POLICY), '127.0.0.1', listener.port),
                    kwargs=dict(retry=0.05, stop=stop), daemon=True).start()

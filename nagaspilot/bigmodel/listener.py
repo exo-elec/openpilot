@@ -44,8 +44,8 @@ class Listener:
     except OSError:
       s.close()
       return False
+    self.port = s.getsockname()[1]   # before _sock: `bound` is read by other threads and the port must be right when it turns true
     self._sock = s
-    self.port = s.getsockname()[1]
     return True
 
   def _loop(self) -> None:
