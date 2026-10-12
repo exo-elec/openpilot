@@ -78,14 +78,31 @@ So the 766 MB class fits a recent Pro iPhone on Jetlink's evidence and nothing e
 2. **Cinque Terre V3 and everything after it is stateful** (`new_img` in, each `state_<q>` in and `next_state_<q>` out fed back on the phone, the hidden state never leaving the graph, no queues). **Served now** (step 5c): contract `ngp-spec-stateful`, `StateLoop` on the Python reference and in Dart, the allow-list tool accepts it, and a Python comma ran 12 frames against the Dart server with no mismatch. Verified only against stand-in graphs, not against Cinque Terre V3 itself.
 3. Whichever model is chosen, step 6 (parser names and shapes, the `action` head and its units, the constants) can only be settled against that file.
 
+## The parser: Jetlink's path, followed exactly (2026-10-12)
+
+Source: `jetlink/client.py` (`_whole_output`) and `jetlink/openpilot/model_state.py` (`slice_outputs`, `_outputs`, `prepare`). The comma does not have its own parser for the combined output: the fork's
+`Parser.parse_outputs` does, and Jetlink only feeds it the same dict a local model would.
+
+1. The reply is the output **less `hidden_state`** (8 KB instead of 74 KB). The comma rebuilds the **full-length** output with zeros where the hidden state is (`ModelSpec.whole_output`), so the spec's own `output_slices` stay valid and `hidden_state` reads as zeros, as in Jetlink.
+2. `slice_outputs`: `{name: output[np.newaxis, slice]}` for **every** slice in the spec, `hidden_state` included.
+3. `Parser.parse_outputs(sliced)` (NGP10's `parse_model_outputs.py` already has `parse_outputs`, which runs the vision and the policy parsing over one dict).
+4. With `SEND_RAW_PRED` set, the comma sets `WANT_HIDDEN` on the request so the reply carries the real hidden state, and publishes `raw_pred` = the whole vector. Without it, `raw_pred` is not produced.
+5. The parsed dict of a frame is kept and published again for a held frame: the parser's softmax works in place, so it must not be parsed twice.
+6. **A refused frame raises.** The phone checks the output is finite, answers `NOT_FINITE` and keeps its last good state; the comma raises, the joining model demotes to the small model, exactly as it does for a Chestnut. (An earlier version of this code held the frame instead; that was removed.)
+7. The desire is a rising-edge pulse (`desire[0] = 0`, `where(desire - prev > .99, desire, 0)`), `traffic_convention` and `action_t` are sent as they are.
+
+One safety addition Jetlink does not have: `allow_model.py` refuses a model in which any other output slice overlaps `hidden_state`, because the parser would read zeros there.
+
+Also from Jetlink and still true here: the parser itself belongs to the fork, so what remains for step 6 is whether NGP10's `Parser.parse_outputs` accepts the output names and shapes of the real model (and the `action` head, if it has one).
+
 ## Steps
 
 | Step | Work | State |
 | --- | --- | --- |
 | 1 | This spec | done |
-| 2 | `spec.py` (`ModelSpec`: queued and stateful layouts, wire form, derived sizes, NavPilot's `reply_slices`), `queues.py` (`PolicyQueues`), `onnx_meta.py`, adapted from Jetlink with its notice kept. The queues reproduce, over 300 frames, the digest of everything openpilot's own `shift_and_sample` / `sample_skip` / `sample_desire` fed the model for the big and the small layout (Jetlink's `policy_queues_openpilot.json`, copied) | done |
+| 2 | `spec.py` (`ModelSpec`: queued and stateful layouts, wire form, derived sizes, `whole_output`), `queues.py` (`PolicyQueues`), `onnx_meta.py`, adapted from Jetlink with its notice kept. The queues reproduce, over 300 frames, the digest of everything openpilot's own `shift_and_sample` / `sample_skip` / `sample_desire` fed the model for the big and the small layout (Jetlink's `policy_queues_openpilot.json`, copied) | done |
 | 3 | Protocol: HELLO lists the contracts the comma accepts and the server picks the first it supports; HELLO_ACK carries the contract and, for `ngp-spec-queued`, the model spec; `INFER_REQ` is now frame id, flags, the contract's packed floats, then the frame (`pack_infer_req_packed`; the split contract's bytes are unchanged); the reply is the output less `hidden_state`. Comma side: `allowlist.py` (sha256 plus pinned frame_skip, input and output shapes and slices; ships empty), `Client` refuses a model that is not listed, differs in a pinned field, or announces frames other than the comma's warp. Phone side: `server_ref.py` serves both contracts (`StubSpecBackend`, `step_spec`). Golden vectors for both | done |
-| 4 | Comma `RemoteSpecModelState`: packs `desire` (rising-edge pulse, slot 0 cleared), `traffic_convention` and `action_t` as the spec lays them out; cuts the reply with `reply_slices`; hands the sliced dict to `Parser.parse_outputs`; holds, hand-back and the rest are the split state's. `BigModelHook` offers the queued contract only when the allow-list is non-empty and builds the right state from the phone's reply | done |
+| 4 | Comma `RemoteSpecModelState`: packs `desire` (rising-edge pulse, slot 0 cleared), `traffic_convention` and `action_t` as the spec lays them out; rebuilds the full-length output and cuts it with the spec's `output_slices` (Jetlink's path, above); hands the dict to `Parser.parse_outputs`; holds, hand-back and the rest are the split state's. `BigModelHook` offers the queued contract only when the allow-list is non-empty and builds the right state from the phone's reply | done |
 | 5 | Phone: Dart `ModelSpec`, `PolicyQueues`, `SpecBackend`, `stepSpec` and the queued server in `packages/npbm`. Ten frames reproduce the Python replies exactly; a Python comma (`RemoteSpecModelState`) ran 12 frames against the Dart server with no mismatch | done |
 | 5b | `nagaspilot/bigmodel/tools/allow_model.py`: turns a model's ONNX into an allow-list entry (refusing what the comma cannot serve, requiring evidence) | done |
 | 5c | The stateful layout: `StateLoop` (states advance only after a finite frame, a deliberate difference from Jetlink's in-engine loop), contract `ngp-spec-stateful` (the client refuses a contract that does not match the graph), `StubStatefulBackend`, the Dart port, golden vectors, the allow-list tool accepting state pairs | done |
