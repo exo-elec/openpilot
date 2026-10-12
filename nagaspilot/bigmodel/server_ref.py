@@ -72,7 +72,8 @@ class StubBackend(Backend):
     return vision_out[:FEATURE_LEN]
 
   def run_policy(self, inputs):
-    s = float(inputs['features_buffer'].sum() + inputs['desire'].sum() + inputs['traffic_convention'].sum())
+    # float64 sums, so another implementation (the phone's Dart one) reproduces it without matching numpy's float32 pairwise order
+    s = sum(float(inputs[k].sum(dtype=np.float64)) for k in ('features_buffer', 'desire', 'traffic_convention'))
     return np.full(self.policy_floats, s, np.float32)
 
 

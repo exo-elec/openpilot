@@ -258,7 +258,11 @@ class BigModelHook:
       return False
 
   def _default_listener(self):
-    """2 (iPhone): the TCP listener on the USB network. Anything else nonzero (Android): the FunctionFS bulk endpoints."""
+    """3 (tethering): dial the phone on its USB network. 2 (iPhone): listen on the comma's own USB network. Anything else nonzero
+    (Android): the FunctionFS bulk endpoints."""
+    if self.mode() == 3:
+      from nagaspilot.bigmodel.tether import TetherListener
+      return TetherListener
     if self.mode() == 2:
       from nagaspilot.bigmodel.listener import Listener
       return Listener

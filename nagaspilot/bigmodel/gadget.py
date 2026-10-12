@@ -54,15 +54,16 @@ def net_ok(path: Path = NET_STATUS) -> bool:
     return False
 
 
-NETWORK, BULK = 2, 1     # the ngp_bigmodel_link values: 2 an iPhone (USB network), 1 an Android phone (vendor bulk interface)
+# ngp_bigmodel_link: 2 iPhone (the comma is the USB device, NCM), 1 Android (bulk interface), 3 tethering (the comma is the host)
+NETWORK, BULK, TETHER = 2, 1, 3
 
 
 class GadgetOwner:
   """One decision per step(): what to ask of the root script, given the setting and whether a Chestnut holds the port.
 
-  The setting picks the function: 2 is CDC-NCM for an iPhone, anything else nonzero is the FunctionFS bulk interface an
-  Android phone reads as USB host. Changing it tears the gadget down and builds the other one. For bulk this process also
-  holds ep0 (descriptors, bind, events) for as long as the gadget is up: closing ep0 would take the function with it."""
+  The setting picks the function: 2 is CDC-NCM for an iPhone, 1 the FunctionFS bulk interface an Android phone reads as USB
+  host, and 3 (tethering) no function at all: the comma stays the USB host and any gadget is released. Changing it tears the
+  gadget down and builds the other one. For bulk this process also holds ep0 (descriptors, bind, events) for as long as the gadget is up: closing ep0 would take the function with it."""
 
   def __init__(self, mode, chestnut, run=run, net_ok=net_ok, control_factory=None):
     self._mode, self._chestnut, self._run, self._net_ok = mode, chestnut, run, net_ok
@@ -78,7 +79,7 @@ class GadgetOwner:
     """0 when nothing is wanted: off, a Chestnut on the port, or an unreadable setting (unknown never takes the port)."""
     try:
       m = int(self._mode())
-      return 0 if m == 0 or self._chestnut() else (NETWORK if m == NETWORK else BULK)
+      return 0 if m == 0 or self._chestnut() else (NETWORK if m == NETWORK else TETHER if m == TETHER else BULK)
     except Exception:
       return 0
 
@@ -105,6 +106,8 @@ class GadgetOwner:
       self._release()
     if not want:
       return 'off'
+    if want == TETHER:
+      return 'up'    # the comma is the host: no gadget, nothing for this process to hold. The phone's interface is modeld's to find
     if not self.up:
       if want == NETWORK:
         if not (self._run('gadget') and self._run('bind')):

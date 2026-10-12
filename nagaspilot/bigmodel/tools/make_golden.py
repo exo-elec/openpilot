@@ -46,7 +46,7 @@ def build() -> dict:
                     'bad_version': (P.pack(P.PING, 1)[:4] + bytes([2]) + P.pack(P.PING, 1)[5:]).hex(),
                     'bad_crc': (P.pack(P.PING, 1)[:-1] + bytes([P.pack(P.PING, 1)[-1] ^ 1])).hex()},
     'bulk_framing': {
-      'note': 'Android only. comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte when the length is an exact multiple of packet.',
+      'note': 'Bulk transport only (setting 1). comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte on an exact multiple of packet.',  # noqa: E501
       'burst': F.BURST, 'packet': F.PACKET,
       'ping_wire_length': len(F.pad_to_burst(P.pack(P.PING, 7))),
       'infer_req_wire_length': len(F.pad_to_burst(req)),

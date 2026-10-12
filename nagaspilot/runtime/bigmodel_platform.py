@@ -7,8 +7,9 @@ and 02M. Standard library only at import time: the resident gadget owner imports
 """
 from pathlib import Path
 
-# the setting: 0 off, 1 an Android phone (USB host reading a FunctionFS bulk interface), 2 an iPhone with USB-C (TCP over a
-# CDC-NCM USB network). Same NPBM protocol on both (nagaspilot/bigmodel/framing.py adds the bulk padding)
+# the setting: 0 off; 3 USB tethering, the phone is the USB device and the comma its host (RECOMMENDED, same for iPhone and Android);
+# 2 an iPhone as host of the comma's CDC-NCM gadget; 1 an Android phone as host of a FunctionFS bulk gadget. One NPBM protocol on all
+# three (nagaspilot/bigmodel/framing.py adds the bulk padding for 1)
 LINK = "ngp_bigmodel_link"
 
 # written by modeld, read by selfdrived's gate (nagaspilot/controls/ngp_bigmodel_gate.py)
