@@ -149,7 +149,7 @@ class StubSpecBackend(SpecBackend):
     return {DRIVING_OUTPUT: ((base + np.arange(self.spec.output_nelem)) % 251).astype(np.float32)}
 
 
-def step_spec(queues, backend: SpecBackend, packed, frame: np.ndarray) -> np.ndarray | None:
+def step_spec(queues, backend: SpecBackend, packed, frame: np.ndarray, whole: bool = False) -> np.ndarray | None:
   """One frame of a spec'd model (queued or stateful). Returns the reply (the output less hidden_state), or None if any output is not finite,
   in which case the hidden state / the graph's states are what they were (a queued layout's queues have advanced, as on openpilot: a refused
   frame is a lost frame)."""
@@ -160,7 +160,7 @@ def step_spec(queues, backend: SpecBackend, packed, frame: np.ndarray) -> np.nda
     return None
   queues.after_run(outputs)
   hidden = queues.spec.hidden_range
-  return np.delete(out, np.arange(*hidden)) if hidden else out
+  return out if whole or not hidden else np.delete(out, np.arange(*hidden))
 
 
 class State:
@@ -337,7 +337,8 @@ class Server:
             if queued:
               if req.flags & P.RESET:
                 self.queues.reset()
-              out = step_spec(self.queues, self.spec_backend, req.packed, np.frombuffer(req.frame, np.uint8).reshape(sp.warped_shape))
+              out = step_spec(self.queues, self.spec_backend, req.packed, np.frombuffer(req.frame, np.uint8).reshape(sp.warped_shape),
+                              whole=bool(req.flags & P.WANT_HIDDEN))
             else:
               if req.flags & P.RESET:
                 self.state.reset()

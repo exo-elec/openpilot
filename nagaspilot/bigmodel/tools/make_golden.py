@@ -38,6 +38,7 @@ def queued_vectors() -> dict:
     fill = (i * 37) % 251
     reply = S.step_spec(queues, backend, packed, np.full(spec.warped_shape, fill, np.uint8))
     steps.append({'flags': P.RESET if i == 0 else 0, 'packed': packed, 'frame_fill': fill, 'reply': reply.tolist()})
+  whole = S.step_spec(queues, backend, steps[0]['packed'], np.full(spec.warped_shape, 99, np.uint8), whole=True)
   req = P.pack_infer_req_packed(9, 77, P.RESET, steps[0]['packed'], bytes([steps[0]['frame_fill']]) * P.FRAME_BYTES)
   ack = {'ok': True, 'contract': P.CONTRACT_QUEUED, 'model': backend.name, 'sha256': spec.sha256, 'spec': spec.to_dict(), 'ready': True}
   return {
@@ -49,6 +50,8 @@ def queued_vectors() -> dict:
     'infer_req_seq9': {'header_hex': req[:P.HEADER_SIZE].hex(), 'fixed_hex': req[P.HEADER_SIZE:P.HEADER_SIZE + 8 + spec.packed_nelem * 4].hex(),
                        'total_length': len(req)},
     'weights': S.StubSpecBackend.WEIGHTS, 'steps': steps,
+    # the step after those ten, asked for with WANT_HIDDEN: the whole output, hidden_state included
+    'want_hidden_step': {'flags': P.WANT_HIDDEN, 'packed': steps[0]['packed'], 'frame_fill': 99, 'reply': whole.tolist()},
   }
 
 

@@ -186,23 +186,18 @@ class ModelSpec:
     start, stop, _ = s.indices(self.output_nelem)
     return (start, stop) if start < stop else None
 
-  @cached_property
-  def reply_slices(self) -> dict[str, slice]:
-    """NavPilot's addition: output_slices re-based onto the reply, which leaves hidden_state out. A slice after the hidden state moves
-    down by its length; one that overlaps it (other than hidden_state itself, which is not in the reply) cannot be served."""
-    h = self.hidden_range
-    out = {}
-    for name, sl in self.output_slices.items():
-      if name == HIDDEN_STATE:
-        continue
-      start, stop, step = sl.indices(self.output_nelem)
-      if h is not None:
-        n = h[1] - h[0]
-        if start >= h[1]:
-          start, stop = start - n, stop - n
-        elif stop > h[0]:
-          raise ValueError(f"output slice {name!r} overlaps hidden_state")
-      out[name] = slice(start, stop, step)
+  def whole_output(self, reply, whole: bool = False):
+    """The full output vector from a reply that leaves hidden_state out, with zeros where the hidden state would be, as Jetlink's client does
+    (`_whole_output`): the full length keeps `output_slices` valid, so the caller slices exactly as it would a whole vector. Always a new array."""
+    import numpy as np
+    hidden = self.hidden_range
+    if whole or hidden is None:
+      return np.array(reply, np.float32)
+    start, stop = hidden
+    out = np.empty(self.output_nelem, np.float32)
+    out[:start] = reply[:start]
+    out[start:stop] = 0
+    out[stop:] = reply[start:]
     return out
 
   @cached_property

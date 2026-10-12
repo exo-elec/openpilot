@@ -33,7 +33,7 @@ def test_the_spec_reads_a_stateful_graph():
   assert sp.stateful and sp.model_hw == (128, 256) and sp.warped_shape == (2, 6, 128, 256)
   assert sp.state_pairs == {'state_feat': 'next_state_feat', 'state_hist': 'next_state_hist'}
   assert sp.packed_shapes == {'desire': (8,), 'traffic_convention': (1, 2), 'action_t': (1, 2)} and sp.packed_nelem == 12
-  assert sp.hidden_range is None and sp.reply_nelem == 24 and sp.reply_slices == {'plan': slice(0, 6, 1), 'meta': slice(6, 24, 1)}
+  assert sp.hidden_range is None and sp.reply_nelem == 24
   assert isinstance(make_history(sp), StateLoop) and isinstance(make_history(make_spec(input_shapes={
     'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2), 'action_t': (1, 2),
     'features_buffer': (1, 32, 2, 4)}, output_shapes={'outputs': (1, 28)}, output_slices={'hidden_state': slice(2, 10)})), PolicyQueues)
