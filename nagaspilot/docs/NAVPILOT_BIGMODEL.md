@@ -118,7 +118,7 @@ request/response pair) must pass.
 | 4 | ExoPilot kernel drivers for tethering (`feat/usb-tether-host`) | ☑ merged on exopilot `main`, not built |
 | 5 | Comma check: kernel USB Ethernet host drivers, comma holds its port as host | ☐ needs a comma 3X |
 | 6 | Phone inference backend spike (see the survey below) on one iPhone Pro and one Android flagship, with a real model | ☐ needs phones |
-| 7 | Wire `packages/npbm` into the app: dependency, service, tethering guide screen | ☐ next (needs the Flutter SDK; being set up) |
+| 7 | Wire `packages/npbm` into the app: dependency, host service ☑ (Flutter tests pass); provider registration and the tethering guide screen ☐ next |
 | 8 | `modeld` rework: combined-model contract (`action_t`, hidden state or history queues, new constants and parser) as a second contract id | ☐ blocked on 6 for a real model |
 | 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
 | 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
