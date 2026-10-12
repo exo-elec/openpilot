@@ -199,25 +199,6 @@ class ModelSpec:
     return out
 
   @cached_property
-  def reply_slices(self) -> dict[str, slice]:
-    """NavPilot's addition: output_slices re-based onto the reply, which leaves hidden_state out. A slice after the hidden state moves
-    down by its length; one that overlaps it (other than hidden_state itself, which is not in the reply) cannot be served."""
-    h = self.hidden_range
-    out = {}
-    for name, sl in self.output_slices.items():
-      if name == HIDDEN_STATE:
-        continue
-      start, stop, step = sl.indices(self.output_nelem)
-      if h is not None:
-        n = h[1] - h[0]
-        if start >= h[1]:
-          start, stop = start - n, stop - n
-        elif stop > h[0]:
-          raise ValueError(f"output slice {name!r} overlaps hidden_state")
-      out[name] = slice(start, stop, step)
-    return out
-
-  @cached_property
   def reply_nelem(self) -> int:
     """The floats an INFER_RESP carries: the output less hidden_state."""
     h = self.hidden_range
