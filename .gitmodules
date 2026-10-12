@@ -61,7 +61,3 @@
   branch = 0.9.16
   update = none
   shallow = true
-[submodule "jetlink"]
-  path = jetlink_repo
-  url = git@github.com:exo-elec/jetlink.git
-  branch = static-role-platform
