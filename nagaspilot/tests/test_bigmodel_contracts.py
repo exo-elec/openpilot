@@ -146,3 +146,16 @@ def test_the_empty_default_allow_list_file_allows_nothing():
   assert not AllowList.load() and AllowList.load().entries == {}
   with pytest.raises(NotAllowed):
     AllowList.load().check(spec())
+
+
+def test_want_hidden_returns_the_whole_output_with_the_real_hidden_state(served):
+  sp, server = served
+  with connect(server, contracts=(P.CONTRACT_QUEUED,), allow=allow(sp)) as c:
+    def go(i, flags):
+      seq = c.send_frame_packed(i, flags, [0.0] * 12, bytes([9]) * P.FRAME_BYTES)
+      return np.frombuffer(c.recv_response(seq, 3.0).out, np.float32).copy()
+    reply = go(1, P.RESET)
+    whole = go(2, P.RESET | P.WANT_HIDDEN)
+    assert reply.size == sp.reply_nelem and whole.size == sp.output_nelem
+    start, stop = sp.hidden_range
+    assert np.array_equal(np.delete(whole, np.arange(start, stop)), reply) and whole[start:stop].any()
