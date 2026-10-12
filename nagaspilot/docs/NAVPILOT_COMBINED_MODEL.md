@@ -51,6 +51,33 @@ the graph. The phone only has to feed each `next_state_*` back as the next `stat
 **Safety rule, new with this contract:** the comma must not trust a model because the phone says so. It keeps an allow-list of sha256 values (shipped with the build, or from the model manager) mapped to the output
 layout it parses, and refuses anything else. The v0.10 contract is implicitly allow-listed by the comma's own metadata.
 
+## Which big model to run first (survey of Jetlink and comma's model repo, 2026-10-12)
+
+Source: Jetlink's `catalog/`, `tests/fixtures/catalog_chestnut_v25.json`, `docs/{models,model-cli,jetson-performance,mac-performance,backends,link-protocol}.md`, and the file listing of
+`commaai/openpilot_driving_models` on Hugging Face (MIT). The files themselves were **not** downloaded: this environment's proxy blocks Hugging Face file downloads, so nothing below was measured here.
+
+**The models.** Every entry is a comma openpilot commit (a *ref*) whose `big_driving_supercombo.onnx` is the model. A ref resolves to exactly one sha256.
+
+| Model | Size | Layout | Notes (Jetlink's numbers) |
+| --- | --- | --- | --- |
+| Lebowski (July 2026) | 1,757 MB | queued | Jetson 29.1 ms GPU, 37-40 ms a frame on the comma: least margin in the 50 ms budget. Too heavy for a phone |
+| BMRLNAP v1 to v6, Tee Time, Sad Model, I Desire, Happy Birthday (Aug to Sep 2026) | 766 MB | queued | BMRLNAP v6: Jetson 15.7 ms GPU, 24 ms a frame on the comma |
+| Cinque Terre, Cinque Terre V2 (Sep 2026) | 766 MB | queued | V2 on a 16 GB M1 Pro: 30.7 ms mean / 32 to 37 ms p99, 0 of 1,160 frames over 50 ms; same GPU time as BMRLNAP |
+| **Cinque Terre V3 (Jetlink's default)** | 766 MB | **stateful** (openpilot #38916) | Jetson 16.4 ms GPU, 24.5 ms a frame; M1 Pro 30.6 / 33.8 ms. From V3 on, the ONNX is in comma's Hugging Face repo |
+| ResAction Preview, Mountain Dew V2 Preview (Oct 2026, Jetlink's `extra_big_models.json`) | not stated | newest | previews comma may change or withdraw |
+
+**What is in comma's repo:** three `big_driving_supercombo.onnx` files, in UUID folders (`1a421175...`, `870a4823...`, `f78ed37d...`, each under `12864/`): 766,320,181 bytes, 792,487,890 bytes and 766,354,845 bytes. Which folder is which model is not
+written anywhere I can read (the mapping is the ref's pointer file; Jetlink's `jetlink-server models resolve <ref>` shows it). Their sizes put two of them in the 766 MB class and one a little larger.
+
+**The phone number that exists:** Jetlink claims 14 ms a frame on an iPhone 18 Pro (Neural Engine plus GPU, ONNX Runtime with CoreML) for its default; the Mac default is 30 ms. No Android layout has run on a Snapdragon, and the first Pixel (Tensor G5) was refused.
+So the 766 MB class fits a recent Pro iPhone on Jetlink's evidence and nothing else is established.
+
+**Consequence for this work.** The newest models, the ones on Hugging Face and the default, are **stateful**. What I built and tested serves the **queued** layout (BMRLNAP, Cinque Terre V2, Lebowski). So:
+
+1. **A queued 766 MB model (BMRLNAP v6 or Cinque Terre V2) can go through the whole path as it stands** once its ONNX is in hand: `allow_model.py` makes the entry, the phone runs it.
+2. **Cinque Terre V3 and everything after it needs the stateful layout:** `new_img` in, each `state_<q>` in and `next_state_<q>` out fed back on the phone, the hidden state never leaving the graph, no queues. The spec already recognises it and the allow-list tool refuses it; serving it is the next code step.
+3. Whichever model is chosen, step 6 (parser names and shapes, the `action` head and its units, the constants) can only be settled against that file.
+
 ## Steps
 
 | Step | Work | State |
@@ -63,5 +90,5 @@ layout it parses, and refuses anything else. The v0.10 contract is implicitly al
 | 5b | `nagaspilot/bigmodel/tools/allow_model.py`: turns a model's ONNX into an allow-list entry (refusing what the comma cannot serve, requiring evidence) | done |
 | 6 | **`modeld` itself**, which needs a real model file and its metadata: add the entry with the tool, check the 18,452-float output against `Parser.parse_outputs` (names, shapes, the `action` head and its units), the constants (`MODEL_RUN_FREQ`/`MODEL_CONTEXT_FREQ`, `ACTION_WIDTH`), `fill_model_msg` for a combined output, cereal fields, then replay a recorded route through the phone and the small model and compare | **blocked on a model file** |
 
-Not covered: the stateful layout (openpilot #38916) is recognised by `ModelSpec` and refused by the tool; serving it means carrying each `next_state_*` back as the next `state_*` on the phone. The phone's inference backend is still the open piece
+Not covered: the stateful layout (openpilot #38916) is recognised by `ModelSpec` and refused by the tool; serving it means carrying each `next_state_*` back as the next `state_*` on the phone. **It is the layout of the newest models (see the survey above), so it is the next code step.** The phone's inference backend is still the open piece
 (`NAVPILOT_BIGMODEL.md`, backend survey).
