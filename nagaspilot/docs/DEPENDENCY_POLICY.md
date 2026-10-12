@@ -26,19 +26,13 @@ compiled pickle artifacts must be rebuilt. NGP retains its split vision/policy
 ONNX, metadata and output parser contract. EOP descendants inherit the pin;
 their Rockchip RKNN backend remains a hardware adapter.
 
-## Jetlink (phone-hosted big model)
+## Phone-hosted big model (no external dependency)
 
-`jetlink_repo` is pinned to `37e89e32ddd2df8f41680524412babd14449cc5e` of
-[`exo-elec/jetlink`](https://github.com/exo-elec/jetlink) branch `static-role-platform`. The branch holds two additive commits over
-Jetlink `main` (`a34ad5f`, v0.8.5 plus): an optional adapter-supplied warp (`warp_source`, for a fork whose camera path is not
-openpilot's compiled tinygrad warp, as NGP10's) and a `static` USB platform for boards whose Type-C role is fixed by the device tree
-(ExoPilot). Both are read with `getattr` or an environment variable, so Jetlink's protocol, API 3 and wire format are unchanged and a
-phone running the unmodified Jetlink server still works.
+The phone link is NavPilot's own (`nagaspilot/bigmodel/`, protocol NPBM v1, [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md)). It
+imports nothing but the standard library and numpy; there is no `jetlink_repo` gitlink and no `exo-elec/jetlink` checkout, so rules
+2 to 4 have nothing to pin for it. The earlier Jetlink port (pinned `exo-elec/jetlink` `37e89e32`) is superseded.
 
-- Rule 3: the dependency is modified, so it is forked; the fork lives under `exo-elec`, not `exo-electronics`, because that is where
-  the repository is. Move the pin to the fork's default branch once the two commits are merged there.
-- Rule 4: the pinned commit is reachable (pushed 2026-10-11). A clean recursive clone reproduces the checkout.
-- Lock-step: the phone's embedded Jetlink server and the comma must speak the same protocol version (3, no negotiation), so the app
-  and this pin are updated together.
-- Nothing in `nagaspilot/` requires the checkout to be present: without `jetlink_repo/jetlink` the link stays off
-  (`jetlink_present()`), `jetlinkd` is not started, and `modeld` is a plain small-model `modeld`.
+- Lock-step: the phone app and the comma share a protocol version in the NPBM header (a mismatch is a broken stream, the comma drives
+  on the small model) and a contract id in the hello (`ngp-v0.10-split`). The app and this tree are updated together.
+- Nothing requires a phone: without model metadata or a connected phone the link stays idle and `modeld` is a plain small-model
+  `modeld`. `bigmodeld` runs only while `ngp_bigmodel_link` is nonzero.
