@@ -220,6 +220,7 @@ class BigModelHook:
     self.policy = policy
     self.models_dir = models_dir
     self.contract = None
+    self.allow = None            # the combined models the comma will run (allowlist.py); empty means the split contract only
     self.joining = None
     self._listener_factory = listener_factory
     self.listener = None
@@ -231,7 +232,7 @@ class BigModelHook:
   def _runnable(self) -> bool:
     """Is a big model built to run? The phone's reply can only be sliced with built model metadata; without it engagement is
     never held off for a model that cannot be used."""
-    return self.contract is not None
+    return self.contract is not None or bool(self.allow)
 
   def mode(self) -> int:
     try:
@@ -246,15 +247,18 @@ class BigModelHook:
     from nagaspilot.bigmodel import metadata
     from openpilot.common.swaglog import cloudlog
     try:
+      from nagaspilot.bigmodel.allowlist import AllowList
       self.contract = metadata.load(self.models_dir) if self.models_dir else metadata.load()
-      if self.contract is None:
-        cloudlog.warning("bigmodel: no model metadata is built, staying on the small model")
+      self.allow = AllowList.load()
+      if self.contract is None and not self.allow:
+        cloudlog.warning("bigmodel: no model metadata is built and no combined model is allow-listed, staying on the small model")
         return False
       self.listener = (self._listener_factory or self._default_listener())().start()
       return True
     except Exception:
       cloudlog.exception("bigmodel: could not be prepared, staying on the small model")
       self.contract = None
+      self.allow = None
       return False
 
   def _default_listener(self):
@@ -271,7 +275,7 @@ class BigModelHook:
 
   def attach(self, small_model, vipc_client):
     """Once the camera is up and the small model is built: the facade, or the small model if it cannot join."""
-    if self.contract is None or self.listener is None:
+    if not self._runnable() or self.listener is None:
       return small_model
     from openpilot.common.swaglog import cloudlog
     try:
@@ -286,23 +290,26 @@ class BigModelHook:
   def _joining(self, shim):
     from nagaspilot.bigmodel.client import Client, LinkError
     from nagaspilot.bigmodel.joining import Joining
-    from nagaspilot.bigmodel.remote_state import RemoteModelState
+    from nagaspilot.bigmodel import protocol as P
+    from nagaspilot.bigmodel.remote_state import RemoteModelState, RemoteSpecModelState
     from nagaspilot.runtime.bigmodel_face import make_action_function
     from nagaspilot.runtime.bigmodel_warp import NgpWarp, reset_function
     from openpilot.common.swaglog import cloudlog
-    contract, listener = self.contract, self.listener
+    contract, listener, allow = self.contract, self.listener, self.allow
     action = make_action_function(self.fallback_action)
 
     def connect():
       sock = listener.take(0.5)
       if sock is None:
         raise LinkError('no phone has connected')
-      client = Client(sock=sock)
+      # a combined model is offered only when a build has allow-listed one; the split contract only when its metadata is built
+      offered = ((P.CONTRACT_QUEUED,) if allow else ()) + ((P.CONTRACT_SPLIT,) if contract is not None else ())
+      client = Client(sock=sock, contracts=offered, allow=allow)
       try:
         info = client.connect()
         if not info.ready:
           raise LinkError('the phone has no model ready')
-        if (info.vision_floats, info.policy_floats) != (contract.vision_floats, contract.policy_floats):
+        if info.spec is None and (info.vision_floats, info.policy_floats) != (contract.vision_floats, contract.policy_floats):
           got, want = (info.vision_floats, info.policy_floats), (contract.vision_floats, contract.policy_floats)
           raise LinkError(f"the phone's model outputs {got} floats, this build expects {want}")
       except Exception:
@@ -312,6 +319,9 @@ class BigModelHook:
 
     def build(client, info):
       from openpilot.selfdrive.modeld.parse_model_outputs import Parser
+      if info.spec is not None:
+        return RemoteSpecModelState(client, info, NgpWarp(shim.frames), parse=Parser().parse_outputs, get_action_from_model=action,
+                                    log=cloudlog)
       return RemoteModelState(client, info, NgpWarp(shim.frames), parser=Parser(), vision_slices=contract.vision_slices,
                               policy_slices=contract.policy_slices, get_action_from_model=action, log=cloudlog)
 
