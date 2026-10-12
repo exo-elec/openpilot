@@ -20,6 +20,8 @@ import time
 import numpy as np
 
 from nagaspilot.bigmodel import protocol as P
+from nagaspilot.bigmodel.queues import PolicyQueues
+from nagaspilot.bigmodel.spec import DRIVING_OUTPUT, ModelSpec
 
 log = logging.getLogger('nagaspilot.bigmodel.server')
 
@@ -103,6 +105,42 @@ class OnnxBackend(Backend):
     return np.asarray(self.policy.run(None, inputs)[0], np.float32).reshape(-1)
 
 
+class SpecBackend:
+  """The engine behind a combined (spec'd) model: one graph, named inputs in, named outputs out."""
+  name = ''
+  spec: ModelSpec
+
+  def run(self, inputs: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    raise NotImplementedError
+
+
+class StubSpecBackend(SpecBackend):
+  """Deterministic and integer-valued, so another implementation (the phone's Dart one) reproduces it exactly: every output is
+  (a weighted sum of the integer sums of the inputs, plus its index) mod 251. The hidden state is part of the output, so a
+  wrong history changes every later frame."""
+  name = 'stub-spec'
+  WEIGHTS = {'img': 1, 'big_img': 3, 'features_buffer': 5, 'desire_pulse': 7, 'traffic_convention': 11, 'action_t': 13}
+
+  def __init__(self, spec: ModelSpec):
+    self.spec = spec
+
+  def run(self, inputs):
+    base = sum(w * int(np.asarray(inputs[k], np.float64).sum()) for k, w in self.WEIGHTS.items())
+    return {DRIVING_OUTPUT: ((base + np.arange(self.spec.output_nelem)) % 251).astype(np.float32)}
+
+
+def step_spec(queues: PolicyQueues, backend: SpecBackend, packed, frame: np.ndarray) -> np.ndarray | None:
+  """One frame of a spec'd model. Returns the reply (the output less hidden_state), or None if the output is not finite, in which case
+  the queues' hidden state is what it was (the queues themselves have advanced, as on openpilot: a refused frame is a lost frame)."""
+  inputs = queues.step(frame, np.asarray(packed, np.float32))
+  out = np.asarray(backend.run(inputs)[DRIVING_OUTPUT], np.float32).reshape(-1)
+  if not np.isfinite(out).all():
+    return None
+  queues.after_run({DRIVING_OUTPUT: out})
+  hidden = queues.spec.hidden_range
+  return np.delete(out, np.arange(*hidden)) if hidden else out
+
+
 class State:
   """The history a comma's ModelState keeps, advanced once per INFER_REQ exactly as `ModelState.run` advances it."""
 
@@ -169,8 +207,13 @@ class Server:
   """Serves a comma over a connection. In `listen` mode (tests, a PC on a LAN) it accepts one at a time and a new HELLO
   replaces the old connection; `dial()` serves connections the phone opened itself."""
 
-  def __init__(self, backend: Backend, host: str = '0.0.0.0', port: int = P.DEFAULT_PORT, *, listen: bool = True):
+  def __init__(self, backend: Backend, host: str = '0.0.0.0', port: int = P.DEFAULT_PORT, *, listen: bool = True,
+               spec_backend: SpecBackend | None = None):
     self.backend = backend
+    self.spec_backend = spec_backend
+    self.supported = (P.CONTRACT_SPLIT, P.CONTRACT_QUEUED) if spec_backend else (P.CONTRACT_SPLIT,)
+    self.queues = PolicyQueues(spec_backend.spec) if spec_backend else None
+    self.contract = P.CONTRACT_SPLIT
     self.state = State()
     self.frames_served = 0
     self.leaves: list[dict] = []
@@ -242,28 +285,41 @@ class Server:
         payload = self._read(conn, length) if length else b''
         if mtype == P.HELLO:
           try:
-            P.check_hello(P.decode_json(payload))
+            self.contract = P.check_hello(P.decode_json(payload), self.supported)
           except P.ProtocolError as e:
             conn.sendall(P.pack(P.ERROR, seq, P.encode_json({'error': str(e)})))
             return
-          self.state.reset()
           hello_done = True
-          conn.sendall(P.pack(P.HELLO_ACK, seq, P.encode_json({
-            'ok': True, 'model': self.backend.name, 'sha256': self.backend.sha256,
-            'vision_floats': self.backend.vision_floats, 'policy_floats': self.backend.policy_floats, 'ready': True})))
+          if self.contract == P.CONTRACT_QUEUED:
+            self.queues.new_client()       # the next frame feeds back zeros, as a new modeld's prev_feat did
+            ack = {'ok': True, 'contract': self.contract, 'model': self.spec_backend.name, 'sha256': self.spec_backend.spec.sha256,
+                   'spec': self.spec_backend.spec.to_dict(), 'ready': True}
+          else:
+            self.state.reset()
+            ack = {'ok': True, 'contract': self.contract, 'model': self.backend.name, 'sha256': self.backend.sha256,
+                   'vision_floats': self.backend.vision_floats, 'policy_floats': self.backend.policy_floats, 'ready': True}
+          conn.sendall(P.pack(P.HELLO_ACK, seq, P.encode_json(ack)))
         elif not hello_done:
           conn.sendall(P.pack(P.ERROR, seq, P.encode_json({'error': 'hello first'})))
           return
         elif mtype == P.PING:
           conn.sendall(P.pack(P.PONG, seq))
         elif mtype == P.INFER_REQ:
-          req = P.unpack_infer_req(payload)
           t0 = time.perf_counter()
-          if req.flags & P.RESET:
-            self.state.reset()
-          frame = np.frombuffer(req.frame, np.uint8).reshape(P.FRAME_SHAPE)
+          queued = self.contract == P.CONTRACT_QUEUED
+          sp = self.spec_backend.spec if queued else None
+          # a request of the wrong size is a broken stream (ProtocolError ends the connection), not a failed frame
+          req = P.unpack_infer_req_packed(payload, sp.packed_nelem, sp.warped_nbytes) if queued else P.unpack_infer_req(payload)
           try:
-            out = step(self.state, self.backend, req.desire, req.traffic, frame)
+            if queued:
+              if req.flags & P.RESET:
+                self.queues.reset()
+              out = step_spec(self.queues, self.spec_backend, req.packed, np.frombuffer(req.frame, np.uint8).reshape(sp.warped_shape))
+            else:
+              if req.flags & P.RESET:
+                self.state.reset()
+              frame = np.frombuffer(req.frame, np.uint8).reshape(P.FRAME_SHAPE)
+              out = step(self.state, self.backend, req.desire, req.traffic, frame)
             status = P.OK if out is not None else P.NOT_FINITE
           except Exception:
             log.exception('backend failed')
