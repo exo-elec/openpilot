@@ -303,7 +303,7 @@ class BigModelHook:
       if sock is None:
         raise LinkError('no phone has connected')
       # a combined model is offered only when a build has allow-listed one; the split contract only when its metadata is built
-      offered = ((P.CONTRACT_QUEUED,) if allow else ()) + ((P.CONTRACT_SPLIT,) if contract is not None else ())
+      offered = ((P.CONTRACT_QUEUED, P.CONTRACT_STATEFUL) if allow else ()) + ((P.CONTRACT_SPLIT,) if contract is not None else ())
       client = Client(sock=sock, contracts=offered, allow=allow)
       try:
         info = client.connect()
