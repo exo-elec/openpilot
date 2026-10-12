@@ -90,8 +90,22 @@ def test_close_releases_only_what_it_took():
 
 
 def test_off_a_device_run_is_a_quiet_false(monkeypatch):
-  monkeypatch.setattr(G, 'AGNOS', False)
+  monkeypatch.setattr(G.platform, 'on_device', lambda: False)
   assert G.run('gadget') is False
+
+
+def test_root_runs_the_script_directly_and_others_through_sudo(monkeypatch):
+  calls = []
+
+  class Done:
+    returncode = 0
+    stderr = ''
+  monkeypatch.setattr(G.platform, 'on_device', lambda: True)
+  monkeypatch.setattr(G.subprocess, 'run', lambda cmd, **k: calls.append(cmd) or Done())
+  monkeypatch.setattr(G.os, 'geteuid', lambda: 0)
+  assert G.run('gadget') is True and calls[-1][0] == 'bash'
+  monkeypatch.setattr(G.os, 'geteuid', lambda: 1000)
+  assert G.run('gadget', '--bulk') is True and calls[-1][:3] == ['sudo', '-n', 'bash'] and calls[-1][-1] == '--bulk'
 
 
 # -- the root script against a fake configfs

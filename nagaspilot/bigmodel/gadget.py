@@ -19,20 +19,20 @@ from nagaspilot.runtime import bigmodel_platform as platform
 log = logging.getLogger('nagaspilot.bigmodel.gadget')
 
 SCRIPT = Path(__file__).resolve().parent / 'scripts' / 'ngp-bigmodel-root.sh'
-AGNOS = os.path.isfile('/AGNOS')
 TIMEOUT = 30.0
 PERIOD = 2.0
 NET_STATUS = Path('/dev/shm/ngp-bigmodel-net')
 
 
 def run(*args: str, timeout: float = TIMEOUT) -> bool:
-  """sudo -n bash SCRIPT *args, on AGNOS. True when it exits 0; otherwise one log line and False. Never raises. Off AGNOS
-  a quiet False: only AGNOS has the gadget stack."""
-  if not AGNOS:
+  """The root script, as root: directly when this process is root (the ExoPilot boards), else `sudo -n` (a comma). True when it
+  exits 0; otherwise one log line and False. Never raises. Off a device (a PC) a quiet False: only a device has a gadget stack."""
+  if not platform.on_device():
     return False
   what = ' '.join((SCRIPT.name, *args))
+  prefix = [] if os.geteuid() == 0 else ['sudo', '-n']
   try:
-    result = subprocess.run(['sudo', '-n', 'bash', str(SCRIPT), *args], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+    result = subprocess.run([*prefix, 'bash', str(SCRIPT), *args], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                             timeout=timeout, text=True, errors='replace')
   except subprocess.TimeoutExpired:
     log.exception("%s timed out after %.0f s", what, timeout)
