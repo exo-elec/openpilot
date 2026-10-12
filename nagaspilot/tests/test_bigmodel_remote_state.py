@@ -26,9 +26,9 @@ class FakeClient:
     self.dead = False
     self.closed = False
 
-  def send_frame(self, frame_id, flags, desire, traffic, frame):
+  def send_frame_packed(self, frame_id, flags, packed, frame):
     seq = len(self.sent) + 1
-    self.sent.append(dict(frame_id=frame_id, flags=flags, desire=list(desire), traffic=list(traffic), n=len(frame)))
+    self.sent.append(dict(frame_id=frame_id, flags=flags, desire=list(packed[:8]), traffic=list(packed[8:10]), packed=list(packed), n=len(frame)))
     latency = self.latency(len(self.sent)) if callable(self.latency) else self.latency
     self.ready[seq] = (self.clock.t + latency, frame_id)
     return seq

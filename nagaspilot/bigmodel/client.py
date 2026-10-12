@@ -10,6 +10,8 @@ import socket
 import time
 
 from nagaspilot.bigmodel import protocol as P
+from nagaspilot.bigmodel.allowlist import AllowList, NotAllowed
+from nagaspilot.bigmodel.spec import ModelSpec
 
 CONNECT_TIMEOUT = 2.0
 HELLO_TIMEOUT = 5.0
@@ -28,20 +30,26 @@ class LinkTimeout(LinkError):
 
 class ServerInfo:
   def __init__(self, ack: dict):
+    self.contract: str = str(ack.get('contract', P.CONTRACT_SPLIT))
     self.model: str = str(ack.get('model', ''))
     self.sha256: str = str(ack.get('sha256', ''))
     self.vision_floats: int = int(ack.get('vision_floats', 0))
     self.policy_floats: int = int(ack.get('policy_floats', 0))
     self.ready: bool = bool(ack.get('ready', False))
+    self.spec: ModelSpec | None = ModelSpec.from_dict(ack['spec']) if isinstance(ack.get('spec'), dict) else None
 
   @property
   def out_floats(self) -> int:
-    return self.vision_floats + self.policy_floats
+    """The floats an INFER_RESP carries."""
+    return self.spec.reply_nelem if self.spec is not None else self.vision_floats + self.policy_floats
 
 
 class Client:
-  def __init__(self, host: str = P.COMMA_ADDR, port: int = P.DEFAULT_PORT, *, sock: socket.socket | None = None, clock=time.monotonic):
+  def __init__(self, host: str = P.COMMA_ADDR, port: int = P.DEFAULT_PORT, *, sock: socket.socket | None = None, clock=time.monotonic,
+               contracts: tuple[str, ...] = (P.CONTRACT_SPLIT,), allow: AllowList | None = None):
     self.host, self.port = host, port
+    self.contracts = contracts       # offered to the phone, best first
+    self.allow = allow or AllowList()   # the combined models the comma will run
     self._sock = sock
     self._clock = clock
     self._seq = 0
@@ -58,7 +66,7 @@ class Client:
         self._sock = socket.create_connection((self.host, self.port), timeout=CONNECT_TIMEOUT)
       if isinstance(self._sock, socket.socket):
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-      self._send(P.pack(P.HELLO, self._next(), P.hello_payload()))
+      self._send(P.pack(P.HELLO, self._next(), P.hello_payload(self.contracts)))
       msg = self._recv(self._clock() + HELLO_TIMEOUT)
     except OSError as e:
       self._fail(f'connect: {e}')
@@ -72,8 +80,25 @@ class Client:
       self._fail(str(e))
     if not ack.get('ok', False):
       self._fail(f"server not ok: {ack.get('error', 'no reason')}")
-    self.info = ServerInfo(ack)
-    return self.info
+    try:
+      info = ServerInfo(ack)
+      self._vet(info)
+    except (ValueError, KeyError, TypeError, NotAllowed) as e:
+      self._fail(f'the phone announced a model the comma will not run: {e}')
+    self.info = info
+    return info
+
+  def _vet(self, info: ServerInfo) -> None:
+    """The comma's side of the safety rule: the contract is one it offered, and a spec'd model is one it allow-lists."""
+    if info.contract not in self.contracts:
+      raise ValueError(f'contract {info.contract!r} was not offered')
+    if info.contract == P.CONTRACT_SPLIT:
+      return
+    if info.spec is None:
+      raise ValueError('no model spec')
+    if info.spec.warped_shape != P.FRAME_SHAPE:
+      raise ValueError(f'frames of {info.spec.warped_shape}, the comma warps {P.FRAME_SHAPE}')
+    self.allow.check(info.spec)
 
   def close(self) -> None:
     self.dead = True
@@ -91,6 +116,15 @@ class Client:
       self._fail('a frame is already outstanding')
     seq = self._next()
     self._send(P.pack_infer_req(seq, frame_id, flags, desire, traffic, frame))
+    self._pending = seq
+    return seq
+
+  def send_frame_packed(self, frame_id: int, flags: int, packed, frame) -> int:
+    """Send one INFER_REQ for any contract: the packed floats the contract lays out, then the warped frame."""
+    if self._pending is not None:
+      self._fail('a frame is already outstanding')
+    seq = self._next()
+    self._send(P.pack_infer_req_packed(seq, frame_id, flags, packed, frame))
     self._pending = seq
     return seq
 

@@ -190,7 +190,7 @@ def test_a_garbled_reply_kills_the_link():
 
 
 def test_a_comma_on_another_contract_is_refused(server, monkeypatch):
-  monkeypatch.setattr(P, 'hello_payload', lambda: P.encode_json({'contract': 'something-else', 'frame': list(P.FRAME_SHAPE), 'desire': 8, 'traffic': 2}))
+  monkeypatch.setattr(P, 'hello_payload', lambda contracts=(): P.encode_json({'contracts': ['something-else'], 'frame': list(P.FRAME_SHAPE), 'desire': 8, 'traffic': 2}))
   with pytest.raises(LinkError, match='contract'):
     Client('127.0.0.1', server.port).connect()
 
