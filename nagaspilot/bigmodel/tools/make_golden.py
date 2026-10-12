@@ -14,10 +14,42 @@ import numpy as np
 from nagaspilot.bigmodel import framing as F
 from nagaspilot.bigmodel import protocol as P
 from nagaspilot.bigmodel import server_ref as S
+from nagaspilot.bigmodel.queues import PolicyQueues
+from nagaspilot.bigmodel.spec import ModelSpec
 
 
 def frame(value: int) -> bytes:
   return bytes([value]) * P.FRAME_BYTES
+
+
+# a small combined model with the real warped frame: 8-float features, 28 outputs of which 8 are the hidden state
+QUEUED_SHAPES = {'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
+                 'action_t': (1, 2), 'features_buffer': (1, 32, 2, 4)}
+
+
+def queued_vectors() -> dict:
+  spec = ModelSpec(sha256='cd' * 32, nbytes=1, frame_skip=4, input_shapes=QUEUED_SHAPES, output_shapes={'outputs': (1, 28)},
+                   output_slices={'hidden_state': slice(2, 10)}, checkpoint='golden')
+  backend, queues = S.StubSpecBackend(spec), PolicyQueues(spec)
+  queues.new_client()
+  steps = []
+  for i in range(10):
+    packed = [1.0 if i == 3 else 0.0] + [0.0] * 7 + [1.0, 0.0] + [0.275, 0.525]
+    fill = (i * 37) % 251
+    reply = S.step_spec(queues, backend, packed, np.full(spec.warped_shape, fill, np.uint8))
+    steps.append({'flags': P.RESET if i == 0 else 0, 'packed': packed, 'frame_fill': fill, 'reply': reply.tolist()})
+  req = P.pack_infer_req_packed(9, 77, P.RESET, steps[0]['packed'], bytes([steps[0]['frame_fill']]) * P.FRAME_BYTES)
+  ack = {'ok': True, 'contract': P.CONTRACT_QUEUED, 'model': backend.name, 'sha256': spec.sha256, 'spec': spec.to_dict(), 'ready': True}
+  return {
+    'contracts': list(P.CONTRACTS),
+    'hello_message_seq1': P.pack(P.HELLO, 1, P.hello_payload((P.CONTRACT_QUEUED, P.CONTRACT_SPLIT))).hex(),
+    'hello_payload': P.hello_payload((P.CONTRACT_QUEUED, P.CONTRACT_SPLIT)).decode(),
+    'ack': ack, 'ack_message_seq1': P.pack(P.HELLO_ACK, 1, P.encode_json(ack)).hex(),
+    'packed_nelem': spec.packed_nelem, 'reply_nelem': spec.reply_nelem, 'warped_nbytes': spec.warped_nbytes,
+    'infer_req_seq9': {'header_hex': req[:P.HEADER_SIZE].hex(), 'fixed_hex': req[P.HEADER_SIZE:P.HEADER_SIZE + 8 + spec.packed_nelem * 4].hex(),
+                       'total_length': len(req)},
+    'weights': S.StubSpecBackend.WEIGHTS, 'steps': steps,
+  }
 
 
 def build() -> dict:
@@ -45,6 +77,7 @@ def build() -> dict:
     'bad_headers': {'bad_magic': (b'XXXX' + P.pack(P.PING, 1)[4:]).hex(),
                     'bad_version': (P.pack(P.PING, 1)[:4] + bytes([2]) + P.pack(P.PING, 1)[5:]).hex(),
                     'bad_crc': (P.pack(P.PING, 1)[:-1] + bytes([P.pack(P.PING, 1)[-1] ^ 1])).hex()},
+    'queued': queued_vectors(),
     'bulk_framing': {
       'note': 'Bulk transport only (setting 1). comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte on an exact multiple of packet.',  # noqa: E501
       'burst': F.BURST, 'packet': F.PACKET,

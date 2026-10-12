@@ -27,8 +27,12 @@ RESET = 1
 # INFER_RESP status
 OK, NOT_FINITE, NOT_READY, INTERNAL = 0, 1, 2, 3
 
-# what a comma and a server must agree on before the first frame
-CONTRACT = 'ngp-v0.10-split'
+# what a comma and a server must agree on before the first frame. The comma lists the contracts it can use, the server picks one
+# (the first of the comma's list that it supports) and says which in HELLO_ACK.
+CONTRACT_SPLIT = 'ngp-v0.10-split'       # NGP10's vision + policy graphs; the comma knows the layout
+CONTRACT_QUEUED = 'ngp-spec-queued'      # one combined graph, history as stacked inputs; the phone announces a ModelSpec and the comma allow-lists it
+CONTRACT = CONTRACT_SPLIT                # the default, and what the earlier single-contract hello meant
+CONTRACTS = (CONTRACT_SPLIT, CONTRACT_QUEUED)
 FRAME_SHAPE = (2, 6, 128, 256)       # narrow then wide camera, the newest warped frame of each
 FRAME_BYTES = 2 * 6 * 128 * 256      # 393,216
 DESIRE_LEN = 8
@@ -93,16 +97,22 @@ def decode_json(payload: bytes) -> dict:
   return obj
 
 
-def hello_payload() -> bytes:
-  return encode_json({'contract': CONTRACT, 'frame': list(FRAME_SHAPE), 'desire': DESIRE_LEN, 'traffic': TRAFFIC_LEN, 'fps': FPS})
+def hello_payload(contracts: tuple[str, ...] = (CONTRACT_SPLIT,)) -> bytes:
+  return encode_json({'contracts': list(contracts), 'frame': list(FRAME_SHAPE), 'desire': DESIRE_LEN, 'traffic': TRAFFIC_LEN, 'fps': FPS})
 
 
-def check_hello(obj: dict) -> None:
-  """Server side: refuse a comma that speaks another contract or geometry."""
-  if obj.get('contract') != CONTRACT:
-    raise ProtocolError(f"contract {obj.get('contract')!r}, this server runs {CONTRACT!r}")
+def check_hello(obj: dict, supported: tuple[str, ...] = (CONTRACT_SPLIT,)) -> str:
+  """Server side: the contract to run, the first of the comma's list that this server supports. Refuses a comma that offers none
+  of them or another geometry (the warped frame is the same for every contract)."""
+  offered = obj.get('contracts')
+  if not isinstance(offered, list) or not all(isinstance(c, str) for c in offered):
+    raise ProtocolError('HELLO has no contract list')
   if tuple(obj.get('frame') or ()) != FRAME_SHAPE or obj.get('desire') != DESIRE_LEN or obj.get('traffic') != TRAFFIC_LEN:
     raise ProtocolError('frame geometry differs')
+  for c in offered:
+    if c in supported:
+      return c
+  raise ProtocolError(f"contracts {offered!r}, this server runs {list(supported)!r}")
 
 
 def pack_infer_req(seq: int, frame_id: int, flags: int, desire, traffic, frame) -> bytes:
@@ -111,6 +121,27 @@ def pack_infer_req(seq: int, frame_id: int, flags: int, desire, traffic, frame) 
   if len(frame) != FRAME_BYTES:
     raise ValueError(f'frame of {len(frame)} bytes, expected {FRAME_BYTES}')
   return pack(INFER_REQ, seq, fixed + bytes(frame))
+
+
+def pack_infer_req_packed(seq: int, frame_id: int, flags: int, packed, frame) -> bytes:
+  """INFER_REQ for any contract: frame id, flags, the contract's packed float32s, then the warped frame (any length: the contract says)."""
+  head = struct.pack(f'<II{len(packed)}f', frame_id & 0xFFFFFFFF, flags, *[float(x) for x in packed])
+  return pack(INFER_REQ, seq, head + bytes(frame))
+
+
+class PackedReq(NamedTuple):
+  frame_id: int
+  flags: int
+  packed: tuple[float, ...]
+  frame: memoryview
+
+
+def unpack_infer_req_packed(payload: bytes, packed_nelem: int, frame_nbytes: int) -> PackedReq:
+  size = 8 + packed_nelem * 4 + frame_nbytes
+  if len(payload) != size:
+    raise ProtocolError(f'INFER_REQ of {len(payload)} bytes, expected {size}')
+  vals = struct.unpack_from(f'<II{packed_nelem}f', payload)
+  return PackedReq(vals[0], vals[1], vals[2:], memoryview(payload)[8 + packed_nelem * 4:])
 
 
 class InferReq(NamedTuple):

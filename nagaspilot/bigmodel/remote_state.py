@@ -14,6 +14,7 @@ Timing rules, carried over from the Jetlink port and kept because they are what 
 """
 from __future__ import annotations
 
+import math
 import os
 import time
 from collections import deque
@@ -92,7 +93,11 @@ class RemoteModelState:
     self._holds_in_a_row = 0
     self._frames_since_swap = 0
 
-  # -- output
+  # -- what is sent and what comes back
+  def _packed(self, inputs: dict) -> np.ndarray:
+    """The floats that go with the frame: the desire and traffic_convention the small model gets."""
+    return np.concatenate([np.asarray(inputs['desire'], np.float32).reshape(-1), np.asarray(inputs['traffic_convention'], np.float32).reshape(-1)])
+
   def _parse(self, out: np.ndarray) -> dict:
     v = self.info.vision_floats
     vision, policy = out[:v], out[v:]
@@ -139,9 +144,7 @@ class RemoteModelState:
         self._last = late
     flags = P.RESET if self._need_reset else 0
     self._frame_id += 1
-    desire = np.asarray(inputs['desire']).reshape(-1)
-    traffic = np.asarray(inputs['traffic_convention']).reshape(-1)
-    seq = self.client.send_frame(self._frame_id, flags, desire, traffic, self.warp.output)
+    seq = self.client.send_frame_packed(self._frame_id, flags, self._packed(inputs), self.warp.output)
     self._need_reset = False
     sent = self._clock()
     self._pending = (seq, self._frame_id, sent)
@@ -187,3 +190,64 @@ class RemoteModelState:
 
   def close(self) -> None:
     self.client.close()
+
+
+class RemoteSpecModelState(RemoteModelState):
+  """A combined (spec'd) model on the phone: one graph, the layout announced by the phone and allow-listed by the comma (client.py).
+
+  The comma packs `desire` (the pulse), `traffic_convention` and `action_t` as the spec lays them out, sends them with the newest warped
+  frames, and slices the reply (the output less hidden_state) with the spec's slices. `parse` is the output parser (modeld's
+  Parser.parse_outputs). Everything about timing, holds and hand-back is the base class's.
+  """
+
+  def __init__(self, client: Client, info: ServerInfo, warp, *, parse: Callable[[dict], dict], get_action_from_model: Callable, log,
+               clock=time.monotonic):
+    if info.spec is None:
+      raise ValueError('a spec contract needs the phone\'s model spec')
+    self.spec = info.spec
+    self._reply_slices = self.spec.reply_slices
+    self._parse_outputs = parse
+    self._prev_desire = np.zeros(self.spec.packed_shapes['desire'][0], np.float32)
+    super().__init__(client, info, warp, parser=None, vision_slices={}, policy_slices={}, get_action_from_model=get_action_from_model, log=log,
+                     clock=clock)
+
+  def reset_history(self) -> None:
+    self._prev_desire[:] = 0
+
+  def _packed(self, inputs: dict) -> np.ndarray:
+    width = self.spec.packed_shapes['desire'][0]
+    desire = np.asarray(inputs['desire'], np.float32).reshape(-1)
+    if desire.size != width:
+      raise LinkError(f'desire of {desire.size} floats, the model takes {width}')
+    desire = desire.copy()
+    desire[0] = 0
+    # the model decides when an action is done, so desire is a pulse on the rising edge
+    pulse = np.where(desire - self._prev_desire > .99, desire, 0).astype(np.float32)
+    self._prev_desire[:] = desire
+    parts = {'desire': pulse, 'traffic_convention': np.asarray(inputs['traffic_convention'], np.float32).reshape(-1),
+             'action_t': np.asarray(inputs['action_t'], np.float32).reshape(-1)}
+    out = []
+    for name, shape in self.spec.packed_shapes.items():
+      if parts[name].size != math.prod(shape):
+        raise LinkError(f'{name} of {parts[name].size} floats, the model takes {math.prod(shape)}')
+      out.append(parts[name])
+    return np.concatenate(out)
+
+  def _parse(self, out: np.ndarray) -> dict:
+    sliced = {k: out[np.newaxis, s] for k, s in self._reply_slices.items()}
+    combined = self._parse_outputs(sliced)
+    if SEND_RAW_PRED:
+      combined['raw_pred'] = out.copy()
+    return combined
+
+  def _take(self, resp: P.InferResp) -> dict | None:
+    if resp.status == P.NOT_FINITE:
+      return None
+    if resp.status != P.OK:
+      raise LinkError(f'the phone failed the frame (status {resp.status})')
+    out = np.frombuffer(resp.out, np.float32)
+    if out.size != self.spec.reply_nelem:
+      raise LinkError(f'reply of {out.size} floats, the model promised {self.spec.reply_nelem}')
+    if not np.isfinite(out).all():
+      raise LinkError('the reply is not finite')
+    return self._parse(out)
