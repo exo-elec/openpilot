@@ -96,6 +96,8 @@ class Client:
       return
     if info.spec is None:
       raise ValueError('no model spec')
+    if info.spec.stateful != (info.contract == P.CONTRACT_STATEFUL):
+      raise ValueError(f'contract {info.contract!r} does not match a {"stateful" if info.spec.stateful else "queued"} graph')
     if info.spec.warped_shape != P.FRAME_SHAPE:
       raise ValueError(f'frames of {info.spec.warped_shape}, the comma warps {P.FRAME_SHAPE}')
     self.allow.check(info.spec)

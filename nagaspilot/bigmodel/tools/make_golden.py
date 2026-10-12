@@ -14,7 +14,7 @@ import numpy as np
 from nagaspilot.bigmodel import framing as F
 from nagaspilot.bigmodel import protocol as P
 from nagaspilot.bigmodel import server_ref as S
-from nagaspilot.bigmodel.queues import PolicyQueues
+from nagaspilot.bigmodel.queues import PolicyQueues, StateLoop
 from nagaspilot.bigmodel.spec import ModelSpec
 
 
@@ -52,6 +52,29 @@ def queued_vectors() -> dict:
   }
 
 
+# a small stateful graph (openpilot #38916 layout) with the real warped frame: two looped states, 24 outputs, no hidden_state
+STATEFUL_SHAPES = {'new_img': (2, 6, 128, 256), 'desire': (1, 8), 'traffic_convention': (1, 2), 'action_t': (1, 2),
+                   'state_feat': (1, 16), 'state_hist': (1, 4, 3)}
+STATEFUL_OUTPUTS = {'outputs': (1, 24), 'next_state_feat': (1, 16), 'next_state_hist': (1, 4, 3)}
+
+
+def stateful_vectors() -> dict:
+  spec = ModelSpec(sha256='ef' * 32, nbytes=1, frame_skip=4, input_shapes=STATEFUL_SHAPES, output_shapes=STATEFUL_OUTPUTS,
+                   output_slices={'plan': slice(0, 6), 'meta': slice(6, 24)}, checkpoint='golden')
+  backend, loop = S.StubStatefulBackend(spec), StateLoop(spec)
+  steps = []
+  for i in range(10):
+    packed = [1.0 if i == 3 else 0.0] + [0.0] * 7 + [1.0, 0.0] + [0.275, 0.525]
+    fill = (i * 53) % 251
+    if i == 0:
+      loop.reset()
+    reply = S.step_spec(loop, backend, packed, np.full(spec.warped_shape, fill, np.uint8))
+    steps.append({'flags': P.RESET if i == 0 else 0, 'packed': packed, 'frame_fill': fill, 'reply': reply.tolist()})
+  ack = {'ok': True, 'contract': P.CONTRACT_STATEFUL, 'model': backend.name, 'sha256': spec.sha256, 'spec': spec.to_dict(), 'ready': True}
+  return {'ack': ack, 'packed_nelem': spec.packed_nelem, 'reply_nelem': spec.reply_nelem, 'warped_nbytes': spec.warped_nbytes,
+          'state_weight': S.StubStatefulBackend.STATE_WEIGHT, 'weights': S.StubStatefulBackend.WEIGHTS, 'steps': steps}
+
+
 def build() -> dict:
   req = P.pack_infer_req(7, 42, P.RESET, [0, 1, 0, 0, 0, 0, 0, 0], [1, 0], frame(5))
   resp_out = np.array([1.0, -2.5, 0.0, 3.25], np.float32).tobytes()
@@ -78,6 +101,7 @@ def build() -> dict:
                     'bad_version': (P.pack(P.PING, 1)[:4] + bytes([2]) + P.pack(P.PING, 1)[5:]).hex(),
                     'bad_crc': (P.pack(P.PING, 1)[:-1] + bytes([P.pack(P.PING, 1)[-1] ^ 1])).hex()},
     'queued': queued_vectors(),
+    'stateful': stateful_vectors(),
     'bulk_framing': {
       'note': 'Bulk transport only (setting 1). comma->phone: zero-pad every message to a multiple of burst. phone->comma: one zero byte on an exact multiple of packet.',  # noqa: E501
       'burst': F.BURST, 'packet': F.PACKET,

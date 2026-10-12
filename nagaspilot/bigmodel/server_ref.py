@@ -20,7 +20,7 @@ import time
 import numpy as np
 
 from nagaspilot.bigmodel import protocol as P
-from nagaspilot.bigmodel.queues import PolicyQueues
+from nagaspilot.bigmodel.queues import make_history
 from nagaspilot.bigmodel.spec import DRIVING_OUTPUT, ModelSpec
 
 log = logging.getLogger('nagaspilot.bigmodel.server')
@@ -114,6 +114,26 @@ class SpecBackend:
     raise NotImplementedError
 
 
+class StubStatefulBackend(SpecBackend):
+  """A stateful graph's stand-in: deterministic and integer-valued like StubSpecBackend. Every `next_state_<q>` and the output are
+  (a weighted sum of the integer parts of the input sums, plus the element's index) mod 251, so a wrong or stale state changes every later frame."""
+  name = 'stub-stateful'
+  WEIGHTS = {'new_img': 1, 'desire': 7, 'traffic_convention': 11, 'action_t': 13}
+  STATE_WEIGHT = 17
+
+  def __init__(self, spec: ModelSpec):
+    self.spec = spec
+
+  def run(self, inputs):
+    base = sum(w * int(np.asarray(inputs[k], np.float64).sum()) for k, w in self.WEIGHTS.items())
+    base += sum(self.STATE_WEIGHT * int(np.asarray(inputs[k], np.float64).sum()) for k in self.spec.state_pairs)
+    out = {DRIVING_OUTPUT: ((base + np.arange(self.spec.output_nelem)) % 251).astype(np.float32)}
+    for k, nxt in enumerate(self.spec.state_pairs.values()):
+      n = int(np.prod(self.spec.output_shapes[nxt]))
+      out[nxt] = ((base + 5 * (k + 1) + np.arange(n)) % 251).astype(np.float32).reshape(self.spec.output_shapes[nxt])
+    return out
+
+
 class StubSpecBackend(SpecBackend):
   """Deterministic and integer-valued, so another implementation (the phone's Dart one) reproduces it exactly: every output is
   (a weighted sum of the integer sums of the inputs, plus its index) mod 251. The hidden state is part of the output, so a
@@ -129,14 +149,16 @@ class StubSpecBackend(SpecBackend):
     return {DRIVING_OUTPUT: ((base + np.arange(self.spec.output_nelem)) % 251).astype(np.float32)}
 
 
-def step_spec(queues: PolicyQueues, backend: SpecBackend, packed, frame: np.ndarray) -> np.ndarray | None:
-  """One frame of a spec'd model. Returns the reply (the output less hidden_state), or None if the output is not finite, in which case
-  the queues' hidden state is what it was (the queues themselves have advanced, as on openpilot: a refused frame is a lost frame)."""
+def step_spec(queues, backend: SpecBackend, packed, frame: np.ndarray) -> np.ndarray | None:
+  """One frame of a spec'd model (queued or stateful). Returns the reply (the output less hidden_state), or None if any output is not finite,
+  in which case the hidden state / the graph's states are what they were (a queued layout's queues have advanced, as on openpilot: a refused
+  frame is a lost frame)."""
   inputs = queues.step(frame, np.asarray(packed, np.float32))
-  out = np.asarray(backend.run(inputs)[DRIVING_OUTPUT], np.float32).reshape(-1)
-  if not np.isfinite(out).all():
+  outputs = backend.run(inputs)
+  out = np.asarray(outputs[DRIVING_OUTPUT], np.float32).reshape(-1)
+  if not all(np.isfinite(np.asarray(v)).all() for v in outputs.values()):
     return None
-  queues.after_run({DRIVING_OUTPUT: out})
+  queues.after_run(outputs)
   hidden = queues.spec.hidden_range
   return np.delete(out, np.arange(*hidden)) if hidden else out
 
@@ -211,8 +233,9 @@ class Server:
                spec_backend: SpecBackend | None = None):
     self.backend = backend
     self.spec_backend = spec_backend
-    self.supported = (P.CONTRACT_SPLIT, P.CONTRACT_QUEUED) if spec_backend else (P.CONTRACT_SPLIT,)
-    self.queues = PolicyQueues(spec_backend.spec) if spec_backend else None
+    self.spec_contract = (P.CONTRACT_STATEFUL if spec_backend.spec.stateful else P.CONTRACT_QUEUED) if spec_backend else None
+    self.supported = (P.CONTRACT_SPLIT, self.spec_contract) if spec_backend else (P.CONTRACT_SPLIT,)
+    self.queues = make_history(spec_backend.spec) if spec_backend else None
     self.contract = P.CONTRACT_SPLIT
     self.state = State()
     self.frames_served = 0
@@ -290,7 +313,7 @@ class Server:
             conn.sendall(P.pack(P.ERROR, seq, P.encode_json({'error': str(e)})))
             return
           hello_done = True
-          if self.contract == P.CONTRACT_QUEUED:
+          if self.contract in P.SPEC_CONTRACTS:
             self.queues.new_client()       # the next frame feeds back zeros, as a new modeld's prev_feat did
             ack = {'ok': True, 'contract': self.contract, 'model': self.spec_backend.name, 'sha256': self.spec_backend.spec.sha256,
                    'spec': self.spec_backend.spec.to_dict(), 'ready': True}
@@ -306,7 +329,7 @@ class Server:
           conn.sendall(P.pack(P.PONG, seq))
         elif mtype == P.INFER_REQ:
           t0 = time.perf_counter()
-          queued = self.contract == P.CONTRACT_QUEUED
+          queued = self.contract in P.SPEC_CONTRACTS
           sp = self.spec_backend.spec if queued else None
           # a request of the wrong size is a broken stream (ProtocolError ends the connection), not a failed frame
           req = P.unpack_infer_req_packed(payload, sp.packed_nelem, sp.warped_nbytes) if queued else P.unpack_infer_req(payload)

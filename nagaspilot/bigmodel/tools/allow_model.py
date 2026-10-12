@@ -16,17 +16,19 @@ from pathlib import Path
 
 from nagaspilot.bigmodel import protocol as P
 from nagaspilot.bigmodel.allowlist import DEFAULT_PATH, PINNED
-from nagaspilot.bigmodel.queues import PolicyQueues
+from nagaspilot.bigmodel.queues import make_history
 from nagaspilot.bigmodel.spec import ModelSpec, spec_from_onnx
 
 
 def entry_for(spec: ModelSpec, name: str, evidence: str) -> dict:
   """The allow-list entry, or ValueError saying why this model cannot be served."""
-  if spec.stateful:
-    raise ValueError('a stateful graph (openpilot #38916) is not served yet')
   if spec.warped_shape != P.FRAME_SHAPE:
     raise ValueError(f'the model takes frames of {spec.warped_shape}, the comma warps {P.FRAME_SHAPE}')
-  PolicyQueues(spec)            # raises if there is no hidden_state to feed back, or it is the wrong size
+  needed = ('desire', 'traffic_convention', 'action_t') if spec.stateful else ('desire_pulse', 'traffic_convention', 'action_t', 'features_buffer')
+  for inp in needed:
+    if inp not in spec.input_shapes:
+      raise ValueError(f'the model has no {inp} input')
+  make_history(spec)            # a queued graph needs a hidden_state to feed back; a stateful one needs matching state_/next_state_ pairs
   _ = spec.reply_slices         # raises if a slice overlaps the hidden state
   d = spec.to_dict()
   return {'name': name, 'sha256': spec.sha256, 'evidence': evidence, **{k: d[k] for k in PINNED}}

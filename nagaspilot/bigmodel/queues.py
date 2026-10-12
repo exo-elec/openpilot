@@ -98,3 +98,53 @@ class PolicyQueues:
       'action_t': action_t.astype(dtype).reshape(shapes['action_t']),
       'features_buffer': self.feat_q[::fs].copy().reshape(shapes['features_buffer']),
     }
+
+
+class StateLoop:
+  """NavPilot's counterpart of Jetlink's StateLoop (JetlinkServer/Queues.swift) for a stateful graph (openpilot #38916): the newest warped frame
+  goes in as `new_img`, the scalars as they are, and each `next_state_<q>` output comes back as the next frame's `state_<q>` input. The history lives
+  in the graph, so there are no queues and no hidden state to keep; a hello changes nothing and RESET zeroes the states.
+
+  One deliberate difference: Jetlink's engines loop the states inside the run; here they advance only after a frame whose outputs are all finite,
+  as the queued layout does, so a refused frame cannot poison the history.
+  """
+
+  def __init__(self, spec: ModelSpec):
+    if not spec.stateful:
+      raise ValueError('StateLoop needs a stateful graph (one with a new_img input)')
+    if not spec.state_pairs:
+      raise ValueError('the graph takes new_img but returns no next_state_ outputs')
+    for name, nxt in spec.state_pairs.items():
+      if tuple(spec.input_shapes[name]) != tuple(spec.output_shapes[nxt]):
+        raise ValueError(f'{name} is {spec.input_shapes[name]} but {nxt} is {spec.output_shapes[nxt]}')
+    self.spec = spec
+    self.state = {name: np.zeros(spec.input_shapes[name], np.float32) for name in spec.state_pairs}
+
+  def reset(self) -> None:
+    for a in self.state.values():
+      a[...] = 0
+
+  def new_client(self) -> None:
+    """A hello: nothing, the graph's state is not the client's; a RESET frame clears it."""
+
+  def after_run(self, outputs: dict[str, np.ndarray]) -> None:
+    for name, nxt in self.spec.state_pairs.items():
+      self.state[name][...] = np.asarray(outputs[nxt], np.float32).reshape(self.state[name].shape)
+
+  def step(self, warped: np.ndarray, packed: np.ndarray) -> dict[str, np.ndarray]:
+    spec = self.spec
+    if warped.shape != spec.warped_shape:
+      raise ValueError(f"warped {warped.shape} != {spec.warped_shape}")
+    if packed.size != spec.packed_nelem:
+      raise ValueError(f"packed {packed.size} != {spec.packed_nelem}")
+    out = {'new_img': np.ascontiguousarray(warped).reshape(spec.input_shapes['new_img'])}
+    for name, (at, _) in spec.packed_layout.items():
+      out[name] = packed[at].reshape(spec.input_shapes[name]).astype(np.float32)
+    for name, a in self.state.items():
+      out[name] = a.copy()
+    return out
+
+
+def make_history(spec: ModelSpec):
+  """Queues for a queued graph, the loop for a stateful one (Jetlink's `Staging.forModel`)."""
+  return StateLoop(spec) if spec.stateful else PolicyQueues(spec)
