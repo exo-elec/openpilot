@@ -1,6 +1,6 @@
 # The combined (Chestnut-class) model contract, step by step
 
-Status 2026-10-12: **Steps 1 (this spec) and 2 (`spec.py`, `queues.py`) are done and tested; steps 3 to 6 are not.** Following Jetlink's design and tests closely is deliberate: it is open source (MIT) and is the reference the community will compare against.
+Status 2026-10-12: **Steps 1 to 5b and the stateful layout (5c) are done and tested; only step 6, which needs a real model file, is open.** Following Jetlink's design and tests closely is deliberate: it is open source (MIT) and is the reference the community will compare against.
 Part of [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) task 8. Source of the facts below: Jetlink's `spec.py`, `queues.py` and `docs/` (MIT, credited in
 `nagaspilot/bigmodel/THIRD_PARTY_NOTICES.md`); not yet checked against a real model file, because none is in this tree.
 
@@ -75,7 +75,7 @@ So the 766 MB class fits a recent Pro iPhone on Jetlink's evidence and nothing e
 **Consequence for this work.** The newest models, the ones on Hugging Face and the default, are **stateful**. What I built and tested serves the **queued** layout (BMRLNAP, Cinque Terre V2, Lebowski). So:
 
 1. **A queued 766 MB model (BMRLNAP v6 or Cinque Terre V2) can go through the whole path as it stands** once its ONNX is in hand: `allow_model.py` makes the entry, the phone runs it.
-2. **Cinque Terre V3 and everything after it needs the stateful layout:** `new_img` in, each `state_<q>` in and `next_state_<q>` out fed back on the phone, the hidden state never leaving the graph, no queues. The spec already recognises it and the allow-list tool refuses it; serving it is the next code step.
+2. **Cinque Terre V3 and everything after it is stateful** (`new_img` in, each `state_<q>` in and `next_state_<q>` out fed back on the phone, the hidden state never leaving the graph, no queues). **Served now** (step 5c): contract `ngp-spec-stateful`, `StateLoop` on the Python reference and in Dart, the allow-list tool accepts it, and a Python comma ran 12 frames against the Dart server with no mismatch. Verified only against stand-in graphs, not against Cinque Terre V3 itself.
 3. Whichever model is chosen, step 6 (parser names and shapes, the `action` head and its units, the constants) can only be settled against that file.
 
 ## Steps
@@ -88,7 +88,8 @@ So the 766 MB class fits a recent Pro iPhone on Jetlink's evidence and nothing e
 | 4 | Comma `RemoteSpecModelState`: packs `desire` (rising-edge pulse, slot 0 cleared), `traffic_convention` and `action_t` as the spec lays them out; cuts the reply with `reply_slices`; hands the sliced dict to `Parser.parse_outputs`; holds, hand-back and the rest are the split state's. `BigModelHook` offers the queued contract only when the allow-list is non-empty and builds the right state from the phone's reply | done |
 | 5 | Phone: Dart `ModelSpec`, `PolicyQueues`, `SpecBackend`, `stepSpec` and the queued server in `packages/npbm`. Ten frames reproduce the Python replies exactly; a Python comma (`RemoteSpecModelState`) ran 12 frames against the Dart server with no mismatch | done |
 | 5b | `nagaspilot/bigmodel/tools/allow_model.py`: turns a model's ONNX into an allow-list entry (refusing what the comma cannot serve, requiring evidence) | done |
+| 5c | The stateful layout: `StateLoop` (states advance only after a finite frame, a deliberate difference from Jetlink's in-engine loop), contract `ngp-spec-stateful` (the client refuses a contract that does not match the graph), `StubStatefulBackend`, the Dart port, golden vectors, the allow-list tool accepting state pairs | done |
 | 6 | **`modeld` itself**, which needs a real model file and its metadata: add the entry with the tool, check the 18,452-float output against `Parser.parse_outputs` (names, shapes, the `action` head and its units), the constants (`MODEL_RUN_FREQ`/`MODEL_CONTEXT_FREQ`, `ACTION_WIDTH`), `fill_model_msg` for a combined output, cereal fields, then replay a recorded route through the phone and the small model and compare | **blocked on a model file** |
 
-Not covered: the stateful layout (openpilot #38916) is recognised by `ModelSpec` and refused by the tool; serving it means carrying each `next_state_*` back as the next `state_*` on the phone. **It is the layout of the newest models (see the survey above), so it is the next code step.** The phone's inference backend is still the open piece
+The phone's inference backend is still the open piece (`NAVPILOT_BIGMODEL.md`, backend survey). The phone's inference backend is still the open piece
 (`NAVPILOT_BIGMODEL.md`, backend survey).
