@@ -26,12 +26,18 @@ def make_spec(**kw) -> ModelSpec:
   return ModelSpec(**args)
 
 
-def test_reply_slices_skip_the_hidden_state_and_shift_what_follows_it():
+def test_the_whole_output_has_zeros_where_the_hidden_state_stays_on_the_phone():
   sp = make_spec()
-  assert sp.reply_nelem == 20
-  assert sp.reply_slices == {'plan': slice(0, 2, 1), 'lead': slice(2, 6, 1), 'meta': slice(6, 20, 1)}
-  with pytest.raises(ValueError, match='overlaps'):
-    _ = make_spec(output_slices={**SLICES, 'bad': slice(8, 12)}).reply_slices
+  assert sp.reply_nelem == 20 and sp.output_nelem == 28
+  reply = np.arange(20, dtype=np.float32) + 1
+  whole = sp.whole_output(reply)
+  assert whole.shape == (28,) and whole[2:10].tolist() == [0] * 8
+  assert whole[:2].tolist() == [1, 2] and whole[10:].tolist() == list(range(3, 21))
+  # asked for whole: the reply already has the hidden state, and is copied
+  full = np.arange(28, dtype=np.float32)
+  assert np.array_equal(sp.whole_output(full, whole=True), full) and sp.whole_output(full, whole=True) is not full
+  # a spec with no hidden_state has a reply that is the output
+  assert np.array_equal(make_spec(output_slices={'plan': slice(0, 2)}).whole_output(full), full)
 
 
 class Warp:
@@ -108,13 +114,14 @@ def test_desire_is_a_pulse_on_the_rising_edge_and_slot_zero_is_never_sent():
   assert pulses[3] == [0, 1, 0, 0, 0, 0, 0, 0]      # a new rising edge
 
 
-def test_the_parser_gets_the_reply_cut_by_the_specs_slices():
+def test_the_parser_gets_jetlinks_input_the_full_output_cut_by_the_specs_own_slices():
   state, seen = make_state()
   out = state.run({}, {}, inputs())
   d = seen[0]
-  assert d['plan'].shape == (1, 2) and d['lead'].shape == (1, 4) and d['meta'].shape == (1, 14) and 'hidden_state' not in d
+  assert d['plan'].shape == (1, 2) and d['lead'].shape == (1, 4) and d['meta'].shape == (1, 14)
+  assert d['hidden_state'].shape == (1, 8) and not d['hidden_state'].any()      # stays on the phone: zeros
   assert d['plan'][0].tolist() == [1, 2]             # reply = arange + seq(1)
-  assert d['lead'][0].tolist() == [3, 4, 5, 6]       # reply index 2.., which is full-output index 10..
+  assert d['lead'][0].tolist() == [3, 4, 5, 6]       # the reply's index 2.. is the full output's index 10..
   assert out['parsed'] is True
 
 
@@ -125,6 +132,16 @@ def test_a_desire_or_scalar_of_the_wrong_width_is_an_error_not_a_wrong_input():
   state, _ = make_state()
   with pytest.raises(LinkError, match='action_t'):
     state.run({}, {}, inputs(action_t=(1, 2, 3)))
+
+
+def test_with_raw_output_logging_the_comma_asks_for_the_whole_output_and_gets_the_real_hidden_state(monkeypatch):
+  from nagaspilot.bigmodel import remote_state as R
+  monkeypatch.setattr(R, 'SEND_RAW_PRED', '1')
+  state, _ = make_state()
+  state.client.recv_response = lambda seq, timeout: P.InferResp(1, P.OK, 1, memoryview((np.arange(28, dtype=np.float32) + 100).tobytes()))
+  out = state.run({}, {}, inputs())
+  assert state.client.sent[0][1] == P.RESET | P.WANT_HIDDEN
+  assert out['hidden_state'][0].tolist() == list(range(102, 110)) and out['raw_pred'].tolist() == list(range(100, 128))
 
 
 def test_a_reply_of_the_wrong_size_is_an_error():
