@@ -13,7 +13,7 @@ big model, so the phone link follows the same contract:
   for a later engagement without another soft-disable.
 - model_dead: modelV2 was seen and has stopped (the big model stalled the frame loop).
 
-modeld writes BigModelActive=False only after the big model has been active or failed to load, never
+modeld writes ngp_bigmodel_active=False only after the big model has been active or failed to load, never
 for a link that simply is not there.
 """
 import time
@@ -47,8 +47,8 @@ SETTLING_S = 5.0
 READ_PERIOD = 0.25
 
 # Param names read on NGP10 (the phone link). A branch with another naming rule passes its own.
-LOADING_KEYS = ("BigModelLoading",)
-ACTIVE_KEYS = ("BigModelActive",)
+LOADING_KEYS = ("ngp_bigmodel_loading",)
+ACTIVE_KEYS = ("ngp_bigmodel_active",)
 
 
 class NGPBigModelGate:

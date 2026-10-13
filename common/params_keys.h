@@ -14,13 +14,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
-    // Big model (the phone over USB): loading blocks engagement, active is false once it handed back or failed.
-    // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Written by modeld's BigModelHook.
-    {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
-    // The phone-hosted big model link (NavPilot NPBM, NAVPILOT_BIGMODEL.md): 0 off, 3 USB tethering (recommended), 2 iPhone
-    // (the board's NCM gadget), 1 Android (FunctionFS bulk gadget). The USB-C port takes one role at a time.
-    {"EOPBigModelLink", {PERSISTENT, INT, "0"}},
-    {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
     {"CameraDebugExpGain", {CLEAR_ON_MANAGER_START, STRING}},
@@ -131,6 +124,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
+    // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
+    // 1 Android (FunctionFS bulk gadget), 2 iPhone (CDC-NCM network the phone dials), 3 USB tethering (optional). The direct
+    // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
+    // until the phone model is proven. NGP-origin, so ngp_ on every branch (D12).
+    {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py).
+    {"ngp_bigmodel_active", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"ngp_bigmodel_loading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.

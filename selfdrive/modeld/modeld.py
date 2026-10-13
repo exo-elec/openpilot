@@ -402,7 +402,7 @@ def main(demo=False) -> int:
     # Create InferenceD client - ONLY way to access NPU
     client = InferenceClient("modeld")
 
-    bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (EOPBigModelLink, default off)
+    bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (ngp_bigmodel_link, default off)
     bigmodel.prepare()  # reads the model metadata and opens the phone listener before the process goes realtime
 
     # Setup process
