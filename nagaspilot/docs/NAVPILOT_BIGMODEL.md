@@ -122,7 +122,7 @@ request/response pair) must pass.
 | 8 | `modeld` rework: combined-model contract as a second contract id, in six steps: [`NAVPILOT_COMBINED_MODEL.md`](NAVPILOT_COMBINED_MODEL.md). Steps 1 to 5c done and tested (spec, queues against openpilot's own digests, contract negotiation with a comma allow-list, `RemoteSpecModelState`, the Dart queued and stateful servers, the allow-list tool); step 6 (`modeld` itself) needs a real model file | ◐ done except step 6 |
 | 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
 | 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
-| 11 | Remove the eGPU path | ☑ done on NGP10 2026-10-13 by the owner's decision (see below) |
+| 11 | Remove the earlier external-GPU path | ☑ done on NGP10 2026-10-13 by the owner's decision (see below) |
 
 ## Inference backend survey (pub.dev, 2026-10-12)
 
@@ -138,18 +138,19 @@ The Dart core needs one native piece, `Backend` (run the vision and policy model
 Nothing off the shelf gives a ready Android NPU path for a large combined model. Plan on a thin NavPilot native layer (an FFI to the ORT C API,
 the way Jetlink's Swift does it) for production, and use `flutter_onnxruntime` only to get a first number on an iPhone.
 
-## The eGPU path is removed (2026-10-13)
+## The external-GPU path is removed (2026-10-13)
 
 Owner decision: the big model runs on the phone only. The gate in the earlier plan (a real combined model on an iPhone and an Android phone, a
-bench run with p99 under 50 ms, a drive test of the hand-back) was **not met**; the owner removed the eGPU anyway. Until a phone runs the big model
-a car has only the small model, with no big-model fallback of any kind. The gate is now the acceptance test for the phone path itself, not for the removal.
+bench run with p99 under 50 ms, a drive test of the hand-back) was **not met**; the owner removed the GPU path anyway. Until a phone runs the big model
+a car has only the small model, with no big-model fallback of any kind. The gate is now the acceptance test for the phone path itself.
 
-Removed on NGP10: `selfdrive/modeld/egpu_detect.py` and its test; in `modeld.py` `EgpuState`, the `big_` artifact paths, the USB+AMD device, the eGPU
-load/failover block and the `egpuState` publisher; the `Egpu*` params; the big-model panel row in `ngp_panel.cc`; the `USBGPU` SConscript block; the
-`egpuState` service; the gate's `Egpu*` keys; `egpu_in_use()` and the matching "stand aside" argument of `GadgetOwner`; `EGPU_INTEGRATION.md` and
-`the old eGPU migration plan`. `modeld` now always runs `config_realtime_process`, since no USB GPU saturates a core. Kept: the `EgpuState` struct and
-`egpuState @150` in `log.capnp` (marked unpublished, so the ordinal stays taken and old logs parse); `tinygrad_model.py`, which loads the small model too.
-**Not yet done on EOP10, 01M and 02M**: those branches carry a much deeper eGPU integration (`system/inferenced/egpu.py` and `BackendType.EGPU`, `selfdrive/modeld/runners/egpu_driving_runner.py` and the factory, `EOPEgpuDriving*` / `EOPupstream's big modelDriving*` params and their migration, `selfdrived`'s gate keys, the registry entry, the settings exclusions). Their inferenced and modeld test suites do not collect in this environment, so that removal needs a machine where they run. In exopilot (not done here): the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
+Removed on all four branches (NGP10, EOP10, 01M, 02M): the USB-GPU detection module and its test; `modeld`'s GPU state class, the `big_` artifact paths, the USB+AMD
+device, the GPU load/failover block and the GPU telemetry publisher and service; the GPU driving params and their migration entries; the settings panel
+row; the external-GPU build block; the gate's GPU keys; the platform file's port check and the gadget owner's matching argument; on EOP10 and later also
+`inferenced`'s GPU backend and its `BackendType` value, the GPU driving runner and the factory branch, the registry text, the settings exclusions and the failover
+tests; and the GPU design notes. The Cap'n Proto event field that carried the telemetry is now `removedService150DEPRECATED` (`removedServiceNNNDEPRECATED` on
+EOP10 and later): the ordinal stays taken and old logs still parse. `modeld` always runs `config_realtime_process`, since no USB GPU saturates a core.
+On EOP10, 01M and 02M the `modeld` and `inferenced` suites do not collect in this environment, so that removal was checked by compiling, linting and the runnable suites only.
 
 ## Unverified (needs hardware or a recorded route)
 

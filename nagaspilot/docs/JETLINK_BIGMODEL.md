@@ -4,7 +4,7 @@
 
 # Big model on the phone over USB (Jetlink port)
 
-Status 2026-10-11: **comma side implemented on NGP10 and carried to EOP10, 01M and 02M (branches `jetlink/*`), default off; nothing built, replayed or run on a device.** Hardware side (USB-C device-mode overlays, eGPU-xor-phone switch) is in `exopilot` branch `feat/phone-bigmodel-usb-port`. Branch
+Status 2026-10-11: **comma side implemented on NGP10 and carried to EOP10, 01M and 02M (branches `jetlink/*`), default off; nothing built, replayed or run on a device.** Hardware side (USB-C device-mode overlays, port-role switch) is in `exopilot` branch `feat/phone-bigmodel-usb-port`. Branch
 `jetlink/ngp10-bigmodel` off `origin/dev/NGP10`. Base unchanged: official
 openpilot v0.10.0 `c085b8af1` plus NGP10 commits (decision: keep the base, port
 the features; no rebase onto newer upstream).
@@ -14,7 +14,7 @@ Reference: [`exo-elec/jetlink`](https://github.com/exo-elec/jetlink) `main` v0.8
 side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md`);
 the phone is the only model host. Jetson, Mac and PC hosts are out of scope.
 
-Related: the eGPU tier was removed on 2026-10-13 (see `NAVPILOT_BIGMODEL.md`).
+Related: the earlier external-GPU tier was removed on 2026-10-13 (see `NAVPILOT_BIGMODEL.md`).
 the big-model contract work), [`BOUNDARIES.md`](BOUNDARIES.md),
 [`DEPENDENCY_POLICY.md`](DEPENDENCY_POLICY.md),
 [`CODE_BOUNDARY_TASKS.md`](CODE_BOUNDARY_TASKS.md) (tasks T16 to T17).
@@ -33,7 +33,7 @@ On NGP10 that adapter must supply:
 | `in_control()` | `ModelSide` | derive from `carControl`/`selfdriveState` messages |
 | `modelV2.big` and an accelerator state | status to UI/selfdrived | **absent** from cereal |
 | Engagement hold while loading/proving; soft-disable on failure | `selfdrived` | **absent** (no big-model events) |
-| Stand aside for another USB host (removed with the eGPU) | `OwnerConfig.<removed>` | none |
+| Stand aside for another USB host (removed) | `OwnerConfig.<removed>` | none |
 
 ## Architecture rules (house rules applied)
 

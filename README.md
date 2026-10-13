@@ -143,7 +143,7 @@ Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteres
 |---|---|---|---|---|---|
 | Driving model contract | Base v0.10 split vision/policy | Carried split contract | Extended RKNN/platform adapters | Carried | Carried |
 | Tinygrad compiled runner | Baseline dependency/artifacts | Extended pinned modern runner; rebuilt artifacts required | Carried portable runner | Carried | Carried |
-| eGPU | No current fork integration | Removed 2026-10-13: the big model runs on a phone over USB ([`NAVPILOT_BIGMODEL.md`](nagaspilot/docs/NAVPILOT_BIGMODEL.md)) | Carried to follow NGP10 | Carried | Carried |
+| External USB GPU | No current fork integration | Removed 2026-10-13: the big model runs on a phone over USB ([`NAVPILOT_BIGMODEL.md`](nagaspilot/docs/NAVPILOT_BIGMODEL.md)) | Carried to follow NGP10 | Carried | Carried |
 | Larger trained driving weights | Baseline bundled models | Not provisioned: big ONNX names currently link to small models | No blanket upgraded-model claim | Carried limitation | Carried limitation |
 | Cloud voice: Google STT → Gemini → TTS | Not this pipeline | Not provided | Added cloudd online pipeline, default off | Carried + animated PyQt status | Carried + same status |
 | Local wake recognition | Not this pipeline | Not provided | Added CPU-only openWakeWord, default off | Carried | Carried |
@@ -163,7 +163,7 @@ Wake inference uses ONNX CPUExecutionProvider, not the NPU or GPU. After activat
 
 ### Switches, inheritance and validation
 
-- **NGP-origin settings stay `ngp_*`** on descendants, including `ngp_dm_policy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform eGPU and back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
+- **NGP-origin settings stay `ngp_*`** on descendants, including `ngp_dm_policy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform runtime and back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
 - Optional experimental consumers are separately gated: enabling MonoD alone does not enable PathD control. `ngp_monod_enabled`, `ngp_pathd_enabled`, `ngp_lat_pathd`, `ngp_lon_pathd` and DPP mode must match the intended experiment. Map policies require their producer. ALCC/SOC/CAT/adaptive-gap and cloud/wake voice are opt-in. BRSC is enabled by default in NGP. Consult actual parameter defaults and UI availability rather than assuming every row has a master on/off switch.
 - The lineage gate checks **86 portable Python source files** under `nagaspilot/controls`, `nagaspilot/runtime` and `nagaspilot/mapd`. EOP inherits these unchanged and adds adapters. The full NGP/EOP controller/planner files still differ because EOP has additional integration; HAL does not justify divergent monitoring policy.
 - EOP10 → 01M → 02M source differences are limited to `common/build_profile.py`. Both PyQt variants use the same resize-aware driving view, offroad pages, icons and voice popup. At the normal 01M width no side widgets are created; wide layouts create them lazily.

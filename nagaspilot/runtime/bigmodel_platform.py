@@ -1,7 +1,6 @@
 """What differs per branch in the big-model link (T16/T17): the one file a branch rewrites.
 
-Param names (a branch's naming rule), how to tell a real device from a PC, whether the USB-C port is taken by the
-eGPU, the camera geometry, and how the gadget owner drives the port. Everything else under nagaspilot/bigmodel/,
+Param names (a branch's naming rule), how to tell a real device from a PC, the camera geometry, and how the gadget owner drives the port. Everything else under nagaspilot/bigmodel/,
 nagaspilot/runtime/bigmodel*.py and nagaspilot/controls/ngp_bigmodel_*.py is byte-identical across NGP10, EOP10, 01M
 and 02M. Standard library only at import time: the resident gadget owner imports it.
 """
