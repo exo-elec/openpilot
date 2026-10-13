@@ -2,6 +2,8 @@
 
 Dual-transport Bluetooth daemon: Classic SPP (RFCOMM) for legacy OBD scanners + BLE GATT (Nordic UART) for NavPilot on iOS and Android.
 
+> **Protocols.** This daemon serves **NCP v4.1** (Nordic UART GATT, SPP, `ncp_cable.py`) and, beside it, **PLP v5** (`plp_gatt.py`, a second GATT service with its own UUID; the cable side is `plpd`). NCP is the legacy protocol and stays until its handlers move to PLP; spec in `nagaspilot/docs/PLP_V5_SPEC.md`.
+
 > **Note:** HFP (Hands-Free Profile) has been removed. TTS uses the built-in I2S speaker.
 
 ## Transports
@@ -188,6 +190,10 @@ pytest system/bluetoothd/tests/
 ## Cross-project protocol
 
 `protocol.py` is the single source of truth. Any `MessageType` or frame format change must also be applied to NavPilot's `navpilot/src/lib/src/protocol/frame_protocol.dart`.
+
+## PLP v5 over BLE (`plp_gatt.py`)
+
+A second GATT application (`/org/bluez/eop/plp_app`) with service `0ac2bfc2-457f-4979-b921-4ff0946bd329` (proposed UUID), RX `...bfc3` (write without response) and TX `...bfc4` (notify), both encrypted. One `PlpSession` per subscribed phone, fed by `ble_stream.BleStream` (chunks at the negotiated ATT MTU - 3, one sender thread so frames never interleave). Handlers: the locate service (`nagaspilot/plp/locate.py`). The D-Bus shell has never run against BlueZ here; the pure parts are tested in `nagaspilot/tests/test_plp_ble_stream.py` and `tests/test_plp_gatt.py`.
 
 ## NCP over the USB cable (iPhone mode of the big-model link)
 
