@@ -148,6 +148,9 @@ class MessageType(IntEnum):
     # the ESP32 corner radars. NEW values: 0x0602 was the only reserved v3.x
     # slot reused; 0x0610/0x0611 reclaim nothing. Flutter peer implements both.
     # Payload schemas are the pinned cross-repo contract — do not rename fields.
+    # The phone's GNSS fix for the cross-check (nagaspilot/localization/phone_fix.py parses it, crosscheck.py uses it). JSON: t_ms, lat, lon,
+    # h_acc, optional alt/speed/bearing/sats/source, and mount {side, offset_m}. Cross-repo contract with NavPilot's makeGnssFixMessage.
+    GNSS_FIX = 0x0620  # PHONE→DEVICE
     RADAR_PAIR_CONTROL = 0x0610  # PHONE→DEVICE: {"open": bool} → EOPBLERadarPairingOpen param
     RADAR_PAIR_STATUS  = 0x0611  # DEVICE→PHONE: window/pairs/candidates (ncp_session)
 
