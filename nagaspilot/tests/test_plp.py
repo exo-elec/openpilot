@@ -3,6 +3,7 @@ import json
 import pytest
 
 from nagaspilot.plp import channel as C
+from nagaspilot.plp.session import PlpSession
 from nagaspilot.plp import dispatch, frame as F, hello as H, registry as R
 
 
@@ -18,7 +19,7 @@ def test_crc32c_check_value():
 def test_frame_roundtrip_and_header_size():
   f = F.Frame(R.KIND_REQUEST, 3, 3, b'{"a":1}', F.CH_INTERACTIVE, F.ENC_JSON, 7)
   raw = f.encode()
-  assert len(raw) == F.HEADER_SIZE + 7 + 4 and F.HEADER_SIZE == 16
+  assert len(raw) == F.HEADER_SIZE + 4 + 7 + 4 and F.HEADER_SIZE == 16
   out, d = roundtrip(raw)
   assert out == [f] and d.bad_crc == 0
 
@@ -45,6 +46,42 @@ def test_header_is_covered_by_the_crc():
   raw = bytearray(F.Frame(0, 2, 1, b'ok').encode())
   raw[6] ^= 0x01                                  # service
   assert roundtrip(bytes(raw))[0] == []
+
+
+def test_no_payload_crc_frames_are_four_bytes_shorter_and_skip_the_payload_check():
+  f = F.Frame(R.KIND_NOTIFY, 8, 2, b'abcd', F.CH_BULK, flags=F.FLAG_NO_PAYLOAD_CRC)
+  assert len(f.encode()) == F.HEADER_SIZE + 4 + 4 and not f.payload_crc
+  raw = bytearray(f.encode())
+  raw[-1] ^= 0xFF                       # a damaged payload byte: this link vouches for the payload, so the frame still arrives
+  assert [x.payload for x in F.FrameDecoder().feed(bytes(raw))] == [b'abc' + bytes([ord('d') ^ 0xFF])]
+
+
+def test_a_corrupt_length_is_caught_by_the_header_crc_before_any_payload_is_waited_for():
+  raw = bytearray(F.Frame(R.KIND_NOTIFY, 2, 1, b'x').encode())
+  raw[15] = 0xFF                        # length 255 instead of 1: without a header CRC the decoder would wait for 255 more bytes
+  good = F.Frame(R.KIND_NOTIFY, 2, 1, b'ok').encode()
+  d = F.FrameDecoder()
+  out = d.feed(bytes(raw) + good)
+  assert [x.payload for x in out] == [b'ok'] and d.bad_header >= 1
+
+
+def test_zero_padding_between_frames_is_skipped():
+  a, b = F.Frame(0, 2, 1, b'a').encode(), F.Frame(0, 2, 1, b'b').encode()
+  out = F.FrameDecoder().feed(a + bytes(16384 - len(a)) + b + b'\x00')
+  assert [x.payload for x in out] == [b'a', b'b']
+
+
+def test_session_sends_the_crc_the_peer_asked_for():
+  box, from_ble, from_usb = {}, [], []
+  usb = PlpSession(H.Hello(services=(('core', 1, 1),), link='usb', payload_crc=False), lambda b: (from_usb.append(b), box['ble'].feed(b)), role='device')
+  ble = PlpSession(H.Hello(services=(('core', 1, 1),), link='ble', payload_crc=True), lambda b: (from_ble.append(b), box['usb'].feed(b)), role='phone')
+  box['usb'], box['ble'] = usb, ble
+  ble.hello_request()
+  ble.send(C.Message(R.KIND_NOTIFY, 8, 1, b'{}', 1))
+  usb.send(C.Message(R.KIND_NOTIFY, 8, 1, b'{}', 1))
+  assert usb.agreed.send_payload_crc is True and ble.agreed.send_payload_crc is False       # each side sends what the other asked for
+  assert F.FrameDecoder().feed(from_ble[-1])[0].payload_crc is False                      # the usb side said its link needs none
+  assert F.FrameDecoder().feed(from_usb[-1])[0].payload_crc is True                       # the ble side asked for it
 
 
 def test_unknown_flags_and_oversize_are_rejected():
@@ -192,3 +229,12 @@ def test_golden_exchange_is_reproduced_by_the_device_session():
   dev.feed(bytes.fromhex(g['request_hex']))
   dev.feed(bytes.fromhex(g['unknown_request_hex']))
   assert [o.hex() for o in out] == [g['response_hex'], g['error_hex']]
+
+
+def test_bulk_padding_follows_jetlinks_rule_and_the_decoder_skips_it():
+  from nagaspilot.plp import bulk
+  f = F.Frame(R.KIND_NOTIFY, 8, 2, b'x' * 100, F.CH_BULK).encode()
+  assert len(bulk.pad_device_to_phone(f)) == bulk.BURST and len(bulk.pad_device_to_phone(bytes(bulk.BURST))) == bulk.BURST
+  assert len(bulk.pad_phone_to_device(bytes(512))) == 513 and len(bulk.pad_phone_to_device(bytes(511))) == 511
+  stream = bulk.pad_device_to_phone(f) + bulk.pad_device_to_phone(f)
+  assert len(F.FrameDecoder().feed(stream)) == 2
