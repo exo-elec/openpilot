@@ -37,14 +37,14 @@ Can be done without hardware:
    manager (needs a Jetlink checkout); (d) the `modeld` hook, default off, +10 lines (budget +733 -> +743, named).
    EOP10's `ModelState` has the same `DrivingModelFrame` preprocessing and host-side history as NGP10's, so the OpenCL warp
    source and reset carry unchanged; the RKNN split runner stays the always-warm small model. NOT done: the hardware side.
-   The USB-C port is the eGPU port (`&usbdrd3_0` on 01M, `&usb_drd0_dwc3` on 02M, `dr_mode = "host"` in exopilot's
-   `*-egpu-*.dts`); the phone needs a sibling overlay with `dr_mode = "peripheral"` and a kernel with configfs/FunctionFS and
+   The USB-C port is the host port (`&usbdrd3_0` on 01M, `&usb_drd0_dwc3` on 02M, `dr_mode = "host"` in exopilot's
+   `*-host.dts`); the phone needs a sibling overlay with `dr_mode = "peripheral"` and a kernel with configfs/FunctionFS and
    DWC3 gadget, and Jetlink's root script needs a static-role platform (no USB-PD). Never built or run on a device.
    NCP over the cable (iPhone mode only): `system/bluetoothd/ncp_cable.py`, TCP on 192.168.60.1:5598 as a third transport on the
    shared `NCPSession`, started by `BluetoothD` when `EOPBigModelLink = 2` (only while Bluetooth itself is enabled, because it lives
    in that daemon); 10 loopback tests; phone side is NavPilot `CableTransportService`. Android has no cable network, so no NCP
    over the cable there yet. Not run on a device.
-   Parity with upstream's Chestnut (master 6f4c0faf1) is in `nagaspilot/docs/CHESTNUT_PARITY.md`: the default policy waits up to 60 s
+   Parity with upstream's big-model (master 6f4c0faf1) is in `nagaspilot/docs/BIGMODEL_PARITY.md`: the default policy waits up to 60 s
    for a connected, enumerated phone with engagement held off, falls back one-way, and raises NotDetected/UsbSlow/ModelError offroad
    alerts; `alerts_offroad.json` +12/-0 is in the footprint budget by name (the alert commit had left that test red).
 
@@ -131,11 +131,6 @@ then rebase `dev/01M` / `dev/02M` and run `./test.sh` on each.
   (the `opendbc_repo` submodule is not checked out, so `car.CarParams` lacks
   `brand`). Expected to pass on a real SCons build with submodules initialised.
 
-> **Superseded (2026-09-27): the USB eGPU runs openpilot's Chestnut driving
-> model only.** The "USB eGPU camera expansion" session below (side/rear eGPU
-> YOLO and segmentation shadows, `EOP*EGPUMode` params) was withdrawn and its
-> code removed. Object detection for every camera runs on RKNN; segmentation
-> for every camera on the Hailo-8 / DX-M1M card (segd). See `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
 > **History record (2026-09-23).** VisionPilot, the ROS 2 stack earlier entries
 > compare against, is no longer developed. openpilot is the
@@ -153,187 +148,6 @@ then rebase `dev/01M` / `dev/02M` and run `./test.sh` on each.
 > `VOICE_PIPELINE.md`. The entries below recording the original `axmodel/`
 > reservation decision are history, not current architecture.
 
-## Current session — USB eGPU camera expansion (2026-08-23)
-
-Scope and ownership:
-
-- OpenPilot owns the front driving cameras plus two independent optional workloads:
-  `sided` for `side_left`/`side_right`, and `reard` for `rear`.
-- Corner-radar/4D point-cloud work is not part of this OpenPilot eGPU change. It
-  is the ESP32_RADAR WiFi add-on on 02M (BLE `radar2d` is the baseline).
-- The first milestone is shadow comparison: run the existing small/local result
-  and the eGPU model on the same frame, measure consistency and any improvement,
-  and leave the existing result authoritative.
-- The main expansion target is semantic segmentation. The production driving
-  model remains the openpilot-native vision + temporal-policy pipeline and its
-  existing input buffers, output slices, parsers and message contract.
-- Side and rear are complete inference pipelines, not camera-only feeds: each
-  needs its own detection and segmentation sessions, health and validation data.
-
-Completed in the working tree:
-
-- [x] Pin `tinygrad_repo` to the official stable `v0.13.0` tag
-  (`2d48fe8b7bd9acfa00e91a7f89b28b3ded370c27`), rather than following `master`.
-- [x] Add separate `side_yolo_egpu` and `rear_yolo_egpu` model IDs, artifacts,
-  Params, sessions and shadow queues. Rear is not folded into a generic camera model.
-- [x] Keep `inferenced` as the only process allowed to own the USB eGPU and make
-  the eGPU path fail closed; it cannot silently open a per-daemon direct backend.
-- [x] Keep only `off` and `shadow` modes. No eGPU result has driving authority.
-- [x] Transport camera input as FP16 and cast in device memory to the ONNX-declared dtype.
-- [x] Audit the six ONNX artifacts in `../autoware_vision_pilot`.
-  All model ops exist in tinygrad v0.13 and all six graphs parse.
-- [x] Execute `autosteer_int8`, `autospeed_int8`, and `autodrive_int8` end to end
-  with tinygrad v0.13 on CPU using zero inputs; shapes were correct and outputs finite.
-  This verifies graph compatibility only, not USB eGPU latency or numerical quality.
-- [x] Extend `InferencedStatus` with capability-discovery fields (`availableBackends`,
-  `availableModels`, `backendHealth`) and publish them from HAL in `inferenced`.
-- [x] Add `InferenceClient` capability methods (`get_available_backends`,
-  `get_available_models`, `can_run_model`, `wait_for_backend`) with IPC + direct-HAL fallback.
-- [x] Gate side/rear eGPU detection and front road/wide eGPU segmentation shadow jobs
-  on advertised `EGPU` backend availability.
-- [x] Add independent `side_seg_egpu`, `rear_seg_egpu`, `front_road_seg_egpu`, and
-  `front_wide_seg_egpu` model contracts, registry entries, Params, and SHA-256 placeholders.
-- [x] Add `EgpuSegmentationShadowRunner` with preprocessing, postprocessing, and IoU
-  comparison against the authoritative mask, plus unit tests.
-- [x] Add side/rear camera-alive health tracking (`CameraHealthTracker`) and publish
-  `camera_disconnected` faults through the existing `sideStatus`/`rearStatus` fields.
-- [x] Fix `system/inferenced/tests/test_daemon_execution.py` so its `cereal` mock is
-  scoped to test execution and no longer poisons other test modules in the same process.
-
-Next tasks, in order:
-
-- [x] Stage/verify the `tinygrad_repo` gitlink and confirm a fresh recursive clone
-  resolves the official URL and exact release commit.
-- [ ] Add SHA-256 entries and viewpoint-specific production artifacts for side and
-  rear detection; the initial copied YOLOv8n files are hardware-path validation models only.
-- [x] Add independent `side_seg_egpu` and `rear_seg_egpu` model contracts and
-  artifacts. Do not combine their masks, class maps, postprocessing or health state.
-- [x] Add front road/wide segmentation shadow jobs by adapting the existing
-  SceneSeg/PP-LiteSeg contracts; benchmark useful mask quality before model size.
-  **OBSOLETE (2026-09-27):** eGPU camera shadows removed; segmentation now on
-  camera-tier card (segd with TwinLiteNet+), not eGPU.
-- [ ] Flash and bench-identify the ASM2464PD-class enclosure, then measure actual
-  USB 3.0 Gen1 throughput, hot-unplug recovery and sustained thermal behavior.
-- [ ] Measure per-camera p50/p95/p99 latency, dropped deadlines, frame age, IoU,
-  precision/recall and false negatives with small/local and eGPU results side by side.
-- [x] Implement real priority/deadline ordering in `inferenced`; its current single
-  worker serializes access but does not yet order the queue by job priority.
-- [ ] Extend private transport only where segmentation or the canonical openpilot
-  driving runner needs multiple named tensors/outputs. Schema changes still require approval.
-- [ ] Keep driving inference behind the existing openpilot `modeld` runner and
-  `parse_vision_outputs`/`parse_policy_outputs` contract, including temporal feature,
-  desire, traffic-convention and previous-curvature buffers. An eGPU backend may
-  implement this runner interface; it must not introduce a parallel driving contract.
-- [x] Audit latest upstream openpilot Chestnut behavior at master commit
-  `084747c75d2cbd23af65ab7a9e770bbd7b98bac9` and document its build, firmware,
-  runtime, telemetry and one-way fallback patterns in
-  `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
-- [x] Refactor driving execution behind one openpilot-compatible runner contract
-  before enabling eGPU driving. Preserve modeld's temporal state and parsed outputs.
-  - Added `selfdrive/modeld/runners/driving_runner.py` with `DrivingRunner` ABC,
-    `DrivingModelSpec`, and `DrivingRunnerResult`.
-  - Added `selfdrive/modeld/runners/rknn_driving_runner.py` implementing the local
-    fallback path with vision + policy inference and ONNX/RKNN desire-name normalization.
-  - Added `selfdrive/modeld/runners/factory.py` with `create_driving_runner()`:
-    `use_chestnut=True` returns the monolithic `ChestnutDrivingRunner` (currently
-    fail-closed), default returns the split RKNN runner (bukapilot KA2 architecture).
-  - Wired `selfdrive/modeld/modeld.py::ModelState` to use the runner factory; temporal
-    state, preprocessing and `Parser` ownership remain in modeld.
-  - Added `selfdrive/modeld/tests/test_driving_runner.py` covering load, infer,
-    failure, backend injection and factory selection.
-- [x] Keep a local RKNN driving runner loaded, warmed and temporally current whenever
-  an external driving model is active.
-  - `modeld.main()` now loads the external runner first (when enabled), then always
-    constructs and keeps the RKNN fallback runner warm.
-  - The active runner is swapped to RKNN on the first external failure; temporal state
-    (desire, feature history) remains in `ModelState` so the fallback resumes cleanly.
-- [x] On eGPU exception, timeout, non-finite output, hot-unplug or stale model stream:
-  discard the failed frame, switch once to RKNN, soft-disable if engaged, and prohibit
-  onroad eGPU retry until the next offroad/ignition restart.
-  - Mirrored upstream Chestnut behavior from `openpilot/selfdrive/modeld/modeld.py`
-    (load big model in a bounded background thread, keep small model warm, catch
-    exceptions in the main loop, set `UsbGpuActive` False and switch runner).
-  - Added `ChestnutDrivingEnabled`, `ChestnutDrivingLoading`, `ChestnutDrivingActive`
-    Params mirroring upstream's `UsbGpuLoading`/`UsbGpuActive` contract. The names
-    diverge from upstream deliberately: EOP's `inferenced` owns the USB GPU device,
-    so the state machine is named after the Chestnut model class, not the transport.
-  - `ModelState.run()` raises on external-runner inference failure and on non-finite
-    outputs; `modeld.main()` catches this, sets the active Param to
-    False, calls `model.set_runner(rknn_runner)`, resets `run_count`, and continues.
-  - Added `ChestnutDrivingRunner`, a monolithic (`big_driving_supercombo`
-    tinygrad JIT) runner that fails closed so the failover path is exercised
-    before the real compiled artifact and private multi-tensor transport are ready.
-  - On-road retry is prohibited because the active Param is only cleared at the next
-    offroad/ignition restart (`params.remove(ChestnutDrivingActive)` at startup).
-  - Soft-disable if engaged is delegated to selfdrived via the `ChestnutDrivingActive`
-    Param, matching upstream's `bigModelFailed` event pattern.
-- [ ] Port upstream's compiled tinygrad JIT artifact identity and deterministic
-  compile/replay checks. Dynamic `OnnxRunner` remains shadow-only.
-- [ ] Verify whether stable tinygrad v0.13.0 can compile/run the Chestnut path.
-  Upstream currently pins commit `138fb4a783d82f4e877ad2fe3692aaf8d1de2e46`,
-  948 commits after v0.13.0; do not move EOP off a stable tag without approval.
-- [x] Audit `../bukapilot` driving models. Two generations exist:
-  - Old monolithic supercombo (v10.0.5 era, `origin/harmeet`): one nine-input
-    `supercombo.rknn` with a single 6,504-float output; RK3588-only binary.
-  - Current KA2 (RK3588) branch `byd_sng_ka2`: **split** `driving_vision.rknn` +
-    `driving_policy.rknn` (default, `USE_RKNN=1`), plus `dmonitoring_model.rknn`
-    as a separate non-driving model; `USBGPU=1` switches to tinygrad/AMD with
-    the big driving models. EOP's RKNN path follows the KA2 split architecture;
-    the eGPU path follows upstream Chestnut's monolithic big model.
-- [ ] Materialize and verify Bukapilot's exact source ONNX
-  (`d21daa542227ecc5972da45df4e26f018ba113c0461f270e367d57e3ad89221a`,
-  51,461,700 bytes) from its LFS history.
-  Note (2026-08-23): this is distinct from — and still open after — the KA2
-  `driving_vision.onnx`/`driving_policy.onnx` pair (46,271,942 / 13,926,324
-  bytes) copied and hash-verified into `models/onnx/` this session; see the
-  follow-up session below.
-- [ ] Package separate Bukapilot fallback conversions for RK3588 and RK3576.
-  Record source/converter/toolkit/calibration/target/output hashes; never load the
-  RK3588 binary on RK3576.
-- [ ] First run the exact Bukapilot ONNX through tinygrad on eGPU and compare it to
-  local RKNN on identical prepared tensors (`egpu_parity`). This validates backend
-  and failover mechanics without changing the model graph.
-- [ ] Then compile the official upstream Chestnut big model for `egpu_big`:
-  `big_driving_supercombo.onnx` LFS SHA-256
-  `a501760a9d1d5fef0eab2b8c5d122d06124fc26dc8e0782e0aa94b82a208f0ff`
-  (1,757,355,221 bytes at the audited commit).
-- [ ] Treat upstream-big → Bukapilot-RKNN as a model-generation transition, not
-  numerical fallback parity. Require parsed-contract/replay validation and always
-  soft-disable if that transition is triggered while engaged.
-- [ ] Design offroad-only, versioned ASM firmware flashing and recovery separately.
-  Do not modify RK3588 BSP configuration without approval.
-- [ ] Keep AutoSpeed, AutoSteer and AutoDrive as optional compatibility/reference
-  experiments, below segmentation in priority. Do not substitute their outputs for
-  openpilot's driving model or connect them directly to trajectory planning.
-- [ ] Reuse one locally preprocessed tensor where contracts match, but keep model
-  sessions, outputs, health, deadlines and promotion decisions independent.
-- [ ] Do not enable a primary eGPU mode or feed planning/control until replay, HIL,
-  hardware-soak, failure-recovery and closed-course gates are defined and passed.
-
-Deferred to hardware-only / cross-repo follow-up:
-
-- [ ] Flash and bench-identify the ASM2464PD USB enclosure; measure sustained
-  throughput, thermal behavior and hot-unplug recovery.
-- [ ] Cross-repo HAL-level accelerator/service discovery for Hailo/DX-M1M and eGPU
-  in `../exopilot` so OpenPilot sees a single capability surface regardless of SoC.
-  (AXCL is HumRobot's, not ExoPilot's, and is out of scope here.)
-- [ ] Extend the device-health concept to front road/wide cameras, WiFi/BLE modems,
-  and other peripherals without introducing a new daemon in this pass.
-- [ ] On-road validation of side/rear camera detection, eGPU segmentation shadow
-  quality, and camera-disconnect fault handling.
-
-Verification run (dev-PC):
-
-- `python3 -m py_compile` passes for all modified Python files.
-- `pytest -q -n0 system/inferenced/tests/ selfdrive/sided/tests/ selfdrive/gridd/tests/ selfdrive/controls/tests/ selfdrive/modeld/tests/test_driving_runner.py selfdrive/modeld/tests/test_modeld_failover.py`
-  → **235 passed**, 7 skipped, **1 failed** — `test_nslc::test_get_nslc_speed_helper` is a
-  documented pre-existing dev-PC environment gap (returns None on dev PC), not a regression.
-  `test_depth_validation::test_with_real_calibration` now skips cleanly when the hardware
-  calibration file is absent.
-- `selfdrive/modeld/test_modeld_integration.py` continues to pass.
-- `ruff check` passes on the new/changed modeld runner and test files.
-- `git diff --check` is clean.
-
 ## Cross-repo boundary audit (ExoPilot HAL ↔ OpenPilot ↔ VisionPilot ↔ HumRobot/ExoRobot)
 
 Goal: confirm that capability discovery, accelerator detection, and camera-health
@@ -344,29 +158,23 @@ concepts are owned by the right layer and are consistent across the pilot stacks
 | Layer | Responsibility | Current state |
 |---|---|---|
 | **ExoPilot HAL** (`../exopilot/hal/`) | BSP bring-up only: board identity, pin maps, camera geometry, thermal constants, init scripts, NPU tuning tables. | No accelerator-query or camera-alive APIs. Correct boundary. |
-| **OpenPilot `system/inferenced`** | Owns runtime accelerator detection, scheduling, health, and IPC publication. | `InferencedStatus` now exposes `availableBackends`, `availableModels`, `backendHealth`. Backends probe RKNN/ACL/RGA/MPP/Hailo/DX-M1/eGPU/USB. |
-| **OpenPilot daemons** | Consume `inferencedStatus` / `inferenceJobResult`. | `sided`/`reard`/`gridd`/`monod` gate bonus models on `EGPU`; `CameraHealthTracker` publishes camera-disconnect faults via existing status fields. |
-| **VisionPilot** (`../visionpilot/`) | ROS 2 stack with its own `src/system/inference/` HAL and `/system/inference/query_backends` service. | Has `BackendStatus` per-backend list + JSON health, but no aggregate `availableBackends`/`availableModels` message matching openpilot. eGPU detection identical. No side/rear/front segmentation contracts yet. No camera frame-age watchdog. |
-| **HumRobot/ExoRobot** (`../robot/humrobot`, `../robot/exorobot`) | Humanoid/robot stacks with the same tiered-accelerator concept. | Already implements workload-class routing: safety → RKNN, camera → Hailo/DEEPX, voice/policy → AXCL/Hailo-10H. eGPU is presence-only/additive. |
 
 ### Findings
 
 1. **Accelerator detection should stay in OpenPilot `system/inferenced`, not move to ExoPilot HAL.**
-   ExoPilot HAL has no detection APIs and should remain BSP-only. OpenPilot's backends already probe the right devices (`/dev/hailo0`, `lspci -d 1ff4:`, USB VID/PID for eGPU, etc.).
+   ExoPilot HAL has no detection APIs and should remain BSP-only. OpenPilot's backends already probe the right devices (`/dev/hailo0`, `lspci -d 1ff4:`, etc.).
 
 2. **One cross-boundary compute import exists and should be reviewed:**
    `system/inferenced/arm_acl.py:131` imports `from hal.drivers.radar import dsp_gpu_kernel`. This is a radar DSP kernel reaching into ExoPilot HAL. Consider exposing this kernel through `inferenced` as an ACL operation instead, so the HAL does not leak into the inference scheduler.
 
 3. **VisionPilot naming does not match OpenPilot `BackendType.name`.**
-   - OpenPilot: `NPU`, `ACL`, `RGA`, `MPP`, `HAILO_8`, `ONNX`, `DX_M1`, `EGPU`.
-   - VisionPilot: `npu_rockchip`, `cpu_acl`, `dmu_rga`, `vpu_mpp`, `npu_hailo_8`, `egpu`, etc.
+   - OpenPilot: `NPU`, `ACL`, `RGA`, `MPP`, `HAILO_8`, `ONNX`, `DX_M1`.
+   - VisionPilot: `npu_rockchip`, `cpu_acl`, `dmu_rga`, `vpu_mpp`, `npu_hailo_8`, etc.
    Any future bridge between the two repos should carry a canonical mapping; do not change either enum into the other.
 
 4. **VisionPilot needs an aggregate capability-discovery message to stay aligned.**
    OpenPilot publishes a single `InferencedStatus` with capability lists and JSON health. VisionPilot publishes per-backend `BackendStatus` and a separate JSON health topic. Add an aggregate `InferenceStatus.msg` (or extend `BackendStatus.msg`) with `available_backends`, `available_models`, and `backend_health` fields so both stacks expose the same contract.
 
-5. **eGPU segmentation contracts exist only in OpenPilot.**
-   `side_seg_egpu`, `rear_seg_egpu`, `front_road_seg_egpu`, `front_wide_seg_egpu` are in OpenPilot's `MODEL_REGISTRY`. VisionPilot and HumRobot have no equivalent entries. If those stacks will run eGPU segmentation, add matching registry entries; otherwise document the omission.
 
 6. **Camera-alive health is inconsistent across stacks.**
    - OpenPilot: new `CameraHealthTracker` in `selfdrive/sided/camera_health.py` with frame-timeout fault reporting.
@@ -379,7 +187,6 @@ concepts are owned by the right layer and are consistent across the pilot stacks
 
 ### Boundary recommendations
 
-- Keep ExoPilot HAL BSP-only; do not add `has_hailo` / `has_egpu` APIs there.
 - Keep OpenPilot `system/inferenced` as the single source of truth for accelerator capability and health on EOP10 hardware.
 - Add a canonical OpenPilot ↔ VisionPilot backend-name mapping when building a bridge; do not rename either stack's enums.
 - Add an aggregate capability message in VisionPilot mirroring `InferencedStatus`.
@@ -1025,13 +832,6 @@ match bukapilot KA2 exactly (same input/output shapes, same output slices).
   Did not port bukapilot's explicit-format/`inputs_pass_through` RKNNLite
   retry logic (defensive workaround for buggy RKNNLite builds) — out of scope
   for this pass.
-- [x] Ported the blip guard (`_apply_blip_guard`/`_y_at_distance_from_plan` in
-  `modeld.py`'s `ModelState`) — suppresses one-frame "straight" plan blips
-  that follow a sustained same-side curve, gated by `RKNN_BLIP_GUARD` (default
-  on). Applied only to the split RKNN/ONNX path, not the Chestnut monolithic
-  path (bukapilot has no monolithic path; the eGPU big model is a different
-  generation and CLAUDE.md requires it preserve upstream's own modelV2
-  semantics rather than inherit RKNN-specific mitigations).
 - [x] Did not port bukapilot's stage-capture debug feature (`RKNN_STAGE_CAPTURE_*`,
   `.npz` frame dumps) — a debugging tool, not part of the proven inference path.
 - [x] Added tests: `system/inferenced/tests/test_rockchip_npu.py` (fp16 cast,
@@ -1082,136 +882,8 @@ Verification run (dev-PC):
   ONNX on dev PC); unrelated to this session's changes.
 - `./test.sh` (focused gate) is green.
 
-## Follow-up session (Chestnut ONNX + Autoware reference models, 2026-08-23)
-
-Goal: finish porting the remaining `models/` placeholders and pre-position
-Chestnut's raw ONNX for the future gated compile step (task.md's existing
-`egpu_big` roadmap item), per user request.
-
-- [x] Audited `../autoware_universe` (the real, unrelated ROS 2 Autoware.Universe
-  stack — no models there) and confirmed `../autoware_vision_pilot`'s six ONNX
-  artifacts were already audited in a prior session (see the earlier "Audit the
-  six ONNX artifacts" line above). Found that `../visionpilot/models/onnx/` and
-  `models/hef/` already carry hash-stable copies of five of our manifest's
-  long-standing placeholder entries (`egolanes_lite_int8`, `scene3d_lite_int8`,
-  `sceneseg_lite_int8`, `autosteer_full_int8`, `autospeed_full_int8`) plus two
-  of the three placeholder `hef/` files (`yolov8n.hef`, `scrfd_2.5g.hef`) —
-  same Autoware lineage. Copied and hash-verified all seven into `models/`,
-  recorded real sha256/size/shape in `MODEL_MANIFEST.md`. The third `hef/`
-  placeholder, `whisper_base_5s_encoder.hef`, was initially copied in too but
-  then deliberately removed on user correction: whisper's target tier is
-  `VOICE_INFERENCE` (destined for `axmodel/` once an AX-M1 backend + real
-  `.axmodel` build exist), not `hef/`'s `CAMERA_INFERENCE` purpose — a
-  mismatched-tier `.hef` build isn't worth storing just because it's the only
-  compiled artifact available today; left unfetched with a note in both
-  `MODEL_MANIFEST.md` and `download_models.sh` instead. Confirmed via
-  `onnx.load()` that `autosteer_full_int8`'s
-  real contract (`input (1,6,80,160)` → two `(61,)` outputs) differs from what
-  an earlier session recorded for `../autoware_vision_pilot`'s plain
-  `autosteer_int8` (`input_0 [1,3,512,1024]`) — different variant/pipeline,
-  not re-verified against planning; recorded as reference/compatibility only
-  per `CLAUDE.md`, not connected to anything.
-  `domainseg_full_int8.onnx`/`dmonitoring_model*.onnx` also exist in
-  `../visionpilot` but have no EOP consumer — deliberately not pulled in.
-- [x] Found and stored the upstream Chestnut big model
-  (`big_driving_supercombo.onnx`) from two independent local sibling checkouts
-  — `../ext_gpu/openpilot-upstream` (literal `commaai/openpilot@master`,
-  `b7c333cf3fee117779515c9ebfd7b2beb164fa81`) and `../sunnypilot@master`
-  (`bf74ce544738189693dbd07266a46e63465710c1`) — both hash-identical
-  (`10926f2c...`, 1,753,235,978 bytes). This **differs** from the hash/size
-  task.md previously recorded from an earlier audit (`a501760a9d1...`,
-  1,757,355,221 bytes); sunnypilot's commit touching the same file is titled
-  "Be Right Here Model 🏃 (big)" (2026-08-01), so this reads as comma shipping
-  a genuine model update since that audit, not corruption — flagged clearly
-  in `MODEL_MANIFEST.md` rather than silently overwritten. Confirmed with the
-  user this is storage-only, pre-positioning for the still-gated `egpu_big`
-  compile step — `ChestnutDrivingRunner`/`factory.py` remains untouched and
-  deliberately fail-closed; nothing reads this file today.
-- [x] Reorganized `models/` after back-and-forth with the user on naming axis
-  (brand vs. format — settled on **format**, consistently, not mixed):
-  `rknn/` (.rknn), `hef/` (.hef), `onnx/` (.onnx — dev-PC RKNN substitute,
-  Chestnut's big model, and reference-only models all share this since they're
-  all `.onnx`), plus two new reserved-but-empty folders for backends that have
-  no models yet: `axmodel/` (.axmodel, future AX-M1/AXCL) and `dxnn/` (.dxnn,
-  `BackendType.DX_M1`/DeepX — the backend class already existed
-  pre-session with `MODEL_ZOO_SUBDIR = 'deepx'`, fixed to `'dxnn'` for
-  consistency with the format-naming rule; `hailo_hef.py`'s
-  `MODEL_ZOO_SUBDIR` and `inferenced.py`'s `yolo_side` registry path were
-  touched and reverted back to `'hef'`/`models/hef/...` in the same session —
-  net no-op there). Per user clarification: `axmodel/`'s intended workload
-  tier is `VOICE_INFERENCE` (local LLM + whisper voice encoder — nothing
-  stored there yet), not camera inference; `hef/`+`dxnn/` are
-  `CAMERA_INFERENCE` (side/rear/etc.), interchangeable with each other, both
-  cheaper/earlier in the pipeline than Chestnut's `onnx/`-tier big model.
-  Documented the full scheme (table + priority ordering) in
-  `MODEL_MANIFEST.md`'s new "Folder naming" section and `models/README.md`'s
-  directory tree.
-- [x] Updated `download_models.sh`: added hash-verified `copy_verified` blocks
-  for the five Autoware ONNX files (sourced from `../visionpilot`,
-  `VISIONPILOT_DIR` override) and for `big_driving_supercombo.onnx` (primary
-  `../ext_gpu/openpilot-upstream`, fallback `../sunnypilot`, both
-  env-overridable) with an explicit runtime warning that a hash mismatch
-  there needs re-verification against a fresh upstream checkout rather than
-  being trusted as an error. Left a NOTE comment in place of a whisper block
-  explaining why it's deliberately not fetched.
-
-Verification run (dev-PC):
-
-- `bash -n models/download_models.sh`, `ruff check` on touched Python files,
-  `git diff --check` all clean.
-- `pytest -q system/inferenced/tests/ selfdrive/test/test_inference_pipeline.py
-  selfdrive/modeld/tests/test_driving_runner.py selfdrive/modeld/tests/test_modeld_failover.py
-  selfdrive/modeld/tests/test_blip_guard.py selfdrive/modeld/tests/test_resolve_model.py`
-  → **119 passed**, 9 skipped, same 1 pre-existing unrelated failure as above.
-- `./test.sh` is green.
-- `models/` is now 1.9G on disk (dev-PC only, gitignored — includes the 1.7GB
-  Chestnut ONNX); nothing under `models/` is git-tracked except the four
-  top-level meta files (`.gitignore`, `README.md`, `MODEL_MANIFEST.md`,
-  `download_models.sh`), unchanged from before this session.
-
-Pruned on further user direction (same session): `onnx/` now stores only
-Chestnut's big model — removed `driving_vision.onnx`/`driving_policy.onnx`
-(this dev PC doesn't run the driving model via ONNX Runtime) and the five
-Autoware reference models (still available from `../visionpilot`/
-`../bukapilot` if needed again, see git history for hashes). Removed
-`hef/scrfd_2.5g.hef` — no driver-facing camera on this hardware, and
-`driverd`'s face-DMS pipeline it existed for is VisionPilot-only (verified:
-no `driverd`, `AttentionTracker`, or `facePoseState` anywhere in this repo).
-Deleted the now-stale "Face DMS pipeline" section from `models/README.md`
-(it was documenting a VisionPilot feature that was never implemented here).
-Researched official upstream sources for the two reserved backends and
-recorded them in `MODEL_MANIFEST.md`/`models/README.md`/`download_models.sh`:
-DeepX's `dxnn/` → [github.com/DEEPX-AI/dx-modelzoo](https://github.com/DEEPX-AI/dx-modelzoo)
-(354 pre-compiled models); Axera's `axmodel/` → [github.com/AXERA-TECH](https://github.com/AXERA-TECH),
-specifically [ax-llm](https://github.com/AXERA-TECH/ax-llm) for the intended
-`VOICE_INFERENCE`/local-LLM use — no models fetched yet (no backend code for
-either exists), left as pointers for a future session. Re-verified
-`_resolve_model()` and the full test suite after the prune — falls through
-correctly to `rknn/driving_vision.rknn` on this x86 dev PC now that no `.onnx`
-substitute exists; same 119 passed/9 skipped/1 pre-existing-unrelated-failure
-result, `./test.sh` green.
-
 ## Follow-up session (tinygrad pin alignment, workspace re-establishment, 2026-08-24)
 
-- [x] Bumped `tinygrad_repo` to `8611fe22a` (v0.13.0+882, matching real
-  upstream `commaai/openpilot@master`'s own pin) to investigate real Chestnut
-  support, then reverted back to plain `v0.13.0` on user direction — Chestnut
-  isn't in any official openpilot release tag yet (`v0.11.1`, 2026-05-29,
-  predates it by ~2 months; only exists on unreleased `master`), and the
-  fail-closed `ChestnutDrivingRunner` stub doesn't need the newer pin for
-  anything reachable today. Both `dev/EOP10` and `dev/NGP10` now track the
-  identical `v0.13.0` commit deliberately, for consistency.
-- [x] Session was interrupted (usage limit) and resumed in a **fresh clone**
-  (confirmed via `git reflog` showing only the clone event) — not the same
-  working directory as the interrupted session. `origin/dev/EOP10` had moved
-  to a new "WIP" tip (`32a791ce7c`) from a commit made outside this session
-  (`d436ce20`, "unify EGPU naming and add dual firmware detection for
-  ASM2464PD and Chestnut", author `EXO-ELEC`) — reviewed it carefully before
-  building on it (see `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`'s
-  "Implementation status (2026-08-23)" section for the full review and two
-  regressions found/fixed: a deleted `CarVin` params_keys.h entry, and three
-  submodule pins accidentally cross-contaminated from `dev/NGP10`). Fixed in
-  `ae37ac0de4`.
 - [x] Fixed the repo's `origin` remote from HTTPS to SSH
   (`git@github.com:exo-elec/openpilot.git`) — SSH auth was already confirmed
   working (`ssh -T git@github.com` succeeds as `exo-elec`) while the fresh
@@ -1220,56 +892,6 @@ result, `./test.sh` green.
   expired and needs an interactive browser re-auth (`gh auth login`) that
   can't be completed non-interactively — flagged for the user, not blocking
   since git push/pull only need SSH.
-
-## Follow-up session (eGPU scope reconciliation + bandwidth confirmation, 2026-08-24)
-
-Goal: answer "what else can use eGPU idle capacity" honestly, after an
-earlier draft answer (local voice/LLM) turned out to conflict with an
-existing decision — investigate before recommending, don't build on an
-unverified assumption.
-
-- [x] Found and surfaced a real doc tension before acting on it: the
-  `axmodel/` folder's `VOICE_INFERENCE` (local LLM + whisper) tier, tagged
-  2026-08-23 in `MODEL_MANIFEST.md`, looked like it contradicted
-  `docs/eop/03_Software/Daemons/Enhanced/VOICE_PIPELINE.md`'s deliberate,
-  cross-repo "no local STT/TTS" decision from 2026-08-14 (which was pushed
-  as a real VisionPilot commit, `visionpilot@125e151`, specifically to keep
-  VisionPilot aligned with EOP10). User clarified: AX-M1/AXCL is a separate
-  PCIe-attached NPU with its own on-device DRAM, sharing neither the eGPU's
-  USB link nor the RK3588 driving NPU — so the "no NPU/GPU contention" reason
-  behind the cloud-voice decision doesn't block `axmodel/`'s tier. Documented
-  the reconciliation directly in `MODEL_MANIFEST.md` (Folder naming section)
-  so a future session doesn't re-flag this as a conflict, and noted that
-  actually building local voice on AX-M1 would still need its own explicit
-  `VOICE_PIPELINE.md` Safety Design update (the other three reasons —
-  attack surface, auditability, centralized updates — are independent of
-  the hardware-contention argument).
-- [x] Checked `../autoware_vision_pilot/VisionPilot` for eGPU-workload
-  candidates beyond the three already-documented AutoDrive/AutoSpeed/
-  AutoSteer ONNX pairs — found none. Its `safety_guardian` module
-  (`fusion/{lateral,longitudinal}_fusion`, `planning/{lateral,longitudinal}_
-  planning`) confirmed the whole stack is itself a redundant advisory
-  safety-guardian layer over those three models' outputs, not a source of
-  new production workloads; it also runs on TensorRT (Nvidia-desktop
-  oriented), reinforcing its existing "compatibility reference only" status.
-  Recorded in `EGPU_CAMERA_SHADOW.md`'s Autoware section.
-- [x] Code-verified (not just budget-estimated) that a Chestnut/Egpu driving
-  runner needs both road and wide camera uploads: `selfdrive/modeld/
-  modeld.py` opens a second `VisionIpcClient` for `VISION_STREAM_WIDE_ROAD`
-  whenever both it and `VISION_STREAM_ROAD` are available
-  (`use_extra_client`), and `CHESTNUT_EGPU_ADOPTION.md`'s "must preserve
-  those inputs" rule binds any Egpu runner to the same contract — so the
-  ≥126 MB/s road+wide figure in `EGPU_3D_RECONSTRUCTION_BANDWIDTH.md` is a
-  hard requirement, not a conservative estimate. Recorded in that doc.
-- [x] Answered "can all 5 cameras (road/wide/side_left/side_right/rear) run
-  through the eGPU together": worst-case combined load is ~224 MB/s, under
-  the ~300–350 MB/s realistic Gen1 ceiling but with little margin — and more
-  fundamentally gated by the still-missing priority/deadline scheduler
-  (`EGPU_CAMERA_SHADOW.md` already flagged this as a prerequisite before
-  this session; added the concrete arithmetic backing that statement).
-
-No code changes — this session was documentation reconciliation and
-bandwidth/architecture confirmation only; nothing was found broken.
 
 ## Follow-up session (CI/notification audit, 2026-08-24)
 
@@ -1296,25 +918,6 @@ leads directly after its background run was interrupted mid-audit.
   removal — flagged as such in its own comment. All five keep
   `workflow_dispatch` and only comment out (not delete) the `schedule:`
   block, so it's a one-line revert. `f85f2039b7`.
-- [x] Found and fixed a real, previously-unnoticed bug while verifying the
-  above: `pyproject.toml`'s `requires-python = ">= 3.10, < 3.13"` doesn't
-  satisfy tinygrad==0.13.0's actual `Python>=3.11` requirement (pinned for
-  the eGPU work). Reproduced the exact failure with the exact command
-  `eop10_lint.yaml`'s install step runs (`uv sync --all-extras --dev` on a
-  pinned Python 3.10 runner) — full dependency resolution failure. This has
-  very likely been failing the EOP10 lint gate's install step on every
-  push/PR since tinygrad was pinned, independent of the two noise fixes
-  above. Fixed: `requires-python` floor bumped 3.10 → 3.11; `uv.lock`
-  regenerated (shrinks significantly — Python-3.10-conditional resolution
-  branches drop out); both `eop10_lint.yaml` jobs' `python-version` bumped
-  3.10 → 3.12 to match the documented deployed `.venv`. Verified locally:
-  `uv sync --all-extras --dev` now succeeds (failed identically to CI
-  before the fix). `e6570aa96a`.
-- [x] Checked the other 3 audit items Kimi's interrupted run hadn't reached:
-  TODO/FIXME/XXX grep across `selfdrive/`/`system/` — all pre-existing
-  upstream comma.ai debt, nothing EOP-specific and actionable beyond the
-  already-tracked `factory.py:118` eGPU gate; dead-link scan across
-  `docs/eop/*.md` — none found, clean.
 
 Known remaining, not acted on: `docs/eop/CODE_QUALITY_LINT_CLEANUP.md`'s
 tracked mypy debt (553 errors/149 files as of last count) — did not attempt
@@ -1364,19 +967,6 @@ distinct root causes, verified one at a time against the actual CI run
   Added `test.sh --no-pytest` (default/no-flag behavior unchanged, so the
   documented local-dev contract in `CLAUDE.md` still holds for anyone with
   a real build); wired both `eop10_lint.yaml` jobs to pass it. `2c78415032`.
-- [x] Final failure, and a genuine content bug rather than a CI
-  infrastructure issue: `.github/scripts/check_rknn_local.py` (the "RKNN
-  model local-placement check" step) explicitly forbids vendor-branded
-  names ("kommu, KA2, bukapilot, kmini, ...") from public EOP10 source --
-  this session's earlier split-RKNN/eGPU port work left "bukapilot"/"KA2"
-  in comments and docstrings across `modeld.py` and its runners
-  (`rknn_driving_runner.py`, `factory.py`, `egpu_driving_runner.py`,
-  `driving_runner.py`, two test files). This is the check doing its job
-  correctly, not a bug in the check -- reworded all flagged comments to
-  describe the architecture generically ("proven external split-RKNN
-  reference/architecture") instead of naming the vendor, preserving
-  technical meaning. Verified: `check_rknn_local.py` passes clean.
-  `cb2c7156fa`.
 
 Each fix was verified against the *actual* GitHub-hosted CI run via the
 public API before moving to the next -- local reproduction alone had
@@ -1589,7 +1179,6 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 
 - [x] `gridd.run()` read a removed `vipc_road` / undefined `_nv12_to_bgr` (left over from B4): crash on the first loop pass. Removed.
 - [x] `test_boundaries.py` 4/4: runtime adapters and `eop_utils` moved to `nagaspilot/runtime/`, backup script to `nagaspilot/tools/`, UI hook files allowed. See plan log.
-- [x] Removed stray `NGP10_CHESTNUT_MIGRATION_PLAN.md`.
 
 ## Lead-departure shared with NGP10 (2026-10-03)
 
@@ -1704,3 +1293,8 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 ## 2026-10-12: the big-model link is NavPilot's own (carried from dev/NGP10)
 
 Jetlink is no longer a dependency: `jetlink_repo`, `jetlink_adapter.py` and `jetlinkd` are gone; `nagaspilot/bigmodel/` (NPBM v1, byte-identical to NGP10's) replaces them and `bigmodeld` runs only for the gadget modes (1, 2). Setting `EOPBigModelLink = 3` (USB tethering) is recommended on these boards: they are USB hosts, so no overlay swap; the kernel needs exopilot's `feat/usb-tether-host` drivers. See `nagaspilot/docs/NAVPILOT_BIGMODEL.md`. Unverified on a board.
+
+## 2026-10-13 — the external GPU path is removed
+
+The big driving model runs on the driver's phone over USB (`nagaspilot/bigmodel`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`). The earlier external-GPU
+sessions, runner, failover params and shadow paths were removed from this branch and from the journal above; see git history for them.
