@@ -6,12 +6,8 @@ _EXPORTS = {
     "DrivingModelSpec": "driving_runner",
     "DrivingRunnerResult": "driving_runner",
     "RKNNDrivingRunner": "rknn_driving_runner",
-    "EgpuDrivingRunner": "egpu_driving_runner",
-    "ChestnutDrivingRunner": "egpu_driving_runner",
     "create_driving_runner": "factory",
     "build_driving_specs": "factory",
-    "build_egpu_spec": "factory",
-    "build_chestnut_spec": "factory",
 }
 __all__ = list(_EXPORTS)
 

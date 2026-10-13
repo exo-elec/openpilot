@@ -23,11 +23,11 @@ echo "  all     - Everything above"
 echo ""
 echo "Folders are named by file format, not backend brand:"
 echo "  rknn/ (.rknn, Rockchip NPU — driving model, YOLOv8)   hef/ (.hef, Hailo-8 — twinlitenet_plus_large_384x640, built)"
-echo "  onnx/ (.onnx — Chestnut's big model only)   dxnn/ (.dxnn, DeepX DX-M1M — twinlitenet_plus_large_384x640, built)"
+echo "  onnx/ (.onnx — the big driving model the phone runs)   dxnn/ (.dxnn, DeepX DX-M1M — twinlitenet_plus_large_384x640, built)"
 echo ""
 
 # ============================================================================
-# Dev PC / CARLA — Chestnut's big-model ONNX (the eGPU's only model) + yolo_640
+# Dev PC / CARLA — the big driving model ONNX (run by the phone) + yolo_640
 # ============================================================================
 if [ "$DOWNLOAD_TYPE" = "dev-pc" ] || [ "$DOWNLOAD_TYPE" = "all" ]; then
     echo "=== ONNX Models (x86 dev PC) ==="
@@ -43,7 +43,7 @@ if [ "$DOWNLOAD_TYPE" = "dev-pc" ] || [ "$DOWNLOAD_TYPE" = "all" ]; then
     # driving_policy.onnx as a dev-PC ONNX-runtime substitute for the RKNN
     # driving pair, plus a reference-only Autoware vision suite (egolanes/
     # scene3d/sceneseg/autosteer/autospeed). Removed — onnx/ stores only
-    # Chestnut's big model; this dev PC does not run the driving model via
+    # the big driving model; this dev PC does not run the driving model via
     # ONNX Runtime. See MODEL_MANIFEST.md and git history if that capability
     # is needed again.
 
@@ -64,19 +64,18 @@ if src.exists():
 " 2>/dev/null || echo "✗ YOLOv8n export failed — install: pip install ultralytics"
     fi
 
-    # Chestnut's raw ONNX is not wired to any runner yet (ChestnutDrivingRunner
-    # is deliberately fail-closed — see task.md/CHESTNUT_EGPU_ADOPTION.md); this
-    # only pre-positions the artifact for a future gated compile step. Prefer
+    # The big driving model's raw ONNX: the phone runs it (nagaspilot/bigmodel), the comma does not; this
+    # only pre-positions the artifact for NavPilot's model list and its allow-list tool. Prefer
     # a real commaai/openpilot checkout; fall back to sunnypilot (cross-verified
     # byte-identical against it as of 2026-08-23).
     EXT_GPU_UPSTREAM_DIR="${EXT_GPU_UPSTREAM_DIR:-$(dirname "$MODELS_DIR")/../ext_gpu/openpilot-upstream/openpilot}"
     SUNNYPILOT_DIR="${SUNNYPILOT_DIR:-$(dirname "$MODELS_DIR")/../sunnypilot/openpilot}"
-    CHESTNUT_SHA="10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4"
+    BIG_MODEL_SHA="10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4"
     if copy_verified "$EXT_GPU_UPSTREAM_DIR/selfdrive/modeld/models/big_driving_supercombo.onnx" \
-        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$CHESTNUT_SHA"; then
+        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$BIG_MODEL_SHA"; then
         echo "✓ big_driving_supercombo.onnx (commaai/openpilot@master, hash-verified)"
     elif copy_verified "$SUNNYPILOT_DIR/selfdrive/modeld/models/big_driving_supercombo.onnx" \
-        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$CHESTNUT_SHA"; then
+        "$MODELS_DIR/onnx/big_driving_supercombo.onnx" "$BIG_MODEL_SHA"; then
         echo "✓ big_driving_supercombo.onnx (sunnypilot@master fallback, hash-verified)"
     else
         echo "✗ big_driving_supercombo.onnx — not fetched. This is expected to go stale:"

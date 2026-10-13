@@ -8,7 +8,6 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 
 | Feature ID | UI switch | Direct runtime reader |
 |---|---|---|
-| `EgpuDrivingEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `QuietMode` | Yes | `selfdrive/soundd/soundd.py:37` |
 | `AEBEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:525` |
 | `ALCCAllowAlways` | Yes | `selfdrive/controls/lib/alcc.py:68` |
@@ -112,7 +111,6 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `UIRadarTracks` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `UIRainbow` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `VTSCEnabled` | Yes | `selfdrive/controls/lib/vtsc.py:131` |
-| `ChestnutDrivingEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `WakeEnabled` | Yes | `nagaspilot/manager/process_config.py:77` |
 | `CloudVoiceEnabled` | Yes | `nagaspilot/manager/process_config.py:73` |
 | `VoiceEnabled` | Yes | `nagaspilot/manager/process_config.py:70` |
