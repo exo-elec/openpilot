@@ -57,11 +57,11 @@ def test_events_reads_the_phone_flags_and_names_events():
   params = {}
   g = NGPBigModelGate()
   assert g.events(params.get, True, now=0) == []
-  params["BigModelLoading"] = True
+  params["ngp_bigmodel_loading"] = True
   assert g.events(params.get, True, now=1) == ["bigModelLoading"]
-  params.update(BigModelLoading=False, BigModelActive=True)
+  params.update(ngp_bigmodel_loading=False, ngp_bigmodel_active=True)
   assert g.events(params.get, True, now=2) == []
-  params["BigModelActive"] = False
+  params["ngp_bigmodel_active"] = False
   assert g.events(params.get, True, now=3) == ["bigModelFailed"]
 
 
@@ -83,18 +83,18 @@ def test_a_stalled_stream_keeps_the_latch_while_disengaged():
   assert g.update(False, True, enabled=True, model_dead=True).soft_disable
 
 
-def test_another_branch_names_its_own_keys_and_never_reads_the_defaults():
+def test_a_gate_given_other_keys_reads_only_those_and_never_the_defaults():
   asked = []
-  params = {"EOPBigModelLoading": True}
+  params = {"other_loading": True}
 
   def get(key):
     asked.append(key)
     return params.get(key)
 
-  g = NGPBigModelGate(("EOPBigModelLoading",), ("EOPBigModelActive",))
+  g = NGPBigModelGate(("other_loading",), ("other_active",))
   assert g.events(get, True, now=0) == ["bigModelLoading"]
-  assert not {"BigModelLoading", "BigModelActive"} & set(asked)
-  assert {"EOPBigModelLoading", "EOPBigModelActive"} <= set(asked)
+  assert not {"ngp_bigmodel_loading", "ngp_bigmodel_active"} & set(asked)
+  assert {"other_loading", "other_active"} <= set(asked)
 
 
 def test_params_are_read_at_most_every_period_not_every_cycle():
@@ -112,10 +112,10 @@ def test_params_are_read_at_most_every_period_not_every_cycle():
 
 
 def test_a_change_is_seen_within_one_period_and_the_gate_state_still_updates_every_cycle():
-  params = {"BigModelActive": True}
+  params = {"ngp_bigmodel_active": True}
   g = NGPBigModelGate()
   g.events(params.get, True, now=0.0)
-  params["BigModelActive"] = False
+  params["ngp_bigmodel_active"] = False
   assert g.events(params.get, True, now=0.1) == []                 # still the cached reading
   assert g.events(params.get, True, now=0.26) == ["bigModelFailed"]  # read again
 
@@ -141,10 +141,10 @@ def test_a_failure_that_is_already_announced_does_not_restart_settling():
 
 
 def test_events_feeds_the_settling_clock():
-  params = {"BigModelLoading": True}
+  params = {"ngp_bigmodel_loading": True}
   g = NGPBigModelGate()
   g.events(params.get, True, now=0.0)
   assert g.settling(now=1.0)
-  params["BigModelLoading"] = False
+  params["ngp_bigmodel_loading"] = False
   g.events(params.get, True, now=1.0)
   assert g.settling(now=5.0) and not g.settling(now=6.1)

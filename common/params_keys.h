@@ -15,10 +15,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
-    // Big model (phone over USB, nagaspilot/bigmodel): loading/proving blocks engagement, active is false once it
-    // handed back or failed. Read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py).
-    {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
-    {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
     {"CalibrationParams", {PERSISTENT, BYTES}},
     {"CameraDebugExpGain", {CLEAR_ON_MANAGER_START, STRING}},
@@ -129,9 +125,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
     // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
-    // nonzero on (USB network to the phone). Default off; the small model stays loaded and drives until the phone
-    // model is proven.
+    // 1 Android (FunctionFS bulk gadget), 2 iPhone (CDC-NCM network the phone dials), 3 USB tethering (optional). The direct
+    // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
+    // until the phone model is proven.
     {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py):
+    // loading/proving blocks engagement; active is false once the big model handed back or failed.
+    {"ngp_bigmodel_active", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"ngp_bigmodel_loading", {CLEAR_ON_MANAGER_START, BOOL}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.

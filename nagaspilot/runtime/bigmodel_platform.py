@@ -12,8 +12,8 @@ from pathlib import Path
 LINK = "ngp_bigmodel_link"
 
 # written by modeld, read by selfdrived's gate (nagaspilot/controls/ngp_bigmodel_gate.py)
-LOADING = "BigModelLoading"
-ACTIVE = "BigModelActive"
+LOADING = "ngp_bigmodel_loading"
+ACTIVE = "ngp_bigmodel_active"
 # (cam_w, cam_h, model_w, model_h): a comma 3 / 3X road camera and the model frame DrivingModelFrame warps to
 DEVICE_CAMERA = (1928, 1208, 512, 256)
 
