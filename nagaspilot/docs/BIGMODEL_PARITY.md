@@ -1,7 +1,7 @@
 # Big-model parity with upstream: the phone as the compute
 
 Compared 2026-10-11 against upstream `commaai/openpilot` master `6f4c0faf1` (2026-10-10). The goal is the same behaviour as
-upstream's big model, with the compute on a phone over USB instead of an AMD GPU behind an ASM2464 bridge. Source files read:
+upstream's big model, with the compute on a phone over USB instead of a GPU. Source files read:
 `selfdrive/modeld/modeld.py`, `selfdrive/modeld/helpers.py`, `selfdrive/selfdrived/selfdrived.py`, `selfdrive/selfdrived/events.py`,
 `selfdrive/selfdrived/alerts_offroad.json`, `system/hardware/hardwared.py`, upstream's big-model hardware status and monitoring modules,
 `cereal/log.capnp`, `selfdrive/ui/mici/{layouts/home,onroad/hud_renderer}.py`. Since the 2026-08-21 commit this work started from,
@@ -21,7 +21,7 @@ Nothing below has run on a device. "Matches" means the logic is the same and tes
 | 5 | Big model drives from the first frame after the load | The joining model swaps when nothing is in control; engagement is held off during the window, so the swap lands before the first engagement | Matches in effect |
 | 6 | Any exception: the active flag set false, small model, **never switched back onroad** | After a hand-back the join is stopped (`close()`); no rejoin until the next start | Matches (the `ONE_WAY` policy, default). A rejoin is the `LATE_JOIN` policy |
 | 7 | Non-finite output raises, then falls back | The phone server flags `NOT_FINITE` and keeps its state; the comma holds that frame, and a reply with non-finite floats raises and the joining model demotes | Matches (server side) |
-| 8 | `selfdrived`: loading blocks entry (`bigModelLoading`), failure raises `bigModelFailed`, soft-disables if it was driving while engaged, latch clears on disengage | `ngp_bigmodel_gate.py`, same logic, reads the phone flags (the eGPU flags were removed 2026-10-13) | Matches |
+| 8 | `selfdrived`: loading blocks entry (`bigModelLoading`), failure raises `bigModelFailed`, soft-disables if it was driving while engaged, latch clears on disengage | `ngp_bigmodel_gate.py`, same logic, reads the phone flags | Matches |
 | 9 | `modelV2.big` set from the big model | `modelV2.big` (`@27`, upstream's ordinal) | Matches |
 | 10 | `modeld` sets realtime after loading | `prepare()` runs before the process goes realtime (the link's listener thread must be started before, so it can be moved off the realtime core) | Different order, same intent |
 | 11 | Dropped camera frames: the big model has no `prepare_only` and runs every frame | Dropped frames run the big model; the small model stays prepare-only | Matches |

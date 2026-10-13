@@ -773,21 +773,6 @@ struct PandaState @0xa7649e2575e4591e {
   safetyParam2DEPRECATED @26 :UInt32;
 }
 
-struct EgpuState {
-  # No longer published: the eGPU path was removed (the big model runs on a phone, nagaspilot/bigmodel). Kept so the
-  # event union's ordinal stays taken and old logs still parse.
-  tempC @0 :Float32;
-  memoryTempC @1 :Float32;
-  powerDrawW @2 :Float32;
-  powerLimitW @3 :Float32;
-  gpuUsagePercent @4 :UInt8;
-  gpuClockMhz @5 :UInt16;
-  fanSpeedRpm @6 :UInt16;
-  pcieLtssm @7 :UInt8;
-  supplyVoltage @8 :UInt16;  # mV
-  supplyCurrent @9 :Int16;  # mA
-}
-
 struct PeripheralState {
   pandaType @0 :PandaState.PandaType;
   voltage @1 :UInt32;
@@ -3627,7 +3612,7 @@ struct Event {
     uiDebug @102 :UIDebug;
 
     # driving feedback
-    egpuState @303 :EgpuState;
+    removedService303DEPRECATED @303 :Void;
     pathAdjust @304 :Custom.PathAdjust;           # NagasPilot pathd add-on (NGP10 has this at @152); EOP10 maps it onto enhancedTrajectory
 
     # *********** debug ***********
