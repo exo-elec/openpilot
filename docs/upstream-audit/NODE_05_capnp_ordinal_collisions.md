@@ -30,7 +30,7 @@ is shared byte-identical but the **wire ordinals are not**, with a pointer to
 this doc. During the 2026-10-03 EOP10 rebase onto NGP10, the combined EOP
 schema also had duplicate service fields and skipped ordinals, so its
 NGP-specific DLON/TJA fields were moved to EOP's next free slots
-(`LongitudinalPlan @69–75`, `ControlsState @76–78`); `egpuState` was appended
+(`LongitudinalPlan @69–75`, `ControlsState @76–78`); a GPU telemetry service was appended (since replaced by a deprecated placeholder)
 at `Event @303`. This makes EOP's schema internally valid, but does not align
 its wire layout with NGP10 or EDP10. `capnp compile -I cereal -I . -o-
 cereal/log.capnp` passes on EOP10 after the repair. If a cross-branch log tool
