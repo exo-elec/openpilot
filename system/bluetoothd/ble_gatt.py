@@ -220,9 +220,9 @@ class _TXChar(dbus.service.Object if DBUS_AVAILABLE else object):  # type: ignor
         interleave chunks from different frames on the BLE channel."""
         if not self.is_notifying() or not DBUS_AVAILABLE:
             return
-        for i in range(0, len(data), 500):  # 500-byte chunks (safe under BlueZ MTU 512)
-            chunk = list(data[i:i + 500])
-            with self._lock:
+        with self._lock:  # one lock for the whole frame: two threads' frames must not interleave their chunks
+            for i in range(0, len(data), 500):  # 500-byte chunks (safe under BlueZ MTU 512)
+                chunk = list(data[i:i + 500])
                 self._value = chunk
                 self.PropertiesChanged(
                     GATT_CHAR_IFACE,
