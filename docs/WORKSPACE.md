@@ -5,7 +5,7 @@ This document provides links and brief descriptions of the various projects with
 ## Core Projects
 
 ### [openpilot](../README.md)
-The main project: EnhancedOpenPilot (EOP), optimized for **Rockchip RK3588** hardware. It features a stereo vision pipeline, YOLO object detection on RKNN for all cameras, drivable-area segmentation on the camera-tier card (Hailo-8 / DX-M1M), OccupancyGrid, and optional USB eGPU acceleration.
+The main project: EnhancedOpenPilot (EOP), optimized for **Rockchip RK3588** hardware. It features a stereo vision pipeline, YOLO object detection on RKNN for all cameras, drivable-area segmentation on the camera-tier card (Hailo-8 / DX-M1M), OccupancyGrid, and optional external accelerator.
 
 ### enhancedopenpilot
 A specialized fork of openpilot designed for RK3588-based hardware and the BrownPanda Chinese EV framework.

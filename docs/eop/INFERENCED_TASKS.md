@@ -8,7 +8,7 @@
 - **Phase 4**: ✅ COMPLETE - Performance Profiling (all tasks complete)
 - **Phase 5**: ⏳ PENDING - Hardware Deployment (requires RK3588)
 - **Phase 6**: ✅ COMPLETE - Production Hardening (All 5 tasks complete)
-- **Phase 7**: ⛔ WITHDRAWN (2026-09-27) - USB eGPU camera shadow validation; the eGPU path itself was removed 2026-10-13
+- **Phase 7**: ⛔ WITHDRAWN (2026-09-27) - external USB GPU camera shadow validation; the external GPU path itself was removed 2026-10-13
 - **Phase 8**: ✅ CODE COMPLETE (2026-09-27) - RKNN: YOLOv8 detection for every camera; camera-tier card (Hailo-8 / DX-M1M): segmentation for every camera (segd) — see `05_Features/CAMERA_ACCEL_TIER.md`
 
 ---
@@ -271,13 +271,13 @@ Hardware readiness procedures documented in PHASE5_HARDWARE_READINESS.md
 
 ---
 
-## Phase 7: Optional USB eGPU shadow validation (2026-08-23) — WITHDRAWN
+## Phase 7: Optional external USB GPU shadow validation (2026-08-23) — WITHDRAWN
 
-> **Withdrawn 2026-09-27.** The eGPU (since removed entirely, 2026-10-13) ran the upstream driving model and
+> **Withdrawn 2026-09-27.** The external GPU (since removed entirely, 2026-10-13) ran the upstream driving model and
 > nothing else. The side/rear shadow queues, segmentation shadows and their
 > Params were removed; object detection for every camera runs on RKNN and
 > segmentation for every camera on the Hailo-8 / DX-M1M card (segd). The
-> items below are history; the only one still live is the last (an eGPU
+> items below are history; the only one still live is the last (an external-GPU
 > driving backend must implement the `modeld` runner contract).
 
 This phase extends the historical 26-task RK backend plan; it is not included in
@@ -286,14 +286,14 @@ authoritative throughout this phase.
 
 - [x] Pin the official tinygrad `v0.13.0` release as a submodule.
 - [x] Add independent side and rear model IDs, artifacts, Params and shadow queues.
-- [x] Enforce `inferenced` as the sole eGPU owner and disable direct fallback.
+- [x] Enforce `inferenced` as the sole external-device owner and disable direct fallback.
 - [x] Audit all six ONNX models in `../autoware_vision_pilot`; parse all six and
   execute the three INT8 variants on CPU for graph compatibility.
 - [x] Set the architecture priority: segmentation first; side and rear remain
   independent inference pipelines; production driving models follow openpilot's
   existing `modeld` runner, temporal state and output parser contracts.
 - [ ] Validate the focused unit tests and repository gates.
-- [ ] Flash and identify the ASM2464PD-class enclosure and verify the selected
+- [ ] Flash and identify the external GPU enclosure and verify the selected
   tinygrad device/backend on the actual external GPU.
 - [ ] Benchmark sustained USB 3.0 Gen1 transfer, inference latency, thermals,
   disconnect/reconnect and contention with side and rear active independently.
@@ -306,7 +306,7 @@ authoritative throughout this phase.
   cereal schemas without approval.
 - [ ] If retained, run AutoSpeed, AutoSteer and AutoDrive only as separately
   rate-limited compatibility references below segmentation priority.
-- [ ] Any future eGPU driving backend must implement the openpilot `modeld` runner
+- [ ] Any future external-GPU driving backend must implement the openpilot `modeld` runner
   contract; it must not bypass its temporal buffers, parsers or `modelV2` semantics.
 - [x] Audit the upstream big-model integration (superseded: the big model now runs on a phone, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`).
 - [ ] Preload and warm the RKNN driving runner before activating an external model;
@@ -321,8 +321,8 @@ authoritative throughout this phase.
   supercombo, one 6,504-float output, RKNN compiler 2.3.0, target RK3588.
 - [ ] Build and validate independent Bukapilot-derived RKNN artifacts for RK3588
   and RK3576 from the same hash-locked source ONNX.
-- [ ] Add an exact-model parity stage: Bukapilot ONNX on eGPU versus Bukapilot RKNN
-  locally, followed by the official upstream big model as the target eGPU model.
+- [ ] Add an exact-model parity stage: Bukapilot ONNX on an external GPU versus Bukapilot RKNN
+  locally, followed by the official upstream big model as the target external-GPU model.
 - [ ] Define replay, HIL, soak and closed-course promotion gates before adding any
   primary mode or connecting a result to trajectory planning/control.
 
