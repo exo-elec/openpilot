@@ -156,9 +156,21 @@ Handlers move over one service at a time through the registry's v4 mapping. Noth
 6. Where the cereal output for the locate service goes (blocks wiring `LocateSink` into localization).
 7. Reserving the `FLAG_ACK_REQ` behaviour now, or removing it until a message needs it.
 
-## 12. Implemented now
+## 12. Migration status (2026-10-13)
 
-`nagaspilot/plp/`: `registry.json` and `registry.py`, `frame.py` (CRC-32C, `Frame`, `FrameDecoder`), `channel.py` (`Outbox`, `Reassembler`), `hello.py`, `dispatch.py`, `session.py` (`PlpSession`), `cable.py` (`CablePLP`), `locate.py` (`LocateSink`). Tests: `nagaspilot/tests/test_plp.py`, `test_plp_session.py`, fixture `plp_golden.json`. Phone: `packages/plp` (registry, generated Dart constants, tool); the Dart framing and tests are not finished.
+| Piece | State |
+|---|---|
+| Registry (42 messages, v4 mapping), framing, channels, hello, dispatch, session | **Done**, comma (`nagaspilot/plp/`, 52 tests) and phone (`packages/plp`, 18 tests); golden frames, hello bytes and a full hello/error exchange are shared fixtures |
+| USB cable, iPhone (TCP 5601) | **Code done**: `cable.py`, `plpd.py`, started by the manager when `ngp_bigmodel_link = 2` (NGP10 `system/manager`, EOP line `nagaspilot/manager`). Loopback-tested only. **Not run on a board or an iPhone** |
+| Locate service (GNSS fix, map horizon) | Done on both sides; the comma holds the results in `LocateSink`, the phone sends through `PlpLocate`, falling back to NCP when PLP is not agreed. **Nothing reads `LocateSink` yet** (cereal output undecided) |
+| BLE, comma side | **Code done, untested on BlueZ**: `ble_stream.py` (chunking, pacing; tested, including a 70-byte MTU), `bluetoothd/plp_gatt.py` (second GATT application, own service UUID, hooked into `bluetoothd`). The D-Bus shell has been exercised only with the D-Bus parts stubbed |
+| BLE, phone side | **Not done.** Needs the native BLE layer to hand bytes to a `PlpSession` and read the ATT MTU |
+| Android cable | **Blocked on a decision.** The FunctionFS interface carries the big-model protocol (NPBM); a second protocol on one pipe needs either a second bulk interface in the descriptors (`bigmodel/ffs.py`) or NPBM carried as a PLP service. Neither is built |
+| NCP v4.1 | Unchanged except one fix: the BLE notify holds one lock per frame (it took it per chunk, so frames from two threads could interleave). The fixed 500-byte chunk size is **not** fixed: the legacy path is left alone |
+| v4 handlers moved to PLP | **Not started.** The registry maps every v4 type; moving `ncp_session` handlers service by service needs a board and a phone, and `ncp_session` cannot be imported in the dev container (capnp) |
+| Renames | None yet, by design: `ncp_*` files and `CableNCP` keep their names until PLP has run end to end |
+
+What "clean" means here: PLP exists beside NCP, nothing in v4.1 behaviour changed, nothing was renamed, and every unverified piece is listed above. The order to finish: (1) iPhone against `plpd` on a comma 3; (2) BLE bench and the Android decision; (3) move `auth.pair` and the vehicle and nav handlers; (4) retire NCP and rename.
 
 ## References
 
