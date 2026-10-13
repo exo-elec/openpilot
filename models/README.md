@@ -84,7 +84,7 @@ models/
 ├── download_models.sh      # Unified download script
 ├── hef/                    # Hailo-8 models (.hef): drivable area
 │   └── twinlitenet_plus_large_384x640.hef   # built, not downloaded
-├── onnx/                   # ONNX models (.onnx) — Chestnut's big model only;
+├── onnx/                   # ONNX models (.onnx) — the big driving model only (run by the phone);
 │   │                       # this dev PC does not run the driving model via
 │   │                       # ONNX Runtime
 │   └── big_driving_supercombo.onnx
