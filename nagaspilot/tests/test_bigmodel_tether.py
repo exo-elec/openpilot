@@ -31,6 +31,13 @@ def test_interfaces_are_found_by_kernel_driver_not_by_name(tmp_path):
   assert T.tether_interfaces(tmp_path / 'nothing') == []
 
 
+def test_a_cellular_modem_on_an_ethernet_class_driver_is_not_a_phone(tmp_path):
+  net = tmp_path / 'net'
+  net.mkdir()
+  fake_net(net, wwan0='cdc_ether', ppp0='rndis_host', usb0='cdc_ncm')
+  assert T.tether_interfaces(net) == ['usb0']
+
+
 def test_the_gateway_is_the_phone_on_that_interface(tmp_path):
   r = tmp_path / 'route'
   # 0x2AA8C0 little-endian = 192.168.42.x; 0x8129A8C0 -> 192.168.41.129
