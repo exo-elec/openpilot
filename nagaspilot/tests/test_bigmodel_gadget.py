@@ -275,3 +275,35 @@ def test_turning_it_off_releases_the_bulk_gadget_too():
   o.step()
   box[0] = 0
   assert o.step() == 'off' and made.unbound == 1 and made.closed == 1 and not o.up
+
+
+class FakePort:
+  def __init__(self, result):
+    self.result, self.asked = result, 0
+
+  def hold(self):
+    self.asked += 1
+    return self.result
+
+
+def test_a_pd_board_asks_for_the_device_role_every_step_and_waits_while_the_phone_refuses():
+  run = Run()
+  port = FakePort('failed')
+  o = G.GadgetOwner(lambda: 2, run=run, net_ok=lambda: True, port=port)
+  assert o.step() == 'working' and run.calls == [] and port.asked == 1       # no gadget is built on a port that stayed the host
+  port.result = 'device'
+  assert o.step() == 'up' and 'gadget' in run.calls and port.asked == 2
+
+
+def test_a_swap_in_flight_or_no_partner_does_not_hold_the_gadget_back():
+  for result in ('swapped', 'wait', 'no_partner', 'no_port'):
+    run = Run()
+    o = G.GadgetOwner(lambda: 2, run=run, net_ok=lambda: True, port=FakePort(result))
+    assert o.step() == 'up'
+    assert 'gadget' in run.calls
+
+
+def test_with_the_setting_off_the_port_is_not_touched():
+  port = FakePort('device')
+  o = G.GadgetOwner(lambda: 0, run=Run(), net_ok=lambda: True, port=port)
+  assert o.step() == 'off' and port.asked == 0

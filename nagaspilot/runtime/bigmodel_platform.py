@@ -18,7 +18,9 @@ ACTIVE = "EOPBigModelActive"
 # model's own DrivingModelFrame; the camera size comes from camerad when the link attaches
 DEVICE_CAMERA = (1928, 1208, 512, 256)
 
-# 'static': the port role is fixed by the device tree and there is no PD controller to drive
+# 'static': the port role is fixed by the device tree and there is no PD controller to drive.
+# 'pd': the board has a PD controller (kernel Type-C class); bigmodeld asks for the device role through /sys/class/typec
+# (nagaspilot/bigmodel/typec.py; exopilot docs/02-HARDWARE/DIRECT_USB_LINK.md). Set this when the PD board exists. Unverified on a board.
 USB_PLATFORM = "static"
 
 
