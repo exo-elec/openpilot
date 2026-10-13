@@ -173,3 +173,11 @@ Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfd
 - Frame cost of a 393 KB TCP send on modeld's thread against the 50 ms budget; a sender thread or UDP split may be needed
   (Jetlink measured 7.35 ms to 4.3 ms with UDP).
 - Own USB VID/PID before distribution (no PID is allocated; the gadget uses the Linux Foundation test VID 0x1d6b / 0x0104 for bench only).
+
+## Link cost, measured (2026-10-13)
+
+`python3 -m nagaspilot.bigmodel.tools.bench_link HOST PORT` sends real-sized requests (393 KB frame) at 20 Hz and reports the round trip.
+Against the pure-Dart stub server (`packages/npbm`, no inference) on loopback, 400 frames: **p50 6.7 ms, p99 16.0 ms, max 28.8 ms** of the 50 ms
+budget. That is the protocol, framing and the Dart server's copies on a PC with no USB in the path, so it is a floor for the software cost, not a
+phone number. The cable adds the transfer of 393 KB each way-in: about 11 ms at a practical 35 MB/s (USB 2), about 3 ms at 125 MB/s (gigabit
+tether). Run the same tool on a real phone with a real model to get the figure that decides the gate for removing the eGPU.
