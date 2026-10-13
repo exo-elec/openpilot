@@ -1293,8 +1293,3 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 ## 2026-10-12: the big-model link is NavPilot's own (carried from dev/NGP10)
 
 Jetlink is no longer a dependency: `jetlink_repo`, `jetlink_adapter.py` and `jetlinkd` are gone; `nagaspilot/bigmodel/` (NPBM v1, byte-identical to NGP10's) replaces them and `bigmodeld` runs only for the gadget modes (1, 2). Setting `EOPBigModelLink = 3` (USB tethering) is recommended on these boards: they are USB hosts, so no overlay swap; the kernel needs exopilot's `feat/usb-tether-host` drivers. See `nagaspilot/docs/NAVPILOT_BIGMODEL.md`. Unverified on a board.
-
-## 2026-10-13 — the external GPU path is removed
-
-The big driving model runs on the driver's phone over USB (`nagaspilot/bigmodel`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`). The earlier external-GPU
-sessions, runner, failover params and shadow paths were removed from this branch and from the journal above; see git history for them.
