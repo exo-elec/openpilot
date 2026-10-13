@@ -12,6 +12,7 @@
 8. [`STEERING_ACTIVITY_MONITORING.md`](STEERING_ACTIVITY_MONITORING.md) — shared decay policies and the existing controlsd warning/deceleration contract.
 
 8. [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) — big model hosted on the phone over USB, NavPilot-owned link (NPBM protocol, no external dependency); plan, decisions, status. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) is the superseded Jetlink-port record.
+9. [`PLP_V5_SPEC.md`](PLP_V5_SPEC.md) — PLP v5, the Pilot Link Protocol (replaces NCP): framing, session, USB-C and BLE transports, registry, security, migration. `nagaspilot/plp/` is the code; USB is the baseline here (comma 3 has no BLE).
 
 Runtime code follows the same order:
 

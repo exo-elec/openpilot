@@ -1,0 +1,625 @@
+{
+ "plp_registry": 1,
+ "services": {
+  "core": 0,
+  "device": 1,
+  "vehicle": 2,
+  "nav": 3,
+  "drive": 4,
+  "perception": 5,
+  "auth": 6,
+  "voice": 7,
+  "locate": 8,
+  "system": 9
+ },
+ "v4_special": {
+  "ack": 48,
+  "error": 49,
+  "batch": 31
+ },
+ "messages": [
+  {
+   "service": "core",
+   "id": 1,
+   "name": "hello",
+   "dir": "both",
+   "v4": [],
+   "status": "active",
+   "note": "connect handshake: versions, encodings, limits, services"
+  },
+  {
+   "service": "core",
+   "id": 2,
+   "name": "ping",
+   "dir": "both",
+   "v4": [
+    {
+     "code": 64,
+     "kind": "request"
+    },
+    {
+     "code": 65,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "keepalive; the answer is a response with the same request id"
+  },
+  {
+   "service": "device",
+   "id": 1,
+   "name": "capabilities",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 0,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "ask what the device supports"
+  },
+  {
+   "service": "device",
+   "id": 2,
+   "name": "info",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 1,
+     "kind": "response"
+    },
+    {
+     "code": 53,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "device identity and state"
+  },
+  {
+   "service": "vehicle",
+   "id": 1,
+   "name": "telemetry",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 16,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "speed, steering, gear, OBD values"
+  },
+  {
+   "service": "vehicle",
+   "id": 2,
+   "name": "info",
+   "dir": "both",
+   "v4": [
+    {
+     "code": 36,
+     "kind": "request"
+    },
+    {
+     "code": 52,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "VIN and vehicle type"
+  },
+  {
+   "service": "vehicle",
+   "id": 3,
+   "name": "control",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 37,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "vehicle control request"
+  },
+  {
+   "service": "vehicle",
+   "id": 4,
+   "name": "obd_request",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 45,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "OBD-II PID request"
+  },
+  {
+   "service": "vehicle",
+   "id": 5,
+   "name": "data",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 46,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "interpreted OBD telemetry from the phone"
+  },
+  {
+   "service": "nav",
+   "id": 1,
+   "name": "guidance",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 17,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "next maneuver instruction"
+  },
+  {
+   "service": "nav",
+   "id": 2,
+   "name": "route",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 21,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "route geometry"
+  },
+  {
+   "service": "nav",
+   "id": 3,
+   "name": "navigate",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 32,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "start navigation to a destination"
+  },
+  {
+   "service": "nav",
+   "id": 4,
+   "name": "cancel",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 33,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "cancel navigation"
+  },
+  {
+   "service": "nav",
+   "id": 5,
+   "name": "favorites",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 38,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "sync favourites"
+  },
+  {
+   "service": "nav",
+   "id": 6,
+   "name": "traffic",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 39,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "traffic update"
+  },
+  {
+   "service": "nav",
+   "id": 7,
+   "name": "search",
+   "dir": "both",
+   "v4": [
+    {
+     "code": 80,
+     "kind": "request"
+    },
+    {
+     "code": 81,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "place search"
+  },
+  {
+   "service": "nav",
+   "id": 8,
+   "name": "convoy_lead",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 112,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "lead friend position"
+  },
+  {
+   "service": "nav",
+   "id": 9,
+   "name": "convoy_cancel",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 113,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "stop following the lead"
+  },
+  {
+   "service": "nav",
+   "id": 10,
+   "name": "convoy_status",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 114,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "follow status"
+  },
+  {
+   "service": "drive",
+   "id": 1,
+   "name": "profile",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 34,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "driving profile"
+  },
+  {
+   "service": "drive",
+   "id": 2,
+   "name": "mission",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 35,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "mission guidance"
+  },
+  {
+   "service": "drive",
+   "id": 3,
+   "name": "adas_state",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 18,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "ADAS state"
+  },
+  {
+   "service": "drive",
+   "id": 4,
+   "name": "alert",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 19,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "safety alerts"
+  },
+  {
+   "service": "perception",
+   "id": 1,
+   "name": "blind_spot",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 1538,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "corner-radar blind-spot status"
+  },
+  {
+   "service": "perception",
+   "id": 2,
+   "name": "radar_pair_control",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 1552,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "open or close the radar pairing window"
+  },
+  {
+   "service": "perception",
+   "id": 3,
+   "name": "radar_pair_status",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 1553,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "radar pairing window status"
+  },
+  {
+   "service": "auth",
+   "id": 1,
+   "name": "handshake",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 42,
+     "kind": "request"
+    }
+   ],
+   "status": "retired",
+   "note": "old tier/expiry assertion; kept for v4 wire compatibility only"
+  },
+  {
+   "service": "auth",
+   "id": 2,
+   "name": "pair",
+   "dir": "both",
+   "v4": [
+    {
+     "code": 43,
+     "kind": "request"
+    },
+    {
+     "code": 54,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "pair the phone with the device"
+  },
+  {
+   "service": "auth",
+   "id": 3,
+   "name": "unpair",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 44,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "unpair"
+  },
+  {
+   "service": "auth",
+   "id": 4,
+   "name": "device_id",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 96,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "hardware device id"
+  },
+  {
+   "service": "auth",
+   "id": 5,
+   "name": "subscription",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 97,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "subscription tier state"
+  },
+  {
+   "service": "auth",
+   "id": 6,
+   "name": "token_validate",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 98,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "token validation result"
+  },
+  {
+   "service": "auth",
+   "id": 7,
+   "name": "oauth_status",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 99,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "token missing, valid, expiring or expired"
+  },
+  {
+   "service": "auth",
+   "id": 8,
+   "name": "device_credential",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 100,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "backend-issued device credential"
+  },
+  {
+   "service": "auth",
+   "id": 9,
+   "name": "oauth_token",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 47,
+     "kind": "notify"
+    }
+   ],
+   "status": "retired",
+   "note": "device-direct OAuth relay; superseded by device_credential"
+  },
+  {
+   "service": "voice",
+   "id": 1,
+   "name": "intent",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 40,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "voice intent from the phone"
+  },
+  {
+   "service": "voice",
+   "id": 2,
+   "name": "tts",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 41,
+     "kind": "request"
+    }
+   ],
+   "status": "active",
+   "note": "text-to-speech request; the device asks the phone (v4 wrongly listed it as a phone-to-device command)"
+  },
+  {
+   "service": "locate",
+   "id": 1,
+   "name": "gnss_fix",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 1568,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "the phone's GNSS fix"
+  },
+  {
+   "service": "locate",
+   "id": 2,
+   "name": "map_horizon",
+   "dir": "p2d",
+   "v4": [
+    {
+     "code": 1569,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "next 500 m to 1 km of the phone's map"
+  },
+  {
+   "service": "system",
+   "id": 1,
+   "name": "health",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 20,
+     "kind": "notify"
+    }
+   ],
+   "status": "active",
+   "note": "system health"
+  },
+  {
+   "service": "system",
+   "id": 2,
+   "name": "status",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 51,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "generic status response"
+  },
+  {
+   "service": "system",
+   "id": 3,
+   "name": "data",
+   "dir": "d2p",
+   "v4": [
+    {
+     "code": 50,
+     "kind": "response"
+    }
+   ],
+   "status": "active",
+   "note": "generic data response"
+  }
+ ]
+}
