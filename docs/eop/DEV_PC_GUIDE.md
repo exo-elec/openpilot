@@ -40,7 +40,7 @@ models/
     driving_vision.rknn    # 79 MB — bukapilot KA2 (byd_sng_ka2), hash-verified
     driving_policy.rknn    # 16 MB — bukapilot KA2, same source pair
   hef/                     # Hailo HEF files (twinlitenet_plus_large_384x640.hef, built)
-  onnx/                    # Chestnut's big model only — this dev PC does not
+  onnx/                    # the big driving model (the phone runs it) — this dev PC does not
                             # run the driving model via ONNX Runtime
 ```
 
@@ -270,7 +270,7 @@ docker run --rm -v $PWD:/tmp/openpilot -w /tmp/openpilot \
 | `.onnx` | ONNX Runtime | Dev PC + CARLA testing |
 | `.hef` | HailoRT (Hailo-8) | Camera-tier card: segmentation, every camera |
 | `.dxnn` | DX-RT (DX-M1M) | Camera-tier card: drivable area (TwinLiteNet+ Large) |
-| `.onnx` via tinygrad | tinygrad v0.13 | USB eGPU: openpilot's Chestnut driving model only; Python 3.11+ required (EOP `.venv` is 3.12) |
+| `.onnx` via tinygrad | tinygrad v0.13 | Not used for driving (the big model runs on a phone); Python 3.11+ required (EOP `.venv` is 3.12) |
 
 ---
 

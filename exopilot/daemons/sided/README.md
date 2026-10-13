@@ -104,8 +104,7 @@ any stored calibration), then `CalibrationStorage`, then
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `EOPSideCamerasEnabled` | bool | `true` | Master side camera toggle |
-There is no eGPU side path: the USB eGPU runs openpilot's Chestnut driving
-model only. Side detection is RKNN; side segmentation is the camera-tier card
+There is no eGPU side path. Side detection is RKNN; side segmentation is the camera-tier card
 (`segd`, `seg_side`). See `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
 ## Files

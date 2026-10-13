@@ -16,7 +16,6 @@ vision inputs fed NHWC by default (`RKNN_ENFORCE_VISION_NCHW=1` to override),
 and the big_img affine (`RKNN_NHWC_BIGIMG_AFFINE_*`). Known caveat inherited
 from bukapilot: their RKNN vision graph has an unresolved hidden-state
 collapse on ~10% of frames; the `RKNN_BLIP_GUARD` lateral mitigation in modeld
-ships enabled by default. See `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
 
 ## Hailo HEF Models (Hailo-8 NPU)
 
@@ -30,9 +29,9 @@ detection runs on RKNN (`rknn/yolo_640_<soc>.rknn`) for every camera (2026-09-27
 No face model (SCRFD): ExoPilot has no driver-facing camera, and there is no
 camera DMS. The card runs segmentation only.
 
-## ONNX Models (Chestnut big model — the eGPU's only model)
+## ONNX Models (the big driving model, run by the phone)
 
-The only file actually stored in `onnx/` today is Chestnut's big-model ONNX.
+The only file actually stored in `onnx/` today is the big driving model's ONNX (the phone runs it; NavPilot downloads its own copy).
 This dev PC does not run the driving model via ONNX Runtime, so the earlier
 dev-PC RKNN substitute (bukapilot's `driving_vision.onnx`/`driving_policy.onnx`)
 and the reference-only Autoware vision suite (`egolanes_lite_int8`,
@@ -46,7 +45,7 @@ every camera is the camera-tier card (`hef/` + `dxnn/`).
 
 | File | SHA256 | Source | Notes |
 |------|--------|--------|-------|
-| `onnx/big_driving_supercombo.onnx` | `10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4` | `commaai/openpilot@master` (`b7c333cf3fee117779515c9ebfd7b2beb164fa81`, via `../ext_gpu/openpilot-upstream`), cross-verified byte-identical against `sunnypilot@master` (`bf74ce544738189693dbd07266a46e63465710c1`) | Upstream Chestnut big model, 1,753,235,978 bytes. **Not currently loaded by anything** — `ChestnutDrivingRunner`/`factory.py` is deliberately fail-closed until the tinygrad-JIT-compiled artifact, replay/HIL/hardware-soak gates, and closed-course validation are all in place (see `task.md`, `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`). **Hash/size differ from the previously audited value** (`a501760a9d1...`, 1,757,355,221 bytes) — comma appears to have shipped a model update since that audit (sunnypilot's commit touching this same file is titled "Be Right Here Model 🏃 (big)", 2026-08-01); this is expected drift for a live upstream artifact, not corruption. Re-verify against `commaai/openpilot@master` before any future compile step. |
+| `onnx/big_driving_supercombo.onnx` | `10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4` | `commaai/openpilot@master` (`b7c333cf3fee117779515c9ebfd7b2beb164fa81`, via `../ext_gpu/openpilot-upstream`), cross-verified byte-identical against `sunnypilot@master` (`bf74ce544738189693dbd07266a46e63465710c1`) | Upstream big-model big model, 1,753,235,978 bytes. **Not currently loaded by anything** — `big-modelDrivingRunner`/`factory.py` is deliberately fail-closed until the tinygrad-JIT-compiled artifact, replay/HIL/hardware-soak gates, and closed-course validation are all in place (see `task.md`, `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`). **Hash/size differ from the previously audited value** (`a501760a9d1...`, 1,757,355,221 bytes) — comma appears to have shipped a model update since that audit (sunnypilot's commit touching this same file is titled "Be Right Here Model 🏃 (big)", 2026-08-01); this is expected drift for a live upstream artifact, not corruption. Re-verify against `commaai/openpilot@master` before any future compile step. |
 
 There is no roadwork-segmentation or dmonitoring-via-ONNX consumer on this
 branch; add an entry here first if one is built.
@@ -60,15 +59,14 @@ consistent — never mix the two axes:
 |---|---|---|
 | `rknn/` | `.rknn` | `BackendType.NPU` (Rockchip) |
 | `hef/` | `.hef` | `BackendType.HAILO_8` |
-| `onnx/` | `.onnx` | Chestnut's big model (the eGPU's only model; not currently loaded by anything); `BackendType.ONNX` (dev-PC/CPU fallback) exists in code but has no driving-model file here today |
+| `onnx/` | `.onnx` | the big driving model (run by the phone, not loaded on this board); `BackendType.ONNX` (dev-PC/CPU fallback) exists in code but has no driving-model file here today |
 | `dxnn/` | `.dxnn` | `BackendType.DX_M1` (DeepX DX-M1M) — `twinlitenet_plus_large_384x640.dxnn`, TwinLiteNet+ Large drivable area + lane lines, built with DX-COM by `tools/card_drivable_model.py` from the same ONNX as the HEF (not in the repo). Camera tier alongside `hef/`, interchangeable with Hailo-8. Official source: [github.com/DEEPX-AI/dx-modelzoo](https://github.com/DEEPX-AI/dx-modelzoo) (354 pre-compiled models — detection, segmentation, classification, face recognition) |
 
 Priority ordering across tiers: `rknn/` (`SAFETY_INFERENCE`, the driving model)
 is always authoritative and always loaded. `hef/`/`dxnn/` (`CAMERA_INFERENCE` —
 side, rear, 02M telephoto, and rule-based Autoware-style camera models) run
-first/cheaper. `onnx/`'s Chestnut big model is the eGPU's one and only model:
-an optional external driving model with one-way failover back to `rknn/` — see
-"Not currently loaded by anything" above.
+first/cheaper. `onnx/`'s big driving model is run by the phone, with one-way
+hand-back to `rknn/`.
 
 **No `axmodel/` tier on ExoPilot.** AX-M1/AXCL is HumRobot's (ExoRobot 01H)
 hardware, not ExoPilot's — there is no AX-M1/AXCL card in the ExoPilot BOM and

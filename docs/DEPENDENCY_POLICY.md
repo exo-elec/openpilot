@@ -35,8 +35,8 @@ The inherited tinygrad pin is
 `d3f09c9bbd542fbfbe68c8569a1173550c408969`, matching official openpilot
 `b9c815d56a2827796ad73ca8f09d186243dd8c17`. NGP compiled driving/YOLO
 artifacts must be rebuilt with that compiler. EOP keeps RKNN as the default
-Rockchip driving backend; the private Chestnut driving transport remains
-closed until its existing replay/HIL readiness gates are satisfied.
+Rockchip driving backend; the big model runs on a phone (nagaspilot/bigmodel) and is default-off
+until its replay/HIL readiness gates are satisfied.
 
 The shared steering activity core remains NGP-owned and has no Exopilot
 hardware dependency. Forward UART radar3d and surround BLE/WiFi radar4d

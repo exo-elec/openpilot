@@ -34,39 +34,39 @@ class TestInferenceClientCapabilities(unittest.TestCase):
         return client
 
     def test_get_available_backends_from_status(self):
-        client = self._make_client(status=_MockStatus(backends=['NPU', 'EGPU']))
-        self.assertEqual(sorted(client.get_available_backends()), ['EGPU', 'NPU'])
+        client = self._make_client(status=_MockStatus(backends=['NPU', 'HAILO_8']))
+        self.assertEqual(sorted(client.get_available_backends()), ['HAILO_8', 'NPU'])
 
     def test_get_available_models_from_status(self):
-        client = self._make_client(status=_MockStatus(models=['side_yolo_egpu', 'rear_yolo_egpu']))
-        self.assertEqual(sorted(client.get_available_models()), ['rear_yolo_egpu', 'side_yolo_egpu'])
+        client = self._make_client(status=_MockStatus(models=['side_yolo_accel', 'rear_yolo_accel']))
+        self.assertEqual(sorted(client.get_available_models()), ['rear_yolo_accel', 'side_yolo_accel'])
 
     def test_can_run_model_true_when_advertised(self):
-        client = self._make_client(status=_MockStatus(models=['front_road_seg_egpu']))
-        self.assertTrue(client.can_run_model('front_road_seg_egpu'))
+        client = self._make_client(status=_MockStatus(models=['front_road_seg_accel']))
+        self.assertTrue(client.can_run_model('front_road_seg_accel'))
 
     def test_can_run_model_false_when_not_advertised(self):
-        client = self._make_client(status=_MockStatus(models=['side_yolo_egpu']))
-        self.assertFalse(client.can_run_model('rear_yolo_egpu'))
+        client = self._make_client(status=_MockStatus(models=['side_yolo_accel']))
+        self.assertFalse(client.can_run_model('rear_yolo_accel'))
 
     def test_wait_for_backend_succeeds_when_present(self):
-        client = self._make_client(status=_MockStatus(backends=['EGPU']))
-        self.assertTrue(client.wait_for_backend(BackendType.EGPU, timeout=0.1))
+        client = self._make_client(status=_MockStatus(backends=['HAILO_8']))
+        self.assertTrue(client.wait_for_backend(BackendType.HAILO_8, timeout=0.1))
 
     def test_wait_for_backend_times_out_when_absent(self):
         client = self._make_client(status=_MockStatus(backends=['NPU']))
         start = time.monotonic()
-        self.assertFalse(client.wait_for_backend(BackendType.EGPU, timeout=0.05))
+        self.assertFalse(client.wait_for_backend(BackendType.HAILO_8, timeout=0.05))
         self.assertLess(time.monotonic() - start, 0.2)
 
     def test_direct_hal_fallback_when_status_unavailable(self):
         client = self._make_client(status=None)
         hal = MagicMock()
-        hal.get_available_backends.return_value = [BackendType.NPU, BackendType.EGPU]
-        hal._models_cache = {'side_yolo_egpu': MagicMock()}
+        hal.get_available_backends.return_value = [BackendType.NPU, BackendType.HAILO_8]
+        hal._models_cache = {'side_yolo_accel': MagicMock()}
         client._InferenceClient__hal = hal
-        self.assertEqual(sorted(client.get_available_backends()), ['EGPU', 'NPU'])
-        self.assertEqual(client.get_available_models(), ['side_yolo_egpu'])
+        self.assertEqual(sorted(client.get_available_backends()), ['HAILO_8', 'NPU'])
+        self.assertEqual(client.get_available_models(), ['side_yolo_accel'])
 
 
 if __name__ == '__main__':

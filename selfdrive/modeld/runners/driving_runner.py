@@ -13,7 +13,7 @@ external reference implementation:
   split-RKNN (RK3588) architecture — ``driving_vision.rknn`` + ``driving_policy.rknn``.
 - Monolithic supercombo (``is_monolithic == True``): the runner implements
   ``run()`` over the full input set and returns one raw output tensor. This is
-  the upstream Chestnut external-USB-GPU big-model architecture
+  an external big-model architecture
   (``big_driving_supercombo`` via a compiled tinygrad JIT artifact).
 """
 
@@ -61,7 +61,7 @@ class DrivingRunner(ABC):
     - release exclusive resources in ``release()``.
   """
 
-  # True for single-supercombo runners (Chestnut big model); False for split
+  # True for single-supercombo runners (a combined big model); False for split
   # vision+policy runners (RKNN, proven external split-RKNN style).
   is_monolithic: bool = False
 
@@ -72,7 +72,7 @@ class DrivingRunner(ABC):
   @property
   @abstractmethod
   def backend_name(self) -> str:
-    """Human-readable backend identifier (e.g. ``NPU``, ``ONNX``, ``CHESTNUT``)."""
+    """Human-readable backend identifier (e.g. ``NPU``, ``ONNX``)."""
 
   @property
   def loaded(self) -> bool:
