@@ -66,8 +66,9 @@ class GadgetOwner:
   gadget down and builds the other one. For bulk this process also holds ep0 (descriptors, bind, events) for as long as the
   gadget is up: closing ep0 would take the function with it."""
 
-  def __init__(self, mode, run=run, net_ok=net_ok, control_factory=None):
+  def __init__(self, mode, run=run, net_ok=net_ok, control_factory=None, port=None):
     self._mode, self._run, self._net_ok = mode, run, net_ok
+    self._port = port        # a typec.TypeCPort on a board with a PD controller: held as the device before the gadget works
     self._control_factory = control_factory
     self.kind: int | None = None   # NETWORK or BULK while up
     self.control = None
@@ -109,6 +110,8 @@ class GadgetOwner:
       return 'off'
     if want == TETHER:
       return 'up'    # the comma is the host: no gadget, nothing for this process to hold. The phone's interface is modeld's to find
+    if self._port is not None and self._port.hold() == 'failed':
+      return 'working'    # the phone would not take the host role: the gadget cannot work until it is replugged
     if not self.up:
       if want == NETWORK:
         if not (self._run('gadget') and self._run('bind')):
@@ -147,7 +150,8 @@ def main() -> None:
   def mode() -> int:
     return int(params.get(platform.LINK, return_default=True) or 0)
 
-  owner = GadgetOwner(mode)
+  from nagaspilot.bigmodel.typec import TypeCPort
+  owner = GadgetOwner(mode, port=TypeCPort() if platform.USB_PLATFORM == 'pd' else None)
   stop = threading.Event()
   signal.signal(signal.SIGTERM, lambda *_: stop.set())
   signal.signal(signal.SIGINT, lambda *_: stop.set())

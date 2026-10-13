@@ -18,7 +18,8 @@ ACTIVE = "BigModelActive"
 DEVICE_CAMERA = (1928, 1208, 512, 256)
 
 # how the gadget script treats the USB-C port: 'agnos' is the Qualcomm comma; 'static' is a board whose port role is fixed by
-# its device tree (peripheral). The script does no USB-PD handling in either case yet (docs/NAVPILOT_BIGMODEL.md, unverified)
+# its device tree (peripheral); 'pd' is a board with a PD controller (kernel Type-C class): bigmodeld asks for the device role through
+# /sys/class/typec (nagaspilot/bigmodel/typec.py). Unverified on a board (docs/NAVPILOT_BIGMODEL.md)
 USB_PLATFORM = "agnos"
 
 
