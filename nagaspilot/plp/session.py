@@ -107,3 +107,4 @@ class PlpSession:
     if m.kind == registry.KIND_REQUEST:
       self.send(Message(registry.KIND_RESPONSE, HELLO.service, HELLO.message, self.local.to_json(), CH_CONTROL, ENC_JSON, m.request_id))
     self._outbox.max_payload = max(1, min(agreed.max_payload, self.local.max_payload))
+    self._outbox.payload_crc = agreed.send_payload_crc

@@ -1,11 +1,14 @@
-"""PLP v5 framing: a 16-byte header, a payload, a CRC-32C over both.
+"""PLP v5 framing: a 16-byte header, its CRC-32C, the payload, and (on links that need it) a CRC-32C of the payload.
 
     magic u16 'PL' | version u8 | kind u8 | flags u8 | channel u8 | service u8 | message u8 | encoding u8 | reserved u8 | request id u16 | payload length u32
+    header CRC-32C u32           (over the 16 header bytes: a corrupt length is caught before any payload is waited for)
     payload (length bytes)
-    CRC-32C u32 over header and payload
+    payload CRC-32C u32          (absent when the NO_PAYLOAD_CRC flag is set)
 
-All integers big-endian. A message larger than the link can carry is split into frames of the same header with the MORE flag on all but the last; frames of different
-channels may interleave, frames of one channel's message may not. The decoder never raises: a bad frame is counted and the decoder resyncs on the next magic.
+All integers big-endian. The header CRC follows the design of Jetlink's link header and our NPBM, which check the header and leave the payload to USB and TCP; the payload CRC
+is kept for BLE, where a dropped notification can shift a frame boundary under an intact header. A message larger than the link can carry is split into frames of the same
+header with the MORE flag on all but the last; frames of different channels may interleave, frames of one channel's message may not. The decoder never raises: a bad frame is
+counted and the decoder resyncs on the next magic.
 """
 from __future__ import annotations
 
@@ -16,13 +19,15 @@ MAGIC = 0x504C
 VERSION = 5
 HEADER = struct.Struct('>HBBBBBBBBHI')
 HEADER_SIZE = HEADER.size
-TRAILER_SIZE = 4
+HEADER_CRC_SIZE = 4
+PAYLOAD_CRC_SIZE = 4
 MAX_FRAME_PAYLOAD = 1 << 20       # a decoder never accepts a bigger frame, whatever was negotiated
 
 FLAG_MORE = 0x01                 # more fragments of this message follow
 FLAG_CRITICAL = 0x02             # a receiver that does not know this message must answer with an error, not drop it
 FLAG_ACK_REQ = 0x04              # reserved for the map channel
-KNOWN_FLAGS = FLAG_MORE | FLAG_CRITICAL | FLAG_ACK_REQ
+FLAG_NO_PAYLOAD_CRC = 0x08       # the payload CRC is absent (the receiver said its link does not need it)
+KNOWN_FLAGS = FLAG_MORE | FLAG_CRITICAL | FLAG_ACK_REQ | FLAG_NO_PAYLOAD_CRC
 
 CH_CONTROL, CH_REALTIME, CH_INTERACTIVE, CH_BULK = 0, 1, 2, 3
 ENC_RAW, ENC_JSON, ENC_PROTOBUF, ENC_CBOR = 0, 1, 2, 3
@@ -67,12 +72,18 @@ class Frame:
   def critical(self) -> bool:
     return bool(self.flags & FLAG_CRITICAL)
 
+  @property
+  def payload_crc(self) -> bool:
+    return not self.flags & FLAG_NO_PAYLOAD_CRC
+
   def encode(self) -> bytes:
     if len(self.payload) > MAX_FRAME_PAYLOAD:
       raise ValueError('frame payload too large')
     head = HEADER.pack(MAGIC, VERSION, self.kind, self.flags, self.channel, self.service, self.message, self.encoding, 0, self.request_id, len(self.payload))
-    body = head + self.payload
-    return body + struct.pack('>I', crc32c(body))
+    out = head + struct.pack('>I', crc32c(head)) + self.payload
+    if self.payload_crc:
+      out += struct.pack('>I', crc32c(self.payload))
+    return out
 
 
 class FrameDecoder:
@@ -104,14 +115,24 @@ class FrameDecoder:
         self.bad_header += 1
         del self._buf[:1]
         continue
-      total = HEADER_SIZE + length + TRAILER_SIZE
-      if len(self._buf) < total:
+      if len(self._buf) < HEADER_SIZE + HEADER_CRC_SIZE:
         return out
-      body = bytes(self._buf[:HEADER_SIZE + length])
-      (crc,) = struct.unpack_from('>I', self._buf, HEADER_SIZE + length)
-      if crc != crc32c(body):
-        self.bad_crc += 1
+      (hcrc,) = struct.unpack_from('>I', self._buf, HEADER_SIZE)
+      if hcrc != crc32c(bytes(self._buf[:HEADER_SIZE])):
+        self.bad_header += 1
         del self._buf[:1]
         continue
-      out.append(Frame(kind, service, message, body[HEADER_SIZE:], channel, encoding, rid, flags))
+      has_pcrc = not flags & FLAG_NO_PAYLOAD_CRC
+      start = HEADER_SIZE + HEADER_CRC_SIZE
+      total = start + length + (PAYLOAD_CRC_SIZE if has_pcrc else 0)
+      if len(self._buf) < total:
+        return out
+      payload = bytes(self._buf[start:start + length])
+      if has_pcrc:
+        (pcrc,) = struct.unpack_from('>I', self._buf, start + length)
+        if pcrc != crc32c(payload):
+          self.bad_crc += 1
+          del self._buf[:1]
+          continue
+      out.append(Frame(kind, service, message, payload, channel, encoding, rid, flags))
       del self._buf[:total]
