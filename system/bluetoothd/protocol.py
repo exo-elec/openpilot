@@ -151,6 +151,7 @@ class MessageType(IntEnum):
     # The phone's GNSS fix for the cross-check (nagaspilot/localization/phone_fix.py parses it, crosscheck.py uses it). JSON: t_ms, lat, lon,
     # h_acc, optional alt/speed/bearing/sats/source, and mount {side, offset_m}. Cross-repo contract with NavPilot's makeGnssFixMessage.
     GNSS_FIX = 0x0620  # PHONE→DEVICE
+    MAP_HORIZON = 0x0621  # PHONE→DEVICE: the phone map window, 500 m-1 km ahead (nagaspilot/localization/map_horizon.py)
     RADAR_PAIR_CONTROL = 0x0610  # PHONE→DEVICE: {"open": bool} → EOPBLERadarPairingOpen param
     RADAR_PAIR_STATUS  = 0x0611  # DEVICE→PHONE: window/pairs/candidates (ncp_session)
 
