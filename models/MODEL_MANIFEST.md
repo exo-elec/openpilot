@@ -38,14 +38,13 @@ and the reference-only Autoware vision suite (`egolanes_lite_int8`,
 `scene3d_lite_int8`, `sceneseg_lite_int8`, `autosteer_full_int8`,
 `autospeed_full_int8`) were fetched and then removed. They're still available
 from `../bukapilot` and Autoware if that capability is needed again —
-see git history for the exact hashes. The eGPU runs this one model and
-nothing else (2026-09-27): the old `yolo_side`/`yolo_rear`/`seg_*` eGPU-shadow
+see git history for the exact hashes. The old `yolo_side`/`yolo_rear`/`seg_*` external-GPU shadow
 placeholders were removed. Detection is RKNN (`rknn/`); segmentation for
 every camera is the camera-tier card (`hef/` + `dxnn/`).
 
 | File | SHA256 | Source | Notes |
 |------|--------|--------|-------|
-| `onnx/big_driving_supercombo.onnx` | `10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4` | `commaai/openpilot@master` (`b7c333cf3fee117779515c9ebfd7b2beb164fa81`, via `../ext_gpu/openpilot-upstream`), cross-verified byte-identical against `sunnypilot@master` (`bf74ce544738189693dbd07266a46e63465710c1`) | Upstream big-model big model, 1,753,235,978 bytes. **Not currently loaded by anything** — `big-modelDrivingRunner`/`factory.py` is deliberately fail-closed until the tinygrad-JIT-compiled artifact, replay/HIL/hardware-soak gates, and closed-course validation are all in place (see `task.md`, `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`). **Hash/size differ from the previously audited value** (`a501760a9d1...`, 1,757,355,221 bytes) — comma appears to have shipped a model update since that audit (sunnypilot's commit touching this same file is titled "Be Right Here Model 🏃 (big)", 2026-08-01); this is expected drift for a live upstream artifact, not corruption. Re-verify against `commaai/openpilot@master` before any future compile step. |
+| `onnx/big_driving_supercombo.onnx` | `10926f2c0911821ca0e72439c1c3bf3ec11f0a08789aa14b7ee8f25379b2afa4` | `commaai/openpilot@master` (`b7c333cf3fee117779515c9ebfd7b2beb164fa81`, via `../ext_gpu/openpilot-upstream`), cross-verified byte-identical against `sunnypilot@master` (`bf74ce544738189693dbd07266a46e63465710c1`) | Upstream big-model big model, 1,753,235,978 bytes. **Not currently loaded by anything** — `big-modelDrivingRunner`/`factory.py` is deliberately fail-closed until the tinygrad-JIT-compiled artifact, replay/HIL/hardware-soak gates, and closed-course validation are all in place (see `task.md`). **Hash/size differ from the previously audited value** (`a501760a9d1...`, 1,757,355,221 bytes) — comma appears to have shipped a model update since that audit (sunnypilot's commit touching this same file is titled "Be Right Here Model 🏃 (big)", 2026-08-01); this is expected drift for a live upstream artifact, not corruption. Re-verify against `commaai/openpilot@master` before any future compile step. |
 
 There is no roadwork-segmentation or dmonitoring-via-ONNX consumer on this
 branch; add an entry here first if one is built.
