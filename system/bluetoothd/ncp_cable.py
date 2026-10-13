@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """NCP v4.1 over the USB cable: the phone's network interface to the comma instead of BLE.
 
-With the phone-hosted big model in iPhone mode (EOPBigModelLink = 2) the comma presents a CDC-NCM network at
+With the phone-hosted big model in iPhone mode (ngp_bigmodel_link = 2) the comma presents a CDC-NCM network at
 192.168.60.1 and the phone dials it (jetlink-root.sh gadget --ios). This serves the same NCP frames BLE and SPP carry
 over a TCP stream on that address, registered with the shared NCPSession as the 'cable' transport, so every NCP feature
 (navigation, telemetry, vehicle data, pairing messages) works over the cable with no change to the session.

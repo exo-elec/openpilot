@@ -10,7 +10,7 @@ model. nagaspilot.bigmodel.joining does the join, swap, hold and hand-back; this
   frame it is sent, and skipping one would cost a second frame and leave a hand-back one short.
 - NGP10's inputs have no `action_t`; the facade builds it as upstream does from the lateral delay and the
   longitudinal actuator delay (the big model's smoothing, not the small model's), which modeld hands over.
-- BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py), as upstream's selfdrived reads for its big model:
+- ngp_bigmodel_loading / ngp_bigmodel_active for selfdrived (ngp_bigmodel_gate.py), as upstream's selfdrived reads for its big model:
   loading while a big model is expected and not yet driving or still proving itself,
   active true while it drives and false once it failed or handed back.
 - The default policy (ONE_WAY) reproduces upstream's big-model behaviour (a one-way fallback), with the phone as the compute: if the
@@ -148,7 +148,7 @@ class BigModelFacade:
   def close(self) -> None:
     self._joining.close()
 
-  # -- BigModelLoading / BigModelActive
+  # -- ngp_bigmodel_loading / ngp_bigmodel_active
   def _give_up(self) -> None:
     """Stop joining: the big model will not be used again this drive (upstream never switches back onroad)."""
     if not self._given_up:
