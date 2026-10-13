@@ -143,7 +143,6 @@ Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteres
 |---|---|---|---|---|---|
 | Driving model contract | Base v0.10 split vision/policy | Carried split contract | Extended RKNN/platform adapters | Carried | Carried |
 | Tinygrad compiled runner | Baseline dependency/artifacts | Extended pinned modern runner; rebuilt artifacts required | Carried portable runner | Carried | Carried |
-| External USB GPU | No current fork integration | Removed 2026-10-13: the big model runs on a phone over USB ([`NAVPILOT_BIGMODEL.md`](nagaspilot/docs/NAVPILOT_BIGMODEL.md)) | Carried to follow NGP10 | Carried | Carried |
 | Larger trained driving weights | Baseline bundled models | Not provisioned: big ONNX names currently link to small models | No blanket upgraded-model claim | Carried limitation | Carried limitation |
 | Cloud voice: Google STT → Gemini → TTS | Not this pipeline | Not provided | Added cloudd online pipeline, default off | Carried + animated PyQt status | Carried + same status |
 | Local wake recognition | Not this pipeline | Not provided | Added CPU-only openWakeWord, default off | Carried | Carried |
