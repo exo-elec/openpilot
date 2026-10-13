@@ -26,11 +26,15 @@ NET_ROOT = Path('/sys/class/net')
 ROUTE_FILE = Path('/proc/net/route')
 # kernel drivers a phone's tethering interface binds to on a host
 TETHER_DRIVERS = frozenset({'rndis_host', 'cdc_ncm', 'cdc_ether', 'cdc_eem', 'ipheth'})
+# the cellular modem (Quectel EC25 on the ExoPilot boards) can also bind an Ethernet-class driver; ModemManager names its port wwan*.
+# It is a network uplink, never the phone.
+MODEM_PREFIXES = ('wwan', 'ppp')
 POLL = 0.25
 
 
 def tether_interfaces(root: Path = NET_ROOT) -> list[str]:
-  """Network interfaces bound to a USB tethering driver, by the driver symlink in sysfs (not by name: names vary by udev)."""
+  """Network interfaces bound to a USB tethering driver, by the driver symlink in sysfs (not by name: names vary by udev),
+  except a cellular modem's (wwan*/ppp*)."""
   found = []
   try:
     for dev in sorted(root.iterdir()):
@@ -38,7 +42,7 @@ def tether_interfaces(root: Path = NET_ROOT) -> list[str]:
         driver = os.path.basename(os.readlink(dev / 'device' / 'driver'))
       except OSError:
         continue
-      if driver in TETHER_DRIVERS:
+      if driver in TETHER_DRIVERS and not dev.name.startswith(MODEM_PREFIXES):
         found.append(dev.name)
   except OSError:
     pass
