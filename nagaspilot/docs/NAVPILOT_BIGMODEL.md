@@ -149,7 +149,7 @@ load/failover block and the `egpuState` publisher; the `Egpu*` params; the Chest
 `egpuState` service; the gate's `Egpu*` keys; `egpu_in_use()` and the matching "stand aside" argument of `GadgetOwner`; `EGPU_INTEGRATION.md` and
 `NGP10_CHESTNUT_MIGRATION_PLAN.md`. `modeld` now always runs `config_realtime_process`, since no USB GPU saturates a core. Kept: the `EgpuState` struct and
 `egpuState @150` in `log.capnp` (marked unpublished, so the ordinal stays taken and old logs parse); `tinygrad_model.py`, which loads the small model too.
-In exopilot (not done here): the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
+**Not yet done on EOP10, 01M and 02M**: those branches carry a much deeper eGPU integration (`system/inferenced/egpu.py` and `BackendType.EGPU`, `selfdrive/modeld/runners/egpu_driving_runner.py` and the factory, `EOPEgpuDriving*` / `EOPChestnutDriving*` params and their migration, `selfdrived`'s gate keys, the registry entry, the settings exclusions). Their inferenced and modeld test suites do not collect in this environment, so that removal needs a machine where they run. In exopilot (not done here): the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
 
 ## Unverified (needs hardware or a recorded route)
 
