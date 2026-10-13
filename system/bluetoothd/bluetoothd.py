@@ -24,7 +24,7 @@ except ImportError:
 
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central, ncp_cable
+from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central, ncp_cable, plp_gatt
 from nagaspilot.runtime import bigmodel_platform
 
 
@@ -81,6 +81,7 @@ class BluetoothD:
         self.sppd  = spp.SPPD(params=self.params,      session=self._session)
         self.gattd = ble_gatt.GATTD(params=self.params, session=self._session)
         self._cable = ncp_cable.CableNCP(self._session)  # NCP over the iPhone's USB cable, same session
+        self.plp_gatt = plp_gatt.PlpGATT()  # PLP v5 over BLE on its own GATT service; NCP v4.1 above stays for older apps
         self._pairing_agent = None
 
     def _device_name(self) -> str:
@@ -138,6 +139,9 @@ class BluetoothD:
                 cloudlog.info('bluetoothd: BLE GATT started')
             else:
                 cloudlog.warning('bluetoothd: BLE GATT not available')
+            if self.plp_gatt.setup(self.bus):
+                self.plp_gatt.start()
+                cloudlog.info('bluetoothd: PLP over BLE started')
 
         # Start BLE central for ESP32 corner radars — only when its param is on.
         # When enabled, ble_central is the SOLE radarCornerTracks publisher (msgq allows
@@ -163,6 +167,7 @@ class BluetoothD:
         cloudlog.info('bluetoothd: stopping')
         self._session.stop()
         self._cable.stop()
+        self.plp_gatt.stop()
         self.gattd.stop()
         self.ble_central.stop()
         pairing_agent.unregister_agent(self._pairing_agent)
