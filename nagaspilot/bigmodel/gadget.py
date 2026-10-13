@@ -1,7 +1,7 @@
 """bigmodeld: hold the comma's USB-C port as a network gadget for the phone while the link is on.
 
 The root work is `scripts/ngp-bigmodel-root.sh` under `sudo -n`; this is the policy around it. The owner does nothing while
-the setting is off, stands aside for a Chestnut (the port cannot serve both), and otherwise keeps the gadget created,
+the setting is off, and otherwise keeps the gadget created,
 bound and addressed, redoing whichever step is missing: the netdev only appears after the bind, and a replugged phone
 can make the kernel rebuild it. Standard library only: manager runs this as a resident process.
 """
@@ -59,7 +59,7 @@ NETWORK, BULK, TETHER = 2, 1, 3
 
 
 class GadgetOwner:
-  """One decision per step(): what to ask of the root script, given the setting and whether a Chestnut holds the port.
+  """One decision per step(): what to ask of the root script, given the setting and the port.
 
   The setting picks the function: 2 is CDC-NCM for an iPhone, 1 the FunctionFS bulk interface an Android phone reads as USB
   host, and 3 (tethering) no function at all: the comma stays the USB host and any gadget is released. Changing it tears the
@@ -77,7 +77,7 @@ class GadgetOwner:
     return self.kind is not None
 
   def wanted(self) -> int:
-    """0 when nothing is wanted: off, a Chestnut on the port, or an unreadable setting (unknown never takes the port)."""
+    """0 when nothing is wanted: off, or an unreadable setting (unknown never takes the port)."""
     try:
       m = int(self._mode())
       return 0 if m == 0 else (NETWORK if m == NETWORK else TETHER if m == TETHER else BULK)

@@ -2,7 +2,7 @@
 
 Pure policy, like ngp_lead_departure: inputs are the two runtime params modeld writes and one liveness
 flag, output says which events selfdrived should raise. Mirrors upstream's selfdrived handling of the
-Chestnut model (UsbGpuLoading / UsbGpuActive), so both big-model sources share one contract:
+big model, so the phone link follows the same contract:
 
 - loading: the big model is joining or proving. Engaging is refused ("Big Model Loading", NO_ENTRY).
 - active: True while the big model drives, False once it handed back after having driven or failed to

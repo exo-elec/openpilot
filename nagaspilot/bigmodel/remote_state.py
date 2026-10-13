@@ -67,7 +67,7 @@ class Trips:
 class RemoteModelState:
   """Duck-types modeld's ModelState for the phone. `warp` is a bigmodel_warp.NgpWarp (start_buffers / wait / output)."""
 
-  chestnut = True            # modelV2.big: same role as a Chestnut's
+  is_big = True              # modelV2.big: this is the big model
   vision_input_names = ['img', 'big_img']
   desire_key = 'desire'
 
@@ -112,7 +112,7 @@ class RemoteModelState:
 
   def _take(self, resp: P.InferResp) -> dict:
     """The parsed output of a reply. A refused frame raises (Jetlink's NOT_FINITE -> LinkError): the comma then demotes to the small model,
-    as it does for a Chestnut that returns a non-finite output. The phone has kept its last good state."""
+    as it does for a model that returns a non-finite output. The phone has kept its last good state."""
     if resp.status == P.NOT_FINITE:
       raise LinkError('the phone refused the frame: its output was not finite')
     if resp.status != P.OK:

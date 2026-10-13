@@ -1,6 +1,6 @@
 > **Superseded 2026-10-12** by [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md): the link is now NavPilot's own and Jetlink is no longer a
 > dependency (no `jetlink_repo`, no `jetlinkd`, no `jetlink_adapter.py`). What follows is the record of the Jetlink port; the cereal,
-> `selfdrived`, settling, alert and Chestnut-parity decisions in it still stand.
+> `selfdrived`, settling, alert and upstream-parity decisions in it still stand.
 
 # Big model on the phone over USB (Jetlink port)
 
@@ -33,7 +33,7 @@ On NGP10 that adapter must supply:
 | `in_control()` | `ModelSide` | derive from `carControl`/`selfdriveState` messages |
 | `modelV2.big` and an accelerator state | status to UI/selfdrived | **absent** from cereal |
 | Engagement hold while loading/proving; soft-disable on failure | `selfdrived` | **absent** (no big-model events) |
-| Chestnut USB IDs to stand aside from | `OwnerConfig.chestnut_ids` | `EGPU_VID_PIDS` in `egpu_detect.py` |
+| Stand aside for another USB host (removed with the eGPU) | `OwnerConfig.<removed>` | none |
 
 ## Architecture rules (house rules applied)
 
@@ -78,10 +78,10 @@ On NGP10 that adapter must supply:
 ## Behaviour choices
 
 - **A hand-back soft-disables while engaged, and is one-way for the drive.** Decided by the requirement to behave like
-  upstream's Chestnut ([`CHESTNUT_PARITY.md`](CHESTNUT_PARITY.md)): fail, fall back to the small model, never switch back onroad.
+  upstream's big model ([`BIGMODEL_PARITY.md`](BIGMODEL_PARITY.md)): fail, fall back to the small model, never switch back onroad.
   Jetlink's own late join and rejoin is the `JETLINK` policy in `bigmodel.py`, not the default.
 - **Settling window: 5 s** after a load ends and after a failure, as upstream's `big_model_settling`: `commIssue`, the
-  localizer checks and `frameDropPerc` are suppressed (`NGPBigModelGate.settling()`; see [`CHESTNUT_PARITY.md`](CHESTNUT_PARITY.md) row 13).
+  localizer checks and `frameDropPerc` are suppressed (`NGPBigModelGate.settling()`; see [`BIGMODEL_PARITY.md`](BIGMODEL_PARITY.md) row 13).
 - **Dropped camera frames while the big model drives still run it**, as upstream does (it has no `prepare_only`):
   the server's history advances once per frame sent, and skipping one would lose a second frame and leave a
   hand-back one short. On the small model a dropped frame stays prepare-only.

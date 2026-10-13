@@ -60,7 +60,7 @@ class Client:
 
 
 class Big:
-  chestnut = True
+  is_big = True
   get_action_from_model = 'big action'
   lat_delay = 0.0
 
@@ -111,7 +111,7 @@ def warm(j):
 
 def test_the_small_model_drives_until_a_phone_is_joined():
   j = make()
-  assert frame(j) == 'small' and j.big_model_state == 'joining' and not j.chestnut
+  assert frame(j) == 'small' and j.big_model_state == 'joining' and not j.is_big
 
 
 def test_a_joined_phone_swaps_in_after_the_warmup_frames_and_not_while_in_control():
@@ -121,7 +121,7 @@ def test_a_joined_phone_swaps_in_after_the_warmup_frames_and_not_while_in_contro
     assert frame(j) == 'small'
   j.test.ctl[0] = False
   assert frame(j) == 'big'
-  assert j.big_model_state == 'running' and j.chestnut and j.handovers == 1
+  assert j.big_model_state == 'running' and j.is_big and j.handovers == 1
   assert j.get_action_from_model == 'big action'
 
 
@@ -137,7 +137,7 @@ def test_a_failure_mid_drive_reruns_the_frame_on_the_small_model_and_resets_it()
   warm(j)
   assert frame(j) == 'small'
   assert j.big_model_state == 'retrying' and j.test.resets == [1] and j.handovers == 2
-  assert j.chestnut is False
+  assert j.is_big is False
 
 
 def test_a_phone_that_fell_behind_publishes_its_frame_then_hands_back_on_the_next():

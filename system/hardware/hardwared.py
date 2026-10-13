@@ -195,7 +195,7 @@ def hardware_thread(end_event, hw_queue) -> None:
   all_temp_filter = FirstOrderFilter(0., TEMP_TAU, DT_HW, initialized=False)
   offroad_temp_filter = FirstOrderFilter(0., TEMP_TAU, DT_HW, initialized=False)
   should_start_prev = False
-  phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's ChestnutStatus alerts
+  phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's big-model status alerts
   in_car = False
   engaged_prev = False
   offroad_cycle_count = 0

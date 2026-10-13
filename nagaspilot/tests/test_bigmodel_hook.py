@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from nagaspilot.runtime import bigmodel_platform as platform
-from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, CHESTNUT, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
+from nagaspilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, ONE_WAY, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
                                          NgpSmallModel)
 from nagaspilot.runtime.bigmodel_link import cable_connected, host_enumerated
 
@@ -47,7 +47,7 @@ class FakeJoining:
     self.state = 'joining'
     self.handovers = 0
     self.frame_drop_ratio = 0.0
-    self.chestnut = False
+    self.is_big = False
     self.seen_inputs = []
     self.closed = 0
     self.get_action_from_model = lambda *a: 'big-action'
@@ -58,7 +58,7 @@ class FakeJoining:
 
   def run(self, bufs, transforms, inputs, after_enqueue=None):
     self.seen_inputs.append(dict(inputs))
-    return {'big': self.chestnut}
+    return {'big': self.is_big}
 
   def close(self):
     self.closed += 1
@@ -106,7 +106,7 @@ def test_a_dropped_frame_is_prepare_only_on_the_small_model_and_a_normal_frame_f
   inner, _, joining, _, facade = make()
   assert facade.run({}, {}, {}, prepare_only=True) == {'small': True}
   assert inner.runs == [True]
-  joining.chestnut = True
+  joining.is_big = True
   # upstream has no prepare_only: the big model runs every frame it is given, so its history stays one a frame
   assert facade.run({}, {}, {}, prepare_only=True) == {'big': True}
   assert inner.runs == [True]  # the small model was not run again
@@ -116,7 +116,7 @@ def test_a_dropped_frame_is_prepare_only_on_the_small_model_and_a_normal_frame_f
 def test_the_action_function_follows_the_model_that_drives():
   _, _, joining, _, facade = make()
   assert facade.action_from_output({}, None, 0, 0, 0) == 'small-action'
-  joining.chestnut = True
+  joining.is_big = True
   assert facade.action_from_output({}, None, 0, 0, 0) == 'big-action'
 
 
@@ -233,7 +233,7 @@ def test_a_swap_and_a_handback_through_the_real_joining_model(monkeypatch):
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
-    chestnut = True
+    is_big = True
     client = None
     behind = None
     vision_input_names = ['img', 'big_img']
@@ -330,7 +330,7 @@ def test_with_the_link_off_the_hook_touches_neither_the_camera_client_nor_any_pa
   assert params.writes == [(platform.LOADING, None), (platform.ACTIVE, None)]
 
 
-# -- upstream's Chestnut behaviour with the phone in the GPU's place (the CHESTNUT policy)
+# -- upstream's big-model behaviour (a one-way fallback), with the phone as the compute (the ONE_WAY policy)
 class Clock:
   def __init__(self):
     self.t = 100.0
@@ -339,14 +339,14 @@ class Clock:
     return self.t
 
 
-def chestnut(cable=True, enumerated=True, runnable=True):
+def one_way(cable=True, enumerated=True, runnable=True):
   inner = FakeInner()
   small = NgpSmallModel(inner)
   joining = FakeJoining(small)
   params = FakeParams()
   clock = Clock()
   probes = {'on': cable, 'enumerated': enumerated, 'runnable': runnable}
-  facade = BigModelFacade(joining, small, params, lambda *a: 'small-action', policy=CHESTNUT, clock=clock,
+  facade = BigModelFacade(joining, small, params, lambda *a: 'small-action', policy=ONE_WAY, clock=clock,
                           cable=lambda: probes['on'], enumerated=lambda: probes['enumerated'],
                           runnable=lambda: probes['runnable'])
   facade.delays = (0.2, 0.15)
@@ -382,14 +382,14 @@ def test_the_host_has_enumerated_us_only_when_the_controller_is_configured(tmp_p
     assert host_enumerated(tmp_path) is expected, state
 
 
-def test_the_chestnut_policy_is_upstreams_numbers():
+def test_the_one_way_policy_is_upstreams_numbers():
   assert BIG_MODEL_TIMEOUT == 60.0
-  assert CHESTNUT.window_s == 60.0 and CHESTNUT.one_way and not CHESTNUT.late_join
+  assert ONE_WAY.window_s == 60.0 and ONE_WAY.one_way and not ONE_WAY.late_join
   assert LATE_JOIN.window_s == 0.0 and not LATE_JOIN.one_way and LATE_JOIN.late_join
 
 
 def test_with_the_cable_connected_engagement_is_held_off_while_the_phone_joins():
-  joining, params, facade, clock, _ = chestnut(cable=True)
+  joining, params, facade, clock, _ = one_way(cable=True)
   joining.state = 'joining'
   facade.run({}, {}, {})
   assert params.values[LOADING] is True and ACTIVE not in params.values
@@ -403,23 +403,23 @@ def test_with_the_cable_connected_engagement_is_held_off_while_the_phone_joins()
 
 
 def test_with_no_cable_nothing_is_awaited_and_nothing_is_said_even_after_the_window():
-  joining, params, facade, clock, _ = chestnut(cable=False)
+  joining, params, facade, clock, _ = one_way(cable=False)
   joining.state = 'joining'
   facade.run({}, {}, {})
   assert params.values.get(LOADING) is False
   clock.t += BIG_MODEL_TIMEOUT + 1
   facade.run({}, {}, {})
-  assert joining.closed == 1                         # upstream: no chestnut, no attempt: this drive stays small
+  assert joining.closed == 1                         # upstream: no cable, no attempt: this drive stays small
   assert ACTIVE not in params.values and params.values[LOADING] is False
 
 
 def test_a_phone_that_has_not_joined_when_the_window_ends_is_a_failed_load_and_is_not_used_later():
-  joining, params, facade, clock, _ = chestnut(cable=True)
+  joining, params, facade, clock, _ = one_way(cable=True)
   joining.state = 'joining'
   facade.run({}, {}, {})
   clock.t += BIG_MODEL_TIMEOUT + 1
   facade.run({}, {}, {})
-  # upstream: ChestnutActive = (model is not None) -> False, and loading ends
+  # upstream: active = (model is not None) -> False, and loading ends
   assert params.values[ACTIVE] is False and params.values[LOADING] is False
   assert joining.closed == 1
   facade.run({}, {}, {})
@@ -427,7 +427,7 @@ def test_a_phone_that_has_not_joined_when_the_window_ends_is_a_failed_load_and_i
 
 
 def test_a_cable_first_seen_after_the_window_is_ignored():
-  joining, params, facade, clock, cable = chestnut(cable=False)
+  joining, params, facade, clock, cable = one_way(cable=False)
   facade.run({}, {}, {})
   clock.t += BIG_MODEL_TIMEOUT + 1
   cable['on'] = True
@@ -436,7 +436,7 @@ def test_a_cable_first_seen_after_the_window_is_ignored():
 
 
 def test_a_cable_connected_a_little_after_start_but_inside_the_window_is_waited_for():
-  joining, params, facade, clock, cable = chestnut(cable=False)
+  joining, params, facade, clock, cable = one_way(cable=False)
   joining.state = 'joining'
   facade.run({}, {}, {})
   assert params.values[LOADING] is False
@@ -447,7 +447,7 @@ def test_a_cable_connected_a_little_after_start_but_inside_the_window_is_waited_
 
 
 def test_a_hand_back_is_one_way_the_join_is_stopped_and_active_stays_false():
-  joining, params, facade, clock, _ = chestnut(cable=True)
+  joining, params, facade, clock, _ = one_way(cable=True)
   joining.state = 'running'
   facade.run({}, {}, {})
   joining.state = 'ready'            # handed back to the small model
@@ -459,7 +459,7 @@ def test_a_hand_back_is_one_way_the_join_is_stopped_and_active_stays_false():
 
 
 def test_the_late_join_policy_never_stops_the_join_and_takes_a_rejoin():
-  joining, params, facade, clock, _ = chestnut(cable=True)
+  joining, params, facade, clock, _ = one_way(cable=True)
   facade.policy = LATE_JOIN
   joining.state = 'running'
   facade.run({}, {}, {})
@@ -470,7 +470,7 @@ def test_the_late_join_policy_never_stops_the_join_and_takes_a_rejoin():
   assert joining.closed == 0 and params.values[ACTIVE] is True
 
 
-def test_chestnut_policy_through_the_real_joining_model_a_hand_back_is_not_followed_by_a_rejoin(monkeypatch):
+def test_one_way_policy_through_the_real_joining_model_a_hand_back_is_not_followed_by_a_rejoin(monkeypatch):
   import threading
   import time
 
@@ -478,7 +478,7 @@ def test_chestnut_policy_through_the_real_joining_model_a_hand_back_is_not_follo
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
-    chestnut = True
+    is_big = True
     client = None
     behind = None
     vision_input_names = ['img', 'big_img']
@@ -507,7 +507,7 @@ def test_chestnut_policy_through_the_real_joining_model_a_hand_back_is_not_follo
   try:
     params = FakeParams()
     clock = Clock()
-    facade = BigModelFacade(state, shim, params, lambda *a: 'small-action', policy=CHESTNUT, clock=clock, cable=lambda: True)
+    facade = BigModelFacade(state, shim, params, lambda *a: 'small-action', policy=ONE_WAY, clock=clock, cable=lambda: True)
     facade.delays = (0.2, 0.15)
     inputs = {'desire': np.zeros(8, np.float32), 'traffic_convention': np.zeros(2, np.float32)}
     assert joined.wait(5)
@@ -535,7 +535,7 @@ def test_chestnut_policy_through_the_real_joining_model_a_hand_back_is_not_follo
 
 
 def test_with_no_model_built_nothing_is_awaited_even_with_the_cable_connected():
-  joining, params, facade, clock, _ = chestnut(cable=True, runnable=False)
+  joining, params, facade, clock, _ = one_way(cable=True, runnable=False)
   joining.state = 'joining'
   facade.run({}, {}, {})
   assert params.values.get(LOADING) is False                      # upstream: not compiled -> no attempt, no loading
@@ -545,7 +545,7 @@ def test_with_no_model_built_nothing_is_awaited_even_with_the_cable_connected():
 
 
 def test_a_cable_that_never_enumerates_releases_engagement_at_ten_seconds_as_a_failed_load():
-  joining, params, facade, clock, _ = chestnut(cable=True, enumerated=False)
+  joining, params, facade, clock, _ = one_way(cable=True, enumerated=False)
   joining.state = 'joining'
   facade.run({}, {}, {})
   assert params.values[LOADING] is True
@@ -553,12 +553,12 @@ def test_a_cable_that_never_enumerates_releases_engagement_at_ten_seconds_as_a_f
   facade.run({}, {}, {})
   assert params.values[LOADING] is True
   clock.t += 2
-  facade.run({}, {}, {})                                          # upstream's wait_for_chestnut(10) raised
+  facade.run({}, {}, {})                                          # upstream's its 10 s enumeration wait raised
   assert params.values[LOADING] is False and params.values[ACTIVE] is False and joining.closed == 1
 
 
 def test_a_cable_that_enumerated_is_waited_for_the_whole_window_not_ten_seconds():
-  joining, params, facade, clock, probes = chestnut(cable=True, enumerated=False)
+  joining, params, facade, clock, probes = one_way(cable=True, enumerated=False)
   joining.state = 'joining'
   facade.run({}, {}, {})
   clock.t += 5
@@ -657,7 +657,7 @@ def test_prepare_then_attach_gives_the_facade_over_a_joining_model(stub_swaglog,
   small.frames = {}
   facade = hook.attach(small, object())
   try:
-    assert isinstance(facade, BigModelFacade) and facade.policy is CHESTNUT
+    assert isinstance(facade, BigModelFacade) and facade.policy is ONE_WAY
     assert facade.big_model_state in ('joining', 'retrying')
     assert facade.is_big is False
   finally:

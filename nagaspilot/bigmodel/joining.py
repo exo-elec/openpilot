@@ -78,8 +78,8 @@ class Joining:
     return not self._stop.is_set() and self._available and self._active is self._small
 
   @property
-  def chestnut(self) -> bool:
-    return getattr(self._active, 'chestnut', False)
+  def is_big(self) -> bool:
+    return getattr(self._active, 'is_big', False)
 
   @property
   def handovers(self) -> int:

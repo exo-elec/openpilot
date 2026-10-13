@@ -3,7 +3,7 @@ Adapted from Jetlink's tests/test_queues.py (MIT, Copyright (c) 2026 Zeph Legget
 
 The history queues against openpilot's own, as golden vectors. The fixture (tests/fixtures/policy_queues_openpilot.json, from Jetlink) holds a
 digest of everything openpilot's shift_and_sample / sample_skip / sample_desire fed the model over 300 frames, enough for every ring to wrap twice, for the
-big (Chestnut) layout and the small one. Drift here means the phone model silently sees the wrong history. Regenerating the fixture needs
+big layout and the small one. Drift here means the phone model silently sees the wrong history. Regenerating the fixture needs
 openpilot's tinygrad and is done from Jetlink's checkout; it is not repeated here.
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ FIXTURE = Path(__file__).parent / 'fixtures' / 'policy_queues_openpilot.json'
 FRAMES = 300
 # what the queues feed the model, and the dtype openpilot's queues hold it in
 FED = {'img': np.uint8, 'big_img': np.uint8, 'desire_pulse': np.float32, 'features_buffer': np.float32}
-# the big (chestnut) layout, 4-D features_buffer and 33 desire steps, and the
+# the big layout, 4-D features_buffer and 33 desire steps, and the
 # small one; images a few pixels across, which the queues treat alike
 CONFIGS = {
   'big': {'img': (1, 12, 2, 4), 'big_img': (1, 12, 2, 4), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
