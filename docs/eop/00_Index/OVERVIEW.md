@@ -41,7 +41,7 @@ CAMERA CAPTURE — v4l2d (20 Hz) — MIPI CSI cameras
   drivableBev ─► gridd drivable fusion ─► cost layer (card down → degraded, no camera maps)
 
   # Three homes: RKNN = driving model + all detection; card = all segmentation;
-  # USB eGPU = openpilot's Chestnut driving model only.
+  # the big driving model = a phone over USB (no GPU).
 ```
 
 **MONOD** — front mono object detection (selfdrive/monod/)
@@ -97,20 +97,15 @@ no messages.
 - Corner radars are not part of this camera pipeline (BLE `radar2d`; WiFi
   point-cloud add-on on 02M only)
 
-**OPTIONAL USB eGPU** — openpilot's Chestnut driving model only (`system/inferenced/egpu.py`)
-- Runs `big_driving_supercombo` and nothing else (`EGPU_ALLOWED_MODELS`); camera
-  detection is on RKNN, segmentation on the Hailo-8 / DX-M1M
-- The production driving model continues through openpilot `modeld`'s vision and
-  temporal-policy runners and parsers.
-- Any external driving model follows the upstream Chestnut failover pattern: keep
-  RKNN loaded and warm, switch once on failure, soft-disable if engaged, and do not
-  retry the eGPU onroad. See `05_Features/CHESTNUT_EGPU_ADOPTION.md`
-- Target eGPU model: official upstream Chestnut big supercombo. Local fallback:
-  hash-locked Bukapilot KA2 split RKNN (`driving_vision` + `driving_policy`)
-  converted independently for RK3588 and RK3576; never cross-load SoC binaries
+**BIG MODEL ON A PHONE** — the combined driving model runs on the driver's phone over USB (`nagaspilot/bigmodel/`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`)
+- `modeld` always runs the on-board RKNN model (Bukapilot KA2 split pair, converted independently for RK3588 and
+  RK3576; never cross-load SoC binaries) and attaches the phone model on top
+- One-way fallback: the RKNN model stays loaded and warm, a phone that fails or unplugs hands back once,
+  soft-disable if engaged, no re-join onroad
+- Camera detection is on RKNN, segmentation on the Hailo-8 / DX-M1M
 - Autoware AutoSpeed/AutoSteer/AutoDrive graphs are compatibility references, not
   replacements for the openpilot driving model
-- The Chestnut path stays gated (fail-closed) until replay, hardware and safety gates pass
+- The phone path stays default-off until replay, hardware and safety gates pass
 
 **GRIDD** — lazy BEV perception (selfdrive/gridd/)
 - `gridd.py`       Consumes 2D disparity from stereod
@@ -317,7 +312,7 @@ Quick reference:
 | `micd` | Microphone capture and sound pressure level | 10 Hz | `system/micd/` |
 | `monod` | Front object detection on RKNN: road, 02M telephoto | 20 Hz | `selfdrive/monod/` |
 | `segd` | Semantic segmentation, every camera, on the camera-tier card | 20 Hz | `selfdrive/segd/` |
-| `inferenced` | Unified NPU/GPU/RGA/MPP inference backend; routes segmentation jobs to the fitted Hailo-8 / DX-M1M; sole USB eGPU owner (Chestnut only) | always-on | `system/inferenced/` |
+| `inferenced` | Unified NPU/GPU/RGA/MPP inference backend; routes segmentation jobs to the fitted Hailo-8 / DX-M1M | always-on | `system/inferenced/` |
 | `soundd` | TTS + alert tone generation | — | `selfdrive/soundd/` |
 | `spkd` | I2S speaker output (PCM5102A / MAX98357A) | — | `system/spkd/` |
 | `wdgd` | Hardware watchdog | — | `system/wdgd/` |

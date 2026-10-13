@@ -45,7 +45,6 @@ InferenceD provides centralized hardware-accelerated inference for OpenPilot on 
 | **RGA** | 2D Graphics | RGA2/RGA3 | Image ops | OpenCV | Real |
 | **MPP** | Video Codec | H.264 hardware | Encode/decode | ffmpeg | Real |
 | **Hailo / DX-M1M** | Camera-tier card | Hailo-8 or DX-M1M (standard on 01M/02M) | semantic segmentation, every camera, via `BackendType.ACCEL` | Mock | Real |
-| **EGPU** | USB eGPU | ASM2464PD + AMD GPU (optional) | openpilot's Chestnut driving model **only** | — | Real |
 
 ### Clean Migration: Unified ACL Backend
 
@@ -232,7 +231,6 @@ config = HALConfig(
     enable_mpp=True,      # MPP H.264 codec
     enable_hailo_8=True,  # Camera-tier card (Hailo-8), skipped if absent
     enable_dx_m1=True,    # Camera-tier card (DX-M1), skipped if absent
-    enable_egpu=True,     # USB eGPU: Chestnut driving model only
 )
 
 hal = HAL(config)

@@ -41,7 +41,7 @@ marked occupied.
 
 | Model / sensor | Runs on | Output today | Role in this design |
 |---|---|---|---|
-| Driving model (Bukapilot KA2 split / Chestnut on eGPU) | RKNN core 0 / eGPU | `modelV2` (device frame) | Lane lines, road edges, leads. Unchanged. |
+| Driving model (Bukapilot KA2 split; the phone's big model on top) | RKNN core 0 / phone | `modelV2` (device frame) | Lane lines, road edges, leads. Unchanged. |
 | YOLOv8 per camera | RKNN cores 1-2 | `monoDetections`, `sideDetections`, `rearDetections` (+left) | Objects. Unchanged; validated by the drivable filter (B6). |
 | TwinLiteNet+ Large, drivable + lane | Hailo-8 or DX-M1M | 540x960 OTHER/DRIVABLE/LANE per job | **Per-camera drivable BEV (B3)** -- the new use. |
 | Stereo SGM | ACL (GPU/CPU) | `stereoDepth` | Obstacle points in gridd. Unchanged. |

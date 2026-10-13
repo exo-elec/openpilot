@@ -55,8 +55,7 @@ carries road, side left, side right, rear and telephoto YOLOv8 — 100
 inferences/s (80 without the telephoto), the tightest budget in the design;
 if the bench shows core 1 cannot hold it, load moves to core 0, and no
 camera's rate drops. 02M has one PCIe 2.1 x1 slot, so one card; a DX-M1M
-links at Gen2 x1 there. The USB eGPU runs openpilot's Chestnut driving model
-only. See `05_Features/CAMERA_ACCEL_TIER.md`.
+links at Gen2 x1 there. See `05_Features/CAMERA_ACCEL_TIER.md`.
 
 ## What's implemented (Phase A)
 
