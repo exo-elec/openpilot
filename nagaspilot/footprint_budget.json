@@ -46,11 +46,11 @@
    1
   ],
   "selfdrive/modeld/SConscript": [
-   17,
-   15
+   6,
+   16
   ],
   "selfdrive/modeld/modeld.py": [
-   204,
+   60,
    29
   ],
   "selfdrive/selfdrived/alerts_offroad.json": [
