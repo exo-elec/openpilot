@@ -98,13 +98,13 @@ def test_a_phone_that_dials_in_is_joined_swapped_in_and_dropped_when_the_cable_g
     assert joining.big_model_state == 'ready'
     outs = [joining.run({}, {}, INPUTS()) for _ in range(8)]
     assert outs[:3] == ['small'] * 3
-    assert joining.big_model_state == 'running' and joining.chestnut
+    assert joining.big_model_state == 'running' and joining.is_big
     assert 'hidden_state' in outs[-1]
     # the phone goes away: the next frame fails, the small model re-runs it, and the join starts over
     stop.set()
     joining._big.client.close()
     assert joining.run({}, {}, INPUTS()) == 'small'
-    assert joining.big_model_state == 'retrying' and not joining.chestnut
+    assert joining.big_model_state == 'retrying' and not joining.is_big
   finally:
     joining.close()
     listener.close()

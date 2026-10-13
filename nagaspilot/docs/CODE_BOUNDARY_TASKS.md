@@ -59,13 +59,13 @@ Findings:
 
 ## 3. Prefix findings on the EOP line
 
-- 36 params added without an `EOP` prefix: `BLE*`, `Bluetooth*`, `OpenBLT*`, `SteamD*`, `NavPilotOAuth*`, `Chestnut*`, `QuietMode`, `PowerSaverEntryDuration`, `CurrentMCAPRoute`, `CameraCalibrationParams`, `FactoryCalibrationParams`, `SpeedLimitPolicy`, `NeuralNetworkLateralControl`, `CarMake/CarType/CarVin`, `LastGPS*`, `NavDestination*`, `UpdateStatus`. Some may be upstream names; each needs a check. The `Egpu*` params on NGP10 have the same problem.
+- 36 params added without an `EOP` prefix: `BLE*`, `Bluetooth*`, `OpenBLT*`, `SteamD*`, `NavPilotOAuth*`, `Egpu*`, `QuietMode`, `PowerSaverEntryDuration`, `CurrentMCAPRoute`, `CameraCalibrationParams`, `FactoryCalibrationParams`, `SpeedLimitPolicy`, `NeuralNetworkLateralControl`, `CarMake/CarType/CarVin`, `LastGPS*`, `NavDestination*`, `UpdateStatus`. Some may be upstream names; each needs a check. The `Egpu*` params on NGP10 have the same problem.
 - `custom.capnp`: 92 of 95 structs have no `Eop` prefix (wire-safe to rename, but breaks every reference). Rule going forward: new structs only.
 - Policy classes `NGPMonoD`, `NGPCapabilities`, `NGPSOC`, … exist only on the EOP line and carry the NGP prefix.
 - Seven `ngp_*` libraries sit in `selfdrive/{adaptd,gridd,mapd,monod,pathd,tripd}`; on 01M/02M nothing outside tests imports them (dead code).
 - `lazy_bev.py` on 01M/02M is real daemon code (`gridd`, `segd`); it does **not** define `NGPLazyBEV`, so `selfdrive/gridd/tests/test_ngp_portable_features.py` fails at import there.
 - Both `ngp_panel.*` and `eop_panel.*` exist on EOP10.
-- Root files that do not belong on EOP10: `NGP10_CHESTNUT_MIGRATION_PLAN.md`, `task.md`.
+- Root files that do not belong on EOP10: the old eGPU migration plan, `task.md`.
 
 ## 4. Tasks
 
@@ -84,7 +84,7 @@ Status: ☐ open · ◐ partial · ☑ done · ⛔ needs on-device validation or
 | T9 | Extract product logic from large upstream files, down to hook size | ◐ pure NGP longitudinal policies moved; stateful orchestration remains | ⛔ `desire_helper` and `events.py` helpers moved; 6 runtime files need behavior-equivalence/build validation | ⛔ `desire_helper` and `events.py` helpers moved; 6 runtime files need behavior-equivalence/build validation |
 | T10 | Make `system/` additive: board directories, shared files untouched | n/a | ⛔ | ⛔ |
 | T12 | Unprefixed EOP daemon modules (`lazy_bev.py`, `gridd/*`, …): decide prefix and location together with T8; `lazy_bev` is live code used by `gridd`/`segd`, not dead like the libraries moved in T3 | n/a | ☐ | ☐ |
-| T11 | Remove the stale root `NGP10_CHESTNUT_MIGRATION_PLAN.md` from the EOP line. Keep `task.md`: it is the live task record there | n/a | ☑ | ☑ |
+| T11 | Remove the stale root eGPU migration plan from the EOP line. Keep `task.md`: it is the live task record there | n/a | ☑ | ☑ |
 | T13 | Lane-change gap and lane-width guards from modelV2 in one shared module (`ngp_lane_change.py`) | ◐ module + hook + tests, opt-in, no build run | ◐ EOP10 `desire_helper` calls it; 01M `eop_lane_change.py` copy still to become an adapter | ☐ same as 01M |
 | T14 | NGP10 footprint ratchet is red at `82d52eca4`: controlsd +53 > 48, `long_mpc.py` new, longitudinal_planner +244 > 193. Shrink the hooks or justify and `--update` | ◐ | n/a | n/a |
 | T15 | Lead-departure notice from `radarState` in one shared module (`ngp_lead_departure.py`) | ◐ opt-in `ngp_lon_lead_departure`, `EventName` `@98`-`@108` aligned with EOP10 | ☑ `selfdrived` uses the module | ☑ same as 01M |

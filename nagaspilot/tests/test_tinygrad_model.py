@@ -1,4 +1,4 @@
-"""Exercise the pinned compiler artifact ABI on CPU without Chestnut hardware."""
+"""Exercise the pinned compiler artifact ABI on CPU without the compiled-model hardware."""
 import os
 from pathlib import Path
 import pickle

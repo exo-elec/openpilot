@@ -8,7 +8,7 @@
 - **Phase 4**: ✅ COMPLETE - Performance Profiling (all tasks complete)
 - **Phase 5**: ⏳ PENDING - Hardware Deployment (requires RK3588)
 - **Phase 6**: ✅ COMPLETE - Production Hardening (All 5 tasks complete)
-- **Phase 7**: ⛔ WITHDRAWN (2026-09-27) - USB eGPU camera shadow validation; the eGPU runs the Chestnut driving model only
+- **Phase 7**: ⛔ WITHDRAWN (2026-09-27) - USB eGPU camera shadow validation; the eGPU path itself was removed 2026-10-13
 - **Phase 8**: ✅ CODE COMPLETE (2026-09-27) - RKNN: YOLOv8 detection for every camera; camera-tier card (Hailo-8 / DX-M1M): segmentation for every camera (segd) — see `05_Features/CAMERA_ACCEL_TIER.md`
 
 ---
@@ -273,7 +273,7 @@ Hardware readiness procedures documented in PHASE5_HARDWARE_READINESS.md
 
 ## Phase 7: Optional USB eGPU shadow validation (2026-08-23) — WITHDRAWN
 
-> **Withdrawn 2026-09-27.** The eGPU runs openpilot's Chestnut driving model and
+> **Withdrawn 2026-09-27.** The eGPU (since removed entirely, 2026-10-13) ran the upstream driving model and
 > nothing else. The side/rear shadow queues, segmentation shadows and their
 > Params were removed; object detection for every camera runs on RKNN and
 > segmentation for every camera on the Hailo-8 / DX-M1M card (segd). The
@@ -308,8 +308,7 @@ authoritative throughout this phase.
   rate-limited compatibility references below segmentation priority.
 - [ ] Any future eGPU driving backend must implement the openpilot `modeld` runner
   contract; it must not bypass its temporal buffers, parsers or `modelV2` semantics.
-- [x] Audit latest upstream Chestnut integration and capture the EOP/RKNN adaptation
-  in `05_Features/CHESTNUT_EGPU_ADOPTION.md`.
+- [x] Audit the upstream big-model integration (superseded: the big model now runs on a phone, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`).
 - [ ] Preload and warm the RKNN driving runner before activating an external model;
   keep temporal inputs current for immediate failover.
 - [ ] Match upstream's one-way onroad failure rule: exception, timeout, non-finite
@@ -327,7 +326,7 @@ authoritative throughout this phase.
 - [ ] Define replay, HIL, soak and closed-course promotion gates before adding any
   primary mode or connecting a result to trajectory planning/control.
 
-See `05_Features/EGPU_CAMERA_SHADOW.md` and the current section in `task.md`.
+See the current section in `task.md`.
 
 ---
 

@@ -93,7 +93,7 @@ def test_mode_3_leaves_the_comma_as_host_and_releases_any_gadget():
       Run.calls.append(a[0])
       return True
   box = [2]
-  o = G.GadgetOwner(lambda: box[0], lambda: False, run=Run(), net_ok=lambda: True)
+  o = G.GadgetOwner(lambda: box[0], run=Run(), net_ok=lambda: True)
   o.step()
   assert o.kind == G.NETWORK
   box[0] = 3

@@ -10,10 +10,10 @@ model. nagaspilot.bigmodel.joining does the join, swap, hold and hand-back; this
   frame it is sent, and skipping one would cost a second frame and leave a hand-back one short.
 - NGP10's inputs have no `action_t`; the facade builds it as upstream does from the lateral delay and the
   longitudinal actuator delay (the big model's smoothing, not the small model's), which modeld hands over.
-- BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py), with the same meaning as upstream's
-  ChestnutLoading / ChestnutActive: loading while a big model is expected and not yet driving or still proving itself,
+- BigModelLoading / BigModelActive for selfdrived (ngp_bigmodel_gate.py), as upstream's selfdrived reads for its big model:
+  loading while a big model is expected and not yet driving or still proving itself,
   active true while it drives and false once it failed or handed back.
-- The default policy (CHESTNUT) reproduces upstream's Chestnut behaviour with the phone in the GPU's place: if the
+- The default policy (ONE_WAY) reproduces upstream's big-model behaviour (a one-way fallback), with the phone as the compute: if the
   cable is connected at start, engagement is held off (loading) for up to BIG_MODEL_TIMEOUT while the phone joins; a
   phone that has not joined by then is not used this drive; and a big model that hands back is not used again until the
   next start (upstream: "fall back to small", never switched back onroad). Joining at any time and rejoining after a
@@ -30,8 +30,8 @@ from nagaspilot.runtime import bigmodel_platform as platform
 from nagaspilot.runtime.bigmodel_link import UDC_ROOT, cable_connected, host_enumerated  # noqa: F401 (re-exported probes)
 
 from nagaspilot.bigmodel.remote_state import PROVING_FRAMES
-BIG_MODEL_TIMEOUT = 60.0  # upstream modeld's: how long a Chestnut load may hold engagement off at the start
-ENUMERATION_TIMEOUT = 10.0  # upstream helpers.wait_for_chestnut(): how long a connected cable may take to enumerate
+BIG_MODEL_TIMEOUT = 60.0  # upstream modeld's: how long a big-model load may hold engagement off at the start
+ENUMERATION_TIMEOUT = 10.0  # upstream upstream's helper: how long a connected cable may take to enumerate
 
 
 @dataclass(frozen=True)
@@ -42,8 +42,8 @@ class BigModelPolicy:
   late_join: bool      # a phone may join after the window (needs window_s to have passed without one)
 
 
-# upstream's Chestnut: loaded (or not) at the start, one-way fallback, never switched back onroad
-CHESTNUT = BigModelPolicy(window_s=BIG_MODEL_TIMEOUT, one_way=True, late_join=False)
+# upstream's big model: loaded (or not) at the start, one-way fallback, never switched back onroad
+ONE_WAY = BigModelPolicy(window_s=BIG_MODEL_TIMEOUT, one_way=True, late_join=False)
 # the small model drives until the phone is there, which may be at any time, and it may rejoin
 LATE_JOIN = BigModelPolicy(window_s=0.0, one_way=False, late_join=True)
 
@@ -80,7 +80,7 @@ class NgpSmallModel:
 class BigModelFacade:
   """What modeld holds as `model` once the big model is attached."""
 
-  def __init__(self, joining, small, params, fallback_action, policy: BigModelPolicy = CHESTNUT,
+  def __init__(self, joining, small, params, fallback_action, policy: BigModelPolicy = ONE_WAY,
                clock=time.monotonic, cable=cable_connected, enumerated=host_enumerated, runnable=lambda: True):
     self._joining = joining
     self._small = small
@@ -90,7 +90,7 @@ class BigModelFacade:
     self._clock = clock
     self._cable = cable
     self._enumerated = enumerated
-    self._runnable = runnable    # a big model is built to run (upstream: chestnut_compiled())
+    self._runnable = runnable    # a big model is built to run (upstream: a compiled-model check)
     self._started = clock()
     self._cable_seen = False     # a phone's cable was connected during the window: a big model is expected
     self._cable_seen_at = 0.0
@@ -117,7 +117,7 @@ class BigModelFacade:
   # -- the frame
   @property
   def is_big(self) -> bool:
-    return bool(self._joining.chestnut)
+    return bool(self._joining.is_big)
 
   def run(self, bufs, transforms, inputs, prepare_only=False):
     if self.delays is None:
@@ -170,7 +170,7 @@ class BigModelFacade:
     return self._cable_seen
 
   def _enumeration_timed_out(self, now: float) -> bool:
-    """The cable was seen and the phone has not enumerated us in ENUMERATION_TIMEOUT: upstream's wait_for_chestnut() raising."""
+    """The cable was seen and the phone has not enumerated us in ENUMERATION_TIMEOUT: upstream's upstream's enumeration wait raising."""
     return self._cable_seen and not self._host_up and now - self._cable_seen_at >= ENUMERATION_TIMEOUT
 
   def _publish(self) -> None:
@@ -192,7 +192,7 @@ class BigModelFacade:
         self._give_up()
       elif not self._was_running and window_over and not self.policy.late_join:
         # the load window ended without a big model: upstream's load timeout. If a phone was expected this is a failed
-        # load (ChestnutActive False); with no cable there was nothing to attempt and nothing is said.
+        # load (active False); with no cable there was nothing to attempt and nothing is said.
         self._give_up()
         self._load_failed = self._cable_seen
     loading = proving or waiting
@@ -214,7 +214,7 @@ class BigModelFacade:
 class BigModelHook:
   """prepare() and attach() for modeld.main(); both return what modeld should keep doing if the link is off."""
 
-  def __init__(self, params, fallback_action, policy: BigModelPolicy = CHESTNUT, models_dir=None, listener_factory=None):
+  def __init__(self, params, fallback_action, policy: BigModelPolicy = ONE_WAY, models_dir=None, listener_factory=None):
     self.params = params
     self.fallback_action = fallback_action
     self.policy = policy

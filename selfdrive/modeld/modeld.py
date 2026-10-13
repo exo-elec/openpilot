@@ -12,7 +12,6 @@ Usage:
 import os
 import time
 import pickle
-import threading
 from collections import deque
 from pathlib import Path
 
@@ -47,20 +46,6 @@ from nagaspilot.runtime.bigmodel import BigModelHook
 
 PROCESS_NAME = "selfdrive.modeld.modeld"
 SEND_RAW_PRED = os.getenv('SEND_RAW_PRED')
-
-# ASM2464PD / Chestnut (external USB GPU) driving failover parameters.
-# Mirrors upstream's UsbGpuLoading/UsbGpuActive state machine, named Egpu*
-# to cover both custom flashed ASM2464PD firmware and comma's official Chestnut.
-EGPU_DRIVING_LOAD_TIMEOUT = 60.0  # seconds to wait for external model load/warmup
-EGPU_DRIVING_ENABLED_PARAM = "EOPEgpuDrivingEnabled"
-EGPU_DRIVING_LOADING_PARAM = "EOPEgpuDrivingLoading"
-EGPU_DRIVING_ACTIVE_PARAM = "EOPEgpuDrivingActive"
-
-# Backward compatibility aliases
-CHESTNUT_DRIVING_LOAD_TIMEOUT = EGPU_DRIVING_LOAD_TIMEOUT
-CHESTNUT_DRIVING_ENABLED_PARAM = "EOPChestnutDrivingEnabled"
-CHESTNUT_DRIVING_LOADING_PARAM = "EOPChestnutDrivingLoading"
-CHESTNUT_DRIVING_ACTIVE_PARAM = "EOPChestnutDrivingActive"
 
 # Repo-level models directory (relative to openpilot root)
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
@@ -145,7 +130,6 @@ class ModelState:
             VISION_METADATA_PATH,
             POLICY_METADATA_PATH,
         )
-        self._external_runner_active = self.runner.backend_name in ("EGPU", "CHESTNUT")
 
         # Initialize frames (for preprocessing)
         self.frames = {
@@ -191,7 +175,7 @@ class ModelState:
 
         # Temporary mitigation (ported from a proven external split-RKNN reference runner):
         # suppress one-frame "straight blips" in the split RKNN/ONNX policy's
-        # plan output. Not applied to the Chestnut monolithic path.
+        # plan output..
         self._blip_guard_enabled = os.getenv("RKNN_BLIP_GUARD", "1") != "0"
         self._blip_guard_context = 3
         self._blip_guard_curved = 0.8
@@ -201,12 +185,6 @@ class ModelState:
         self._blip_guard_prev_plan_stds_position: np.ndarray | None = None
 
         cloudlog.info("ModelState initialized via InferenceD HAL")
-
-    def set_runner(self, runner: DrivingRunner) -> None:
-        """Swap the active driving runner (used for eGPU/Chestnut -> RKNN failover)."""
-        self.runner.release()
-        self.runner = runner
-        self._external_runner_active = runner.backend_name in ("EGPU", "CHESTNUT")
 
     def _load_metadata(self):
         """Load model metadata (shapes, slices)."""
@@ -323,46 +301,6 @@ class ModelState:
         if prepare_only:
             return None
 
-        if self.runner.is_monolithic:
-            # Monolithic supercombo (Chestnut big model): one inference over the
-            # full input set, parsed with the big-model output slices.
-            t0 = time.perf_counter()
-            mono_inputs = {
-                **vision_inputs,
-                'desire': self.numpy_inputs['desire'],
-                'traffic_convention': self.numpy_inputs['traffic_convention'],
-                'features_buffer': self.numpy_inputs['features_buffer'],
-            }
-            result = self.runner.run(mono_inputs)
-            model_time = (time.perf_counter() - t0) * 1000
-
-            if not result.success:
-                cloudlog.error(f"Monolithic driving inference failed: {result.error_message}")
-                if self._external_runner_active:
-                    raise RuntimeError(f"External driving model failed: {result.error_message}")
-                return None
-
-            raw_output = result.outputs.get('outputs')
-            if raw_output is None:
-                if self._external_runner_active:
-                    raise RuntimeError("External driving model returned no outputs")
-                return None
-            raw_output = np.asarray(raw_output, dtype=np.float32).reshape(-1)
-            if self._external_runner_active and not np.all(np.isfinite(raw_output)):
-                raise RuntimeError("External driving model output is not finite")
-
-            cloudlog.debug(f"Inference times: monolithic={model_time:.1f}ms")
-            outputs_dict = self.parser.parse_outputs(self.slice_outputs(raw_output, self.runner.output_slices))
-
-            # Roll the features buffer from the model's hidden state
-            self.full_features_buffer[0, :-1] = self.full_features_buffer[0, 1:]
-            self.full_features_buffer[0, -1] = outputs_dict['hidden_state'][0, :]
-            self.numpy_inputs['features_buffer'][:] = self.full_features_buffer[0, self.temporal_idxs]
-
-            if SEND_RAW_PRED:
-                outputs_dict['raw_pred'] = raw_output.copy()
-            return outputs_dict
-
         # Split vision+policy path (proven external split-RKNN architecture)
         # Run vision model through the driving runner
         t0 = time.perf_counter()
@@ -371,13 +309,9 @@ class ModelState:
 
         if not vision_result.success:
             cloudlog.error(f"Vision inference failed: {vision_result.error_message}")
-            if self._external_runner_active:
-                raise RuntimeError(f"External driving vision failed: {vision_result.error_message}")
             return None
 
         self.vision_output = vision_result.outputs.get('outputs', np.zeros(self.vision_output_size))
-        if self._external_runner_active and not np.all(np.isfinite(self.vision_output)):
-            raise RuntimeError("External driving vision output is not finite")
         vision_outputs_dict = self.parser.parse_vision_outputs(
             self.slice_outputs(self.vision_output, self.vision_output_slices)
         )
@@ -401,13 +335,9 @@ class ModelState:
 
         if not policy_result.success:
             cloudlog.error(f"Policy inference failed: {policy_result.error_message}")
-            if self._external_runner_active:
-                raise RuntimeError(f"External driving policy failed: {policy_result.error_message}")
             return None
 
         self.policy_output = policy_result.outputs.get('outputs', np.zeros(self.policy_output_size))
-        if self._external_runner_active and not np.all(np.isfinite(self.policy_output)):
-            raise RuntimeError("External driving policy output is not finite")
         policy_outputs_dict = self.parser.parse_policy_outputs(
             self.slice_outputs(self.policy_output, self.policy_output_slices)
         )
@@ -465,49 +395,6 @@ def get_action_from_model(model_output: dict[str, np.ndarray], prev_action: log.
     )
 
 
-def _load_egpu_runner(client: InferenceClient, params: Params) -> DrivingRunner | None:
-    """Load the eGPU (ASM2464PD / Chestnut) external-GPU driving runner with a bounded timeout.
-
-    Follows the upstream Chestnut pattern: load and warmup in a background
-    thread, return None if the deadline is missed or load fails.
-    """
-    params.put_bool(EGPU_DRIVING_LOADING_PARAM, True)
-    params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, True)
-    egpu_runner: DrivingRunner | None = None
-
-    def _load() -> None:
-        nonlocal egpu_runner
-        try:
-            runner = create_driving_runner(
-                client,
-                VISION_MODEL_PATH,
-                POLICY_MODEL_PATH,
-                VISION_METADATA_PATH,
-                POLICY_METADATA_PATH,
-                params=params,
-                use_egpu=True,
-            )
-            egpu_runner = runner
-        except Exception:
-            cloudlog.exception("eGPU driving runner load failed")
-
-    loader = threading.Thread(target=_load, daemon=True)
-    loader.start()
-    loader.join(timeout=EGPU_DRIVING_LOAD_TIMEOUT)
-
-    active = egpu_runner is not None
-    params.put_bool(EGPU_DRIVING_ACTIVE_PARAM, active)
-    params.put_bool(EGPU_DRIVING_LOADING_PARAM, False)
-    params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, active)
-    params.put_bool(CHESTNUT_DRIVING_LOADING_PARAM, False)
-    cloudlog.warning(f"eGPU driving runner load: active={active}")
-    return egpu_runner
-
-
-# Backward compatibility alias
-_load_chestnut_runner = _load_egpu_runner
-
-
 def main(demo=False) -> int:
     """Main entry point."""
     cloudlog.warning("modeld starting")
@@ -523,19 +410,12 @@ def main(demo=False) -> int:
     config_realtime_process(DT_MDL, 54)
 
     params = Params()
-    egpu_driving_enabled = params.get_bool(EGPU_DRIVING_ENABLED_PARAM) or params.get_bool(CHESTNUT_DRIVING_ENABLED_PARAM)
-    params.remove(EGPU_DRIVING_ACTIVE_PARAM)
-    params.remove(CHESTNUT_DRIVING_ACTIVE_PARAM)
 
     # Initialize CL context — mock on dev PC (no real OpenCL); used for frame preprocessing
     st = time.monotonic()
     cl_context = CLContext()
     use_cl = cl_context.context is not None  # True only when real OpenCL context was created
     cloudlog.warning(f"CL context: {'GPU' if use_cl else 'dev-PC numpy mock'}; loading models via HAL")
-
-    # Load eGPU runner first (if enabled), then always keep RKNN fallback warm.
-    egpu_runner = _load_egpu_runner(client, params) if egpu_driving_enabled else None
-    egpu_active = egpu_runner is not None
 
     try:
         rknn_runner = create_driving_runner(
@@ -545,18 +425,13 @@ def main(demo=False) -> int:
             VISION_METADATA_PATH,
             POLICY_METADATA_PATH,
             params=params,
-            use_egpu=False,
         )
     except Exception as e:
-        cloudlog.error(f"Failed to initialize RKNN fallback runner: {e}")
+        cloudlog.error(f"Failed to initialize the driving runner: {e}")
         return 1
 
-    active_runner = egpu_runner if egpu_active else rknn_runner
-    fallback_runner = rknn_runner
-
-    # Initialize model state with the selected active runner.
     try:
-        model = ModelState(cl_context, client, runner=active_runner)
+        model = ModelState(cl_context, client, runner=rknn_runner)
     except Exception as e:
         cloudlog.error(f"Failed to initialize model: {e}")
         return 1
@@ -586,8 +461,7 @@ def main(demo=False) -> int:
         time.sleep(0.1)
 
     cloudlog.warning(f"Vision stream ready, main_wide_camera={main_wide_camera}")
-    if not egpu_active:
-        model = bigmodel.attach(model, vipc_client_main)
+    model = bigmodel.attach(model, vipc_client_main)
 
     # Setup messaging
     pm = messaging.PubMaster(["modelV2", "drivingModelData", "cameraOdometry"])
@@ -710,21 +584,10 @@ def main(demo=False) -> int:
                 'traffic_convention': traffic_convention,
             }
 
-            # Run inference with upstream-style eGPU-runner failover.
+            # The phone-backed model hands itself back to the small model (bigmodel.attach); anything raised here is real
             mt1 = time.perf_counter()
             model.frame_drop_ratio, model.delays = frame_drop_ratio, (sm["liveDelay"].lateralDelay, CP.longitudinalActuatorDelay)
-            try:
-                model_output = model.run(bufs, transforms, inputs, prepare_only)
-            except Exception:
-                if not egpu_active:
-                    raise
-                cloudlog.exception("eGPU driving runner failed, falling back to RKNN")
-                params.put_bool(EGPU_DRIVING_ACTIVE_PARAM, False)
-                params.put_bool(CHESTNUT_DRIVING_ACTIVE_PARAM, False)
-                model.set_runner(fallback_runner)
-                egpu_active = False
-                run_count = 0
-                model_output = None
+            model_output = model.run(bufs, transforms, inputs, prepare_only)
             mt2 = time.perf_counter()
             model_execution_time = mt2 - mt1
             if getattr(model, 'handed_over', lambda: False)():
@@ -747,7 +610,7 @@ def main(demo=False) -> int:
                     publish_state, meta_main.frame_id, meta_extra.frame_id, frame_id,
                     frame_drop_ratio, meta_main.timestamp_eof, model_execution_time, live_calib_seen
                 )
-                modelv2_send.modelV2.big = bool(getattr(model, 'is_big', False) or egpu_active)
+                modelv2_send.modelV2.big = bool(getattr(model, 'is_big', False))
 
                 desire_state = modelv2_send.modelV2.meta.desireState
                 l_lane_change_prob = desire_state[log.Desire.laneChangeLeft]
