@@ -1,5 +1,7 @@
 # Big model on the phone: NavPilot-owned link (port plan and status)
 
+> The phone's other traffic (GNSS fix, map horizon, later navigation, vehicle data) rides **PLP v5**, a separate protocol and port on the same cable: `PLP_V5_SPEC.md`. NPBM stays the big-model protocol and is not part of PLP; on Android PLP gets its own bulk interface so the model path is untouched.
+
 Status 2026-10-12 (end of day): **the comma side is merged on `dev/NGP10` and carried onto `dev/EOP10`, `dev/01M` and `dev/02M`; the phone core is a pure-Dart package in NavPilot; nothing has run on a comma, a board or a phone.**
 Everything is default off (`ngp_bigmodel_link` = 0). 199 comma-side tests and 16 Dart tests pass on a PC; the bulk and FunctionFS paths have only run against fakes.
 
