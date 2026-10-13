@@ -2,7 +2,7 @@
 """NCP v4.1 over the USB cable: the phone's network interface to the comma instead of BLE.
 
 With the phone-hosted big model in iPhone mode (ngp_bigmodel_link = 2) the comma presents a CDC-NCM network at
-192.168.60.1 and the phone dials it (jetlink-root.sh gadget --ios). This serves the same NCP frames BLE and SPP carry
+192.168.60.1 and the phone dials it (ngp-bigmodel-root.sh gadget, ngp_bigmodel_link = 2). This serves the same NCP frames BLE and SPP carry
 over a TCP stream on that address, registered with the shared NCPSession as the 'cable' transport, so every NCP feature
 (navigation, telemetry, vehicle data, pairing messages) works over the cable with no change to the session.
 
@@ -11,7 +11,7 @@ link whose frame header is malformed (the buffer is otherwise bounded by the 64 
 a time (a new connection replaces the old). A BLE bond is OS-level trust; here the physical cable is the trust anchor,
 and NCP's own pairing messages are unchanged.
 
-Android's Jetlink link is a USB vendor interface with no network, so this is the iPhone cable path.
+Android's direct link (ngp_bigmodel_link = 1) is a FunctionFS vendor interface with bulk endpoints and no network, so this TCP path is the iPhone's; NCP on Android needs a channel on the bulk pipe (navpilot docs/architecture/NCP_OVER_TETHER_PLAN.md).
 """
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ from openpilot.system.bluetoothd import protocol
 
 logger = logging.getLogger('bluetoothd.cable')
 
-CABLE_ADDRESS = '192.168.60.1'   # the comma's end of the USB network (jetlink-root.sh gadget --ios)
+CABLE_ADDRESS = '192.168.60.1'   # the comma's end of the USB network (ngp-bigmodel-root.sh gadget, ngp_bigmodel_link = 2)
 CABLE_SUBNET = '192.168.60.'
-NCP_CABLE_PORT = 5598            # Jetlink's own link uses 5599
+NCP_CABLE_PORT = 5598            # the big-model link (NPBM) uses 5600
 MIN_FRAME_LENGTH = 4             # the length field counts type (2) + CRC (2) + payload
 BIND_RETRY_S = 2.0               # the network interface appears only after the gadget binds
 
