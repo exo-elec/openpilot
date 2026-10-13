@@ -5,7 +5,7 @@ an Ethernet-class interface (RNDIS, CDC-NCM/ECM, ipheth) to the host, and the ph
 by its kernel driver, reads the phone's address from the routing table, and connects out to the app's listening socket. The
 protocol is unchanged: the comma still sends HELLO and drives the frames.
 
-Requires the host kernel to carry the USB ethernet drivers (exopilot's `exopilot-usb-tether.config`; on AGNOS this is not known and
+Optional link (the default is the direct USB link, see docs/NAVPILOT_BIGMODEL.md D11). Requires the host kernel to carry the USB ethernet drivers (exopilot's `exopilot-usb-tether.config`; on AGNOS this is not known and
 is the first thing to check on a comma: `zcat /proc/config.gz | grep -E 'USB_NET|IPHETH|RNDIS'`). The default route NetworkManager
 may add for the tether interface must stay behind the comma's own uplink (route metric 900): see docs/NAVPILOT_BIGMODEL.md.
 Standard library only.
