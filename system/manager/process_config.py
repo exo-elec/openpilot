@@ -66,6 +66,10 @@ def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
   # the gadget owner holds the USB port for the phone while the link is on, onroad and offroad alike
   return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) != 0
 
+def plp_link(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # PLP over the iPhone cable (ngp_bigmodel_link = 2): the gadget owner makes the network, plpd serves it
+  return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) == 2
+
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
 
@@ -119,6 +123,7 @@ procs = [
   PythonProcess("tripd", "nagaspilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
   PythonProcess("bigmodeld", "nagaspilot.bigmodel.gadget", bigmodel_link, enabled=TICI),
+  PythonProcess("plpd", "nagaspilot.plp.plpd", plp_link, enabled=TICI),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),
