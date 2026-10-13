@@ -126,3 +126,27 @@ def test_cable_server_serves_a_phone_over_tcp_and_refuses_other_networks():
 
 def test_fixture_still_parses_as_a_horizon():
   assert MapHorizon.parse(FIXTURE.read_bytes(), 0.0).length_m > 0
+
+
+def test_plpd_builds_a_server_that_answers_on_the_cable_address_only():
+  from nagaspilot.plp import plpd
+  sink = LocateSink()
+  srv = plpd.build(sink, bind_addr='127.0.0.1', port=0, allowed_prefix='127.')
+  assert srv.hello.link == 'usb' and {n for n, _, _ in srv.hello.services} == {'core', 'locate'}
+  srv.start()
+  try:
+    for _ in range(100):
+      if srv.bound_port:
+        break
+      time.sleep(0.02)
+    s = socket.create_connection(('127.0.0.1', srv.bound_port))
+    s.sendall(F.Frame(R.KIND_REQUEST, 0, 1, Hello(services=SERVICES, link='usb').to_json(), 0, F.ENC_JSON, 1).encode())
+    s.settimeout(2)
+    d = F.FrameDecoder()
+    frames = []
+    while not frames:
+      frames = d.feed(s.recv(4096))
+    assert Hello.parse(frames[0].payload).max_payload == 16384
+    s.close()
+  finally:
+    srv.stop()
