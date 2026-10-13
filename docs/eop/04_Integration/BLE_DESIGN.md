@@ -1,7 +1,7 @@
 # EOP BLE / Bluetooth Integration Design
 
 **Last updated:** 2026-08-03  
-**Protocol:** NCP v4.1  
+**Protocol:** NCP v4.1 (legacy, still live); successor PLP v5 on a second GATT service and over USB, see `nagaspilot/docs/PLP_V5_SPEC.md`  
 **Transport:** Classic SPP (RFCOMM) + BLE GATT (Nordic UART Service)
 
 ---
