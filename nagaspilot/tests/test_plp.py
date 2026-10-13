@@ -180,3 +180,15 @@ def test_golden_hello_json_is_byte_identical():
   g = json.loads((pathlib.Path(__file__).parent / 'fixtures' / 'plp_golden.json').read_text())
   h = H.Hello(max_payload=512, max_message=65536, services=(('locate', 1, 2), ('nav', 1, 1)), link='ble')
   assert h.to_json().decode() == g['hello']['json']
+
+
+def test_golden_exchange_is_reproduced_by_the_device_session():
+  import pathlib
+
+  from nagaspilot.plp.session import PlpSession
+  g = json.loads((pathlib.Path(__file__).parent / 'fixtures' / 'plp_golden.json').read_text())['exchange']
+  out = []
+  dev = PlpSession(H.Hello.parse(g['device_hello_json'].encode()), out.append, role='device')
+  dev.feed(bytes.fromhex(g['request_hex']))
+  dev.feed(bytes.fromhex(g['unknown_request_hex']))
+  assert [o.hex() for o in out] == [g['response_hex'], g['error_hex']]
