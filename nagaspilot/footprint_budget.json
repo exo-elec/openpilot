@@ -90,7 +90,7 @@
    55
   ],
   "selfdrive/modeld/modeld.py": [
-   743,
+   606,
    317
   ],
   "selfdrive/modeld/models/README.md": [
@@ -114,7 +114,7 @@
    4
   ],
   "selfdrive/selfdrived/selfdrived.py": [
-   321,
+   320,
    41
   ],
   "selfdrive/selfdrived/state.py": [
