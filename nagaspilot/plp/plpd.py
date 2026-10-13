@@ -25,7 +25,7 @@ SERVICES = (('core', 1, 1), ('locate', 1, 1))
 
 
 def device_hello() -> Hello:
-  return Hello(max_payload=16384, max_message=1 << 20, services=SERVICES, link='usb')
+  return Hello(max_payload=16384, max_message=1 << 20, services=SERVICES, link='usb', payload_crc=False)
 
 
 def build(sink: LocateSink, **server_kw) -> CablePLP:
