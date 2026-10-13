@@ -22,10 +22,11 @@ class Hello:
   max_message: int = 1 << 20                  # largest reassembled message
   services: tuple[tuple[str, int, int], ...] = ()   # (service name, lowest, highest message set version)
   link: str = 'ble'
+  payload_crc: bool = True                    # "frames sent to me need a payload CRC": True on BLE, False on USB and TCP, which protect the payload themselves
 
   def to_json(self) -> bytes:
     return json.dumps({'version': [self.min_version, self.max_version], 'encodings': list(self.encodings), 'max_payload': self.max_payload,
-                       'max_message': self.max_message, 'services': {n: [lo, hi] for n, lo, hi in self.services}, 'link': self.link},
+                       'max_message': self.max_message, 'payload_crc': self.payload_crc, 'services': {n: [lo, hi] for n, lo, hi in self.services}, 'link': self.link},
                       separators=(',', ':'), sort_keys=True).encode()
 
   @classmethod
@@ -34,7 +35,7 @@ class Hello:
       d = json.loads(raw)
       lo, hi = (int(x) for x in d['version'])
       svc = tuple((str(n), int(v[0]), int(v[1])) for n, v in sorted(d.get('services', {}).items()))
-      return cls(lo, hi, tuple(int(e) for e in d.get('encodings', [ENC_JSON])), int(d['max_payload']), int(d['max_message']), svc, str(d.get('link', 'ble')))
+      return cls(lo, hi, tuple(int(e) for e in d.get('encodings', [ENC_JSON])), int(d['max_payload']), int(d['max_message']), svc, str(d.get('link', 'ble')), bool(d.get('payload_crc', True)))
     except (ValueError, KeyError, TypeError, IndexError) as e:
       raise ValueError(f'unreadable hello: {e}') from e
 
@@ -47,6 +48,7 @@ class Agreed:
   max_message: int
   services: dict[str, int]               # service name -> message set version both speak
   link: str
+  send_payload_crc: bool = True          # whether frames we send need a payload CRC (the peer's request)
 
 
 def negotiate(local: Hello, remote: Hello) -> Agreed | None:
@@ -62,4 +64,4 @@ def negotiate(local: Hello, remote: Hello) -> Agreed | None:
       top = min(mine[n][1], hi)
       if top >= max(mine[n][0], lo):
         common[n] = top
-  return Agreed(version, encodings, min(local.max_payload, remote.max_payload), min(local.max_message, remote.max_message), common, remote.link)
+  return Agreed(version, encodings, min(local.max_payload, remote.max_payload), min(local.max_message, remote.max_message), common, remote.link, remote.payload_crc)

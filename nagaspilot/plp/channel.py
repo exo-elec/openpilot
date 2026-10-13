@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-from nagaspilot.plp.frame import FLAG_CRITICAL, FLAG_MORE, MAX_FRAME_PAYLOAD, Frame
+from nagaspilot.plp.frame import FLAG_CRITICAL, FLAG_MORE, FLAG_NO_PAYLOAD_CRC, MAX_FRAME_PAYLOAD, Frame
 
 CHANNELS = 4
 STARVATION_LIMIT = 16
@@ -33,6 +33,7 @@ class Outbox:
     if not 1 <= max_payload <= MAX_FRAME_PAYLOAD:
       raise ValueError('max_payload out of range')
     self.max_payload = max_payload
+    self.payload_crc = True                    # set from the peer's hello
     self._queues: list[deque[Frame]] = [deque() for _ in range(CHANNELS)]
     self._waited = [0] * CHANNELS
 
@@ -41,7 +42,7 @@ class Outbox:
       raise ValueError('bad channel')
     parts = [m.payload[i:i + self.max_payload] for i in range(0, len(m.payload), self.max_payload)] or [b'']
     for n, part in enumerate(parts):
-      flags = (FLAG_MORE if n < len(parts) - 1 else 0) | (FLAG_CRITICAL if m.critical else 0)
+      flags = (FLAG_MORE if n < len(parts) - 1 else 0) | (FLAG_CRITICAL if m.critical else 0) | (0 if self.payload_crc else FLAG_NO_PAYLOAD_CRC)
       self._queues[m.channel].append(Frame(m.kind, m.service, m.message, part, m.channel, m.encoding, m.request_id, flags))
 
   def pending(self) -> int:
