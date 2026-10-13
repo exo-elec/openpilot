@@ -118,7 +118,7 @@ class HardwareD:
 
         self.pm = messaging.PubMaster(['powerState'])
         self.params = Params()
-        self.phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's ChestnutStatus alerts
+        self.phone_link = PhoneLinkMonitor()  # the phone-hosted big model's counterpart of upstream's big-model status alerts
 
         # Power rails, discovered from sysfs (see class docstring)
         self.rail_dirs = discover_regulators()
