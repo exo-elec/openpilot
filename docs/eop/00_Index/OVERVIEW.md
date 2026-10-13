@@ -295,7 +295,7 @@ Quick reference:
 | `imud` | LSM6DS3 accel/gyro (104 Hz) + RK3588 temp (2 Hz) | — | `system/imud/` |
 | `socketd` | SocketCAN (SBU-aware dynamic remap) ↔ cereal + comfort-bounded Layer 1 Safety + explicit AEB envelope | always-on | `system/socketd/` |
 | `hardwared` | Thermal, power, fan | 2 Hz | `system/hardware/` |
-| `bluetoothd` | BLE SPP server — NavPilot companion app integration (NCP v4.1) | always-on | `system/bluetoothd/` |
+| `bluetoothd` | BLE SPP server — NavPilot companion app integration (NCP v4.1; PLP v5 on a second GATT service) | always-on | `system/bluetoothd/` |
 | `recordd` | DVR ring-buffer recording from stereo_right | always-on | `selfdrive/recordd/` |
 | `pigeond` | GPS (NEO-M8U-06B UDR, RK3588) | always-on | `system/ubloxd/` |
 | `navd` | On-device Valhalla routing; NavPilot turn-by-turn via BLE SPP | always-on | `selfdrive/navd/` |
