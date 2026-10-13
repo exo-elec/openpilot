@@ -1,0 +1,56 @@
+{
+ "crc32c_123456789": 3808858755,
+ "frames": [
+  {
+   "name": "request_navigate",
+   "hex": "504c05010002030301000007000000197b226c6174223a31332e37352c226c6f6e223a3130302e357d3e9a156f",
+   "kind": 1,
+   "service": 3,
+   "message": 3,
+   "channel": 2,
+   "encoding": 1,
+   "request_id": 7,
+   "flags": 0,
+   "payload_hex": "7b226c6174223a31332e37352c226c6f6e223a3130302e357d"
+  },
+  {
+   "name": "notify_gnss_fix",
+   "hex": "504c050000010801010000000000000a7b22745f6d73223a317d0ebb3df9",
+   "kind": 0,
+   "service": 8,
+   "message": 1,
+   "channel": 1,
+   "encoding": 1,
+   "request_id": 0,
+   "flags": 0,
+   "payload_hex": "7b22745f6d73223a317d"
+  },
+  {
+   "name": "fragment_first",
+   "hex": "504c05000103080201000000000000046162636476672d29",
+   "kind": 0,
+   "service": 8,
+   "message": 2,
+   "channel": 3,
+   "encoding": 1,
+   "request_id": 0,
+   "flags": 1,
+   "payload_hex": "61626364"
+  },
+  {
+   "name": "critical_empty",
+   "hex": "504c0500020009090000000000000000907965d5",
+   "kind": 0,
+   "service": 9,
+   "message": 9,
+   "channel": 0,
+   "encoding": 0,
+   "request_id": 0,
+   "flags": 2,
+   "payload_hex": ""
+  }
+ ],
+ "hello": {
+  "json": "{\"encodings\":[1],\"link\":\"ble\",\"max_message\":65536,\"max_payload\":512,\"services\":{\"locate\":[1,2],\"nav\":[1,1]},\"version\":[5,5]}"
+ }
+}
