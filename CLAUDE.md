@@ -85,7 +85,7 @@ offset added to a y-right path), SOC (read `yRel` as right),
 | `ARCHITECTURE.md` | System design + daemon overview |
 | `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
-| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP architecture (dual transport) |
+| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP v4.1 architecture (dual transport); successor protocol: `nagaspilot/docs/PLP_V5_SPEC.md` |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
 | `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
 | `test.sh` | Local dev gate before pushing |
@@ -277,6 +277,16 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   RKNN binary across target SoCs.
 - The EOP10 corner-radar baseline is BLE-only: ESP32_RADAR `dev/TR13`
   publishes `radar2d`; WiFi point-cloud radar support belongs to the 02M layer.
+
+**PLP v5, the Pilot Link Protocol, replaces NCP (2026-10-13):**
+- `nagaspilot/plp/` (shared, flows down from NGP10): registry (`registry.json`, 42 messages in 10 services, mapped from the NCP v4 type numbers), framing (16-byte
+  header + header CRC-32C + payload + payload CRC only where the link needs it), four priority channels with fragmentation, hello/negotiation, `PlpSession`,
+  `cable.py` (iPhone USB network, TCP 5601, started as `plpd`), `ble_stream.py` (chunking/pacing), `locate.py` (GNSS fix and map horizon handlers). Spec:
+  `nagaspilot/docs/PLP_V5_SPEC.md`. Design follows Jetlink: header-only CRC on USB/TCP, padding rule on bulk, the NCM iPhone gadget.
+- NGP10 (comma 3, no BLE hardware) is PLP over USB only. EOP10+ run PLP on USB and on a second BLE GATT service (`system/bluetoothd/plp_gatt.py`) beside the Nordic
+  UART NCP v4.1 service, which stays for older apps.
+- NCP v4.1 (`ncp_session.py`, `ncp_cable.py`, `ble_gatt.py`, `spp.py`) is unchanged and still carries navigation, telemetry, OBD, pairing and radar until each
+  handler moves to PLP; nothing is renamed before then. Not run on a board or phone; Android's second bulk interface is not built.
 
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner
