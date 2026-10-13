@@ -9,7 +9,6 @@
 5. [`NAMING_CONVENTIONS.md`](NAMING_CONVENTIONS.md) — `ngp_` settings and module naming.
 6. [`BOUNDARIES.md`](BOUNDARIES.md) — layer rules enforced by `test_boundaries.py`.
    Task list and footprint audit: [`CODE_BOUNDARY_TASKS.md`](CODE_BOUNDARY_TASKS.md).
-7. [`EGPU_INTEGRATION.md`](EGPU_INTEGRATION.md) — ASM2464PD eGPU additive-tier design notes; big-model load/failover/telemetry scaffolding ported 2026-08-23 (dual firmware detection, `EgpuState`, `EgpuDriving*` Params), still blocked on a real big-model asset and hardware to verify against.
 8. [`STEERING_ACTIVITY_MONITORING.md`](STEERING_ACTIVITY_MONITORING.md) — shared decay policies and the existing controlsd warning/deceleration contract.
 
 8. [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) — big model hosted on the phone over USB, NavPilot-owned link (NPBM protocol, no external dependency); plan, decisions, status. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) is the superseded Jetlink-port record.

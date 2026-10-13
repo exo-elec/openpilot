@@ -28,7 +28,6 @@ _services: dict[str, tuple] = {
   "selfdriveState": (True, 100., 10),
   "pandaStates": (True, 10., 1),
   "peripheralState": (True, 2., 1),
-  "egpuState": (True, 10., 10),
   "mapData": (True, 1., 1),             # OSM speed limits and curvature (mapd)
   "stereoObjects": (True, 20., 5),     # fused camera objects (gridd / gridd)
   "pathAdjust": (True, 20., 5),         # nagaspilot pathd add-on

@@ -58,15 +58,3 @@ for model_name in ['driving_vision', 'driving_policy']:
 # NagasPilot road-camera detector (monod): compiled only when its ONNX is present; the weights are not in the repo.
 if File("models/yolo_detector.onnx").exists():
   tg_compile({'larch64': 'DEV=QCOM', 'Darwin': 'DEV=CPU IMAGE=0'}.get(arch, 'DEV=CPU:LLVM IMAGE=0'), 'yolo_detector')
-
-# Chestnut artifacts use the upstream USB+AMD renderer and the same split-model
-# metadata contract as this baseline. Compilation is explicit, serial and device-bound.
-if "USBGPU" in os.environ:
-  flags = "DEV=USB+AMD:LLVM GMMU=0 AM_POWER_LIMIT=100 IMAGE=0"
-  big_targets = []
-  for model_name in ['big_driving_policy', 'big_driving_vision']:
-    fn = File(f"models/{model_name}").abspath
-    script = Dir("#selfdrive/modeld").File("get_model_metadata.py").abspath
-    lenv.Command(fn + "_metadata.pkl", [fn + ".onnx", script], f'python3 {script} {fn}.onnx')
-    big_targets.append(tg_compile(flags, model_name))
-  lenv.SideEffect('chestnut_compile_lock', big_targets)

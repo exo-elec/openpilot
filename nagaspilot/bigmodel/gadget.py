@@ -66,8 +66,8 @@ class GadgetOwner:
   gadget down and builds the other one. For bulk this process also holds ep0 (descriptors, bind, events) for as long as the
   gadget is up: closing ep0 would take the function with it."""
 
-  def __init__(self, mode, chestnut, run=run, net_ok=net_ok, control_factory=None):
-    self._mode, self._chestnut, self._run, self._net_ok = mode, chestnut, run, net_ok
+  def __init__(self, mode, run=run, net_ok=net_ok, control_factory=None):
+    self._mode, self._run, self._net_ok = mode, run, net_ok
     self._control_factory = control_factory
     self.kind: int | None = None   # NETWORK or BULK while up
     self.control = None
@@ -80,7 +80,7 @@ class GadgetOwner:
     """0 when nothing is wanted: off, a Chestnut on the port, or an unreadable setting (unknown never takes the port)."""
     try:
       m = int(self._mode())
-      return 0 if m == 0 or self._chestnut() else (NETWORK if m == NETWORK else TETHER if m == TETHER else BULK)
+      return 0 if m == 0 else (NETWORK if m == NETWORK else TETHER if m == TETHER else BULK)
     except Exception:
       return 0
 
@@ -147,7 +147,7 @@ def main() -> None:
   def mode() -> int:
     return int(params.get(platform.LINK, return_default=True) or 0)
 
-  owner = GadgetOwner(mode, platform.egpu_in_use)
+  owner = GadgetOwner(mode)
   stop = threading.Event()
   signal.signal(signal.SIGTERM, lambda *_: stop.set())
   signal.signal(signal.SIGINT, lambda *_: stop.set())

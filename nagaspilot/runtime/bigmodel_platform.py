@@ -26,9 +26,3 @@ USB_PLATFORM = "agnos"
 def on_device() -> bool:
   """A real device rather than a PC (decides the params directory and where models and logs live)."""
   return Path('/AGNOS').is_file()
-
-
-def egpu_in_use() -> bool:
-  """Is the eGPU on the USB-C port the phone would use? Then the link must stay off (one port, one role)."""
-  from openpilot.selfdrive.modeld.egpu_detect import egpu_present
-  return egpu_present() is not None

@@ -14,7 +14,7 @@ Reference: [`exo-elec/jetlink`](https://github.com/exo-elec/jetlink) `main` v0.8
 side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md`);
 the phone is the only model host. Jetson, Mac and PC hosts are out of scope.
 
-Related: [`EGPU_INTEGRATION.md`](EGPU_INTEGRATION.md) (the Chestnut tier; shares
+Related: the eGPU tier was removed on 2026-10-13 (see `NAVPILOT_BIGMODEL.md`).
 the big-model contract work), [`BOUNDARIES.md`](BOUNDARIES.md),
 [`DEPENDENCY_POLICY.md`](DEPENDENCY_POLICY.md),
 [`CODE_BOUNDARY_TASKS.md`](CODE_BOUNDARY_TASKS.md) (tasks T16 to T17).

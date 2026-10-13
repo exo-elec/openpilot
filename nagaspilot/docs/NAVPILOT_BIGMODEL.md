@@ -122,7 +122,7 @@ request/response pair) must pass.
 | 8 | `modeld` rework: combined-model contract as a second contract id, in six steps: [`NAVPILOT_COMBINED_MODEL.md`](NAVPILOT_COMBINED_MODEL.md). Steps 1 to 5c done and tested (spec, queues against openpilot's own digests, contract negotiation with a comma allow-list, `RemoteSpecModelState`, the Dart queued and stateful servers, the allow-list tool); step 6 (`modeld` itself) needs a real model file | ◐ done except step 6 |
 | 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
 | 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
-| 11 | Remove the eGPU / Chestnut path | ☐ gated, see below |
+| 11 | Remove the eGPU / Chestnut path | ☑ done on NGP10 2026-10-13 by the owner's decision (see below) |
 
 ## Inference backend survey (pub.dev, 2026-10-12)
 
@@ -138,19 +138,18 @@ The Dart core needs one native piece, `Backend` (run the vision and policy model
 Nothing off the shelf gives a ready Android NPU path for a Chestnut-class model. Plan on a thin NavPilot native layer (an FFI to the ORT C API,
 the way Jetlink's Swift does it) for production, and use `flutter_onnxruntime` only to get a first number on an iPhone.
 
-## Removing the eGPU / Chestnut path (gated, not done)
+## The eGPU / Chestnut path is removed (2026-10-13)
 
-Owner intent (2026-10-12): if a phone can run a Chestnut-class model, drop the GPU and keep only the phone backend. Not yet met: no phone has run such a model for us,
-NGP10 cannot consume the combined model (task 8), and Android is unproven (Jetlink reports no Snapdragon run). Remove only when **all** hold:
+Owner decision: the big model runs on the phone only. The gate in the earlier plan (a real combined model on an iPhone and an Android phone, a
+bench run with p99 under 50 ms, a drive test of the hand-back) was **not met**; the owner removed the eGPU anyway. Until a phone runs the big model
+a car has only the small model, with no big-model fallback of any kind. The gate is now the acceptance test for the phone path itself, not for the removal.
 
-1. Task 8 is done and a real combined model runs through the phone backend.
-2. One iPhone and one Android phone run it on the bench for 10+ minutes, p99 frame under 50 ms, with the map running (task 10).
-3. A drive test shows the hand-back to the small model.
-
-Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfdrive/modeld/egpu_detect.py` and its test; the eGPU parts of `modeld.py`
-(`EgpuState`, the `egpuState` service and cereal message); `nagaspilot/runtime/tinygrad_model.py` and its test; the `Egpu*` params; the eGPU panel
-(`selfdrive/ui/qt/offroad/ngp_panel.cc`); the SConscript entries; `EGPU_INTEGRATION.md` and `NGP10_CHESTNUT_MIGRATION_PLAN.md`; the Chestnut-parity shim in the gate;
-`egpu_in_use()` in the platform file. In exopilot: the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
+Removed on NGP10: `selfdrive/modeld/egpu_detect.py` and its test; in `modeld.py` `EgpuState`, the `big_` artifact paths, the USB+AMD device, the eGPU
+load/failover block and the `egpuState` publisher; the `Egpu*` params; the Chestnut panel row in `ngp_panel.cc`; the `USBGPU` SConscript block; the
+`egpuState` service; the gate's `Egpu*` keys; `egpu_in_use()` and the matching "stand aside" argument of `GadgetOwner`; `EGPU_INTEGRATION.md` and
+`NGP10_CHESTNUT_MIGRATION_PLAN.md`. `modeld` now always runs `config_realtime_process`, since no USB GPU saturates a core. Kept: the `EgpuState` struct and
+`egpuState @150` in `log.capnp` (marked unpublished, so the ordinal stays taken and old logs parse); `tinygrad_model.py`, which loads the small model too.
+In exopilot (not done here): the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
 
 ## Unverified (needs hardware or a recorded route)
 
@@ -180,4 +179,4 @@ Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfd
 Against the pure-Dart stub server (`packages/npbm`, no inference) on loopback, 400 frames: **p50 6.7 ms, p99 16.0 ms, max 28.8 ms** of the 50 ms
 budget. That is the protocol, framing and the Dart server's copies on a PC with no USB in the path, so it is a floor for the software cost, not a
 phone number. The cable adds the transfer of 393 KB each way-in: about 11 ms at a practical 35 MB/s (USB 2), about 3 ms at 125 MB/s (gigabit
-tether). Run the same tool on a real phone with a real model to get the figure that decides the gate for removing the eGPU.
+tether). Run the same tool on a real phone with a real model to get the figure that shows the phone path meets the budget.

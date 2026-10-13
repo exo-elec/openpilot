@@ -16,7 +16,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
     // Big model (phone over USB, nagaspilot/bigmodel): loading/proving blocks engagement, active is false once it
-    // handed back or failed. Read by selfdrived with the EgpuDriving* flags (nagaspilot/controls/ngp_bigmodel_gate.py).
+    // handed back or failed. Read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py).
     {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
@@ -42,12 +42,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DoUninstall", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverTooDistracted", {CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON, BOOL}},
     {"AlphaLongitudinalEnabled", {PERSISTENT | DEVELOPMENT_ONLY, BOOL}},
-    // ASM2464PD USB eGPU driving path (mirrors upstream UsbGpu*; named after
-    // the hardware, not comma's Chestnut model class -- we support both our
-    // own flashed firmware and comma's on the same physical chip).
-    {"EgpuDrivingEnabled", {PERSISTENT, BOOL}},
-    {"EgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL}},
-    {"EgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ExperimentalMode", {PERSISTENT, BOOL}},
     {"ExperimentalModeConfirmed", {PERSISTENT, BOOL}},
     {"FirmwareQueryDone", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},

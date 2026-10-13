@@ -68,7 +68,6 @@ class RemoteModelState:
   """Duck-types modeld's ModelState for the phone. `warp` is a bigmodel_warp.NgpWarp (start_buffers / wait / output)."""
 
   chestnut = True            # modelV2.big: same role as a Chestnut's
-  usbgpu = False
   vision_input_names = ['img', 'big_img']
   desire_key = 'desire'
 
