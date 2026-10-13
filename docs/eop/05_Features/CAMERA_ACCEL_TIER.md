@@ -17,7 +17,6 @@ tick runs no job), at most 20 jobs/s. See
 |----------|-------|------|-------------|
 | **RKNN NPU** | inside the SoC | driving model; **YOLOv8 object detection for every camera** (road, 02M telephoto, side left/right, rear), plus traffic lights on the road camera | nothing else can replace it — which is why detection lives here |
 | **Hailo-8 or DX-M1M** | M.2 card on PCIe | **drivable-area segmentation for every camera**: TwinLiteNet+ Large (drivable area + lane lines), the same network on both cards | segmentation **degrades**: it stops, gridd runs without a road mask and sets `gridStatus.segmentationDegraded`; nothing takes over; detection is unaffected |
-| **USB eGPU** | external, USB | openpilot's Chestnut driving model **only** | one-way failover to the RKNN driving model |
 
 Why this way round:
 
@@ -129,9 +128,6 @@ code to validate for a feature that is allowed to go away.
   model ids stay on it and answer "not available" until restart. No other
   model, no moving to the other card (01M). Each card has exactly one
   artifact.
-
-The eGPU is different and unchanged: Chestnut keeps openpilot's one-way switch
-to the RKNN driving model.
 
 `segd` publishes one `MonoSegment` per camera — no schema change, now
 computed from the drivable map (lane lines count as road): `hasRoad` = road
