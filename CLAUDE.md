@@ -261,7 +261,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
 - Plan, budget and bench list: `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
 **The big driving model runs on a phone, not on a GPU (2026-10-13):**
-- The USB eGPU path was removed (`egpu.py`, `BackendType.EGPU`, the eGPU driving runner, and its driving-failover params). Do not bring it back. The big model is the combined supercombo ONNX run by NavPilot on a
+- The external USB GPU path was removed (its inferenced backend, driving runner and failover params). Do not bring it back. The big model is the combined supercombo ONNX run by NavPilot on a
   phone over a USB cable: `nagaspilot/bigmodel/`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`.
 - `modeld` owns driving state and parsing, always runs the on-board RKNN model, and attaches the phone model on top
   (`BigModelHook`). Fallback is one-way: the RKNN small model stays loaded and warm, a phone that fails or is
