@@ -1,6 +1,6 @@
-"""Offroad alerts for the phone-hosted big model: the phone link's counterpart to upstream's ChestnutStatus.
+"""Offroad alerts for the phone-hosted big model: the phone link's counterpart to upstream's big-model status.
 
-Pure policy. Mirrors the parts of upstream's system/hardware/chestnut/status.py (master 6f4c0faf1) that have a phone
+Pure policy. Mirrors the parts of upstream's upstream's big-model status module (master 6f4c0faf1) that have a phone
 equivalent, with the same thresholds and rules:
 
 - NotDetected: the link is enabled and no USB host is attached to the gadget, 10 s after start while parked

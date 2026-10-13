@@ -53,13 +53,13 @@ def test_tier_flag_combines_sources():
   assert tier_flag(False, True) is True
 
 
-def test_events_reads_both_sources_and_names_events():
+def test_events_reads_the_phone_flags_and_names_events():
   params = {}
   g = NGPBigModelGate()
   assert g.events(params.get, True, now=0) == []
-  params["EgpuDrivingLoading"] = True
+  params["BigModelLoading"] = True
   assert g.events(params.get, True, now=1) == ["bigModelLoading"]
-  params.update(EgpuDrivingLoading=False, BigModelActive=True)
+  params.update(BigModelLoading=False, BigModelActive=True)
   assert g.events(params.get, True, now=2) == []
   params["BigModelActive"] = False
   assert g.events(params.get, True, now=3) == ["bigModelFailed"]
@@ -91,10 +91,10 @@ def test_another_branch_names_its_own_keys_and_never_reads_the_defaults():
     asked.append(key)
     return params.get(key)
 
-  g = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading"), ("EOPBigModelActive", "EOPEgpuDrivingActive"))
+  g = NGPBigModelGate(("EOPBigModelLoading",), ("EOPBigModelActive",))
   assert g.events(get, True, now=0) == ["bigModelLoading"]
-  assert not {"BigModelLoading", "BigModelActive", "EgpuDrivingLoading", "EgpuDrivingActive"} & set(asked)
-  assert {"EOPBigModelLoading", "EOPBigModelActive", "EOPEgpuDrivingActive"} <= set(asked)
+  assert not {"BigModelLoading", "BigModelActive"} & set(asked)
+  assert {"EOPBigModelLoading", "EOPBigModelActive"} <= set(asked)
 
 
 def test_params_are_read_at_most_every_period_not_every_cycle():

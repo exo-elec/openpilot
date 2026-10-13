@@ -1,4 +1,4 @@
-# The combined (Chestnut-class) model contract, step by step
+# The combined (large combined) model contract, step by step
 
 Status 2026-10-12: **Steps 1 to 5b and the stateful layout (5c) are done and tested; only step 6, which needs a real model file, is open.** Following Jetlink's design and tests closely is deliberate: it is open source (MIT) and is the reference the community will compare against.
 Part of [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) task 8. Source of the facts below: Jetlink's `spec.py`, `queues.py` and `docs/` (MIT, credited in
@@ -6,7 +6,7 @@ Part of [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) task 8. Source of the fac
 
 ## Why a second contract
 
-NGP10's `modeld` runs two small graphs (vision, then policy) and keeps the history on the comma. The models comma ships for Chestnut (and Jetlink's catalog, e.g. Cinque
+NGP10's `modeld` runs two small graphs (vision, then policy) and keeps the history on the comma. The models comma ships for upstream's big model (and Jetlink's catalog, e.g. Cinque
 Terre, BMRLNAP, Lebowski) are **one graph** with the history as stacked inputs, and a newer family keeps the history inside the graph. The contract the phone serves
 must therefore be described by the model itself, not hard-coded.
 
@@ -53,7 +53,7 @@ layout it parses, and refuses anything else. The v0.10 contract is implicitly al
 
 ## Which big model to run first (survey of Jetlink and comma's model repo, 2026-10-12)
 
-Source: Jetlink's `catalog/`, `tests/fixtures/catalog_chestnut_v25.json`, `docs/{models,model-cli,jetson-performance,mac-performance,backends,link-protocol}.md`, and the file listing of
+Source: Jetlink's `catalog/`, `tests/fixtures/the v25 driving-models catalog fixture`, `docs/{models,model-cli,jetson-performance,mac-performance,backends,link-protocol}.md`, and the file listing of
 `commaai/openpilot_driving_models` on Hugging Face (MIT). The files themselves were **not** downloaded: this environment's proxy blocks Hugging Face file downloads, so nothing below was measured here.
 
 **The models.** Every entry is a comma openpilot commit (a *ref*) whose `big_driving_supercombo.onnx` is the model. A ref resolves to exactly one sha256.
@@ -88,7 +88,7 @@ Source: `jetlink/client.py` (`_whole_output`) and `jetlink/openpilot/model_state
 3. `Parser.parse_outputs(sliced)` (NGP10's `parse_model_outputs.py` already has `parse_outputs`, which runs the vision and the policy parsing over one dict).
 4. With `SEND_RAW_PRED` set, the comma sets `WANT_HIDDEN` on the request so the reply carries the real hidden state, and publishes `raw_pred` = the whole vector. Without it, `raw_pred` is not produced.
 5. The parsed dict of a frame is kept and published again for a held frame: the parser's softmax works in place, so it must not be parsed twice.
-6. **A refused frame raises.** The phone checks the output is finite, answers `NOT_FINITE` and keeps its last good state; the comma raises, the joining model demotes to the small model, exactly as it does for a Chestnut. (An earlier version of this code held the frame instead; that was removed.)
+6. **A refused frame raises.** The phone checks the output is finite, answers `NOT_FINITE` and keeps its last good state; the comma raises, the joining model demotes to the small model, exactly as it does for a upstream's big model. (An earlier version of this code held the frame instead; that was removed.)
 7. The desire is a rising-edge pulse (`desire[0] = 0`, `where(desire - prev > .99, desire, 0)`), `traffic_convention` and `action_t` are sent as they are.
 
 One safety addition Jetlink does not have: `allow_model.py` refuses a model in which any other output slice overlaps `hidden_state`, because the parser would read zeros there.

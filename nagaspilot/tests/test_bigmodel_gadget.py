@@ -18,7 +18,7 @@ class Run:
     return args[0] not in self.fail
 
 
-def owner(mode=2, chestnut=False, run=None, net=None):
+def owner(mode=2, run=None, net=None):
   run = run or Run()
   state = {'net': net if net is not None else False}
 
@@ -30,13 +30,11 @@ def owner(mode=2, chestnut=False, run=None, net=None):
     if a[0] == 'net' and ok:
       state['net'] = True
     return ok
-  return G.GadgetOwner(lambda: mode, lambda: chestnut, run=runner, net_ok=netok), run, state
+  return G.GadgetOwner(lambda: mode, run=runner, net_ok=netok), run, state
 
 
-def test_nothing_happens_while_the_setting_is_off_or_a_chestnut_holds_the_port():
+def test_nothing_happens_while_the_setting_is_off():
   o, run, _ = owner(mode=0)
-  assert o.step() == 'off' and run.calls == []
-  o, run, _ = owner(chestnut=True)
   assert o.step() == 'off' and run.calls == []
 
 
@@ -62,12 +60,12 @@ def test_the_netdev_is_redone_when_it_goes_away():
   assert o.step() == 'up' and run.calls[-1] == 'net'
 
 
-def test_turning_it_off_or_a_chestnut_arriving_releases_the_port():
-  flags = {'mode': 2, 'chestnut': False}
+def test_turning_it_off_releases_the_port():
+  flags = {'mode': 2}
   run = Run()
-  o = G.GadgetOwner(lambda: flags['mode'], lambda: flags['chestnut'], run=run, net_ok=lambda: True)
+  o = G.GadgetOwner(lambda: flags['mode'], run=run, net_ok=lambda: True)
   o.step()
-  flags['chestnut'] = True
+  flags['mode'] = 0
   assert o.step() == 'off' and run.calls[-1] == 'teardown' and not o.up
   assert o.step() == 'off' and run.calls.count('teardown') == 1
 
@@ -75,7 +73,7 @@ def test_turning_it_off_or_a_chestnut_arriving_releases_the_port():
 def test_an_unreadable_setting_never_takes_the_port():
   def boom():
     raise OSError('params')
-  o = G.GadgetOwner(boom, lambda: False, run=Run(), net_ok=lambda: True)
+  o = G.GadgetOwner(boom, run=Run(), net_ok=lambda: True)
   assert o.wanted() == 0
 
 
@@ -235,10 +233,10 @@ class FakeControl:
     self.closed += 1
 
 
-def bulk_owner(mode_box, chestnut=False, control=None):
+def bulk_owner(mode_box, control=None):
   run = Run()
   made = control or FakeControl()
-  o = G.GadgetOwner(lambda: mode_box[0], lambda: chestnut, run=run, net_ok=lambda: False, control_factory=lambda: made)
+  o = G.GadgetOwner(lambda: mode_box[0], run=run, net_ok=lambda: False, control_factory=lambda: made)
   return o, run, made
 
 
@@ -260,7 +258,7 @@ def test_changing_the_setting_swaps_the_function():
   box = [2]
   made = FakeControl()
   run = Run()
-  o = G.GadgetOwner(lambda: box[0], lambda: False, run=run, net_ok=lambda: True, control_factory=lambda: made)
+  o = G.GadgetOwner(lambda: box[0], run=run, net_ok=lambda: True, control_factory=lambda: made)
   assert o.step() == 'up' and o.kind == G.NETWORK
   box[0] = 1
   assert o.step() == 'up' and o.kind == G.BULK
@@ -270,10 +268,10 @@ def test_changing_the_setting_swaps_the_function():
   assert made.unbound == 1 and made.closed == 1 and run.calls[-3:] == ['teardown', 'gadget', 'bind']
 
 
-def test_a_chestnut_releases_the_bulk_gadget_too():
-  box, chestnut = [1], [False]
+def test_turning_it_off_releases_the_bulk_gadget_too():
+  box = [1]
   made = FakeControl()
-  o = G.GadgetOwner(lambda: box[0], lambda: chestnut[0], run=Run(), net_ok=lambda: True, control_factory=lambda: made)
+  o = G.GadgetOwner(lambda: box[0], run=Run(), net_ok=lambda: True, control_factory=lambda: made)
   o.step()
-  chestnut[0] = True
+  box[0] = 0
   assert o.step() == 'off' and made.unbound == 1 and made.closed == 1 and not o.up

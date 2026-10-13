@@ -43,7 +43,7 @@ def cable_connected(root: Path = UDC_ROOT, cc_orientation: Path = TYPEC_CC_ORIEN
 
 def host_enumerated(root: Path = UDC_ROOT) -> bool:
   """Has the phone enumerated us and selected the configuration (the controller says 'configured')? Upstream waits up to
-  10 s for the Chestnut to enumerate after the cable is seen (helpers.wait_for_chestnut)."""
+  10 s for the big model to enumerate after the cable is seen (upstream's helper)."""
   try:
     return any((udc / 'state').read_text().strip() == 'configured' for udc in root.iterdir())
   except OSError:

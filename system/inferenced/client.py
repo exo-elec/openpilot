@@ -201,7 +201,7 @@ class InferenceClient:
             poll_timeout_ms: Max time to wait for result
             allow_direct_fallback: If False, fail closed when daemon IPC is
               unavailable. Required for exclusive-owner devices such as the
-              USB eGPU, which must only be opened by inferenced.
+              camera-tier card, which must only be opened by inferenced.
 
         Returns:
             InferenceResult with success flag and outputs dict.
@@ -435,7 +435,7 @@ class InferenceClient:
         """Return backend names advertised by inferenced, or direct HAL fallback.
 
         Pass allow_direct_fallback=False when asking about a single-owner
-        device (a camera-tier card, the eGPU): the fallback builds a local
+        device (a camera-tier card): the fallback builds a local
         HAL, which would open that device in this process as well.
         """
         status = self._query_status(timeout=0.2)

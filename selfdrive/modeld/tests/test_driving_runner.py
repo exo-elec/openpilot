@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the driving-runner contract and the RKNN/Chestnut implementations."""
+"""Tests for the driving-runner contract and the RKNN implementation."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from openpilot.selfdrive.modeld.runners import (
     DrivingModelSpec,
     DrivingRunnerResult,
     RKNNDrivingRunner,
-    ChestnutDrivingRunner,
     create_driving_runner,
 )
 
@@ -215,55 +214,3 @@ def test_factory_selects_local_runner_and_loads_models(tmp_path: Path):
   assert runner.loaded
   assert "driving_vision" in backend.loaded_models
   assert "driving_policy" in backend.loaded_models
-
-
-def test_factory_chestnut_fails_closed_when_artifact_missing(tmp_path: Path):
-  client = MagicMock()
-  with pytest.raises(FileNotFoundError, match="(eGPU|Chestnut) compiled artifact not found"):
-    create_driving_runner(
-      client,
-      vision_model_path=tmp_path / "vision.rknn",
-      policy_model_path=tmp_path / "policy.rknn",
-      vision_metadata_path=tmp_path / "vision_metadata.pkl",
-      policy_metadata_path=tmp_path / "policy_metadata.pkl",
-      params=MagicMock(),
-      use_egpu=True,
-      egpu_model_path=tmp_path / "big_driving_supercombo_tinygrad.pkl",
-      egpu_metadata_path=tmp_path / "big_driving_supercombo_metadata.pkl",
-    )
-
-
-def test_factory_chestnut_fails_closed_when_gated(tmp_path: Path):
-  artifact = tmp_path / "big_driving_supercombo_tinygrad.pkl"
-  artifact.write_text("mock")
-
-  client = MagicMock()
-  with pytest.raises(RuntimeError, match="(eGPU|Chestnut) driving path is gated"):
-    create_driving_runner(
-      client,
-      vision_model_path=tmp_path / "vision.rknn",
-      policy_model_path=tmp_path / "policy.rknn",
-      vision_metadata_path=tmp_path / "vision_metadata.pkl",
-      policy_metadata_path=tmp_path / "policy_metadata.pkl",
-      params=MagicMock(),
-      use_chestnut=True,
-      chestnut_model_path=artifact,
-      chestnut_metadata_path=tmp_path / "big_driving_supercombo_metadata.pkl",
-    )
-
-
-def test_chestnut_runner_is_monolithic_and_stubbed(tmp_path: Path):
-  spec = DrivingModelSpec(
-    name="big_driving_supercombo",
-    path=tmp_path / "big_driving_supercombo_tinygrad.pkl",
-    input_shapes={},
-    output_shapes={},
-    metadata={"output_slices": {"plan": slice(0, 10)}},
-  )
-  runner = ChestnutDrivingRunner(spec)
-  assert runner.is_monolithic
-  assert runner.backend_name in ("EGPU", "CHESTNUT")
-  assert runner.output_slices == {"plan": slice(0, 10)}
-  assert not runner.run({}).success
-  with pytest.raises(NotImplementedError):
-    runner.run_vision({})

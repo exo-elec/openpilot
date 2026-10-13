@@ -235,7 +235,6 @@
 | `selfdrive/segd/segd.py` | Semantic segmentation, every camera, on the camera-tier card |
 | `selfdrive/sided/sided.py` | Side camera BSD/RCTA |
 | `selfdrive/reard/reard.py` | Independent rear-camera perception |
-| `system/inferenced/egpu.py` | Optional tinygrad USB eGPU backend; openpilot's Chestnut driving model only (`EGPU_ALLOWED_MODELS`), hardware benchmark pending |
 | `system/inferenced/deepx_dxnn.py` / `hailo_hef.py` | Camera-tier card (DX-M1M / Hailo-8), routed by `BackendType.ACCEL`: segmentation for every camera |
 
 ### Surface Perception Pipeline

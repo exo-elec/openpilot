@@ -89,7 +89,7 @@ this same worktree (BRSC porting work). Not something this change
 introduced or could fix without touching the opendbc submodule pin, which
 is out of scope here.
 
-**Fixed 2026-08-23** (see `EGPU_INTEGRATION.md`) — correction to the "out
+**Fixed 2026-08-23** (see the removed `EGPU_INTEGRATION.md` (see git history)) — correction to the "out
 of scope without touching the opendbc pin" assumption above: the actual
 fix didn't need the opendbc pin touched at all. `opendbc_repo`'s `car.capnp`
 had already renamed the enum to plain `Error`; it was `cereal/log.capnp`'s

@@ -46,7 +46,7 @@ ExoPilot has not been tested on a real vehicle yet. Read *Safety and legal* befo
 Feature comparison: openpilot → NGP10 → EOP10 → 01M → 02M
 ------
 
-Comparison reviewed **2026-10-09** against this repository. The reference is **official openpilot v0.10.0**, not current upstream: baseline commit `c085b8af19438956c15592828bd082803f43dfaf`. Later tinygrad/Chestnut integration does not upgrade the whole driving stack to a later openpilot release.
+Comparison reviewed **2026-10-09** against this repository. The reference is **official openpilot v0.10.0**, not current upstream: baseline commit `c085b8af19438956c15592828bd082803f43dfaf`. Later tinygrad/big-model integration does not upgrade the whole driving stack to a later openpilot release.
 
 **Base** means provided by the official baseline. **Carried** means inherited from the preceding branch. **Extended** means inherited behavior plus branch-specific integration. **Added**, **Replaced** and **Removed** identify changes to that baseline. **Optional/experimental** describes implementation availability, not road validation. A settings key alone does not establish working end-to-end support.
 
@@ -143,7 +143,7 @@ Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteres
 |---|---|---|---|---|---|
 | Driving model contract | Base v0.10 split vision/policy | Carried split contract | Extended RKNN/platform adapters | Carried | Carried |
 | Tinygrad compiled runner | Baseline dependency/artifacts | Extended pinned modern runner; rebuilt artifacts required | Carried portable runner | Carried | Carried |
-| Chestnut eGPU | No current fork integration | Added optional USB + AMD:LLVM, model/metadata/warmup gates | Carried common integration; private multi-input driving path fails closed | Carried restriction | Carried restriction |
+| eGPU | No current fork integration | Removed 2026-10-13: the big model runs on a phone over USB ([`NAVPILOT_BIGMODEL.md`](nagaspilot/docs/NAVPILOT_BIGMODEL.md)) | Removed | Removed | Removed |
 | Larger trained driving weights | Baseline bundled models | Not provisioned: big ONNX names currently link to small models | No blanket upgraded-model claim | Carried limitation | Carried limitation |
 | Cloud voice: Google STT → Gemini → TTS | Not this pipeline | Not provided | Added cloudd online pipeline, default off | Carried + animated PyQt status | Carried + same status |
 | Local wake recognition | Not this pipeline | Not provided | Added CPU-only openWakeWord, default off | Carried | Carried |
@@ -170,7 +170,7 @@ Wake inference uses ONNX CPUExecutionProvider, not the NPU or GPU. After activat
 - Host regression checks cover shared control/monitoring, protocol frame equivalence, radar contracts, compiled-model loading and PyQt layout/popup behavior. Native UI syntax checks passed. These checks do not replace vehicle, Rockchip, microphone, radar, GPU or firmware hardware validation. TASKING firmware compilation and paid Google end-to-end inference remain unverified.
 - Every branch remains a development build. No feature table entry establishes vehicle safety certification. School/work-zone/sign semantic additions are outside the current implementation scope.
 
-Implementation references: [portable monitoring](nagaspilot/docs/STEERING_ACTIVITY_MONITORING.md), [NGP dependency policy](nagaspilot/docs/DEPENDENCY_POLICY.md), [Chestnut integration](nagaspilot/docs/EGPU_INTEGRATION.md), and [lineage gate](nagaspilot/lineage.py). On EOP branches also read `docs/eop/SHARED_PIPELINE.md`, `docs/eop/CLOUDD_VOICE_PIPELINE.md`, `docs/integration/CONTROL_HAL_BOUNDARY_AUDIT.md` and `docs/DEPENDENCY_POLICY.md`. Historical port-audit tables may describe earlier states; this comparison records the current implementation and remaining gaps.
+Implementation references: [portable monitoring](nagaspilot/docs/STEERING_ACTIVITY_MONITORING.md), [NGP dependency policy](nagaspilot/docs/DEPENDENCY_POLICY.md), [Phone big model](nagaspilot/docs/NAVPILOT_BIGMODEL.md), and [lineage gate](nagaspilot/lineage.py). On EOP branches also read `docs/eop/SHARED_PIPELINE.md`, `docs/eop/CLOUDD_VOICE_PIPELINE.md`, `docs/integration/CONTROL_HAL_BOUNDARY_AUDIT.md` and `docs/DEPENDENCY_POLICY.md`. Historical port-audit tables may describe earlier states; this comparison records the current implementation and remaining gaps.
 
 ------
 
