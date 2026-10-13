@@ -38,7 +38,7 @@ and the reference-only Autoware vision suite (`egolanes_lite_int8`,
 `scene3d_lite_int8`, `sceneseg_lite_int8`, `autosteer_full_int8`,
 `autospeed_full_int8`) were fetched and then removed. They're still available
 from `../bukapilot` and Autoware if that capability is needed again —
-see git history for the exact hashes. The old `yolo_side`/`yolo_rear`/`seg_*` external-GPU shadow
+see git history for the exact hashes. The old `yolo_side`/`yolo_rear`/`seg_*` shadow
 placeholders were removed. Detection is RKNN (`rknn/`); segmentation for
 every camera is the camera-tier card (`hef/` + `dxnn/`).
 
