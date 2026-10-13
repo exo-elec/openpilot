@@ -201,7 +201,7 @@ def test_many_holds_in_a_window_is_behind_even_if_never_in_a_row():
   assert state.behind == R.BEHIND_RATE
 
 
-def test_a_non_finite_frame_raises_so_the_comma_demotes_as_it_does_for_a_chestnut():
+def test_a_non_finite_frame_raises_so_the_comma_demotes_as_it_does_for_an_upstream_big_model():
   state, client, _ = make()
   run(state)
   client.status = P.NOT_FINITE

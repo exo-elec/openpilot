@@ -6,7 +6,7 @@ Everything is default off (`ngp_bigmodel_link` = 0). 199 comma-side tests and 16
 This replaces [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md). Decision (2026-10-12): NavPilot owns the whole feature. There is
 no dependency on `exo-elec/jetlink`: no `jetlink_repo` gitlink, no Jetlink protocol, no JetlinkKit. What the Jetlink port
 already settled on the openpilot side (cereal slots, the `selfdrived` gate, the settling window, the `modeld` hook, the
-OpenCL warp source, the Chestnut-parity policy, the alerts) is kept unchanged. What Jetlink supplied is rewritten here, following
+OpenCL warp source, the upstream-parity policy, the alerts) is kept unchanged. What Jetlink supplied is rewritten here, following
 Jetlink's design lessons with attribution (`nagaspilot/bigmodel/THIRD_PARTY_NOTICES.md`; Jetlink is MIT and the project is open source).
 
 Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md`, updated to point here).
@@ -19,11 +19,11 @@ Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md
 | D2 | **iPhone transport: TCP over a CDC-NCM USB network** (Android: D7). The comma owns `192.168.60.1:5600` and listens on that address only; the phone gets an address by DHCP and **dials** in. The protocol roles do not follow the TCP roles: the comma sends HELLO and asks for frames. No FunctionFS, no vendor interface. | iPhone needs it; NavPilot's `CableTransportService` already assumes it; configfs NCM is a few lines instead of Jetlink's FunctionFS stack. Android uses the other transport (D7); Lightning iPhones, Wi-Fi and USB-host-only computers are out of scope. |
 | D3 | **The phone keeps the history; the comma sends only the newest warped frame per camera** (393,216 bytes) plus `desire` and `traffic_convention`. | Same bandwidth reasoning as Jetlink (a per-frame second frame would double a cost the comma's kernel pays per packet). The server's state is rebuilt by a RESET flag, so it is never trusted across a restart. |
 | D4 | **The reply is the raw vision output followed by the raw policy output** (float32), sliced on the comma with NGP10's own metadata. | The comma keeps the parser, so output parity is checked in one place and the server needs no openpilot knowledge. |
-| D5 | **Fallback behaviour is unchanged from the Jetlink port**: the small model is always loaded; one-way hand-back; engagement held off while loading/proving; a hand-back while engaged soft-disables; settling window 5 s. | Already decided and documented in `CHESTNUT_PARITY.md`. |
+| D5 | **Fallback behaviour is unchanged from the Jetlink port**: the small model is always loaded; one-way hand-back; engagement held off while loading/proving; a hand-back while engaged soft-disables; settling window 5 s. | Already decided and documented in `BIGMODEL_PARITY.md`. |
 | D6 | Setting `ngp_bigmodel_link` stays, but is now **0 off / nonzero on** (no iOS vs USB split). | One transport. Old value 2 still reads as on. |
 | D7 | **Scope (2026-10-12, revised): iPhone with a USB-C port and Android with USB-C, both over the USB-C cable. No Lightning, no Wi-Fi.** Two comma transports carry the same NPBM bytes, chosen by `ngp_bigmodel_link` (2 = iPhone: CDC-NCM network, TCP; 1 = Android: FunctionFS vendor bulk interface that the phone reads as USB host, with `framing.py` padding). An iPhone 15 Pro or later gives USB 3; the base iPhone 15/16 are USB 2 and raise the `USB slow` alert. | Owner decision, reversing the iPhone-only scope of the same day. Android cannot be reached over NCM, and tethering/Wi-Fi are less reliable than a cable. |
 | D8 | **(revised) The phone core is pure Dart, in the Flutter app.** Owner decision: accept the performance risk for the lower long-run maintenance of one language and one codebase. `packages/npbm` in the NavPilot repo is a Flutter-free Dart package (`dart test` runs it): protocol, the model-history state machine, the server loop and tether-interface choice. It is byte-identical to the Python reference on every golden vector, and a Python comma client ran six frames against it bit-exactly. The only native part is the inference backend behind `Backend` (CoreML / ONNX Runtime / NNAPI / LiteRT through a Flutter plugin or a thin FFI), chosen in a spike. Measured on a PC with the stub backend, the Dart protocol and history work is about 2.5 to 3.5 ms per frame (JIT, one core, no inference); inference time on a phone is the open number. | Replaces the shared-C++-core plan. Dart does the 393 KB copies and the 100-step history cheaply; only inference is heavy and it was always native. |
-| D9 | **USB tethering is the default and recommended link (`ngp_bigmodel_link` = 3).** The phone is the USB *device* and shares a network (Android USB tethering, iPhone Personal Hotspot over USB); the comma is the *host*. Android and iPhone then use the same transport, plain TCP, so the app needs no USB code: the app listens on the tether interface (`findTetherAddress`, never on Wi-Fi or cellular) and the comma dials the phone's gateway address (`tether.py`). It also keeps the comma as USB host, the role it already has for a Chestnut, and the host powers the phone. Modes 2 (iPhone as host of the comma's NCM gadget) and 1 (Android as host of the FunctionFS bulk gadget) stay as fallbacks, unverified, and can be deleted once tethering is proven. | Removes the Android-specific USB transport and the gadget work from the critical path; fits ExoPilot, whose boards are USB hosts on that port. |
+| D9 | **USB tethering is the default and recommended link (`ngp_bigmodel_link` = 3).** The phone is the USB *device* and shares a network (Android USB tethering, iPhone Personal Hotspot over USB); the comma is the *host*. Android and iPhone then use the same transport, plain TCP, so the app needs no USB code: the app listens on the tether interface (`findTetherAddress`, never on Wi-Fi or cellular) and the comma dials the phone's gateway address (`tether.py`). It also keeps the comma as USB host, the role it already has for a upstream's big model, and the host powers the phone. Modes 2 (iPhone as host of the comma's NCM gadget) and 1 (Android as host of the FunctionFS bulk gadget) stay as fallbacks, unverified, and can be deleted once tethering is proven. | Removes the Android-specific USB transport and the gadget work from the critical path; fits ExoPilot, whose boards are USB hosts on that port. |
 
 ## Architecture
 
@@ -35,7 +35,7 @@ NavPilot app (phone)                                   comma 3/3X, NGP10
                                                            joining.Joining  (swap, hold, hand back, backoff)
                                                            runtime/bigmodel.py  BigModelFacade  -> modeld.py hook (unchanged)
                                                            selfdrived NGPBigModelGate (unchanged)
-  bigmodeld (manager process): configfs NCM gadget + 192.168.60.1/24 + DHCP, stands aside for a Chestnut
+  bigmodeld (manager process): configfs NCM gadget + 192.168.60.1/24 + DHCP, gives the port to the phone
 ```
 
 ## Wire protocol (NPBM v1, `nagaspilot/bigmodel/protocol.py`)
@@ -74,7 +74,7 @@ per `INFER_REQ`. A reply that is not finite leaves the phone's state as it was b
 | `metadata.py` | (jetlink spec) | Reads NGP10's own model metadata for the slices and float counts the reply is checked and sliced with. |
 | `remote_state.py` | `openpilot/model_state.py` | `RemoteModelState`: takes the warped frame from the small model's `DrivingModelFrame`s, sends it, parses the reply with NGP10's `Parser`, holds a late frame, flags `behind` (5 in a row, >20 in 10 s, first frames settle). |
 | `joining.py` | `openpilot/joining.py` | `Joining`: background connect with backoff, swap only when nothing is in control and after the small model's warm-up frames, demote on lost link / lag / frame-drop ratio, rejoin policy hooks. Same public surface the facade already reads. |
-| `gadget.py` + `scripts/ngp-bigmodel-root.sh` | `comma/gadget.py`, `jetlink-root.sh` | configfs NCM gadget, `192.168.60.1/24`, dnsmasq DHCP. `GadgetOwner` (manager process `bigmodeld`) creates, binds and addresses it while the setting is on, stands aside for a Chestnut, and redoes the netdev step when a replug rebuilds it. No PD role-swap logic yet (see unverified). |
+| `gadget.py` + `scripts/ngp-bigmodel-root.sh` | `comma/gadget.py`, `jetlink-root.sh` | configfs NCM gadget, `192.168.60.1/24`, dnsmasq DHCP. `GadgetOwner` (manager process `bigmodeld`) creates, binds and addresses it while the setting is on, gives the port to the phone, and redoes the netdev step when a replug rebuilds it. No PD role-swap logic yet (see unverified). |
 | `server_ref.py` | JetlinkKit | Reference phone server in Python: same protocol and state, a pluggable backend (ONNX Runtime CPU for real models, a deterministic stub for tests). `--dial 192.168.60.1` is the phone's mode. It is the executable spec for the Swift and Kotlin servers. |
 
 Rewired: `runtime/bigmodel.py` (the hook reads the metadata, starts the listener and builds `Joining`; `InControl` replaces the
@@ -122,7 +122,7 @@ request/response pair) must pass.
 | 8 | `modeld` rework: combined-model contract as a second contract id, in six steps: [`NAVPILOT_COMBINED_MODEL.md`](NAVPILOT_COMBINED_MODEL.md). Steps 1 to 5c done and tested (spec, queues against openpilot's own digests, contract negotiation with a comma allow-list, `RemoteSpecModelState`, the Dart queued and stateful servers, the allow-list tool); step 6 (`modeld` itself) needs a real model file | ◐ done except step 6 |
 | 9 | Replay a recorded route: warp parity and phone output parity | ☐ needs a route and a model |
 | 10 | Bench on a board: p99 under 50 ms, 10+ min heat, forced-failure hand-backs | ☐ needs hardware |
-| 11 | Remove the eGPU / Chestnut path | ☐ gated, see below |
+| 11 | Remove the eGPU path | ☑ done on NGP10 2026-10-13 by the owner's decision (see below) |
 
 ## Inference backend survey (pub.dev, 2026-10-12)
 
@@ -135,22 +135,21 @@ The Dart core needs one native piece, `Backend` (run the vision and policy model
 | `onnxruntime` 1.4.1 (2024) | ORT 1.15.1 | Stale. |
 | `flutter_litert` 3.9.4 (published 2026-10-12) | LiteRT through FFI: XNNPACK, GPU, Metal, CoreML, NPU delegates | Needs the model converted to `.tflite`; Jetlink did that conversion on the phone for Android and found it a project of its own (op lowering for the GPU delegate). |
 
-Nothing off the shelf gives a ready Android NPU path for a Chestnut-class model. Plan on a thin NavPilot native layer (an FFI to the ORT C API,
+Nothing off the shelf gives a ready Android NPU path for a large combined model. Plan on a thin NavPilot native layer (an FFI to the ORT C API,
 the way Jetlink's Swift does it) for production, and use `flutter_onnxruntime` only to get a first number on an iPhone.
 
-## Removing the eGPU / Chestnut path (gated, not done)
+## The eGPU path is removed (2026-10-13)
 
-Owner intent (2026-10-12): if a phone can run a Chestnut-class model, drop the GPU and keep only the phone backend. Not yet met: no phone has run such a model for us,
-NGP10 cannot consume the combined model (task 8), and Android is unproven (Jetlink reports no Snapdragon run). Remove only when **all** hold:
+Owner decision: the big model runs on the phone only. The gate in the earlier plan (a real combined model on an iPhone and an Android phone, a
+bench run with p99 under 50 ms, a drive test of the hand-back) was **not met**; the owner removed the eGPU anyway. Until a phone runs the big model
+a car has only the small model, with no big-model fallback of any kind. The gate is now the acceptance test for the phone path itself, not for the removal.
 
-1. Task 8 is done and a real combined model runs through the phone backend.
-2. One iPhone and one Android phone run it on the bench for 10+ minutes, p99 frame under 50 ms, with the map running (task 10).
-3. A drive test shows the hand-back to the small model.
-
-Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfdrive/modeld/egpu_detect.py` and its test; the eGPU parts of `modeld.py`
-(`EgpuState`, the `egpuState` service and cereal message); `nagaspilot/runtime/tinygrad_model.py` and its test; the `Egpu*` params; the eGPU panel
-(`selfdrive/ui/qt/offroad/ngp_panel.cc`); the SConscript entries; `EGPU_INTEGRATION.md` and `NGP10_CHESTNUT_MIGRATION_PLAN.md`; the Chestnut-parity shim in the gate;
-`egpu_in_use()` in the platform file. In exopilot: the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
+Removed on NGP10: `selfdrive/modeld/egpu_detect.py` and its test; in `modeld.py` `EgpuState`, the `big_` artifact paths, the USB+AMD device, the eGPU
+load/failover block and the `egpuState` publisher; the `Egpu*` params; the big-model panel row in `ngp_panel.cc`; the `USBGPU` SConscript block; the
+`egpuState` service; the gate's `Egpu*` keys; `egpu_in_use()` and the matching "stand aside" argument of `GadgetOwner`; `EGPU_INTEGRATION.md` and
+`the old eGPU migration plan`. `modeld` now always runs `config_realtime_process`, since no USB GPU saturates a core. Kept: the `EgpuState` struct and
+`egpuState @150` in `log.capnp` (marked unpublished, so the ordinal stays taken and old logs parse); `tinygrad_model.py`, which loads the small model too.
+Removed the same way on EOP10, 01M and 02M (2026-10-13) with their deeper integration: `system/inferenced/egpu.py` and `BackendType.EGPU`, the eGPU driving runner and the factory's eGPU branch, the `EOPEgpuDriving*` / `EOPChestnutDriving*` params and their migration entries, `selfdrived`'s gate keys, the registry text, the settings exclusions, and the failover tests. **Those branches' inferenced and modeld test suites do not collect in this environment, so that removal was checked only by compiling, linting and the runnable suites, not by running the removed code's neighbours.** In exopilot (not done here): the eGPU overlays, `EGPU_ASM2464PD.md` and `usb_c_port_mode.sh`.
 
 ## Unverified (needs hardware or a recorded route)
 
@@ -180,4 +179,4 @@ Then, one reviewed change per branch in the order NGP10, EOP10, 01M, 02M: `selfd
 Against the pure-Dart stub server (`packages/npbm`, no inference) on loopback, 400 frames: **p50 6.7 ms, p99 16.0 ms, max 28.8 ms** of the 50 ms
 budget. That is the protocol, framing and the Dart server's copies on a PC with no USB in the path, so it is a floor for the software cost, not a
 phone number. The cable adds the transfer of 393 KB each way-in: about 11 ms at a practical 35 MB/s (USB 2), about 3 ms at 125 MB/s (gigabit
-tether). Run the same tool on a real phone with a real model to get the figure that decides the gate for removing the eGPU.
+tether). Run the same tool on a real phone with a real model to get the figure that shows the phone path meets the budget.

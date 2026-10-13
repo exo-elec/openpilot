@@ -69,7 +69,7 @@ cmd_gadget() {
   [[ -d $CONFIGFS/usb_gadget ]] || fail "kernel has no USB gadget support (CONFIG_USB_LIBCOMPOSITE)"
   first_udc >/dev/null || fail "no USB device controller in $UDC_DIR; this device cannot act as a USB gadget"
 
-  # never fight another gadget for the controller (a Chestnut host does not use one, but adb/ffs may)
+  # never fight another gadget for the controller (adb/ffs may use one)
   local other owner bound
   for other in "$CONFIGFS"/usb_gadget/*/UDC; do
     [[ -e $other ]] || continue

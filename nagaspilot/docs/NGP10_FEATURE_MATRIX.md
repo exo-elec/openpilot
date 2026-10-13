@@ -266,7 +266,7 @@ dev-PC worktree; **fixed 2026-08-23** — `cereal/log.capnp` now references
 `Car.RadarData.Error`, matching the rename already present in this branch's
 own `opendbc_repo` pin and in `EXO-ELEC/opendbc`'s `master`; `import cereal`
 works normally again, the direct-import workaround is no longer required
-for new tests, see `EGPU_INTEGRATION.md`). The identical coupling was also
+for new tests, see the removed `EGPU_INTEGRATION.md` (see git history)). The identical coupling was also
 implemented on
 `dev/EOP10`'s `dlon.py`/`dlat.py` (at the time, only applied while
 `EOPDLONMode` was `Auto`; since EOP10 removed `EOPDLONMode` entirely on

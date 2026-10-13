@@ -774,9 +774,8 @@ struct PandaState @0xa7649e2575e4591e {
 }
 
 struct EgpuState {
-  # ASM2464PD USB eGPU hardware telemetry -- same physical chip regardless of
-  # which firmware is flashed (our own generic bridge firmware or comma's
-  # Chestnut firmware, see selfdrive/modeld/egpu_detect.py).
+  # No longer published: the eGPU path was removed (the big model runs on a phone, nagaspilot/bigmodel). Kept so the
+  # event union's ordinal stays taken and old logs still parse.
   tempC @0 :Float32;
   memoryTempC @1 :Float32;
   powerDrawW @2 :Float32;
@@ -1742,7 +1741,7 @@ struct ModelDataV2 {
 
   # e2e lateral planner
   action @26: Action;
-  # the model that produced this frame is the big one (phone over USB, or the eGPU); upstream's ordinal and name
+  # the model that produced this frame is the big one (the phone over USB); upstream's ordinal and name
   big @27 :Bool;
 
   gpuExecutionTimeDEPRECATED @17 :Float32;

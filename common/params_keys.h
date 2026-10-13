@@ -14,11 +14,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AthenadPid", {PERSISTENT, INT}},
     {"AthenadUploadQueue", {PERSISTENT, JSON}},
     {"AthenadRecentlyViewedRoutes", {PERSISTENT, STRING}},
-    // Big model (phone over USB / eGPU): loading blocks engagement, active is false once it handed back or failed.
+    // Big model (the phone over USB): loading blocks engagement, active is false once it handed back or failed.
     // Read by selfdrived through nagaspilot/controls/ngp_bigmodel_gate.py. Written by modeld's BigModelHook.
     {"EOPBigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
     // The phone-hosted big model link (NavPilot NPBM, NAVPILOT_BIGMODEL.md): 0 off, 3 USB tethering (recommended), 2 iPhone
-    // (the board's NCM gadget), 1 Android (FunctionFS bulk gadget). The USB-C port the phone uses is the eGPU port: one role at a time.
+    // (the board's NCM gadget), 1 Android (FunctionFS bulk gadget). The USB-C port takes one role at a time.
     {"EOPBigModelLink", {PERSISTENT, INT, "0"}},
     {"EOPBigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BootCount", {PERSISTENT, INT}},
@@ -44,12 +44,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DoUninstall", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverTooDistracted", {CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON, BOOL}},
     {"AlphaLongitudinalEnabled", {PERSISTENT | DEVELOPMENT_ONLY, BOOL}},
-    // ASM2464PD USB eGPU driving path (mirrors upstream UsbGpu*; named after
-    // the hardware, not comma's Chestnut model class -- we support both our
-    // own flashed firmware and comma's on the same physical chip).
-    {"EOPEgpuDrivingEnabled", {PERSISTENT, BOOL}},
-    {"EOPEgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL}},
-    {"EOPEgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ExperimentalMode", {PERSISTENT, BOOL}},
     {"ExperimentalModeConfirmed", {PERSISTENT, BOOL}},
     {"FirmwareQueryDone", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
@@ -241,7 +235,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
-    // The phone-hosted big model's counterparts of upstream's Offroad_Chestnut* alerts (ngp_bigmodel_status.py)
+    // The phone-hosted big model's counterparts of upstream's offroad big-model alerts (ngp_bigmodel_status.py)
     {"Offroad_BigModelModelError", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_BigModelNotDetected", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
     {"Offroad_BigModelUsbSlow", {CLEAR_ON_MANAGER_START, JSON}},
@@ -573,12 +567,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPCarMake", {PERSISTENT, STRING}},
     {"EOPCarType", {PERSISTENT, STRING}},
     {"EOPCarVin", {PERSISTENT, STRING}},
-    // ASM2464PD / Chestnut eGPU driving path (mirrors upstream UsbGpu*; named
-    // Egpu* to cover both our own flashed firmware and comma's Chestnut
-    // firmware on the same physical chip).
-    {"EOPChestnutDrivingEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPChestnutDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
-    {"EOPChestnutDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"EOPCurrentMCAPRoute", {CLEAR_ON_MANAGER_START, STRING}},
     {"EOPWakeEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPVoiceWakeTrigger", {CLEAR_ON_MANAGER_START, BOOL, "0"}},

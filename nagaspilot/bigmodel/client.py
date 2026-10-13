@@ -15,7 +15,7 @@ from nagaspilot.bigmodel.spec import ModelSpec
 
 CONNECT_TIMEOUT = 2.0
 HELLO_TIMEOUT = 5.0
-# no reply for this long means the far end is gone, not slow (Chestnut's own wait timeout is 3 s)
+# no reply for this long means the far end is gone, not slow (upstream's own wait timeout is 3 s)
 FRAME_TIMEOUT = 0.2
 PING_TIMEOUT = 2.0
 

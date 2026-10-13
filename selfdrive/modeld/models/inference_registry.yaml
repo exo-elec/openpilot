@@ -192,11 +192,8 @@ models:
       cameras: ["rear"]
       rate: 4Hz
 
-  # USB eGPU: openpilot's Chestnut big driving model ONLY (modeld's eGPU
-  # runner, one-way failover to the RKNN driving model; egpu.py refuses any
-  # other model). The side/rear/front eGPU shadow sessions that used to be
-  # listed here were removed on 2026-09-27: camera and rule-based
-  # Autoware-style models belong on the Hailo-8 / DX-M1 card (entries above).
+  # Camera and rule-based Autoware-style models belong on the Hailo-8 / DX-M1 card (entries above).
+  # The big driving model is not run here: it runs on a phone over USB (nagaspilot/bigmodel).
   #
   # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
   # These models require voxeld daemon which was never created

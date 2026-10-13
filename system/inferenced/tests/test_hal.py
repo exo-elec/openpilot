@@ -235,8 +235,8 @@ class TestInferenceClient:
   def test_exclusive_backend_can_disable_direct_fallback(self):
     client = InferenceClient("exclusive_test", use_ipc=False)
     result = client.submit_job(
-      BackendType.EGPU,
-      "side_yolo_egpu",
+      BackendType.HAILO_8,
+      "side_yolo_accel",
       np.zeros((1,), dtype=np.float16),
       allow_direct_fallback=False,
     )

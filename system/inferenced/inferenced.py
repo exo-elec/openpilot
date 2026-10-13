@@ -35,7 +35,6 @@ from openpilot.common.swaglog import cloudlog
 
 from openpilot.system.inferenced.compute import HAL, HALConfig, BackendType, ModelConfig, CAMERA_ACCEL_BACKENDS
 from openpilot.system.inferenced.drivable import CARD_INPUT_HW, CARD_MODEL, drivable_map, letterbox
-from openpilot.system.inferenced.egpu import EGPU_ALLOWED_MODELS
 
 LOOP_HZ = 100          # request drain + job execution rate
 STATUS_EVERY_N = 10    # publish inferencedStatus at LOOP_HZ / STATUS_EVERY_N = 10 Hz
@@ -115,7 +114,7 @@ class InferenceD:
     """Initialize inference daemon."""
     set_daemon_affinity("inferenced")
 
-    # The one process that opens the single-owner devices (card, eGPU)
+    # The one process that opens the single-owner devices (the camera-tier card)
     self.hal = HAL(HALConfig(own_exclusive_devices=True))
     self._initialized = False
     self._running = False
@@ -370,12 +369,6 @@ class InferenceD:
         if routed is None:
           return False, error
         backend_type = routed
-
-      # The eGPU is openpilot's Chestnut driving model and nothing else;
-      # camera and Autoware-style models go to the Hailo-8 / DX-M1 (ACCEL).
-      if backend_type == BackendType.EGPU and job.model_name not in EGPU_ALLOWED_MODELS:
-        return False, (f"EGPU runs only the Chestnut driving model; '{job.model_name}' " +
-                       "belongs on the camera-tier card (ACCEL)")
 
       backend = self.hal.get_backend(backend_type)
 

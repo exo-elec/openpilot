@@ -1,8 +1,8 @@
-"""Engagement gate for the big driving model (phone over USB, or the eGPU).
+"""Engagement gate for the big driving model (the phone over USB).
 
 Pure policy, like ngp_lead_departure: inputs are the two runtime params modeld writes and one liveness
 flag, output says which events selfdrived should raise. Mirrors upstream's selfdrived handling of the
-Chestnut model (UsbGpuLoading / UsbGpuActive), so both big-model sources share one contract:
+big model, so the phone link follows the same contract:
 
 - loading: the big model is joining or proving. Engaging is refused ("Big Model Loading", NO_ENTRY).
 - active: True while the big model drives, False once it handed back after having driven or failed to
@@ -29,7 +29,7 @@ class BigModelGateOut:
 
 
 def tier_flag(*values: bool | None) -> bool | None:
-  """Combine the same flag from several big-model sources (phone link, eGPU): True if any is True,
+  """Combine the same flag from several big-model sources (more than one source on a branch that has them): True if any is True,
   else False if any is False, else None when none has been written."""
   if any(v is True for v in values):
     return True
@@ -46,9 +46,9 @@ SETTLING_S = 5.0
 # 4 Hz keeps a branch with no big-model source from paying file reads every cycle.
 READ_PERIOD = 0.25
 
-# Param names read on NGP10 (the phone link, then the eGPU). A branch with another naming rule passes its own.
-LOADING_KEYS = ("BigModelLoading", "EgpuDrivingLoading")
-ACTIVE_KEYS = ("BigModelActive", "EgpuDrivingActive")
+# Param names read on NGP10 (the phone link). A branch with another naming rule passes its own.
+LOADING_KEYS = ("BigModelLoading",)
+ACTIVE_KEYS = ("BigModelActive",)
 
 
 class NGPBigModelGate:

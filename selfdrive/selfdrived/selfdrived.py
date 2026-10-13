@@ -157,8 +157,7 @@ class SelfdriveD:
     # EOP: Green light / lead departing alert state
     self._green_light = NGPGreenLight()
     self._lead_departure = NGPLeadDeparture()
-    self._big_model_gate = NGPBigModelGate(("EOPBigModelLoading", "EOPEgpuDrivingLoading", "EOPChestnutDrivingLoading"),
-                                           ("EOPBigModelActive", "EOPEgpuDrivingActive", "EOPChestnutDrivingActive"))
+    self._big_model_gate = NGPBigModelGate(("EOPBigModelLoading",), ("EOPBigModelActive",))
 
     # EOP: Health Monitor — graduated system degradation on thermal/CPU/memory stress
     self._health_monitor_enabled = self.params.get_bool("EOPHealthMonitorEnabled")

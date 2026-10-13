@@ -52,7 +52,6 @@ class BackendType(IntEnum):
     HAILO_8 = 6   # Hailo-8 NPU (26 TOPS, no DRAM; camera-tier segmentation)
     ONNX = 7      # ONNX Runtime (x86 dev PC / CPU fallback)
     DX_M1 = 8     # DeepX DX-M1 die; ExoPilot fits the DX-M1M M.2 2242 (25 TOPS, 2 GB LPDDR4x, PCIe Gen3 x2)
-    EGPU = 9   # ASM2464PD eGPU + AMD Radeon — openpilot's Chestnut driving model only
     # Request-only routing value: "whichever camera-tier card is fitted".
     # inferenced resolves it to HAILO_8 or DX_M1 (see CAMERA_ACCEL_BACKENDS);
     # no backend is ever registered under it.
@@ -201,8 +200,7 @@ class HALConfig:
     enable_mpp: bool = True
     enable_hailo_8: bool = True  # Hailo-8 (26 TOPS) — gracefully skips if not present
     enable_dx_m1: bool = True   # DEEPX DX-M1 (20 TOPS) — gracefully skips if not present
-    enable_egpu: bool = True  # ASM2464PD eGPU — Chestnut driving model only (egpu.EGPU_ALLOWED_MODELS)
-    # Hailo-8, DX-M1M and the eGPU each allow one owning process. Only the HAL
+    # Hailo-8 and DX-M1M each allow one owning process. Only the HAL
     # built with this set (inferenced's) opens them; every other process's HAL
     # (monod/sided/reard's RKNN, gridd, tests) leaves them alone, whatever the
     # enable_* flags say. Before this, any get_hal() also grabbed the card.
@@ -272,9 +270,6 @@ class HAL:
 
         if exclusive and self.config.enable_dx_m1:
             self._init_backend(BackendType.DX_M1, 'system.inferenced.deepx_dxnn', 'DeepXBackend')
-
-        if exclusive and self.config.enable_egpu:
-            self._init_backend(BackendType.EGPU, 'system.inferenced.egpu', 'EgpuBackend')
 
         if self.config.enable_onnx:
             self._init_backend(BackendType.ONNX, 'system.inferenced.onnx_backend', 'OnnxBackend')
@@ -412,7 +407,7 @@ class HAL:
         knowing the exact BackendType, this lets a caller ask for
         "whatever serves camera_inference" without hardcoding which
         accelerator that is. Backend classes that don't set WORKLOAD_CLASS
-        (ACL, RGA, MPP, ONNX, EGPU) are never returned by this method —
+        (ACL, RGA, MPP, ONNX) are never returned by this method —
         query them directly via get_backend() if that's what's wanted.
 
         Order follows registration order in initialize() above, e.g.

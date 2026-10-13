@@ -433,9 +433,9 @@ class TestDaemonExecution(unittest.TestCase):
         from openpilot.system.inferenced.compute import BackendType
 
         daemon = self._make_daemon()
-        daemon.hal.get_available_backends.return_value = [BackendType.NPU, BackendType.EGPU]
-        daemon.hal._models_cache = {'side_yolo_egpu': MagicMock(), 'rear_yolo_egpu': MagicMock()}
-        daemon.hal.get_backend_health_report.return_value = {'NPU': 'ok', 'EGPU': 'ok'}
+        daemon.hal.get_available_backends.return_value = [BackendType.NPU, BackendType.HAILO_8]
+        daemon.hal._models_cache = {'side_yolo_accel': MagicMock(), 'rear_yolo_accel': MagicMock()}
+        daemon.hal.get_backend_health_report.return_value = {'NPU': 'ok', 'HAILO_8': 'ok'}
 
         daemon._publish_status()
 
@@ -443,10 +443,10 @@ class TestDaemonExecution(unittest.TestCase):
         service, msg = self.pub.sent[0]
         self.assertEqual(service, "inferencedStatus")
         status = msg.inferencedStatus
-        self.assertEqual(list(status.availableBackends), ['NPU', 'EGPU'])
-        self.assertEqual(sorted(status.availableModels), ['rear_yolo_egpu', 'side_yolo_egpu'])
+        self.assertEqual(list(status.availableBackends), ['NPU', 'HAILO_8'])
+        self.assertEqual(sorted(status.availableModels), ['rear_yolo_accel', 'side_yolo_accel'])
         self.assertIn('NPU', status.backendHealth)
-        self.assertIn('EGPU', status.backendHealth)
+        self.assertIn('HAILO_8', status.backendHealth)
 
     def test_publish_status_advertises_accel_with_a_card(self):
         """A fitted Hailo-8 or DX-M1 is also advertised as the ACCEL route."""
