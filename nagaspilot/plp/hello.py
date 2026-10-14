@@ -10,8 +10,6 @@ from dataclasses import dataclass
 from nagaspilot.plp import registry
 from nagaspilot.plp.frame import ENC_JSON, VERSION
 
-LINKS = ('usb', 'ble', 'spp')
-
 
 @dataclass(frozen=True)
 class Hello:

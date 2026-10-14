@@ -45,9 +45,6 @@ class Outbox:
       flags = (FLAG_MORE if n < len(parts) - 1 else 0) | (FLAG_CRITICAL if m.critical else 0) | (0 if self.payload_crc else FLAG_NO_PAYLOAD_CRC)
       self._queues[m.channel].append(Frame(m.kind, m.service, m.message, part, m.channel, m.encoding, m.request_id, flags))
 
-  def pending(self) -> int:
-    return sum(len(q) for q in self._queues)
-
   def next_frame(self) -> bytes | None:
     ready = [c for c in range(CHANNELS) if self._queues[c]]
     if not ready:

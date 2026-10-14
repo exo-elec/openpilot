@@ -103,12 +103,12 @@ class MessageType(IntEnum):
     CMD_TRAFFIC_UPDATE   = 0x27   # Traffic update (premium)
     CMD_VOICE_INTENT     = 0x28   # Voice intent from companion app
     CMD_TTS_REQUEST      = 0x29   # TTS request from device to companion app
-    CMD_AUTH_HANDSHAKE   = 0x2A   # Auth/subscription handshake
+    CMD_AUTH_HANDSHAKE   = 0x2A   # RETIRED, number reserved: no sender, no handler (the session ignores it, as it does any unknown type)
     CMD_PAIR             = 0x2B   # Pair phone with device (NCP-level code)
     CMD_UNPAIR           = 0x2C   # Unpair phone from device
     CMD_OBD_REQUEST      = 0x2D   # OBD-II PID request (phone → device)
     CMD_VEHICLE_DATA     = 0x2E   # Interpreted OBD telemetry from companion app
-    CMD_OAUTH_TOKEN      = 0x2F   # Google OAuth token sync (NavPilot → device for Gemini)
+    CMD_OAUTH_TOKEN      = 0x2F   # RETIRED, number reserved: superseded by the device credential (0x64)
 
     # --- Convoy (capability-gated: 'convoyFollow' in supportedServices) — PHONE→DEVICE unless noted ---
     CMD_CONVOY_LEAD          = 0x70   # Lead friend's live position (moving destination)
@@ -136,7 +136,7 @@ class MessageType(IntEnum):
     AUTH_DEVICE_ID          = 0x60  # DEVICE→PHONE: Hardware device ID
     AUTH_SUBSCRIPTION_STATE = 0x61  # DEVICE→PHONE: Subscription tier state
     AUTH_TOKEN_VALIDATE     = 0x62  # DEVICE→PHONE: Token validation result
-    OAUTH_STATUS            = 0x63  # DEVICE→PHONE: Token status (missing/valid/expiring_soon/expired)
+    OAUTH_STATUS            = 0x63  # RETIRED, number reserved: the device never sent it; the phone handler is gone
 
     # --- Perception (DEVICE→PHONE) ---
     # Reclaims the reserved-but-never-specified v3.x 0x0602 slot; JSON payload —

@@ -47,8 +47,6 @@ MODEL_RUN_FREQ = 20
 MODEL_CONTEXT_FREQ = 5
 DEFAULT_FRAME_SKIP = MODEL_RUN_FREQ // MODEL_CONTEXT_FREQ  # 4
 
-CHUNK = 4 << 20  # model upload chunk
-
 # the driving output every layout has, 18452 floats in openpilot's layout
 DRIVING_OUTPUT = 'outputs'
 # the slice of it that stays on the server; 16384 of the 18452
