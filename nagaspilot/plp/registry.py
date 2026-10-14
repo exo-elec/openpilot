@@ -7,7 +7,6 @@ from pathlib import Path
 
 KIND_NOTIFY, KIND_REQUEST, KIND_RESPONSE, KIND_ERROR = 0, 1, 2, 3
 KINDS = {'notify': KIND_NOTIFY, 'request': KIND_REQUEST, 'response': KIND_RESPONSE, 'error': KIND_ERROR}
-KIND_NAMES = {v: k for k, v in KINDS.items()}
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,6 @@ def _load() -> dict:
 
 _RAW = _load()
 SERVICES: dict[str, int] = dict(_RAW['services'])
-SERVICE_NAMES: dict[int, str] = {v: k for k, v in SERVICES.items()}
 V4_SPECIAL: dict[str, int] = dict(_RAW['v4_special'])
 MESSAGES: dict[tuple[int, int], MessageDef] = {}
 BY_NAME: dict[str, MessageDef] = {}
@@ -49,10 +47,6 @@ for _m in _RAW['messages']:
   BY_NAME[_d.full_name] = _d
   for _code, _kind in _d.v4:
     _V4[_code] = (_d, _kind)
-
-
-def lookup(service: int, message: int) -> MessageDef | None:
-  return MESSAGES.get((service, message))
 
 
 def v4_to_v5(v4_type: int) -> tuple[MessageDef, int] | None:
