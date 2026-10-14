@@ -122,7 +122,7 @@ SPP carries this framed format plus raw ELM327 ASCII on the same socket (auto-de
 | `0x2B` | `CMD_PAIR` | P→D | NCP-level pairing code entry |
 | `0x2D` | `CMD_OBD_REQUEST` | P→D | Raw OBD PID request |
 | `0x2E` | `CMD_VEHICLE_DATA` | P→D | Interpreted vehicle telemetry from NavPilot |
-| `0x2F` | `CMD_OAUTH_TOKEN` | P→D | Google OAuth token for on-device Gemini |
+| `0x2F` | `CMD_OAUTH_TOKEN` | P→D | **Retired** (number reserved): superseded by the device credential `0x64`; no handler |
 | `0x70` | `CMD_CONVOY_LEAD` | P→D | Lead friend's live position (moving destination) — capability-gated, `'convoyFollow'` |
 | `0x71` | `CMD_CONVOY_CANCEL` | P→D | Stop following the lead friend |
 | `0x72` | `TELEMETRY_CONVOY_STATUS` | D→P | Convoy follow status — reserved, not yet sent |
