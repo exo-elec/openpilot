@@ -136,7 +136,7 @@ class MessageType(IntEnum):
     AUTH_DEVICE_ID          = 0x60  # DEVICE→PHONE: Hardware device ID
     AUTH_SUBSCRIPTION_STATE = 0x61  # DEVICE→PHONE: Subscription tier state
     AUTH_TOKEN_VALIDATE     = 0x62  # DEVICE→PHONE: Token validation result
-    OAUTH_STATUS            = 0x63  # DEVICE→PHONE: Token status (missing/valid/expiring_soon/expired)
+    OAUTH_STATUS            = 0x63  # RETIRED, number reserved: the device never sent it; the phone handler is gone
 
     # --- Perception (DEVICE→PHONE) ---
     # Reclaims the reserved-but-never-specified v3.x 0x0602 slot; JSON payload —
