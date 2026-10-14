@@ -492,8 +492,8 @@
      "kind": "notify"
     }
    ],
-   "status": "active",
-   "note": "token missing, valid, expiring or expired"
+   "status": "retired",
+   "note": "the device never sent it; the phone handler is gone. Number reserved"
   },
   {
    "service": "auth",
