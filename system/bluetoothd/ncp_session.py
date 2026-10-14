@@ -224,10 +224,6 @@ class NCPSession:
             return self._handle_driving_profile(frame)
         if t == protocol.MessageType.CMD_MISSION_GUIDANCE:
             return self._handle_mission_guidance(frame)
-        if t == protocol.MessageType.CMD_AUTH_HANDSHAKE:
-            return self._handle_auth_handshake(frame)
-        if t == protocol.MessageType.CMD_OAUTH_TOKEN:
-            return self._handle_oauth_token(frame)
         if t == protocol.MessageType.CMD_PAIR:
             return self._handle_pair(frame)
         if t == protocol.MessageType.CMD_UNPAIR:
@@ -426,21 +422,6 @@ class NCPSession:
             return protocol.make_ack(protocol.MessageType.CMD_MISSION_GUIDANCE)
         except Exception as e:
             return protocol.make_error(f'Mission guidance failed: {e}')
-
-    def _handle_auth_handshake(self, frame: protocol.Frame) -> protocol.Frame:
-        # Retired: EOPNavPilotOAuthToken/EOPNavPilotOAuthEmail params were written
-        # here but never read anywhere in this repo (checked this session —
-        # no consumer). The phone-side sender (sendAuthHandshake) was also
-        # dead code (zero call sites) and has been removed from navpilot.
-        # Ack-only for wire compat with any older phone app still sending it.
-        return protocol.make_ack(protocol.MessageType.CMD_AUTH_HANDSHAKE)
-
-    def _handle_oauth_token(self, frame: protocol.Frame) -> protocol.Frame:
-        # Retired: device-direct-Gemini OAuth relay. The phone no longer
-        # sends this (see navpilot's frame_protocol.dart comment on
-        # cmdOAuthToken) — superseded by the account-linked device
-        # credential flow (CMD_DEVICE_CREDENTIAL). Ack-only for wire compat.
-        return protocol.make_ack(protocol.MessageType.CMD_OAUTH_TOKEN)
 
     def _handle_pair(self, frame: protocol.Frame) -> protocol.Frame:
         try:
