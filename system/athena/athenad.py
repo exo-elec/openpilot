@@ -562,7 +562,10 @@ def getNetworks():
 
 @dispatcher.add_method
 def takeSnapshot() -> str | dict[str, str] | None:
-  from openpilot.system.camerad.snapshot import jpeg_write, snapshot
+  try:
+    from openpilot.system.camerad.snapshot import jpeg_write, snapshot
+  except ImportError as e:  # the Rockchip boards have no comma camerad; v4l2d owns the cameras
+    raise Exception("snapshots are not available on this board") from e
   ret = snapshot()
   if ret is not None:
     def b64jpeg(x):
