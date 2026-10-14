@@ -24,10 +24,6 @@ class LinkError(Exception):
   pass
 
 
-class LinkTimeout(LinkError):
-  pass
-
-
 class ServerInfo:
   def __init__(self, ack: dict):
     self.contract: str = str(ack.get('contract', P.CONTRACT_SPLIT))

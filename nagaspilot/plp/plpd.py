@@ -18,7 +18,6 @@ from nagaspilot.plp.locate import LocateSink
 
 log = logging.getLogger('nagaspilot.plp.plpd')
 
-NETWORK_MODE = 2             # ngp_bigmodel_link: the iPhone (CDC-NCM) cable; see bigmodel/gadget.py
 REPORT_PERIOD_S = 60.0
 
 SERVICES = (('core', 1, 1), ('locate', 1, 1))
