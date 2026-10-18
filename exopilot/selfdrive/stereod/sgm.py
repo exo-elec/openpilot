@@ -56,7 +56,7 @@ class SGMResult:
 class SGM:
     """GPU SGM for production; explicit NumPy CPU reference for offline use."""
 
-    def __init__(self, config: SGMConfig | None = None, target: str = "cpu", *, gpu=None):
+    def __init__(self, config: SGMConfig | None = None, target: str = "gpu", *, gpu=None):
         self.config = config or SGMConfig()
         if target not in ("cpu", "gpu", "auto"):
             raise ValueError("SGM target must be cpu, gpu or auto")
@@ -389,9 +389,9 @@ class SGM:
 def compute_disparity(left: np.ndarray,
                           right: np.ndarray,
                           max_disparity: int = 64,
-                          timeout_ms: float = 50.0) -> SGMResult:
+                          timeout_ms: float = 50.0, *, gpu=None) -> SGMResult:
     """
-    Compute stereo disparity using SGM.
+    Compute stereo disparity on the supplied HAL GPU context.
 
     Args:
         left: Left stereo image (grayscale)
@@ -402,10 +402,13 @@ def compute_disparity(left: np.ndarray,
     Returns:
         SGMResult with disparity map
     """
+    if left.ndim != 2 or right.shape != left.shape:
+        raise ValueError("Expected matching rectified grayscale image shapes")
     config = SGMConfig(
+        target_width=left.shape[1], target_height=left.shape[0],
         max_disparity=max_disparity,
         max_runtime_ms=timeout_ms
     )
 
-    with SGM(config) as sgm:
+    with SGM(config, target="gpu", gpu=gpu) as sgm:
         return sgm.compute(left, right)
