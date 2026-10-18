@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import logging
 import os
+import platform
 from typing import Any
 from pathlib import Path
 
 from openpilot.system.inferenced.compute import HardwareBackend, BackendType, InferenceResult, ModelConfig
+from openpilot.nagaspilot.manager.compute_fault_policy import allow_rknn_mock
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,9 @@ class RKNNBackend(HardwareBackend):
       logger.exception("Could not query RKNN driver version")
 
   def initialize(self) -> bool:
-    """Initialize RKNN backend."""
+    """Initialize RKNN; missing ARM runtime is a real safety-NPU failure."""
+    self._initialized = False
+    self._use_mock = False
     try:
       # On-device runtime: RKNNLite (rknnlite package)
       try:
@@ -77,7 +81,10 @@ class RKNNBackend(HardwareBackend):
         logger.info("RKNN backend initialized (RKNNLite, real hardware)")
         return True
       except ImportError:
-        # Dev PC mode — RKNNLite not installed; use mock for testing
+        if not allow_rknn_mock(platform.machine()):
+          logger.exception("RKNNLite unavailable on target: safety NPU cannot use a mock")
+          return False
+        # Explicitly limited to offline x86 development hosts.
         logger.info("RKNNLite not available — using mock mode for dev testing")
         self._use_mock = True
         self._initialized = True

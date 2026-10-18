@@ -88,3 +88,8 @@ GPU port and ground/obstacle split before live gridd integration; ray visibility
 and unknown-space semantics; synchronized replay; RK3588/RK3576 target accuracy,
 latency and concurrent ADAS/UI/thermal profiling. No full pipeline acceptance is
 claimed. The existing full test gate stops at bigmodel_platform.py lineage drift.
+
+Owner clarification: core CPU and RKNN safety-NPU failures retain compute
+disengagement authority. Optional grid/RGA faults now degrade alongside stereo,
+GPU point-cloud, MPP and camera-card loss. See COMPUTE_FAULT_POLICY.md for the
+explicit inference classifier, ARM runtime guard and policy tests.
