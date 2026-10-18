@@ -98,6 +98,37 @@ stable lookup anchors; line numbers describe this baseline and can move.
 Source paths above are relative to `nagaspilot/daemons/` unless otherwise
 qualified. Compatibility modules under `selfdrive/` import these implementations.
 
+### Implementation progress, 2026-10-18
+
+The first metric-geometry slice now uses `gridd/stereo_geometry.py`: complete
+homogeneous Q reprojection at original image coordinates, true every-fourth
+row/column sampling and finite/confidence/range filtering. The reference rejects
+missing or malformed Q rather than substituting nominal calibration. It is not
+yet wired into live gridd: that path marks all selected returns occupied and
+needs ground/obstacle separation before corrected depth is enabled. Output
+remains optical right/down/forward; camera extrinsics, capture pairing and
+calibration-resolution provenance still need integration. This is numerical
+reference work, not live GPU dispatch or completed mapping.
+
+Eight numerical fixture cases pass, covering metric scale, homogeneous offsets,
+sampling, invalid depth/confidence and calibration input rejection. A separate
+lineage unit case also passes. Tests ran from an isolated copy to avoid this
+host's case-insensitive mount/pytest collection issue; tested helper and fixtures
+were copied directly from this working tree. The required full ./test.sh gate
+still stops at the pre-existing bigmodel_platform.py lineage mismatch.
+
+Exopilot now provides `hal.gpu` with actual OpenCL GPU enumeration and an optional
+kernel execution/output check (seven host policy tests pass). The development
+host has no available OpenCL GPU. RK3588 supports Mali/OpenCL, but EOP's current
+arm_acl.py SGM path returns zeros rather than dispatching a kernel. Real GPU
+SGM and target-board profiling remain required; no working GPU stereo pipeline
+is claimed. Generic external-GPU compute remains separate future work; the
+removed Chestnut/eGPU driving-model path stays removed.
+
+NavPilot's first real PLP USB-network adapter is committed separately, with 25
+PLP package tests passing. App integration, service parity and JetLink native
+inference remain distinct tasks; they do not block numerical stereo fixtures.
+
 ## Ordered implementation slices and completion criteria
 
 1. **Establish reproducible baseline.** Resolve or separately account for the

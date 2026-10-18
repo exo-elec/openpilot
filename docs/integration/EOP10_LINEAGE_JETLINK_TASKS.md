@@ -9,7 +9,9 @@ complete; all 19 remaining tree differences were reconciled to saved EOP tip
 fe47dc146a2d6c225697ef9a558f9e53ea6454e1, including merge-only fixes and docs.
 Before these documentation updates, the candidate index matched that entire
 saved tree exactly. See [resolution log](EOP10_REBASE_RESOLUTIONS.md).
-No Chestnut/eGPU runtime path or setting is retained.
+No Chestnut/eGPU driving-model path or setting is retained. Onboard Mali GPU
+compute remains required for stereo; optional generic external compute is a
+separate future capability, not a restoration of that driving-model path.
 
 ## Owner decisions for this work
 
@@ -164,9 +166,10 @@ PLP frames into JetLink inference messages or run competing gadget owners.
 | Open | NGP-owned local fallback | Timeout, unplug, corrupt reply, non-finite output, engine failure and reconnect tests preserve valid local model outputs |
 | Open | NavPilot native v3 bridge and PLP coexistence | Matching iOS/Android native wire; independent PLP traffic; one gadget owner; frame-latency measurements |
 | Open | Carry reviewed baseline into EOP10 | Fresh lineage check, adapter parity, RKNN fallback fixtures; rebase only when parent advances |
-| In progress | Reviewed linear EOP rebase | Replay complete; saved-tree parity confirmed; signed resolution record and lease-protected publication next |
-| In progress | NavPilot task/design reconciliation | Separate agent preserves dirty checkout; USB/BLE parity and v3-native work tracked |
-| In progress | Exopilot HAL contract audit | Camera, calibration, compute, USB and Bluetooth ownership checked against device-layer source |
+| Done | Reviewed linear EOP rebase | Published a5c813933 with explicit lease; before subsequent runtime work, only two task/resolution docs differed from saved EOP tip |
+| Partial | NavPilot reconciliation and PLP TCP | 572a481 on NavPilot master; existing work reused, real 5601 PLP transport and six loopback cases; all 25 PLP tests pass, app/provider and native JetLink work remain |
+| Partial | Exopilot GPU contract/readiness | aae97cf on codex/gpu-stereo-readiness; GPU enumeration and kernel smoke diagnostic, seven host tests pass; target-board kernel/thermal tests remain |
+| Partial | Metric stereo projection reference | Complete Q, true strided sampling and invalid-depth rejection tested in isolation; eight geometry cases plus lineage unit case pass. Live integration awaits ground/obstacle separation and measured calibration |
 | Next | Resume EOP stereod point-cloud implementation | Follow metric-depth and geometric mapping slices in the stereo plan; preserve baseline control outputs |
 
 The JetLink work is a shared-baseline dependency track. EOP stereo analysis
