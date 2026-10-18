@@ -102,6 +102,7 @@ class InferenceClient:
         # Cache backends
         self._npu: HardwareBackend | None = None
         self._acl: HardwareBackend | None = None
+        self._gpu = None
         self._rga: HardwareBackend | None = None
         self._mpp: HardwareBackend | None = None
         self._hailo: HardwareBackend | None = None
@@ -308,6 +309,23 @@ class InferenceClient:
                 raise RuntimeError(f"[{self.daemon_name}] NPU not available")
         return self._npu
 
+    def gpu(self):
+        """Get a GPU-only process-local context, verified with a real kernel.
+
+        Exopilot owns drivers; this optional compute path does not initialize
+        the NPU/card HAL or substitute CPU matching when the GPU is absent.
+        """
+        if self._gpu is None:
+            from openpilot.common.gpu_compute import GPUCompute
+            gpu = GPUCompute()
+            try:
+                gpu.smoke_test()
+            except Exception:
+                gpu.close()
+                raise
+            self._gpu = gpu
+        return self._gpu
+
     def acl(self) -> HardwareBackend:
         """Get ACL backend (ARM Compute Library - GPU preferred, falls back to CPU)."""
         if self._acl is None:
@@ -478,4 +496,7 @@ class InferenceClient:
 
     def release(self) -> None:
         """Release client resources."""
+        if self._gpu is not None:
+            self._gpu.close()
+            self._gpu = None
         cloudlog.info(f"InferenceClient released for {self.daemon_name}")
