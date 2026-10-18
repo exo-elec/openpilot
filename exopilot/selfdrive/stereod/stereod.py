@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-StereoD — 2D Stereo Depth Daemon (CRITICAL for ADAS)
+StereoD — optional GPU stereo depth source for fusion
 
 Uses centralized InferenceD HAL for all compute:
 - GPU-only OpenCL for SGM stereo depth
