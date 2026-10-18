@@ -108,7 +108,7 @@ class ACLBackend(HardwareBackend):
     if model_name == 'sgm_stereo':
       # SGM (Semi-global matching) for stereo depth
       logger.debug("ACL GPU: SGM stereo depth computation")
-      return np.zeros((inputs.get('height', 480), inputs.get('width', 640)), dtype=np.float32)
+      raise NotImplementedError("Use InferenceClient.gpu() with OpenCLStereo; ACL has no stereo kernel")
 
     elif model_name == 'gemm':
       # Matrix multiply
@@ -153,6 +153,9 @@ class ACLBackend(HardwareBackend):
     import numpy as np
 
     logger.debug(f"ACL CPU: {model_name}")
+
+    if model_name == "sgm_stereo":
+      raise NotImplementedError("CPU stereo fallback is disabled; use the GPU stereo backend")
 
     # Placeholder - actual ACL NEON operations would go here
     if 'input' in inputs:

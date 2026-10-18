@@ -3,7 +3,7 @@
 StereoD — 2D Stereo Depth Daemon (CRITICAL for ADAS)
 
 Uses centralized InferenceD HAL for all compute:
-- GPU (ACL) for SGM stereo depth
+- GPU-only OpenCL for SGM stereo depth
 
 Publishes stereoDepth only. 2D YOLO on the stereo pair and PP-LiteSeg
 segmentation are not implemented here: object detection runs on RKNN via
@@ -21,7 +21,7 @@ import numpy as np
 import cv2
 
 import cereal.messaging as messaging
-from msgq.visionipc import VisionStreamType, VisionIpcClient
+from msgq.visionipc import VisionIpcClient
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
@@ -34,6 +34,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced import InferenceClient
 
 # SGM via HAL
+from openpilot.nagaspilot.daemons.stereod.stereo_input import luma_plane, capture_timestamp, calibration_maps
 from openpilot.nagaspilot.daemons.stereod.sgm import SGM, SGMConfig, SGMError, SGMDeviceError, SGMTimeoutError
 
 # Constants
@@ -43,9 +44,6 @@ STEREO_RIGHT_STREAM = 5
 FAULT_THRESHOLD = 3
 MAX_SGM_LATENCY_MS = 50.0
 
-def _nv12_to_gray(data: bytes, width: int, height: int) -> np.ndarray:
-    """Extract Y plane from NV12."""
-    return np.frombuffer(data, dtype=np.uint8).reshape((height * 3 // 2, width))[:height]
 
 
 class StereoD:
@@ -67,7 +65,7 @@ class StereoD:
 
         # Get hardware from HAL
         try:
-            self.gpu = self.client.acl()
+            self.gpu = self.client.gpu() if self.enabled else None
             cloudlog.info("StereoD: GPU backend acquired")
         except RuntimeError as e:
             cloudlog.error(f"StereoD: GPU not available: {e}")
@@ -75,6 +73,7 @@ class StereoD:
 
         # Camera geometry
         hardware = PlatformRegistry.create()
+        self._hardware = hardware
         self.geometry: CameraGeometry = hardware.get_camera_geometry()
         self.stereo_baseline_m = self.geometry.get_baseline('stereo_left', 'stereo_right')
         cloudlog.info(f"Stereo baseline: {self.stereo_baseline_m * 1000:.0f}mm")
@@ -101,11 +100,12 @@ class StereoD:
         self.right_map1 = self.right_map2 = None
         self.Q = None
         self.frame_id = 0
+        self._last_capture = 0
+        self._left_support = self._right_support = None
 
         # VisionIPC
         self.vipc_left = VisionIpcClient("v4l2d", STEREO_LEFT_STREAM, True)
         self.vipc_right = VisionIpcClient("v4l2d", STEREO_RIGHT_STREAM, True)
-        self.vipc_wide = VisionIpcClient("v4l2d", VisionStreamType.VISION_STREAM_WIDE_ROAD, False)
 
         # Publishers. 2D YOLO on the stereo pair (stereoDetections) is not
         # implemented -- detection runs on RKNN via monod/sided/reard instead.
@@ -123,6 +123,18 @@ class StereoD:
             self._set_fault("gpu_unavailable", "GPU backend not available via HAL")
             return False
 
+        self._gpu_sgm_available = False
+        if self._sgm is not None:
+            self._sgm.release()
+            self._sgm = None
+        try:
+            cal = self._hardware.load_stereo_intrinsics()
+            (self.left_map1, self.left_map2, self.right_map1, self.right_map2,
+             self.Q, self._left_support, self._right_support) = calibration_maps(cal, width, height)
+        except (ValueError, OSError) as exc:
+            self._set_fault("calibration_invalid", str(exc))
+            return False
+
         self._sgm_config = SGMConfig(
             target_width=width,
             target_height=height,
@@ -136,9 +148,11 @@ class StereoD:
         )
 
         try:
-            self._sgm = SGM(self._sgm_config, target="auto")
+            self._sgm = SGM(self._sgm_config, target="gpu", gpu=self.gpu)
             if self._sgm.is_available():
                 self._gpu_sgm_available = True
+                self._fault = False
+                self._fault_reason = ""
                 device_info = self._sgm.get_device_info()
                 backend = device_info.get('backend', 'unknown')
                 cloudlog.info(f"SGM initialized: {device_info.get('name', 'unknown')} (backend: {backend})")
@@ -165,8 +179,8 @@ class StereoD:
         if not self._gpu_sgm_available or self._sgm is None:
             return None, None
 
-        left_gray = _nv12_to_gray(left_data, self.width, self.height)
-        right_gray = _nv12_to_gray(right_data, self.width, self.height)
+        left_gray = luma_plane(left_data, self.width, self.height, self.vipc_left.stride)
+        right_gray = luma_plane(right_data, self.width, self.height, self.vipc_right.stride)
 
         left_rect = cv2.remap(left_gray, self.left_map1, self.left_map2, cv2.INTER_LINEAR)
         right_rect = cv2.remap(right_gray, self.right_map1, self.right_map2, cv2.INTER_LINEAR)
@@ -179,6 +193,15 @@ class StereoD:
 
             self._metrics.record_latency("sgm", result.inference_time_ms)
             self._consecutive_failures = 0
+            self._fault = False
+            self._fault_reason = ""
+            # Reject rectification footprint holes in both matching views.
+            rows, cols = np.indices(result.disparity.shape)
+            matched = np.rint(cols - result.disparity).astype(np.int32)
+            inside = (matched >= 0) & (matched < self.width)
+            supported = self._left_support & inside & self._right_support[rows, np.clip(matched, 0, self.width-1)]
+            result.disparity[~supported] = 0
+            result.confidence[~supported] = 0
 
             if result.inference_time_ms > MAX_SGM_LATENCY_MS:
                 cloudlog.warning(f"SGM latency high: {result.inference_time_ms:.1f}ms")
@@ -211,28 +234,37 @@ class StereoD:
             time.sleep(0.1)
         while not self.vipc_right.connect(False):
             time.sleep(0.1)
-        while not self.vipc_wide.connect(False):
-            time.sleep(0.1)
         cloudlog.info("StereoD connected")
 
         try:
             while True:
                 buf_l = self.vipc_left.recv()
                 buf_r = self.vipc_right.recv()
-                self.vipc_wide.recv(timeout_ms=0)
 
                 if buf_l is None or buf_r is None:
                     self.rk.keep_time()
                     continue
 
-                # Initialize calibration and SGM
+                try:
+                    if (buf_l.width, buf_l.height) != (buf_r.width, buf_r.height):
+                        raise ValueError("Stereo image dimensions differ")
+                    ts = capture_timestamp(self.vipc_left.timestamp_sof, self.vipc_right.timestamp_sof,
+                                           time.monotonic_ns(), self._last_capture)
+                except ValueError as exc:
+                    self._set_fault("stereo_input_invalid", str(exc))
+                    self._publish(None, None, time.monotonic_ns())
+                    self.rk.keep_time()
+                    continue
+                self._last_capture = ts
+                self.frame_id = self.vipc_left.frame_id
+
                 if self.width != buf_l.width or self.height != buf_l.height:
                     self.width = buf_l.width
                     self.height = buf_l.height
                     if not self._init_sgm(self.width, self.height):
-                        cloudlog.error("Failed to initialize SGM")
-
-                ts = int(time.monotonic() * 1e9)
+                        self._publish(None, None, ts)
+                        self.rk.keep_time()
+                        continue
 
                 # Compute disparity via HAL
                 disparity, confidence = self._compute_disparity(
@@ -242,7 +274,6 @@ class StereoD:
                 # Publish outputs
                 self._publish(disparity, confidence, ts)
 
-                self.frame_id += 1
                 self._metrics.record_fps('output')
                 self.rk.keep_time()
 
@@ -277,7 +308,9 @@ class StereoD:
         ss.consecutiveFailures = self._consecutive_failures
 
         latency_stats = self._metrics.get_latency_stats('sgm')
-        ss.sgmLatencyMs = latency_stats.get('sgm', {}).get('avg_ms', 0.0)
+        ss.processingTimeMs = latency_stats.get('sgm', {}).get('avg_ms', 0.0)
+        ss.frameId = self.frame_id
+        ss.hasCalibration = self.Q is not None
 
         self.pm.send('stereoStatus', status_msg)
 
