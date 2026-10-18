@@ -519,7 +519,7 @@ struct StereoStatus @0xc8f4a5e2d3b1a907 {
   hasCalibration @7 :Bool;
 
   # Fault state — hardware health pattern.
-  # fault=True → stereoFault event → IMMEDIATE_DISABLE + NO_ENTRY in selfdrived.
+  # fault=True → stereoFault degradation alert; optional depth does not disable core ADAS.
   # Clears automatically when GPU recovers (no explicit ack required yet).
   fault @8 :Bool;
   faultReason @9 :Text;   # "gpu_unavailable", "gpu_timeout", "gpu_consecutive_failures"

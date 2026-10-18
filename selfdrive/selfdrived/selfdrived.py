@@ -472,7 +472,7 @@ class SelfdriveD:
       self.events.add(EventName.radarFault)
     # EOP: road invisible to the camera in severe weather — takeover, not gating
     self._update_low_visibility()
-    # EOP: Stereo GPU fault → IMMEDIATE_DISABLE (no CPU fallback)
+    # EOP: Optional stereo GPU loss → degraded depth alert; no CPU fallback
     if self.sm.valid['stereoStatus'] and self.sm['stereoStatus'].enabled:
       if self.sm['stereoStatus'].fault:
         self.events.add(EventName.stereoFault)
