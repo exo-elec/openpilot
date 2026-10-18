@@ -25,6 +25,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
+from openpilot.nagaspilot.manager.compute_fault_policy import critical_inference_fault
 from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate
 from nagaspilot.controls.ngp_green_light import NGPGreenLight
 from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
@@ -482,12 +483,12 @@ class SelfdriveD:
       if self.sm['monoStatus'].fault:
         self.events.add(EventName.monoFault)
 
-    # EOP: Grid detection NPU fault → IMMEDIATE_DISABLE
+    # EOP: Optional grid fusion fault → degraded geometry alert
     if self.sm.valid['gridStatus'] and self.sm['gridStatus'].enabled:
       if self.sm['gridStatus'].fault:
         self.events.add(EventName.gridFault)
 
-    # EOP: RGA hardware fault → SOFT_DISABLE (OpenCV fallback active, latency risk)
+    # EOP: Optional RGA loss → degraded acceleration alert
     # (RgaStatus has no 'enabled' field; fault already implies the HW path was active)
     if self.sm.valid['rgaStatus'] and self.sm['rgaStatus'].fault:
       self.events.add(EventName.rgaFault)
@@ -496,8 +497,8 @@ class SelfdriveD:
     if self.sm.valid['mppStatus'] and self.sm['mppStatus'].fault:
       self.events.add(EventName.mppFault)
 
-    # EOP: Inference backend fault → IMMEDIATE_DISABLE (all backends unavailable)
-    if self.sm.valid['inferencedStatus'] and self.sm['inferencedStatus'].enabled and self.sm['inferencedStatus'].fault:
+    # EOP: CPU core/RKNN safety-inference faults retain disengagement authority.
+    if self.sm.valid['inferencedStatus'] and critical_inference_fault(self.sm['inferencedStatus']):
       self.events.add(EventName.inferenceFault)
 
     # EOP: Point cloud recording fault → PERMANENT alert (recording stops, driving OK)

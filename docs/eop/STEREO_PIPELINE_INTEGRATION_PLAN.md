@@ -248,3 +248,14 @@ are not executed here. The required GPU diagnostic fails with
 PLATFORM_NOT_FOUND_KHR on this host, correctly providing no CPU fallback.
 Both kernels pass clang CL1.2 syntax validation; changed code passes focused
 ruff checks. The full test.sh gate still stops at existing lineage drift.
+
+### Compute-fault authority correction
+
+Owner clarified that only core CPU and RKNN compute failures should disengage.
+Grid and RGA faults now follow optional stereo/recording degradation. InferenceD
+reports actual RKNN availability/health, independent of GPU/card presence, and
+selfdrived distinguishes critical CPU/RKNN reasons from optional accelerator
+failures. ARM cannot advertise an offline RKNN mock when RKNNLite is missing.
+Nine policy tests and eleven stereo degradation tests pass. Existing CPU health,
+model/control validity and vehicle/driver guards remain in force. See
+COMPUTE_FAULT_POLICY.md for the matrix and validation limits.

@@ -46,9 +46,9 @@ def register_eop_events(events: dict[int, dict[str, Any]], *, EventName, ET, Ale
       ET.PERMANENT: NormalPermanentAlert("Stereo Depth Degraded", "GPU geometry unavailable"),
     },
     EventName.inferenceFault: {
-      ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Inference Backend Fault: Restart the Car"),
-      ET.NO_ENTRY: NoEntryAlert("Inference Backend Fault"),
-      ET.PERMANENT: NormalPermanentAlert("Inference Backend Fault", "NPU/GPU unavailable"),
+      ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Core CPU/RKNN Fault: Restart the Car"),
+      ET.NO_ENTRY: NoEntryAlert("Core CPU/RKNN Fault"),
+      ET.PERMANENT: NormalPermanentAlert("Core CPU/RKNN Fault", "Critical inference unavailable"),
     },
     EventName.monoFault: {
       ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Mono Camera Fault: Restart the Car"),
@@ -61,17 +61,13 @@ def register_eop_events(events: dict[int, dict[str, Any]], *, EventName, ET, Ale
       ET.PERMANENT: NormalPermanentAlert("Road Not Visible", "Severe weather limits visibility"),
     },
     EventName.rgaFault: {
-      ET.SOFT_DISABLE: soft_disable_alert("RGA Hardware Fault"),
-      ET.NO_ENTRY: NoEntryAlert("RGA Hardware Fault"),
-      ET.PERMANENT: NormalPermanentAlert("RGA Hardware Fault", "Image processing degraded"),
+      ET.PERMANENT: NormalPermanentAlert("RGA Degraded", "Accelerated image processing unavailable"),
     },
     EventName.mppFault: {
       ET.PERMANENT: NormalPermanentAlert("MPP Encode Fault", "Recording unavailable"),
     },
     EventName.gridFault: {
-      ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Grid Detection Fault: Restart the Car"),
-      ET.NO_ENTRY: NoEntryAlert("Grid Detection Fault"),
-      ET.PERMANENT: NormalPermanentAlert("Grid Detection Fault", "Object detection unavailable"),
+      ET.PERMANENT: NormalPermanentAlert("Grid Fusion Degraded", "Optional geometry unavailable"),
     },
     EventName.pointcloudFault: {
       ET.PERMANENT: NormalPermanentAlert("Point Cloud Recording Fault", "Recording unavailable"),
