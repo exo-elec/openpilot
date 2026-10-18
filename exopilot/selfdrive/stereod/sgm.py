@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """
-SGM Stereo Depth — NumPy vectorized
+SGM stereo depth: HAL-owned GPU backend and explicit offline CPU reference.
 
-Vectorized NumPy implementation for stereo depth.
-- CURRENT: Pure NumPy CPU implementation
-- FUTURE: OpenCL kernel on Mali G52 (kernel not yet written)
-- CLBlast submodule available for future GPU GEMM acceleration
-
-Performance target: < 30ms for 640x480@64 disparity on Mali G610
+Production callers request target="gpu" and provide the HAL context. Missing
+GPU support never starts CPU matching. Target-board timing is unvalidated.
 """
 
 from __future__ import annotations
@@ -58,15 +54,28 @@ class SGMResult:
     backend_used: str = "unknown"  # "gpu" or "cpu"
 
 class SGM:
-    """Semi-Global Matching stereo depth using vectorized NumPy."""
+    """GPU SGM for production; explicit NumPy CPU reference for offline use."""
 
-    def __init__(self, config: SGMConfig | None = None, target: str = "cpu"):
+    def __init__(self, config: SGMConfig | None = None, target: str = "cpu", *, gpu=None):
         self.config = config or SGMConfig()
-        # Pure NumPy CPU implementation; `target` kept for callers but not used.
+        if target not in ("cpu", "gpu", "auto"):
+            raise ValueError("SGM target must be cpu, gpu or auto")
+        self._gpu_backend = None
         self.target = target
         self.primary_backend = "numpy"
         self.gpu_available = False
-        self._allocate_buffers()
+        if target != "cpu":
+            if gpu is None:
+                raise SGMDeviceError("GPU SGM requires a HAL-owned GPU context; no CPU fallback")
+            from openpilot.system.inferenced.opencl_stereo import OpenCLStereo
+            try:
+                self._gpu_backend = OpenCLStereo(gpu, self.config)
+            except Exception as exc:
+                raise SGMDeviceError(str(exc)) from exc
+            self.primary_backend = "opencl"
+            self.gpu_available = True
+        else:
+            self._allocate_buffers()
         logger.info(f"SGM initialized: {self.config.target_width}x{self.config.target_height}@{self.config.max_disparity}")
 
     def _allocate_buffers(self):
@@ -99,6 +108,15 @@ class SGM:
         Returns:
             SGMResult with disparity map
         """
+        if self._gpu_backend is not None:
+            try:
+                disparity, confidence, elapsed = self._gpu_backend.compute(left, right)
+                return SGMResult(disparity, confidence, disparity > 0,
+                                 inference_time_ms=elapsed, backend_used="opencl")
+            except TimeoutError as exc:
+                raise SGMTimeoutError(str(exc)) from exc
+            except Exception as exc:
+                raise SGMDeviceError(str(exc)) from exc
         t_start = time.perf_counter()
 
         try:
@@ -339,14 +357,14 @@ class SGM:
         self.disparity = cv2.medianBlur(self.disparity.astype(np.float32), 3)
 
     def is_available(self) -> bool:
-        """SGM is always available (CPU fallback)."""
-        return True
+        """Report only the explicitly constructed backend."""
+        return self.target == "cpu" or (self._gpu_backend is not None and not self._gpu_backend.closed)
 
     def get_device_info(self) -> dict[str, Any]:
         """Get device information."""
         info: dict[str, Any] = {
-            "backend": "numpy",
-            "name": "numpy-cpu",
+            "backend": self.primary_backend,
+            "name": self._gpu_backend.gpu.device.name if self._gpu_backend else "numpy-cpu",
             "target": self.target,
             "primary_backend": self.primary_backend,
             "gpu_available": self.gpu_available,
@@ -354,7 +372,9 @@ class SGM:
         return info
 
     def release(self):
-        """Release resources."""
+        """Release owned matcher buffers; the client owns the GPU context."""
+        if self._gpu_backend is not None:
+            self._gpu_backend.close()
 
     def __enter__(self):
         return self
