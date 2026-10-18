@@ -420,7 +420,7 @@ class ProbabilisticLazyBEV:
         """Return the current occupancy probability grid."""
         return cast(np.ndarray, log_odds_to_probability(self.log_odds))
 
-    def update_from_points(self, xyz_points: np.ndarray) -> None:
+    def update_from_points(self, xyz_points: np.ndarray | None) -> None:
         """Update the BEV grid directly from an Nx3 point cloud.
 
         This is the lazy BEV entry point used by gridd: only the points that

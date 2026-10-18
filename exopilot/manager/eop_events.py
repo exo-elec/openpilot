@@ -43,9 +43,7 @@ def register_eop_events(events: dict[int, dict[str, Any]], *, EventName, ET, Ale
 
   events.update({
     EventName.stereoFault: {
-      ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Stereo GPU Fault: Restart the Car"),
-      ET.NO_ENTRY: NoEntryAlert("Stereo GPU Fault"),
-      ET.PERMANENT: NormalPermanentAlert("Stereo GPU Fault", "Depth perception unavailable"),
+      ET.PERMANENT: NormalPermanentAlert("Stereo Depth Degraded", "GPU geometry unavailable"),
     },
     EventName.inferenceFault: {
       ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Inference Backend Fault: Restart the Car"),

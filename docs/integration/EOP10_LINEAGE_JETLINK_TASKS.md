@@ -179,3 +179,17 @@ it must consume modeld's established outputs in both local and remote modes.
 Validation so far: required ./test.sh stops at the existing protected-file
 mismatch in runtime/bigmodel_platform.py. This is a lineage failure, not a
 timestamp failure. No claim of hardware, road, v3 or seamless-fallback validation.
+
+
+### Stereo GPU follow-up, 2026-10-19
+
+Origin fetched first: NGP10 4728d8add and EOP10 222a8edba matched local tips.
+Shared NGP GPU source remains byte-identical in EOP. New EOP recovery and
+point-cloud work follows pinned ROS image_geometry/OpenCV full-Q geometry;
+custom OpenCL kernels remain target-unverified, not claimed as Autoware code.
+Production GPU loss drops depth/cloud output and degrades stereo fusion without
+CPU fallback. Optional stereo loss no longer causes immediate disengagement;
+core model/inference fault handling remains. See
+`docs/eop/STEREO_POINTCLOUD_UPSTREAM_CONTRACT.md` for exact pins, conventions and
+unfinished calibration/frame/mapping contracts. Host tests pass; target GPU
+and full-gate acceptance remain pending.

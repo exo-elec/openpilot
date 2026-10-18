@@ -25,7 +25,6 @@ from msgq.visionipc import VisionIpcClient
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
-from openpilot.system.hardware.camera_geometry import CameraGeometry
 from openpilot.system.hardware.registry import PlatformRegistry
 from openpilot.common.perf_monitor import PerformanceMonitor
 from openpilot.common.swaglog import cloudlog
@@ -43,7 +42,8 @@ STEREO_LEFT_STREAM = 4
 STEREO_RIGHT_STREAM = 5
 FAULT_THRESHOLD = 3
 MAX_SGM_LATENCY_MS = 50.0
-
+BACKEND_RETRY_S = 2.0
+MAX_OUTPUT_AGE_NS = 200_000_000
 
 
 class StereoD:
@@ -63,20 +63,14 @@ class StereoD:
         self.params = Params()
         self.enabled = self.params.get_bool("EOPStereoEnabled")
 
-        # Get hardware from HAL
-        try:
-            self.gpu = self.client.gpu() if self.enabled else None
-            cloudlog.info("StereoD: GPU backend acquired")
-        except RuntimeError as e:
-            cloudlog.error(f"StereoD: GPU not available: {e}")
-            self.gpu = None
+        # Acquired lazily on the first valid camera pair, with bounded retries.
+        self.gpu = None
+        self._next_init_attempt = 0.0
 
         # Camera geometry
         hardware = PlatformRegistry.create()
         self._hardware = hardware
-        self.geometry: CameraGeometry = hardware.get_camera_geometry()
-        self.stereo_baseline_m = self.geometry.get_baseline('stereo_left', 'stereo_right')
-        cloudlog.info(f"Stereo baseline: {self.stereo_baseline_m * 1000:.0f}mm")
+        self.stereo_baseline_m = None  # Established only from validated factory calibration.
 
         # SGM state
         self._sgm: SGM | None = None
@@ -115,23 +109,32 @@ class StereoD:
         ])
         self.rk = Ratekeeper(RATE, print_delay_threshold=None)
 
-        cloudlog.info(f"StereoD init: enabled={self.enabled}, baseline={self.stereo_baseline_m * 1000:.0f}mm")
+        cloudlog.info(f"StereoD init: enabled={self.enabled}, awaiting factory stereo calibration")
 
     def _init_sgm(self, width: int, height: int) -> bool:
         """Initialize SGM via HAL GPU backend."""
-        if self.gpu is None:
-            self._set_fault("gpu_unavailable", "GPU backend not available via HAL")
-            return False
-
+        self._next_init_attempt = time.monotonic() + BACKEND_RETRY_S
         self._gpu_sgm_available = False
+        self.Q = None
+        self.stereo_baseline_m = None
+        self.left_map1 = self.left_map2 = None
+        self.right_map1 = self.right_map2 = None
+        self._left_support = self._right_support = None
         if self._sgm is not None:
             self._sgm.release()
             self._sgm = None
+        if self.gpu is None:
+            try:
+                self.gpu = self.client.gpu()
+            except RuntimeError as exc:
+                self._set_fault("gpu_unavailable", str(exc))
+                return False
         try:
             cal = self._hardware.load_stereo_intrinsics()
             (self.left_map1, self.left_map2, self.right_map1, self.right_map2,
              self.Q, self._left_support, self._right_support) = calibration_maps(cal, width, height)
-        except (ValueError, OSError) as exc:
+            self.stereo_baseline_m = float(np.linalg.norm(cal.T))
+        except Exception as exc:
             self._set_fault("calibration_invalid", str(exc))
             return False
 
@@ -151,8 +154,7 @@ class StereoD:
             self._sgm = SGM(self._sgm_config, target="gpu", gpu=self.gpu)
             if self._sgm.is_available():
                 self._gpu_sgm_available = True
-                self._fault = False
-                self._fault_reason = ""
+                self._rows, self._cols = np.indices((height, width), dtype=np.int32)
                 device_info = self._sgm.get_device_info()
                 backend = device_info.get('backend', 'unknown')
                 cloudlog.info(f"SGM initialized: {device_info.get('name', 'unknown')} (backend: {backend})")
@@ -170,48 +172,75 @@ class StereoD:
 
     def _set_fault(self, reason: str, message: str) -> None:
         """Set fault state."""
+        changed = not self._fault or self._fault_reason != reason
         self._fault = True
         self._fault_reason = reason
-        cloudlog.error(f"FAULT: {reason} - {message}")
+        if changed:
+            cloudlog.error(f"FAULT: {reason} - {message}")
+
+    def _drop_backend(self) -> None:
+        """Release failed GPU work and permit a bounded re-acquisition attempt."""
+        self._gpu_sgm_available = False
+        self._next_init_attempt = time.monotonic() + BACKEND_RETRY_S
+        try:
+            if self._sgm is not None:
+                self._sgm.release()
+        except Exception as exc:
+            cloudlog.warning(f"SGM release failed: {exc}")
+        finally:
+            self._sgm = None
+            try:
+                self.client.release()
+            except Exception as exc:
+                cloudlog.warning(f"GPU release failed: {exc}")
+            self.gpu = None
 
     def _compute_disparity(self, left_data: bytes, right_data: bytes) -> tuple[np.ndarray | None, np.ndarray | None]:
         """Compute disparity using SGM via HAL."""
         if not self._gpu_sgm_available or self._sgm is None:
             return None, None
 
-        left_gray = luma_plane(left_data, self.width, self.height, self.vipc_left.stride)
-        right_gray = luma_plane(right_data, self.width, self.height, self.vipc_right.stride)
-
-        left_rect = cv2.remap(left_gray, self.left_map1, self.left_map2, cv2.INTER_LINEAR)
-        right_rect = cv2.remap(right_gray, self.right_map1, self.right_map2, cv2.INTER_LINEAR)
-
         try:
+            left_gray = luma_plane(left_data, self.width, self.height, self.vipc_left.stride)
+            right_gray = luma_plane(right_data, self.width, self.height, self.vipc_right.stride)
+            left_rect = cv2.remap(left_gray, self.left_map1, self.left_map2, cv2.INTER_LINEAR)
+            right_rect = cv2.remap(right_gray, self.right_map1, self.right_map2, cv2.INTER_LINEAR)
             result = self._sgm.compute(left_rect, right_rect)
 
             if not result.success:
                 raise SGMError(result.error_message or "SGM computation failed")
 
+            if not np.isfinite(result.inference_time_ms) or not 0 <= result.inference_time_ms <= MAX_SGM_LATENCY_MS:
+                raise SGMTimeoutError("Stereo backend returned an invalid or late completion time")
+            expected = (self.height, self.width)
+            if (result.disparity.shape != expected or result.confidence.shape != expected or
+                    not np.isfinite(result.disparity).all() or not np.isfinite(result.confidence).all() or
+                    np.any(result.disparity < 0) or np.any(result.disparity > self._sgm_config.max_disparity) or
+                    np.any(result.confidence < 0) or np.any(result.confidence > 1)):
+                raise SGMDeviceError("Invalid GPU stereo output shape/range")
             self._metrics.record_latency("sgm", result.inference_time_ms)
-            self._consecutive_failures = 0
-            self._fault = False
-            self._fault_reason = ""
             # Reject rectification footprint holes in both matching views.
-            rows, cols = np.indices(result.disparity.shape)
-            matched = np.rint(cols - result.disparity).astype(np.int32)
+            matched = np.rint(self._cols - result.disparity).astype(np.int32)
             inside = (matched >= 0) & (matched < self.width)
-            supported = self._left_support & inside & self._right_support[rows, np.clip(matched, 0, self.width-1)]
+            supported = self._left_support & inside & self._right_support[self._rows, np.clip(matched, 0, self.width-1)]
+            supported &= (result.disparity > 0) & (result.confidence > 0)
             result.disparity[~supported] = 0
             result.confidence[~supported] = 0
 
-            if result.inference_time_ms > MAX_SGM_LATENCY_MS:
-                cloudlog.warning(f"SGM latency high: {result.inference_time_ms:.1f}ms")
+            self._consecutive_failures = 0
+            self._fault = False
+            self._fault_reason = ""
 
             return result.disparity, result.confidence
 
         except SGMTimeoutError as e:
             self._consecutive_failures += 1
             cloudlog.warning(f"SGM timeout: {e}")
-        except (SGMDeviceError, SGMError) as e:
+        except SGMDeviceError as e:
+            self._consecutive_failures += 1
+            self._set_fault("gpu_unavailable", str(e))
+            self._drop_backend()
+        except SGMError as e:
             self._consecutive_failures += 1
             cloudlog.warning(f"SGM error: {e}")
         except Exception as e:
@@ -220,6 +249,8 @@ class StereoD:
 
         if self._consecutive_failures >= self._FAULT_THRESHOLD:
             self._set_fault("sgm_consecutive_failures", f"{self._consecutive_failures} consecutive failures")
+            if self._sgm is not None:
+                self._drop_backend()
 
         return None, None
 
@@ -242,6 +273,8 @@ class StereoD:
                 buf_r = self.vipc_right.recv()
 
                 if buf_l is None or buf_r is None:
+                    self._set_fault("stereo_input_missing", "Stereo camera pair unavailable")
+                    self._publish(None, None, time.monotonic_ns())
                     self.rk.keep_time()
                     continue
 
@@ -258,7 +291,8 @@ class StereoD:
                 self._last_capture = ts
                 self.frame_id = self.vipc_left.frame_id
 
-                if self.width != buf_l.width or self.height != buf_l.height:
+                resized = self.width != buf_l.width or self.height != buf_l.height
+                if resized or (not self._gpu_sgm_available and time.monotonic() >= self._next_init_attempt):
                     self.width = buf_l.width
                     self.height = buf_l.height
                     if not self._init_sgm(self.width, self.height):
@@ -266,10 +300,19 @@ class StereoD:
                         self.rk.keep_time()
                         continue
 
+                if not self._gpu_sgm_available:
+                    self._publish(None, None, ts)
+                    self.rk.keep_time()
+                    continue
+
                 # Compute disparity via HAL
                 disparity, confidence = self._compute_disparity(
                     bytes(buf_l.data), bytes(buf_r.data)
                 )
+
+                if time.monotonic_ns() - ts > MAX_OUTPUT_AGE_NS:
+                    self._set_fault("stereo_output_stale", "Capture-to-output age exceeds 200 ms")
+                    disparity = confidence = None
 
                 # Publish outputs
                 self._publish(disparity, confidence, ts)
