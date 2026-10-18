@@ -32,6 +32,7 @@ import numpy as np
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
+from openpilot.nagaspilot.manager.compute_fault_policy import rknn_fault_reason
 
 from openpilot.system.inferenced.compute import HAL, HALConfig, BackendType, ModelConfig, CAMERA_ACCEL_BACKENDS
 from openpilot.system.inferenced.drivable import CARD_INPUT_HW, CARD_MODEL, drivable_map, letterbox
@@ -539,10 +540,19 @@ class InferenceD:
       status = msg.inferencedStatus
       status.timestamp = int(time.monotonic() * 1e9)
       status.enabled = self._initialized
-      status.npuAvailable = self.hal.get_backend(BackendType.NPU) is not None
+      npu = self.hal.get_backend(BackendType.NPU)
+      try:
+        status.npuAvailable = npu is not None and npu.is_available()
+      except Exception:
+        status.npuAvailable = False
       status.gpuAvailable = self.hal.get_backend(BackendType.ACL) is not None
-      status.fault = not self._initialized
-      status.faultReason = "initialization_failed" if not self._initialized else ""
+      # A GPU/card cannot mask RKNN loss; optional failures do not set this fault.
+      try:
+        npu_healthy = status.npuAvailable and self.hal.is_backend_healthy(BackendType.NPU)
+      except Exception:
+        npu_healthy = False
+      status.faultReason = rknn_fault_reason(available=status.npuAvailable, healthy=npu_healthy)
+      status.fault = bool(status.faultReason)
       status.tasksCompleted = self._tasks_completed
       status.tasksFailed = self._tasks_failed
       status.avgExecTimeMs = (self._total_exec_time_ms / self._tasks_completed
