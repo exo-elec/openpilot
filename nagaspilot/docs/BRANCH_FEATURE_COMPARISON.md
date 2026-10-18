@@ -1,6 +1,6 @@
 # Detailed feature comparison: openpilot → NGP10 → EOP10 → 01M → 02M
 
-Comparison reviewed **2026-10-09** against this repository. The reference is **official openpilot v0.10.0**, not current upstream: baseline commit `c085b8af19438956c15592828bd082803f43dfaf`. Later tinygrad/Chestnut integration does not upgrade the whole driving stack to a later openpilot release.
+Comparison reviewed **2026-10-09** against this repository. The reference is **official openpilot v0.10.0**, not current upstream: baseline commit `c085b8af19438956c15592828bd082803f43dfaf`. Later tinygrad integration does not upgrade the whole driving stack to a later openpilot release.
 
 **Base** means provided by the official baseline. **Carried** means inherited from the preceding branch. **Extended** means inherited behavior plus branch-specific integration. **Added**, **Replaced** and **Removed** identify changes to that baseline. **Optional/experimental** describes implementation availability, not road validation. A settings key alone does not establish working end-to-end support.
 
@@ -97,7 +97,6 @@ Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteres
 |---|---|---|---|---|---|
 | Driving model contract | Base v0.10 split vision/policy | Carried split contract | Extended RKNN/platform adapters | Carried | Carried |
 | Tinygrad compiled runner | Baseline dependency/artifacts | Extended pinned modern runner; rebuilt artifacts required | Carried portable runner | Carried | Carried |
-| Chestnut eGPU | No current fork integration | Added optional USB + AMD:LLVM, model/metadata/warmup gates | Carried common integration; private multi-input driving path fails closed | Carried restriction | Carried restriction |
 | Larger trained driving weights | Baseline bundled models | Not provisioned: big ONNX names currently link to small models | No blanket upgraded-model claim | Carried limitation | Carried limitation |
 | Cloud voice: Google STT → Gemini → TTS | Not this pipeline | Not provided | Added cloudd online pipeline, default off | Carried + animated PyQt status | Carried + same status |
 | Local wake recognition | Not this pipeline | Not provided | Added CPU-only openWakeWord, default off | Carried | Carried |
@@ -117,14 +116,14 @@ Wake inference uses ONNX CPUExecutionProvider, not the NPU or GPU. After activat
 
 ### Switches, inheritance and validation
 
-- **NGP-origin settings stay `ngp_*`** on descendants, including `ngp_dm_policy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform eGPU and back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
+- **NGP-origin settings stay `ngp_*`** on descendants, including `ngp_dm_policy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
 - Optional experimental consumers are separately gated: enabling MonoD alone does not enable PathD control. `ngp_monod_enabled`, `ngp_pathd_enabled`, `ngp_lat_pathd`, `ngp_lon_pathd` and DPP mode must match the intended experiment. Map policies require their producer. ALCC/SOC/CAT/adaptive-gap and cloud/wake voice are opt-in. BRSC is enabled by default in NGP. Consult actual parameter defaults and UI availability rather than assuming every row has a master on/off switch.
 - The lineage gate checks **86 portable Python source files** under `nagaspilot/controls`, `nagaspilot/runtime` and `nagaspilot/mapd`. EOP inherits these unchanged and adds adapters. The full NGP/EOP controller/planner files still differ because EOP has additional integration; HAL does not justify divergent monitoring policy.
 - EOP10 → 01M → 02M source differences are limited to `common/build_profile.py`. Both PyQt variants use the same resize-aware driving view, offroad pages, icons and voice popup. At the normal 01M width no side widgets are created; wide layouts create them lazily.
 - Host regression checks cover shared control/monitoring, protocol frame equivalence, radar contracts, compiled-model loading and PyQt layout/popup behavior. Native UI syntax checks passed. These checks do not replace vehicle, Rockchip, microphone, radar, GPU or firmware hardware validation. TASKING firmware compilation and paid Google end-to-end inference remain unverified.
 - Every branch remains a development build. No feature table entry establishes vehicle safety certification. School/work-zone/sign semantic additions are outside the current implementation scope.
 
-Implementation references: [portable monitoring](STEERING_ACTIVITY_MONITORING.md), [NGP dependency policy](DEPENDENCY_POLICY.md), [Chestnut integration](EGPU_INTEGRATION.md), and [lineage gate](../lineage.py). On EOP branches also read `docs/eop/SHARED_PIPELINE.md`, `docs/eop/CLOUDD_VOICE_PIPELINE.md`, `docs/integration/CONTROL_HAL_BOUNDARY_AUDIT.md` and `docs/DEPENDENCY_POLICY.md`. Historical port-audit tables may describe earlier states; this comparison records the current implementation and remaining gaps.
+Implementation references: [portable monitoring](STEERING_ACTIVITY_MONITORING.md), [NGP dependency policy](DEPENDENCY_POLICY.md), and [lineage gate](../lineage.py). On EOP branches also read `docs/eop/SHARED_PIPELINE.md`, `docs/eop/CLOUDD_VOICE_PIPELINE.md`, `docs/integration/CONTROL_HAL_BOUNDARY_AUDIT.md` and `docs/DEPENDENCY_POLICY.md`. Historical port-audit tables may describe earlier states; this comparison records the current implementation and remaining gaps.
 
 ------
 
