@@ -26,7 +26,7 @@ Hardware (SoC Integrated):
   - GPU (Mali OpenCL): 3D reprojection from disparity
   - RGA (2D accel): Format conversion, crop/resize
   - NPU: Zero cost (reuses stereod outputs)
-  - NO CPU FALLBACK: CPU is 100% allocated to ADAS tasks
+  - NO CPU FALLBACK: reserve CPU capacity for core ADAS tasks
 
 Functions:
   1. Subscribe to stereoDepth (2D disparity + confidence)
