@@ -2,6 +2,11 @@
 
 Date: 2026-10-18. Baseline: c10706857, dev/EOP10. Documentation only.
 Companion: [algorithm research](STEREO_DRIVABLE_MAPPING_RESEARCH.md).
+Baseline ownership and phone-inference decisions:
+[lineage and JetLink v3 task ledger](../integration/EOP10_LINEAGE_JETLINK_TASKS.md).
+Shared JetLink integration begins at `nagaspilot/jetlink` on NGP10; modeld's
+local fallback remains NGP/EOP-owned. EOP stereo consumes the same model outputs
+regardless of which inference source is selected.
 
 ## Verdict and scope
 
