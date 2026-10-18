@@ -5,9 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 
 from openpilot.selfdrive.pathd import pathd as P
-from openpilot.selfdrive.pathd.lat_nudge import LatNudge
-from openpilot.selfdrive.pathd.lon_nudge import LonNudge
-from openpilot.selfdrive.pathd.predict import predict
+from openpilot.nagaspilot.daemons.pathd.lat_nudge import LatNudge
+from openpilot.nagaspilot.daemons.pathd.lon_nudge import LonNudge
+from openpilot.nagaspilot.daemons.pathd.predict import predict
 
 G = json.loads((Path(__file__).resolve().parents[3] / 'nagaspilot/tests/eop_golden.json').read_text())
 

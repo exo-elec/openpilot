@@ -33,7 +33,7 @@ Can be done without hardware:
    placeholders), `ModelDataV2.big @27`, the gate, the alerts (`eop_events.py`) and `selfdrived` reading it with EOP names;
    (b) the runtime modules, byte-identical to NGP10's (`jetlink_adapter.py`, `bigmodel.py`, `bigmodel_warp.py`,
    `bigmodel_face.py`, `ngp_bigmodel_{action,frames,gate}.py` and their tests); only `nagaspilot/runtime/bigmodel_platform.py`
-   differs per branch (EOP param names, static USB role, PC check); (c) `EOPBigModelLink` + Jetlink records, `jetlinkd` in the
+   differs per branch (EOP param names, static USB role, PC check); (c) `ngp_bigmodel_link` + Jetlink records, `jetlinkd` in the
    manager (needs a Jetlink checkout); (d) the `modeld` hook, default off, +10 lines (budget +733 -> +743, named).
    EOP10's `ModelState` has the same `DrivingModelFrame` preprocessing and host-side history as NGP10's, so the OpenCL warp
    source and reset carry unchanged; the RKNN split runner stays the always-warm small model. NOT done: the hardware side.
@@ -41,7 +41,7 @@ Can be done without hardware:
    `*-host.dts`); the phone needs a sibling overlay with `dr_mode = "peripheral"` and a kernel with configfs/FunctionFS and
    DWC3 gadget, and Jetlink's root script needs a static-role platform (no USB-PD). Never built or run on a device.
    NCP over the cable (iPhone mode only): `system/bluetoothd/ncp_cable.py`, TCP on 192.168.60.1:5598 as a third transport on the
-   shared `NCPSession`, started by `BluetoothD` when `EOPBigModelLink = 2` (only while Bluetooth itself is enabled, because it lives
+   shared `NCPSession`, started by `BluetoothD` when `ngp_bigmodel_link = 2` (only while Bluetooth itself is enabled, because it lives
    in that daemon); 10 loopback tests; phone side is NavPilot `CableTransportService`. Android has no cable network, so no NCP
    over the cable there yet. Not run on a device.
    PLP v5 supersedes the cable transport and adds a BLE one: `nagaspilot/plp/` (`cable.py`/`plpd` on 192.168.60.1:5601, `ble_stream.py`), `system/bluetoothd/plp_gatt.py`; spec `nagaspilot/docs/PLP_V5_SPEC.md`. NCP stays until handlers move. Not run on a device; Android's second bulk interface is not built.
@@ -1293,9 +1293,4 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 
 ## 2026-10-12: the big-model link is NavPilot's own (carried from dev/NGP10)
 
-Jetlink is no longer a dependency: `jetlink_repo`, `jetlink_adapter.py` and `jetlinkd` are gone; `nagaspilot/bigmodel/` (NPBM v1, byte-identical to NGP10's) replaces them and `bigmodeld` runs only for the gadget modes (1, 2). Setting `EOPBigModelLink = 3` (USB tethering) is recommended on these boards: they are USB hosts, so no overlay swap; the kernel needs exopilot's `feat/usb-tether-host` drivers. See `nagaspilot/docs/NAVPILOT_BIGMODEL.md`. Unverified on a board.
-
-## 2026-10-13 — the external GPU path is removed
-
-The big driving model runs on the driver's phone over USB (`nagaspilot/bigmodel`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`). The earlier external-GPU
-sessions, runner, failover params and shadow paths were removed from this branch and from the journal above; see git history for them.
+Jetlink is no longer a dependency: `jetlink_repo`, `jetlink_adapter.py` and `jetlinkd` are gone; `nagaspilot/bigmodel/` (NPBM v1, byte-identical to NGP10's) replaces them and `bigmodeld` runs only for the gadget modes (1, 2). Setting `ngp_bigmodel_link = 3` (USB tethering) is recommended on these boards: they are USB hosts, so no overlay swap; the kernel needs exopilot's `feat/usb-tether-host` drivers. See `nagaspilot/docs/NAVPILOT_BIGMODEL.md`. Unverified on a board.
