@@ -617,14 +617,14 @@ struct InferencedStatus @0xc3d4e5f6a7b8c9d0 {
   timestamp @0 :UInt64;
   enabled @1 :Bool;
   
-  # Backend availability (snapshotted at init)
+  # Backend readiness at publication; RKNN health is critical
   npuAvailable @2 :Bool;        # RKNN NPU available
   gpuAvailable @3 :Bool;        # OpenCL GPU available
   
   # Overall fault state
-  # fault=True when ALL backends are unavailable (no inference possible)
+  # fault=True for unavailable/unhealthy RKNN safety inference; optional GPU/card loss degrades
   fault @4 :Bool;
-  faultReason @5 :Text;         # "all_backends_unavailable", "npu_failed", "gpu_failed"
+  faultReason @5 :Text;         # "rknn_unavailable", "rknn_failed" (core CPU failures use CPU health/deadline guards)
   
   # Stats
   tasksCompleted @6 :UInt32;

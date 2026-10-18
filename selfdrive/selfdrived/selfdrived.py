@@ -25,6 +25,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
+from openpilot.exopilot.manager.compute_fault_policy import critical_inference_fault
 from exopilot.controls.ngp_bigmodel_gate import NGPBigModelGate
 from exopilot.controls.ngp_green_light import NGPGreenLight
 from exopilot.controls.ngp_lead_departure import NGPLeadDeparture
@@ -482,12 +483,12 @@ class SelfdriveD:
       if self.sm['monoStatus'].fault:
         self.events.add(EventName.monoFault)
 
-    # EOP: Grid detection NPU fault → IMMEDIATE_DISABLE
+    # EOP: Optional grid fusion fault → degraded geometry alert
     if self.sm.valid['gridStatus'] and self.sm['gridStatus'].enabled:
       if self.sm['gridStatus'].fault:
         self.events.add(EventName.gridFault)
 
-    # EOP: RGA hardware fault → SOFT_DISABLE (OpenCV fallback active, latency risk)
+    # EOP: Optional RGA loss → degraded acceleration alert
     # (RgaStatus has no 'enabled' field; fault already implies the HW path was active)
     if self.sm.valid['rgaStatus'] and self.sm['rgaStatus'].fault:
       self.events.add(EventName.rgaFault)
@@ -496,8 +497,8 @@ class SelfdriveD:
     if self.sm.valid['mppStatus'] and self.sm['mppStatus'].fault:
       self.events.add(EventName.mppFault)
 
-    # EOP: Inference backend fault → IMMEDIATE_DISABLE (all backends unavailable)
-    if self.sm.valid['inferencedStatus'] and self.sm['inferencedStatus'].enabled and self.sm['inferencedStatus'].fault:
+    # EOP: CPU core/RKNN safety-inference faults retain disengagement authority.
+    if self.sm.valid['inferencedStatus'] and critical_inference_fault(self.sm['inferencedStatus']):
       self.events.add(EventName.inferenceFault)
 
     # EOP: Point cloud recording fault → PERMANENT alert (recording stops, driving OK)
@@ -578,7 +579,7 @@ class SelfdriveD:
     if (planner_fcw or model_fcw) and not self.CP.notCar:
       self.events.add(EventName.fcw)
 
-    # EOP: Green light alert — stopped for light, light turned green (policy: nagaspilot/controls/ngp_green_light.py)
+    # EOP: Green light alert — stopped for light, light turned green (policy: exopilot/controls/ngp_green_light.py)
     dlon_force_stop = self.sm.valid.get('longitudinalPlan', False) and self.sm['longitudinalPlan'].dlonForceStop
     if self._green_light.update(bool(dlon_force_stop), CS.standstill):
       self.events.add(EventName.greenLightAlert)
@@ -591,7 +592,7 @@ class SelfdriveD:
     for name in self._big_model_gate.events(self.params.get, self.enabled, self.sm.seen['modelV2'] and not self.sm.alive['modelV2']):
       self.events.add(getattr(EventName, name))
 
-    # EOP: Lead departing alert — lead moves away while we're stopped (policy: nagaspilot/controls/ngp_lead_departure.py)
+    # EOP: Lead departing alert — lead moves away while we're stopped (policy: exopilot/controls/ngp_lead_departure.py)
     radar_state = self.sm['radarState']
     if self._lead_departure.update(CS.standstill, radar_state.leadOne):
       self.events.add(EventName.leadDepartingAlert)
