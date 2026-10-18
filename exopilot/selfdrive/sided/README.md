@@ -104,7 +104,7 @@ any stored calibration), then `CalibrationStorage`, then
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `EOPSideCamerasEnabled` | bool | `true` | Master side camera toggle |
-There is no external-GPU side path. Side detection is RKNN; side segmentation is the camera-tier card
+Side detection is RKNN; side segmentation is the camera-tier card
 (`segd`, `seg_side`). See `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
 ## Files
