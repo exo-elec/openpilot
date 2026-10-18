@@ -29,6 +29,20 @@ There are no NGP10-only commits to integrate at this snapshot. Rebase onto
 this exact parent is therefore already satisfied; do not force-push or replay
 the entire EOP history to manufacture another rebase.
 
+Execution note: a plain `git rebase dev/NGP10` nevertheless attempted to flatten
+the merged EOP history (67 replay steps) and conflicted at the first old README
+commit, 3196f8285. It was aborted successfully, restoring 4caf1784f. The earlier
+expectation that ancestry would make this command a no-op was incorrect. No
+history rewrite was retained. Future baseline updates require an explicit
+merge-preserving strategy and isolated validation, not a blind plain rebase.
+
+Owner follow-up requests a review of conflicts and a choice of linkage/rebase
+strategy rather than stopping at the aborted trial. See
+[concrete conflict review and choices](EOP10_REBASE_CONFLICT_REVIEW.md).
+Its candidate-based linear-rebase recommendation supersedes the earlier
+assumption that no ancestry cleanup could be useful. Await the owner's strategy
+choice before replaying or publishing rewritten history.
+
 The trees differ in 1,739 paths (including docs, dependencies, hardware and
 legacy removals). Those paths are not all stereo features or shared policy.
 Do not restore entire modeld/control files from one branch onto the other.
