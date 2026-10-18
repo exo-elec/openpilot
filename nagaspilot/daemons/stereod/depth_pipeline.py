@@ -6,7 +6,7 @@ Complete pipeline from stereo images to 3D point cloud:
 
     Stereo Images (Left + Right)
            ↓
-    SGM Stereo Matching (GPU/CPU)
+    SGM Stereo Matching (GPU; CPU only by explicit offline request)
            ↓
     Disparity Map (pixels)
            ↓
@@ -33,12 +33,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+import cv2
 
 # Import SGM (stereo matching)
 from openpilot.nagaspilot.daemons.stereod.sgm import SGM, SGMConfig
 
-# Import reprojection (depth map to 3D points)
-from openpilot.nagaspilot.daemons.pointcloudd.reprojector import PointReprojector
 from openpilot.common.swaglog import cloudlog
 
 
@@ -61,16 +60,10 @@ class DepthPipelineResult:
 
 
 class DepthPipeline:
-    """
-    Complete stereo depth pipeline — NumPy CPU implementation.
+    """GPU disparity with an optional CPU numerical Q projection reference.
 
-    Combines:
-    1. SGM stereo matching (disparity) - NumPy CPU
-    2. Depth conversion (disparity to depth) - NumPy CPU
-    3. 3D reprojection (depth to point cloud) - OpenCV CPU
-
-    GPU OpenCL kernels not yet implemented. CLBlast submodule available for future
-    GPU GEMM acceleration.
+    GPU matching is mandatory unless use_gpu=False explicitly requests the
+    offline NumPy matcher. This helper is not the live geometric grid pipeline.
     """
 
     def __init__(
@@ -78,7 +71,8 @@ class DepthPipeline:
         width: int = 1920,
         height: int = 1080,
         max_disparity: int = 64,
-        use_gpu: bool = True
+        use_gpu: bool = True,
+        *, gpu=None
     ):
         """
         Initialize depth pipeline.
@@ -87,22 +81,25 @@ class DepthPipeline:
             width: Image width
             height: Image height
             max_disparity: Maximum disparity search range
-            use_gpu: Try GPU acceleration first
+            use_gpu: Require GPU matching; False explicitly selects the offline CPU reference
+            gpu: Optional HAL-owned GPU context; otherwise this helper owns a client
         """
         self.width = width
         self.height = height
         self.use_gpu = use_gpu
 
-        # Initialize SGM (stereo matching) - pure NumPy CPU today
-        self.sgm = SGM(SGMConfig(
-            target_width=width,
-            target_height=height,
-            max_disparity=max_disparity,
-        ))
-
-        # Initialize reprojector (depth map to 3D points). Lazy: created on first
-        # process() so width/height can match the SGM output.
-        self.reprojector: PointReprojector | None = None
+        self._client = None
+        try:
+            if use_gpu and gpu is None:
+                from openpilot.system.inferenced import InferenceClient
+                self._client = InferenceClient("stereo_depth_helper")
+                gpu = self._client.gpu()
+            self.sgm = SGM(SGMConfig(target_width=width, target_height=height, max_disparity=max_disparity),
+                           target="gpu" if use_gpu else "cpu", gpu=gpu)
+        except Exception:
+            if self._client is not None:
+                self._client.release()
+            raise
 
         cloudlog.info(f"DepthPipeline initialized ({width}x{height}, prefer_gpu={use_gpu})")
 
@@ -116,8 +113,8 @@ class DepthPipeline:
         Process stereo images through complete pipeline.
 
         Args:
-            left: Left stereo image (H, W) or (H, W, 3)
-            right: Right stereo image (H, W) or (H, W, 3)
+            left: Rectified uint8 grayscale left image (H, W)
+            right: Rectified uint8 grayscale right image (H, W)
             Q: Reprojection matrix (4, 4). If None, only disparity is computed.
 
         Returns:
@@ -146,28 +143,16 @@ class DepthPipeline:
             pointcloud = None
 
             if Q is not None:
-                # Q: [[1,0,0,-cx],[0,1,0,-cy],[0,0,0,f],[0,0,-1/b,0]]
-                cx = float(-Q[0, 3])
-                cy = float(-Q[1, 3])
-                f = float(Q[2, 3])
-                baseline = float(-1.0 / Q[3, 2]) if Q[3, 2] != 0 else 0.0
-
-                # disparity -> depth (meters)
-                d = disparity.astype(np.float32)
-                depth_map = np.zeros_like(d)
-                valid = d > 0.1
-                if f > 0 and baseline > 0:
-                    depth_map[valid] = f * baseline / d[valid]
-
-                # Lazy init the reprojector with matching intrinsics
-                h, w = depth_map.shape
-                if self.reprojector is None:
-                    self.reprojector = PointReprojector(
-                        width=w, height=h, fx=f, fy=f, cx=cx, cy=cy,
-                    )
-
-                pointcloud = self.reprojector.reproject(depth_map)
-                depth = depth_map
+                q = np.asarray(Q, dtype=np.float64)
+                if q.shape != (4, 4) or not np.isfinite(q).all() or np.linalg.matrix_rank(q) != 4:
+                    raise ValueError("Expected a finite, full-rank 4x4 Q at the disparity resolution")
+                # Complete homogeneous Q, including principal-point offsets.
+                # This optional reference projection remains on CPU.
+                xyz = cv2.reprojectImageTo3D(disparity.astype(np.float32), q)
+                valid = (np.isfinite(disparity) & (disparity > 0) & np.isfinite(confidence) &
+                         (confidence > 0) & np.isfinite(xyz).all(axis=2) & (xyz[:, :, 2] > 0))
+                depth = np.where(valid, xyz[:, :, 2], 0).astype(np.float32)
+                pointcloud = xyz[valid].astype(np.float32)
 
             elapsed_ms = (time.perf_counter() - t_start) * 1000
 
@@ -177,7 +162,7 @@ class DepthPipeline:
                 depth=depth,
                 pointcloud=pointcloud,
                 processing_time_ms=elapsed_ms,
-                using_gpu=self.use_gpu,
+                using_gpu=sgm_result.backend_used == "opencl",
                 success=True
             )
 
@@ -191,15 +176,17 @@ class DepthPipeline:
             )
 
     def is_using_gpu(self) -> bool:
-        """Check if pipeline is configured to prefer GPU."""
-        return self.use_gpu
+        """Report the constructed matching backend, not the requested preference."""
+        return self.sgm.gpu_available
 
     def release(self):
         """Release resources."""
-        self.sgm.release()
-        if self.reprojector is not None:
-            self.reprojector.release()
-            self.reprojector = None
+        try:
+            self.sgm.release()
+        finally:
+            if self._client is not None:
+                self._client.release()
+                self._client = None
 
 
 # Convenience function
@@ -213,7 +200,7 @@ def compute_depth(
     Compute complete depth pipeline (stereo → disparity → depth → point cloud).
 
     This is the recommended function for most use cases.
-    Automatically selects GPU if available, falls back to CPU.
+    Requires a GPU; never falls back to CPU matching.
 
     Args:
         left: Left stereo image
@@ -252,9 +239,15 @@ def compute_disparity(
     Returns:
         (disparity_map, confidence_map)
     """
-    from openpilot.nagaspilot.daemons.stereod.sgm import compute_disparity as sgm_compute
-    result = sgm_compute(left, right, max_disparity)
-    return result.disparity, result.confidence
+    h, w = left.shape[:2]
+    pipeline = DepthPipeline(width=w, height=h, max_disparity=max_disparity)
+    try:
+        result = pipeline.process(left, right)
+        if not result.success:
+            raise RuntimeError(result.error_message)
+        return result.disparity, result.disparity_confidence
+    finally:
+        pipeline.release()
 
 
 def test_pipeline():

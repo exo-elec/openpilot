@@ -55,6 +55,8 @@ See: docs/eop/daemons/GRIDD.md
 """
 from __future__ import annotations
 
+from openpilot.nagaspilot.daemons.gridd.source_health import fresh_stereo, grid_source_flags
+
 from nagaspilot.controls.ngp_radar2d import ground_range
 from openpilot.nagaspilot.daemons.radar4d.surround_tracks import tracked_obstacles
 
@@ -75,8 +77,6 @@ from openpilot.nagaspilot.daemons.gridd.lazy_bev import BEV_GRID, LazyBEV
 from openpilot.nagaspilot.daemons.gridd.fusion_costmap import (
     COST_OBSTACLE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN, FusionCostmap)
 from openpilot.system.hardware import HARDWARE
-from openpilot.system.hardware.camera_geometry import CameraGeometry
-from openpilot.system.hardware.registry import PlatformRegistry
 from openpilot.common.swaglog import cloudlog
 from nagaspilot.hardware.paths import Paths
 from nagaspilot.runtime.fusion_tracks import CAMERA_CLASSES, CameraTrackAnnotator
@@ -199,16 +199,11 @@ class GridD:
 
         self.params = Params()
 
-        # Load camera geometry from HAL (hardware abstraction)
-        hardware = cast(Any, PlatformRegistry.create())
-        self.geometry: CameraGeometry = hardware.get_camera_geometry()
-        cloudlog.info(f"GridD loaded HAL geometry: {self.geometry.variant}")
-
-        # Load stereo calibration (Q matrix for reprojection)
+        # Only factory calibration can support stereo geometry. The unused
+        # get_camera_geometry() call was not part of HardwareBase's API.
         self.Q = self._load_calibration()
         if self.Q is None:
-            cloudlog.warning("No stereo calibration, using default")
-            self.Q = self._default_calibration()
+            cloudlog.warning("GridD stereo geometry unavailable: factory calibration missing")
 
         # BLE Radar2D uses the pose jointly calibrated by the ESP32 and host.
         # already levels BLE tracks with roll/pitch; this host step applies
@@ -233,7 +228,7 @@ class GridD:
              'radar3d',   # long-range UART radar — 15-200m, all tracked points
              'radar2d',   # corner/blind-spot zone sensors — 0-10m presence
              'radar4d'],  # corner WiFi point cloud (02M add-on), vehicle frame
-            poll=cast(str | None, ['stereoDepth'])
+            poll=None
         )
 
         self.rk = Ratekeeper(RATE, print_delay_threshold=None)
@@ -260,13 +255,14 @@ class GridD:
 
         # Fault tracking; segmentation_degraded is not a fault
         self.frame_id = 0
+        self._last_stereo_timestamp = 0
         self.consecutive_failures = 0
         self.fault = False
         self.fault_reason = ""
         self.segmentation_degraded = False
         self.enabled = True
 
-        cloudlog.info("GridD initialized (geometry=%s, lazy_bev=enabled)", self.geometry.variant)
+        cloudlog.info("GridD initialized (factory_stereo_calibration=%s)", self.Q is not None)
 
     def _load_calibration(self) -> np.ndarray | None:
         """Load stereo Q matrix for 3D reprojection (factory intrinsics from HAL)."""
@@ -848,7 +844,7 @@ class GridD:
         fill_grid_objects(msg.gridObjects, ts, self.bev.get_grid(), costmap,
                           self.drivable.probability() if has_segmentation else None)
         msg.gridObjects.frameId = self.frame_id
-        msg.gridObjects.sourceFlags = 0b00000111 | (0b10000 if objects else 0) | (0b100000 if costmap is not None else 0)
+        msg.gridObjects.sourceFlags = grid_source_flags(xyz_points is not None and len(xyz_points) > 0, objects)
 
         self.pm.send('gridObjects', msg)
 
@@ -923,9 +919,13 @@ class GridD:
 
             # Get stereo depth from stereod (lazy reprojection from 2D disparity)
             xyz_points = None
-            if self.sm.updated['stereoDepth']:
+            if self.sm.updated['stereoDepth'] and self.sm.valid['stereoDepth']:
                 stereo_depth = self.sm['stereoDepth']
-                xyz_points = self._lazy_reprojection(stereo_depth)
+                status_ok = (not self.sm.valid['stereoStatus'] or not self.sm['stereoStatus'].fault)
+                if fresh_stereo(stereo_depth.timestamp, ts, self._last_stereo_timestamp,
+                                source_valid=True, fault=not status_ok):
+                    self._last_stereo_timestamp = stereo_depth.timestamp
+                    xyz_points = self._lazy_reprojection(stereo_depth)
                 if xyz_points is not None:
                     cloudlog.debug(f"Lazy reprojection: {len(xyz_points)} points")
 
@@ -972,8 +972,9 @@ class GridD:
                 self.segmentation_degraded = degraded
 
             # Stereo occupancy first: the cost layer reads it
-            if xyz_points is not None:
-                self.bev.update_from_points(xyz_points)
+            # Age confidence on every tick, including GPU/camera dropouts.
+            # Decay approaches unknown (0.5 occupancy), never free.
+            self.bev.update_from_points(xyz_points)
 
             try:
                 if drivable_area is not None:

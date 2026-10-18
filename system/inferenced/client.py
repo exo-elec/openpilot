@@ -497,6 +497,8 @@ class InferenceClient:
     def release(self) -> None:
         """Release client resources."""
         if self._gpu is not None:
-            self._gpu.close()
-            self._gpu = None
+            try:
+                self._gpu.close()
+            finally:
+                self._gpu = None
         cloudlog.info(f"InferenceClient released for {self.daemon_name}")

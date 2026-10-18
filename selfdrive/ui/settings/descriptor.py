@@ -115,7 +115,7 @@ PAGES: list[Page] = [
     Control("EOPPointcloudEnabled", Kind.TOGGLE, "Enable Point Cloud Recording", desc="Save 3D reconstructions from stereo depth to SD card.\nUsed for fleet mapping and digital twin generation.\nDoes not affect core ADAS functionality."),
     Control("EOPPointcloudMaxGB", Kind.SPINBOX, "Max Storage (GB):", desc="Maximum storage for point clouds. Oldest data auto-deleted when exceeded.", min=1.0, max=32.0, step=0.5),
     Control("EOPPointcloudRateHz", Kind.SPINBOX, "Recording Rate (Hz):", desc="Frame rate for point cloud capture. Higher = more data but more storage.", min=1, max=20, step=1),
-    Control("EOPPointcloudUseGPU", Kind.TOGGLE, "Use GPU Acceleration", desc="Use Mali GPU for 3D reprojection. Faster but uses GPU resources.\nFalls back to CPU if GPU unavailable."),
+    Control("EOPPointcloudUseGPU", Kind.TOGGLE, "Use GPU Acceleration", desc="Require Mali GPU for 3D reprojection. Frames are skipped if GPU is unavailable; CPU fallback is disabled."),
     Control("EOPSurfaceGridRange", Kind.SPINBOX, "Grid Forward Range (m):", desc="How far ahead to map surface conditions.", min=30.0, max=150.0, step=10.0),
     Control("EOPSurfaceGridResolution", Kind.SPINBOX, "Grid Resolution (m):", desc="Size of each grid cell for surface quality mapping.", min=0.1, max=1.0, step=0.05),
     Control("EOPSurfaceGridWidth", Kind.SPINBOX, "Grid Width (m):", desc="Lateral coverage of surface quality grid.", min=10.0, max=60.0, step=5.0),

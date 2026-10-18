@@ -41,11 +41,19 @@ def calibration_maps(cal, width: int, height: int):
   baseline = np.linalg.norm(translation)
   if translation.size != 3 or not np.isfinite(translation).all() or not 0.005 <= baseline <= 2.0:
     raise ValueError('Stereo translation must be measured in meters')
+  if q[3, 2] == 0 or not np.isclose(abs(q[0, 0]/q[3, 2]), baseline, rtol=0.01, atol=1e-6):
+    raise ValueError('Stereo Q scale disagrees with the measured metric baseline')
   probe = q @ np.array([width/2, height/2, 16.0, 1.0])
   if probe[3] == 0 or not 0 < probe[2]/probe[3] < 100_000:
     raise ValueError('Stereo Q must give forward-positive metric depth')
   # Map footprint support is distinct from matching confidence.
   support = []
   for mx, my in ((maps[0], maps[1]), (maps[2], maps[3])):
-    support.append((mx >= 0) & (mx < width-1) & (my >= 0) & (my < height-1))
+    footprint = (mx >= 0) & (mx < width-1) & (my >= 0) & (my < height-1)
+    # A census descriptor uses all 25 remapped pixels, not only its center.
+    valid = np.zeros_like(footprint)
+    if height >= 5 and width >= 5:
+      windows = np.lib.stride_tricks.sliding_window_view(footprint, (5, 5))
+      valid[2:-2, 2:-2] = windows.all(axis=(-1, -2))
+    support.append(valid)
   return (*maps, q, *support)

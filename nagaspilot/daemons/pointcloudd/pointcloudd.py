@@ -4,7 +4,7 @@ PointcloudD — 3D Reconstruction Daemon (NON-CRITICAL)
 
 Consumes 2D stereo outputs from stereod, performs GPU-accelerated 3D reconstruction
 for fleet digital twin. If this daemon fails, core vision (stereod→gridd→controlsd)
-continues driving safely.
+continues independently; validity and driving acceptance require separate checks.
 
 Pipeline:
   stereod (2D disparity) ──► pointcloudd (3D reconstruct) ──┬──► surfaced (SQSC)
@@ -38,7 +38,7 @@ Functions:
   6. Publish to surfaced + save PCD to SD card
 
 Fault Handling:
-  - GPU init fail: Continue with CPU (non-critical daemon)
+  - GPU init fail: Skip projection and retry with backoff; no CPU fallback
   - GPU runtime fail: Skip frame, retry next
   - No IMMEDIATE_DISABLE (non-critical for driving)
 """
@@ -54,7 +54,6 @@ from typing import Any
 from dataclasses import dataclass, field
 
 import numpy as np
-import cv2
 
 import cereal.messaging as messaging
 from openpilot.common.params import Params
@@ -72,10 +71,8 @@ from openpilot.common.swaglog import cloudlog
 # Centralized HAL - ONLY way to access hardware
 from openpilot.system.inferenced import InferenceClient
 from openpilot.system.hardware import HARDWARE
-from nagaspilot.hardware.paths import Paths
 
 POINTCLOUD_ROOT = Path(os.getenv("POINTCLOUD_ROOT", "/data/media/0/pointclouds"))
-CALIBRATION_PATH = Path(Paths.eop_data_root()) / "calibration" / "stereo_intrinsics.npz"
 DEFAULT_RATE_HZ = 5
 DEFAULT_MAX_GB = 4.0
 
@@ -360,106 +357,50 @@ class StorageManager:
 
 
 class GPUReprojector:
-    """GPU-accelerated 3D reprojection using HAL.
-
-    Converts stereo disparity + Q reprojection matrix to the
-    depth + normalized-coordinate form consumed by the OpenCL
-    `reproject` kernel, then dispatches to the GPU backend.
-    """
+    """Lazy GPU-only full-Q reprojection; failures drop the frame and retry."""
 
     def __init__(self, client: InferenceClient):
         self.client = client
         self._backend = None
-        self._initialized = False
+        self._next_attempt = 0.0
         self._init_lock = threading.Lock()
-        # Cached intrinsics derived from Q (recomputed if Q or shape changes)
-        self._grid_shape: tuple[int, int | None] = None
-        self._Q_sig: bytes | None = None
-        self._x_norm: np.ndarray | None = None
-        self._y_norm: np.ndarray | None = None
-        self._focal: float = 0.0
-        self._baseline: float = 0.0
 
     def initialize(self) -> bool:
-        """Lazy initialization of GPU backend via HAL."""
-        if self._initialized:
-            return self._backend is not None
-
+        if self._backend is not None:
+            return True
         with self._init_lock:
-            if self._initialized:
-                return self._backend is not None
-
-            try:
-                self._backend = self.client.acl()
-                cloudlog.info("GPU reprojector initialized via HAL")
-                self._initialized = True
+            if self._backend is not None:
                 return True
-            except RuntimeError as e:
-                cloudlog.warning(f"GPU not available via HAL: {e}")
-                self._backend = None
-                self._initialized = True
+            if time.monotonic() < self._next_attempt:
+                return False
+            self._next_attempt = time.monotonic() + 2.0
+            try:
+                from openpilot.system.inferenced.opencl_reproject import OpenCLReprojector
+                self._backend = OpenCLReprojector(self.client.gpu())
+                return True
+            except Exception as exc:
+                cloudlog.warning(f"GPU reprojection unavailable: {exc}")
+                self._reset()
                 return False
 
-    def _update_intrinsics(self, shape: tuple[int, int], Q: np.ndarray) -> bool:
-        """(Re)compute x_norm / y_norm grids and extract f, baseline from Q."""
-        q_sig = Q.tobytes()
-        if self._grid_shape == shape and self._Q_sig == q_sig:
-            return True
+    def _reset(self) -> None:
+        backend, self._backend = self._backend, None
+        self._next_attempt = time.monotonic() + 2.0
+        actions = ([backend.close] if backend is not None else []) + [self.client.release]
+        for action in actions:
+            try:
+                action()
+            except Exception as exc:
+                cloudlog.warning(f"GPU projection cleanup failed: {exc}")
 
-        # Q = [[1,0,0,-cx],[0,1,0,-cy],[0,0,0,f],[0,0,-1/b,0]]
-        cx = -float(Q[0, 3])
-        cy = -float(Q[1, 3])
-        f = float(Q[2, 3])
-        denom = float(Q[3, 2])
-        if f <= 0.0 or denom == 0.0:
-            return False
-        baseline = -1.0 / denom
-
-        h, w = shape
-        u, v = np.meshgrid(
-            np.arange(w, dtype=np.float32),
-            np.arange(h, dtype=np.float32),
-        )
-        self._x_norm = ((u - cx) / f).astype(np.float32)
-        self._y_norm = ((v - cy) / f).astype(np.float32)
-        self._focal = f
-        self._baseline = baseline
-        self._grid_shape = shape
-        self._Q_sig = q_sig
-        return True
-
-    def reproject(
-        self,
-        disparity: np.ndarray,
-        Q: np.ndarray
-    ) -> np.ndarray | None:
-        """GPU-accelerated reprojection via HAL."""
-        if not self.initialize() or self._backend is None:
+    def reproject(self, disparity: np.ndarray, Q: np.ndarray, confidence: np.ndarray | None) -> np.ndarray | None:
+        if not self.initialize():
             return None
-
         try:
-            h, w = disparity.shape
-            if not self._update_intrinsics((h, w), Q):
-                return None
-
-            # disparity -> depth (meters). Invalid disparities become 0.
-            d = disparity.astype(np.float32)
-            depth = np.zeros_like(d)
-            valid = d > 0.1
-            depth[valid] = self._focal * self._baseline / d[valid]
-
-            result = self._backend.infer('reproject', {
-                'depth': depth,
-                'x_norm': self._x_norm,
-                'y_norm': self._y_norm,
-            })
-
-            if not result.success:
-                return None
-            return result.outputs.get('xyz')
-
-        except Exception as e:
-            cloudlog.debug(f"GPU reprojection failed: {e}")
+            return self._backend.reproject(disparity, Q, confidence)
+        except Exception as exc:
+            cloudlog.warning(f"GPU reprojection frame rejected: {exc}")
+            self._reset()
             return None
 
 
@@ -469,6 +410,7 @@ class Reconstructor3D:
     def __init__(self, client: InferenceClient, use_gpu: bool = True):
         self.client = client
         self.Q = None
+        self._calibration_shape = None
         self._load_calibration()
 
         # Hardware acceleration via HAL
@@ -480,7 +422,7 @@ class Reconstructor3D:
         self.yolo_3d: YOLO3DEstimator | None = None
 
         if self.Q is not None:
-            f_px = float(self.Q[2, 2])
+            f_px = float(self.Q[2, 3])
             self.semantic_fusion = SemanticFusion(
                 image_width=640,
                 image_height=480,
@@ -493,35 +435,22 @@ class Reconstructor3D:
             )
 
     def _load_calibration(self):
-        """Load stereo calibration with fallback (factory intrinsics from HAL)."""
-        Q = None
-        cal = HARDWARE.load_stereo_intrinsics()  # canonical path + legacy migration fallback
-        if cal is not None:
-            Q = cal.Q
-        elif CALIBRATION_PATH.exists():
-            try:
-                Q = np.load(CALIBRATION_PATH)['Q']
-            except Exception as e:
-                cloudlog.warning(f"Calibration load failed: {e}")
-        if Q is not None:
-            self.Q = Q
-            cloudlog.info(f"Loaded calibration, baseline={-1.0/self.Q[3,2]:.3f}m")
+        """Only measured factory calibration with a known image resolution."""
+        from openpilot.nagaspilot.daemons.stereod.stereo_input import calibration_maps
+        cal = HARDWARE.load_stereo_intrinsics()
+        if cal is None:
+            cloudlog.warning("PointcloudD: factory stereo calibration unavailable")
             return
-        self._init_default_calibration()
-
-    def _init_default_calibration(self):
-        """Default calibration for ExoPilot."""
-        f_px = 700.0
-        cx, cy = 320.0, 240.0
-        baseline_m = 0.08  # 80mm default
-
-        self.Q = np.array([
-            [1, 0, 0, -cx],
-            [0, 1, 0, -cy],
-            [0, 0, 0, f_px],
-            [0, 0, -1.0 / baseline_m, 0],
-        ], dtype=np.float64)
-        cloudlog.info(f"Using default calibration, baseline={baseline_m*1000:.0f}mm")
+        try:
+            shape = np.shape(cal.left_map1)
+            if len(shape) != 2:
+                raise ValueError("Factory map resolution is missing")
+            h, w = shape
+            calibration_maps(cal, w, h)
+            self.Q = np.asarray(cal.Q, dtype=np.float64)
+            self._calibration_shape = shape
+        except Exception as exc:
+            cloudlog.warning(f"PointcloudD: invalid factory calibration: {exc}")
 
     def reconstruct(
         self,
@@ -542,24 +471,22 @@ class Reconstructor3D:
             "num_points_raw": 0,
         }
 
-        if self.Q is None:
+        if self.Q is None or disparity.shape != self._calibration_shape or confidence is None or confidence.shape != disparity.shape:
+            stats["recon_method"] = "invalid_calibration_or_input"
             return None, None, stats
 
         t0 = time.perf_counter()
 
-        # 1. 3D Reprojection (NumPy CPU — GPU kernel not yet implemented)
-        xyz = self._gpu_reprojector.reproject(disparity, self.Q) if self._gpu_reprojector else None
-        if xyz is not None:
-            stats["recon_method"] = "gpu_opencl"
-        else:
-            xyz = cv2.reprojectImageTo3D(disparity, self.Q)
-            stats["recon_method"] = "cpu_opencv"
+        # 1. Complete calibrated Q on the GPU. No CPU projection fallback.
+        xyz = self._gpu_reprojector.reproject(disparity, self.Q, confidence) if self._gpu_reprojector else None
+        if xyz is None:
+            stats["recon_method"] = "gpu_unavailable"
+            return None, None, stats
+        stats["recon_method"] = "gpu_opencl"
 
-        # 2. Filter by confidence and range
-        if confidence is not None:
-            valid = (confidence > 0.3) & np.isfinite(xyz).all(axis=2)
-        else:
-            valid = (disparity > 0) & np.isfinite(xyz).all(axis=2)
+        # 2. Preserve missing/invalid samples; never turn them into geometry.
+        valid = ((disparity > 0) & np.isfinite(disparity) & np.isfinite(confidence) &
+                 (confidence > 0.3) & (confidence <= 1) & np.isfinite(xyz).all(axis=2))
 
         z = xyz[:, :, 2]
         valid &= (z > 0.5) & (z < 100.0)
@@ -588,7 +515,7 @@ class Reconstructor3D:
         return points_vehicle, labels, stats
 
     def _camera_to_vehicle(self, points: np.ndarray) -> np.ndarray:
-        """Transform from camera to vehicle frame."""
+        """Legacy nominal axis rotation; calibrated mounting extrinsics remain pending."""
         vx = points[:, 2]   # forward
         vy = -points[:, 0]  # left
         vz = -points[:, 1]  # up
@@ -668,19 +595,16 @@ class PointcloudD:
             self.session_dir = None
 
         self.frame_count = 0
+        self._last_depth_timestamp = 0
+        self._source_frame_id = 0
         self.stats = ReconstructionStats()
 
         # Check GPU/RGA availability via HAL
         gpu_available = False
         rga_available = False
         try:
-            self.client.acl()
-            gpu_available = True
-        except RuntimeError:
-            pass
-        try:
-            self.client.rga()
-            rga_available = True
+            if self.enabled and use_gpu:
+                gpu_available = self.reconstructor._gpu_reprojector.initialize()
         except RuntimeError:
             pass
 
@@ -801,7 +725,7 @@ class PointcloudD:
             pc = msg.pointcloudProcessed
 
             pc.timestamp = timestamp
-            pc.frameId = self.frame_count
+            pc.frameId = self._source_frame_id
 
             # Limit points for message size
             max_points = 10000
@@ -920,6 +844,14 @@ class PointcloudD:
 
                 if self.sm.updated["stereoDepth"]:
                     sd = self.sm["stereoDepth"]
+                    now = time.monotonic_ns()
+                    if (not self.sm.valid["stereoDepth"] or not 0 < sd.timestamp <= now or
+                            now - sd.timestamp > 200_000_000 or sd.timestamp <= self._last_depth_timestamp):
+                        self.stats.frames_dropped += 1
+                        self.rk.keep_time()
+                        continue
+                    self._last_depth_timestamp = sd.timestamp
+                    self._source_frame_id = sd.frameId
 
                     # Decode 2D inputs
                     disparity, confidence = self._decode_disparity(sd)
@@ -935,8 +867,10 @@ class PointcloudD:
                         points, labels, recon_stats = self.reconstructor.reconstruct(
                             disparity, confidence, seg_mask, yolo_dets
                         )
+                        self.stats.gpu_accelerated = recon_stats.get("recon_method") == "gpu_opencl"
 
-                        if points is not None and len(points) > 0:
+                        if (points is not None and len(points) > 0 and
+                                time.monotonic_ns() - sd.timestamp <= 250_000_000):
                             # Semantic filtering + downsampling
                             t_filter_start = time.perf_counter()
                             points_proc, labels_proc, filter_stats = self._process_semantic(
@@ -956,6 +890,12 @@ class PointcloudD:
                                 filter_time_ms,
                                 total_time_ms
                             )
+
+                            if time.monotonic_ns() - sd.timestamp > 250_000_000:
+                                self.stats.frames_dropped += 1
+                                self._publish_status(sd.timestamp, 0, {})
+                                self.rk.keep_time()
+                                continue
 
                             # Publish to surfaced
                             self._publish_processed(
