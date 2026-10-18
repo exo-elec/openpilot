@@ -1,4 +1,4 @@
-"""Compiled ONNX artifact adapter for the official Chestnut tinygrad ABI."""
+"""Compiled ONNX artifact adapter for the official big-model tinygrad ABI."""
 import numpy as np
 
 

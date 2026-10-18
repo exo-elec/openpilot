@@ -37,7 +37,7 @@ unit-tested. Everything we add is opt-in and off by default until it has been dr
 
 | Feature | Idea from | Why not now |
 |---|---|---|
-| Model selector | sunnypilot, FrogPilot, CarrotPilot | On the ExoPilot devices: choose between the RKNN driving model and the external-GPU model without a re-flash. Needs the model artifacts. |
+| Model selector | sunnypilot, FrogPilot, CarrotPilot | On the ExoPilot devices: choose between the RKNN driving model and the phone's big model without a re-flash. Needs the model artifacts. |
 | Radar lead validation tools | CarrotPilot `radar/tools` | Replay/validate radar leads against video. Useful for our `radar3d` and corner radars before trusting them. |
 | UI personalisation (themes, brightness and timeout) | FrogPilot, sunnypilot | Only for the Python UI on 01M/02M. |
 | Weather caution | FrogPilot `weather_checker` | Theirs calls an online weather service; ours would have to use the cameras and radar (02M's radar4d already feeds a low-visibility alert). |

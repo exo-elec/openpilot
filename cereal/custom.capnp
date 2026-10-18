@@ -633,7 +633,7 @@ struct InferencedStatus @0xc3d4e5f6a7b8c9d0 {
 
   # Capability discovery (published at 1Hz, consumed by daemons to decide
   # whether optional/enhancement models can be scheduled).
-  availableBackends @9 :List(Text);   # e.g. ["NPU", "EGPU", "HAILO_8"]
+  availableBackends @9 :List(Text);   # e.g. ["NPU", "HAILO_8"]
   availableModels @10 :List(Text);    # Model IDs loaded or loadable
   backendHealth @11 :Text;            # JSON snapshot of per-backend health
 }

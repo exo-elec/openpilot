@@ -30,7 +30,6 @@ _services: dict[str, tuple] = {
   "controlsState": (True, 100., 10),
   "selfdriveState": (True, 100., 10),
   "peripheralState": (True, 2., 1),
-  "egpuState": (True, 10., 10),
   "radarState": (True, 20., 5),
   "roadEncodeIdx": (False, 20., 1),
   "driverEncodeIdx": (False, 20., 1),

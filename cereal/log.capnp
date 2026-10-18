@@ -132,9 +132,9 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     audioFeedback @97;
     reserved98DEPRECATED @98;
     reserved99DEPRECATED @99;
-    reserved100DEPRECATED @100;
+    bigModelLoading @100;
     reserved101DEPRECATED @101;
-    reserved102DEPRECATED @102;
+    bigModelFailed @102;
 
     # ALCC / lateral-only engagement events
     lkasEnable @103;
@@ -771,22 +771,6 @@ struct PandaState @0xa7649e2575e4591e {
   usbPowerModeDEPRECATED @12 :PeripheralState.UsbPowerModeDEPRECATED;
   safetyParamDEPRECATED @20 :Int16;
   safetyParam2DEPRECATED @26 :UInt32;
-}
-
-struct EgpuState {
-  # ASM2464PD USB eGPU hardware telemetry -- same physical chip regardless of
-  # which firmware is flashed (our own generic bridge firmware or comma's
-  # Chestnut firmware, see selfdrive/modeld/egpu_detect.py).
-  tempC @0 :Float32;
-  memoryTempC @1 :Float32;
-  powerDrawW @2 :Float32;
-  powerLimitW @3 :Float32;
-  gpuUsagePercent @4 :UInt8;
-  gpuClockMhz @5 :UInt16;
-  fanSpeedRpm @6 :UInt16;
-  pcieLtssm @7 :UInt8;
-  supplyVoltage @8 :UInt16;  # mV
-  supplyCurrent @9 :Int16;  # mA
 }
 
 struct PeripheralState {
@@ -1742,6 +1726,8 @@ struct ModelDataV2 {
 
   # e2e lateral planner
   action @26: Action;
+  # the model that produced this frame is the big one (the phone over USB); upstream's ordinal and name
+  big @27 :Bool;
 
   gpuExecutionTimeDEPRECATED @17 :Float32;
   navEnabledDEPRECATED @22 :Bool;
@@ -3626,7 +3612,7 @@ struct Event {
     uiDebug @102 :UIDebug;
 
     # driving feedback
-    egpuState @303 :EgpuState;
+    removedService303DEPRECATED @303 :Void;
     pathAdjust @304 :Custom.PathAdjust;           # NagasPilot pathd add-on (NGP10 has this at @152); EOP10 maps it onto enhancedTrajectory
 
     # *********** debug ***********

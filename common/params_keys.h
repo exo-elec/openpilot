@@ -37,12 +37,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DoUninstall", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverTooDistracted", {CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_ON, BOOL}},
     {"AlphaLongitudinalEnabled", {PERSISTENT | DEVELOPMENT_ONLY, BOOL}},
-    // ASM2464PD USB eGPU driving path (mirrors upstream UsbGpu*; named after
-    // the hardware, not comma's Chestnut model class -- we support both our
-    // own flashed firmware and comma's on the same physical chip).
-    {"EOPEgpuDrivingEnabled", {PERSISTENT, BOOL}},
-    {"EOPEgpuDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL}},
-    {"EOPEgpuDrivingActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ExperimentalMode", {PERSISTENT, BOOL}},
     {"ExperimentalModeConfirmed", {PERSISTENT, BOOL}},
     {"FirmwareQueryDone", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
@@ -130,6 +124,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
+    // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
+    // 1 Android (FunctionFS bulk gadget), 2 iPhone (CDC-NCM network the phone dials), 3 USB tethering (optional). The direct
+    // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
+    // until the phone model is proven. NGP-origin, so ngp_ on every branch (D12).
+    {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py).
+    {"ngp_bigmodel_active", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"ngp_bigmodel_loading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
     // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.
@@ -234,6 +236,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
+    // The phone-hosted big model's counterparts of upstream's offroad big-model alerts (ngp_bigmodel_status.py)
+    {"Offroad_BigModelModelError", {CLEAR_ON_MANAGER_START, JSON}},
+    {"Offroad_BigModelNotDetected", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
+    {"Offroad_BigModelUsbSlow", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_CarUnrecognized", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
     {"Offroad_ConnectivityNeeded", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_ConnectivityNeededPrompt", {CLEAR_ON_MANAGER_START, JSON}},
@@ -562,12 +568,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EOPCarMake", {PERSISTENT, STRING}},
     {"EOPCarType", {PERSISTENT, STRING}},
     {"EOPCarVin", {PERSISTENT, STRING}},
-    // ASM2464PD / Chestnut eGPU driving path (mirrors upstream UsbGpu*; named
-    // Egpu* to cover both our own flashed firmware and comma's Chestnut
-    // firmware on the same physical chip).
-    {"EOPChestnutDrivingEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPChestnutDrivingLoading", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
-    {"EOPChestnutDrivingActive", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"EOPCurrentMCAPRoute", {CLEAR_ON_MANAGER_START, STRING}},
     {"EOPWakeEnabled", {PERSISTENT, BOOL, "0"}},
     {"EOPVoiceWakeTrigger", {CLEAR_ON_MANAGER_START, BOOL, "0"}},

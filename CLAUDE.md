@@ -85,7 +85,7 @@ offset added to a y-right path), SOC (read `yRel` as right),
 | `ARCHITECTURE.md` | System design + daemon overview |
 | `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
-| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP architecture (dual transport) |
+| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP v4.1 architecture (dual transport); successor protocol: `nagaspilot/docs/PLP_V5_SPEC.md` |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
 | `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
 | `test.sh` | Local dev gate before pushing |
@@ -231,8 +231,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   mask and sets `gridStatus.segmentationDegraded` (custom.capnp @9) -- never
   `fault`, which would disable openpilot. surfaced's drivable-area costmap
   needs no card and carries on. The artifact lists per card are install
-  preference (first file on disk), not a failover chain. The eGPU is
-  different: Chestnut keeps its one-way switch to the RKNN driving model.
+  preference (first file on disk), not a failover chain.
 - **DX-M1M, not DX-M1**: M.2 2242, 25 TOPS INT8, 2 GB LPDDR4x, PCIe Gen3 x2,
   3 W typical, -40..85 °C. Needs a 42 mm standoff in the 2280 socket.
 - Bugs fixed on the way: monod crashed in `__init__` (`messaging.SubManager`
@@ -255,35 +254,22 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   maps them. The planner now holds TLSC's target between `stereoObjects`
   updates (dropped after 0.5 s) instead of applying it only on frames where
   one arrived.
-- **Only inferenced opens the card or the eGPU**: `HALConfig(own_exclusive_devices=True)`
+- **Only inferenced opens the card**: `HALConfig(own_exclusive_devices=True)`
   is set there alone. Any other process's local HAL (the RKNN detectors in
-  monod/sided/reard, gridd) skips Hailo/DX/eGPU — before this, every
+  monod/sided/reard, gridd) skips Hailo/DX — before this, every
   `get_hal()` also grabbed the card.
 - Plan, budget and bench list: `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
-**USB eGPU = openpilot's Chestnut driving model only (2026-09-27):**
-- The eGPU runs exactly one model: upstream openpilot's Chestnut big driving
-  model (`big_driving_supercombo`, modeld's eGPU runner). `egpu.py`'s
-  `EGPU_ALLOWED_MODELS` makes `load_model()` refuse anything else, and
-  `inferenced` rejects EGPU jobs for any other model id.
-- Camera and rule-based Autoware-style models (detection, segmentation) are
-  **not** eGPU work: detection is on RKNN, segmentation on the Hailo-8 /
-  DX-M1M card (`BackendType.ACCEL`). The 2026-08-23 eGPU camera-shadow path
-  (`side_yolo_egpu`, `rear_yolo_egpu`, `*_seg_egpu`, `egpu_camera_detector.py`,
-  the six `EOP*EGPUMode` params, and the shadows in sided/reard/gridd/monod)
-  was removed — do not bring it back. `EGPU_CAMERA_SHADOW.md` is history.
+**The big driving model runs on a phone over USB:**
+- It is the combined supercombo ONNX run by NavPilot on the driver's phone: `nagaspilot/bigmodel/`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`.
+- `modeld` owns driving state and parsing, always runs the on-board RKNN model, and attaches the phone model on top
+  (`BigModelHook`). Fallback is one-way: the RKNN small model stays loaded and warm, a phone that fails or is
+  unplugged hands back to it, and nothing re-joins onroad; soft-disable if engaged.
+- Camera and rule-based Autoware-style models (detection, segmentation) were never big-model work: detection is on RKNN,
+  segmentation on the Hailo-8 / DX-M1M card (`BackendType.ACCEL`).
 - `tinygrad_repo` is pinned to the official stable `v0.13.0` tag; do not follow
   `master`. The deployed runtime must use Python 3.11+ (EOP `.venv` is 3.12).
-- `inferenced` is the sole eGPU owner; `modeld` owns driving state and parsing.
-  Production driving inference preserves openpilot `modeld`'s runners,
-  temporal buffers, output parsers and `modelV2` semantics.
-- Chestnut's one-way failover, as upstream: keep the RKNN small model
-  loaded/warm, reject activation unless the external model loads and warms,
-  switch to RKNN on exception/timeout/non-finite output/unplug, soft-disable
-  if engaged, and never auto-retry eGPU onroad. See
-  `docs/eop/05_Features/CHESTNUT_EGPU_ADOPTION.md`.
-- Driving artifacts are asymmetric by design: the eGPU runs official upstream
-  Chestnut big supercombo; the local fallback on RKNN is Bukapilot's KA2
+- Driving artifacts are asymmetric by design: the phone runs the combined big supercombo; the on-board RKNN model is Bukapilot's KA2
   split pair, `driving_vision.rknn` + `driving_policy.rknn`
   (`rknn_driving_runner.py`, hashes in `models/MODEL_MANIFEST.md`). The
   2026-08-23 audit's monolithic Bukapilot `supercombo.rknn` is not what runs.
@@ -291,6 +277,16 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   RKNN binary across target SoCs.
 - The EOP10 corner-radar baseline is BLE-only: ESP32_RADAR `dev/TR13`
   publishes `radar2d`; WiFi point-cloud radar support belongs to the 02M layer.
+
+**PLP v5, the Pilot Link Protocol, replaces NCP (2026-10-13):**
+- `nagaspilot/plp/` (shared, flows down from NGP10): registry (`registry.json`, 42 messages in 10 services, mapped from the NCP v4 type numbers), framing (16-byte
+  header + header CRC-32C + payload + payload CRC only where the link needs it), four priority channels with fragmentation, hello/negotiation, `PlpSession`,
+  `cable.py` (iPhone USB network, TCP 5601, started as `plpd`), `ble_stream.py` (chunking/pacing), `locate.py` (GNSS fix and map horizon handlers). Spec:
+  `nagaspilot/docs/PLP_V5_SPEC.md`. Design follows Jetlink: header-only CRC on USB/TCP, padding rule on bulk, the NCM iPhone gadget.
+- NGP10 (comma 3, no BLE hardware) is PLP over USB only. EOP10+ run PLP on USB and on a second BLE GATT service (`system/bluetoothd/plp_gatt.py`) beside the Nordic
+  UART NCP v4.1 service, which stays for older apps.
+- NCP v4.1 (`ncp_session.py`, `ncp_cable.py`, `ble_gatt.py`, `spp.py`) is unchanged and still carries navigation, telemetry, OBD, pairing and radar until each
+  handler moves to PLP; nothing is renamed before then. Not run on a board or phone; Android's second bulk interface is not built.
 
 **radar3d — long-range UART radar replaces the never-wired OEM CAN radar (2026-08-16):**
 - The vehicle has no real forward OEM radar — only a 2D blind-spot corner

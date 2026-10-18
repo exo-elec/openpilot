@@ -19,9 +19,20 @@ Submodule rules shared with EOP10:
 
 NGP10 uses official openpilot v0.10.0's OpenDBC API and public pin
 `4b203ff5d1ad867de127de6b27382ba73e6e31a7`. It has no BrownPanda radar patch.
-The Chestnut tinygrad pin is `d3f09c9bbd542fbfbe68c8569a1173550c408969`,
+The big-model tinygrad pin is `d3f09c9bbd542fbfbe68c8569a1173550c408969`,
 matching official openpilot `b9c815d56a2827796ad73ca8f09d186243dd8c17`.
 The compiled model ABI uses `examples/openpilot/compile_onnx.py`; previous
 compiled pickle artifacts must be rebuilt. NGP retains its split vision/policy
 ONNX, metadata and output parser contract. EOP descendants inherit the pin;
 their Rockchip RKNN backend remains a hardware adapter.
+
+## Phone-hosted big model (no external dependency)
+
+The phone link is NavPilot's own (`nagaspilot/bigmodel/`, protocol NPBM v1, [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md)). It
+imports nothing but the standard library and numpy; there is no `jetlink_repo` gitlink and no `exo-elec/jetlink` checkout, so rules
+2 to 4 have nothing to pin for it. The earlier Jetlink port (pinned `exo-elec/jetlink` `37e89e32`) is superseded.
+
+- Lock-step: the phone app and the comma share a protocol version in the NPBM header (a mismatch is a broken stream, the comma drives
+  on the small model) and a contract id in the hello (`ngp-v0.10-split`). The app and this tree are updated together.
+- Nothing requires a phone: without model metadata or a connected phone the link stays idle and `modeld` is a plain small-model
+  `modeld`. `bigmodeld` runs only while `ngp_bigmodel_link` is nonzero.
