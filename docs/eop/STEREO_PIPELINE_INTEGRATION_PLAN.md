@@ -181,3 +181,34 @@ frames, GPU memory/utilization, CPU budget, UI frame time and sustained thermal
 behavior. Thresholds and operating envelope must be selected from recorded
 sensor data and target-board measurements before acceptance. Until then this
 is an implementation plan with known gaps, not a claim of driving readiness.
+
+### GPU implementation checkpoint, 2026-10-18
+
+NGP10 now provides `common/gpu_compute.py` (4728d8add): GPU-only enumeration,
+CL1.2 compilation, in-order queue, bounded allocations and explicit smoke kernel.
+EOP10 was rebased onto that baseline. InferenceClient.gpu() owns and smoke-checks
+the context without initializing unrelated NPU/PCIe backends. The legacy ACL
+stereo placeholder now fails instead of returning successful zero disparity.
+
+EOP's new OpenCLStereo implements 5x5 census, reusable cost/aggregate volumes,
+four independent SGM paths with both penalties, optional subpixel/median,
+normalized confidence and left/right consistency. Both matching views execute
+on the GPU. The matcher rejects work beyond its completed-frame deadline and
+never starts CPU matching. Its 128 MiB working-set cap can reject full camera
+resolution; calibrated lower-resolution capture/maps must be supplied rather
+than silently resizing. OpenCL driver calls are not portably preemptible.
+
+StereoD now requests this backend explicitly, requires factory maps at the exact
+capture resolution and a metric forward-positive Q, reads padded luma rows,
+rejects stale/duplicate/skewed capture timestamps, preserves camera frame/time,
+and reports processingTimeMs through the existing schema. Missing calibration
+or GPU produces status/fault only. The unused wide-camera dependency is removed.
+
+Checkpoint validation: five shared host policy tests pass; changed Python files
+compile and the kernel passes clang CL1.2 syntax validation. GPU numerical tests,
+real camera replay, target execution/performance and full pipeline validation
+remain pending. No stereo hardware is attached to this development host. The
+existing full test gate remains blocked by the separately recorded baseline
+bigmodel_platform.py mismatch. GPU recovery/reinitialization and calibration
+resolution provisioning remain follow-up work. No driveable mapping or control
+acceptance is claimed; live gridd geometry integration remains deferred.
