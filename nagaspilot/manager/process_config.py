@@ -55,6 +55,17 @@ def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
     _bigmodel_link_cache = (now, int(params.get(bigmodel_platform.LINK, return_default=True) or 0) in (1, 2))
   return _bigmodel_link_cache[1]
 
+_plp_link_cache = (float("-inf"), False)
+
+
+def plp_link(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # PLP over the iPhone cable (ngp_bigmodel_link = 2): bigmodeld makes the network, plpd serves it. Same TTL as above.
+  global _plp_link_cache
+  now = time.monotonic()
+  if now - _plp_link_cache[0] >= _PARAM_TTL_S:
+    _plp_link_cache = (now, int(params.get(bigmodel_platform.LINK, return_default=True) or 0) == 2)
+  return _plp_link_cache[1]
+
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
 
@@ -127,6 +138,7 @@ procs = [
   PythonProcess("rtcd", "system.rtcd.rtcd", always_run),     # RTC time sync
   PythonProcess("socketd", "system.socketd.socketd", always_run),
   PythonProcess("bigmodeld", "nagaspilot.bigmodel.gadget", bigmodel_link),  # phone-hosted big model: USB gadget owner (modes 1 and 2)
+  PythonProcess("plpd", "nagaspilot.plp.plpd", plp_link),  # PLP v5 over the iPhone cable (mode 2); the BLE transport joins bluetoothd
   PythonProcess("pigeond", "system.ubloxd.pigeond", always_run),
   PythonProcess("inferenced", "system.inferenced.inferenced", always_run),  # Centralized compute HAL
   PythonProcess("subscribed", "system.subscribed.subscribed", always_run),  # EOP: NavPilot subscription & hardware auth
