@@ -212,3 +212,39 @@ existing full test gate remains blocked by the separately recorded baseline
 bigmodel_platform.py mismatch. GPU recovery/reinitialization and calibration
 resolution provisioning remain follow-up work. No driveable mapping or control
 acceptance is claimed; live gridd geometry integration remains deferred.
+
+### Recovery and stereo point-cloud follow-up, 2026-10-19
+
+Fetched origin before editing: both NGP10/EOP10 exactly matched their local tips.
+NGP's shared GPU context remains unchanged. EOP now retries GPU/calibration
+initialization with backoff, handles malformed frames without exiting, rejects
+late/invalid results and clears faults only after accepted computation. The
+constructor uses the actual factory calibration API; it no longer calls a
+nonexistent get_camera_geometry method to obtain a nominal stereo baseline.
+
+The SGM default and disparity helpers require GPU; offline CPU matching requires
+an explicit request. The optional DepthPipeline projection reference now uses
+complete Q and reports the actual matching backend. Live pointcloudd now uses
+OpenCL full-Q projection with no CPU fallback or nominal-intrinsics fallback,
+requires measured map resolution/confidence, and rejects stale/duplicate captures.
+The old nominal camera-to-vehicle axis rotation is not calibrated extrinsics.
+
+Owner policy: optional GPU stereo loss degrades fusion, rather than disabling
+core CPU ADAS. The stereo alert is informational; core model/inference fault
+handling is retained. Gridd ages occupancy even during missing stereo and no
+longer claims fixed stereo/left/right/nav source bits. Its legacy CPU lazy
+projection and road/obstacle separation remain a separate unfinished mapping
+slice. No raw point-cloud path is newly enabled as validated drivable geometry.
+
+Primary-source pins, ROS raw-versus-adjusted disparity conventions, full-Q
+geometry, invalid-point policy and remaining calibration gaps are recorded in
+STEREO_POINTCLOUD_UPSTREAM_CONTRACT.md. Custom OpenCL SGM/projection code is not
+claimed to be upstream Autoware code or hardware-proven.
+
+Verification of this slice: 5 matcher API cases, 22 host runtime cases and 11
+point-cloud/degradation cases pass, plus the 5 shared GPU policy cases and 8
+metric geometry cases (51 host cases total). Three explicitly gated GPU cases
+are not executed here. The required GPU diagnostic fails with
+PLATFORM_NOT_FOUND_KHR on this host, correctly providing no CPU fallback.
+Both kernels pass clang CL1.2 syntax validation; changed code passes focused
+ruff checks. The full test.sh gate still stops at existing lineage drift.
