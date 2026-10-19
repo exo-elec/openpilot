@@ -48,6 +48,10 @@ class FusionCostmap:
     """Cells an occupancy source calls occupied (same shape bool mask)."""
     self.costmap[mask] = COST_OBSTACLE
 
+  def mark_occluded(self, mask: np.ndarray) -> None:
+    """Occlusion rejects semantic free road, retaining known obstacle costs."""
+    self.costmap[mask] = np.maximum(self.costmap[mask], COST_UNKNOWN)
+
   def add_obstacle(self, forward: float, left: float, length: float, width: float,
                    cost: int = COST_OBSTACLE) -> None:
     """Axis-aligned footprint centred at (forward, left) metres, left positive."""

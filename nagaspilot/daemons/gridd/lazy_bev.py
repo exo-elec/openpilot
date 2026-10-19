@@ -420,7 +420,7 @@ class ProbabilisticLazyBEV:
         """Return the current occupancy probability grid."""
         return cast(np.ndarray, log_odds_to_probability(self.log_odds))
 
-    def update_from_evidence(self, occupied, ground, *, retain_history: bool) -> None:
+    def update_from_evidence(self, occupied, ground, *, retain_history: bool, occluded=None) -> None:
         """Fuse GPU endpoint cells once, obstacle precedence, no unknown clearing.
 
         Moving maps are per-frame until calibrated ego-motion compensation is
@@ -440,6 +440,11 @@ class ProbabilisticLazyBEV:
             raise ValueError('Stereo evidence grid layout mismatch')
         occupied = np.asarray(occupied, dtype=bool)
         ground = np.asarray(ground, dtype=bool) & ~occupied
+        if occluded is not None:
+            if occluded.shape != self.log_odds.shape:
+                raise ValueError('Stereo shadow grid layout mismatch')
+            ground &= ~occluded
+            self.log_odds[occluded & (self.log_odds < 0)] = 0.0
         self.log_odds[ground] += LOG_ODDS_DETECTION_FREE
         # A current measured obstacle overrides even strong historical free space.
         self.log_odds[occupied] = np.maximum(self.log_odds[occupied] + LOG_ODDS_DETECTION_OCCUPIED, LOG_ODDS_DETECTION_OCCUPIED)

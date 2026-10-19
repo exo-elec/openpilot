@@ -166,6 +166,17 @@ class TestStereoGridContracts(unittest.TestCase):
     self.assertLess(p[60, 26], 0.5)
     self.assertEqual(p[60, 27], 0.5)
 
+  def test_new_occlusion_clears_old_free_confidence_without_erasing_obstacles(self):
+    grid = bev.LazyBEV()
+    occupied = np.zeros_like(grid.log_odds, bool)
+    ground = np.zeros_like(occupied)
+    occluded = np.zeros_like(occupied)
+    occluded[60, 25:27] = ground[60, 25:27] = True
+    grid.log_odds[60, 25:27] = [-5, 5]
+    grid.update_from_evidence(occupied, ground, retain_history=True, occluded=occluded)
+    self.assertEqual(grid.get_grid()[60, 25], 0.5)
+    self.assertGreater(grid.get_grid()[60, 26], 0.7)
+
   def test_motion_or_missing_pose_clears_misregistered_history(self):
     grid = bev.LazyBEV()
     grid.log_odds[50, 20] = 5
@@ -267,18 +278,22 @@ class TestStereoGridContracts(unittest.TestCase):
     grid = bev.LazyBEV()
     occupied = np.zeros_like(grid.log_odds, bool)
     ground = np.zeros_like(occupied)
+    occluded = np.zeros_like(occupied)
     r, c, _ = bev.BEV_GRID.cells(10, 1)  # Stationary parked car, one metre left.
     occupied[r, c] = ground[r, c] = True
+    behind_r, behind_c, _ = bev.BEV_GRID.cells(20, 1)
+    occluded[behind_r, behind_c] = True
     grid.update_from_evidence(occupied, ground, retain_history=False)
     costmap = costs.FusionCostmap()
     road_cost = np.full_like(costmap.costmap, costs.COST_ROAD)
     costmap.apply_drivable(road_cost)
     costmap.mark_occupied(grid.get_grid() >= 0.7)
+    costmap.mark_occluded(occluded)
     host = SimpleNamespace(bev=grid, frame_id=42,
                            pm=SimpleNamespace(send=lambda name, msg: messages.update({name: msg})),
                            _extract_road_boundaries=lambda _: ([], []),
                            drivable=SimpleNamespace(probability=lambda: np.ones_like(grid.log_odds)),
-                           _stereo_observation=mapping.StereoObservation(np.array([[-1, -1, 10]]), occupied, ground))
+                           _stereo_observation=mapping.StereoObservation(np.array([[-1, -1, 10]]), occupied, ground, occluded))
     namespace['_publish'](host, 1_000_000_000, np.array([[-1, -1, 10]]), True, costmap.costmap, [])
     with log.Event.from_bytes(messages['gridObjects'].to_bytes()) as event:
       self.assertTrue(event.valid)
@@ -289,6 +304,7 @@ class TestStereoGridContracts(unittest.TestCase):
       self.assertEqual(decoded[r, c], costs.COST_OBSTACLE)
       _, mirrored, _ = bev.BEV_GRID.cells(10, -1)
       self.assertEqual(decoded[r, mirrored], costs.COST_ROAD)
+      self.assertEqual(decoded[behind_r, behind_c], costs.COST_UNKNOWN)
     with log.Event.from_bytes(messages['stereoGround'].to_bytes()) as event:
       self.assertTrue(event.valid)
       self.assertTrue(event.stereoGround.hasStereoDepth)
@@ -395,6 +411,7 @@ class TestActualGPU(unittest.TestCase):
     self.assertFalse(observation.ground[r, c])
     r, c, _ = bev.BEV_GRID.cells(20, 0)
     self.assertFalse(observation.ground[r, c])  # Behind the parked car remains unknown.
+    self.assertTrue(observation.occluded[r, c])
     r, c, _ = bev.BEV_GRID.cells(20, -1.6)
     self.assertTrue(observation.ground[r, c])
     self.assertEqual(len(observation.points), 1)
