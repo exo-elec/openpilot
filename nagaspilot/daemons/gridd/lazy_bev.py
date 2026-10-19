@@ -52,7 +52,7 @@ P_DETECTION_OCCUPIED = 0.85     # P(detection | occupied) - true positive rate
 P_DETECTION_FREE = 0.15         # P(detection | free) - false positive rate
 
 # Thresholds
-OCCUPANCY_THRESHOLD = 0.5       # Cell considered occupied if P(occupied) > threshold
+OCCUPANCY_THRESHOLD = 0.7       # Unknown (0.5) must never count as an obstacle
 CUTIN_THRESHOLD = 0.7           # Higher confidence needed for cut-in alarm
 MIN_PROBABILITY = 0.01          # Minimum probability to avoid log(0)
 MAX_PROBABILITY = 0.99          # Maximum probability to avoid log(1)
@@ -419,6 +419,32 @@ class ProbabilisticLazyBEV:
     def get_grid(self) -> np.ndarray:
         """Return the current occupancy probability grid."""
         return cast(np.ndarray, log_odds_to_probability(self.log_odds))
+
+    def update_from_evidence(self, occupied, ground, *, retain_history: bool) -> None:
+        """Fuse GPU endpoint cells once, obstacle precedence, no unknown clearing.
+
+        Moving maps are per-frame until calibrated ego-motion compensation is
+        available. Missing GPU input ages stationary evidence toward unknown.
+        """
+        now = time.monotonic()
+        dt = max(0.0, now - self._last_frame_time)
+        self._last_frame_time = now
+        if not retain_history:
+            self.log_odds.fill(0.0)
+            self._last_update.fill(-1e9)
+        elif dt > 0:
+            self._apply_temporal_decay(dt)
+        if occupied is None or ground is None:
+            return
+        if occupied.shape != self.log_odds.shape or ground.shape != self.log_odds.shape:
+            raise ValueError('Stereo evidence grid layout mismatch')
+        occupied = np.asarray(occupied, dtype=bool)
+        ground = np.asarray(ground, dtype=bool) & ~occupied
+        self.log_odds[ground] += LOG_ODDS_DETECTION_FREE
+        # A current measured obstacle overrides even strong historical free space.
+        self.log_odds[occupied] = np.maximum(self.log_odds[occupied] + LOG_ODDS_DETECTION_OCCUPIED, LOG_ODDS_DETECTION_OCCUPIED)
+        self._last_update[ground | occupied] = now
+        np.clip(self.log_odds, -10.0, 10.0, out=self.log_odds)
 
     def update_from_points(self, xyz_points: np.ndarray | None) -> None:
         """Update the BEV grid directly from an Nx3 point cloud.

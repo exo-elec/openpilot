@@ -61,6 +61,8 @@ from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.nagaspilot.daemons.stereod.semantic_fusion import SemanticFusion
 from openpilot.nagaspilot.daemons.stereod.yolo_3d import YOLO3DEstimator
+from openpilot.nagaspilot.daemons.stereod.stereo_input import calibration_maps, calibration_id, measured_mount
+from nagaspilot.hardware.paths import Paths
 from openpilot.nagaspilot.daemons.pointcloudd.semantic_filter import (
     SemanticPointFilter, FilterConfig
 )
@@ -393,11 +395,11 @@ class GPUReprojector:
             except Exception as exc:
                 cloudlog.warning(f"GPU projection cleanup failed: {exc}")
 
-    def reproject(self, disparity: np.ndarray, Q: np.ndarray, confidence: np.ndarray | None) -> np.ndarray | None:
+    def reproject(self, disparity: np.ndarray, Q: np.ndarray, confidence: np.ndarray | None, *, transform=None) -> np.ndarray | None:
         if not self.initialize():
             return None
         try:
-            return self._backend.reproject(disparity, Q, confidence)
+            return self._backend.reproject(disparity, Q, confidence, transform=transform)
         except Exception as exc:
             cloudlog.warning(f"GPU reprojection frame rejected: {exc}")
             self._reset()
@@ -421,36 +423,27 @@ class Reconstructor3D:
         self.semantic_fusion: SemanticFusion | None = None
         self.yolo_3d: YOLO3DEstimator | None = None
 
-        if self.Q is not None:
-            f_px = float(self.Q[2, 3])
-            self.semantic_fusion = SemanticFusion(
-                image_width=640,
-                image_height=480,
-                focal_length_px=f_px
-            )
-            self.yolo_3d = YOLO3DEstimator(
-                focal_length_px=f_px,
-                image_width=640,
-                image_height=480
-            )
-
     def _load_calibration(self):
-        """Only measured factory calibration with a known image resolution."""
-        from openpilot.nagaspilot.daemons.stereod.stereo_input import calibration_maps
-        cal = HARDWARE.load_stereo_intrinsics()
-        if cal is None:
-            cloudlog.warning("PointcloudD: factory stereo calibration unavailable")
-            return
+        """Measured factory/frame and mounting only; retry failed provisioning."""
+        self._next_calibration_attempt = time.monotonic()+2.0
+        self.Q = self._calibration_shape = self._mount_transform = None
+        self.calibration_id = ""
         try:
+            cal = HARDWARE.load_stereo_intrinsics()
+            if cal is None:
+                raise ValueError("Factory stereo calibration unavailable")
             shape = np.shape(cal.left_map1)
             if len(shape) != 2:
                 raise ValueError("Factory map resolution is missing")
             h, w = shape
             calibration_maps(cal, w, h)
-            self.Q = np.asarray(cal.Q, dtype=np.float64)
-            self._calibration_shape = shape
+            identity = calibration_id(cal)
+            transform, _ = measured_mount(
+                os.path.join(Paths.eop_data_root(), 'calibration', 'stereo_extrinsics.npz'), identity)
+            self.Q, self._calibration_shape = np.asarray(cal.Q, dtype=np.float64), shape
+            self.calibration_id, self._mount_transform = identity, transform
         except Exception as exc:
-            cloudlog.warning(f"PointcloudD: invalid factory calibration: {exc}")
+            cloudlog.warning(f"PointcloudD: measured stereo geometry unavailable: {exc}")
 
     def reconstruct(
         self,
@@ -471,14 +464,15 @@ class Reconstructor3D:
             "num_points_raw": 0,
         }
 
-        if self.Q is None or disparity.shape != self._calibration_shape or confidence is None or confidence.shape != disparity.shape:
+        if (self.Q is None or self._mount_transform is None or disparity.shape != self._calibration_shape or
+                confidence is None or confidence.shape != disparity.shape):
             stats["recon_method"] = "invalid_calibration_or_input"
             return None, None, stats
 
         t0 = time.perf_counter()
 
         # 1. Complete calibrated Q on the GPU. No CPU projection fallback.
-        xyz = self._gpu_reprojector.reproject(disparity, self.Q, confidence) if self._gpu_reprojector else None
+        xyz = self._gpu_reprojector.reproject(disparity, self.Q, confidence, transform=self._mount_transform) if self._gpu_reprojector else None
         if xyz is None:
             stats["recon_method"] = "gpu_unavailable"
             return None, None, stats
@@ -488,38 +482,20 @@ class Reconstructor3D:
         valid = ((disparity > 0) & np.isfinite(disparity) & np.isfinite(confidence) &
                  (confidence > 0.3) & (confidence <= 1) & np.isfinite(xyz).all(axis=2))
 
-        z = xyz[:, :, 2]
-        valid &= (z > 0.5) & (z < 100.0)
+        points_vehicle = xyz[valid]
+        stats["num_points_raw"] = len(points_vehicle)
 
-        points_camera = xyz[valid]
-        stats["num_points_raw"] = len(points_camera)
-
-        if len(points_camera) < 100:
+        if len(points_vehicle) < 100:
             return None, None, stats
 
         t1 = time.perf_counter()
         stats["recon_time_ms"] = (t1 - t0) * 1000
 
-        # 3. Semantic fusion
+        # SemanticFusion assumes optical coordinates and nominal intrinsics.
+        # The calibrated vehicle cloud has no valid association with that API.
         labels = None
-        if seg_mask is not None and self.semantic_fusion is not None:
-            try:
-                semantic_pc = self.semantic_fusion.fuse(points_camera, seg_mask)
-                labels = semantic_pc.labels
-            except Exception as e:
-                cloudlog.debug(f"Semantic fusion failed: {e}")
-
-        # 4. Transform to vehicle frame
-        points_vehicle = self._camera_to_vehicle(points_camera)
 
         return points_vehicle, labels, stats
-
-    def _camera_to_vehicle(self, points: np.ndarray) -> np.ndarray:
-        """Legacy nominal axis rotation; calibrated mounting extrinsics remain pending."""
-        vx = points[:, 2]   # forward
-        vy = -points[:, 0]  # left
-        vz = -points[:, 1]  # up
-        return np.column_stack([vx, vy, vz]).astype(np.float32)
 
 
 class PointcloudD:
@@ -618,7 +594,10 @@ class PointcloudD:
 
     def _decode_disparity(self, msg) -> tuple[np.ndarray | None, np.ndarray | None]:
         """Decode disparity and confidence from message."""
-        if not msg.disparityMap:
+        if ((not self.reconstructor.calibration_id or msg.calibrationId != self.reconstructor.calibration_id) and
+                time.monotonic() >= self.reconstructor._next_calibration_attempt):
+            self.reconstructor._load_calibration()
+        if not msg.disparityMap or not self.reconstructor.calibration_id or msg.calibrationId != self.reconstructor.calibration_id:
             return None, None
 
         try:
@@ -726,6 +705,8 @@ class PointcloudD:
 
             pc.timestamp = timestamp
             pc.frameId = self._source_frame_id
+            pc.calibrationId = self.reconstructor.calibration_id
+            pc.coordinateFrame = 'base_footprint'
 
             # Limit points for message size
             max_points = 10000
@@ -751,6 +732,7 @@ class PointcloudD:
                     pc_labels[i] = int(label)
 
             pc.validPoints = num_points
+            msg.valid = bool(num_points and self.reconstructor.calibration_id)
             pc.wasFiltered = stats.get("removal_rate", 0) > 0
             pc.source = "pointcloudd_3d"
 
@@ -801,6 +783,7 @@ class PointcloudD:
         """Publish detailed status."""
         try:
             msg = messaging.new_message("pointcloudStatus")
+            msg.valid = True
             ps = msg.pointcloudStatus
 
             ps.timestamp = timestamp

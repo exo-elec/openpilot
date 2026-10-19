@@ -48,6 +48,8 @@ def daemon_module():
   stub('openpilot.system.inferenced', InferenceClient=Mock())
   replacements['openpilot.nagaspilot.daemons.stereod.stereo_input'] = inputs
   replacements['openpilot.nagaspilot.daemons.stereod.sgm'] = sgm
+  stub('openpilot.system.inferenced.opencl_rectify',
+       OpenCLRectifier=Mock(side_effect=lambda *args: Mock(remap=Mock(side_effect=lambda left, right: (left, right)))))
   with patch.dict(sys.modules, replacements):
     return load('stereod_host_test', ROOT / 'nagaspilot/daemons/stereod/stereod.py')
 
@@ -58,7 +60,7 @@ daemon = daemon_module()
 def calibration(w=32, h=16):
   y, x = np.indices((h, w), dtype=np.float32)
   q = np.array([[1, 0, 0, -w/2], [0, 1, 0, -h/2], [0, 0, 0, 100], [0, 0, 10, 0]], dtype=float)
-  return SimpleNamespace(left_map1=x, left_map2=y, right_map1=x.copy(), right_map2=y.copy(), Q=q, T=np.array([-0.1, 0, 0]))
+  return SimpleNamespace(left_map1=x, left_map2=y, right_map1=x.copy(), right_map2=y.copy(), Q=q, T=np.array([-0.1, 0, 0]), R1=np.eye(3))
 
 
 class TestStereoInputs(unittest.TestCase):
@@ -107,6 +109,7 @@ class TestStereoRecovery(unittest.TestCase):
     obj = daemon.StereoD.__new__(daemon.StereoD)
     obj.width, obj.height = 32, 16
     obj.gpu, obj._sgm = None, None
+    obj._rectifier = None
     obj._next_init_attempt = 0
     obj._gpu_sgm_available = False
     obj._fault, obj._fault_reason, obj._consecutive_failures = False, '', 0
@@ -241,11 +244,12 @@ class TestStereoRecovery(unittest.TestCase):
   def test_publish_preserves_capture_metadata_and_schema_fields(self):
     obj = self.ready()
     obj.enabled, obj.frame_id, obj.pm = True, 42, Mock()
+    obj._calibration_id = inputs.calibration_id(calibration())
     obj._metrics.get_latency_stats.return_value = {'sgm': {'avg_ms': 12.5}}
     status_type = type('Status', (), {'__slots__': ('timestamp', 'enabled', 'fault', 'faultReason', 'consecutiveFailures',
                                                   'processingTimeMs', 'frameId', 'hasCalibration')})
     depth_type = type('Depth', (), {'__slots__': ('timestamp', 'frameId', 'width', 'height', 'disparityMap', 'confidenceMap',
-                                                'meanDisparity', 'validPixels')})
+                                                'meanDisparity', 'validPixels', 'calibrationId')})
     def message(name):
       return SimpleNamespace(**{name: status_type() if name == 'stereoStatus' else depth_type()})
     with patch.object(daemon.messaging, 'new_message', side_effect=message, create=True):
@@ -253,6 +257,8 @@ class TestStereoRecovery(unittest.TestCase):
     calls = obj.pm.send.call_args_list
     self.assertEqual(calls[0].args[1].stereoDepth.timestamp, 1_000_000_000)
     self.assertEqual(calls[0].args[1].stereoDepth.frameId, 42)
+    self.assertTrue(calls[0].args[1].valid)
+    self.assertTrue(calls[1].args[1].valid)
     self.assertEqual(calls[1].args[1].stereoStatus.processingTimeMs, 12.5)
 
 

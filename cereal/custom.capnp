@@ -473,6 +473,7 @@ struct StereoDepth @0xb6bdb722f54f3902 {
   # Basic stats
   meanDisparity @6 :Float32;
   validPixels @7 :UInt32;
+  calibrationId @8 :Text;  # SHA-256 of factory rectified geometry/maps; consumers reject mismatches
 }
 
 # 3D object detections from stereo fusion (stereod, YOLO + depth)
@@ -547,6 +548,8 @@ struct GridStatus @0xd4e5f6a7b8c9d0e1 {
   # missing, failed or stale): gridd runs without a road mask and says so
   # here. Not a fault -- nothing is disabled, nothing substitutes.
   segmentationDegraded @9 :Bool;
+  stereoDegraded @10 :Bool;  # Optional GPU/calibration/depth unavailable; no CPU fallback
+  stereoDegradedReason @11 :Text;
 }
 
 
@@ -676,8 +679,9 @@ struct InferenceJobResult @0xe8f9a0b1c2d3e4f5 {
 struct PointcloudProcessed @0xf3e4d5c6b7a80913 {
   # Clean point cloud from pointcloudd (objects removed)
   # Published at reduced rate (5Hz) for surfaced/sgm_localizer to consume.
-  # Points are in ego (camera) frame. GeoPosition carries the vehicle pose
-  # at capture time so consumers have a single time-aligned message.
+  # Points are in measured base_footprint FLU, metres. timestamp/frameId retain
+  # the stereo capture identity. GeoPosition is the latest cached position;
+  # it is not an interpolated capture-time pose or a localization solution.
   timestamp @0 :UInt64;
   frameId @1 :UInt32;
 
@@ -697,6 +701,8 @@ struct PointcloudProcessed @0xf3e4d5c6b7a80913 {
   geoHeading @10 :Float32;   # radians, NED yaw (0=North, clockwise)
   geoAccuracy @11 :Float32;  # horizontal accuracy in meters (0 = unknown)
   geoSource @12 :Text;       # "fused", "gps", "none"
+  calibrationId @13 :Text;   # Factory stereo geometry fingerprint
+  coordinateFrame @14 :Text; # "base_footprint" (forward, left, up)
 }
 
 struct Point3D @0xe2f3a4b5c6d7e8f9 {

@@ -23,7 +23,7 @@ class OpenCLReprojector:
     if shape == self._shape:
       return
     n = int(np.prod(shape))
-    sizes = [4*n, 4*n, 64, 12*n]
+    sizes = [4*n, 4*n, 128, 12*n]
     self.gpu.check_allocations(sizes)
     self.gpu.queue.finish()
     for buffer in self._buffers:
@@ -40,7 +40,7 @@ class OpenCLReprojector:
       raise
     self._shape = shape
 
-  def reproject(self, disparity, q, confidence, *, min_confidence=0.3, min_depth=0.5, max_depth=100.0, max_runtime_ms=50.0):
+  def reproject(self, disparity, q, confidence, *, transform=None, min_confidence=0.3, min_depth=0.5, max_depth=100.0, max_runtime_ms=50.0):
     if self.closed:
       raise RuntimeError('GPU reprojector is closed')
     disparity = np.ascontiguousarray(disparity, dtype=np.float32)
@@ -50,18 +50,25 @@ class OpenCLReprojector:
       raise ValueError('Disparity and confidence must have the same nonempty image shape')
     if q.shape != (4, 4) or not np.isfinite(q).all() or np.linalg.matrix_rank(q) != 4:
       raise ValueError('Expected a finite full-rank 4x4 calibrated Q')
+    transform = np.eye(4, dtype=np.float32) if transform is None else np.asarray(transform, dtype=np.float32)
+    if (transform.shape != (4, 4) or not np.isfinite(transform).all() or
+        not np.allclose(transform[3], [0, 0, 0, 1], atol=1e-5) or
+        not np.allclose(transform[:3, :3] @ transform[:3, :3].T, np.eye(3), atol=1e-4) or
+        not np.isclose(np.linalg.det(transform[:3, :3]), 1, atol=1e-4)):
+      raise ValueError('Expected a finite rigid output-frame transform')
+    geometry = np.ascontiguousarray(np.vstack((q, transform)), dtype=np.float32)
     limits = np.array([min_confidence, min_depth, max_depth, max_runtime_ms])
     if not np.isfinite(limits).all() or not (0 <= min_confidence <= 1 and 0 <= min_depth < max_depth and max_runtime_ms > 0):
       raise ValueError('Invalid confidence/range/deadline limits')
     h, w = disparity.shape
-    self.gpu.check_allocations([4*w*h, 4*w*h, 64, 12*w*h])
+    self.gpu.check_allocations([4*w*h, 4*w*h, 128, 12*w*h])
     output = np.empty((h, w, 3), dtype=np.float32)
     start = time.monotonic()
     gpu = self.gpu
     with gpu.lock:
       self._allocate((h, w))
       db, cb, qb, xyz = self._buffers
-      for buffer, array in ((db, disparity), (cb, confidence), (qb, q)):
+      for buffer, array in ((db, disparity), (cb, confidence), (qb, geometry)):
         gpu.cl.enqueue_copy(gpu.queue, buffer, array, is_blocking=True)
       self._kernel(gpu.queue, (w*h,), None, db, cb, qb, xyz, np.int32(w), np.int32(h),
                    np.float32(min_confidence), np.float32(min_depth), np.float32(max_depth))

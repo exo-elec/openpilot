@@ -2,7 +2,7 @@
 import importlib.util
 from pathlib import Path
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest  # noqa: TID251
 from unittest.mock import Mock, patch  # noqa: TID251
 
@@ -40,6 +40,7 @@ def load_pointcloud():
     stub(f'openpilot.nagaspilot.daemons.{name}', **{attr: Mock() for attr in attrs})
   stub('openpilot.system.inferenced', InferenceClient=Mock())
   stub('openpilot.system.hardware', HARDWARE=Mock())
+  stub('nagaspilot.hardware.paths', Paths=Mock(eop_data_root=Mock(return_value='/data/eop')))
   modules['openpilot.nagaspilot.daemons.stereod.stereo_input'] = support.inputs
   modules['openpilot.system.inferenced.opencl_reproject'] = projection
   with patch.dict(sys.modules, modules):
@@ -51,12 +52,23 @@ pointcloud = load_pointcloud()
 
 class TestPointCloudGPUContract(unittest.TestCase):
   def reconstructor(self, *, use_gpu=True, cal=True):
+    transform = np.array([[0, 0, 1, 0], [-1, 0, 0, 0], [0, -1, 0, 1.2], [0, 0, 0, 1]], np.float32)
     with patch.object(pointcloud.HARDWARE, 'load_stereo_intrinsics', return_value=support.calibration() if cal else None), \
+         patch.object(pointcloud, 'measured_mount', return_value=(transform, None)), \
          patch.dict(sys.modules, {'openpilot.nagaspilot.daemons.stereod.stereo_input': support.inputs}):
       return pointcloud.Reconstructor3D(Mock(), use_gpu=use_gpu)
 
   def test_missing_calibration_never_builds_nominal_geometry(self):
     self.assertIsNone(self.reconstructor(cal=False).Q)
+
+  def test_missing_mount_never_produces_nominal_vehicle_cloud(self):
+    with patch.object(pointcloud.HARDWARE, 'load_stereo_intrinsics', return_value=support.calibration()), \
+         patch.object(pointcloud, 'measured_mount', side_effect=FileNotFoundError('unmeasured')):
+      obj = pointcloud.Reconstructor3D(Mock())
+    self.assertIsNone(obj._mount_transform)
+    points, _, stats = obj.reconstruct(np.ones((16, 32), np.float32), np.ones((16, 32), np.float32), None, [])
+    self.assertIsNone(points)
+    self.assertEqual(stats['recon_method'], 'invalid_calibration_or_input')
 
   def test_gpu_failure_does_not_invoke_cpu_projection(self):
     obj = self.reconstructor()
@@ -91,6 +103,17 @@ class TestPointCloudGPUContract(unittest.TestCase):
     points, _, stats = obj.reconstruct(disparity, confidence, None, [])
     self.assertEqual(len(points), 16*32-8)
     self.assertEqual(stats['recon_method'], 'gpu_opencl')
+    np.testing.assert_array_equal(obj._gpu_reprojector.reproject.call_args.kwargs['transform'], obj._mount_transform)
+
+  def test_recorder_rejects_other_calibration_before_decoding_depth(self):
+    obj = pointcloud.PointcloudD.__new__(pointcloud.PointcloudD)
+    obj.reconstructor, obj.stats = self.reconstructor(), Mock()
+    msg = SimpleNamespace(calibrationId=obj.reconstructor.calibration_id, height=16, width=32,
+                          disparityMap=np.ones((16, 32), np.float32).tobytes(),
+                          confidenceMap=np.ones((16, 32), np.float32).tobytes())
+    self.assertEqual(obj._decode_disparity(msg)[0].shape, (16, 32))
+    msg.calibrationId = 'old-factory-calibration'
+    self.assertEqual(obj._decode_disparity(msg), (None, None))
 
   def test_gpu_acquisition_retries_after_backoff(self):
     obj = pointcloud.GPUReprojector(Mock())
@@ -112,6 +135,14 @@ class TestPointCloudGPUContract(unittest.TestCase):
     obj.closed, obj.gpu = False, Mock()
     with self.assertRaises(ValueError):
       obj.reproject(np.ones((4, 4)), np.zeros((4, 4)), np.ones((4, 4)))
+    obj.gpu.check_allocations.assert_not_called()
+
+  def test_projection_rejects_nonrigid_vehicle_transform_before_dispatch(self):
+    obj = projection.OpenCLReprojector.__new__(projection.OpenCLReprojector)
+    obj.closed, obj.gpu = False, Mock()
+    for transform in (np.eye(3), np.eye(4)*2, np.diag([-1, 1, 1, 1]), np.full((4, 4), np.nan)):
+      with self.subTest(transform=transform), self.assertRaises(ValueError):
+        obj.reproject(np.ones((4, 4)), support.calibration().Q, np.ones((4, 4)), transform=transform)
     obj.gpu.check_allocations.assert_not_called()
 
 

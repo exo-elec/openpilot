@@ -1,8 +1,9 @@
 # StereoD to point cloud: upstream geometry and execution contract
 
 Updated 2026-10-19. Owner scope: stereo disparity and metric point-cloud
-reconstruction first. GPU failure degrades this source; CPU remains assigned to
-ADAS. This is not a completed mapping or vehicle-frame calibration claim.
+reconstruction and conservative local endpoint mapping. GPU failure degrades
+this source; CPU remains assigned to ADAS. Target execution and measured
+calibration provisioning remain required; this is not driving acceptance.
 
 ## Exact primary-source audit
 
@@ -50,18 +51,23 @@ Any future source reuse must pin its revision and retain its actual license.
    calibrated vehicle geometry. Ground/obstacle classification, visible-space
    evidence and temporal mapping come afterwards, per the separate mapping plan.
 
-The live pointcloudd legacy axis rotation is still a nominal orientation, not a
-measured mounting transform. Camera height/pitch/extrinsics and calibration
-revision identity across messages remain explicit integration gaps. Do not use
-that nominal cloud as validated drivable-space geometry. The older gridd lazy
-reprojection and all-return occupancy path still needs its GPU/ground split;
-this slice does not claim that path is a correct Autoware-style mapper.
+The nominal axis conversion and legacy CPU GridD projection are now removed.
+GridD and Pointcloudd require a measured `stereo_extrinsics.npz` bound to the
+factory calibration fingerprint. See [provisioning and limits](STEREO_GRID_RUNTIME.md).
+They do not manufacture mounting height, pitch, a road boundary, or free space
+when that file or a GPU is missing. Pointcloudd publishes base_footprint FLU
+coordinates with capture frame/time, factory identity and coordinate frame.
+Its geographic position remains a latest-position cache, not interpolated pose.
 
 ## GPU and degradation implementation
 
 - `InferenceClient.gpu()` supplies a smoke-checked, GPU-only context.
 - `OpenCLReprojector` dispatches the full-Q kernel with bounded working memory
   and a completed-frame deadline. OpenCV CPU projection is a host oracle only.
+- StereoD rectifies on OpenCL before census SGM; no full-image CPU remap substitute.
+- GridD separates ground/obstacle endpoints and conservatively suppresses ground
+  behind the nearest obstacle in each image column on GPU. Obstacles override
+  road masks. Unsupported endpoints and unsampled cells remain unknown.
 - Pointcloudd no longer falls back to CPU when GPU acquisition or dispatch fails.
   Turning its GPU switch off disables projection. The explicit offline
   DepthPipeline CPU reference is not called by live pointcloudd or StereoD.
@@ -83,11 +89,14 @@ numerical cases plus one full-Q GPU/OpenCV parity case are gated behind the
 required real-GPU diagnostic. Its unavailable-device result is failure, not a
 CPU success or a silently accepted skip.
 
-Required next: measured mounting transform and calibration revision identity;
-GPU port and ground/obstacle split before live gridd integration; ray visibility
-and unknown-space semantics; synchronized replay; RK3588/RK3576 target accuracy,
-latency and concurrent ADAS/UI/thermal profiling. No full pipeline acceptance is
-claimed. The existing full test gate stops at bigmodel_platform.py lineage drift.
+Required next: provision real measured mounting and ground plane; synchronized
+replay; RK3588/RK3576 target accuracy, latency and concurrent ADAS/UI/thermal
+profiling. GPU checks fail with PLATFORM_NOT_FOUND_KHR on this development host.
+Motion-compensated temporal mapping, fitted ground on varying slopes, connected
+drivable-corridor extraction and capture-time geographic interpolation are not
+implemented. Moving or unknown-pose frames clear old stereo occupancy; stationary
+history decays toward unknown. No full pipeline/vehicle acceptance is claimed.
+The existing full test gate stops at bigmodel_platform.py lineage drift.
 
 Owner clarification: core CPU and RKNN safety-NPU failures retain compute
 disengagement authority. Optional grid/RGA faults now degrade alongside stereo,

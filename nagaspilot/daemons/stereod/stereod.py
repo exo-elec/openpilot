@@ -18,7 +18,6 @@ import logging
 import time
 
 import numpy as np
-import cv2
 
 import cereal.messaging as messaging
 from msgq.visionipc import VisionIpcClient
@@ -33,7 +32,8 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced import InferenceClient
 
 # SGM via HAL
-from openpilot.nagaspilot.daemons.stereod.stereo_input import luma_plane, capture_timestamp, calibration_maps
+from openpilot.nagaspilot.daemons.stereod.stereo_input import luma_plane, capture_timestamp, calibration_maps, calibration_id
+from openpilot.system.inferenced.opencl_rectify import OpenCLRectifier
 from openpilot.nagaspilot.daemons.stereod.sgm import SGM, SGMConfig, SGMError, SGMDeviceError, SGMTimeoutError
 
 # Constants
@@ -74,6 +74,7 @@ class StereoD:
 
         # SGM state
         self._sgm: SGM | None = None
+        self._rectifier = None
         self._sgm_config: SGMConfig | None = None
         self._gpu_sgm_available = False
 
@@ -93,6 +94,7 @@ class StereoD:
         self.left_map1 = self.left_map2 = None
         self.right_map1 = self.right_map2 = None
         self.Q = None
+        self._calibration_id = ""
         self.frame_id = 0
         self._last_capture = 0
         self._left_support = self._right_support = None
@@ -116,13 +118,13 @@ class StereoD:
         self._next_init_attempt = time.monotonic() + BACKEND_RETRY_S
         self._gpu_sgm_available = False
         self.Q = None
+        self._calibration_id = ""
         self.stereo_baseline_m = None
         self.left_map1 = self.left_map2 = None
         self.right_map1 = self.right_map2 = None
         self._left_support = self._right_support = None
-        if self._sgm is not None:
-            self._sgm.release()
-            self._sgm = None
+        if self._sgm is not None or self._rectifier is not None:
+            self._drop_backend()
         if self.gpu is None:
             try:
                 self.gpu = self.client.gpu()
@@ -134,7 +136,11 @@ class StereoD:
             (self.left_map1, self.left_map2, self.right_map1, self.right_map2,
              self.Q, self._left_support, self._right_support) = calibration_maps(cal, width, height)
             self.stereo_baseline_m = float(np.linalg.norm(cal.T))
+            self._calibration_id = calibration_id(cal)
         except Exception as exc:
+            self.Q = None
+            self._calibration_id = ""
+            self.stereo_baseline_m = None
             self._set_fault("calibration_invalid", str(exc))
             return False
 
@@ -151,6 +157,7 @@ class StereoD:
         )
 
         try:
+            self._rectifier = OpenCLRectifier(self.gpu, (self.left_map1, self.left_map2, self.right_map1, self.right_map2))
             self._sgm = SGM(self._sgm_config, target="gpu", gpu=self.gpu)
             if self._sgm.is_available():
                 self._gpu_sgm_available = True
@@ -189,6 +196,12 @@ class StereoD:
             cloudlog.warning(f"SGM release failed: {exc}")
         finally:
             self._sgm = None
+            rectifier, self._rectifier = self._rectifier, None
+            if rectifier is not None:
+                try:
+                    rectifier.close()
+                except Exception as exc:
+                    cloudlog.warning(f"Rectifier release failed: {exc}")
             try:
                 self.client.release()
             except Exception as exc:
@@ -203,8 +216,7 @@ class StereoD:
         try:
             left_gray = luma_plane(left_data, self.width, self.height, self.vipc_left.stride)
             right_gray = luma_plane(right_data, self.width, self.height, self.vipc_right.stride)
-            left_rect = cv2.remap(left_gray, self.left_map1, self.left_map2, cv2.INTER_LINEAR)
-            right_rect = cv2.remap(right_gray, self.right_map1, self.right_map2, cv2.INTER_LINEAR)
+            left_rect, right_rect = self._rectifier.remap(left_gray, right_gray)
             result = self._sgm.compute(left_rect, right_rect)
 
             if not result.success:
@@ -321,9 +333,7 @@ class StereoD:
                 self.rk.keep_time()
 
         finally:
-            if self._sgm is not None:
-                self._sgm.release()
-            self.client.release()
+            self._drop_backend()
 
     def _publish(self, disparity, confidence, ts):
         """Publish stereo outputs."""
@@ -334,15 +344,19 @@ class StereoD:
             sd.frameId = self.frame_id
             sd.width = self.width
             sd.height = self.height
+            sd.calibrationId = self._calibration_id
             sd.disparityMap = disparity.astype(np.float32).tobytes()
             if confidence is not None:
                 sd.confidenceMap = confidence.astype(np.float32).tobytes()
                 valid = confidence > 0
                 sd.meanDisparity = float(disparity[valid].mean()) if np.any(valid) else 0.0
                 sd.validPixels = int(np.count_nonzero(valid))
+            depth_msg.valid = bool(self.enabled and not self._fault and self._calibration_id and
+                                   confidence is not None and sd.validPixels > 0)
             self.pm.send('stereoDepth', depth_msg)
 
         status_msg = messaging.new_message('stereoStatus')
+        status_msg.valid = True  # A valid health report can describe a degraded source.
         ss = status_msg.stereoStatus
         ss.timestamp = ts
         ss.enabled = self.enabled

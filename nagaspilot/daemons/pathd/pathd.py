@@ -807,6 +807,8 @@ class PathD:
 
     if self.sm.updated.get('gridObjects', False):
       try:
+        if not self.sm.valid.get('gridObjects', False):
+          raise ValueError('Invalid gridObjects source')
         grid_msg = self.sm['gridObjects']
         self.grid_view = OccupancyGridView.from_message(grid_msg)
         self._grid_last_time = time.monotonic()
@@ -842,10 +844,15 @@ class PathD:
         self._bike_hazard = sg.bikeHazard
         self._drivable_limit_m = sg.drivableLimitM
         self._occupancy_detected = sg.occupancyDetected
-        self._stereo_ground_last_time = time.monotonic()
-        if len(sg.leftBoundary) == 7:
+        fresh = (self.sm.valid.get('stereoGround', False) and sg.hasStereoDepth and
+                 0 <= time.monotonic_ns()-sg.timestamp <= 200_000_000)
+        self._stereo_ground_last_time = time.monotonic() if fresh else 0.0
+        if fresh and len(sg.leftBoundary) == 7 and len(sg.rightBoundary) == 7:
           self._stereo_left_boundary  = list(sg.leftBoundary)
           self._stereo_right_boundary = list(sg.rightBoundary)
+        else:
+          self._stereo_left_boundary = []
+          self._stereo_right_boundary = []
       except (AttributeError, KeyError) as e:
         if self.log_counter % 100 == 0:
           cloudlog.debug(f"PathD: stereoGround field missing: {e}")
@@ -869,9 +876,18 @@ class PathD:
     grid_view = None
     if self.grid_view is not None and (time.monotonic() - self._grid_last_time) < GRID_STALE_TIMEOUT:
       grid_view = self.grid_view
+    if grid_view is None:
+      self._grid_tracks = []  # Expired/invalid grid cannot keep supplying fresh tracks.
 
     # stereoGround stale check
-    stereo_ground_valid = (time.monotonic() - self._stereo_ground_last_time) < GRID_STALE_TIMEOUT
+    stereo_ground_valid = (self._stereo_ground_last_time > 0 and
+                           0 <= time.monotonic() - self._stereo_ground_last_time < GRID_STALE_TIMEOUT)
+    if not stereo_ground_valid:
+      self._stereo_left_boundary = []
+      self._stereo_right_boundary = []
+      self._bike_hazard = False
+      self._occupancy_detected = False
+      self._drivable_limit_m = float('inf')  # No stereo speed constraint; never assert free space.
 
     # Build nav_data from navInstruction cereal message (NAVD v2)
     nav_data = None
@@ -1101,7 +1117,7 @@ class PathD:
     self._lat_nudge.enabled = self._stereo_enabled
     stereo_left  = getattr(self, '_stereo_left_boundary',  [])
     stereo_right = getattr(self, '_stereo_right_boundary', [])
-    if self._lat_nudge.enabled and len(stereo_left) == 7 and len(stereo_right) == 7:
+    if self._lat_nudge.enabled and stereo_ground_valid and len(stereo_left) == 7 and len(stereo_right) == 7:
       nudge_7pts = self._lat_nudge.update(stereo_left, stereo_right,
                                     self._grid_tracks, ego_velocity)
       # Interpolate 7-point nudge offsets onto 33-point trajectory
@@ -1123,7 +1139,7 @@ class PathD:
         lateral_adjustments[i] = lateral_adjustments[i] + nudge_adj
 
     # EOP: LonNudge — stereo forward-distance speed adjustment
-    self._lon_nudge.enabled = self._stereo_enabled
+    self._lon_nudge.enabled = self._stereo_enabled and stereo_ground_valid
     lon_delta = self._lon_nudge.update(
       self._drivable_limit_m,
       self._occupancy_detected,

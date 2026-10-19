@@ -39,8 +39,8 @@ Architecture (SoC Platform - No PCIe):
    (optional)          (optional)
 
 Hardware:
-  - CPU (A76): Lazy reprojection, Bayes filter, fusion
-  - GPU (Mali): Optional OpenCL assist for reprojection
+  - CPU (A76): bounded grid bookkeeping and multi-sensor fusion
+  - GPU (Mali): required for stereo projection, ground split and rasterization
   - Camera-tier card (Hailo-8 / DX-M1M): segd's, not gridd's; gridd only fuses its maps.
     gridd runs no NPU model of its own.
 
@@ -56,6 +56,8 @@ See: docs/eop/daemons/GRIDD.md
 from __future__ import annotations
 
 from openpilot.nagaspilot.daemons.gridd.source_health import fresh_stereo, grid_source_flags
+from openpilot.nagaspilot.daemons.gridd.stereo_grid import StereoGridSource
+from openpilot.system.inferenced import InferenceClient
 
 from nagaspilot.controls.ngp_radar2d import ground_range
 from openpilot.nagaspilot.daemons.radar4d.surround_tracks import tracked_obstacles
@@ -64,7 +66,7 @@ import logging
 import math
 import os
 import time
-from typing import Any, cast
+from typing import Any
 import numpy as np
 
 import cereal.messaging as messaging
@@ -199,11 +201,11 @@ class GridD:
 
         self.params = Params()
 
-        # Only factory calibration can support stereo geometry. The unused
-        # get_camera_geometry() call was not part of HardwareBase's API.
-        self.Q = self._load_calibration()
-        if self.Q is None:
-            cloudlog.warning("GridD stereo geometry unavailable: factory calibration missing")
+        self._stereo_source = StereoGridSource(
+            HARDWARE.load_stereo_intrinsics, InferenceClient("gridd-stereo"), BEV_GRID,
+            os.path.join(Paths.eop_data_root(), "calibration", "stereo_extrinsics.npz"))
+        self._stereo_observation = None
+        self._last_stereo_geometry = None
 
         # BLE Radar2D uses the pose jointly calibrated by the ESP32 and host.
         # already levels BLE tracks with roll/pitch; this host step applies
@@ -262,38 +264,7 @@ class GridD:
         self.segmentation_degraded = False
         self.enabled = True
 
-        cloudlog.info("GridD initialized (factory_stereo_calibration=%s)", self.Q is not None)
-
-    def _load_calibration(self) -> np.ndarray | None:
-        """Load stereo Q matrix for 3D reprojection (factory intrinsics from HAL)."""
-        cal = HARDWARE.load_stereo_intrinsics()  # canonical path + legacy migration fallback
-        if cal is not None:
-            Q = cal.Q
-        else:
-            if not os.path.exists(self.CALIBRATION_PATH):
-                return None
-            try:
-                Q = np.load(self.CALIBRATION_PATH)['Q']
-            except Exception as e:
-                cloudlog.warning(f"Failed to load calibration: {e}")
-                return None
-        cloudlog.info(f"Loaded calibration, baseline={-1.0/Q[3,2]:.3f}m")
-        return cast(np.ndarray, Q)
-
-    def _default_calibration(self) -> np.ndarray:
-        """Default Q matrix for ExoPilot."""
-        f_px = 700.0
-        cx, cy = 320.0, 240.0
-        baseline_m = 0.08  # 80mm default
-
-        Q = np.array([
-            [1, 0, 0, -cx],
-            [0, 1, 0, -cy],
-            [0, 0, 0, f_px],
-            [0, 0, -1.0 / baseline_m, 0],
-        ], dtype=np.float64)
-        cloudlog.info(f"Using default calibration, baseline={baseline_m*1000:.0f}mm")
-        return Q
+        cloudlog.info("GridD initialized; GPU stereo waits for measured factory/mounting calibration")
 
     def _forward_speed(self) -> float:
         """Signed forward speed (m/s) from livePose, 0 without it."""
@@ -320,85 +291,25 @@ class GridD:
                 self.drivable.update(entry.camera, cells.reshape(BEV_GRID.rows, BEV_GRID.cols), now)
 
     def _lazy_reprojection(self, stereo_depth) -> np.ndarray | None:
+        """GPU full-Q geometry and measured ground/obstacle separation."""
+        self._stereo_observation = self._stereo_source.observe(stereo_depth)
+        if self._stereo_observation is None:
+            return None
+        return self._stereo_observation.points
+
+    def _stereo_history_safe(self) -> bool:
+        """Retain stationary history only until measured ego-motion warping exists.
+
+        Moving or missing/stale pose clears the previous map rather than keeping
+        obstacles in the wrong vehicle cells. New endpoints still map each tick.
         """
-        Lazy 3D reprojection from 2D disparity.
-
-        Only reprojects pixels needed for BEV (ROI), not full image.
-        Much faster than dense 3D reconstruction in pointcloudd.
-        """
-        if stereo_depth is None or not stereo_depth.disparityMap:
-            return None
-
-        if self.Q is None:
-            return None
-
-        try:
-            # Decode 2D disparity
-            h, w = stereo_depth.height, stereo_depth.width
-            disparity = np.frombuffer(stereo_depth.disparityMap, dtype=np.float32).reshape((h, w))
-
-            # Decode confidence if available
-            confidence = None
-            if stereo_depth.confidenceMap:
-                confidence = np.frombuffer(stereo_depth.confidenceMap, dtype=np.float32).reshape((h, w))
-
-            # Lazy: filter to valid disparities first
-            valid_mask = disparity > 0
-            if confidence is not None:
-                valid_mask &= confidence > 0.3
-
-            # Subsample for efficiency (gridd doesn't need full resolution)
-            # Keep every 4th pixel - sufficient for BEV grid
-            step = 4
-            valid_mask[::step, ::step] &= valid_mask[::step, ::step]  # Maintain stride pattern
-            valid_mask[1::step, :] = False
-            valid_mask[:, 1::step] = False
-
-            if not np.any(valid_mask):
-                return None
-
-            # Get valid pixel coordinates
-            v_coords, u_coords = np.where(valid_mask)
-            disparities = disparity[valid_mask]
-
-            # Reprojection using Q matrix
-            # Q = [[1, 0, 0, -cx],
-            #      [0, 1, 0, -cy],
-            #      [0, 0, 0,  f],
-            #      [0, 0, -1/b, 0]]
-
-            cx = -self.Q[0, 3]
-            cy = -self.Q[1, 3]
-            f = self.Q[2, 2]
-            baseline = -1.0 / self.Q[3, 2]
-
-            # Vectorized reprojection
-            # Z = f * baseline / disparity
-            # X = (u - cx) * Z / f
-            # Y = (v - cy) * Z / f
-
-            Z = f * baseline / disparities
-            X = (u_coords - cx) * Z / f  # Right (lateral)
-            Y = (v_coords - cy) * Z / f  # Down (vertical)
-
-            # Stack: [right, down, forward]
-            xyz = np.column_stack([X, Y, Z]).astype(np.float32)
-
-            # Filter to BEV range (lazy - only keep points in useful range)
-            # Forward: 0.5m to 80m, Lateral: +/- 15m
-            in_range = (
-                (xyz[:, 2] > 0.5) & (xyz[:, 2] < 80.0) &  # forward
-                (np.abs(xyz[:, 0]) < 15.0)  # lateral
-            )
-
-            if not np.any(in_range):
-                return None
-
-            return xyz[in_range]
-
-        except Exception as e:
-            cloudlog.debug(f"Lazy reprojection failed: {e}")
-            return None
+        if not self.sm.valid.get('livePose', False) or not 0 <= time.monotonic()-self.sm.recv_time['livePose'] <= 0.2:
+            return False
+        pose = self.sm['livePose']
+        values = np.array([pose.velocityDevice.x, pose.velocityDevice.y, pose.velocityDevice.z,
+                           pose.angularVelocityDevice.x, pose.angularVelocityDevice.y, pose.angularVelocityDevice.z])
+        return (pose.velocityDevice.valid and pose.angularVelocityDevice.valid and np.isfinite(values).all() and
+                np.max(np.abs(values[:3])) < 0.05 and np.max(np.abs(values[3:])) < 0.01)
 
     def _fuse_mono_detections(
         self,
@@ -804,31 +715,12 @@ class GridD:
         return self._SURFACE_COST[cells], cells == 255
 
     def _extract_road_boundaries(self, xyz_points: np.ndarray | None) -> tuple:
-        """Extract road boundaries from point cloud.
+        """Obstacle-cloud extrema are not road boundaries; leave them unavailable.
 
-        In stereo X (right positive), the frame of modelV2 roadEdges and of
-        pathd's path: the left boundary is negative. stereoGround carries them
-        so; pathd's lat_nudge reads them in that frame.
+        Pathd still has model/semantic corridor and the measured obstacle grid.
+        Do not publish a fabricated six-metre road through unknown space.
         """
-        defaults = ([-3.0] * 7, [3.0] * 7)
-
-        if xyz_points is None or len(xyz_points) == 0:
-            return defaults
-
-        bins = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]
-        left_b, right_b = [], []
-
-        for dist in bins:
-            in_bin = (xyz_points[:, 2] >= dist - 2.5) & (xyz_points[:, 2] < dist + 2.5)
-            if not np.any(in_bin):
-                left_b.append(-3.0)
-                right_b.append(3.0)
-            else:
-                x_vals = xyz_points[in_bin, 0]
-                left_b.append(float(np.percentile(x_vals, 5)))
-                right_b.append(float(np.percentile(x_vals, 95)))
-
-        return left_b, right_b
+        return [], []
 
     def _publish(
         self,
@@ -841,27 +733,39 @@ class GridD:
         """Publish all outputs."""
         # gridObjects - BEV occupancy + cost, one layout (BEV_GRID)
         msg = messaging.new_message('gridObjects')
+        msg.valid = not getattr(self, 'fault', False)
         fill_grid_objects(msg.gridObjects, ts, self.bev.get_grid(), costmap,
                           self.drivable.probability() if has_segmentation else None)
         msg.gridObjects.frameId = self.frame_id
-        msg.gridObjects.sourceFlags = grid_source_flags(xyz_points is not None and len(xyz_points) > 0, objects)
+        observation = getattr(self, '_stereo_observation', None)
+        has_stereo = observation is not None and bool(np.any(observation.occupied | observation.ground))
+        msg.gridObjects.sourceFlags = grid_source_flags(has_stereo, objects)
 
         self.pm.send('gridObjects', msg)
 
         # stereoGround - for pathd
         left_b, right_b = self._extract_road_boundaries(xyz_points)
         ground_msg = messaging.new_message('stereoGround')
+        ground_msg.valid = not getattr(self, 'fault', False)
         sg = ground_msg.stereoGround
         sg.timestamp = ts
         sg.leftBoundary = left_b
         sg.rightBoundary = right_b
-        sg.minGroundDistance = float(np.percentile(xyz_points[:, 2], 99)) if xyz_points is not None else 100.0
-        sg.hasStereoDepth = xyz_points is not None
+        ground_rows = np.flatnonzero(np.any(observation.ground, axis=1)) if observation is not None else []
+        sg.minGroundDistance = float(BEV_GRID.center(ground_rows[0], 0)[0]) if len(ground_rows) else 0.0
+        sg.hasStereoDepth = has_stereo
+        sg.hasGroundPlane = has_stereo
         sg.hasSegmentation = has_segmentation
+        # The obstacle cost grid is the geometric constraint. A cloud percentile
+        # is not a drivable-distance estimate, nor is a default zero a hazard.
+        sg.drivableLimitM = float('inf')
+        sg.occupancyDetected = False
+        sg.bikeHazard = False
         self.pm.send('stereoGround', ground_msg)
 
         # stereoObjects - fused detections (mono + modeld)
         obj_msg = messaging.new_message('stereoObjects')
+        obj_msg.valid = not getattr(self, 'fault', False)
 
         if objects:
             self._cam_tracks.annotate(objects)
@@ -887,6 +791,7 @@ class GridD:
     def _publish_status(self, ts: int, processing_time_ms: float, objects_count: int) -> None:
         """Publish gridStatus with fault tracking."""
         msg = messaging.new_message('gridStatus')
+        msg.valid = True
         status = msg.gridStatus
 
         status.timestamp = ts
@@ -901,6 +806,8 @@ class GridD:
         status.faultReason = self.fault_reason
         status.consecutiveFailures = self.consecutive_failures
         status.segmentationDegraded = self.segmentation_degraded
+        status.stereoDegraded = self._stereo_observation is None
+        status.stereoDegradedReason = (self._stereo_source.last_error or 'no_fresh_stereo_evidence') if status.stereoDegraded else ''
 
         self.pm.send('gridStatus', msg)
 
@@ -919,9 +826,11 @@ class GridD:
 
             # Get stereo depth from stereod (lazy reprojection from 2D disparity)
             xyz_points = None
+            self._stereo_observation = None
             if self.sm.updated['stereoDepth'] and self.sm.valid['stereoDepth']:
                 stereo_depth = self.sm['stereoDepth']
-                status_ok = (not self.sm.valid['stereoStatus'] or not self.sm['stereoStatus'].fault)
+                status_ok = (self.sm.valid['stereoStatus'] and not self.sm['stereoStatus'].fault and
+                             time.monotonic()-self.sm.recv_time['stereoStatus'] <= 0.2)
                 if fresh_stereo(stereo_depth.timestamp, ts, self._last_stereo_timestamp,
                                 source_valid=True, fault=not status_ok):
                     self._last_stereo_timestamp = stereo_depth.timestamp
@@ -974,7 +883,13 @@ class GridD:
             # Stereo occupancy first: the cost layer reads it
             # Age confidence on every tick, including GPU/camera dropouts.
             # Decay approaches unknown (0.5 occupancy), never free.
-            self.bev.update_from_points(xyz_points)
+            observation = self._stereo_observation
+            geometry = self._stereo_source.geometry_key
+            self.bev.update_from_evidence(
+                observation.occupied if observation is not None else None,
+                observation.ground if observation is not None else None,
+                retain_history=self._stereo_history_safe() and geometry == self._last_stereo_geometry)
+            self._last_stereo_geometry = geometry
 
             try:
                 if drivable_area is not None:
@@ -1036,7 +951,8 @@ class GridD:
             self.rk.keep_time()
 
     def release(self) -> None:
-        """Nothing held: card segmentation goes through inferenced."""
+        """Release only this daemon's optional GPU mapping context."""
+        self._stereo_source.close()
 
 
 def main() -> int:
