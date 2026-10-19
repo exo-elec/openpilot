@@ -1,5 +1,15 @@
 # NGP10 baseline, JetLink v3 and EOP10 stereo task ledger
 
+Latest interoperability audit (2026-10-19): see
+[JLP/PLP actual-source findings](JLP_PLP_INTEROP_AUDIT.md). Both protocols are in
+scope. PLP Dart-to-Python TCP Locate traffic is now directly verified, but app
+USB/BLE ownership and service wiring remain missing. Current inference still
+uses NPBM v1 on both ends, not upstream JLP v3. Canonical upstream was fetched
+to d24328d849b0e5154b55f149dc18c5dfe8bd79cc; this does not migrate the runtime or
+change the dependency pin. Existing host fallback/gate tests pass, including the
+inherited soft-disable after active phone-model loss; that policy distinction
+must be reconciled in NGP10 before claiming seamless JLP handover.
+
 Updated: 2026-10-18. Current work: lineage detection and implementation planning.
 Runtime migration has not started. Keep this ledger current with subsequent
 SSH-signed commits; implement shared behavior on NGP10 before descendants.
