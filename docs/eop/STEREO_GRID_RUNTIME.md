@@ -43,7 +43,11 @@ measured operating envelope provide no evidence. These are initial validation
 parameters, not tuned road/curb acceptance thresholds. Ground behind the nearest
 obstacle in an image column plus a 0.5 m margin is suppressed. This deliberately
 loses some visible ground; it never invents clear cells behind a parked car.
-An obstacle wins when ground and obstacle endpoints land in the same cell, and
+A second GPU pass projects each ground-cell footprint back into the image and
+marks cells behind nearer obstacle columns as occluded. Occlusion raises semantic
+road cost to unknown while retaining obstacle costs; it also removes historical
+free confidence from newly hidden cells. An obstacle wins when ground and
+obstacle endpoints land in the same cell, and
 current obstacles override historical free confidence and semantic road cost.
 No moving-track identity is required for a parked car's geometric footprint.
 
@@ -155,8 +159,8 @@ ADAS/UI latency, sustained thermals and whole-system memory remain required.
 The full `./test.sh` gate still stops at the pre-existing portable-source mismatch
 in `nagaspilot/runtime/bigmodel_platform.py`; that check is not bypassed.
 
-Recorded host result (2026-10-19): 77 cases pass: shared GPU policy (5), StereoD
-runtime (22), Pointcloudd contracts (14), stereo grid/wire/PathD expiry (19), core
+Recorded host result (2026-10-19): 78 cases pass: shared GPU policy (5), StereoD
+runtime (22), Pointcloudd contracts (14), stereo grid/wire/PathD expiry (20), core
 compute policy (9), and existing metric geometry fixtures (8). The metric pytest
 fixtures were loaded through a temporary standalone wrapper to avoid this PC
 checkout's package/compiled-IPC import setup. Six numerical GPU cases remain

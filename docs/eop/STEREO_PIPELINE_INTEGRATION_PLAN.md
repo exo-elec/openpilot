@@ -279,3 +279,9 @@ This is conservative local endpoint mapping, not completed rolling localization
 or fitted varying-slope ground/corridor extraction. Target hardware validation
 is outstanding. See [runtime contract and acceptance](STEREO_GRID_RUNTIME.md)
 for provisioning, implementation limits, test commands and remaining work.
+
+Visibility follow-up: GPU cell-footprint reprojection now carries occluded cells
+through fusion, rather than only suppressing stereo ground endpoints. Those cells
+raise semantic road cost to unknown; measured obstacle costs remain authoritative,
+and newly occluded historical free confidence is removed. The real-wire fixture
+covers a road mask behind a parked car as well as the occupied footprint.
