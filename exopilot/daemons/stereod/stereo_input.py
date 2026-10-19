@@ -1,5 +1,24 @@
 """Stereo input checks independent of hardware and messaging imports."""
+import hashlib
+
 import numpy as np
+
+
+def calibration_id(cal) -> str:
+  """Fingerprint the rectified optical frame, metric geometry and image maps."""
+  digest = hashlib.sha256()
+  for name in ('Q', 'T', 'R1', 'left_map1', 'left_map2', 'right_map1', 'right_map2'):
+    value = np.ascontiguousarray(getattr(cal, name), dtype='<f8')
+    if not value.size or not np.isfinite(value).all():
+      raise ValueError(f'Missing/non-finite factory calibration field: {name}')
+    if name == 'R1' and (value.shape != (3, 3) or
+                         not np.allclose(value @ value.T, np.eye(3), atol=1e-4) or
+                         not np.isclose(np.linalg.det(value), 1, atol=1e-4)):
+      raise ValueError('Rectified frame requires a measured proper R1 rotation')
+    digest.update(name.encode('ascii'))
+    digest.update(str(value.shape).encode('ascii'))
+    digest.update(value.tobytes())
+  return digest.hexdigest()
 
 
 def luma_plane(data, width: int, height: int, stride: int) -> np.ndarray:
@@ -57,3 +76,30 @@ def calibration_maps(cal, width: int, height: int):
       valid[2:-2, 2:-2] = windows.all(axis=(-1, -2))
     support.append(valid)
   return (*maps, q, *support)
+
+
+def measured_mount(path, expected_id):
+  """Application-owned stereo_extrinsics.npz, rectified optical -> footprint FLU.
+
+  A ground plane is a unit, upward normal and offset in footprint coordinates.
+  No mounting defaults are accepted. Binding to factory calibration prevents
+  applying physical-left-camera extrinsics to a different rectified frame.
+  """
+  with np.load(path, allow_pickle=False) as data:
+    if str(data['calibration_id'].item()) != expected_id:
+      raise ValueError('Stereo mounting belongs to different factory calibration')
+    transform = np.asarray(data['rectified_optical_to_footprint'], dtype=np.float32)
+    plane = np.asarray(data['ground_plane'], dtype=np.float32)
+  if transform.shape != (4, 4) or not np.isfinite(transform).all():
+    raise ValueError('Expected a finite measured 4x4 stereo mounting')
+  rotation = transform[:3, :3]
+  if (not np.allclose(transform[3], [0, 0, 0, 1], atol=1e-5) or
+      not np.allclose(rotation @ rotation.T, np.eye(3), atol=1e-4) or
+      not np.isclose(np.linalg.det(rotation), 1, atol=1e-4)):
+    raise ValueError('Stereo mounting must be a rigid right-handed transform')
+  if not 0.2 <= transform[2, 3] <= 3.0:
+    raise ValueError('Measured stereo camera height is outside the mounting envelope')
+  if (plane.shape != (4,) or not np.isfinite(plane).all() or
+      not np.isclose(np.linalg.norm(plane[:3]), 1, atol=1e-4) or plane[2] < 0.96 or abs(plane[3]) > 0.2):
+    raise ValueError('Expected an upward local ground plane in base_footprint')
+  return transform, plane

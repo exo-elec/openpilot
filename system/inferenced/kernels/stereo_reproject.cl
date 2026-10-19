@@ -16,7 +16,11 @@ __kernel void stereo_reproject(__global const float *disparity,
                       dot(vload4(2,q),pixel),dot(vload4(3,q),pixel));
     if(all(isfinite(p)) && fabs(p.w)>1.0e-20f) {
       float3 projected=p.xyz/p.w;
-      if(all(isfinite(projected)) && projected.z>min_depth && projected.z<max_depth) point=projected;
+      if(all(isfinite(projected)) && projected.z>min_depth && projected.z<max_depth) {
+        float4 h=(float4)(projected,1.0f);
+        float3 transformed=(float3)(dot(vload4(4,q),h),dot(vload4(5,q),h),dot(vload4(6,q),h));
+        if(all(isfinite(transformed))) point=transformed;
+      }
     }
   }
   vstore3(point,i,xyz);

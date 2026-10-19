@@ -259,3 +259,23 @@ failures. ARM cannot advertise an offline RKNN mock when RKNNLite is missing.
 Nine policy tests and eleven stereo degradation tests pass. Existing CPU health,
 model/control validity and vehicle/driver guards remain in force. See
 COMPUTE_FAULT_POLICY.md for the matrix and validation limits.
+
+### GPU stereo-to-grid implementation, 2026-10-19
+
+This checkpoint supersedes earlier pending statements about legacy GridD CPU
+reprojection, nominal vehicle axes and missing calibration identity. StereoD
+now rectifies on OpenCL; its capture message includes a factory geometry/map
+fingerprint. GridD projects through complete Q and measured mounting, separates
+local ground/obstacle endpoints and rasterizes them on GPU. Observed obstacles
+win over road masks; column shadows and unsampled cells receive no free-space
+update. Pointcloudd requires the same measured mounting and publishes footprint
+FLU with explicit capture/calibration/frame identity. No CPU fallback is added.
+
+Old fabricated road edges and stale PathD stereo boundaries are removed. Unknown
+occupancy 0.5 is no longer counted as an obstacle; an unavailable scalar stereo
+speed constraint cannot default to zero metres. Moving/unknown-pose history is
+cleared until measured motion compensation exists; stationary evidence decays.
+This is conservative local endpoint mapping, not completed rolling localization
+or fitted varying-slope ground/corridor extraction. Target hardware validation
+is outstanding. See [runtime contract and acceptance](STEREO_GRID_RUNTIME.md)
+for provisioning, implementation limits, test commands and remaining work.
