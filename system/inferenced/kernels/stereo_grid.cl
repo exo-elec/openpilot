@@ -56,3 +56,40 @@ __kernel void obstacle_cell_points(__global const float *aligned, __global const
   if(i>=0) p=vload3(i,aligned);
   vstore3(p,cell,points);
 }
+
+/* Project each ground-cell footprint back into the calibrated image. The four
+ * corners bound its perspective projection on the locally measured plane.
+ * Any overlap with a nearer obstacle column makes this cell unknown, preventing
+ * segmentation from painting free road through a stereo occlusion.
+ */
+__kernel void stereo_shadow_cells(__constant float *geometry, __constant float *plane,
+                                   __global const int *nearest, volatile __global int *cells,
+                                   int width, int height, float resolution,
+                                   float origin_forward, float origin_left, int rows, int cols) {
+  int cell=get_global_id(0); if(cell>=rows*cols) return;
+  int row=cell/cols, col=cell%cols;
+  float x0=origin_forward+row*resolution, y0=origin_left+col*resolution;
+  if(x0<0.5f) return;
+  float umin=INFINITY, umax=-INFINITY, vmin=INFINITY, vmax=-INFINITY, depth=INFINITY;
+  for(int corner=0;corner<4;corner++) {
+    float x=x0+((corner&1)?resolution:0.0f);
+    float y=y0+((corner&2)?resolution:0.0f);
+    float z=-(plane[0]*x+plane[1]*y+plane[3])/plane[2];
+    float4 p=(float4)(x,y,z,1.0f);
+    float3 optical=(float3)(dot(vload4(4,geometry),p),dot(vload4(5,geometry),p),dot(vload4(6,geometry),p));
+    if(!all(isfinite(optical)) || optical.z<=0.1f) return;
+    float4 h=(float4)(optical,1.0f);
+    float4 image=(float4)(dot(vload4(8,geometry),h),dot(vload4(9,geometry),h),
+                          dot(vload4(10,geometry),h),dot(vload4(11,geometry),h));
+    if(!all(isfinite(image)) || fabs(image.w)<1.0e-20f) return;
+    float u=image.x/image.w, v=image.y/image.w;
+    umin=fmin(umin,u); umax=fmax(umax,u);
+    vmin=fmin(vmin,v); vmax=fmax(vmax,v);
+    depth=fmin(depth,optical.z);
+  }
+  if(umax<0 || umin>=width || vmax<0 || vmin>=height) return;
+  int begin=clamp((int)floor(umin),0,width-1), end=clamp((int)ceil(umax),0,width-1);
+  for(int u=begin;u<=end;u++) {
+    if(depth*1000.0f>nearest[u]-500) { atomic_or(cells+cell,4); return; }
+  }
+}

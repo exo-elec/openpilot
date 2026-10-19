@@ -888,7 +888,8 @@ class GridD:
             self.bev.update_from_evidence(
                 observation.occupied if observation is not None else None,
                 observation.ground if observation is not None else None,
-                retain_history=self._stereo_history_safe() and geometry == self._last_stereo_geometry)
+                retain_history=self._stereo_history_safe() and geometry == self._last_stereo_geometry,
+                occluded=observation.occluded if observation is not None else None)
             self._last_stereo_geometry = geometry
 
             try:
@@ -905,6 +906,8 @@ class GridD:
                     self.costmap_gen.apply_drivable(self._surface[0])
                     self.costmap_gen.mark_occupied(self._surface[1])
                 self.costmap_gen.mark_occupied(self.bev.get_grid() >= OCCUPIED_THRESHOLD)
+                if observation is not None and observation.occluded is not None:
+                    self.costmap_gen.mark_occluded(observation.occluded)
             except Exception as e:
                 cloudlog.error(f"Drivable layer / costmap failed: {e}")
                 inference_success = False

@@ -19,6 +19,7 @@ class StereoObservation:
   points: np.ndarray  # obstacle points only, vehicle-aligned right/down/forward
   occupied: np.ndarray
   ground: np.ndarray
+  occluded: np.ndarray | None = None
 
 
 class GPUGridMapper:
@@ -34,6 +35,7 @@ class GPUGridMapper:
       self.classify = gpu.cl.Kernel(program, 'classify_stereo')
       self.raster = gpu.cl.Kernel(program, 'raster_stereo')
       self.extract = gpu.cl.Kernel(program, 'obstacle_cell_points')
+      self.shadow = gpu.cl.Kernel(program, 'stereo_shadow_cells')
     except Exception:
       self.projector.close()
       raise
@@ -52,13 +54,14 @@ class GPUGridMapper:
     h, w = disparity.shape
     n, spec, gpu = h*w, self.spec, self.gpu
     cell_count = spec.rows*spec.cols
-    sizes = [12*n, 12*n, 4*n, 4*w, 4*cell_count, 64, 16, 4*cell_count, 12*cell_count]
+    sizes = [12*n, 12*n, 4*n, 4*w, 4*cell_count, 192, 16, 4*cell_count, 12*cell_count]
     # Include the retained full-Q buffers in the combined working-set budget.
     gpu.check_allocations(sizes + [4*n, 4*n, 128, 12*n])
     optical = self.projector.reproject(disparity, q, confidence)
     points = np.empty((cell_count, 3), np.float32)
     cells = np.zeros((spec.rows, spec.cols), np.int32)
     representatives = np.full(cell_count, -1, np.int32)
+    geometry = np.ascontiguousarray(np.vstack((self.transform, np.linalg.inv(self.transform), np.linalg.inv(q))), dtype=np.float32)
     nearest = np.full(w, np.iinfo(np.int32).max, np.int32)
     with gpu.lock:
       if self.shape != (h, w):
@@ -70,19 +73,24 @@ class GPUGridMapper:
           self.buffers.append(gpu.cl.Buffer(gpu.context, gpu.cl.mem_flags.READ_WRITE, size))
         self.shape = (h, w)
       ob, ab, lb, nb, cb, tb, pb, rb, points_buffer = self.buffers
-      for buffer, data in ((ob, optical), (nb, nearest), (cb, cells), (tb, self.transform), (pb, self.plane), (rb, representatives)):
+      for buffer, data in ((ob, optical), (nb, nearest), (cb, cells), (tb, geometry), (pb, self.plane), (rb, representatives)):
         gpu.cl.enqueue_copy(gpu.queue, buffer, np.ascontiguousarray(data), is_blocking=True)
       self.classify(gpu.queue, (n,), None, ob, tb, pb, ab, lb, nb, np.int32(w), np.int32(n))
       self.raster(gpu.queue, (n,), None, ob, ab, lb, nb, cb, rb, np.int32(w), np.int32(n),
                   np.float32(spec.resolution), np.float32(spec.origin_forward), np.float32(spec.origin_left),
                   np.int32(spec.rows), np.int32(spec.cols))
       self.extract(gpu.queue, (cell_count,), None, ab, rb, points_buffer, np.int32(cell_count))
+      self.shadow(gpu.queue, (cell_count,), None, tb, pb, nb, cb, np.int32(w), np.int32(h),
+                  np.float32(spec.resolution), np.float32(spec.origin_forward), np.float32(spec.origin_left),
+                  np.int32(spec.rows), np.int32(spec.cols))
       for buffer, data in ((points_buffer, points), (cb, cells)):
         gpu.cl.enqueue_copy(gpu.queue, data, buffer, is_blocking=True)
     if time.monotonic()-started > 0.05:
       raise TimeoutError('Stereo grid GPU deadline exceeded')
     occupied = (cells & 2) != 0
-    return StereoObservation(points[np.isfinite(points).all(axis=1)], occupied, ((cells & 1) != 0) & ~occupied)
+    occluded = ((cells & 4) != 0) & ~occupied
+    return StereoObservation(points[np.isfinite(points).all(axis=1)], occupied,
+                             ((cells & 1) != 0) & ~occupied & ~occluded, occluded)
 
 
 class StereoGridSource:
