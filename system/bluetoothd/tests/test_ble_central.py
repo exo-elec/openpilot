@@ -22,7 +22,7 @@ except ImportError:
 from openpilot.system.bluetoothd.ble_central import (
     GATT_CHAR_IFACE,
     ESPRESSIF_COMPANY_ID, PAIR_DWELL_S, PAIR_RSSI_DBM,
-    corner_to_side,
+    corner_to_side, is_known_unit, node_object_side, objects_by_side, NODE_SIDES, CORNER_NAMES,
     address_from_char_path, CornerPairTable, BLECentral,
     parse_wifi_mac_from_mfg_data, load_wifi_roster, check_learn_eligibility,
 )
@@ -191,11 +191,39 @@ class TestCornerToSide:
 
     def test_unknown_corner(self):
         assert corner_to_side(0xFF) is None
-        assert corner_to_side(4) is None
+        assert corner_to_side(4) is None  # side nodes are not single-side units; see TestSideNodes
+        assert corner_to_side(6) is None
 
     def test_bijective(self):
         sides = {corner_to_side(c) for c in range(4)}
         assert sides == {0, 1, 2, 3}
+
+
+class TestSideNodes:
+    """NRF54_RADAR side nodes (wire ids 4=left, 5=right): two radars fused into one node-frame track list."""
+
+    def test_known_units(self):
+        assert all(is_known_unit(c) for c in range(6))
+        assert not is_known_unit(6) and not is_known_unit(0xFF)
+        assert CORNER_NAMES[4] == 'LN' and CORNER_NAMES[5] == 'RN'
+
+    def test_object_side_by_forward_distance(self):
+        front = {'rangM': 5.0, 'azimuthDeg': 30.0, 'elevationDeg': 0.0, 'vRel': -1.0}
+        rear = {'rangM': 5.0, 'azimuthDeg': 150.0, 'elevationDeg': 0.0, 'vRel': 0.0}
+        assert node_object_side(4, front) == 0 and node_object_side(4, rear) == 1
+        assert node_object_side(5, front) == 2 and node_object_side(5, rear) == 3
+        assert node_object_side(0, front) is None
+        assert node_object_side(4, {'rangM': float('nan'), 'azimuthDeg': 0.0}) is None
+        assert node_object_side(4, {'azimuthDeg': 0.0}) is None
+
+    def test_objects_by_side_mixes_corners_and_nodes(self):
+        near = {'rangM': 2.0, 'azimuthDeg': 10.0, 'elevationDeg': 0.0, 'vRel': -2.0}
+        back = {'rangM': 2.0, 'azimuthDeg': 170.0, 'elevationDeg': 0.0, 'vRel': 0.5}
+        sides = objects_by_side({1: {'objects': [near]}, 4: {'objects': [near, back]}})
+        assert sides[2] == [near]            # legacy FR corner -> RF
+        assert sides[0] == [near] and sides[1] == [back]  # left node split front/rear
+        assert sides[3] == []
+        assert set(NODE_SIDES) == {4, 5}
 
 
 class TestModuleImportWithoutDbus:

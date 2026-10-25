@@ -211,7 +211,8 @@ ADAPTER_PATH    = '/org/bluez/hci0'
 # (pure wire decode, no D-Bus/Params — shared-hal ownership pattern, same as
 # radar3d.py/radar4d.py in that package). CORNER_UNKNOWN imported above.
 
-CORNER_NAMES = {0: 'FL', 1: 'FR', 2: 'RL', 3: 'RR'}
+# Wire ids 4 and 5 are the NRF54_RADAR side nodes (two radars each, one fused track list in the node frame); see NODE_SIDES.
+CORNER_NAMES = {0: 'FL', 1: 'FR', 2: 'RL', 3: 'RR', 4: 'LN', 5: 'RN'}
 
 # BlueZ characteristic paths embed the sender's address:
 # /org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF/service000c/char000f
@@ -355,6 +356,15 @@ CORNER_TO_SIDE = {
     3: 3,  # RR → RR
 }
 
+# NRF54_RADAR side nodes: one node per vehicle side carries a front-forward and a rear-forward radar and reports ONE fused
+# track list in its own frame (+x forward, +y left, origin at the node). It covers two cereal sides; the legacy zone-presence
+# returns are split by the sign of each object's forward distance (x >= 0 -> front side). The extended `objects` list is unchanged.
+NODE_SIDES = {
+    4: (0, 1),  # left node  -> LF (front), LR (rear)
+    5: (2, 3),  # right node -> RF (front), RR (rear)
+}
+SIDE_COUNT = 4
+
 PUBLISH_HZ = 20.0               # matches cereal services.py radarCornerTracks rate
 CORNER_STALE_S = 0.5            # corner with no frame this long drops out of returns
 RECONNECT_SCAN_S = 5.0          # discovery/connect sweep period
@@ -373,6 +383,44 @@ def corner_to_side(corner_id: int) -> int | None:
     """Translate ESP32 corner ID (0=FL,1=FR,2=RL,3=RR) to Radar2DReturn.side
     (0=LF,1=LR,2=RF,3=RR). Returns None for unknown/strap-unresolved IDs."""
     return CORNER_TO_SIDE.get(corner_id)
+
+
+def is_known_unit(corner_id: int) -> bool:
+    """True for a legacy corner id (0..3) or a side-node id (4, 5)."""
+    return corner_id in CORNER_TO_SIDE or corner_id in NODE_SIDES
+
+
+def node_object_side(node_id: int, obj: dict) -> int | None:
+    """Cereal side (front/rear of the node's vehicle side) for an object of a side node.
+
+    The object is in the node frame: forward distance x = range * cos(el) * cos(az). x >= 0 is the front side. A
+    non-finite position gives None (the object still appears in the extended list, not in the legacy presence zones)."""
+    sides = NODE_SIDES.get(node_id)
+    if sides is None:
+        return None
+    try:
+        el = math.radians(obj.get('elevationDeg', 0.0))
+        x = obj['rangM'] * math.cos(el) * math.cos(math.radians(obj['azimuthDeg']))
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not math.isfinite(x):
+        return None
+    return sides[0] if x >= 0.0 else sides[1]
+
+
+def objects_by_side(live: dict) -> dict[int, list[dict]]:
+    """Group live units' objects by cereal side for the legacy zone-presence returns."""
+    by_side: dict[int, list[dict]] = {s: [] for s in range(SIDE_COUNT)}
+    for unit, state in live.items():
+        objects = state.get('objects', [])
+        if unit in CORNER_TO_SIDE:
+            by_side[CORNER_TO_SIDE[unit]].extend(objects)
+        elif unit in NODE_SIDES:
+            for obj in objects:
+                side = node_object_side(unit, obj)
+                if side is not None:
+                    by_side[side].append(obj)
+    return by_side
 
 
 # ── Persistent pair set (BLE address → corner_id) ────────────────────────────
@@ -770,7 +818,7 @@ class BLECentral:
             logger.debug('BLE central: malformed datagram from %s', path)
             return
         corner = frame['corner_id']
-        if corner_to_side(corner) is None:
+        if not is_known_unit(corner):
             logger.debug('BLE central: datagram with unknown corner_id 0x%02X', corner)
             return
         # Authorization gate (defense in depth with the connect sweep): drop
@@ -880,13 +928,14 @@ class BLECentral:
         # as present) rather than the alternative of filtering on an
         # always-True/False placeholder, which would make this either a
         # no-op filter or silence the zone entirely.
-        returns = r2d.init('returns', len(CORNER_TO_SIDE))
-        for corner, side in sorted(CORNER_TO_SIDE.items(), key=lambda kv: kv[1]):
+        returns = r2d.init('returns', SIDE_COUNT)
+        by_side = objects_by_side(live)
+        for side in range(SIDE_COUNT):
             ret = returns[side]
             ret.side = side
-            corner_objects = live.get(corner, {}).get('objects', [])
-            ret.present = bool(corner_objects)
-            approaching = [o['vRel'] for o in corner_objects if o['vRel'] < 0.0]
+            side_objects = by_side[side]
+            ret.present = bool(side_objects)
+            approaching = [o['vRel'] for o in side_objects if o['vRel'] < 0.0]
             ret.vRel = min(approaching) if approaching else math.nan
         self._pm.send('radarCornerTracks', msg)
         return True

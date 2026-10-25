@@ -15,6 +15,8 @@ SENSOR_REGISTRY_PATH = os.path.join(
 
 CORNER_NAMES = {
   0: 'front_left', 1: 'front_right', 2: 'rear_left', 3: 'rear_right',
+  # NRF54_RADAR side nodes: the pose is the node frame origin; objects are already fused in that frame.
+  4: 'left_node', 5: 'right_node',
 }
 
 # Reserve the upper byte of CameraObject.trackId for BLE corner tracks. This
