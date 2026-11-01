@@ -89,8 +89,11 @@ phone-role coexistence need actual measurements;02M WiFi radar4d is not01M proof
       runtime after successful link. No paired streaming or handover is implied.
 - [x] Add/test/native-compile the shared bounded voxel helper; rebuild both TI board
       profiles and correct the1843 EVM1.0V bypass assumption for1.3V inputs.
-- [ ] Define versioned reduced-cloud metadata/golden vectors before runtime wiring.
-- [ ] Implement qualified async dual-SPI workers and per-slot reset/fault/power handling.
+- [x] Shared channel3 metadata/32-byte voxel records, independent golden vectors,
+      opt-in TI result hooks and native builds; raw point/offload channels unchanged.
+- [x] SDK-derived two-handle async adapter, isolated buffers/challenges/receivers,
+      transfer deadlines and abort quarantine; standalone mocks/native compile pass.
+- [ ] Qualify per-slot ready/reset/fault/power and schedule gateway acquisition.
 - [ ] Implement BLE service, commissioning, HAL decode and geometry/track publication.
 - [ ] Add calibrated pair-local/global association with source provenance and expiry.
 - [ ] Test15cm low obstacles,165cm crossings, parked cars beside walls, thin gates,
@@ -108,3 +111,17 @@ References:
 - https://docs.silabs.com/gecko-platform/3.0/driver/api/group-spidrv
 - https://dev.ti.com/tirex/explore/content/radar_toolbox_4_00_00_05/source/ti/examples/Industrial_and_Personal_Electronics/People_Tracking/3D_People_Tracking/docs/3d_people_tracking_user_guide.html
 - https://software-dl.ti.com/jacinto7/esd/robotics-sdk/08_04_00/docs/source/docs/multi_sensor_time_synchronization.html
+
+## Shared scene transport checkpoint
+
+IWRx843_RADAR dev/IWR owns iwr_scene and iwr_scene_builder; chip and CornerPilot
+node overlays import them. sceneOutput1 opts in, default disabled. Channel3 carries
+nearest/closing XYZ/radial Doppler, grid keys, population, outward height bounds,
+source/occupied/merged/band-rejected counts, scale/revision/ground flags and invalid
+status.1cm/1cm/s encoding rejects unrepresentable data instead of clamping. Ground
+filter remains off without installation qualification. SNR/noise stays unavailable.
+Native images:1843 371140B;6843 451780B; MSS unallocated78704/28926B, including
+workspace/buffers already allocated. See upstream SCENE-TRANSPORT.md and exact
+SCENE-BUILD-EVIDENCE.json. CornerPilot SDK app.c is still the unmodified baseline:
+compiled adapter is not a scheduled/qualified radar/BLE stream. Do not claim host
+support, source calibration, timing identity, free-space confidence or handover.
