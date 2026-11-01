@@ -257,17 +257,27 @@ class TestCornerPairTable:
         reloaded = CornerPairTable(FakeParams(params.store))
         assert reloaded.as_dict() == {self.ADDR_FL: 0, self.ADDR_FR: 1}
 
-    def test_conflict_corner_change_updates(self, caplog):
-        # strap is authoritative: same address reporting a different corner
-        # updates the table (unit moved / strap re-read)
+    def test_second_corner_same_address_is_kept(self, caplog):
+        # a paired-radar gateway serves two corners from one address
         params = FakeParams()
         table = CornerPairTable(params)
         table.learn(self.ADDR_FL, 0)
         with caplog.at_level(logging.WARNING, 'bluetoothd.ble_central'):
             table.learn(self.ADDR_FL, 2)
-        assert table.as_dict() == {self.ADDR_FL: 2}
-        assert any('now reports' in r.message for r in caplog.records)
-        assert f'"{self.ADDR_FL}": 2' in params.store[CornerPairTable.PARAM_KEY]
+        assert table.corners_of(self.ADDR_FL) == [0, 2]
+        assert table.all_pairs() == [(self.ADDR_FL, 0), (self.ADDR_FL, 2)]
+        assert table.as_dict() == {self.ADDR_FL: 2}   # most recently learned
+        assert any('multi-corner' in r.message for r in caplog.records)
+        assert params.store[CornerPairTable.PARAM_KEY] == f'{{"{self.ADDR_FL}": [0, 2]}}'
+        # alternating frames from both corners never rewrite the param
+        saved = params.store[CornerPairTable.PARAM_KEY]
+        for c in (0, 2, 0, 2):
+            table.learn(self.ADDR_FL, c)
+        assert params.store[CornerPairTable.PARAM_KEY] == saved
+        # round trip, and the old single-int format still loads
+        assert CornerPairTable(FakeParams(params.store)).corners_of(self.ADDR_FL) == [0, 2]
+        old = FakeParams({CornerPairTable.PARAM_KEY: f'{{"{self.ADDR_FL}": 3}}'})
+        assert CornerPairTable(old).corners_of(self.ADDR_FL) == [3]
 
     def test_duplicate_corner_claim_keeps_both(self, caplog):
         params = FakeParams()
@@ -595,4 +605,31 @@ class TestLearnEligibilityIntegration:
         assert central._pairs.as_dict() == {self.ADDR: 0}
         anomalies = [r for r in caplog.records if 'weak signal' in r.message]
         assert len(anomalies) == 1
+
+
+class TestSnrUnavailable:
+    """CornerPilot gateway sends snr_db_x10 = -32768 when SNR is not reported."""
+
+    PATH = '/org/bluez/hci0/dev_AA_BB_CC_DD_EE_01/service000c/char000f'
+
+    def test_marker_becomes_nan_in_receive_path(self):
+        import math
+        central = BLECentral(FakeParams({CornerPairTable.PARAM_KEY: '{"AA:BB:CC:DD:EE:01": 0}'}))
+        data = HEADER_STRUCT.pack(0, 2, 1, 0) + \
+            OBJECT_STRUCT.pack(7, 500, 0, 0, 0, -32768) + \
+            OBJECT_STRUCT.pack(8, 500, 0, 0, 0, 123)
+        central._on_properties_changed(GATT_CHAR_IFACE, {'Value': data}, [], path=self.PATH)
+        objs = central._corners[0]['objects']
+        assert math.isnan(objs[0]['snrDb'])
+        assert objs[1]['snrDb'] == 12.3
+
+    def test_pair_gateway_two_corners_one_address(self):
+        central = BLECentral(FakeParams({CornerPairTable.PARAM_KEY: '{"AA:BB:CC:DD:EE:01": 0}'}))
+        for corner in (0, 2):
+            data = HEADER_STRUCT.pack(corner, 1, 1, 0) + OBJECT_STRUCT.pack(5, 500, 0, 0, 0, 100)
+            central._on_properties_changed(GATT_CHAR_IFACE, {'Value': data}, [], path=self.PATH)
+        assert central._pairs.corners_of('AA:BB:CC:DD:EE:01') == [0, 2]
+        # the same pair track id in both corners stays two separate corner entries
+        assert central._corners[0]['objects'][0]['trackId'] == 5
+        assert central._corners[2]['objects'][0]['trackId'] == 5
 

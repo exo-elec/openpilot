@@ -607,7 +607,9 @@ class GridD:
             d_rel, y_rel = self._corner_local_to_vehicle_frame(
                 ground_range(obj_msg.rangM, getattr(obj_msg, "elevationDeg", 0.0)), obj_msg.azimuthDeg, self._r2d_corner_pose[obj_msg.corner])
 
-            snr_frac = min(obj_msg.snrDb / self._R2D_SNR_REF_DB, 1.0)
+            # snrDb is NaN when the radar does not report SNR (CornerPilot
+            # gateway): no SNR evidence, so no SNR confidence boost.
+            snr_frac = 0.0 if obj_msg.snrDb != obj_msg.snrDb else min(obj_msg.snrDb / self._R2D_SNR_REF_DB, 1.0)
             existence_frac = min(max(obj_msg.existenceProb / 100.0, 0.0), 1.0)
             confidence_boost = ((snr_frac + existence_frac) / 2.0) * self._R2D_CONFIDENCE_BOOST
             confidence = 0.5 + confidence_boost
