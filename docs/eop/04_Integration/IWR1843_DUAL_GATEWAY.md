@@ -1,150 +1,110 @@
-# IWR1843 dual-gateway integration tasks
+# CornerPilot paired-radar integration plan — 2026-11-01
 
-2026-11-01. Source audit/design only; no new receiver is active.
-The user authorizes adapting firmware and both host repositories together.
+## Source ownership and hardware profiles
 
-## Current contract versus new topology
+| Repository/branch | Current role |
+|---|---|
+| CornerPilot dev/EFR32 | BLE/FreeRTOS gateway, two independent SPI masters |
+| CornerPilot dev/IWR1843 | Two independent77GHz radar nodes, each SPIA slave |
+| IWRx843_RADAR dev/IWR | Shared TI controller/voxel source foundation |
+| IWRx843_RADAR dev/IWR1843 | ADAS chip overlay and normal1.3V RF board profile |
+| IWRx843_RADAR dev/IWR6843 | Separate60GHz indoor chip overlay |
+| exopilot HAL/BSP | Device decode, board interfaces and calibration data |
+| openpilot | Vehicle-wide occupied geometry and track fusion |
 
-Two EFR32 BLE peripherals will carry four independent IWR1843AOP radars.
-Existing system/bluetoothd/ble_central.py connects to ESP32 corner peripherals,
-uses one address -> one corner in CornerPairTable and authorizes the sender
-before publishing radarCornerTracks. Each existing notification has an 8-byte
-header and at most twelve 14-byte tracked objects. A paired address cannot yet
-represent two independently calibrated IWR slots. The HAL wire decoder is in
-exopilot/hal/hal/drivers/radar/radar_ble.py. Do not hard-code an ESP32 company ID
-or a nonexistent EFR32 WiFi MAC to make the new gateways pass commissioning.
+Local gateway: /mnt/c/wsl/Pilot/CornerPilot. Node worktree:
+/mnt/c/wsl/Pilot/.worktrees/CornerPilot-IWR1843. The old NRF50 code is historical;
+its checkout/main is preserved, not the new EFR32 product.
 
-## Decision and implementation order
+CornerPilot SPI1 EUSART1 uses PC02 MOSI/PC01 MISO/PC03 clock/PC04 CS.
+SPI2 EUSART2 uses PD05 MOSI/PD04 MISO/PD03 clock/PA00 CS. Every IWR uses its own
+SPIA slave F2/D1/D2/C2. CareMatter's separate product uses PD04/PD03/PD05 for
+I2S and PA00 for3VL_EN; do not mix those pinmaps.
 
-1. Keep tracks/health/control as the bounded primary BLE stream; clouds are a
-   budgeted optional stream. Four clouds of 128 float32 x/y/z/v points at20Hz
-   require1.31Mbit/s of payload alone. Tracks with twelve legacy records require
-   112.64kbit/s across all four nodes, before gateway envelopes/radio overhead.
-2. Define the versioned firmware/host contract together, with gateway identity,
-   slot, node boot ID, local track ID, capture timestamp, sequence and validity.
-   Generate canonical vectors before implementing either endpoint. There is no
-   compatible new characteristic/parser to enable yet.
-3. Extend commissioning to (gateway,slot) -> sensor/corner/extrinsic, with
-   explicit supported-slot count. Retain existing ESP32 pair-table compatibility.
-   Reject unassigned slots before changing state. Namespace tracks by node/boot.
-4. Keep independent latest-frame/expiry state for each slot; one failed sensor
-   must not remove its sibling. Bound fragment counts, reassembly buffers and
-   expiry; test reboot/replay/wrap/reconnect/malformed/incomplete frame cases.
-5. Reuse the single radarCornerTracks publisher. Preserve existing fusion and
-   vehicle controls. TI x-right/y-forward/z-up becomes HAL azimuth-left-positive
-   once, then calibrated vehicle coordinates; yRel stays left-positive.
-6. Measure 01M RTL8822CE/BlueZ PHY, DLE, negotiated MTU, two-link aggregate
-   goodput and p95/p99 capture age with phone BLE active. Current pinmux/setup
-   docs are source evidence, not controller throughput measurements. Do not
-   enable the 02M WiFi-only radar4d daemon on 01M as a substitute.
-7. Fix firmware's current one64-byte SPI packet per20ms step before promising
-  20Hz clouds. Use per-bus async acquisition/complete-frame queues; reducing the
-   SPI clock period alone leaves that scheduling bottleneck.
-8. Start TI FOV gates/GTRACK on IWR; calibrated ground/ceiling/sky ROIs and voxel
-   reduction are separately qualified. Do not average away nearest or closing
-   obstacles, delete slopes as ground, or claim coherent four-radar apertures.
+## Geometry and useful data
 
-Common runtime changes belong on dev/EOP10, then propagate to dev/01M and
-dev/02M with their independent variant work preserved. Existing prunable
-worktree registrations are not permission to remove or switch those checkouts.
+Two radars near each exterior side mirror/fender look outward/forward and
+outward/rear, approximately90degrees apart. Two EFR32 gateways give four radars
+vehicle-wide. Measure each sensor's XYZ, roll/pitch/yaw and usable coverage;
+these are paired side mounts, not rear/front bumper origins or a coherent array.
 
-The detailed BSP/HAL plan is exopilot docs/02-HARDWARE/IWR1843_DUAL_GATEWAY.md.
-References: Silicon Labs BLE throughput documentation and TI Robotics SDK
-four-radar synchronization example linked there. No board is verified.
+The obstacle band is15..165cm above local ground. Keep static as well as moving
+occupied surfaces: parked cars, walls, guardrails and toll-gate arms matter.
+A parked car can be a boundary and a tracked object simultaneously. Preserve
+observed height/range extents; a centroid/track list alone cannot show wall limits.
+Sensor Z is not ground height on a tilted vehicle. Use qualified ground/extrinsic
+calibration and uncertainty margins; unknown coverage is never free space.
 
-## Side-mirror installation and CornerPilot migration decision
+Send complementary tracks and occupied voxels/points. Proposed geometry records
+include cell dimensions, observed ground-height min/max, representative XYZ and
+radial Doppler, original SNR/noise/quality and population. Four-dimensional radar
+means XYZ plus radial velocity, not three independently measured velocity axes.
+Retain input/kept/drop counts, frame/source/boot/session, capture clock/timestamp,
+sequence, calibration/ROI revision, age and validity. Do not invent confidence.
 
-Owner clarification: two radars at approximately90 degrees to each other are
-installed near the side fender/under the exterior side mirror, looking outward
-with forward/rear coverage and rearward bias for blind spots. Repeat on the
-other side: two EFR32 gateways, four independent IWR1843AOP radars in total.
-These are two paired side mounts, not four sensors mounted at bumper corners.
+Shared voxel code is in IWRx843_RADAR firmware/70_application/74_scene/iwr_voxel.*,
+not on EFR32. Its6KiB caller workspace preserves nearest/closing/height extrema,
+accepts up to1024 points/128 cells and fails explicitly on capacity loss. It is
+not yet active in the target's main loop or canonical32-point transport.
 
-| Gateway | Logical sensor role | Physical position | Orientation |
-|---|---|---|---|
-| Left EFR32 | left forward-looking | left side-mirror/fender area | outward/forward |
-| Left EFR32 | left rearward-looking | same area, separately measured origin | outward/rear |
-| Right EFR32 | right forward-looking | right side-mirror/fender area | outward/forward |
-| Right EFR32 | right rearward-looking | same area, separately measured origin | outward/rear |
+## Handover and host adaptation
 
-SPI slot assignment is a commissioning choice, not inferred from these names.
-Store each sensor's measured XYZ and roll/pitch/yaw; do not substitute old
-front_left/rear_left bumper origins. For illustration only, left yaw+45/+135
-and right-45/-135 degrees give a90-degree separation in a vehicle frame with
-x-forward/y-left/z-up. Rearward bias changes both bearings. These are not
-calibration values; exact yaw, pitch, height and body/radome occlusion are unknown.
+EFR32 owns two-slot acquisition/identity/time alignment and eventual bounded
+pair-local track association. A supported handover preserves its pair-local ID
+while retaining both source/local IDs and uncertainty. Reboot invalidates that
+node's namespace. openpilot retains vehicle-wide IDs across both gateways.
+Different view directions need not measure equal radial Doppler. Deduplicate
+correlated overlap data; do not merge adjacent vehicles just because they are close.
+No-overlap or occluded gaps allow only bounded prediction with increased age/
+uncertainty; expire unsupported tracks, never claim continuous measured coverage.
 
-Usable coverage must overlap for reliable measured handover. For a simplified
-horizontal model, overlap is max(0, half_FOV_A + half_FOV_B - separation).
-For example two120-degree usable FOVs separated90degrees overlap30degrees;
-this is geometry, not a claim of the installed IWR's usable detection coverage.
-Validate with vehicles at several ranges, including the seam and close to the
-door: fender/mirror/body shadow, radome loss and edge SNR can reduce coverage.
+Existing system/bluetoothd/ble_central.py uses one BLE address -> one legacy corner.
+That does not identify two SPI slots per gateway. HAL radar_ble.py owns decode;
+BlueZ/cereal publication remains in openpilot. Update commissioning to explicit
+(gateway,slot) -> sensor/pose. Do not fake an ESP32 WiFi MAC/company ID for EFR32.
+Keep one radarCornerTracks publisher; add a geometry contract rather than claiming
+old ground-projected returns describe wall height. Current radar_corner_geometry.py
+uses yaw/XY for leveled tracks; height needs a full3D transform. radar_zones.py's
+front-corner assumptions also need review for these paired side mounts.
 
-### Side boundaries and vehicle handover
+## Bandwidth and headroom
 
-- **Boundary output:** estimate persistent side surfaces/guardrails/curbs from
-  time-aligned points in the vehicle frame, with uncertainty, age and support.
-  Radar reflections alone do not guarantee a semantic wall. Report unavailable
-  when geometry/support is insufficient; camera/ego-motion context can help.
-- **Separate obstacle output:** retain moving and stationary vehicle/obstacle
-  candidates. Do not classify a parked car as removable wall, or discard ground/
-  wall points before the boundary estimator has used them. Boundary estimation
-  and obstacle tracking are distinct consumers of the measured cloud.
-- **One host track:** each IWR can run the proven TI local tracker, but its local
-  IDs are independent. The ExoPilot host associates calibrated, capture-time
-  aligned observations into a global vehicle track using position, motion,
-  uncertainty and history. A vehicle entering the adjacent beam keeps that
-  host ID only while association remains supported. Do not directly match equal
-  local IDs or require identical radial velocities from different viewpoints.
-- **Overlap:** jointly associate/deduplicate observations in the seam; preserve
-  sensor provenance and avoid treating correlated reports as independent high
-  confidence evidence. Do not merge adjacent vehicles merely because they are close.
-- **Gap/loss:** bounded prediction may bridge a short gap with explicit increased
-  uncertainty and age. Expire unsupported tracks; do not claim continuous
-  measured coverage through an occluded gap. Reboot invalidates local IDs.
+Four128-point clouds at20Hz and16B/point need1.31Mbit/s payload before overhead.
+Two BLE connections share the host controller/radio schedule. Use tracks first,
+budgeted voxel geometry, latest-frame queues and adaptive detail; dense diagnostics
+may need a wired path. TI's8-byte compressed point/unit format is a proven encoding
+reference, not the current packet. Existing32-point truncation must not be hidden.
 
-Current openpilot radar_corner_geometry.py permits per-sensor poses but uses
-legacy corner names/IDs. radar_zones.py also contains front-corner-specific
-association/confirmation assumptions. Audit both before enabling this paired
-side layout; relabeling a rear-facing mirror sensor as a rear-bumper radar is
-not sufficient. Preserve a single publisher/fusion owner, not a second competing
-handover daemon. Existing safety/control behavior is not changed by this note.
+IWR's new baseline MSS data-region unallocated margins are about95KiB on1843 and
+47KiB on6843; one6KiB workspace fits statically. DSP L2 on1843 has only1,510B
+unallocated. Reserved heaps/radar cubes are not spare; CPU/heap/stack high-water
+and sustained BLE throughput remain unmeasured. Profile TI PMU and frame/output
+statistics on hardware before activation. 01M's RTL8822CE/BlueZ PHY, DLE/MTU and
+phone-role coexistence need actual measurements;02M WiFi radar4d is not01M proof.
 
-### Repository ownership and staged work
+## Tasks
 
-1. **Now:** record this concept in exopilot and openpilot. This document is the
-   decision/task checkpoint; no new sensor fusion or transport is enabled.
-2. **Radar firmware source:** IWRx843_RADAR dev/IWR1843 remains the77GHz
-   application baseline, inheriting shared dev/IWR and dev/BLT. Keep proven TI
-   examples, licensing, build evidence and reusable layers there. Do not merge
-   the60GHz indoor dev/IWR6843 profile into the road variant.
-3. **Later CornerPilot migration:** migrate the relevant dev/IWR1843 firmware
-   foundation into the new CornerPilot hardware work. The owner identifies the
-   old reference as ../../RADAR/CornerPilot; it is not present at the checked
-   /mnt/c/wsl/Radar/CornerPilot location in this session. Do not recreate/delete
-   that repository or invent a source revision. Inventory its actual checkout
-   when available, then port useful generic interfaces/tests individually.
-4. **New CornerPilot target hardware:** EFR32MG26 BLE gateway + two independent
-   SPIA-slave IWR1843AOP nodes per side, replacing its previous controller/radar
-   hardware. EFR32 is master on both buses. Do not treat the old controller's
-   GPIO/RTOS/radio code or kit pinmux as hardware-compatible.
-5. **Host:** exopilot HAL/BSP owns device wire decode and physical calibration;
-   openpilot owns BLE commissioning, global-track/boundary consumers and fusion.
-   Coordinate the versioned gateway/slot contract across the new CornerPilot
-   and host implementations. Keep raw and reduced outputs diagnosable.
+- [x] Create separate CornerPilot hardware branches from committed EFR32/TI baselines.
+- [x] Build the SDK dual-SPI BLE/FreeRTOS gateway replacement; retire copied Matter
+      runtime after successful link. No paired streaming or handover is implied.
+- [x] Add/test/native-compile the shared bounded voxel helper; rebuild both TI board
+      profiles and correct the1843 EVM1.0V bypass assumption for1.3V inputs.
+- [ ] Define versioned reduced-cloud metadata/golden vectors before runtime wiring.
+- [ ] Implement qualified async dual-SPI workers and per-slot reset/fault/power handling.
+- [ ] Implement BLE service, commissioning, HAL decode and geometry/track publication.
+- [ ] Add calibrated pair-local/global association with source provenance and expiry.
+- [ ] Test15cm low obstacles,165cm crossings, parked cars beside walls, thin gates,
+      two targets crossing the overlap, node loss/reboot, delay/reorder and occlusion.
+- [ ] Measure capture-age p95/p99, ID switches/duplicates, quality/drop rates,
+      boundary uncertainty, target cycles and two-link BLE goodput on real hardware.
 
-Acceptance before claiming handover: two vehicles crossing in the overlap,
-stationary vehicle beside a wall, seam passage at different ranges/speeds,
-single-radar loss/reboot, gateway reconnect, packet delay/reorder and an
-occluded no-overlap segment. Check global-ID switches, duplicate tracks,
-association errors, track age and boundary uncertainty against reference data.
-RF interference/sync and platform-specific CPU/BLE budgets remain separate tests.
+No board, road, safety or detection-range acceptance is established. Shared host
+runtime changes start on dev/EOP10 and propagate to01M/02M preserving variant work.
+This update changes documentation only. ./test.sh currently stops before tests at
+the pre-existing NGP lineage mismatch in nagaspilot/runtime/bigmodel_platform.py.
 
-## Validation of this record
-
-Documentation-only update; no host runtime files changed. Source paths and the
-existing BLE contract were inspected. openpilot ./test.sh was invoked and exits
-before lint/tests at the existing NGP lineage check:
-`changed: nagaspilot/runtime/bigmodel_platform.py`. This record does not fix or
-claim to pass that unrelated runtime lineage gate. No hardware test was run.
+References:
+- https://docs.silabs.com/bluetooth/latest/bluetooth-fundamentals-system-performance/throughput
+- https://docs.silabs.com/gecko-platform/3.0/driver/api/group-spidrv
+- https://dev.ti.com/tirex/explore/content/radar_toolbox_4_00_00_05/source/ti/examples/Industrial_and_Personal_Electronics/People_Tracking/3D_People_Tracking/docs/3d_people_tracking_user_guide.html
+- https://software-dl.ti.com/jacinto7/esd/robotics-sdk/08_04_00/docs/source/docs/multi_sensor_time_synchronization.html
