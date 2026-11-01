@@ -85,9 +85,13 @@ the POSITION identity. Every valid datagram teaches the table
 mapping survives restarts — the BLE analogue of the WiFi fleet's MAC pairing
 (hostapd macaddr_acl + exopilot's pair_corner_nodes.sh). Conflict semantics
 (kept deliberately simple):
-    - corner_id from the strap is AUTHORITATIVE: if a known address reports
-      a different corner (unit physically moved, or strap re-read), a warning
-      is logged and the table is updated — operation continues.
+    - corner_id from the strap is AUTHORITATIVE (see the multi-corner rule below).
+    - one address MAY serve several corners (CornerPilot paired-radar
+      gateway: two radars, two corner ids, one BLE link). A further corner
+      from a known address is added, not substituted; the param stores a
+      bare int for one corner and a list for several. A moved unit leaves its
+      old corner in the set (clear EOPBLECornerPairs to re-learn).
+    - snr_db_x10 == -32768 means "SNR not reported" and is published as NaN.
     - if two different addresses claim the SAME corner simultaneously, both
       stay connected with a warning logged; the per-corner liveness logic
       (CORNER_STALE_S) already arbitrates whose frames get published.
@@ -212,6 +216,7 @@ ADAPTER_PATH    = '/org/bluez/hci0'
 # radar3d.py/radar4d.py in that package). CORNER_UNKNOWN imported above.
 
 CORNER_NAMES = {0: 'FL', 1: 'FR', 2: 'RL', 3: 'RR'}
+SNR_UNAVAILABLE_DB = -3276.8   # wire value -32768 / 10 = "SNR not reported"
 
 # BlueZ characteristic paths embed the sender's address:
 # /org/bluez/hci0/dev_AA_BB_CC_DD_EE_FF/service000c/char000f
@@ -390,9 +395,12 @@ class CornerPairTable:
 
     def __init__(self, params=None):
         self._params = params
-        self._table: dict[str, int] = self._load()
+        # address -> corner ids in learn order (last = most recently learned).
+        # A paired-radar gateway (CornerPilot) serves two corners from ONE
+        # address, so an address may own more than one corner.
+        self._table: dict[str, list[int]] = self._load()
 
-    def _load(self) -> dict[str, int]:
+    def _load(self) -> dict[str, list[int]]:
         if self._params is None:
             return {}
         raw = self._params.get(self.PARAM_KEY)
@@ -400,46 +408,72 @@ class CornerPairTable:
             return {}
         try:
             data = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-            return {str(a).upper(): int(c) for a, c in data.items()
-                    if int(c) in CORNER_NAMES}
+            out: dict[str, list[int]] = {}
+            for a, c in data.items():
+                # stored as int (one corner, the original format) or list
+                ids = c if isinstance(c, list) else [c]
+                kept = []
+                for i in ids:
+                    i = int(i)
+                    if i in CORNER_NAMES and i not in kept:
+                        kept.append(i)
+                if kept:
+                    out[str(a).upper()] = kept
+            return out
         except (ValueError, TypeError, AttributeError) as e:
             logger.warning('BLE central: corrupt %s param (%s) — starting with empty pair set',
                            self.PARAM_KEY, e)
             return {}
 
     def _save(self) -> None:
-        """Persist the table — only called when it actually changed."""
+        """Persist the table — only called when it actually changed. One
+        corner is written as a bare int (original format, older readers
+        still work); several corners as a list."""
         if self._params is None:
             return
         try:
-            self._params.put(self.PARAM_KEY, json.dumps(self._table, sort_keys=True))
+            data = {a: (c[0] if len(c) == 1 else list(c)) for a, c in self._table.items()}
+            self._params.put(self.PARAM_KEY, json.dumps(data, sort_keys=True))
         except Exception as e:
             logger.warning('BLE central: could not save %s: %s', self.PARAM_KEY, e)
 
     def learn(self, address: str | None, corner_id: int) -> None:
         """Record address → corner_id from a valid datagram. No-op (and no
-        param write) when the mapping is already known."""
+        param write) when the mapping is already known. An address that
+        reports an additional corner KEEPS the earlier one: a paired-radar
+        gateway legitimately serves two corners. (A unit that was physically
+        moved leaves its old corner in the set; clear EOPBLECornerPairs to
+        re-learn — per-corner liveness decides whose frames are published.)"""
         if not address or corner_id not in CORNER_NAMES:
             return
         address = address.upper()
         known = self._table.get(address)
-        if known == corner_id:
+        if known is not None and corner_id in known:
             return
         if known is None:
             logger.info('BLE central: paired %s → corner %s', address, CORNER_NAMES[corner_id])
         else:
-            # strap is authoritative — unit moved or strap re-read; update and continue
-            logger.warning('BLE central: %s was corner %s, now reports %s — updating pair set',
-                           address, CORNER_NAMES[known], CORNER_NAMES[corner_id])
-        for other, c in self._table.items():
-            if c == corner_id and other != address:
+            logger.warning('BLE central: %s now also reports corner %s (had %s) — kept '
+                           'as a multi-corner unit', address, CORNER_NAMES[corner_id],
+                           ','.join(CORNER_NAMES[c] for c in known))
+        for other, cs in self._table.items():
+            if corner_id in cs and other != address:
                 logger.warning('BLE central: %s also claims corner %s — both kept, ' +
                                'liveness arbitrates', other, CORNER_NAMES[corner_id])
-        self._table[address] = corner_id
+        self._table.setdefault(address, []).append(corner_id)
         self._save()
 
     def as_dict(self) -> dict[str, int]:
-        return dict(self._table)
+        """address → most recently learned corner (single-corner view)."""
+        return {a: c[-1] for a, c in self._table.items()}
+
+    def corners_of(self, address: str | None) -> list[int]:
+        """Every corner this address has reported, in learn order."""
+        return list(self._table.get(address.upper(), [])) if address else []
+
+    def all_pairs(self) -> list[tuple[str, int]]:
+        """Every (address, corner) pair, sorted."""
+        return sorted((a, c) for a, cs in self._table.items() for c in cs)
 
     def is_paired(self, address: str | None) -> bool:
         """True if this address is already a known/paired unit."""
@@ -462,8 +496,8 @@ class CornerPairTable:
         """One-line 'AA:BB…→FL, …' summary for startup logging."""
         if not self._table:
             return '(empty)'
-        return ', '.join(f'{a}→{CORNER_NAMES.get(c, c)}'
-                         for a, c in sorted(self._table.items()))
+        return ', '.join(f'{a}→{"+".join(CORNER_NAMES.get(c, str(c)) for c in cs)}'
+                         for a, cs in sorted(self._table.items()))
 
 
 class BLECentral:
@@ -585,8 +619,7 @@ class BLECentral:
     def pairs_dump(self) -> list[dict]:
         """Pair table as [{'address', 'corner'}] — corner = ESP32 id
         0=FL,1=FR,2=RL,3=RR. Sorted for a stable wire image."""
-        return [{'address': a, 'corner': c}
-                for a, c in sorted(self._pairs.as_dict().items())]
+        return [{'address': a, 'corner': c} for a, c in self._pairs.all_pairs()]
 
     def candidates_dump(self, now: float | None = None) -> list[dict]:
         """Discovery-stage candidates as [{'address', 'wifiMac', 'corner',
@@ -766,6 +799,12 @@ class BLECentral:
         except Exception as e:
             logger.debug('BLE central: decode error: %s', e)
             return
+        if frame is not None:
+            for obj in frame['objects']:
+                # CornerPilot gateway: snr_db_x10 == -32768 means the radar did
+                # not report SNR. Never present it as -3276.8 dB.
+                if obj['snrDb'] <= SNR_UNAVAILABLE_DB:
+                    obj['snrDb'] = math.nan
         if frame is None:
             logger.debug('BLE central: malformed datagram from %s', path)
             return
