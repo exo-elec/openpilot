@@ -925,6 +925,9 @@ class BLECentral:
             ret.side = side
             corner_objects = live.get(corner, {}).get('objects', [])
             ret.present = bool(corner_objects)
+            # A corner with no recent frame (failed radar, withheld by the gateway fail-safe, or never
+            # connected) is UNKNOWN, not clear: present=False alone cannot say that.
+            ret.stale = corner not in live
             approaching = [o['vRel'] for o in corner_objects if o['vRel'] < 0.0]
             ret.vRel = min(approaching) if approaching else math.nan
         self._pm.send('radarCornerTracks', msg)
