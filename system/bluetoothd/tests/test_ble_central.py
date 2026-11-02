@@ -633,3 +633,70 @@ class TestSnrUnavailable:
         assert central._corners[0]['objects'][0]['trackId'] == 5
         assert central._corners[2]['objects'][0]['trackId'] == 5
 
+
+
+# ── Stale corner is UNKNOWN, not clear (CornerPilot fail-safe, 2026-11-02) ────
+
+class _FakeList(list):
+    pass
+
+
+class _FakeReturn:
+    side = 0
+    present = False
+    vRel = 0.0
+    stale = False
+
+
+class _FakeR2D:
+    def init(self, name, n):
+        if name == 'returns':
+            self.returns = _FakeList(_FakeReturn() for _ in range(n))
+            return self.returns
+        setattr(self, name, _FakeList())
+        return getattr(self, name)
+
+
+class _FakeMsg:
+    def __init__(self):
+        self.radarCornerTracks = _FakeR2D()
+
+
+class _FakePm:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, name, msg):
+        self.sent.append((name, msg))
+
+
+def test_publish_marks_silent_corner_stale(monkeypatch):
+    import threading
+    from openpilot.system.bluetoothd import ble_central as bc
+
+    class _Messaging:
+        @staticmethod
+        def new_message(_name):
+            return _FakeMsg()
+
+    monkeypatch.setattr(bc, 'messaging', _Messaging, raising=False)
+    c = BLECentral.__new__(BLECentral)
+    c._running = True
+    c._lock = threading.Lock()
+    c._pm = _FakePm()
+    c._has_objects_field = False  # legacy returns only
+    now = time.monotonic()
+    c._corners = {
+        0: {'objects': [], 'last_rx': now, 'seq': 1},          # reporting, nothing seen: clear
+        1: {'objects': [], 'last_rx': now - 5.0, 'seq': 1},    # silent for 5 s: unknown
+    }
+    assert c._publish() is True
+    msg = c._pm.sent[0][1].radarCornerTracks
+    by_side = {r.side: r for r in msg.returns}
+    s0 = bc.CORNER_TO_SIDE[0]
+    s1 = bc.CORNER_TO_SIDE[1]
+    assert by_side[s0].present is False and by_side[s0].stale is False
+    assert by_side[s1].present is False and by_side[s1].stale is True
+    # a corner that never reported at all is also unknown
+    s2 = bc.CORNER_TO_SIDE[2]
+    assert by_side[s2].stale is True
