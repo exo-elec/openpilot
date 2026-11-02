@@ -96,6 +96,7 @@ class Radar4DD:
       for side, entry in enumerate(msg.radar2d.returns):
         entry.side = side
         entry.vRel = float('nan')
+        entry.stale = True  # no radar data at all: unknown, not clear
     car_fresh = self.sm.valid['carState'] and now - self.sm.recv_time['carState'] <= 0.25
     if car_fresh:
       for entry in msg.radar2d.returns:
