@@ -1200,6 +1200,9 @@ struct Radar2DReturn @0xd2a3b4c5e6f70819 {
   side    @0 :UInt8;    # 0=left-front, 1=left-rear, 2=right-front, 3=right-rear
   present @1 :Bool;     # something detected in coverage zone
   vRel    @2 :Float32;  # approaching speed (m/s, negative=approaching); NaN if unavailable
+  stale   @3 :Bool;     # true = this side is NOT reporting (no recent frame, failed or unconnected radar).
+                        # present=false then means UNKNOWN, never clear. Default false keeps old messages
+                        # unchanged. Appended 2026-11-02 (CornerPilot radar fail-safe).
 }
 
 struct Radar2DObject @0xc4d5e6f7a8092131 {
