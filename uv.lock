@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'darwin'",
@@ -993,6 +993,7 @@ dependencies = [
     { name = "libusb1" },
     { name = "numpy" },
     { name = "onnx" },
+    { name = "opencv-python-headless" },
     { name = "psutil" },
     { name = "pycapnp" },
     { name = "pycryptodome" },
@@ -1034,7 +1035,6 @@ dev = [
     { name = "pygame" },
     { name = "pyopencl", marker = "platform_machine != 'aarch64'" },
     { name = "pyprof2calltree" },
-    { name = "pytools", marker = "platform_machine != 'aarch64'" },
     { name = "pywinctl" },
     { name = "raylib" },
     { name = "tabulate" },
@@ -1089,6 +1089,7 @@ requires-dist = [
     { name = "natsort", marker = "extra == 'docs'" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "onnx", specifier = ">=1.14.0" },
+    { name = "opencv-python-headless" },
     { name = "opencv-python-headless", marker = "extra == 'dev'" },
     { name = "parameterized", marker = "extra == 'dev'", specifier = ">=0.8,<0.9" },
     { name = "pre-commit-hooks", marker = "extra == 'testing'" },
@@ -1114,7 +1115,6 @@ requires-dist = [
     { name = "pytest-subtests", marker = "extra == 'testing'" },
     { name = "pytest-timeout", marker = "extra == 'testing'" },
     { name = "pytest-xdist", marker = "extra == 'testing'", git = "https://github.com/sshane/pytest-xdist?rev=2b4372bd62699fb412c4fe2f95bf9f01bd2018da" },
-    { name = "pytools", marker = "platform_machine != 'aarch64' and extra == 'dev'", specifier = "<2024.1.11" },
     { name = "pywinctl", marker = "extra == 'dev'" },
     { name = "pyzmq" },
     { name = "raylib", marker = "extra == 'dev'" },
@@ -3839,25 +3839,30 @@ wheels = [
 
 [[package]]
 name = "pyopencl"
-version = "2025.1"
+version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "platformdirs" },
     { name = "pytools" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/28/88/0ac460d3e2def08b2ad6345db6a13613815f616bbbd60c6f4bdf774f4c41/pyopencl-2025.1.tar.gz", hash = "sha256:0116736d7f7920f87b8db4b66a03f27b1d930d2e37ddd14518407cc22dd24779", size = 422510, upload-time = "2025-01-22T00:16:58.421Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/a9/b6133777fc20be05faa88c4dbae9cc0d26d6dc1395c45770ec49b56edc4b/pyopencl-2026.1.4.tar.gz", hash = "sha256:6cb9544a004609061e86873fe36500da6c2101042e9c7b9c3b804a29a12b98bf", size = 446961, upload-time = "2026-08-25T19:43:43.45Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/ce/c40c6248b29195397a6e176615c24a8047cdd3afe847932a1f27603c1b14/pyopencl-2025.1-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:a302e4ee1bb19ff244f5ae2b5a83a98977daa13f31929a85f23723020a4bec01", size = 424117, upload-time = "2025-01-22T00:16:08.957Z" },
-    { url = "https://files.pythonhosted.org/packages/71/dd/8dd4e18396c705567be7eda65234932f8eb7e975cc15ae167265ed9c7d20/pyopencl-2025.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:48527fc5a250b9e89f2eaaa1c9423e1bc15ff181bd41ffa1e29e31890dc1d3b7", size = 408327, upload-time = "2025-01-22T00:16:10.42Z" },
-    { url = "https://files.pythonhosted.org/packages/47/7b/270c4e6765b675eaa97af8ff0c964e21dc74ac2a2f04e2c24431c91ce382/pyopencl-2025.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:95490199c490e47b245b88e64e06f95272502d13810da172ac3b0f0340cf8715", size = 724636, upload-time = "2025-01-22T00:16:12.881Z" },
-    { url = "https://files.pythonhosted.org/packages/0d/55/996d7877793acfc340678a71dc98151a8c39dbb289cf24ecae08c0af68eb/pyopencl-2025.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:cd2cb3c031beeec93cf660c8809d6ad58a2cde7dcd95ae12b4b2da6ac8e2da41", size = 1173429, upload-time = "2025-01-22T00:16:14.466Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/7c/d2a89b1c24c318375856e8b7611bc03ddf687134f68ddbb387496453eda8/pyopencl-2025.1-cp311-cp311-win_amd64.whl", hash = "sha256:d8d3cdb02dc8750a9cc11c5b37f219da1f61b4216af4a830eb52b451a0e9f9a7", size = 457877, upload-time = "2025-01-22T00:16:17.21Z" },
-    { url = "https://files.pythonhosted.org/packages/02/c0/d9536211ecfddd3bdf7eaa1658d085fcd92120061ac6f4e662a5062660ff/pyopencl-2025.1-cp312-cp312-macosx_10_14_x86_64.whl", hash = "sha256:88c564d94a5067ab6b9429a7d92b655254da8b2b5a33c7e30e10c5a0cf3154e1", size = 425706, upload-time = "2025-01-22T00:16:18.771Z" },
-    { url = "https://files.pythonhosted.org/packages/63/b9/3e6dd574cc9ffb2271be135ecdb36cd6aea70a1f74e80539b048072a256a/pyopencl-2025.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f204cd6974ca19e7ffe14f21afac9967b06a6718f3aecbbc4a4df313e8e7ebc2", size = 408163, upload-time = "2025-01-22T00:16:20.282Z" },
-    { url = "https://files.pythonhosted.org/packages/a4/4d/7f6f2e24b12585b81fd49f689d21ba62187656d061e3cb43840f12097dad/pyopencl-2025.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dce8d1b3fd2046e89377b754117fdb3505f45edacfda6ad2b3a29670c0526ad1", size = 719348, upload-time = "2025-01-22T00:16:22.15Z" },
-    { url = "https://files.pythonhosted.org/packages/f0/45/3c93510819859e047d494dd8f4ed80c26378bb964a8e5e850cc079cc1f6e/pyopencl-2025.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:fbb0b7b775424f0c4c929a00f09eb351075ea9e4d2b1c80afe37d09bec218ee9", size = 1170733, upload-time = "2025-01-22T00:16:24.575Z" },
-    { url = "https://files.pythonhosted.org/packages/91/ba/b745715085ef893fa7d1c7e04c95e3e554b6b27b2fb0800d6bbca563b43c/pyopencl-2025.1-cp312-cp312-win_amd64.whl", hash = "sha256:78f2a58d2e177793fb5a7b9c8a574e3a5f1d178c4df713969d1b08341c817d60", size = 457762, upload-time = "2025-01-22T00:16:27.334Z" },
+    { url = "https://files.pythonhosted.org/packages/13/65/e692c5054a2d3fea4ef3d27a615d05d45b43e4866eae2204109e7524e2f8/pyopencl-2026.1.4-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:b854bfda8021c171c3374bd65498e999ce820e055282a32e973f7dcef43641d6", size = 451287, upload-time = "2026-08-25T19:42:32.503Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/cd/61ee0776b35022593b285dc9bdd71998b595b11198597d7087eda2b12310/pyopencl-2026.1.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7d4d383088fab662da7b24e5d7ecaf60e1a323778c42dca04815884f22753047", size = 442027, upload-time = "2026-08-25T19:42:33.968Z" },
+    { url = "https://files.pythonhosted.org/packages/df/02/ead381182fc63a21fee4417ea736b299763d6e0d0d020fc92d213ae109cc/pyopencl-2026.1.4-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:942913eaeee21a35fdd66240c5099ec04c09b2f54ba0f6106d56fb4974975aa5", size = 708638, upload-time = "2026-08-25T19:42:35.601Z" },
+    { url = "https://files.pythonhosted.org/packages/64/d0/92e889998d1c8c37dd614be812bf1866aa09983e571ebeb12eb759fbfe0e/pyopencl-2026.1.4-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:31bed2c185b395ace1315afaf14bb60e4ce740ef8e6a74033de64d8984decd87", size = 762300, upload-time = "2026-08-25T19:42:37.133Z" },
+    { url = "https://files.pythonhosted.org/packages/29/92/fe4de555c607649528614665890f5f7a705d2f291b2c1f41628fa5cc10a4/pyopencl-2026.1.4-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:a2164cb9e05506524331500897d9b28f84a6955f84215c218cf0416a84747725", size = 1182289, upload-time = "2026-08-25T19:42:38.468Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/17/7928354be4b07e653e7be5cb5d6926b37fef550f011eaa74b3900ee5216f/pyopencl-2026.1.4-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:08be4c3806832b9026f4cb0ec6511f7d0083203eeabd7dd33f0f0f6604021bd5", size = 1253269, upload-time = "2026-08-25T19:42:40.409Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/9d/5af64369c708548b84a043fb401cb4101c47631c920c1fa1236d3b4c73ab/pyopencl-2026.1.4-cp311-cp311-win_amd64.whl", hash = "sha256:cafbe9b969d70e1baae57170c2256bb619eb13299f418c9804e66e5b0e315afc", size = 716559, upload-time = "2026-08-25T19:42:42.138Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/d1/00fe98fa6ff3c02e58ac130430a719a90493f50a5437d89691304c7be2b2/pyopencl-2026.1.4-cp312-cp312-macosx_10_14_x86_64.whl", hash = "sha256:83c1fdbd331f0833b61803eec420305721d043ab94836153302ff4b2a502dc71", size = 451708, upload-time = "2026-08-25T19:42:43.514Z" },
+    { url = "https://files.pythonhosted.org/packages/62/16/8d66e8eafc03ee9e5118a969e6f5417a9431b8dd0a3cb8aa76ce8339fb4c/pyopencl-2026.1.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a169c2b78099e6998890ce20e2a9ba96a82e9fa2acee62055e1e13229af0fe04", size = 442931, upload-time = "2026-08-25T19:42:44.941Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/e7/c7bb9c9b53f09ef1eda1aa9c6da1cf1c534d8cf894c874b623dc70f0fe95/pyopencl-2026.1.4-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1f83c2c791d5fcafa4e833f2a5816e661b9f1f0cd5754e025d030b705009fdd7", size = 700177, upload-time = "2026-08-25T19:42:46.427Z" },
+    { url = "https://files.pythonhosted.org/packages/74/d0/ab0f505d3662c4b87faa31a88ab350b2ee95789ad2f6d679a2b3697ec7b0/pyopencl-2026.1.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:55ecd1fe29ac98e235908ceaceae154d4660a3ebc67dfbdcfe4b4cfd8c52d270", size = 759116, upload-time = "2026-08-25T19:42:47.886Z" },
+    { url = "https://files.pythonhosted.org/packages/26/86/265ed35c0681b3a903735cb740576a23be6b40bc3612b48fbfb7a5201100/pyopencl-2026.1.4-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:a8a011b1fe8a3be2568f4a78865ad86d224220e54b337faf8fd999ebc8f526d8", size = 1173098, upload-time = "2026-08-25T19:42:49.306Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/c3/a7a547b8efb2ec540e7114dd9df628d8cfd7a297aaf82596d9d69fbe5e6b/pyopencl-2026.1.4-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:19ba976a4f20c0a2f4337db81b7f7c5c6569801160be3132550b0f31b5bef28a", size = 1249757, upload-time = "2026-08-25T19:42:51.113Z" },
+    { url = "https://files.pythonhosted.org/packages/24/4f/f59a096cfb48667ce390bd9a19e604dd965bad52b6fecdf1a989a60ca4e3/pyopencl-2026.1.4-cp312-cp312-win_amd64.whl", hash = "sha256:f5755d91aa5ce2d57c78f174d19ee0f2cb3fdd086f5f17b7972363608cccc719", size = 717735, upload-time = "2026-08-25T19:42:52.634Z" },
 ]
 
 [[package]]
@@ -4113,16 +4118,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/ef/c6/2c5999de3bb153352
 
 [[package]]
 name = "pytools"
-version = "2024.1.10"
+version = "2026.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "platformdirs" },
     { name = "siphash24" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/0f/56e109c0307f831b5d598ad73976aaaa84b4d0e98da29a642e797eaa940c/pytools-2024.1.10.tar.gz", hash = "sha256:9af6f4b045212c49be32bb31fe19606c478ee4b09631886d05a32459f4ce0a12", size = 81741, upload-time = "2024-07-17T18:47:38.287Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/07/ad213383d0733f9ccb88e05bb79ace967946009f8652a2394f845648aa38/pytools-2026.1.1.tar.gz", hash = "sha256:260e0d88c9a903c65cfe34fbe818764f44a3f96e722e1a3645ce4d596add22b1", size = 86006, upload-time = "2026-06-03T20:28:26.914Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/cf/0a6aaa44b1f9e02b8c0648b5665a82246a93bcc75224c167b4fafa25c093/pytools-2024.1.10-py3-none-any.whl", hash = "sha256:9cabb71038048291400e244e2da441a051d86053339bc484e64e58d8ea263f44", size = 88108, upload-time = "2024-07-17T18:47:36.173Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/45/32a4b57ff351213094a533067db1846494db9bba5f3348b75223b94f3d22/pytools-2026.1.1-py3-none-any.whl", hash = "sha256:1f6d9a39c871b6dc761893373792f10b67886c83e38f2aa09b66e11f8c021436", size = 99212, upload-time = "2026-06-03T20:28:25.22Z" },
 ]
 
 [[package]]
@@ -4578,7 +4583,7 @@ wheels = [
 
 [[package]]
 name = "tinygrad"
-version = "0.13.0"
+version = "0.14.0"
 source = { editable = "tinygrad_repo" }
 
 [package.metadata]
@@ -4592,6 +4597,7 @@ requires-dist = [
     { name = "hypothesis", marker = "extra == 'testing-minimal'", specifier = ">=6.148.9" },
     { name = "influxdb3-python", marker = "extra == 'testing'" },
     { name = "librosa", marker = "extra == 'testing'" },
+    { name = "mako", marker = "extra == 'autogen'" },
     { name = "markdown-callouts", marker = "extra == 'docs'" },
     { name = "markdown-exec", extras = ["ansi"], marker = "extra == 'docs'" },
     { name = "mkdocs", marker = "extra == 'docs'" },
@@ -4606,7 +4612,7 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'testing-minimal'" },
     { name = "onnx", marker = "extra == 'testing'", specifier = "==1.19.0" },
     { name = "onnx2torch", marker = "extra == 'testing'" },
-    { name = "onnxruntime", marker = "extra == 'testing'" },
+    { name = "onnxruntime", marker = "extra == 'testing'", specifier = "==1.24.1" },
     { name = "openai", marker = "extra == 'testing-unit'" },
     { name = "opencv-python", marker = "extra == 'testing'" },
     { name = "pandas", marker = "extra == 'testing'" },
@@ -4616,8 +4622,8 @@ requires-dist = [
     { name = "pylint", marker = "extra == 'linting'" },
     { name = "pytest", marker = "extra == 'testing-minimal'" },
     { name = "pytest-split", marker = "extra == 'testing-minimal'" },
-    { name = "pytest-timeout", marker = "extra == 'testing-minimal'" },
     { name = "pytest-xdist", marker = "extra == 'testing-minimal'" },
+    { name = "pyyaml", marker = "extra == 'autogen'" },
     { name = "ruff", marker = "extra == 'linting'", specifier = "==0.14.10" },
     { name = "safetensors", marker = "extra == 'testing-unit'" },
     { name = "sentencepiece", marker = "extra == 'testing'" },
@@ -4625,6 +4631,7 @@ requires-dist = [
     { name = "tiktoken", marker = "extra == 'testing'" },
     { name = "tinygrad", extras = ["testing-minimal"], marker = "extra == 'testing-unit'" },
     { name = "tinygrad", extras = ["testing-unit"], marker = "extra == 'testing'" },
+    { name = "tinymesa", marker = "extra == 'mesa'", specifier = "==25.2.7.2" },
     { name = "torch", marker = "extra == 'testing-minimal'", specifier = "==2.9.1" },
     { name = "tqdm", marker = "extra == 'testing-unit'" },
     { name = "transformers", marker = "extra == 'testing'" },
@@ -4632,7 +4639,7 @@ requires-dist = [
     { name = "typing-extensions", marker = "extra == 'linting'" },
     { name = "z3-solver", marker = "extra == 'testing-minimal'", specifier = "<4.15.4" },
 ]
-provides-extras = ["linting", "testing-minimal", "testing-unit", "testing", "docs"]
+provides-extras = ["linting", "testing-minimal", "testing-unit", "testing", "docs", "mesa", "autogen"]
 
 [[package]]
 name = "tqdm"

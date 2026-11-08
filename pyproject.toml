@@ -43,6 +43,9 @@ dependencies = [
   # GPU compute (OpenCL on Mali G52)
   "pyopencl >= 2024.0",
 
+  # vision: v4l2d, inferenced (drivable), modeld (yolo_rknn), rockchip mpp JPEG
+  "opencv-python-headless",
+
   # logging
   "pyzmq",
   "sentry-sdk",
@@ -113,7 +116,6 @@ dev = [
   "pyautogui",
   "pygame",
   "pyopencl; platform_machine != 'aarch64'", # broken on arm64
-  "pytools < 2024.1.11; platform_machine != 'aarch64'", # pyopencl use a broken version
   "pywinctl",
   "pyprof2calltree",
   "tabulate",
