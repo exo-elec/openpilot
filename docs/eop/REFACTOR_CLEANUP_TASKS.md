@@ -1,6 +1,8 @@
 # Refactor and cleanup tasks: C++ Qt UI for 01M/02M, repo cleanup
 
-Owner's direction (2026-11-09): PyQt5 is the wrong choice. Go back to EOP10's way (`UI_BACKEND = "cpp"`, the C++ Qt UI built by scons against the system Qt 5.15), and **rewrite that C++ UI to the design of the PyQt5 UI**. Start on `dev/01M`, then rebase `dev/02M` on top of it and adapt the wide profile there. Repos live in `~/Pilot/{openpilot,exopilot,RK3576}` on the PRO-BOX-RK3576 bench.
+Owner's direction (2026-11-09): PyQt5 is the wrong choice. Go back to EOP10's way (`UI_BACKEND = "cpp"`, the C++ Qt UI built by scons against the system Qt 5.15), and **rewrite that C++ UI to the design of the PyQt5 UI**. Start on `dev/01M`, then rebase `dev/02M` on top of it and adapt the wide profile there. Repos live in `~/Pilot/{openpilot,exopilot,RK3576}` on the PRO-BOX-RK3576.
+
+Boards: **01M** = LubanCat-5 BTB (RK3588, EmbedFire), not RPDZKJ. **02M** = our own RK3576 board (RPDZKJ/Rongpin RP-RK3576-C module), still in development. **PRO-BOX-RK3576** (Rongpin) = the **trial board for 02M development**: same SoC, so SoC-level code and the 02M software are exercised on it, but it has none of the 02M wiring (cameras, EC25 modem, RTS5411S hub, 02M DTB).
 
 Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason given). Every step names its proof. Update this file in the same commit as the step it tracks.
 
@@ -26,14 +28,15 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 - [ ] 1.5a **tinygrad pin (owner question):** `CLAUDE.md` says `tinygrad_repo` is pinned to the stable `v0.13.0` tag, "do not follow master". But the gitlink has been at a 0.14.0 checkout since `0b6918a37` (2026-10-09), and `d429d91f5` locked tinygrad 0.14.0 to match it. Decide which one is right: move the submodule back to `v0.13.0` (and re-lock), or update `CLAUDE.md`.
 - [~] 1.5b `./test.sh` on `d429d91f5`: ruff and the shebang check **pass**. The gate then always runs `selfdrive/ui/tests` (the PyQt5 UI, even with `--no-pytest`): 14 collection errors, because there is no PyQt5 on the board (moot after Phase 6). The hardware pytest block needs `msgq.ipc_pyx`, so it waits for the scons build (2.2). Direct run of `system/hardware/{rockchip,rk3576}` tests: 17 pass, 1 skip.
 ### exopilot (`main`)
-- [ ] 1.6 Bring `codex/gpu-stereo-readiness` into `main`: rebase it (9 commits) onto `main`, run `hal/tests` (expected 126 pass), fast-forward `main`. The GPU check (`hal/gpu.py`), the USB-C phone/eGPU mode switch and its 02M overlays belong in exopilot `main`, not on a side branch.
-- [ ] 1.7 Board identity: `hal/hal/platform/bsp.py` maps every `rk3576` to `exopilot02m`. Read `/etc/rk-board.json` first (written by the OS image), fall back to the device tree, and add a `probox` entry without cameras or modem. Proof: a new test in `hal/tests`.
-- [ ] 1.8 `setup_rk3576.sh`: `modprobe rockchip_can` does not exist on 6.1 (CAN-FD is built in as `rk3576_canfd`); add a guard so it refuses to install a DTB unless the board identity is `exopilot02m`.
-- [ ] 1.9 Docs: RK3576 is Ubuntu 24.04 / kernel 6.1 (not 22.04 / 5.10); `CLAUDE.md` names `rk3576-rongpin.dts`, which does not exist.
+- [x] 1.6 GPU work into exopilot `main` (`656670c`'s parents): the six commits that do not depend on the eGPU were cherry-picked (Mali OpenCL check `hal/gpu.py` + `test_gpu.py`, GPU source audit docs, IWR1843 gateway docs). The three eGPU/phone-switch commits were **left out on purpose**: `main` removed the external GPU in `e934d0f` (2026-10-13), and its phone host port supersedes them. hal/tests 126 pass. Owner question: is the eGPU wanted back on 02M? (The PRO-BOX OS image keeps its eGPU helper.)
+- [x] 1.7 Board identity: `hal.platform.identity` (`board_id()`: `/etc/rk-board.json`, then DT model, then SoC; `is_exopilot_board()`, `soc()`), `BSP` uses it; exopilot `656670c`. On the PRO-BOX: `probox-rk3576`, SoC `rk3576`, not ExoPilot wiring. hal/tests 133 pass.
+- [ ] 1.7b openpilot: `RK3576Hardware.modem_power_on/off` (EC25 GPIO bit-bang) and any other board-wiring code must check `hal.platform.identity.is_exopilot_board()` before touching GPIOs; SoC paths stay as they are.
+- [x] 1.8 `setup_rk3576.sh` refuses on non-02M boards (`/etc/rk-board.json` or DT model; tested on the PRO-BOX: exit 1, override passes) and loads the real CAN-FD module `rk3576_canfd` (built in); exopilot `a876559`.
+- [x] 1.9 exopilot docs: RK3576 = Ubuntu 24.04 on the RPDZKJ 6.1 kernel, RK3588 = Debian 12 on the LubanCat 5.10 kernel; the never-committed `rk3576-rongpin.dts` removed from `CLAUDE.md`; exopilot `647e9fb`.
 - [ ] 1.10 Kernel fragments: list the symbols that do not exist on 6.1 (`VIDEO_V4L2`, `I2C_ROCKCHIP`, `MMC_SDHCI_ROCKCHIP`, `CAN_ROCKCHIP`, `ROCKCHIP_WATCHDOG`) with their 6.1 names; needs the 6.1 Kconfig (supplier kernel tree, on the PC).
 ### RK3576 (`os-build`)
-- [ ] 1.11 `OS_FOR_APPS.md`: replace decision 3 (prebuilt PyQt5 wheel) with "C++ Qt UI, no PyQt5"; keep the Qt5 dev packages (the C++ UI build needs them); drop the PyQt5 rows from `NEXT_BUILD.md`/`PACKAGES.md`.
-- [ ] 1.12 `HANDOFF_BOARD_CLAUDE.md`: remove the login password from the file (history keeps it; see 1.3).
+- [x] 1.11 RK3576 `OS_FOR_APPS.md` decision 3 is now "C++ Qt UI, no PyQt5"; `NEXT_BUILD.md`/`PACKAGES.md` updated; Qt5 dev packages kept.
+- [x] 1.12 Password removed from `HANDOFF_BOARD_CLAUDE.md` (still in git history: change it, step 1.3).
 
 ## Phase 2: C++ UI build baseline on the board (`dev/01M`)
 - [ ] 2.1 Set `UI_BACKEND = "cpp"` on `dev/01M` (this replaces 01M's one commit, "select shared PyQt5 baseline"). Keep `DISPLAY_SIZE = (1024, 600)`.
@@ -96,4 +99,6 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 1.1, 1.2 | `~/code` -> `~/Pilot`; worktree and scratch venv removed; venv rebuilt |
 | 2026-11-09 | 1.2a | Remote Control service installed and running as PRO_BOX_RK3576; waits on the owner's trust answer |
 | 2026-11-09 | 1.4, 1.5b | `.gitmodules` cleaned (panda, carla); test.sh: ruff + shebang pass, UI tests need PyQt5, hardware block needs scons |
+| 2026-11-09 | 1.6-1.9 | exopilot `main` 870a19a -> 656670c: GPU check merged (eGPU commits left out), board identity, setup guard, docs; hal 133 pass |
+| 2026-11-09 | 1.11, 1.12 | RK3576 docs: no PyQt5 wheel; password removed |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
