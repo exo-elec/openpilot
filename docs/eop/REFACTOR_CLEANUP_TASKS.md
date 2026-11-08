@@ -21,10 +21,10 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 - [x] 1.2a Remote Control at boot: `/home/vcar/claude-remote.sh` (copy in RK3576 `tools/claude-remote.sh`), systemd user service `claude-remote.service`, session **PRO_BOX_RK3576**, starts in `~/Pilot` (trust for the home folder is never saved, so boot would hang at the prompt). Starts on **every reboot** through the desktop autologin (`AutomaticLogin=vcar` starts the user manager, which starts the enabled service); `sudo loginctl enable-linger vcar` is only a fallback if autologin is ever turned off. Owner: answer the trust prompt once (`~/claude-remote.sh attach`, `y`), or each boot waits there.
 - [ ] 1.3 Before the board leaves the bench: remove `~/.ssh/id_ed25519` (it can push) and change the `vcar` password (it was written into RK3576 `HANDOFF_BOARD_CLAUDE.md`). **Owner action.**
 ### openpilot (`dev/EOP10`, then carried to 01M/02M by the rebase)
-- [ ] 1.4 `.gitmodules`: drop the stale `panda` entry (the submodule was removed in `863c0722d`). Proof: `git submodule status` is clean, and `git config -f .gitmodules --list` has no panda.
+- [x] 1.4 `.gitmodules`: dropped the stale `panda` entry (the submodule was removed in `863c0722d`) and `carla` (it never had a gitlink). Proof: the paths in `.gitmodules` now equal the gitlinks exactly (13), and `git submodule status` is clean.
 - [ ] 1.5 `docs/eop/RK3576_02M_SUPPORT.md` Install section: says the installer "builds PyQt5"; update it after Phase 4.
 - [ ] 1.5a **tinygrad pin (owner question):** `CLAUDE.md` says `tinygrad_repo` is pinned to the stable `v0.13.0` tag, "do not follow master". But the gitlink has been at a 0.14.0 checkout since `0b6918a37` (2026-10-09), and `d429d91f5` locked tinygrad 0.14.0 to match it. Decide which one is right: move the submodule back to `v0.13.0` (and re-lock), or update `CLAUDE.md`.
-- [ ] 1.5b Run `./test.sh` (the repo's pre-push gate, per `CLAUDE.md`) on `d429d91f5`. It was pushed after the board's hardware tests only.
+- [~] 1.5b `./test.sh` on `d429d91f5`: ruff and the shebang check **pass**. The gate then always runs `selfdrive/ui/tests` (the PyQt5 UI, even with `--no-pytest`): 14 collection errors, because there is no PyQt5 on the board (moot after Phase 6). The hardware pytest block needs `msgq.ipc_pyx`, so it waits for the scons build (2.2). Direct run of `system/hardware/{rockchip,rk3576}` tests: 17 pass, 1 skip.
 ### exopilot (`main`)
 - [ ] 1.6 Bring `codex/gpu-stereo-readiness` into `main`: rebase it (9 commits) onto `main`, run `hal/tests` (expected 126 pass), fast-forward `main`. The GPU check (`hal/gpu.py`), the USB-C phone/eGPU mode switch and its 02M overlays belong in exopilot `main`, not on a side branch.
 - [ ] 1.7 Board identity: `hal/hal/platform/bsp.py` maps every `rk3576` to `exopilot02m`. Read `/etc/rk-board.json` first (written by the OS image), fall back to the device tree, and add a `probox` entry without cameras or modem. Proof: a new test in `hal/tests`.
@@ -95,4 +95,5 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 0.3 | force-push blocked by the safety check; owner to run |
 | 2026-11-09 | 1.1, 1.2 | `~/code` -> `~/Pilot`; worktree and scratch venv removed; venv rebuilt |
 | 2026-11-09 | 1.2a | Remote Control service installed and running as PRO_BOX_RK3576; waits on the owner's trust answer |
+| 2026-11-09 | 1.4, 1.5b | `.gitmodules` cleaned (panda, carla); test.sh: ruff + shebang pass, UI tests need PyQt5, hardware block needs scons |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
