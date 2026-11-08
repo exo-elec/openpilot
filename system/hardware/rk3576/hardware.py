@@ -82,6 +82,20 @@ class RK3576Hardware(RockchipHardware):
         return "ExoPilot 02M"
 
     @staticmethod
+    def _on_02m_wiring() -> bool:
+        """True when the 02M board wiring (EC25 GPIOs, cameras, hub) is present.
+
+        The PRO-BOX-RK3576 trial board has the same SoC but none of that wiring,
+        so board-wiring code must not run there. Uses exopilot hal's board
+        identity; an older hal without it keeps the previous behaviour.
+        """
+        try:
+            from hal.platform.identity import is_exopilot_board
+        except ImportError:
+            return True
+        return is_exopilot_board()
+
+    @staticmethod
     def modem_power_on() -> bool:
         """Enable EC25 via direct GPIO bit-bang (ExoPilot 02M).
 
@@ -99,6 +113,8 @@ class RK3576Hardware(RockchipHardware):
             power_pin = RK3576Hardware.GPIO["EC25_PWR_EN"]
             reset_pin = RK3576Hardware.GPIO["EC25_RST_N"]
             if not power_pin.get("confirmed", False) or not reset_pin.get("confirmed", False):
+                return False
+            if not RK3576Hardware._on_02m_wiring():
                 return False
             gpio_pwr = power_pin["num"]
             gpio_rst = reset_pin["num"]
@@ -134,6 +150,8 @@ class RK3576Hardware(RockchipHardware):
         try:
             power_pin = RK3576Hardware.GPIO["EC25_PWR_EN"]
             if not power_pin.get("confirmed", False):
+                return False
+            if not RK3576Hardware._on_02m_wiring():
                 return False
             gpio_pwr = power_pin["num"]
             if os.path.exists(f"/sys/class/gpio/gpio{gpio_pwr}"):
