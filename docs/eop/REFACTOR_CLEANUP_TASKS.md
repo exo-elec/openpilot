@@ -1,6 +1,6 @@
 # Refactor and cleanup tasks: C++ Qt UI for 01M/02M, repo cleanup
 
-Owner's direction (2026-11-09): PyQt5 is the wrong choice. Go back to EOP10's way (`UI_BACKEND = "cpp"`, the C++ Qt UI built by scons against the system Qt 5.15), and **rewrite that C++ UI to the design of the PyQt5 UI**. Start on `dev/01M`, then rebase `dev/02M` on top of it and adapt the wide profile there. Repos live in `~/Pilot/{openpilot,exopilot,RK3576}` on the PRO-BOX-RK3576.
+Owner's direction (2026-11-09): PyQt5 is the wrong choice. Go back to EOP10's way (`UI_BACKEND = "cpp"`, the C++ Qt UI built by scons against the system Qt 5.15), and **rewrite that C++ UI to the design of the PyQt5 UI**. Start on `dev/01M`, then rebase `dev/02M` on top of it and adapt the wide profile there. Repos live in `~/Pilot/{openpilot,exopilot}` (projects), `~/Robot/{openrobot,opendojo,exorobot}` (robot projects), `~/RK3576` (this board's OS build, top level: it is not a sibling of the projects) on the PRO-BOX-RK3576.
 
 Boards: **01M** = LubanCat-5 BTB (RK3588, EmbedFire), not RPDZKJ. **02M** = our own RK3576 board (RPDZKJ/Rongpin RP-RK3576-C module), still in development. **PRO-BOX-RK3576** (Rongpin) = the **trial board for 02M development**: same SoC, so SoC-level code and the 02M software are exercised on it, but it has none of the 02M wiring (cameras, EC25 modem, RTS5411S hub, 02M DTB).
 
