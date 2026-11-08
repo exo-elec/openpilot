@@ -30,7 +30,7 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 ### exopilot (`main`)
 - [x] 1.6 GPU work into exopilot `main` (`656670c`'s parents): the six commits that do not depend on the eGPU were cherry-picked (Mali OpenCL check `hal/gpu.py` + `test_gpu.py`, GPU source audit docs, IWR1843 gateway docs). The three eGPU/phone-switch commits were **left out on purpose**: `main` removed the external GPU in `e934d0f` (2026-10-13), and its phone host port supersedes them. hal/tests 126 pass. Owner question: is the eGPU wanted back on 02M? (The PRO-BOX OS image keeps its eGPU helper.)
 - [x] 1.7 Board identity: `hal.platform.identity` (`board_id()`: `/etc/rk-board.json`, then DT model, then SoC; `is_exopilot_board()`, `soc()`), `BSP` uses it; exopilot `656670c`. On the PRO-BOX: `probox-rk3576`, SoC `rk3576`, not ExoPilot wiring. hal/tests 133 pass.
-- [ ] 1.7b openpilot: `RK3576Hardware.modem_power_on/off` (EC25 GPIO bit-bang) and any other board-wiring code must check `hal.platform.identity.is_exopilot_board()` before touching GPIOs; SoC paths stay as they are.
+- [x] 1.7b openpilot: `RK3576Hardware.modem_power_on/off` refuse unless `_on_02m_wiring()` (exopilot `hal.platform.identity.is_exopilot_board()`; older hal keeps the old behaviour). New test: with the EC25 pins marked confirmed, nothing is written on the trial board. rk3576+rockchip tests 18 pass/1 skip with hal, 16/3 without; on the PRO-BOX `_on_02m_wiring()` = False.
 - [x] 1.8 `setup_rk3576.sh` refuses on non-02M boards (`/etc/rk-board.json` or DT model; tested on the PRO-BOX: exit 1, override passes) and loads the real CAN-FD module `rk3576_canfd` (built in); exopilot `a876559`.
 - [x] 1.9 exopilot docs: RK3576 = Ubuntu 24.04 on the RPDZKJ 6.1 kernel, RK3588 = Debian 12 on the LubanCat 5.10 kernel; the never-committed `rk3576-rongpin.dts` removed from `CLAUDE.md`; exopilot `647e9fb`.
 - [ ] 1.10 Kernel fragments: list the symbols that do not exist on 6.1 (`VIDEO_V4L2`, `I2C_ROCKCHIP`, `MMC_SDHCI_ROCKCHIP`, `CAN_ROCKCHIP`, `ROCKCHIP_WATCHDOG`) with their 6.1 names; needs the 6.1 Kconfig (supplier kernel tree, on the PC).
@@ -101,4 +101,5 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 1.4, 1.5b | `.gitmodules` cleaned (panda, carla); test.sh: ruff + shebang pass, UI tests need PyQt5, hardware block needs scons |
 | 2026-11-09 | 1.6-1.9 | exopilot `main` 870a19a -> 656670c: GPU check merged (eGPU commits left out), board identity, setup guard, docs; hal 133 pass |
 | 2026-11-09 | 1.11, 1.12 | RK3576 docs: no PyQt5 wheel; password removed |
+| 2026-11-09 | 1.7b | modem GPIO guard for the trial board, test added |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
