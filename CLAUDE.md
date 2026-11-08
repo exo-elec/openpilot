@@ -8,8 +8,11 @@ Guidance for Claude Code when working on this openpilot fork.
 
 - **Codebase**: OpenPilot fork + EOP-specific daemons, controllers, UI
 - **Platform**: Shared runtime adapters for RK3588 and RK3576. Build defaults
-  live in `common/build_profile.py`: EOP10 selects native C++/Qt with RK3588;
-  01M selects PyQt5 with RK3588; 02M selects PyQt5 with RK3576 and 1600×600.
+  live in `common/build_profile.py`: EOP10 and 01M select native C++/Qt with RK3588
+  (1024×600); 02M selects native C++/Qt with RK3576 and 1600×600. PyQt5 was
+  dropped on 2026-11-09 (no aarch64 wheel; the on-board build runs out of
+  memory): the PyQt5 design is being ported to the C++ UI, see
+  `docs/eop/REFACTOR_CLEANUP_TASKS.md`.
   Board pin maps, camera paths and bring-up data remain board-specific HAL
   data. See `docs/eop/SHARED_PIPELINE.md`.
 - **Suffix = RAM**: L=4GB / M=8GB / H=16GB
@@ -103,7 +106,7 @@ All three branches inherit the same runtime tree. Variant changes belong in
 
 ```
 dev/EOP10 → dev/01M → dev/02M
-cpp / RK3588 / 1024×600 → pyqt5 / RK3588 / 1024×600 → pyqt5 / RK3576 / 1600×600
+cpp / RK3588 / 1024×600 → cpp / RK3588 / 1024×600 → cpp / RK3576 / 1600×600
 ```
 
 Both independent board adapters are always present and inherit from
