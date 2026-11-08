@@ -115,3 +115,18 @@ def test_registry() -> None:
   assert "rk3588" in PlatformRegistry._platforms
   assert PlatformRegistry._aliases.get("exopilot02m") == "rk3576"
   assert type(PlatformRegistry.create("rk3576")) is RK3576Hardware
+
+
+def test_modem_power_refuses_on_the_trial_board(monkeypatch) -> None:
+  """The PRO-BOX-RK3576 trial board shares the SoC but not the 02M wiring:
+  even with the EC25 pins marked confirmed, no GPIO may be written there."""
+  confirmed = {"EC25_PWR_EN": {"num": 4, "confirmed": True},
+               "EC25_RST_N": {"num": 5, "confirmed": True}}
+  monkeypatch.setattr(RK3576Hardware, "GPIO", confirmed)
+  monkeypatch.setattr(RK3576Hardware, "_on_02m_wiring", staticmethod(lambda: False))
+
+  def no_writes(*args, **kwargs):
+    raise AssertionError(f"GPIO written on the trial board: {args}")
+  monkeypatch.setattr("builtins.open", no_writes)
+  assert RK3576Hardware.modem_power_on() is False
+  assert RK3576Hardware.modem_power_off() is False
