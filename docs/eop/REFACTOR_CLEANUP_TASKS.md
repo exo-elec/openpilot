@@ -6,6 +6,16 @@ Boards: **01M** = LubanCat-5 BTB (RK3588, EmbedFire), not RPDZKJ. **02M** = our 
 
 Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason given). Every step names its proof. Update this file in the same commit as the step it tracks.
 
+## Status by repo (updated 2026-11-09)
+| Repo / branch | Pushed tip | Done | Remaining |
+|---|---|---|---|
+| openpilot `dev/EOP10` | (this commit) | aarch64 venv fix; `.gitmodules` cleanup; EC25 GPIO guard for the trial board; this tracker | 1.5a tinygrad pin (owner); 1.5b full `./test.sh` after the scons build |
+| openpilot `dev/01M`, `dev/02M` | **local only** (force-push 0.3, owner) | rebased on EOP10; 01M back to `UI_BACKEND = "cpp"`; 02M = cpp / rk3576 / 1600x600 | Phase 2 build, Phase 3-4 port (01M), Phase 5 (02M), Phase 6 PyQt5 removal |
+| exopilot `main` | `5410961`+ | GPU check merged (eGPU commits left out); `hal.platform.identity`; setup guard; docs; `docs/00-START/PROGRESS.md` | eGPU decision; 6.1 Kconfig names (1.10); 02M Phase B (needs the 02M board) |
+| RK3576 `os-build` | pushed | `OS_FOR_APPS.md`; test record; Remote Control at boot; Mali proof `tools/qtgl_probe.cc` (LOG 35); `PROGRESS.md` checkpoint | trust prompt + reboot test; build packages; eGPU over USB-C check; v5 image items |
+
+**Remaining plan, in order:** (1) owner: trust prompt, then reboot to prove Remote Control on boot; (2) owner: install the 12 build packages; (3) owner: force-push 01M/02M; (4) 2.2 scons build of the C++ UI with `-j2`, then the full `./test.sh`; (5) eGPU over USB-C check for the next OS build; (6) 2.3-2.4 screenshots; (7) Phase 4 port on 01M, one screen per commit; (8) Phase 5 on 02M; (9) Phase 6 removal of the PyQt5 path.
+
 ## Why C++ and not PyQt5 (evidence)
 - PyPI has no Linux aarch64 PyQt5 wheel, so `scripts/ensure_pyqt5.sh` compiles it on the board. On the 8 GB PRO-BOX without swap, that compile is **killed for running out of memory** (4 attempts, cgroup `memory.peak` 7.46 GB, `oom_kill` counter rose; RK3576 `os/docs/LOG.md` §33).
 - The C++ UI links the system Qt directly (`qtbase5-dev`, already in the image). It needs no Python binding and no per-install build.
@@ -39,6 +49,7 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 - [x] 1.12 Password removed from `HANDOFF_BOARD_CLAUDE.md` (still in git history: change it, step 1.3).
 
 ## Phase 2: C++ UI build baseline on the board (`dev/01M`)
+- [x] 2.0 **The C++ Qt GL path works on Rockchip** (RK3576 Mali-G52; same method on the RK3588 boards): RK3576 `tools/qtgl_probe.cc` with this UI's `QSurfaceFormat` and camera shaders, on the real display through the vendor `libmali` g24p0: OpenGL ES 3.2, shaders compile and link, 1280x720 NV12 upload 1.41 ms/frame, colours correct, GL error 0. `EGL_EXT_image_dma_buf_import` is present (a zero-copy camera path is possible later). `setSamples(16)` in `qt/util.cc` is not granted on Mali (0 samples): set it to 4 or 0 during the port (4.1). RK3576 LOG 35.
 - [x] 2.1 `dev/01M`: new commit "build(01m): back to the native C++/Qt UI" (`UI_BACKEND = "cpp"`, 1024x600; `CLAUDE.md` branch model updated). `dev/02M` rebased on it with its profile resolved to cpp / rk3576 / 1600x600. Local until the owner's force-push (0.3).
 - [!] 2.2 Build the C++ UI (`scons -j2`, record time and `memory.peak`). **Blocked: build packages missing on the board** (the handoff said they were installed; they are not). `apt-get -s` simulation: 34 new, **0 removed**, no Mali/Mesa/EGL/X/Rockchip package touched. Owner runs: `sudo apt-get install --no-upgrade capnproto libcapnp-dev libzmq3-dev libqt5charts5-dev libqt5serialbus5-dev libqt5x11extras5-dev libcurl4-openssl-dev libsystemd-dev libglew-dev libglfw3-dev portaudio19-dev cython3`
 - [ ] 2.3 Run it on the board's real X display at 1024x600 (no `xvfb`: see RK3576 `OS_FOR_APPS.md`), take a screenshot of each screen as the "before" set.
@@ -104,4 +115,6 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 1.7b | modem GPIO guard for the trial board, test added |
 | 2026-11-09 | 2.1 | 01M back to cpp (local), 02M rebased (cpp/rk3576/1600x600) |
 | 2026-11-09 | 2.2 | blocked: 12 build packages missing; install simulated clean (0 removed) |
+| 2026-11-09 | 2.0 | C++ Qt GL path proven on the Mali-G52 (RK3576 LOG 35) |
+| 2026-11-09 | status | per-repo status table and remaining plan; PROGRESS docs in exopilot and RK3576 |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
