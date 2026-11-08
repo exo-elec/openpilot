@@ -39,8 +39,8 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 - [x] 1.12 Password removed from `HANDOFF_BOARD_CLAUDE.md` (still in git history: change it, step 1.3).
 
 ## Phase 2: C++ UI build baseline on the board (`dev/01M`)
-- [ ] 2.1 Set `UI_BACKEND = "cpp"` on `dev/01M` (this replaces 01M's one commit, "select shared PyQt5 baseline"). Keep `DISPLAY_SIZE = (1024, 600)`.
-- [ ] 2.2 Build the C++ UI target only, with a job limit (`scons -j2 selfdrive/ui`). Record time and `memory.peak`; the same out-of-memory risk as PyQt5 applies.
+- [x] 2.1 `dev/01M`: new commit "build(01m): back to the native C++/Qt UI" (`UI_BACKEND = "cpp"`, 1024x600; `CLAUDE.md` branch model updated). `dev/02M` rebased on it with its profile resolved to cpp / rk3576 / 1600x600. Local until the owner's force-push (0.3).
+- [!] 2.2 Build the C++ UI (`scons -j2`, record time and `memory.peak`). **Blocked: build packages missing on the board** (the handoff said they were installed; they are not). `apt-get -s` simulation: 34 new, **0 removed**, no Mali/Mesa/EGL/X/Rockchip package touched. Owner runs: `sudo apt-get install --no-upgrade capnproto libcapnp-dev libzmq3-dev libqt5charts5-dev libqt5serialbus5-dev libqt5x11extras5-dev libcurl4-openssl-dev libsystemd-dev libglew-dev libglfw3-dev portaudio19-dev cython3`
 - [ ] 2.3 Run it on the board's real X display at 1024x600 (no `xvfb`: see RK3576 `OS_FOR_APPS.md`), take a screenshot of each screen as the "before" set.
 - [ ] 2.4 Screenshot the PyQt5 design as the target set. Needs PyQt5 for a moment, so do it on the PC (x86 wheels exist) with `python -m openpilot.selfdrive.ui.main --demo`. Store under `docs/eop/ui_design/`.
 
@@ -102,4 +102,6 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 1.6-1.9 | exopilot `main` 870a19a -> 656670c: GPU check merged (eGPU commits left out), board identity, setup guard, docs; hal 133 pass |
 | 2026-11-09 | 1.11, 1.12 | RK3576 docs: no PyQt5 wheel; password removed |
 | 2026-11-09 | 1.7b | modem GPIO guard for the trial board, test added |
+| 2026-11-09 | 2.1 | 01M back to cpp (local), 02M rebased (cpp/rk3576/1600x600) |
+| 2026-11-09 | 2.2 | blocked: 12 build packages missing; install simulated clean (0 removed) |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
