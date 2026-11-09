@@ -55,7 +55,7 @@ protected:
 
   // Resized for 600px height / ~260px width
   const QRect home_btn = QRect(40, 520, 180, 75);
-  const QRect settings_btn = QRect(30, 15, 200, 80);
+  const QRect settings_btn = QRect(15, 15, 230, 80);  // same x/width as the status cards
   const QRect mic_indicator_btn = QRect(140, 115, 55, 28);
   // Status palette from the PyQt5 design (theme.h): blue good, amber warning.
   const QColor good_color = theme::GOOD;
