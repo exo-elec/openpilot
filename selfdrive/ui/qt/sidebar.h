@@ -39,8 +39,9 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   void drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y);
+  void drawButton(QPainter &p, const QRect &r, const QPixmap &icon, const QString &text, bool pressed);
 
-  QPixmap home_img, flag_img, settings_img, mic_img, link_img;
+  QPixmap flag_img, gear_img, mic_img, link_img;
   bool onroad, recording_audio, flag_pressed, settings_pressed, mic_indicator_pressed;
   const QMap<cereal::DeviceState::NetworkType, QString> network_type = {
     {cereal::DeviceState::NetworkType::NONE, tr("--")},

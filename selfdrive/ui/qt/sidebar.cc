@@ -6,6 +6,22 @@
 #include "common/params.h"
 #include "selfdrive/ui/qt/util.h"
 
+void Sidebar::drawButton(QPainter &p, const QRect &r, const QPixmap &icon, const QString &text, bool pressed) {
+  p.setOpacity(pressed ? 0.65 : 1.0);
+  p.setPen(Qt::NoPen);
+  p.setBrush(QColor(0x29, 0x29, 0x29));
+  p.drawRoundedRect(r, 14, 14);
+
+  p.setFont(theme::inter(24, QFont::DemiBold));
+  const int text_w = p.fontMetrics().horizontalAdvance(text);
+  const int gap = 12;
+  int x = r.x() + (r.width() - icon.width() - gap - text_w) / 2;
+  p.drawPixmap(x, r.y() + (r.height() - icon.height()) / 2, icon);
+  p.setPen(theme::WHITE);
+  p.drawText(QRect(x + icon.width() + gap, r.y(), text_w + 2, r.height()), Qt::AlignLeft | Qt::AlignVCenter, text);
+  p.setOpacity(1.0);
+}
+
 void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y) {
   const QRect rect = {15, y, 230, 85};
 
@@ -27,9 +43,10 @@ void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QCol
 }
 
 Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(false), settings_pressed(false), mic_indicator_pressed(false) {
-  home_img = loadPixmap("../assets/images/button_home.png", home_btn.size());
-  flag_img = loadPixmap("../assets/images/button_flag.png", home_btn.size());
-  settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
+  // Dark buttons with white icons (PyQt5 design), not comma's white button
+  // images; the offroad home button did nothing, so offroad it is not drawn.
+  gear_img = loadPixmap("../assets/icons/settings.png", QSize(34, 34));
+  flag_img = loadPixmap("../assets/images/button_flag.png", QSize(34, 34));
   mic_img = loadPixmap("../assets/icons/microphone.png", QSize(22, 22));
   link_img = loadPixmap("../assets/icons/link.png", QSize(36, 36));
 
@@ -192,10 +209,11 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.fillRect(rect(), theme::SIDEBAR_BG);
 
   // buttons
-  p.setOpacity(settings_pressed ? 0.65 : 1.0);
-  p.drawPixmap(settings_btn.x(), settings_btn.y(), settings_img);
-  p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
-  p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
+  drawButton(p, settings_btn, gear_img, tr("SETTINGS"), settings_pressed);
+  if (onroad) {
+    drawButton(p, home_btn, flag_img, tr("MARK"), flag_pressed);
+  }
+  p.setPen(Qt::NoPen);
   if (recording_audio) {
     p.setBrush(danger_color);
     p.setOpacity(mic_indicator_pressed ? 0.65 : 1.0);
