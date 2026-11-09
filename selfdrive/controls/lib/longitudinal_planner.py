@@ -19,40 +19,40 @@ from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_
 from openpilot.selfdrive.controls.radard import RADAR_TO_CAMERA
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
-from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
-from nagaspilot.controls.longitudinal_policy import (
+from exopilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from exopilot.controls.longitudinal_policy import (
   ACCELERATION_PROFILES, acceleration_profile_limit, adaptive_follow_gap,
   apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
-from nagaspilot.controls.ngp_tja import TrafficJamAssist
-from nagaspilot.controls.ngp_driver_activity import monitoring_speed_target
-from nagaspilot.runtime.longitudinal_params import (
+from exopilot.controls.ngp_tja import TrafficJamAssist
+from exopilot.controls.ngp_driver_activity import monitoring_speed_target
+from exopilot.runtime.longitudinal_params import (
   load_accel_profile as _load_accel_profile, load_adaptive_gap_enabled as _load_adaptive_gap_enabled,
 )
-from nagaspilot.controls.ngp_dlon import NGPDLON
+from exopilot.controls.ngp_dlon import NGPDLON
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
-# EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
+# EOP10/NGP10/EDP10 via exopilot/controls (see exopilot/controls/ngp_brsc.py).
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp.
-from nagaspilot.controls.ngp_brsc import NGPBRSC
-from nagaspilot.controls.ngp_cutin_speed import CutInSpeed
-from nagaspilot.controls.ngp_pathd_consumer import speed_cap
-from nagaspilot.runtime.cutin_adapter import cutin_objects, cutin_path
-from nagaspilot.runtime.map_speed import MapSpeed
-from nagaspilot.runtime.feature_keys import OriginParams
-from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
+from exopilot.controls.ngp_brsc import NGPBRSC
+from exopilot.controls.ngp_cutin_speed import CutInSpeed
+from exopilot.controls.ngp_pathd_consumer import speed_cap
+from exopilot.runtime.cutin_adapter import cutin_objects, cutin_path
+from exopilot.runtime.map_speed import MapSpeed
+from exopilot.runtime.feature_keys import OriginParams
+from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
-# laneChangeStarting. See nagaspilot/controls/ngp_lc_lead_handoff.py.
-from nagaspilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
+# laneChangeStarting. See exopilot/controls/ngp_lc_lead_handoff.py.
+from exopilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
 # VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
 # vtsc.py -- no learned-speed DB, no self-calibration. See ngp_vtsc.py.
-from nagaspilot.controls.ngp_vtsc import NGPVTSC
+from exopilot.controls.ngp_vtsc import NGPVTSC
 # NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
 # EOPNSLCEnabled (no panel toggle there either). Nav-only on this branch --
 # NGP10 has no map-data source at all (see EOP10_PARITY_CANDIDATES.md's
 # Tier 2.5 MTSC entry); MSLC is not portable here for the same reason.
-from nagaspilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
+from exopilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = list(ACCELERATION_PROFILES["normal"])

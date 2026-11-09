@@ -93,7 +93,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_device_vehicle_selected", {PERSISTENT, STRING, ""}},
     {"ngp_device_vehicle_list", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
     {"ngp_lat_alcc", {PERSISTENT, BOOL, "0"}},
-    // DLAT (Dynamic Lateral Profile, nagaspilot/controls/ngp_dlat.py) is a
+    // DLAT (Dynamic Lateral Profile, exopilot/controls/ngp_dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
     // DLP curve assist: pre-emptively force laneless on a predicted tight
@@ -121,7 +121,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
     {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
-    // via nagaspilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
+    // via exopilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
     // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
@@ -129,25 +129,25 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
     // until the phone model is proven.
     {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
-    // Big model state, written by modeld's BigModelHook and read by selfdrived (nagaspilot/controls/ngp_bigmodel_gate.py):
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/controls/ngp_bigmodel_gate.py):
     // loading/proving blocks engagement; active is false once the big model handed back or failed.
     {"ngp_bigmodel_active", {CLEAR_ON_MANAGER_START, BOOL}},
     {"ngp_bigmodel_loading", {CLEAR_ON_MANAGER_START, BOOL}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
-    // monod (nagaspilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
+    // monod (exopilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.
     {"ngp_lon_cutin", {PERSISTENT, BOOL, "0"}},
-    // pathd add-on (nagaspilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
+    // pathd add-on (exopilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
     // pathd add-on consumers (ngp_pathd_consumer.py), default off, need ngp_pathd_enabled: lateral offset in controlsd, speed cap in the planner.
     {"ngp_lat_pathd", {PERSISTENT, BOOL, "0"}},
     {"ngp_lon_pathd", {PERSISTENT, BOOL, "0"}},
     // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
     {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
-    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (nagaspilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
+    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
     {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
-    // Map / light / distraction speed caps (nagaspilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
-    // tripd (nagaspilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind ngp_tripd_enabled.
+    // Map / light / distraction speed caps (exopilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
+    // tripd (exopilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind ngp_tripd_enabled.
     {"ngp_tripd_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_trip_a_start_distance", {PERSISTENT, FLOAT, "0.0"}},
     {"ngp_trip_a_start_time", {PERSISTENT, FLOAT, "0.0"}},
@@ -183,7 +183,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
     {"ngp_monod_hz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
-    // custom (default) writes nothing. See nagaspilot/controls/ngp_drive_mode.py.
+    // custom (default) writes nothing. See exopilot/controls/ngp_drive_mode.py.
     {"ngp_lon_drive_mode", {PERSISTENT, STRING, "custom"}},
     {"ngp_lon_accel_profile", {PERSISTENT, STRING, "normal"}},
     // Adaptive follow gap uses only the standard radarState.leadOne observation.
@@ -208,13 +208,13 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ngp_lon_dlon_speed_limit", {PERSISTENT, BOOL, "1"}},
     {"ngp_lon_dlon_stop_prediction", {PERSISTENT, BOOL, "1"}},
     // Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
-    // laneChangeStarting (nagaspilot/controls/ngp_lc_lead_handoff.py). No panel
+    // laneChangeStarting (exopilot/controls/ngp_lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
     {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
     // NSLC-equivalent: clamp cruise speed to the posted navigation speed
-    // limit (nagaspilot/controls/ngp_speed_policy.py, NAVIGATION policy).
+    // limit (exopilot/controls/ngp_speed_policy.py, NAVIGATION policy).
     // Nav-only -- NGP10 has no map-data source (see
-    // nagaspilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
+    // exopilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
     // toggle, matching EOP10's EOPNSLCEnabled. Default off.
     {"ngp_lon_nslc", {PERSISTENT, BOOL, "0"}},
     // Driver preference: constant kph offset applied to the final v_cruise
@@ -226,7 +226,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // longitudinal_planner.py -- dead code there too, not ported here.
     {"ngp_lon_speed_offset_kph", {PERSISTENT, INT, "0"}},
     // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
-    // using vision-only curvature (nagaspilot/controls/ngp_vtsc.py). Panel
+    // using vision-only curvature (exopilot/controls/ngp_vtsc.py). Panel
     // toggle, matching EOP10's EOPVTSCEnabled. Default off.
     {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},

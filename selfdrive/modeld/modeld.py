@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 from openpilot.system.hardware import TICI
-from nagaspilot.runtime.tinygrad_model import TinygradModel
+from exopilot.runtime.tinygrad_model import TinygradModel
 os.environ['DEV'] = 'QCOM' if TICI else 'CPU:LLVM'
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
@@ -21,9 +21,9 @@ from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
-from nagaspilot.controls.ngp_road_edge import evaluate_road_edges
-from nagaspilot.controls.ngp_dlat import NGPDLAT, DEFAULT_ENTER_THRESHOLD
-from nagaspilot.runtime.bigmodel import BigModelHook
+from exopilot.controls.ngp_road_edge import evaluate_road_edges
+from exopilot.controls.ngp_dlat import NGPDLAT, DEFAULT_ENTER_THRESHOLD
+from exopilot.runtime.bigmodel import BigModelHook
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 from openpilot.selfdrive.modeld.fill_model_msg import fill_model_msg, fill_pose_msg, PublishState

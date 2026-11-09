@@ -6,7 +6,7 @@ from cereal import car
 from openpilot.common.params import Params
 from openpilot.system.hardware import PC, TICI
 from openpilot.system.manager.process import PythonProcess, NativeProcess, DaemonProcess
-from nagaspilot.runtime import bigmodel_platform
+from exopilot.runtime import bigmodel_platform
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
 
@@ -113,17 +113,17 @@ procs = [
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", only_onroad),
   PythonProcess("card", "selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
-  PythonProcess("driveractivityd", "nagaspilot.runtime.driver_activityd", only_onroad),
-  PythonProcess("monod", "nagaspilot.runtime.monod", monod_enabled),
+  PythonProcess("driveractivityd", "exopilot.runtime.driver_activityd", only_onroad),
+  PythonProcess("monod", "exopilot.runtime.monod", monod_enabled),
   # perception for one camera: tracks monod's detections into the fused-object message pathd reads (EOP10's gridd does this and more)
-  PythonProcess("gridd", "nagaspilot.runtime.gridd", monod_enabled),
+  PythonProcess("gridd", "exopilot.runtime.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
-  PythonProcess("mapd", "nagaspilot.mapd.mapd", map_enabled),
-  PythonProcess("ngp_dashboard", "nagaspilot.runtime.dashboard", dashboard_enabled),
-  PythonProcess("tripd", "nagaspilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
-  PythonProcess("pathd", "nagaspilot.runtime.pathd", pathd_enabled),
-  PythonProcess("bigmodeld", "nagaspilot.bigmodel.gadget", bigmodel_link, enabled=TICI),
-  PythonProcess("plpd", "nagaspilot.plp.plpd", plp_link, enabled=TICI),
+  PythonProcess("mapd", "exopilot.mapd.mapd", map_enabled),
+  PythonProcess("ngp_dashboard", "exopilot.runtime.dashboard", dashboard_enabled),
+  PythonProcess("tripd", "exopilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
+  PythonProcess("pathd", "exopilot.runtime.pathd", pathd_enabled),
+  PythonProcess("bigmodeld", "exopilot.bigmodel.gadget", bigmodel_link, enabled=TICI),
+  PythonProcess("plpd", "exopilot.plp.plpd", plp_link, enabled=TICI),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
   PythonProcess("pandad", "selfdrive.pandad.pandad", always_run),
   PythonProcess("paramsd", "selfdrive.locationd.paramsd", only_onroad),

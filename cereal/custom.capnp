@@ -71,7 +71,7 @@ struct CustomReserved19 @0xa4f1eb3323f5f582 {
 }
 
 # Mono Detection structs (same ids and ordinals as EOP10).
-# NagasPilot: monod runs a YOLO detector on the road camera on the GPU (nagaspilot/runtime/monod.py).
+# NagasPilot: monod runs a YOLO detector on the road camera on the GPU (exopilot/runtime/monod.py).
 
 struct MonoDetection @0xf8a9b0c1d2e3f4a5 {
   # Single detection from one camera

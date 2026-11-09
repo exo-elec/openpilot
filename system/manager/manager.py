@@ -37,7 +37,7 @@ def manager_init() -> None:
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True)
 
-  from nagaspilot.runtime.feature_keys import migrate_origin_params
+  from exopilot.runtime.feature_keys import migrate_origin_params
   migrate_origin_params(params)
 
   # set unset params to their default value
@@ -131,7 +131,7 @@ def manager_thread() -> None:
   write_onroad_params(False, params)
   ensure_running(managed_processes.values(), False, params=params, CP=sm['carParams'], not_run=ignore)
 
-  from nagaspilot.runtime.device_policy import RecordingDelay
+  from exopilot.runtime.device_policy import RecordingDelay
   recording_delay = RecordingDelay()
   started_prev = False
   ignition_prev = False

@@ -1,9 +1,9 @@
-from nagaspilot.controls.ngp_radar2d import blindspot_blocked
+from exopilot.controls.ngp_radar2d import blindspot_blocked
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
-from nagaspilot.controls.ngp_turn_desire import NGPTurnDesire
-from nagaspilot.controls.ngp_lane_change import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
+from exopilot.controls.ngp_turn_desire import NGPTurnDesire
+from exopilot.controls.ngp_lane_change import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection

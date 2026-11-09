@@ -22,9 +22,9 @@ from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
-from nagaspilot.controls.ngp_bigmodel_gate import NGPBigModelGate
-from nagaspilot.controls.ngp_green_light import NGPGreenLight
-from nagaspilot.controls.ngp_lead_departure import NGPLeadDeparture
+from exopilot.controls.ngp_bigmodel_gate import NGPBigModelGate
+from exopilot.controls.ngp_green_light import NGPGreenLight
+from exopilot.controls.ngp_lead_departure import NGPLeadDeparture
 from openpilot.system.version import get_build_metadata
 
 REPLAY = "REPLAY" in os.environ

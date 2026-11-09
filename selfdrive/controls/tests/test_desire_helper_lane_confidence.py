@@ -3,7 +3,7 @@
 Stubs cereal.log directly (rather than importing the real cereal package)
 because this dev-PC worktree's cereal/log.capnp hits a pre-existing,
 unrelated capnp/opendbc version-skew blocker (Car.RadarData.ErrorDEPRECATED)
-at schema-compile time -- documented in nagaspilot/docs/NGP10_FEATURE_MATRIX.md
+at schema-compile time -- documented in exopilot/docs/NGP10_FEATURE_MATRIX.md
 and reproducible on origin/dev/NGP10 too, not something introduced here.
 """
 import sys

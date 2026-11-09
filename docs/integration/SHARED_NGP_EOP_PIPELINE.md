@@ -5,7 +5,7 @@ implementations and adds normalized sensor, vehicle transport and hardware
 adapters. 01M and 02M inherit the entire EOP source tree; only their build
 profile changes. Product differences belong at the input/configuration boundary.
 
-`nagaspilot/runtime/feature_keys.py` maps NGP and EOP settings names.
+`exopilot/runtime/feature_keys.py` maps NGP and EOP settings names.
 `LongitudinalSettings` keeps a separate two-second cache for each settings
 instance, preserving normal acceleration and disabled adaptive-gap defaults.
 `DriveModeApplier` uses the same mappings without changing user parameter names.
@@ -15,7 +15,7 @@ and EOP's advisory result retain their existing confirmation and authority.
 Turn signal direction is common; turn speed, lateral engagement and lane-change
 gates remain explicit product behavior. This does not enable an extra controller.
 
-Run `python3 nagaspilot/lineage.py --parent dev/NGP10 --child dev/EOP10` to
+Run `python3 exopilot/lineage.py --parent dev/NGP10 --child dev/EOP10` to
 reject changes or deletions of inherited portable Python source. EOP-only
 adapters are allowed. Run it against 01M and 02M as well. This complements
 `footprint.py`, which measures changes against official openpilot instead.

@@ -11,21 +11,21 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
-from nagaspilot.controls.ngp_vehicle_model import VehicleModel
+from exopilot.controls.ngp_vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
-from nagaspilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
-from nagaspilot.controls.ngp_cat import NGPCAT, live_params_gated
-from nagaspilot.controls.ngp_red import NGPRED, curvature_nudge
-from nagaspilot.controls.ngp_blinker_pause import NGPBlinkerPause
-from nagaspilot.controls.ngp_driver_activity import monitoring_force_decel
-from nagaspilot.controls.ngp_arbiter import Proposal, arbitrate
-from nagaspilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
-from nagaspilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
-from nagaspilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
-from nagaspilot.runtime.path_adapter import lane_room
-from nagaspilot.controls.ngp_alcc import ALCCInput, NGPALCC
-from nagaspilot.runtime.lateral_authorization import lateral_authorized
-from nagaspilot.controls.steering_policy import SteeringResumeRamp
+from exopilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
+from exopilot.controls.ngp_cat import NGPCAT, live_params_gated
+from exopilot.controls.ngp_red import NGPRED, curvature_nudge
+from exopilot.controls.ngp_blinker_pause import NGPBlinkerPause
+from exopilot.controls.ngp_driver_activity import monitoring_force_decel
+from exopilot.controls.ngp_arbiter import Proposal, arbitrate
+from exopilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
+from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
+from exopilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
+from exopilot.runtime.path_adapter import lane_room
+from exopilot.controls.ngp_alcc import ALCCInput, NGPALCC
+from exopilot.runtime.lateral_authorization import lateral_authorized
+from exopilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
@@ -199,7 +199,7 @@ class Controls:
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
     # Lateral add-ons (SOC, pathd) are proposers merged by the tighten-only arbiter: same-side offsets do not add,
-    # opposite sides cancel, and the result stays inside the lane room (nagaspilot/controls/ngp_arbiter.py).
+    # opposite sides cancel, and the result stays inside the lane room (exopilot/controls/ngp_arbiter.py).
     proposals = []
     if self.soc is not None and CC.latActive:
       left, right = threats_from(CS, model_v2)

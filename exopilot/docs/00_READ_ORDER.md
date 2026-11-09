@@ -1,0 +1,40 @@
+# NGP10 read order
+
+## 1. Product and runtime
+
+1. [`PROJECT_CONCEPT.md`](PROJECT_CONCEPT.md) — scope and design rules.
+2. [`NGP10_FEATURE_MATRIX.md`](NGP10_FEATURE_MATRIX.md) — implemented feature status.
+3. [`EOP10_PARITY_CANDIDATES.md`](EOP10_PARITY_CANDIDATES.md) — what EOP10 has that NGP10 doesn't yet, and why (portable vs. hardware-gated).
+4. [`SPEED_AND_TJA_POLICY.md`](SPEED_AND_TJA_POLICY.md) — CRAWL/WALK/CITY/URBAN/HIGHWAY and traffic-jam behavior.
+5. [`NAMING_CONVENTIONS.md`](NAMING_CONVENTIONS.md) — `ngp_` settings and module naming.
+6. [`BOUNDARIES.md`](BOUNDARIES.md) — layer rules enforced by `test_boundaries.py`.
+   Task list and footprint audit: [`CODE_BOUNDARY_TASKS.md`](CODE_BOUNDARY_TASKS.md).
+8. [`STEERING_ACTIVITY_MONITORING.md`](STEERING_ACTIVITY_MONITORING.md) — shared decay policies and the existing controlsd warning/deceleration contract.
+
+8. [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) — big model hosted on the phone over USB, NavPilot-owned link (NPBM protocol, no external dependency); plan, decisions, status. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) is the superseded Jetlink-port record.
+9. [`PLP_V5_SPEC.md`](PLP_V5_SPEC.md) — PLP v5, the Pilot Link Protocol (replaces NCP): framing, session, USB-C and BLE transports, registry, security, migration. `exopilot/plp/` is the code; USB is the baseline here (comma 3 has no BLE).
+
+Runtime code follows the same order:
+
+1. `exopilot/speed_zones.py` defines the shared 2/6/12/24/36 m/s contract.
+2. `exopilot/controls/ngp_tja.py` gates positive acceleration from lead state.
+3. `selfdrive/controls/lib/longitudinal_planner.py` is the small upstream hook
+   that composes `exopilot/controls/ngp_dlon.py` and `ngp_tja.py`.
+4. `selfdrive/controls/controlsd.py` and car control produce commands.
+5. OpenDBC/Panda enforces vehicle-model steering safety.
+6. NGP10 uses standard comma card/OpenDBC; EOP10 owns BrownPanda vehicled/socketd integration.
+
+## 2. Gateway and vehicle validation
+
+Read [`BROWNPANDA_RADAR.md`](BROWNPANDA_RADAR.md) for the radar ownership boundary.
+NGP10 relies on normal OpenDBC/Panda vehicle safety and upstream paramsd.
+BrownPanda gateway geometry and HIL validation belong to EOP10.
+
+Read [`DEPENDENCY_POLICY.md`](DEPENDENCY_POLICY.md) before changing a gitlink.
+NGP10 uses the official v0.10 OpenDBC generation; BrownPanda synthetic radar
+is removed. Exopilot sensor daemons begin in EOP10.
+
+## 3. Validation rule
+
+Software tests prove boundaries, state transitions, and fail-closed behavior.
+They do not replace stationary bench, HIL, and controlled target-car testing.

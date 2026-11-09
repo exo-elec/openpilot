@@ -30,8 +30,8 @@ _services: dict[str, tuple] = {
   "peripheralState": (True, 2., 1),
   "mapData": (True, 1., 1),             # OSM speed limits and curvature (mapd)
   "stereoObjects": (True, 20., 5),     # fused camera objects (gridd / gridd)
-  "pathAdjust": (True, 20., 5),         # nagaspilot pathd add-on
-  "monoDetections": (True, 20., 5),    # road-camera YOLO detections (nagaspilot monod)
+  "pathAdjust": (True, 20., 5),         # exopilot pathd add-on
+  "monoDetections": (True, 20., 5),    # road-camera YOLO detections (exopilot monod)
   "radarState": (True, 20., 5),
   "roadEncodeIdx": (False, 20., 1),
   "liveTracks": (True, 20.),
