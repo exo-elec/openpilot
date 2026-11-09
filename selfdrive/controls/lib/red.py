@@ -2,7 +2,7 @@
 red.py - Road Edge Detection (RED), ExoPilot version
 
 The shared core (states, temporal filter, repulsive cost, path override, vision-only edges) lives in
-nagaspilot/controls/red.py and is also on NGP10. ExoPilot extends it by corroborating each vision edge with YOLO
+exopilot/selfdrive/controls/lib/red.py and is also on NGP10. ExoPilot extends it by corroborating each vision edge with YOLO
 barrier detections and stereo depth, classifying the edge type, and running only when EOPRedControllerEnabled is set.
 
 Multi-sensor fusion: Vision roadEdges + YOLO barriers + Stereo depth. An edge is kept when the fused confidence reaches
@@ -12,7 +12,7 @@ MIN_FUSED_CONF, or when vision alone is already that confident (so this is never
 import time
 import numpy as np
 from typing import Any
-from nagaspilot.controls.red import (
+from exopilot.selfdrive.controls.lib.red import (
   CRITICAL_DISTANCE, MIN_EDGE_DISTANCE, MIN_FUSED_CONF, MIN_VISION_CONF, TYPE_MULTIPLIERS, WARNING_DISTANCE,
   RED, REDState, RoadEdge, RoadEdgeType,
 )
