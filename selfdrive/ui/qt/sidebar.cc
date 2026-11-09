@@ -37,12 +37,14 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
 
   setAttribute(Qt::WA_OpaquePaintEvent);
   setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-  setFixedWidth(260);
+  setFixedWidth(theme::SIDEBAR_W);
 
   QObject::connect(uiState(), &UIState::uiUpdate, this, &Sidebar::updateState);
 
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"bookmarkButton"});
 
+  // Keys are bluetoothd's (pairing_agent.py writes EOPBluetoothPairing*); the
+  // unprefixed names this used to watch do not exist, so PAIRING never showed.
   // Cache BLE pairing status via QFileSystemWatcher instead of a
   // synchronous Params().get() on every updateState() tick (UI_FREQ =
   // 20 Hz) -- same pattern as eop_panel.cc's fs_watch.
@@ -141,7 +143,7 @@ void Sidebar::updateState(const UIState &s) {
     } else if (eth_up) {
       wifiStatus = {{tr("ETH"), tr("OK")}, good_color};
     } else {
-      wifiStatus = {{tr("WIFI"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+      wifiStatus = {{tr("WIFI"), tr("OFF")}, theme::INACTIVE};
     }
   }
   setProperty("wifiStatus", QVariant::fromValue(wifiStatus));
@@ -175,7 +177,7 @@ void Sidebar::updateState(const UIState &s) {
   } else if (cached_gatt_connected || cached_spp_connected) {
     bleStatus = {{tr("BLE"), tr("ON")}, good_color};
   } else {
-    bleStatus = {{tr("BLE"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+    bleStatus = {{tr("BLE"), tr("OFF")}, theme::INACTIVE};
   }
   setProperty("bleStatus", QVariant::fromValue(bleStatus));
 
@@ -187,7 +189,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setPen(Qt::NoPen);
   p.setRenderHint(QPainter::Antialiasing);
 
-  p.fillRect(rect(), QColor(57, 57, 57));
+  p.fillRect(rect(), theme::SIDEBAR_BG);
 
   // buttons
   p.setOpacity(settings_pressed ? 0.65 : 1.0);
@@ -206,7 +208,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
 
   // network
   int x = 35;
-  const QColor gray(0x54, 0x54, 0x54);
+  const QColor gray = theme::INACTIVE;
   for (int i = 0; i < 5; ++i) {
     p.setBrush(i < net_strength ? Qt::white : gray);
     p.drawEllipse(x, 115, 16, 16);
