@@ -28,6 +28,35 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# --- Board data folders ---
+# On a board openpilot keeps its settings in /data/params (one file per param,
+# shared by the UI and every daemon), logs/stats/recordings under /data, and
+# device keys under /persist (system/hardware/rockchip_base.py,
+# nagaspilot/hardware/paths.py). An image that does not ship them makes the UI
+# abort at its first Params() call. Create them once, owned by the run user.
+ensure_board_dir() {
+  local dir="$1" owner
+  owner="$(id -un):$(id -gn)"
+  if [ -d "$dir" ] && [ -w "$dir" ]; then
+    return 0
+  fi
+  echo "[openpilot] Creating ${dir} (owner ${owner})..."
+  if [ "$(id -u)" -eq 0 ]; then
+    mkdir -p "$dir"
+  elif sudo -n true 2>/dev/null; then
+    sudo mkdir -p "$dir" && sudo chown "$owner" "$dir"
+  elif [ -t 0 ]; then
+    sudo mkdir -p "$dir" && sudo chown "$owner" "$dir"
+  else
+    echo "[openpilot] ERROR: ${dir} is missing or not writable, and sudo needs a password."
+    echo "[openpilot] Run once: sudo mkdir -p ${dir} && sudo chown ${owner} ${dir}"
+    exit 1
+  fi
+}
+for d in /data /persist; do
+  ensure_board_dir "$d"
+done
+
 # Use the uv-managed venv (Python 3.12) — required by openpilot (>=3.11)
 PYTHON="${SCRIPT_DIR}/.venv/bin/python"
 if [ ! -x "$PYTHON" ]; then
