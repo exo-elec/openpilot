@@ -47,7 +47,7 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
   // synchronous Params().get() on every updateState() tick (UI_FREQ =
   // 20 Hz) -- same pattern as eop_panel.cc's fs_watch.
   ble_watch = new ParamWatcher(this);
-  for (const char *p : {"BluetoothPairingPin", "BluetoothPairingActive", "EOPSPPPairedDevice", "EOPNavPilotPaired"}) {
+  for (const char *p : {"EOPBluetoothPairingPin", "EOPBluetoothPairingActive", "EOPSPPPairedDevice", "EOPNavPilotPaired"}) {
     ble_watch->addParam(p);
   }
   QObject::connect(ble_watch, &ParamWatcher::paramChanged, [=](const QString &, const QString &) {
@@ -58,8 +58,8 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
 
 void Sidebar::refreshBleCache() {
   auto params = Params();
-  cached_pairing_pin = params.get("BluetoothPairingPin");
-  cached_pairing_active = params.get("BluetoothPairingActive") == "1";
+  cached_pairing_pin = params.get("EOPBluetoothPairingPin");
+  cached_pairing_active = params.get("EOPBluetoothPairingActive") == "1";
   cached_spp_connected = params.get("EOPSPPPairedDevice").length() > 0;
   cached_gatt_connected = params.getBool("EOPNavPilotPaired");
 }
