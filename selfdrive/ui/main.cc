@@ -5,7 +5,6 @@
 
 #include "system/hardware/hw.h"
 #include "selfdrive/ui/qt/qt_window.h"
-#include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/qt/window.h"
 
@@ -23,7 +22,6 @@ int main(int argc, char *argv[]) {
 
   QApplication a(argc, argv);
   a.installTranslator(&translator);
-  a.setStyleSheet(theme::styleSheet());
 
   MainWindow w;
   setMainWindow(&w);

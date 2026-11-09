@@ -73,6 +73,9 @@ inline QFont inter(int pixel_size, QFont::Weight weight = QFont::Normal) {
 
 // ---- QSS layers ------------------------------------------------------------
 // base, then the theme, then the per-view sheets, read from the :/qss/ resource.
+// Applied per screen as it is ported (Phase 4), not app-wide: the theme's
+// QWidget background rule paints every QLabel, and the not-yet-ported C++
+// screens draw labels over painted panels expecting them transparent.
 enum class Component { ONROAD, OFFROAD };
 
 QString styleSheet(std::initializer_list<Component> components = {});
