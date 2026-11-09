@@ -21,7 +21,8 @@ from pathlib import Path
 
 from openpilot.selfdrive.ui.qt import QObject, Signal
 
-QSS_DIR = Path(__file__).parent / "qss"
+# Shared with the C++ UI, which compiles the same sheets into its Qt resource.
+QSS_DIR = Path(__file__).resolve().parents[2] / "assets" / "qss"
 
 _IMPORT_RE = re.compile(r'^\s*@import\s+url\(["\']?([^"\')]+)["\']?\);?\s*$', re.M)
 
