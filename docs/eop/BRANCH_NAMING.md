@@ -26,7 +26,7 @@ dropped: 02M stays on openpilot `dev/02M`. The sections below describe
 - `MainWindow`'s `stack_wrapper` / `QHBoxLayout` split and its `updateState`
   slot (`selfdrive/ui/qt/window.{cc,h}`) — `stack_layout` sits directly on
   `MainWindow` again
-- `nagaspilot/docs/TELEMETRY_PANEL.md`
+- `exopilot/docs/TELEMETRY_PANEL.md`
 
 `AnnotatedCameraWidget`'s BEV corner overlay is now unconditional. **`BEVWidget`
 itself was kept** — the panel reused it, but 01M has always shown its 130x180

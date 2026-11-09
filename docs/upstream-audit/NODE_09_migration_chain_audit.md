@@ -6,7 +6,7 @@ against EDP10) and were confirmed still present in both EDP10's and NGP10's
 own current source, the applicable fixes were ported back to both branches
 (not just fixed on EOP10, the branch this audit was run from). See
 `dev/EDP10`'s `docs/upstream-audit/NODE_09_migration_chain_backport.md` and
-`dev/NGP10`'s `nagaspilot/docs/NODE_09_migration_chain_backport.md` for what
+`dev/NGP10`'s `exopilot/docs/NODE_09_migration_chain_backport.md` for what
 changed on each branch specifically — this doc remains the canonical record
 of the full investigation. Not backported: `controls.h`/`hud.cc`/
 `get_friction()` (already correct on both other branches — that's where the

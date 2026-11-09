@@ -12,8 +12,8 @@ from enum import Enum
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
-from nagaspilot.runtime.speed_utils import SmoothEMA
-from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
+from exopilot.selfdrive.controls.lib.speed_utils import SmoothEMA
+from exopilot.common.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
 
 
 class DLONMode(Enum):
