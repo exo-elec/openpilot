@@ -49,7 +49,7 @@ import cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.nagaspilot.daemons.gridd.camera_geometry import CameraArrayGeometry, CameraIntrinsics
+from openpilot.exopilot.daemons.gridd.camera_geometry import CameraArrayGeometry, CameraIntrinsics
 from openpilot.system.hardware import HARDWARE
 
 

@@ -17,20 +17,20 @@ must include vehicle footprint, uncertainty, and a configurable margin.
 
 ## What exists in this branch
 
-- `nagaspilot/daemons/stereod/stereod.py` publishes float32 disparity and
+- `exopilot/daemons/stereod/stereod.py` publishes float32 disparity and
   confidence; its 20 Hz rate and 50 ms SGM limit are targets, not measurements.
-- `nagaspilot/daemons/stereod/sgm.py` explicitly implements NumPy CPU SGM.
+- `exopilot/daemons/stereod/sgm.py` explicitly implements NumPy CPU SGM.
   Acquiring an ACL client does not make this implementation GPU accelerated.
 - Rectification maps and Q are initialized to None in StereoD; the inspected
   run path does not load them before remapping. Fix calibration ownership first.
-- `nagaspilot/daemons/gridd/gridd.py` already lazily reprojects disparity.
+- `exopilot/daemons/gridd/gridd.py` already lazily reprojects disparity.
   Audit its Q interpretation against homogeneous Q multiplication: it extracts
   focal length from Q[2,2], whereas standard OpenCV Q stores it at Q[2,3].
   Its sampling mask also does not implement the documented every-fourth-pixel
   sampling: offsets two and three survive.
-- `nagaspilot/daemons/segd/drivable_bev.py` projects card segmentation onto
+- `exopilot/daemons/segd/drivable_bev.py` projects card segmentation onto
   z=0. This is useful semantic evidence, but does not measure terrain height.
-- `nagaspilot/daemons/gridd/drivable_fusion.py` already fuses semantic evidence
+- `exopilot/daemons/gridd/drivable_fusion.py` already fuses semantic evidence
   with log odds and decay, but only translates forward; turning compensation
   is required before accumulating geometry.
 - Shared BEV_GRID is 150 by 60 cells at 0.5 m, covering -20 to +55 m forward

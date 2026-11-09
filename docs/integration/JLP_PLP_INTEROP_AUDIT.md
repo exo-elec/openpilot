@@ -25,7 +25,7 @@ belong to JLP; companion navigation/telemetry/services belong to PLP.
 | Boundary | Actual implementation | Result |
 | --- | --- | --- |
 | Upstream JLP | `JLNK`, version 3, 32-byte `<IHHIIIQ4x>` header | Required target, not current inference protocol |
-| NGP10/EOP10 inference | `nagaspilot/bigmodel/protocol.py`: `NPBM`, version 1, 20-byte header | Not wire-compatible with JLP |
+| NGP10/EOP10 inference | `exopilot/bigmodel/protocol.py`: `NPBM`, version 1, 20-byte header | Not wire-compatible with JLP |
 | NavPilot inference | `packages/npbm/lib/src/protocol.dart`: same NPBM v1; BigModelLinkService supports protocol 1 | Matches legacy host protocol, not JLP v3 |
 | Native phone inference | Channel interface exists in Dart; Android/iOS shells have no matching custom channel registration or JetLink engine integration | No demonstrated native JLP engine |
 | PLP USB library | Dart `PlpTcpLink` and Python `CablePLP`, TCP 5601 | Real cross-language hello, negotiated limits and Locate delivery pass |
@@ -87,7 +87,7 @@ configure a gadget, run an inference engine or prove a physical USB/BLE link.
 ## Remaining integration order
 
 1. Implement and test the pinned upstream v3 adapter in NGP10's
-   `nagaspilot/jetlink`, including model ABI, queue reset/history, invalid output,
+   `exopilot/jetlink`, including model ABI, queue reset/history, invalid output,
    deadlines and local vision/policy handover. EOP10 inherits shared policy.
 2. Add the matching real NavPilot native JLP engine/transport and register its
    app boundary. Unsupported engines must remain unavailable.
@@ -102,4 +102,4 @@ configure a gadget, run an inference engine or prove a physical USB/BLE link.
 
 No production wiring or native implementation was changed by this audit. The
 existing full openpilot test gate remains blocked by the separately recorded
-`nagaspilot/runtime/bigmodel_platform.py` portable-source mismatch.
+`exopilot/runtime/bigmodel_platform.py` portable-source mismatch.

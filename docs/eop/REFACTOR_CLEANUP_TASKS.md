@@ -98,7 +98,7 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 - [ ] 5.3 Build and run on this RK3576 board (the board is the 02M SoC).
 
 ## Phase 6: remove the PyQt5 path (after 4 and 5 pass)
-- [ ] 6.1 Delete the Python UI (`selfdrive/ui/{main.py,qt.py,views,components,layouts,styles,settings,state.py,...}`) and `scripts/ensure_pyqt5.sh`; the `pyqt5` branch in `launch_openpilot.sh`; the PythonProcess branch for `ui` in `nagaspilot/manager/process_config.py`; `PyQt5`/`PyQt5-sip` from `pyproject.toml`; re-lock.
+- [ ] 6.1 Delete the Python UI (`selfdrive/ui/{main.py,qt.py,views,components,layouts,styles,settings,state.py,...}`) and `scripts/ensure_pyqt5.sh`; the `pyqt5` branch in `launch_openpilot.sh`; the PythonProcess branch for `ui` in `exopilot/manager/process_config.py`; `PyQt5`/`PyQt5-sip` from `pyproject.toml`; re-lock.
 - [ ] 6.2 `UI_BACKEND` stays as a single value or is removed; decide when 6.1 is done.
 - [ ] 6.3 RK3576 docs: PyQt5 no longer part of the OS-to-app contract.
 

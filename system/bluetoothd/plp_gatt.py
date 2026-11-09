@@ -7,19 +7,19 @@ A second GATT application beside the Nordic UART one (ble_gatt.py, NCP v4.1), so
     RX char:  0ac2bfc3-...                           (phone -> device, write without response)
     TX char:  0ac2bfc4-...                           (device -> phone, notify)
 
-The characteristics carry the PLP frame byte stream; chunking and pacing are nagaspilot.plp.ble_stream, the protocol is nagaspilot.plp.session. One phone at a time; a new
+The characteristics carry the PLP frame byte stream; chunking and pacing are exopilot.plp.ble_stream, the protocol is exopilot.plp.session. One phone at a time; a new
 subscription replaces the old session. Both characteristics require an encrypted link. UNTESTED against BlueZ (no bluez, dbus or radio in the dev container): the pure parts
-are tested in nagaspilot/tests/test_plp_ble_stream.py, this file is the thin D-Bus shell around them and must be exercised on a board.
+are tested in exopilot/tests/test_plp_ble_stream.py, this file is the thin D-Bus shell around them and must be exercised on a board.
 """
 from __future__ import annotations
 
 import logging
 import threading
 
-from nagaspilot.plp.ble_stream import DEFAULT_ATT_MTU, BleStream
-from nagaspilot.plp.hello import Hello
-from nagaspilot.plp.locate import LocateSink
-from nagaspilot.plp.session import PlpSession
+from exopilot.plp.ble_stream import DEFAULT_ATT_MTU, BleStream
+from exopilot.plp.hello import Hello
+from exopilot.plp.locate import LocateSink
+from exopilot.plp.session import PlpSession
 from openpilot.system.bluetoothd.ble_gatt import (BLUEZ_SVC, DBUS_AVAILABLE, GATT_CHAR_IFACE, GATT_MGR_IFACE, GATT_SVC_IFACE, OBJMGR_IFACE, PROPS_IFACE, NotSupported,
                                                   dbus, dbus_method, dbus_signal)
 

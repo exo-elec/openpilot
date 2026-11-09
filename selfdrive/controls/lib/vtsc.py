@@ -16,7 +16,7 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 
 # Import learned speed database
-from nagaspilot.runtime.eop_utils import get_learned_speed as _common_get_learned_speed
+from exopilot.runtime.eop_utils import get_learned_speed as _common_get_learned_speed
 
 
 # EOP: Per-curvature lateral accel buckets (merged from FrogPilot curve_speed_controller)

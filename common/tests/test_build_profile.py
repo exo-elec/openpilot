@@ -31,7 +31,7 @@ class PythonProcess:
 class NativeProcess(PythonProcess): pass
 process.PythonProcess,process.NativeProcess = PythonProcess,NativeProcess
 sys.modules[process.__name__] = process
-from openpilot.nagaspilot.manager.process_config import managed_processes
+from openpilot.exopilot.manager.process_config import managed_processes
 ui = managed_processes['ui']
 corner = managed_processes['radar4d']
 print(json.dumps({'ui':type(ui).__name__, 'radar':corner.condition(True,Params(),None),

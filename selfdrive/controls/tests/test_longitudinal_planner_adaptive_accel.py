@@ -1,4 +1,4 @@
-from nagaspilot.controls.longitudinal_policy import (
+from exopilot.controls.longitudinal_policy import (
   ADAPTIVE_ACCEL_CITY_SPEED_LIMIT, apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
 )
 

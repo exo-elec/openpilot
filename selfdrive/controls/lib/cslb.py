@@ -23,7 +23,7 @@ import math
 from pathlib import Path
 from typing import cast
 
-from nagaspilot.runtime.eop_utils import detect_exopilot_platform
+from exopilot.runtime.eop_utils import detect_exopilot_platform
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ MAX_LATERAL_ACCEL = 3.5  # m/s^2 - comfortable lateral acceleration
 GRAVITY = 9.81  # m/s^2
 
 # EOP-CLEANUP: GPS_TOLERANCE_M moved to eop_utils.py (all platforms use 50.0m).
-# Import from there if needed: from nagaspilot.runtime.eop_utils import GPS_TOLERANCE_M
+# Import from there if needed: from exopilot.runtime.eop_utils import GPS_TOLERANCE_M
 
 
 class CurveSpeedEntry:

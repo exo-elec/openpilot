@@ -24,7 +24,7 @@ the same risk. **The collision is real at the schema level (confirmed
 below) but currently has no live trigger.**
 
 Applied the cheap, no-coordination-needed part of the fix on EOP10: reworded
-`log.capnp`'s BRSC comment from "shared via nagaspilot/controls" (readable
+`log.capnp`'s BRSC comment from "shared via exopilot/controls" (readable
 as a wire-compatibility claim) to explicitly state that the **Python source**
 is shared byte-identical but the **wire ordinals are not**, with a pointer to
 this doc. During the 2026-10-03 EOP10 rebase onto NGP10, the combined EOP
@@ -75,7 +75,7 @@ type error to catch it.
 ### `ngpBrscActive`/`ngpBrscSpeed`/`ngpBrscRoughness` — same field name, three different ordinals
 
 The capnp comment on all three branches literally says `shared via
-nagaspilot/controls` — same framing issue as Node 4's `tja` finding, but at
+exopilot/controls` — same framing issue as Node 4's `tja` finding, but at
 the wire-schema level instead of the source-file level:
 
 | Branch | `LongitudinalPlan` ordinals |
@@ -119,13 +119,13 @@ the *implementation* is "independently forked and already diverged."
 require a coordinated bump across all three branches, which is exactly the
 kind of cross-branch action this audit should surface rather than take
 unilaterally):** either (a) reserve a fixed ordinal block for
-nagaspilot-shared fields and renumber `ngpBrscActive`/`Speed`/`Roughness` to
+exopilot-shared fields and renumber `ngpBrscActive`/`Speed`/`Roughness` to
 match across all three branches now, while the field count is still small,
 or (b) if cross-branch log interop is genuinely never going to happen,
-remove the "shared via nagaspilot/controls" wording from the capnp comments
+remove the "shared via exopilot/controls" wording from the capnp comments
 so it stops implying a wire-compatibility guarantee that doesn't exist. If
 (a), the same reserved-block treatment should be applied to future
-nagaspilot-shared fields (a `tja` capnp wiring, if `tja.py` is ever
+exopilot-shared fields (a `tja` capnp wiring, if `tja.py` is ever
 consolidated per Node 4, would be the next candidate).
 
 ---

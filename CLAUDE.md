@@ -85,7 +85,7 @@ offset added to a y-right path), SOC (read `yRel` as right),
 | `ARCHITECTURE.md` | System design + daemon overview |
 | `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
-| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP v4.1 architecture (dual transport); successor protocol: `nagaspilot/docs/PLP_V5_SPEC.md` |
+| `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP v4.1 architecture (dual transport); successor protocol: `exopilot/docs/PLP_V5_SPEC.md` |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
 | `AGENTS.md` | Agent edit boundaries (local-only, read this first) |
 | `test.sh` | Local dev gate before pushing |
@@ -261,7 +261,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
 - Plan, budget and bench list: `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 
 **The big driving model runs on a phone over USB:**
-- It is the combined supercombo ONNX run by NavPilot on the driver's phone: `nagaspilot/bigmodel/`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`.
+- It is the combined supercombo ONNX run by NavPilot on the driver's phone: `exopilot/bigmodel/`, `exopilot/docs/NAVPILOT_BIGMODEL.md`.
 - `modeld` owns driving state and parsing, always runs the on-board RKNN model, and attaches the phone model on top
   (`BigModelHook`). Fallback is one-way: the RKNN small model stays loaded and warm, a phone that fails or is
   unplugged hands back to it, and nothing re-joins onroad; soft-disable if engaged.
@@ -279,10 +279,10 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   publishes `radar2d`; WiFi point-cloud radar support belongs to the 02M layer.
 
 **PLP v5, the Pilot Link Protocol, replaces NCP (2026-10-13):**
-- `nagaspilot/plp/` (shared, flows down from NGP10): registry (`registry.json`, 42 messages in 10 services, mapped from the NCP v4 type numbers), framing (16-byte
+- `exopilot/plp/` (shared, flows down from NGP10): registry (`registry.json`, 42 messages in 10 services, mapped from the NCP v4 type numbers), framing (16-byte
   header + header CRC-32C + payload + payload CRC only where the link needs it), four priority channels with fragmentation, hello/negotiation, `PlpSession`,
   `cable.py` (iPhone USB network, TCP 5601, started as `plpd`), `ble_stream.py` (chunking/pacing), `locate.py` (GNSS fix and map horizon handlers). Spec:
-  `nagaspilot/docs/PLP_V5_SPEC.md`. Design follows Jetlink: header-only CRC on USB/TCP, padding rule on bulk, the NCM iPhone gadget.
+  `exopilot/docs/PLP_V5_SPEC.md`. Design follows Jetlink: header-only CRC on USB/TCP, padding rule on bulk, the NCM iPhone gadget.
 - NGP10 (comma 3, no BLE hardware) is PLP over USB only. EOP10+ run PLP on USB and on a second BLE GATT service (`system/bluetoothd/plp_gatt.py`) beside the Nordic
   UART NCP v4.1 service, which stays for older apps.
 - NCP v4.1 (`ncp_session.py`, `ncp_cable.py`, `ble_gatt.py`, `spp.py`) is unchanged and still carries navigation, telemetry, OBD, pairing and radar until each
@@ -328,7 +328,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   (railroad crossing, one pothole) don't trigger a slowdown; sustained roughness
   (washboard/broken pavement) does; recovery ramps back over a few seconds instead
   of stepping, and a retriggerable hold (capped) rides out closely-spaced bumps.
-- Pure policy lives in `nagaspilot/controls/ngp_brsc.py` (`NGPBRSC` class, zero
+- Pure policy lives in `exopilot/controls/ngp_brsc.py` (`NGPBRSC` class, zero
   cereal/Params deps) so the identical file ports to `dev/NGP10` and `dev/EDP10`.
   `NGP`-prefixed (not `EOP`-prefixed) param `ngp_lon_brsc` is a deliberate
   exception to the `EOP<Feature><Param>` rule, made for features shared verbatim
@@ -337,7 +337,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   `selfdrive/controls/lib/longitudinal_planner.py` (same `_apply_speed_limit`
   pattern as SQSC/RCD/TLSC — applied after VTSC/MTSC's curve-speed blend).
 - capnp: `LongitudinalPlan.ngpBrscActive/ngpBrscSpeed/ngpBrscRoughness` (`log.capnp` @66-68).
-- Tests: `nagaspilot/tests/test_ngp_brsc.py` (pure-Python, no capnp/build needed).
+- Tests: `exopilot/tests/test_ngp_brsc.py` (pure-Python, no capnp/build needed).
 
 ## Recent Bug Fixes
 

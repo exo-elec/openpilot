@@ -28,7 +28,7 @@ import importlib
 import os
 import subprocess
 
-from nagaspilot.hardware.base import HardwareBase
+from exopilot.hardware.base import HardwareBase
 from openpilot.system.hardware.rk_device_id import get_emmc_cid, get_rk_otp_chip_id
 from openpilot.system.hardware.rockchip import RockchipBackendFactory
 

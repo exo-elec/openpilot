@@ -1,5 +1,5 @@
 """Compatibility import for the relocated steamd daemon."""
 import importlib
 import sys
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.steamd.hud_renderer")
+_implementation = importlib.import_module("openpilot.exopilot.daemons.steamd.hud_renderer")
 sys.modules[__name__] = _implementation

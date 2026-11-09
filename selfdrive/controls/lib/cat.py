@@ -19,7 +19,7 @@ import json
 import time
 
 from openpilot.common.params import Params
-from nagaspilot.controls.ngp_cat import CATStatus, NGPCAT, live_params_gated
+from exopilot.controls.ngp_cat import CATStatus, NGPCAT, live_params_gated
 from openpilot.common.swaglog import cloudlog
 
 
@@ -27,7 +27,7 @@ class CAT:
   """
   Car Adaptive Tuning — smoothed steer-ratio / stiffness override.
 
-  The smoothing, gates and confidence live in nagaspilot/controls/ngp_cat.py (shared with NGP10). This class adds
+  The smoothing, gates and confidence live in exopilot/controls/ngp_cat.py (shared with NGP10). This class adds
   what ExoPilot extends it with: a persisted seed from the last drive, a manual steer-ratio override, per-car
   geometry presets and user params.
 

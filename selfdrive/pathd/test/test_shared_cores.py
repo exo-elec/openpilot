@@ -1,15 +1,15 @@
-"""pathd's cores now live in nagaspilot/controls; pathd's behaviour must be what it was (EOP10 outputs recorded before the move)."""
+"""pathd's cores now live in exopilot/controls; pathd's behaviour must be what it was (EOP10 outputs recorded before the move)."""
 import json
 import math
 from pathlib import Path
 from types import SimpleNamespace as NS
 
 from openpilot.selfdrive.pathd import pathd as P
-from openpilot.nagaspilot.daemons.pathd.lat_nudge import LatNudge
-from openpilot.nagaspilot.daemons.pathd.lon_nudge import LonNudge
-from openpilot.nagaspilot.daemons.pathd.predict import predict
+from openpilot.exopilot.daemons.pathd.lat_nudge import LatNudge
+from openpilot.exopilot.daemons.pathd.lon_nudge import LonNudge
+from openpilot.exopilot.daemons.pathd.predict import predict
 
-G = json.loads((Path(__file__).resolve().parents[3] / 'nagaspilot/tests/eop_golden.json').read_text())
+G = json.loads((Path(__file__).resolve().parents[3] / 'exopilot/tests/eop_golden.json').read_text())
 
 
 def test_modules_are_the_shared_ones_and_reproduce_the_recorded_outputs():

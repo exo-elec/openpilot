@@ -2,5 +2,5 @@
 import importlib
 import sys
 
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.stereod.depth_pipeline")
+_implementation = importlib.import_module("openpilot.exopilot.daemons.stereod.depth_pipeline")
 sys.modules[__name__] = _implementation

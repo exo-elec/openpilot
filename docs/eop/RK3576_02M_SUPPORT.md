@@ -211,7 +211,7 @@ original scope:
   would need updating again for a third platform. Also added the missing
   `RK3576`/`RK3576_DETECTED`/`RK3576Hardware` exports (only `RK3588`'s
   existed).
-- **`nagaspilot/runtime/eop_utils.py::detect_exopilot_platform()`**:
+- **`exopilot/runtime/eop_utils.py::detect_exopilot_platform()`**:
   docstring said RK3588 was "the only platform openpilot supports" even
   though the function's own code already correctly returned `'exopilot02m'`
   for an RK3576 device tree — the code was ahead of the docs even before

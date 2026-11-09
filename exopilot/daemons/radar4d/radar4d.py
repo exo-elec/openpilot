@@ -16,8 +16,8 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.exopilot.daemons.radar4d.radar4d_points import CornerCloudCache
 from openpilot.selfdrive.controls.radar_corner_geometry import load_corner_poses
 from openpilot.system.hardware import HARDWARE
-from nagaspilot.controls.ngp_radar2d import ground_range
-from openpilot.nagaspilot.daemons.radar4d.surround_tracks import surround_tracks
+from exopilot.controls.ngp_radar2d import ground_range
+from openpilot.exopilot.daemons.radar4d.surround_tracks import surround_tracks
 
 _radar_hal = HARDWARE.hal_import("drivers.radar")   # exopilot's hal, through the one seam
 HAL_AVAILABLE = _radar_hal is not None and hasattr(_radar_hal, "RadarCornerReceiver")

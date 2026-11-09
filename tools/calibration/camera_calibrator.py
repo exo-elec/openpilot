@@ -49,7 +49,7 @@ import sys
 # Add openpilot to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from openpilot.nagaspilot.daemons.gridd.camera_geometry import (
+from openpilot.exopilot.daemons.gridd.camera_geometry import (
     CameraArrayGeometry
 )
 from openpilot.system.hardware.rk_device_id import SUPPORTED_SOCS

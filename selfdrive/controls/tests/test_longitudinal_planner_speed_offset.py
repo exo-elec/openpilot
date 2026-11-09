@@ -1,5 +1,5 @@
 from openpilot.common.constants import CV
-from nagaspilot.controls.longitudinal_policy import apply_cruise_speed_offset_mps as _apply_speed_offset
+from exopilot.controls.longitudinal_policy import apply_cruise_speed_offset_mps as _apply_speed_offset
 
 
 def test_zero_offset_is_a_no_op():

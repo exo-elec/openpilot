@@ -1,7 +1,7 @@
 import random
 
 from cereal import log
-from nagaspilot.hardware.base import HardwareBase, LPABase
+from exopilot.hardware.base import HardwareBase, LPABase
 
 NetworkType = log.DeviceState.NetworkType
 NetworkStrength = log.DeviceState.NetworkStrength

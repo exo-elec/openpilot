@@ -11,7 +11,7 @@ _fake_params_pyx.ParamKeyType = MagicMock()
 _fake_params_pyx.UnknownKeyName = Exception
 sys.modules['openpilot.common.params_pyx'] = _fake_params_pyx
 
-from nagaspilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
+from exopilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
 from openpilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 
 

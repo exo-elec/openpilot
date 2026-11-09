@@ -1,5 +1,5 @@
 """Compatibility import for the relocated segd daemon."""
 import importlib
 import sys
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.segd.tests.test_schedule")
+_implementation = importlib.import_module("openpilot.exopilot.daemons.segd.tests.test_schedule")
 sys.modules[__name__] = _implementation

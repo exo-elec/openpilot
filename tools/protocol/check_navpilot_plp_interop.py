@@ -17,11 +17,11 @@ import time
 def check(args):
   root = Path(__file__).resolve().parents[2]
   sys.path.insert(0, str(root))
-  from nagaspilot.plp.cable import CablePLP
-  from nagaspilot.plp.hello import Hello
-  from nagaspilot.plp.locate import LocateSink
+  from exopilot.plp.cable import CablePLP
+  from exopilot.plp.hello import Hello
+  from exopilot.plp.locate import LocateSink
 
-  fixture = root / 'nagaspilot/tests/fixtures/map_horizon_navpilot.json'
+  fixture = root / 'exopilot/tests/fixtures/map_horizon_navpilot.json'
   package = args.navpilot_root / 'packages/plp'
   if not package.is_dir():
     raise ValueError(f'NavPilot PLP package not found: {package}')

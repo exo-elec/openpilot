@@ -28,7 +28,7 @@ stereo; NGP owns the shared model/control contract; Chestnut/eGPU remains remove
 under the current project direction. Do not resurrect old runtime claims merely
 because an old patch applies cleanly.
 
-Neither side implements the newly chosen `nagaspilot/jetlink` upstream-v3
+Neither side implements the newly chosen `exopilot/jetlink` upstream-v3
 integration. Both branches still have NPBM code. The README resolution should
 state the chosen target and its implementation status, not claim migration done.
 

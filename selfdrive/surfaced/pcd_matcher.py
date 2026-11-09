@@ -2,5 +2,5 @@
 import importlib
 import sys
 
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.surfaced.pcd_matcher")
+_implementation = importlib.import_module("openpilot.exopilot.daemons.surfaced.pcd_matcher")
 sys.modules[__name__] = _implementation

@@ -7,8 +7,8 @@
 | Aspect | Status |
 |--------|--------|
 | **Design** | ✅ Complete |
-| **Code** | ✅ `nagaspilot/controls/ngp_brsc.py` (pure policy) + `selfdrive/controls/lib/longitudinal_planner.py` (EOP10 wiring) |
-| **Tests** | ✅ `nagaspilot/tests/test_ngp_brsc.py` |
+| **Code** | ✅ `exopilot/controls/ngp_brsc.py` (pure policy) + `selfdrive/controls/lib/longitudinal_planner.py` (EOP10 wiring) |
+| **Tests** | ✅ `exopilot/tests/test_ngp_brsc.py` |
 | **Thresholds** | ⚠️ Provisional — order-of-magnitude defaults, not yet road-calibrated (dev-PC stage) |
 
 ---
@@ -16,7 +16,7 @@
 > **Component Type:** Controller (inside `plannerd`)
 > **Complexity:** Low-Medium
 > **Naming:** `NGP`-prefixed, not `EOP`-prefixed — this feature lives in the shared
-> `nagaspilot/controls/` package (see `nagaspilot/docs/NAMING_CONVENTIONS.md`) and is
+> `exopilot/controls/` package (see `exopilot/docs/NAMING_CONVENTIONS.md`) and is
 > ported byte-identical across `dev/EOP10`, `dev/NGP10`, and `dev/EDP10`. This is a
 > deliberate exception to EOP10's own `EOP<Feature><Param>` rule, made specifically
 > for features shared verbatim across branches.
@@ -73,7 +73,7 @@ unused) `IMUBumpDetector`/`SurfaceQualityAnalyzer` code in
 `selfdrive/surfaced/surface_detector.py`, which assumes the same. This holds for a
 device mounted level (standard windshield mount); it is not roll/pitch-corrected.
 
-### 3.2 Core Algorithm — `nagaspilot/controls/ngp_brsc.py::NGPBRSC`
+### 3.2 Core Algorithm — `exopilot/controls/ngp_brsc.py::NGPBRSC`
 
 1. **High-pass** — a slow EMA (`BASELINE_TC_S = 2.0s`) tracks gravity + road-grade
    offset; subtracting it leaves only dynamic vertical motion.
@@ -124,14 +124,14 @@ copy-portable to `dev/NGP10` and `dev/EDP10` without modification.
 
 | Branch | Module | Wiring |
 |---|---|---|
-| `dev/EOP10` | `nagaspilot/controls/ngp_brsc.py` | `selfdrive/controls/lib/longitudinal_planner.py` (above); toggle in `eop_panel.cc` |
-| `dev/NGP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` via `NGPFlags.BRSC` (same bitmask pattern as DLON/TJA); toggle in `ngp_panel.cc`. (`nagaspilot/controls/ngp_suite.py`, a standalone feature-port manifest never wired into any runtime path on any branch, was removed entirely from `dev/NGP10` on 2026-08-09 — no longer applicable here) |
+| `dev/EOP10` | `exopilot/controls/ngp_brsc.py` | `selfdrive/controls/lib/longitudinal_planner.py` (above); toggle in `eop_panel.cc` |
+| `dev/NGP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` via `NGPFlags.BRSC` (same bitmask pattern as DLON/TJA); toggle in `ngp_panel.cc`. (`exopilot/controls/ngp_suite.py`, a standalone feature-port manifest never wired into any runtime path on any branch, was removed entirely from `dev/NGP10` on 2026-08-09 — no longer applicable here) |
 | `dev/EDP10` | same file, byte-identical | `selfdrive/controls/lib/longitudinal_planner.py` (dragonpilot-style wiring); toggle in `dp_panel.cc` |
 
 `dev/EDP10` and `dev/EOP10` have no common git merge base, so the module is copied
 verbatim rather than cherry-picked. See each branch's own docs for its wiring notes
-(`nagaspilot/docs/NGP10_FEATURE_MATRIX.md` on NGP10,
-`nagaspilot/docs/EOP10_FEATURE_PORT_AUDIT.md` on EDP10).
+(`exopilot/docs/NGP10_FEATURE_MATRIX.md` on NGP10,
+`exopilot/docs/EOP10_FEATURE_PORT_AUDIT.md` on EDP10).
 
 ### 3.5 Toggle UI Across Branches
 
@@ -141,7 +141,7 @@ Each branch exposes `ngp_lon_brsc` through its own settings-panel convention:
 |---|---|---|
 | `dev/EOP10` | `EopPanel` (`eop_panel.cc`), under "ExoPilot" tab | Full EOP toggle panel, pre-existing |
 | `dev/EDP10` | `DPPanel` (`dp_panel.cc`), under "DP" tab | Pre-existing dragonpilot-style panel, `add_longitudinal_toggles()` |
-| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then expanded to cover ALCC/LCA/road-edge/DLON. A EDP10-derived "Adaptive Coasting" toggle was added and then retired the same week (2026-08-09) once direct comparison showed `dev/EOP10` has no ACM-equivalent concept at all — full detail in `nagaspilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
+| `dev/NGP10` | `NGPPanel` (`ngp_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then expanded to cover ALCC/LCA/road-edge/DLON. A EDP10-derived "Adaptive Coasting" toggle was added and then retired the same week (2026-08-09) once direct comparison showed `dev/EOP10` has no ACM-equivalent concept at all — full detail in `exopilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
 
 ---
 
@@ -164,7 +164,7 @@ Each branch exposes `ngp_lon_brsc` through its own settings-panel convention:
 
 ## 5. Testing
 
-`nagaspilot/tests/test_ngp_brsc.py` covers, on the pure module (no capnp/Params
+`exopilot/tests/test_ngp_brsc.py` covers, on the pure module (no capnp/Params
 required, runs anywhere):
 - Smooth road stays inactive
 - A single isolated spike does not trigger
@@ -185,7 +185,7 @@ mounted on a vehicle and can be tuned against logged `accelerometer` data.
 
 ## 6. Related Documents
 
-- `nagaspilot/docs/NAMING_CONVENTIONS.md` — `ngp_` prefix / shared-module convention
+- `exopilot/docs/NAMING_CONVENTIONS.md` — `ngp_` prefix / shared-module convention
 - `docs/eop/01_Core/NAMING_CONVENTIONS.md` — EOP10's own naming rules and the
   documented exception for this feature
 - `docs/eop/03_Software/Controllers/VTSC.md`, `SQSC.md` — sibling speed controllers

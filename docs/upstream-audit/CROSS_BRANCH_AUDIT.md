@@ -90,7 +90,7 @@ needing a user decision, 0 blocking safety bugs:**
 - 🟠 **Node 5 (capnp ordinal collisions):** `ControlsState.@67` is
   `tjaActive` on EOP10 and `ngpAlccActive` on NGP10 — a confirmed same-slot
   collision. `ngpBrscActive/Speed/Roughness` (a field explicitly commented
-  "shared via nagaspilot/controls") sits at 3 different `LongitudinalPlan`
+  "shared via exopilot/controls") sits at 3 different `LongitudinalPlan`
   ordinals per branch (EOP10 `@66-68`, EDP10 `@40-42`, NGP10 `@46-48`), each
   colliding with a different real field in the other branches' schemas. Only
   a risk if any tool ever cross-decodes logs between branches, but this
@@ -121,7 +121,7 @@ first.
   harness blocked by a pre-existing, unrelated capnp/`params_pyx` build
   issue, confirmed pre-existing on both worktrees). Left uncommitted at
   first, then committed and pushed per explicit request — see below.
-- **capnp "shared via nagaspilot/controls" wording** (Node 5) — ran the
+- **capnp "shared via exopilot/controls" wording** (Node 5) — ran the
   discriminating check: no tool in this repo decodes one branch's logs with
   another branch's cereal bindings (`tools/replay/`, `process_replay`,
   `touch_replay.py` are all branch-local), so the collision risk is real at

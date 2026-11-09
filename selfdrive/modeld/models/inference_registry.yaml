@@ -193,7 +193,7 @@ models:
       rate: 4Hz
 
   # Camera and rule-based Autoware-style models belong on the Hailo-8 / DX-M1 card (entries above).
-  # The big driving model is not run here: it runs on a phone over USB (nagaspilot/bigmodel).
+  # The big driving model is not run here: it runs on a phone over USB (exopilot/bigmodel).
   #
   # NOTE: Lidar/voxeld processing - NOT IMPLEMENTED
   # These models require voxeld daemon which was never created

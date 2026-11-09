@@ -138,7 +138,7 @@ This creates human-like gap behavior: as you merge, you naturally start followin
 
 ## Gap Evaluation and Lane Width
 
-Both checks are pure functions in `nagaspilot/controls/ngp_lane_change.py`, shared with NGP10
+Both checks are pure functions in `exopilot/controls/ngp_lane_change.py`, shared with NGP10
 (there from modelV2 only, opt-in). `desire_helper.py` keeps the state machine and calls them
 while waiting in `preLaneChange`. Missing or malformed data never blocks.
 

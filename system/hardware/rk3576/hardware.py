@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 
-from nagaspilot.hardware.base import HardwareCapability
+from exopilot.hardware.base import HardwareCapability
 from openpilot.system.hardware.rk3576 import camera_config
 from openpilot.system.hardware.rockchip_base import RockchipHardware
 

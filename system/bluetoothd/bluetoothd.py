@@ -25,7 +25,7 @@ except ImportError:
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.bluetoothd import spp, pairing_agent, ble_gatt, ncp_session, ble_central, ncp_cable, plp_gatt
-from nagaspilot.runtime import bigmodel_platform
+from exopilot.runtime import bigmodel_platform
 
 
 def _set_adapter_name(bus: dbus.Bus, name: str) -> None:

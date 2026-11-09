@@ -18,7 +18,7 @@ import cereal.messaging as messaging
 import time
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.following_distance import TIME_GAPS
-from nagaspilot.controls.longitudinal_policy import apply_speed_offset_kph
+from exopilot.controls.longitudinal_policy import apply_speed_offset_kph
 
 logger = logging.getLogger(__name__)
 

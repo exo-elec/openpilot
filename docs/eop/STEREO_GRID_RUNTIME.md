@@ -128,10 +128,10 @@ Host commands (NumPy, pytest, pycapnp; no compiled IPC/device imports required):
 
 ```bash
 python3 common/tests/test_gpu_compute.py
-python3 nagaspilot/daemons/stereod/test_stereo_runtime.py
-python3 nagaspilot/daemons/pointcloudd/test_gpu_contract.py
-python3 nagaspilot/daemons/gridd/test_stereo_grid_runtime.py
-python3 nagaspilot/manager/tests/test_compute_fault_policy.py
+python3 exopilot/daemons/stereod/test_stereo_runtime.py
+python3 exopilot/daemons/pointcloudd/test_gpu_contract.py
+python3 exopilot/daemons/gridd/test_stereo_grid_runtime.py
+python3 exopilot/manager/tests/test_compute_fault_policy.py
 ```
 
 The new host suite executes actual GridD serialization against the real Cap'n
@@ -147,8 +147,8 @@ Tests start from cereal.messaging's default-invalid envelope so this wiring is c
 Required GPU acceptance commands on each actual RK3588/RK3576 target:
 
 ```bash
-EOP_GPU_TESTS=1 python3 nagaspilot/daemons/stereod/test_stereo_runtime.py
-EOP_GPU_TESTS=1 python3 nagaspilot/daemons/gridd/test_stereo_grid_runtime.py
+EOP_GPU_TESTS=1 python3 exopilot/daemons/stereod/test_stereo_runtime.py
+EOP_GPU_TESTS=1 python3 exopilot/daemons/gridd/test_stereo_grid_runtime.py
 ```
 
 On this PC, explicitly requested GPU checks fail with
@@ -157,7 +157,7 @@ tests are not numerical GPU execution proof. Real camera replay, depth/obstacle
 accuracy, false-free rate, road-slope behavior, calibrated mounting, concurrent
 ADAS/UI latency, sustained thermals and whole-system memory remain required.
 The full `./test.sh` gate still stops at the pre-existing portable-source mismatch
-in `nagaspilot/runtime/bigmodel_platform.py`; that check is not bypassed.
+in `exopilot/runtime/bigmodel_platform.py`; that check is not bypassed.
 
 Recorded host result (2026-10-19): 78 cases pass: shared GPU policy (5), StereoD
 runtime (22), Pointcloudd contracts (14), stereo grid/wire/PathD expiry (20), core

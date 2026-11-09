@@ -1,8 +1,8 @@
-# Node 4 — Three-way identity check on shared nagaspilot files
+# Node 4 — Three-way identity check on shared exopilot files
 
 ## `ngp_brsc.py` — ✅ pass, exactly as documented
 
-Byte-identical across `dev/EOP10` (`nagaspilot/controls/ngp_brsc.py`),
+Byte-identical across `dev/EOP10` (`exopilot/controls/ngp_brsc.py`),
 `origin/dev/NGP10`, and `origin/dev/EDP10` (same path on both). Matches
 CLAUDE.md's claim that this file "ports to `dev/NGP10` and `dev/EDP10`"
 verbatim. This is the pattern the project should hold every other
@@ -27,7 +27,7 @@ docstring's first line:
 |---|---|---|
 | EOP10 | `selfdrive/controls/lib/tja.py` | `"""Low-speed traffic-jam gap policy shared by EOP, EDP, and NGP.` |
 | EDP10 | `selfdrive/controls/lib/dp_tja.py` | `"""DragonPilot low-speed traffic-jam gap policy.` |
-| NGP10 | `nagaspilot/controls/ngp_tja.py` | `"""NGP low-speed traffic-jam gap policy.` |
+| NGP10 | `exopilot/controls/ngp_tja.py` | `"""NGP low-speed traffic-jam gap policy.` |
 
 EOP10's own docstring **explicitly asserts** this module is "shared by EOP,
 EDP, and NGP" — i.e. the intent is the same canonical-shared-module pattern
@@ -41,7 +41,7 @@ as `ngp_brsc.py`. But unlike BRSC, it isn't actually one file:
   *as an exception* to each branch's own prefix rule specifically so it
   stays byte-identical everywhere).
 - Two different locations: `selfdrive/controls/lib/` (EOP10, EDP10) vs
-  `nagaspilot/controls/` (NGP10) — the shared-module location BRSC
+  `exopilot/controls/` (NGP10) — the shared-module location BRSC
   established.
 - Consequence: these are three independently-copy-pasted files that happen
   to currently agree. A bug fix landed on one branch will silently **not**
@@ -58,7 +58,7 @@ canonical-shared the way `docs/eop/03_Software/Controllers/BRSC.md` does for
 BRSC.
 
 **Recommendation (not applied — cross-branch rename, needs a decision, not
-a unilateral edit):** move all three to `nagaspilot/controls/ngp_tja.py`
+a unilateral edit):** move all three to `exopilot/controls/ngp_tja.py`
 (NGP10's location/name — already the established shared-module home) or
 formally document why TJA is intentionally per-branch-forked (in which case
 the "shared by EOP, EDP, and NGP" docstring on EOP10's copy is itself the

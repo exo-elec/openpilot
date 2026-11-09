@@ -233,7 +233,7 @@ class TestAutoModeStateMachine:
     condition only checks lane_confidence, never curve_detected. A
     sustained, well-marked curve does not prevent exit once confidence
     recovers -- confirmed by reading _update_auto_state() directly rather
-    than assumed. (nagaspilot/controls/ngp_dlat.py had exactly this
+    than assumed. (exopilot/controls/ngp_dlat.py had exactly this
     latching bug during development on dev/NGP10 and was fixed to match
     this exact behavior.)"""
     dlat = _new_dlat()

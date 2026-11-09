@@ -18,7 +18,7 @@ from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
 
 # Import learned speed database
-from nagaspilot.runtime.eop_utils import (
+from exopilot.runtime.eop_utils import (
   get_learned_speed as _common_get_learned_speed,
   calculate_speed_for_curvature,
 )

@@ -2,5 +2,5 @@
 import importlib
 import sys
 
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.pointcloudd.reprojector")
+_implementation = importlib.import_module("openpilot.exopilot.daemons.pointcloudd.reprojector")
 sys.modules[__name__] = _implementation

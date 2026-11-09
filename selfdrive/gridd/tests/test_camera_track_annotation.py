@@ -1,5 +1,5 @@
 """gridd (the fusion) adds relative and lateral speed to camera objects, so pathd (the planner) can predict a cut-in."""
-from nagaspilot.runtime.fusion_tracks import CameraTrackAnnotator
+from exopilot.runtime.fusion_tracks import CameraTrackAnnotator
 
 
 def test_gridd_style_object_dicts_get_vyrel_and_vrel():

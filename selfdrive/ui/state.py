@@ -126,7 +126,7 @@ class DriverMonitor:
 
   @property
   def stage(self) -> str:
-    from nagaspilot.controls.ngp_driver_activity import monitoring_stage
+    from exopilot.controls.ngp_driver_activity import monitoring_stage
     return monitoring_stage(self.awareness)
 
 

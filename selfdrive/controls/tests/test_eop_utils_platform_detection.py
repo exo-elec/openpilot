@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from nagaspilot.runtime.eop_utils import detect_exopilot_platform
+from exopilot.runtime.eop_utils import detect_exopilot_platform
 
 
 @pytest.fixture(autouse=True)

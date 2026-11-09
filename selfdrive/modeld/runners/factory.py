@@ -2,7 +2,7 @@
 """Factory for creating the active modeld driving runner.
 
 The split RKNN/ONNX runner is the on-board driving model. The big model does not come from here: it runs on a
-phone over USB (nagaspilot/bigmodel) and is attached by modeld on top of this runner.
+phone over USB (exopilot/bigmodel) and is attached by modeld on top of this runner.
 """
 
 from __future__ import annotations

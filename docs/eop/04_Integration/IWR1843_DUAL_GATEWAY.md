@@ -104,7 +104,7 @@ phone-role coexistence need actual measurements;02M WiFi radar4d is not01M proof
 No board, road, safety or detection-range acceptance is established. Shared host
 runtime changes start on dev/EOP10 and propagate to01M/02M preserving variant work.
 This update changes documentation only. ./test.sh currently stops before tests at
-the pre-existing NGP lineage mismatch in nagaspilot/runtime/bigmodel_platform.py.
+the pre-existing NGP lineage mismatch in exopilot/runtime/bigmodel_platform.py.
 
 References:
 - https://docs.silabs.com/bluetooth/latest/bluetooth-fundamentals-system-performance/throughput

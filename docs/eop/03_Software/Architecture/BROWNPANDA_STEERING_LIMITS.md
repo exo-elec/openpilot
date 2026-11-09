@@ -24,7 +24,7 @@ Downstream of that, `TC375_BrownPanda`'s gateway firmware (`DBC/byd_atto3.c`,
    `Safety_IsoMaxAngleRateDegps`, generic in `safety.c`) - BYD Atto3's real
    operating limit, tightest at every real speed.
 2. An 8-point speed-zoned backstop LUT (`0/2/6/12/18/24/30/36` m/s, the
-   canonical `nagaspilot/speed_zones.py` grid) - defense-in-depth, should
+   canonical `exopilot/speed_zones.py` grid) - defense-in-depth, should
    never bind in normal operation.
 
 As of 2026-08-03 the physical ceiling is **390°** (`MAX_STEERING_ANGLE_DEG`
@@ -32,7 +32,7 @@ in `TC375_BrownPanda/DBC/safety.h`), corrected from an earlier uncited 120°
 placeholder. Full numbers, derivation, and the U-turn/tight-curve sanity
 check are in `TC275_BrownPanda/docs/SAFETY_LIMITS.md` (identical firmware
 logic on both gateway variants) and openpilot's own
-`nagaspilot/docs/STEERING_LIMIT_POLICY.md` (`dev/EDP10`).
+`exopilot/docs/STEERING_LIMIT_POLICY.md` (`dev/EDP10`).
 
 The underlying math (`Safety_ZoneInterp`, `Safety_IsoMaxAngleDeg`,
 `Safety_IsoMaxAngleRateDegps`, `Safety_TranslateTeslaSteerAngle`) is now

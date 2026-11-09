@@ -5,7 +5,7 @@ from openpilot.common.build_profile import UI_BACKEND
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.params import Params
 from openpilot.system.manager.process import PythonProcess, NativeProcess
-from nagaspilot.runtime import bigmodel_platform
+from exopilot.runtime import bigmodel_platform
 
 
 # EOP-CLEANUP: TTL-cached param wrapper for process conditions.
@@ -137,8 +137,8 @@ procs = [
   PythonProcess("spkd", "system.spkd.spkd", always_run),     # Speaker (I2S)
   PythonProcess("rtcd", "system.rtcd.rtcd", always_run),     # RTC time sync
   PythonProcess("socketd", "system.socketd.socketd", always_run),
-  PythonProcess("bigmodeld", "nagaspilot.bigmodel.gadget", bigmodel_link),  # phone-hosted big model: USB gadget owner (modes 1 and 2)
-  PythonProcess("plpd", "nagaspilot.plp.plpd", plp_link),  # PLP v5 over the iPhone cable (mode 2); the BLE transport joins bluetoothd
+  PythonProcess("bigmodeld", "exopilot.bigmodel.gadget", bigmodel_link),  # phone-hosted big model: USB gadget owner (modes 1 and 2)
+  PythonProcess("plpd", "exopilot.plp.plpd", plp_link),  # PLP v5 over the iPhone cable (mode 2); the BLE transport joins bluetoothd
   PythonProcess("pigeond", "system.ubloxd.pigeond", always_run),
   PythonProcess("inferenced", "system.inferenced.inferenced", always_run),  # Centralized compute HAL
   PythonProcess("subscribed", "system.subscribed.subscribed", always_run),  # EOP: NavPilot subscription & hardware auth

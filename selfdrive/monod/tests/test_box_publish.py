@@ -18,7 +18,7 @@ def test_ground_ranging_hook_off_by_default_and_applies_when_on():
 
     import numpy as np
 
-    from nagaspilot.runtime.eop_monod_ranging import GroundRanging
+    from exopilot.runtime.eop_monod_ranging import GroundRanging
 
     m = MonoD.__new__(MonoD)
     m.ground = None

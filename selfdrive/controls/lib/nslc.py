@@ -13,7 +13,7 @@ import time
 
 from openpilot.common.constants import CV
 from openpilot.common.params import Params
-from nagaspilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
+from exopilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
 
 
 class NSLC:

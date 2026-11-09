@@ -10,7 +10,7 @@ Merged with FrogPilot SLC features:
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.swaglog import cloudlog
-from nagaspilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
+from exopilot.runtime.eop_utils import SpeedLimitOffset, SpeedLimitConfirmation
 
 
 class MSLC:

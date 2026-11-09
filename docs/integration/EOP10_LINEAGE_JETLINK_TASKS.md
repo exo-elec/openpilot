@@ -25,7 +25,7 @@ separate future capability, not a restoration of that driving-model path.
 
 ## Owner decisions for this work
 
-- Adopt upstream JetLink wire protocol v3 under `nagaspilot/jetlink`, starting
+- Adopt upstream JetLink wire protocol v3 under `exopilot/jetlink`, starting
   on NGP10. EOP10 inherits that integration rather than independently forking it.
 - PLP remains the separate companion protocol and runs alongside JetLink.
 - PLP's full service contract starts on NGP10 over wired USB. EOP10 adds
@@ -76,7 +76,7 @@ The trees differ in 1,739 paths (including docs, dependencies, hardware and
 legacy removals). Those paths are not all stereo features or shared policy.
 Do not restore entire modeld/control files from one branch onto the other.
 
-`python3 nagaspilot/lineage.py --parent dev/NGP10 --child HEAD` checks only
+`python3 exopilot/lineage.py --parent dev/NGP10 --child HEAD` checks only
 Python source in controls/runtime/mapd. It finds 95 parent files, 94 identical,
 one changed file, and seven allowed child additions. It does not audit modeld,
 controlsd, schemas or the full hardware pipeline.
@@ -103,10 +103,10 @@ Upstream zoompilot/jetlink main resolved remotely to
 `491cf1ef8d6786ed51cf995e18fc8721389066c6`; the local fork is a separate
 revision. Pin a reviewed upstream revision, not a mutable main branch.
 
-Current Python `nagaspilot/bigmodel/protocol.py` and NavPilot
+Current Python `exopilot/bigmodel/protocol.py` and NavPilot
 `packages/npbm/lib/src/protocol.dart` both use NPBM v1, 20-byte headers.
 The NGP/EOP bigmodel and PLP package trees currently match between branches.
-There is no tracked `nagaspilot/jetlink` integration in EOP at inspection.
+There is no tracked `exopilot/jetlink` integration in EOP at inspection.
 NavPilot's BIGMODEL_WIRED_PLAN explicitly superseded the earlier v3 plan with
 NPBM on 2026-10-12. BIGMODEL_LAYERS still borrows JetLink controller concepts,
 but directs replacing its wire format with NPBM. **The owner decisions above
@@ -138,7 +138,7 @@ Local design evidence:
 
 - NavPilot docs/architecture/BIGMODEL_WIRED_PLAN.md and BIGMODEL_LAYERS.md.
 - NavPilot docs/architecture/PLP_V5_SPEC.md and packages/npbm protocol source.
-- Openpilot nagaspilot/runtime/bigmodel.py and bigmodel/remote_state.py.
+- Openpilot exopilot/runtime/bigmodel.py and bigmodel/remote_state.py.
 
 ## Fallback and parallel-link contracts to implement
 
@@ -172,7 +172,7 @@ PLP frames into JetLink inference messages or run competing gadget owners.
 | Done | Reconcile NavPilot design with owner v3 choice | NPBM incompatibility and superseded design direction explicit |
 | Open | Baseline lineage guard/adapter boundary | NGP-defined explicit adapter contract; regression test rejects actual shared-policy drift |
 | Open | Review/pin upstream implementation | Exact upstream/fork diff and adapter API reviewed; MIT notices retained |
-| Open | Introduce nagaspilot/jetlink on NGP10 | Protocol conformance fixtures against pinned upstream; no NPBM bytes on v3 link |
+| Open | Introduce exopilot/jetlink on NGP10 | Protocol conformance fixtures against pinned upstream; no NPBM bytes on v3 link |
 | Open | NGP-owned local fallback | Timeout, unplug, corrupt reply, non-finite output, engine failure and reconnect tests preserve valid local model outputs |
 | Open | NavPilot native v3 bridge and PLP coexistence | Matching iOS/Android native wire; independent PLP traffic; one gadget owner; frame-latency measurements |
 | Open | Carry reviewed baseline into EOP10 | Fresh lineage check, adapter parity, RKNN fallback fixtures; rebase only when parent advances |

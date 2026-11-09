@@ -64,7 +64,7 @@ if src.exists():
 " 2>/dev/null || echo "✗ YOLOv8n export failed — install: pip install ultralytics"
     fi
 
-    # The big driving model's raw ONNX: the phone runs it (nagaspilot/bigmodel), the comma does not; this
+    # The big driving model's raw ONNX: the phone runs it (exopilot/bigmodel), the comma does not; this
     # only pre-positions the artifact for NavPilot's model list and its allow-list tool. Prefer
     # a real commaai/openpilot checkout; fall back to sunnypilot (cross-verified
     # byte-identical against it as of 2026-08-23).

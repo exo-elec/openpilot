@@ -97,7 +97,7 @@ no messages.
 - Corner radars are not part of this camera pipeline (BLE `radar2d`; WiFi
   point-cloud add-on on 02M only)
 
-**BIG MODEL ON A PHONE** — the combined driving model runs on the driver's phone over USB (`nagaspilot/bigmodel/`, `nagaspilot/docs/NAVPILOT_BIGMODEL.md`)
+**BIG MODEL ON A PHONE** — the combined driving model runs on the driver's phone over USB (`exopilot/bigmodel/`, `exopilot/docs/NAVPILOT_BIGMODEL.md`)
 - `modeld` always runs the on-board RKNN model (Bukapilot KA2 split pair, converted independently for RK3588 and
   RK3576; never cross-load SoC binaries) and attaches the phone model on top
 - One-way fallback: the RKNN model stays loaded and warm, a phone that fails or unplugs hands back once,

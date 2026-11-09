@@ -36,7 +36,7 @@ from openpilot.common.swaglog import cloudlog
 from dataclasses import dataclass
 from enum import Enum
 
-from nagaspilot.runtime.eop_utils import detect_exopilot_platform
+from exopilot.runtime.eop_utils import detect_exopilot_platform
 
 # Use ExoPilot shared package when deployed (/data on device); fall back to
 # in-repo implementations so this module works without the external package.

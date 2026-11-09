@@ -6,7 +6,7 @@ This policy can only reduce positive acceleration and positive jerk.
 
 from dataclasses import dataclass
 
-from nagaspilot.speed_zones import CITY_SPEED_MPS
+from exopilot.speed_zones import CITY_SPEED_MPS
 
 
 @dataclass(frozen=True)

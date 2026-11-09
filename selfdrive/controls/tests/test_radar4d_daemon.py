@@ -66,7 +66,7 @@ def test_publish_empty_is_invalid_when_no_corner_is_fresh():
 def test_ble_tracks_publish_under_surround_and_flatten_only_in_compatibility_view():
   import cereal.messaging as messaging
   from types import SimpleNamespace as NS
-  from openpilot.nagaspilot.daemons.radar4d.surround_tracks import surround_tracks
+  from openpilot.exopilot.daemons.radar4d.surround_tracks import surround_tracks
   d = Radar4DD.__new__(Radar4DD)
   d.pm = _PM()
   raw = messaging.new_message('radarCornerTracks').radarCornerTracks

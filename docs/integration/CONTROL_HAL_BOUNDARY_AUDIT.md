@@ -5,7 +5,7 @@ does not justify replacing driver-monitoring policy, vehicle-model equations
 or actuator safety limits. The proven NGP v0.10 baseline remains the reference.
 
 The inherited portable controls/runtime/mapd source is enforced byte-for-byte
-by `nagaspilot/lineage.py`. EOP still has legacy product overrides of controlsd
+by `exopilot/lineage.py`. EOP still has legacy product overrides of controlsd
 and longitudinal_planner for ALCC, adaptive tuning, radar zones, nudge, AEB and
 extra speed controllers. These overrides are not requirements of Rockchip HAL.
 They are not claimed to be identical to the complete NGP control files.

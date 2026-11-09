@@ -30,7 +30,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.params import Params
 from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
-from nagaspilot.runtime.bigmodel_link import PhoneLinkMonitor
+from exopilot.runtime.bigmodel_link import PhoneLinkMonitor
 
 
 class RailStatus(IntEnum):

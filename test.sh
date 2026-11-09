@@ -39,7 +39,7 @@ set -- "${args[@]}"
 # Compare against the reviewed parent when its branch ref is present locally.
 ngp_parent_ref="${NGP_PARENT_REF:-dev/NGP10}"
 if git rev-parse --verify "$ngp_parent_ref^{commit}" >/dev/null 2>&1; then
-  python3 nagaspilot/lineage.py --parent "$ngp_parent_ref" --child HEAD
+  python3 exopilot/lineage.py --parent "$ngp_parent_ref" --child HEAD
 else
   echo "==> NGP source parity skipped: fetch $ngp_parent_ref or set NGP_PARENT_REF"
 fi
@@ -93,7 +93,7 @@ else
   python3 -m pytest \
     system/hardware/tests \
     system/v4l2d/tests \
-    nagaspilot/daemons/gridd/tests/test_camera_specs.py \
+    exopilot/daemons/gridd/tests/test_camera_specs.py \
     system/hardware/rk3588/tests/test_rk3588.py \
     system/hardware/rk3576/tests/test_rk3576.py \
     system/hardware/rockchip/tests/test_rockchip.py \

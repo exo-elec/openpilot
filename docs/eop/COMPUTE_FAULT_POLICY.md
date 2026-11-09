@@ -21,7 +21,7 @@ continue to apply.
 
 Implementation:
 
-- `nagaspilot/manager/compute_fault_policy.py` defines the critical inference
+- `exopilot/manager/compute_fault_policy.py` defines the critical inference
   classifier. A generic `gpu_failed` or card failure does not become an
   inference disengagement when RKNN remains available. Core CPU failure reasons
   and RKNN failure reasons are explicit; absence of RKNN cannot be hidden by a

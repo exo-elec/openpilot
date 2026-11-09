@@ -28,7 +28,7 @@ UNCONSCIOUS MODE (medical emergency - heart attack, seizure, etc.):
 
 from typing import cast
 
-from nagaspilot.speed_zones import HIGHWAY_SPEED_MPS
+from exopilot.speed_zones import HIGHWAY_SPEED_MPS
 
 # Base DMS cap when too_distracted (m/s)
 DMS_BASE_LIMIT_MPS = 16.67  # 60 km/h

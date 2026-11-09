@@ -10,7 +10,7 @@ controlsd forced deceleration and UI availability status. No separate
 steeringd, driverd or camera dmonitoring daemon is registered. The NGP-origin
 `ngp_dm_policy` selector offers deployed relaxed timing and a tighter decay
 policy without resetting accumulated awareness; see
-`nagaspilot/docs/STEERING_ACTIVITY_MONITORING.md`.
+`exopilot/docs/STEERING_ACTIVITY_MONITORING.md`.
 
 NGP retains comma card/OpenDBC. Starting at EOP, OpenDBC is removed as a
 dependency; vehicled/socketd owns a minimal MIT-derived Tesla-party protocol,

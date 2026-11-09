@@ -32,7 +32,7 @@ import numpy as np
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
-from openpilot.nagaspilot.manager.compute_fault_policy import rknn_fault_reason
+from openpilot.exopilot.manager.compute_fault_policy import rknn_fault_reason
 
 from openpilot.system.inferenced.compute import HAL, HALConfig, BackendType, ModelConfig, CAMERA_ACCEL_BACKENDS
 from openpilot.system.inferenced.drivable import CARD_INPUT_HW, CARD_MODEL, drivable_map, letterbox

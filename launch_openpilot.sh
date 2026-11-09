@@ -32,7 +32,7 @@ cd "$SCRIPT_DIR"
 # On a board openpilot keeps its settings in /data/params (one file per param,
 # shared by the UI and every daemon), logs/stats/recordings under /data, and
 # device keys under /persist (system/hardware/rockchip_base.py,
-# nagaspilot/hardware/paths.py). An image that does not ship them makes the UI
+# exopilot/hardware/paths.py). An image that does not ship them makes the UI
 # abort at its first Params() call. Create them once, owned by the run user.
 ensure_board_dir() {
   local dir="$1" owner

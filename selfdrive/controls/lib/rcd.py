@@ -1,11 +1,11 @@
 """
-RCD - Road Condition Detection controller. The logic lives in nagaspilot/controls/eop_rcd.py (shared with NagasPilot, golden-tested
+RCD - Road Condition Detection controller. The logic lives in exopilot/controls/eop_rcd.py (shared with NagasPilot, golden-tested
 against the original of this file); this module keeps EOP10's names and its `EOPRCDEnabled` switch.
 
 Sources, as before: surfaced's `surfaceStatus`, then the card's `monoSegments`. The classical-CV classifier (`RoadConditionClassifier`) is kept for
 callers that have a frame; nothing in the drive loop feeds it one.
 
-Fixed on the way (nagaspilot/controls/eop_rcd.py docstring): the cap used to start at ~0.3 m/s and smooth up to the limit over ~10 s.
+Fixed on the way (exopilot/controls/eop_rcd.py docstring): the cap used to start at ~0.3 m/s and smooth up to the limit over ~10 s.
 """
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ import cv2
 import numpy as np
 
 from openpilot.common.params import Params
-from nagaspilot.controls.eop_rcd import (SPEED_LIMITS, RCDState, RoadCondition, RoadConditionResult,
+from exopilot.controls.eop_rcd import (SPEED_LIMITS, RCDState, RoadCondition, RoadConditionResult,
                                          classify_metrics)
-from nagaspilot.runtime.rcd import RCDRuntime
+from exopilot.runtime.rcd import RCDRuntime
 
 HYSTERESIS_FRAMES = 5
 MIN_CONFIDENCE = 0.5

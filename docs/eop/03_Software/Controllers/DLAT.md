@@ -811,7 +811,7 @@ commercial use, same as dragonpilot's `aem.py`/`acm.py` referenced in
 `DLON.md` — a reason to keep consulting it for concepts only, not code.
 
 The identical LCA gate and DLON coupling were also implemented on
-`dev/NGP10` (`nagaspilot/controls/ngp_dlat.py`, `desire_helper.py`,
+`dev/NGP10` (`exopilot/controls/ngp_dlat.py`, `desire_helper.py`,
 `modeld.py`), which does not have `EOPDLATMode`/`EOPDLONMode` user-facing
 mode selectors at all — DLAT/DLON are unconditional automatic there by
 explicit design choice, unlike this branch which keeps the mode toggles.

@@ -45,8 +45,8 @@ it does not implement the live geometric occupancy or drivable-area pipeline.
 Host checks, in an interpreter with NumPy and OpenCV:
 
 ```sh
-python nagaspilot/daemons/stereod/test_sgm.py
-python nagaspilot/daemons/stereod/test_stereo_runtime.py
+python exopilot/daemons/stereod/test_sgm.py
+python exopilot/daemons/stereod/test_stereo_runtime.py
 clang -x cl -cl-std=CL1.2 -fsyntax-only system/inferenced/kernels/stereo_sgm.cl
 ```
 
@@ -56,7 +56,7 @@ the target (missing GPU or failed execution is an error):
 
 ```sh
 python -m hal.gpu --smoke-gpu
-python nagaspilot/daemons/stereod/test_stereod_integration.py
+python exopilot/daemons/stereod/test_stereod_integration.py
 ```
 
 Record real-camera depth error, false-free/obstacle recall, frame age, GPU memory,

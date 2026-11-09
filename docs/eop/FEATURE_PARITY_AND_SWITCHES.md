@@ -9,11 +9,11 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | Feature ID | UI switch | Direct runtime reader |
 |---|---|---|
 | `QuietMode` | Yes | `selfdrive/soundd/soundd.py:37` |
-| `AEBEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:525` |
+| `AEBEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:525` |
 | `ALCCAllowAlways` | Yes | `selfdrive/controls/lib/alcc.py:68` |
 | `ALCCHoldAtStandstill` | Yes | `selfdrive/controls/lib/alcc.py:69` |
 | `ALCCUnifiedEngagement` | Yes | `selfdrive/controls/lib/alcc.py:70` |
-| `AdaptdEnabled` | Yes | `nagaspilot/daemons/adaptd/adaptd.py:293` |
+| `AdaptdEnabled` | Yes | `exopilot/daemons/adaptd/adaptd.py:293` |
 | `AdaptiveGapEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `AutoLaneChange` | Yes | `selfdrive/controls/lib/desire_helper.py:85` |
 | `AutoTileEnabled` | Yes | `selfdrive/navd/tile_auto_manager.py:157` |
@@ -41,11 +41,11 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `DeviceGoOffRoad` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `DeviceIsRhd` | Yes | `selfdrive/modeld/modeld.py:616` |
 | `FactoryCalibrated` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
-| `GlobaldEnabled` | Yes | `nagaspilot/daemons/coordinationd/coordinationd.py:96` |
-| `GridEnabled` | Yes | `nagaspilot/daemons/gridd/gridd.py:897` |
+| `GlobaldEnabled` | Yes | `exopilot/daemons/coordinationd/coordinationd.py:96` |
+| `GridEnabled` | Yes | `exopilot/daemons/gridd/gridd.py:897` |
 | `GroundEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `HealthMonitorEnabled` | Yes | `selfdrive/selfdrived/selfdrived.py:161` |
-| `HybridPlannerEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:546` |
+| `HybridPlannerEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:546` |
 | `LCABSMEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `LCAConfirmRequired` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `LCAControllerEnabled` | Yes | `selfdrive/controls/lib/desire_helper.py:84` |
@@ -55,13 +55,13 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `LCAdjacentLeadHandoff` | Yes | `selfdrive/controls/lib/lc_lead_handoff.py:15` |
 | `LatALCC` | Yes | `selfdrive/controls/lib/alcc.py:67` |
 | `LatRoadEdgeDetection` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
-| `LeftCameraEnabled` | Yes | `nagaspilot/daemons/sided/sided.py:329` |
+| `LeftCameraEnabled` | Yes | `exopilot/daemons/sided/sided.py:329` |
 | `LonExtRadar` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `MSLCEnabled` | Yes | `selfdrive/controls/lib/mslc.py:44` |
 | `MTSCEnabled` | Yes | `selfdrive/controls/lib/mtsc.py:76` |
 | `MapdEnabled` | Yes | `selfdrive/controls/lib/mtsc.py:77` |
 | `MicAdaptiveLoudness` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
-| `MonoDEnabled` | Yes | `nagaspilot/daemons/monod/monod.py:303` |
+| `MonoDEnabled` | Yes | `exopilot/daemons/monod/monod.py:303` |
 | `MonoDSceneSegEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
 | `MonoDTeleEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
 | `MonoDWideEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
@@ -72,23 +72,23 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `NavEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `NavPilotPaired` | Not exposed | `system/subscribed/subscribed.py:275` |
 | `NavVoiceEnabled` | Yes | `selfdrive/navd/navd.py:82` |
-| `NudgeEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:528` |
+| `NudgeEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:528` |
 | `OneLaneChange` | Yes | `selfdrive/controls/lib/desire_helper.py:86` |
-| `OsmLocalizerEnabled` | Yes | `nagaspilot/daemons/coordinationd/coordinationd.py:97` |
-| `PointcloudEnabled` | Yes | `nagaspilot/daemons/pointcloudd/pointcloudd.py:613` |
-| `PointcloudUseGPU` | Yes | `nagaspilot/daemons/pointcloudd/pointcloudd.py:646` |
-| `PredictEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:520` |
+| `OsmLocalizerEnabled` | Yes | `exopilot/daemons/coordinationd/coordinationd.py:97` |
+| `PointcloudEnabled` | Yes | `exopilot/daemons/pointcloudd/pointcloudd.py:613` |
+| `PointcloudUseGPU` | Yes | `exopilot/daemons/pointcloudd/pointcloudd.py:646` |
+| `PredictEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:520` |
 | `RCDEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
 | `RTKEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
-| `RearCameraEnabled` | Yes | `nagaspilot/daemons/reard/reard.py:171` |
+| `RearCameraEnabled` | Yes | `exopilot/daemons/reard/reard.py:171` |
 | `RecordEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
-| `RecorddParkingEnabled` | Yes | `nagaspilot/daemons/recordd/recordd.py:888` |
+| `RecorddParkingEnabled` | Yes | `exopilot/daemons/recordd/recordd.py:888` |
 | `RedControllerEnabled` | Yes | `selfdrive/controls/lib/red.py:221` |
-| `RightCameraEnabled` | Yes | `nagaspilot/daemons/sided/sided.py:330` |
-| `SGMLocalizerEnabled` | Yes | `nagaspilot/daemons/coordinationd/coordinationd.py:98` |
-| `SLCConfirmHigher` | Yes | `nagaspilot/runtime/eop_utils.py:186` |
-| `SLCConfirmLower` | Yes | `nagaspilot/runtime/eop_utils.py:185` |
-| `SOCControllerEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:526` |
+| `RightCameraEnabled` | Yes | `exopilot/daemons/sided/sided.py:330` |
+| `SGMLocalizerEnabled` | Yes | `exopilot/daemons/coordinationd/coordinationd.py:98` |
+| `SLCConfirmHigher` | Yes | `exopilot/runtime/eop_utils.py:186` |
+| `SLCConfirmLower` | Yes | `exopilot/runtime/eop_utils.py:185` |
+| `SOCControllerEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:526` |
 | `SPPAutoReconnect` | Yes | `system/bluetoothd/spp.py:151` |
 | `SPPEnabled` | Yes | `system/bluetoothd/spp.py:150` |
 | `SQSCEnabled` | Yes | `selfdrive/controls/lib/sqsc.py:212` |
@@ -96,27 +96,27 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `SQSCUseLearnedSpeed` | Yes | `selfdrive/controls/lib/sqsc.py:214` |
 | `SafetyEventLogEnabled` | Yes | `system/socketd/safety/safety_manager.py:45` |
 | `ShockDetection` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
-| `SideCamerasEnabled` | Yes | `nagaspilot/daemons/sided/sided.py:326` |
-| `SideCamerasSwapped` | Yes | `nagaspilot/daemons/sided/sided.py:331` |
-| `StereoEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:527` |
+| `SideCamerasEnabled` | Yes | `exopilot/daemons/sided/sided.py:326` |
+| `SideCamerasSwapped` | Yes | `exopilot/daemons/sided/sided.py:331` |
+| `StereoEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:527` |
 | `SubscriptionSkipVerify` | Not exposed | `system/subscribed/subscribed.py:230` |
-| `SurfaceEnabled` | Yes | `nagaspilot/daemons/surfaced/surfaced.py:530` |
-| `SurfaceLongHorizon` | Yes | `nagaspilot/daemons/surfaced/surfaced.py:564` |
+| `SurfaceEnabled` | Yes | `exopilot/daemons/surfaced/surfaced.py:530` |
+| `SurfaceLongHorizon` | Yes | `exopilot/daemons/surfaced/surfaced.py:564` |
 | `TJAEnabled` | Yes | `selfdrive/controls/lib/longcontrol.py:86` |
 | `TLSCEnabled` | Yes | `selfdrive/controls/lib/tlsc.py:50` |
 | `TTSAlertsEnabled` | Yes | `selfdrive/controls/controlsd.py:181` |
-| `TeleEnabled` | Yes | `nagaspilot/daemons/monod/monod.py:306` |
-| `TrackEnabled` | Yes | `nagaspilot/daemons/pathd/pathd.py:519` |
+| `TeleEnabled` | Yes | `exopilot/daemons/monod/monod.py:306` |
+| `TrackEnabled` | Yes | `exopilot/daemons/pathd/pathd.py:519` |
 | `UIDisplayMode` | Yes | `selfdrive/ui/state.py` |
 | `UIRadarTracks` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `UIRainbow` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `VTSCEnabled` | Yes | `selfdrive/controls/lib/vtsc.py:131` |
-| `WakeEnabled` | Yes | `nagaspilot/manager/process_config.py:77` |
-| `CloudVoiceEnabled` | Yes | `nagaspilot/manager/process_config.py:73` |
-| `VoiceEnabled` | Yes | `nagaspilot/manager/process_config.py:70` |
+| `WakeEnabled` | Yes | `exopilot/manager/process_config.py:77` |
+| `CloudVoiceEnabled` | Yes | `exopilot/manager/process_config.py:73` |
+| `VoiceEnabled` | Yes | `exopilot/manager/process_config.py:70` |
 | `NeuralNetworkLateralControl` | Yes | `selfdrive/controls/lib/latcontrol_torque.py:85` |
-| `SteamDEnabled` | Yes | `nagaspilot/manager/process_config.py:213` |
-| `SteamDJoystickInput` | Yes | `nagaspilot/daemons/steamd/steamd.py:53` |
+| `SteamDEnabled` | Yes | `exopilot/manager/process_config.py:213` |
+| `SteamDJoystickInput` | Yes | `exopilot/daemons/steamd/steamd.py:53` |
 
 ## Known limitations
 
