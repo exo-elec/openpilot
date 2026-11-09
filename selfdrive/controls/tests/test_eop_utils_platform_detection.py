@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from nagaspilot.runtime.speed_utils import detect_exopilot_platform
+from exopilot.selfdrive.controls.lib.speed_utils import detect_exopilot_platform
 
 
 @pytest.fixture(autouse=True)

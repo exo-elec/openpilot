@@ -2,5 +2,5 @@
 import importlib
 import sys
 
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.pointcloudd.semantic_filter")
+_implementation = importlib.import_module("openpilot.exopilot.selfdrive.pointcloudd.semantic_filter")
 sys.modules[__name__] = _implementation

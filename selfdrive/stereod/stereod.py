@@ -2,5 +2,5 @@
 import importlib
 import sys
 
-_implementation = importlib.import_module("openpilot.nagaspilot.daemons.stereod.stereod")
+_implementation = importlib.import_module("openpilot.exopilot.selfdrive.stereod.stereod")
 sys.modules[__name__] = _implementation
