@@ -15,6 +15,11 @@
   <file>icons/wifi_strength_high.svg</file>
   <file>icons/wifi_strength_full.svg</file>
 
+  <file>qss/base.qss</file>
+  <file>qss/dark_automotive.qss</file>
+  <file>qss/offroad.qss</file>
+  <file>qss/onroad.qss</file>
+
   <file alias="languages.json">../ui/translations/languages.json</file>
 </qresource>
 </RCC>
