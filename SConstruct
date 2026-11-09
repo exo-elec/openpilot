@@ -30,6 +30,14 @@ AddOption('--ccflags', action='store', type='string', default='', help='pass arb
 
 AddOption('--external-sconscript', action='store', metavar='FILE', dest='external_sconscript', help='add an external SConscript to the build')
 
+AddOption('--extra-prefix',
+          action='append',
+          default=[],
+          dest='extra_prefix',
+          metavar='DIR',
+          help='extra install root (a usr/ tree) for headers, libraries and tools, '
+               'e.g. build packages unpacked with dpkg -x on a board without root')
+
 AddOption('--mutation', action='store_true', help='generate mutation-ready code')
 
 AddOption('--with-valhalla',
@@ -125,9 +133,12 @@ else:
     # says "this build has the MPP hardware encoder", and is the single
     # condition both system/loggerd/SConscript and encoderd.cc key off, so
     # the sources compiled and the #if selecting them cannot disagree.
-    rk_defines = ["-DROCKCHIP"]
+    # SOC_-prefixed: bare ROCKCHIP/RK3588/RK3576 macros rewrote the
+    # Hardware::RK3588()/ROCKCHIP() functions and cereal's DeviceType enum, so
+    # nothing including hw.h or log.capnp.h compiled on a detected board.
+    rk_defines = ["-DSOC_ROCKCHIP"]
     if soc:
-      rk_defines += [f"-D{soc.upper()}", "-DROCKCHIP_MPP"]
+      rk_defines += [f"-DSOC_{soc.upper()}", "-DROCKCHIP_MPP"]
     cflags += rk_defines
     cxxflags += rk_defines
     cpppath += [
@@ -140,6 +151,18 @@ else:
       "/usr/lib/aarch64-linux-gnu",
       "/usr/local/lib/aarch64-linux-gnu",
     ]
+
+# Build packages unpacked into a private root (no sudo): search them after the
+# system paths' own triplet dirs, and link with an rpath so the binaries run.
+for prefix in GetOption('extra_prefix'):
+  prefix = os.path.abspath(prefix)
+  triplet = f"{real_arch}-linux-gnu"
+  cpppath += [f"{prefix}/usr/include", f"{prefix}/usr/include/{triplet}"]
+  libpath += [f"{prefix}/usr/lib/{triplet}", f"{prefix}/usr/lib"]
+  rpath += [f"{prefix}/usr/lib/{triplet}", f"{prefix}/usr/lib"]
+  lenv["PATH"] = f"{prefix}/usr/bin" + os.pathsep + lenv["PATH"]
+  # tools run during the build (capnp, cython) load their libraries from here
+  lenv["LD_LIBRARY_PATH"] = os.pathsep.join(filter(None, [f"{prefix}/usr/lib/{triplet}", lenv.get("LD_LIBRARY_PATH")]))
 
 if GetOption('asan'):
   ccflags = ["-fsanitize=address", "-fno-omit-frame-pointer"]
@@ -220,7 +243,7 @@ env.CompilationDatabase('compile_commands.json')
 
 # Setup cache dir
 # Use /data for cache on embedded platforms (RK3588); /tmp on dev PCs
-cache_dir = '/data/scons_cache' if arch == "aarch64" else '/tmp/scons_cache'
+cache_dir = os.environ.get('SCONS_CACHE_DIR', '/data/scons_cache' if arch == "aarch64" else '/tmp/scons_cache')
 CacheDir(cache_dir)
 Clean(["."], cache_dir)
 
