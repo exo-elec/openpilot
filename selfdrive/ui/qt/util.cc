@@ -92,7 +92,8 @@ void setQtSurfaceFormat() {
 #else
   fmt.setRenderableType(QSurfaceFormat::OpenGLES);
 #endif
-  fmt.setSamples(16);
+  // Mali (RK3576/RK3588 libmali) grants 0 samples for 16; 4 is supported.
+  fmt.setSamples(4);
   fmt.setStencilBufferSize(1);
   QSurfaceFormat::setDefaultFormat(fmt);
 }

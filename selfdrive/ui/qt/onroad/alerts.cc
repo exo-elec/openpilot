@@ -59,8 +59,8 @@ void OnroadAlerts::paintEvent(QPaintEvent *event) {
     return;
   }
   static std::map<cereal::SelfdriveState::AlertSize, const int> alert_heights = {
-    {cereal::SelfdriveState::AlertSize::SMALL, 150},
-    {cereal::SelfdriveState::AlertSize::MID, 235},
+    {cereal::SelfdriveState::AlertSize::SMALL, theme::ALERT_SMALL_H},
+    {cereal::SelfdriveState::AlertSize::MID, theme::ALERT_MID_H},
     {cereal::SelfdriveState::AlertSize::FULL, height()},
   };
   int h = alert_heights[alert.size];

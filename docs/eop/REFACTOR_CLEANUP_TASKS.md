@@ -10,11 +10,11 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 | Repo / branch | Pushed tip | Done | Remaining |
 |---|---|---|---|
 | openpilot `dev/EOP10` | (this commit) | aarch64 venv fix; `.gitmodules` cleanup; EC25 GPIO guard for the trial board; this tracker | 1.5a tinygrad pin (owner); 1.5b full `./test.sh` after the scons build |
-| openpilot `dev/01M`, `dev/02M` | **local only** (force-push 0.3, owner) | rebased on EOP10; 01M back to `UI_BACKEND = "cpp"`; 02M = cpp / rk3576 / 1600x600 | Phase 2 build, Phase 3-4 port (01M), Phase 5 (02M), Phase 6 PyQt5 removal |
+| openpilot `dev/01M`, `dev/02M` | pushed (0.3 done) | rebased on EOP10; 01M back to `UI_BACKEND = "cpp"`; 02M = cpp / rk3576 / 1600x600; 4.1 theme tokens (01M) | Phase 2 build, rest of Phase 4 (01M), Phase 5 (02M), Phase 6 PyQt5 removal |
 | exopilot `main` | `5410961`+ | GPU check merged (eGPU commits left out); `hal.platform.identity`; setup guard; docs; `docs/00-START/PROGRESS.md` | eGPU decision; 6.1 Kconfig names (1.10); 02M Phase B (needs the 02M board) |
 | RK3576 `os-build` | pushed | `OS_FOR_APPS.md`; test record; Remote Control at boot; Mali proof `tools/qtgl_probe.cc` (LOG 35); `PROGRESS.md` checkpoint | trust prompt + reboot test; build packages; eGPU over USB-C check; v5 image items |
 
-**Remaining plan, in order:** (1) owner: trust prompt, then reboot to prove Remote Control on boot; (2) owner: install the 12 build packages; (3) owner: force-push 01M/02M; (4) 2.2 scons build of the C++ UI with `-j2`, then the full `./test.sh`; (5) eGPU over USB-C check for the next OS build; (6) 2.3-2.4 screenshots; (7) Phase 4 port on 01M, one screen per commit; (8) Phase 5 on 02M; (9) Phase 6 removal of the PyQt5 path.
+**Remaining plan, in order:** (1) owner: trust prompt, then reboot to prove Remote Control on boot; (2) owner: install the 12 build packages (no passwordless sudo for Claude); (3) ~~force-push 01M/02M~~ done; (4) 2.2 scons build of the C++ UI with `-j2`, then the full `./test.sh`; (5) eGPU over USB-C check for the next OS build; (6) 2.3-2.4 screenshots; (7) Phase 4 port on 01M, one screen per commit; (8) Phase 5 on 02M; (9) Phase 6 removal of the PyQt5 path.
 
 ## Why C++ and not PyQt5 (evidence)
 - PyPI has no Linux aarch64 PyQt5 wheel, so `scripts/ensure_pyqt5.sh` compiles it on the board. On the 8 GB PRO-BOX without swap, that compile is **killed for running out of memory** (4 attempts, cgroup `memory.peak` 7.46 GB, `oom_kill` counter rose; RK3576 `os/docs/LOG.md` §33).
@@ -24,7 +24,7 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 ## Phase 0: branch lineage (precondition)
 - [x] 0.1 Dependency fix `d429d91f5` on `dev/EOP10` (pyopencl wheel, OpenCV at runtime, fresh `uv.lock`), pushed.
 - [x] 0.2 Clean rebase done locally: `dev/EOP10` -> `dev/01M` (`198ff1088`, +1) -> `dev/02M` (`b0d4b1bbe`, +1). Cherry-picked duplicates dropped, trees identical to the remote ones. Local backups: `backup/dev-0{1,2}M-before-rebase-20261109`.
-- [!] 0.3 Force-push `dev/01M`/`dev/02M` (`--force-with-lease`): **blocked by the auto-mode safety check; the owner runs it.** Until then, new 01M/02M commits stay local, and the same force-push carries them.
+- [x] 0.3 Force-push `dev/01M`/`dev/02M` (`--force-with-lease`, owner approved): 01M `1565bdbf8...014dadb32`, 02M `64894cf9b...1b244e1ca`. `git cherry` proof: every replaced remote commit is in the new tip, except 02M's PyQt5 profile commit `c433b5732`, superseded by the cpp one. Old tips kept in local `backup/dev-0{1,2}M-before-rebase-20261109`. Remotes now use SSH (`git@github.com:exo-elec/*.git`).
 
 ## Phase 1: cleanup (small, independent; each its own commit)
 ### Board and folders
@@ -79,7 +79,7 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 
 ## Phase 4: port, one screen per commit (`dev/01M`)
 Order: what the driver sees first, the new screens last. Each step must build (`scons -j2 selfdrive/ui`), start on the board, and match its target screenshot. Commit as `ui(01m): <screen>` with this file updated.
-- [ ] 4.1 Theme tokens + QSS (`theme.h`)
+- [~] 4.1 Theme tokens + QSS: `qt/theme.{h,cc}` (geometry, status/alert/palette colours, dark-automotive chrome, `theme::inter()`, `theme::styleSheet()` composing base + dark + per-view sheets from `:/qss/`); the QSS moved to `selfdrive/assets/qss/` and into `assets.qrc` (PyQt5 `style_manager.py` reads the same files); `ui.h` status colours, `alerts.{h,cc}` colours/heights from `theme::`; app-wide base + dark sheet in `main.cc`; `setSamples(4)` (2.0). Proof so far: `theme.cc` + rcc-built `:/qss/` compiled with `-std=c++1z` against the system Qt; the composed sheet has all four layers, no `@import`. **Open:** scons build and on-screen check wait for 2.2.
 - [ ] 4.2 Main window stack, sidebar
 - [ ] 4.3 Offroad home
 - [ ] 4.4 Settings tab bar + params registry (data-driven pages)
@@ -118,3 +118,5 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 2.0 | C++ Qt GL path proven on the Mali-G52 (RK3576 LOG 35) |
 | 2026-11-09 | status | per-repo status table and remaining plan; PROGRESS docs in exopilot and RK3576 |
 | 2026-11-09 | tracker | moved to `dev/EOP10` (pushable without force); 01M/02M rebased on it |
+| 2026-11-09 | 0.3 | 01M/02M force-pushed over SSH (owner approved); remotes switched to SSH |
+| 2026-11-09 | 4.1 | theme tokens + shared QSS on 01M; smoke-compiled, scons build pending 2.2 |

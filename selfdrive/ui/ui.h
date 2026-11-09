@@ -14,9 +14,10 @@
 #include "common/util.h"
 #include "system/hardware/hw.h"
 #include "selfdrive/ui/qt/prime_state.h"
+#include "selfdrive/ui/qt/theme.h"
 
-const int UI_BORDER_SIZE = 30;
-const int UI_HEADER_HEIGHT = 250;
+const int UI_BORDER_SIZE = theme::BORDER_SIZE;
+const int UI_HEADER_HEIGHT = theme::HEADER_HEIGHT;
 
 const int UI_FREQ = 20; // Hz
 const int BACKLIGHT_OFFROAD = 50;
@@ -46,10 +47,10 @@ typedef enum UIStatus {
 } UIStatus;
 
 const QColor bg_colors [] = {
-  [STATUS_DISENGAGED] = QColor(0x17, 0x33, 0x49, 0xc8),
-  [STATUS_OVERRIDE] = QColor(0x91, 0x9b, 0x95, 0xf1),
-  [STATUS_ENGAGED] = QColor(0x17, 0x86, 0x44, 0xf1),
-  [STATUS_ALCC] = QColor(0x22, 0xa0, 0xdc, 0xf1),
+  [STATUS_DISENGAGED] = theme::STATUS_DISENGAGED,
+  [STATUS_OVERRIDE] = theme::STATUS_OVERRIDE,
+  [STATUS_ENGAGED] = theme::STATUS_ENGAGED,
+  [STATUS_ALCC] = theme::STATUS_ALCC,
 };
 
 typedef struct UIScene {
