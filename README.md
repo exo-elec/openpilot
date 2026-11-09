@@ -18,7 +18,7 @@
 1. **Device:** original comma 3, with its wide/narrow road cameras. This branch does not target Exopilot Rockchip boards.
 2. **Software:** `dev/EDP10`, built and configured for this project.
 3. **Vehicle:** the BYD Atto 3 development target; identification, harness and Panda safety support must match the build.
-4. **Validation:** follow the [branch concept](nagaspilot/docs/BRANCH_CONCEPT.md) and [migration plan](nagaspilot/docs/MIGRATION_PLAN.md). Factory longitudinal/AEB is the project default; openpilot longitudinal is a separate trial.
+4. **Validation:** follow the [branch concept](exopilot/docs/BRANCH_CONCEPT.md) and [migration plan](exopilot/docs/MIGRATION_PLAN.md). Factory longitudinal/AEB is the project default; openpilot longitudinal is a separate trial.
 
 EDP10 remains development-only. “Conservative” describes project scope, not a tested release or a safety certification.
 
@@ -111,7 +111,7 @@ flowchart LR
 | 01M | EOP10 | Shared 1024×600 PyQt5 profile |
 | 02M | 01M | Shared 1600×600 profile + floating panels |
 
-[EDP branch concept](nagaspilot/docs/BRANCH_CONCEPT.md) · [Migration plan](nagaspilot/docs/MIGRATION_PLAN.md) · [Other branches: full comparison](https://github.com/exo-elec/openpilot/blob/dev/NGP10/nagaspilot/docs/BRANCH_FEATURE_COMPARISON.md)
+[EDP branch concept](exopilot/docs/BRANCH_CONCEPT.md) · [Migration plan](exopilot/docs/MIGRATION_PLAN.md) · [Other branches: full comparison](https://github.com/exo-elec/openpilot/blob/dev/NGP10/exopilot/docs/BRANCH_FEATURE_COMPARISON.md)
 
 ## 🔧 Branches
 
@@ -131,7 +131,7 @@ No EDP installer URL is advertised. Download this branch and its pinned submodul
 git clone --recurse-submodules --branch dev/EDP10 https://github.com/exo-elec/openpilot.git
 ```
 
-Complete the [migration/setup requirements](nagaspilot/docs/MIGRATION_PLAN.md) before building or running. Cloning source is not device installation or vehicle validation. The upstream installer examples in the reference section below install upstream software, not EDP10.
+Complete the [migration/setup requirements](exopilot/docs/MIGRATION_PLAN.md) before building or running. Cloning source is not device installation or vehicle validation. The upstream installer examples in the reference section below install upstream software, not EDP10.
 
 ## 🐞 Bug Reports / Feature Requests
 

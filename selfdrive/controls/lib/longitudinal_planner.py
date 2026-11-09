@@ -14,15 +14,15 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDX
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
-from nagaspilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from exopilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from openpilot.selfdrive.controls.lib.dp_tja import TrafficJamAssist
 from dragonpilot.selfdrive.controls.lib.acm import ACM
 from dragonpilot.selfdrive.controls.lib.aem import AEM
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
-# EOP10/NGP10/EDP10 via nagaspilot/controls (see nagaspilot/controls/ngp_brsc.py).
+# EOP10/NGP10/EDP10 via exopilot/controls (see exopilot/controls/ngp_brsc.py).
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp, applied after ACM/AEM's own adjustments.
-from nagaspilot.controls.ngp_brsc import NGPBRSC
+from exopilot.controls.ngp_brsc import NGPBRSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]

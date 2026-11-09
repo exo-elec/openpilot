@@ -174,7 +174,7 @@ by matching the literal signal names `COUNTER` and `CHECKSUM` — the canonical
 per-message names (e.g. `MPC_RollingCounter_1E2`) cannot be used here. Fields
 still under a community/reference-only name have not been confirmed bit-
 identical against the local CANape/tc275 capture; see
-nagaspilot/docs/BYD_REFERENCE_PARITY_AUDIT.md and
+exopilot/docs/BYD_REFERENCE_PARITY_AUDIT.md and
 ~/panda/BYD_Atto3/DOC/community_port_comparison.md before renaming them.";
 CM_ BO_ 287 "EPS steering wheel angle + driver torque. Validated: angle range plausible, EPS_DriverTorque stays near 0 when hands-off.";
 CM_ BO_ 290 "Per-wheel speed from ESP (FL/FR/BL/BR). Scale 0.1 kph/bit. Use ESP_VehicleSpeed (0x1F0) for the aggregated filtered value openpilot consumes.";

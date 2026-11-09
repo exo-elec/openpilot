@@ -19,7 +19,7 @@ and radar track continuity. Stable oversized gaps permit controlled closing.
 A cut-in, sudden distance drop, short time-to-collision, or undersized gap
 suppresses positive acceleration immediately.
 
-The canonical constants live in nagaspilot/speed_zones.py. OpenDBC safety
+The canonical constants live in exopilot/speed_zones.py. OpenDBC safety
 cannot import that package; its continuous vehicle-model ISO steering check is
 kept in sync by tests and review rather than Python imports.
 

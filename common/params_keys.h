@@ -149,7 +149,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"dp_lon_acm_downhill", {PERSISTENT, BOOL, "0"}},
     {"dp_lon_aem", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared across EOP10/NGP10/EDP10 via
-    // nagaspilot/controls/ngp_brsc.py; NGP prefix (not dp_) marks features
+    // exopilot/controls/ngp_brsc.py; NGP prefix (not dp_) marks features
     // ported verbatim across all three branches. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
     {"dp_device_audible_alert_mode", {PERSISTENT, INT, "0"}},

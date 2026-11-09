@@ -66,4 +66,4 @@ All 7 changed files syntax-checked clean (`ast.parse`). Full `pytest`
 verification not available in this worktree (`/tmp/openpilot-dev-EDP10`,
 submodules/capnp codegen not set up for a full build) — same limitation
 documented in prior cross-branch sessions on this branch
-(`nagaspilot`/BRSC porting work, see `dev/EOP10`'s project memory).
+(`exopilot`/BRSC porting work, see `dev/EOP10`'s project memory).

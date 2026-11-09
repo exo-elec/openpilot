@@ -80,7 +80,7 @@ def longitudinal_jerk_up(v_ego: float) -> float:
 # source for opendbc/safety/modes/byd.h, opendbc/car/byd/values.py, and
 # TC275/TC375 BrownPanda firmware, none of which can import this module -
 # each hardcodes these same numbers with a comment citing this file. See
-# nagaspilot/docs/STEERING_LIMIT_POLICY.md for the derivation and G-force
+# exopilot/docs/STEERING_LIMIT_POLICY.md for the derivation and G-force
 # verification. openpilot's own controller-side backstop uses 80% of these.
 STEER_ZONE_ANGLE_DEG = (390.0, 390.0, 360.0, 240.0, 120.0, 60.0, 45.0, 30.0)
 STEER_ZONE_RATE_DEG_20MS = (4.0, 4.0, 4.0, 4.0, 3.2, 2.4, 1.6, 1.2)

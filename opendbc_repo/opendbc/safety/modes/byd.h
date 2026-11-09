@@ -46,13 +46,13 @@ static void byd_rx_hook(const CANPacket_t *msg) {
   }
 }
 
-// Canonical 8-point grid, matching nagaspilot/speed_zones.py's
+// Canonical 8-point grid, matching exopilot/speed_zones.py's
 // STEER_ZONE_SPEEDS_MPS exactly (0/2/6/12/18/24/30/36 m/s: the union of the
 // named CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX zones plus two technical
 // midpoints at 18/30, added so linear interpolation doesn't loosen the
 // worst-case lateral accel bound between URBAN and HIGHWAY - verified:
 // dropping to the 6 named points alone raises the 12-24 m/s peak from
-// 1.35g to 1.61g). opendbc_repo has no dependency on nagaspilot/, so this
+// 1.35g to 1.61g). opendbc_repo has no dependency on exopilot/, so this
 // hardcodes the same numbers rather than importing them.
 //
 // Backstop angle ceiling: the steering-wheel angle that implies ~1.3g

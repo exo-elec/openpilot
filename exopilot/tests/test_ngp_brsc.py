@@ -1,4 +1,4 @@
-from nagaspilot.controls.ngp_brsc import NGPBRSC
+from exopilot.controls.ngp_brsc import NGPBRSC
 
 DT = 1.0 / 20.0  # planner rate
 GRAVITY = 9.81

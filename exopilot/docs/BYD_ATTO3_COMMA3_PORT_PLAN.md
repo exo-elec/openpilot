@@ -37,7 +37,7 @@ The implementation will combine three clearly attributed sources:
 | DragonPilot 0.10.0-pre-build, base tag `base/dev-EDP10-dragonpilot-0.10.0` (`549577a29`) | Proven comma 3 base and DragonPilot features | Preserve Rick Lan's `dragonpilot/` namespace, attribution and history. Do not rebrand or rewrite it. |
 | [BYD Atto 3 openpilot port](https://github.com/shemps/byd-atto3-openpilot-port), local checkout `/home/vcar/panda/byd-atto3-openpilot-port`, commit `5b34194240bb831719629d2fd095fae5daaed1e0` | BYD CAN observations, DBC, fingerprint, firmware query, state decoding and control messages | Port only the relevant behavior to current APIs. Preserve its MIT notice and third-party attribution to openpilot/OpenDBC, CarrotPilot and BukaPilot. |
 
-New NagasPilot-owned features belong under `nagaspilot/` where possible.
+New NagasPilot-owned features belong under `exopilot/` where possible.
 Necessary vehicle registration, OpenDBC and Panda safety integration will use
 their normal shared locations, with source attribution kept in code and commit
 history. Rick Lan's `dragonpilot/` files are outside the modification scope.

@@ -67,7 +67,7 @@ camera tracker remains non-actuating.
 
 ## Implemented shadow foundation
 
-The default-off `nagaspilot.selfdrive.monod.monod` process now implements the
+The default-off `exopilot.selfdrive.monod.monod` process now implements the
 shadow boundary above. It publishes `ngpMonoDetections` at 5 Hz and
 `ngpMonoStatus` at 1 Hz, and nothing consumes either message for vehicle
 control. This first shadow implementation performs a stride-aware CPU NV12-to-

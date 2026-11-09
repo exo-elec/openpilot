@@ -16,7 +16,7 @@ preserved as-is. That revision's comments cite specific on-car routes/measuremen
 the strongest evidence this port has for 0x316/0x32E and are kept verbatim.
 They describe behavior observed on the reference fork's own vehicle, not this
 project's target car - unvalidated here pending a target-car capture (see
-nagaspilot/docs/MIGRATION_PLAN.md).
+exopilot/docs/MIGRATION_PLAN.md).
 """
 
 

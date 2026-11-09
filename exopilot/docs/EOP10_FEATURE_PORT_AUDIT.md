@@ -109,12 +109,12 @@ distance have not been validated on the BYD test car.
 table above previously said "Ported." Neither was true. Checked directly
 against the tree at this commit: no `vtsc`-named file, no `SCC`/curve-speed
 policy module, and no panel toggle anywhere in `dp_panel.cc` or elsewhere.
-`nagaspilot/docs/MIGRATION_PLAN.md`'s "Deferred Work" section (last touched
+`exopilot/docs/MIGRATION_PLAN.md`'s "Deferred Work" section (last touched
 2026-08-04, four days after this audit) correctly lists VTSC as not a next
 task, to be revisited only after the BYD passive/safety/longitudinal gates
 are complete -- that document is accurate; this one wasn't. Contrast with
 BRSC below, which really is implemented and tested
-(`nagaspilot/controls/ngp_brsc.py` + `nagaspilot/tests/test_ngp_brsc.py`
+(`exopilot/controls/ngp_brsc.py` + `exopilot/tests/test_ngp_brsc.py`
 both exist) -- the same "Ported" language was used for both entries in the
 table above despite only one being true. This is the exact failure mode
 "Audit evidence" below warns about ("a status label is not accepted as
@@ -137,7 +137,7 @@ its target -- none of this is built yet.
 Unlike every other entry in this audit, BRSC did not originate as an EOP10
 feature being evaluated for portability after the fact -- it was designed from
 the start to be identical across `dev/EOP10`, `dev/NGP10`, and `dev/EDP10`. The
-policy (`nagaspilot/controls/ngp_brsc.py`, class `NGPBRSC`) has zero
+policy (`exopilot/controls/ngp_brsc.py`, class `NGPBRSC`) has zero
 `cereal`/`Params`/messaging imports, so the file itself needed no adaptation for
 this branch -- it was copied byte-identical from `dev/EOP10`.
 

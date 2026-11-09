@@ -24,10 +24,10 @@ class CarControllerParams:
   # accel/jerk limit, same formula as opendbc/safety/lateral.h and byd.h's
   # steer_angle_cmd_checks_vm). The two breakpoint-list positional args
   # below are NOT consumed by the vm path - they're kept only to document
-  # nagaspilot/speed_zones.py's canonical 8-point STEER_ZONE_SPEEDS_MPS grid
+  # exopilot/speed_zones.py's canonical 8-point STEER_ZONE_SPEEDS_MPS grid
   # (0/2/6/12/18/24/30/36 m/s: CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX plus two
   # technical midpoints), hardcoded rather than imported since opendbc_repo
-  # has no dependency on nagaspilot/. The slip factor in byd.h's
+  # has no dependency on exopilot/. The slip factor in byd.h's
   # BYD_STEERING_PARAMS is a provisional design, not target-car evidence.
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
     390,  # deg, matches shemps/byd-atto3-openpilot-port's route-driven
@@ -50,13 +50,13 @@ class CarControllerParams:
   # (0.3g) is what apply_steer_angle_limits_vm() actually enforces day to
   # day; this should never bind in normal operation.
   #
-  # Breakpoints are the canonical 8-point grid from nagaspilot/speed_zones.py's
+  # Breakpoints are the canonical 8-point grid from exopilot/speed_zones.py's
   # STEER_ZONE_SPEEDS_MPS (0/2/6/12/18/24/30/36 m/s - the union of the named
   # CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX zones plus two technical midpoints
   # added so linear interpolation doesn't loosen the worst-case lateral
   # accel bound between URBAN and HIGHWAY). Hardcoded here rather than
-  # imported since opendbc_repo has no dependency on nagaspilot/; values
-  # below are 80% of nagaspilot.speed_zones.STEER_ZONE_ANGLE_DEG.
+  # imported since opendbc_repo has no dependency on exopilot/; values
+  # below are 80% of exopilot.speed_zones.STEER_ZONE_ANGLE_DEG.
   ZONE_MAX_ANGLE_BP = (0., 2., 6., 12., 18., 24., 30., 36.)
   ZONE_MAX_ANGLE_DEG = (312., 312., 288., 192., 96., 48., 36., 24.)
 

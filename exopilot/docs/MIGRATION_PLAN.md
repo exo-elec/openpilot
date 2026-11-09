@@ -34,7 +34,7 @@ tests. The interface uses Panda `noOutput`, reports `dashcamOnly`, advertises no
 openpilot-longitudinal trial, and its controller always returns an empty CAN
 send list. Actuation and Panda safety remain later, independent stages.
 
-Documentation from the transition branch is now under `nagaspilot/docs/`:
+Documentation from the transition branch is now under `exopilot/docs/`:
 the BYD port plan, HIL checklist, parameter evidence, parity audit, manual
 capture procedure, speed policy, and deferred EOP/MonoD studies are references
 only until their individual exit gates are met.
@@ -76,10 +76,10 @@ only until their individual exit gates are met.
    approach (`opendbc/safety/lateral.h:298`'s TODO). A speed-zoned 8-point
    backstop LUT sits on top for defense-in-depth (100% on the panda/gateway
    side, 80% on the openpilot controller side) - see
-   `nagaspilot/docs/STEERING_LIMIT_POLICY.md` for the full design and the
-   verified numbers. `nagaspilot/speed_zones.py` now exists (created
+   `exopilot/docs/STEERING_LIMIT_POLICY.md` for the full design and the
+   verified numbers. `exopilot/speed_zones.py` now exists (created
    alongside `dp_tja.py`, this doc's earlier note about it being missing is
-   stale) but `opendbc_repo` still has no dependency on `nagaspilot/`, so
+   stale) but `opendbc_repo` still has no dependency on `exopilot/`, so
    the BYD-specific slip factor and LUT values stay hardcoded in
    `opendbc/car/byd/values.py` and `opendbc/safety/modes/byd.h` with
    citations rather than an import. Both files must stay mirrored;

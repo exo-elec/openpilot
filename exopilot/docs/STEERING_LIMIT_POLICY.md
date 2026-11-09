@@ -55,7 +55,7 @@ ceiling.
 ### Speed-zoned backstop LUT (defense-in-depth)
 
 An 8-point piecewise-linear table at `0/2/6/12/18/24/30/36` m/s - the
-canonical `nagaspilot/speed_zones.py` `STEER_ZONE_SPEEDS_MPS` grid, unifying
+canonical `exopilot/speed_zones.py` `STEER_ZONE_SPEEDS_MPS` grid, unifying
 what were originally two separate tables: this 7-point steering LUT and the
 6-point named CRAWL/WALK/CITY/URBAN/HIGHWAY/MAX speed-zone policy. The two
 extra technical midpoints (18, 30 m/s, beyond the 6 named zones) are kept
