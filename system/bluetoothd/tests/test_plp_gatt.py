@@ -1,7 +1,8 @@
 import time
 
-from nagaspilot.plp import frame as F, registry as R
-from nagaspilot.plp.hello import Hello
+from exopilot.system.plp import frame as F
+from exopilot.system.plp import registry as R
+from exopilot.system.plp.hello import Hello
 from openpilot.system.bluetoothd import plp_gatt
 
 

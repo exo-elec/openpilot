@@ -4,7 +4,7 @@ Date: 2026-10-18. Baseline: c10706857, dev/EOP10. Documentation only.
 Companion: [algorithm research](STEREO_DRIVABLE_MAPPING_RESEARCH.md).
 Baseline ownership and phone-inference decisions:
 [lineage and JetLink v3 task ledger](../integration/EOP10_LINEAGE_JETLINK_TASKS.md).
-Shared JetLink integration begins at `nagaspilot/jetlink` on NGP10; modeld's
+Shared JetLink integration begins at `exopilot/jetlink` on NGP10; modeld's
 local fallback remains NGP/EOP-owned. EOP stereo consumes the same model outputs
 regardless of which inference source is selected.
 
@@ -95,7 +95,7 @@ stable lookup anchors; line numbers describe this baseline and can move.
 | Preserve | pathd/pathd.py: OccupancyGridView | Explicit uint8/uint16 decoding, fixed cost normalization and lateral flip exist; retain round-trip fixtures |
 | Preserve | selfdrive/controls/controlsd.py: 358 onward | Camera/path mitigation is bounded; radar AEB remains separate, lateral rule arbitration uses apply_curvature; do not bypass these paths |
 
-Source paths above are relative to `nagaspilot/daemons/` unless otherwise
+Source paths above are relative to `exopilot/daemons/` unless otherwise
 qualified. Compatibility modules under `selfdrive/` import these implementations.
 
 ### Implementation progress, 2026-10-18

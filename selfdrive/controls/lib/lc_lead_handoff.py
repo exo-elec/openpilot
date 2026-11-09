@@ -1,7 +1,7 @@
 """Compatibility adapter for the shared pure camera lead-handoff policy."""
 
 from openpilot.common.params import Params
-from nagaspilot.controls.lc_lead_handoff import LeadHandoff, _LeadProxy
+from exopilot.selfdrive.controls.lib.lc_lead_handoff import LeadHandoff, _LeadProxy
 
 
 RADAR_TO_CAMERA = 1.52
