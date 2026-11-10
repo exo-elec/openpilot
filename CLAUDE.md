@@ -22,6 +22,16 @@ Guidance for Claude Code when working on this openpilot fork.
   RKNN — see New Features below
 - **Status**: In development — dev PC testing phase (not hardware-deployed)
 
+## Sibling repos (development checkouts)
+
+Cloned over SSH from `exo-elec`, outside `~/Pilot`:
+
+| Path | Repo | Purpose |
+|------|------|---------|
+| `~/Panda/TC275_BrownPanda` | `exo-elec/TC275_BrownPanda` | BrownPanda TC275 firmware (CAN/GPIO) |
+| `~/Radar/IWRx843_RADAR` | `exo-elec/IWRx843_RADAR` | IWRx843 radar firmware |
+| `~/Radar/IWRx843_HOST` | `exo-elec/IWRx843_HOST` | IWRx843 host-side code |
+
 ## Prerequisites (on real hardware)
 
 ExoPilot BSP must be installed first before openpilot:
