@@ -165,7 +165,7 @@ _services: dict[str, tuple] = {
 
   # ExoPilot Hailo AI Detection Services (monod)
   "monoDetections": (True, 20., 5),    # Multi-camera YOLO detections
-  "pathAdjust": (True, 20., 5),         # NagasPilot pathd add-on message (not published on EOP10 yet)
+  "pathAdjust": (True, 20., 5),         # ExoPilot pathd add-on message (not published on EOP10 yet)
   "monoSegments": (True, 20., 20),     # segd: card segmentation summary, every camera
   "drivableBev": (True, 20., 20),      # segd: per-camera drivable BEV on gridd's grid (one camera per message)
   "monoFeatures": (True, 20., 10),     # Visual features from all cameras

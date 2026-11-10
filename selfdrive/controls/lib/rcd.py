@@ -1,5 +1,5 @@
 """
-RCD - Road Condition Detection controller. The logic lives in exopilot/controls/eop_rcd.py (shared with NagasPilot, golden-tested
+RCD - Road Condition Detection controller. The logic lives in exopilot/controls/eop_rcd.py (shared with ExoPilot, golden-tested
 against the original of this file); this module keeps EOP10's names and its `EOPRCDEnabled` switch.
 
 Sources, as before: surfaced's `surfaceStatus`, then the card's `monoSegments`. The classical-CV classifier (`RoadConditionClassifier`) is kept for

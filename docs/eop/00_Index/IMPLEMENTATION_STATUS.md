@@ -433,7 +433,7 @@ Phase 1/2/3 of REFACTOR_SURFACE.md complete:
 |----------|---------|
 | [OVERVIEW.md](./OVERVIEW.md) | Architecture and pipeline |
 | [NAMING_CONVENTIONS.md](../01_Core/NAMING_CONVENTIONS.md) | Coding standards |
-| NAGASPILOT_VS_EOP10_COMPARISON.md | NagasPilot gap audit (archived) |
+| NGP10_VS_EOP10_COMPARISON.md | ExoPilot gap audit (archived) |
 | BSP_PORTING.md | BSP database findings |
 | RTK_DOCUMENTATION_SUMMARY.md | RTK GPS design docs |
 | Voice System Overview | Voice assistant architecture |

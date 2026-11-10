@@ -27,7 +27,7 @@ QString getVersion() {
 }
 
 QString getBrand() {
-  return QObject::tr("EXO-ELECTRONICS");
+  return QObject::tr("ExoPilot");
 }
 
 QString getUserAgent() {

@@ -22,7 +22,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   std::vector<std::tuple<QString, QString, QString, QString, bool>> toggle_defs{
     {
       "OpenpilotEnabledToggle",
-      tr("Enable openpilot"),
+      tr("Enable ExoPilot"),
       tr("Adaptive cruise control and lane keep assist. Pay attention at all times."),
       "../assets/icons/chffr_wheel.png",
       true,
@@ -66,7 +66,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
-                                          tr("How closely openpilot follows lead cars. Standard recommended."),
+                                          tr("How closely ExoPilot follows lead cars. Standard recommended."),
                                           "../assets/icons/speed_limit.png",
                                           longi_button_texts);
 
@@ -80,7 +80,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     toggle->setEnabled(!locked);
 
     if (needs_restart && !locked) {
-      toggle->setDescription(toggle->getDescription() + tr(" Changing this setting will restart openpilot if the car is powered on."));
+      toggle->setDescription(toggle->getDescription() + tr(" Changing this setting will restart ExoPilot if the car is powered on."));
 
       QObject::connect(uiState(), &UIState::engagedChanged, [toggle](bool engaged) {
         toggle->setEnabled(!engaged);
@@ -265,7 +265,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
 }
 
 void DevicePanel::updateCalibDescription() {
-  QString desc = tr("openpilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.");
+  QString desc = tr("ExoPilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.");
   std::string calib_bytes = params.get("CalibrationParams");
   if (!calib_bytes.empty()) {
     try {
@@ -322,7 +322,7 @@ void DevicePanel::updateCalibDescription() {
   }
 
   desc += "\n\n";
-  desc += tr("Calibration resets rarely needed. Will restart openpilot if car is on.");
+  desc += tr("Calibration resets rarely needed. Will restart ExoPilot if car is on.");
   resetCalibBtn->setDescription(desc);
 }
 

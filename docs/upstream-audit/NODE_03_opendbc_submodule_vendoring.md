@@ -10,7 +10,7 @@ introduced by branch edits.**
   `teleoprtc_repo`, `tinygrad_repo` — **all** vendored as plain directories.
   `.gitmodules` does not exist anywhere in the tree.
 - **NGP10** (comma base): `opendbc_repo` is a submodule gitlink
-  (`160000 commit 2cde2462...`), pointing at `git@github.com:exo-electronics/opendbc.git`
+  (`160000 commit 2cde2462...`), pointing at `git@github.com:exo-elec/opendbc.git`
   branch `master` — matches comma's standard convention.
 - Checked `base/dev-EDP10-dragonpilot-0.10.0` directly (the fork point, before
   any EOP/EDP edits): it **already** has no `.gitmodules` and already vendors
@@ -26,8 +26,8 @@ rather than raw line counts across these two branches.
 
 ## Follow-up (not chased further — separate scope)
 
-The NGP10 submodule pins `opendbc_repo` to `exo-electronics/opendbc.git@2cde2462`.
-Whether that fork commit itself carries any exo-electronics-specific patches
+The NGP10 submodule pins `opendbc_repo` to `exo-elec/opendbc.git@2cde2462`.
+Whether that fork commit itself carries any ExoPilot-specific patches
 (and whether those patches are consistent with what EDP10 vendors inline) is a
 submodule-content audit, out of scope for this repo-level pass. Worth a
 follow-up if BYD support or other car ports are ever expected to be shared
@@ -35,7 +35,7 @@ between EDP10 and NGP10.
 
 No fixes applied — no bug to fix.
 
-## Update (2026-08-12): the flagged follow-up — BYD/Chery/JAECOO ported to `exo-electronics/opendbc`
+## Update (2026-08-12): the flagged follow-up — BYD/Chery/JAECOO ported to `exo-elec/opendbc`
 
 Surveyed `../external-fork` (external-fork org) and `../opendbc` (external-fork/opendbc,
 both MIT-licensed) for BYD and JAECOO car-port material. JAECOO is Chery's
@@ -45,10 +45,10 @@ covers `CHERY_JAECOO_J7_PHEV` (marked "under validation" upstream),
 complete BYD port than what EDP10 vendors inline (multiple DBCs, split
 `cam_lka`/`mpc_lka` steering variants).
 
-**exo-electronics/opendbc was on v0.2.1 (2025-02-10), predating the
+**exo-elec/opendbc was on v0.2.1 (2025-02-10), predating the
 `opendbc/safety/` migration entirely** — external-fork's byd/chery car ports (Python
 `car/` API + C safety modes) don't import against that old core at all. Bumped
-`exo-electronics/opendbc` to current upstream (`e677024b`, 2026-08-10) on a new
+`exo-elec/opendbc` to current upstream (`e677024b`, 2026-08-10) on a new
 branch `port/upstream-bump-byd-chery-jaecoo` (not `master` — `.gitmodules`
 pins `branch = master`, so an unverified core bump landing there is exactly
 what a future `git submodule update --remote` would silently pull), carrying
@@ -134,7 +134,7 @@ dangerous for car identification.
 **Not done (explicitly out of scope, do not assume complete):**
 - **EOP10's own submodule pin is unchanged** — `opendbc_repo` still points at
   `2cde2462` on `dev/EOP10`. The port lives on
-  `exo-electronics/opendbc@port/upstream-bump-byd-chery-jaecoo`; bumping the
+  `exo-elec/opendbc@port/upstream-bump-byd-chery-jaecoo`; bumping the
   pin (and re-verifying EOP10's own build/tests against the newer core, which
   is a much larger surface than byd/chery) is a separate, deliberate step.
 - **No BrownPanda/TC375 firmware wiring.** `byd.h`/`chery.h` exist as C
@@ -157,14 +157,14 @@ dangerous for car identification.
   `longcontrol.py` was not traced.
 
 No fixes applied to EOP10 itself this pass — all changes are on the
-`exo-electronics/opendbc` fork's new branch, not merged to `master`, not
+`exo-elec/opendbc` fork's new branch, not merged to `master`, not
 pinned into either `dev/EOP10` or `dev/EDP10`.
 
 ## Update (2026-08-13): MG added, EDP10's own patches ported, full regression clean — `dev/EDP10` submodule conversion still blocked
 
-Full detail lives in `exo-electronics/opendbc`'s own
+Full detail lives in `exo-elec/opendbc`'s own
 `docs/BYD_CHERY_JAECOO_PORT.md` (same branch,
-[PR #1](https://github.com/exo-electronics/opendbc/pull/1)); this is the
+[PR #1](https://github.com/exo-elec/opendbc/pull/1)); this is the
 cross-repo summary.
 
 **Added since the 2026-08-12 update:**
@@ -172,8 +172,8 @@ cross-repo summary.
   License note: dragonpilot's own original contributions (separate from the
   inherited comma.ai-derived base) carry a non-commercial `LICENSE.md`
   restriction (Copyright (c) 2019, Rick Lan) — this port was authorized
-  directly by exo-electronics via a verbal arrangement with dragonpilot's
-  author, not a written grant. Worth formalizing given exo-electronics'
+  directly by ExoPilot via a verbal arrangement with dragonpilot's
+  author, not a written grant. Worth formalizing given ExoPilot's
   commercial context.
 - **Three of `dev/EDP10`'s own hand-authored patches**, identified via a
   full 205-file audit of EDP10's `opendbc_repo` against its real parent

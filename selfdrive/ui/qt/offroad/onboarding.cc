@@ -87,12 +87,12 @@ void TermsPage::showEvent(QShowEvent *event) {
   vlayout->setContentsMargins(40, 40, 40, 0);
   main_layout->addLayout(vlayout);
 
-  QLabel *title = new QLabel(tr("EXO-ELECTRONICS"));
+  QLabel *title = new QLabel(getBrand());
   title->setStyleSheet("font-size: 48px; font-weight: 500;");
   vlayout->addWidget(title, 0, Qt::AlignTop | Qt::AlignLeft);
 
   vlayout->addSpacing(30);
-  QLabel *desc = new QLabel(tr("You must accept the Terms and Conditions to use openpilot. Read the latest terms at <span style='color: #465BEA;'>https://exo-electronics.com/terms</span> before continuing."));
+  QLabel *desc = new QLabel(tr("You must accept the Terms and Conditions to use ExoPilot."));
   desc->setWordWrap(true);
   desc->setStyleSheet("font-size: 36px; font-weight: 300;");
   vlayout->addWidget(desc, 0);
@@ -131,7 +131,7 @@ void DeclinePage::showEvent(QShowEvent *event) {
   main_layout->setSpacing(20);
 
   QLabel *text = new QLabel(this);
-  text->setText(tr("You must accept the Terms and Conditions in order to use openpilot."));
+  text->setText(tr("You must accept the Terms and Conditions in order to use ExoPilot."));
   text->setStyleSheet(R"(font-size: 36px; font-weight: 300; margin: 40px;)");
   text->setWordWrap(true);
   main_layout->addWidget(text, 0, Qt::AlignCenter);
