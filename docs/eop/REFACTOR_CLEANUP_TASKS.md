@@ -80,7 +80,8 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 ## Folder rename `nagaspilot/` -> `exopilot/` (owner, 2026-11-10: on every branch from NGP10)
 - [x] R.1 `dev/NGP10` `474a4f262`: `git mv` + every lowercase word `nagaspilot` -> `exopilot` (304 files). `NagasPilot` (product name) and `NAGASPILOT_DATA` (env var) unchanged. Proof: byte-compile clean; ruff 89 findings before and after (all pre-existing); product-layer tests 660 pass before / 661 after, same import errors (no `opendbc` / native builds on the board); the one differing test (`test_bigmodel_server_client`) is flaky on both trees (error on 2 of 3 runs each). Pushed as a fast-forward.
 - [x] R.2 `dev/EOP10`, `dev/01M`, `dev/02M` rebased onto it (rename-only conflicts resolved as the replayed commit's file + the word rename), then the same word rename on lines their own commits added. Proof: EOP10's and 01M's trees are **identical** to the pre-rebase branches with the rename applied (02M = new 01M + its profile commit). The check caught three `pathd` shims a later commit had changed, restored. Backups: `backup/dev-{EOP10,01M,02M}-before-rename`.
-- [ ] R.3 Force-push EOP10/01M/02M (owner's OK). [ ] R.4 `dev/EDP10` (dragonpilot line, not based on NGP10): its own rename commit.
+- [x] R.3 EOP10/01M/02M force-pushed (owner's OK; EOP10 `48301a286`). [x] R.4 `dev/EDP10` (dragonpilot line, not based on NGP10): its own rename commit `a9352a698`, pushed.
+- [x] R.5 **Missed by R.2:** the tracked package link `openpilot/nagaspilot -> ../nagaspilot` was never renamed, so on a fresh clone of EOP10/01M/02M `import openpilot.exopilot` (189 files) failed with `ModuleNotFoundError`; the board only ran through an untracked local link. Now `openpilot/exopilot -> ../exopilot`: EOP10 `545fa20f2`, cherry-picked to 01M and 02M (plain fast-forwards; the next rebase drops the duplicates). Proof: a clean worktree of each branch imports `openpilot.exopilot.lineage`. NGP10 and EDP10 have no such link. The leftover ignored `nagaspilot/` folder (only `__pycache__`) removed from the board checkout.
 - exopilot docs updated (`a7801e0`); RK3576 has no reference.
 
 
@@ -138,4 +139,5 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-09 | 4.2 | sidebar buttons dark with white icons; comma logo removed; settings click checked |
 | 2026-11-10 | 4.2 | Settings button in the status-card style; every settings page reviewed (4.4 notes) |
 | 2026-11-10 | R.1, R.2 | `nagaspilot/` -> `exopilot/`: NGP10 pushed; EOP10/01M/02M rebased, trees verified |
+| 2026-11-10 | R.3-R.5 | R.3/R.4 ticked; stale `openpilot/nagaspilot` package link fixed on EOP10/01M/02M |
 | 2026-11-09 | 4.1, 4.2 | 4.1 done (no app-wide sheet: it boxed every label); 4.2 sidebar palette + BLE pairing key bug; built and checked on :0 |
