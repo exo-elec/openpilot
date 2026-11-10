@@ -28,7 +28,7 @@ ported from the fork's *later* CarrotPilot-derived revision, not commit
 
 ## Verdict
 
-The NagasPilot port has **field-level parity with firmware/capture evidence
+The ExoPilot port has **field-level parity with firmware/capture evidence
 where such evidence exists**, and **intentional divergence from the original
 community reference's naming and several bit positions**, corrected against
 this project's own target-car-tested firmware. Where no firmware or capture
@@ -44,7 +44,7 @@ road-test claim.
 
 Private Veoneer radar CAN-FD decoding is outside the product scope. Its absence
 is intentional and is not counted as a parity failure. The factory ACC and AEB
-traffic remain vehicle-owned in the default mode; NagasPilot does not consume
+traffic remain vehicle-owned in the default mode; ExoPilot does not consume
 radar tracks.
 
 ## Parity matrix
@@ -69,7 +69,7 @@ radar tracks.
 Private radar is the only reference capability excluded by scope. Other rows
 marked different or pending remain candidates for staged parity work; reference
 environment variables or fork-specific plumbing may be expressed through the
-normal NagasPilot/openpilot configuration instead of copied literally.
+normal ExoPilot/openpilot configuration instead of copied literally.
 
 These are unresolved measurements, not reasons to copy more reference code:
 
@@ -85,9 +85,9 @@ These are unresolved measurements, not reasons to copy more reference code:
   speed-source cross-check before being called target-car confirmed - see
   `BYD_CANAPE_OPEN_QUESTIONS.md`'s "Out of scope" section.
 - The reference's `STEER_DRIVER_DISENGAGE = 30` is only defined and never used.
-  NagasPilot retains the used soft-override threshold and does not carry the
+  ExoPilot retains the used soft-override threshold and does not carry the
   dead constant.
-- NagasPilot uses the branch's current steering-limit and car-interface APIs.
+- ExoPilot uses the branch's current steering-limit and car-interface APIs.
   Scheduling has the same 50 Hz steering and about 33 Hz longitudinal rates,
   although the steering frame phase differs by one control tick.
 
@@ -109,7 +109,7 @@ video and buses 0/2 CAN together, then replay and cross-check:
    driver-override, fault, recovery and idle-stream ground truth.
 4. Factory `0x32E` cadence, factors, normal braking, standstill and resume are
    characterized without intentionally provoking AEB.
-5. NagasPilot replay reports byte/state mismatches and resolves each one before
+5. ExoPilot replay reports byte/state mismatches and resolves each one before
    the corresponding feature is considered recording-equivalent.
 
 Until those gates pass, the precise statement is: **camera-port software

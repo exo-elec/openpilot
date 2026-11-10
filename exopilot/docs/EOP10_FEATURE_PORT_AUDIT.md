@@ -38,7 +38,7 @@ path. Its implementation does not currently change the path used for steering:
 Consequently, importing DLAT would add parameters, schema fields and
 `controlsd` integration without selecting a different lateral trajectory.
 
-If the concept is revisited, first implement a NagasPilot-only, non-controlling
+If the concept is revisited, first implement a ExoPilot-only, non-controlling
 confidence logger using existing lane-line and road-edge outputs. Recorded-route
 evidence must show a useful decision boundary before it can affect curvature.
 
@@ -67,7 +67,7 @@ its ten focused unit tests pass in this checkout. DLON's transition-hysteresis
 idea may later be reimplemented around AEM after route-replay validation; the
 force-stop and broad trigger collection should not be copied.
 
-For BYD openpilot longitudinal, NagasPilot therefore fixes AEM on and removes
+For BYD openpilot longitudinal, ExoPilot therefore fixes AEM on and removes
 the AEM, ACM, and APM choices from the user interface. Factory BYD longitudinal
 does not transmit openpilot's AEM output. ACM stays off because it suppresses
 mild planner deceleration and its activation, camera-lead behavior, and stopping
@@ -121,7 +121,7 @@ table above despite only one being true. This is the exact failure mode
 validation evidence"), and it happened inside the document that coined that
 rule. The design intent below is retained as a design, not a status:
 
-NagasPilot VTSC would use Sunnypilot SCC-V's state machine, driver override,
+ExoPilot VTSC would use Sunnypilot SCC-V's state machine, driver override,
 p97 model prediction, and smooth entering/turning/leaving acceleration
 policy. It would retain the fixed mild/medium/sharp comfort buckets that
 EOP10 attributes to FrogPilot, and would deliberately exclude EOP10 map

@@ -6,7 +6,7 @@
 
 ## Decision table
 
-| Parameter | NagasPilot baseline | Evidence and decision |
+| Parameter | ExoPilot baseline | Evidence and decision |
 |---|---:|---|
 | Mass | `1750 kg` | Confirmed by the BYD reference car and official BYD extended-range/UK specifications. Official Australian specifications list `1680/1750 kg` by battery variant, so verify the test-car trim. |
 | Wheelbase | `2.72 m` | Confirmed by both official BYD specifications and both OpenDBC/reference implementations. |
@@ -35,7 +35,7 @@ There are three published numbers, but they are not equally applicable:
    [`values.py`](https://github.com/shemps/byd-atto3-openpilot-port/blob/main/port/opendbc/car/byd/values.py)
    uses `19.8`, while its executable DBC/CarState path uses `0.0713`.
 
-NagasPilot is currently porting the executable reference path and its exact
+ExoPilot is currently porting the executable reference path and its exact
 DBC, so `19.8` avoids mixing the README's fitted ratio with a different speed
 calibration. This is a compatibility baseline, not a claim that 19.8 is the
 physical rack ratio.

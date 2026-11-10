@@ -1,7 +1,7 @@
 # Manual factory-MPC validation workflow
 
 This is the primary evidence pipeline for the camera-only BYD Atto 3 port.
-NagasPilot is validated against synchronized raw behavior from the test car's
+ExoPilot is validated against synchronized raw behavior from the test car's
 factory MPC, rather than treating runtime output enablement as a parity test.
 
 ## Ground-truth recording
@@ -10,13 +10,13 @@ Record the same drive as one manually synchronized dataset containing:
 
 - unmodified factory-MPC road video;
 - raw, timestamped classic CAN from both sides of the camera harness (car side
-  and MPC side, corresponding to NagasPilot buses 0 and 2);
+  and MPC side, corresponding to ExoPilot buses 0 and 2);
 - the original CAN channel, arbitration ID, DLC and eight payload bytes;
 - vehicle/ignition state and operator annotations for each maneuver; and
 - the recording-tool configuration, database version and acquisition clock details.
 
 Do not use private radar CAN-FD or decoded radar tracks. Factory ACC and AEB may
-continue using the vehicle's radar internally, but NagasPilot's validation input
+continue using the vehicle's radar internally, but ExoPilot's validation input
 is factory-MPC video plus chassis/camera CAN only.
 
 Keep the raw CAN measurement and video immutable. Export derived CSV, frame
@@ -26,7 +26,7 @@ counts, dropped-frame count and clock discontinuities for every source file.
 
 ## Required factory-MPC scenarios
 
-Capture a representative factory baseline before testing NagasPilot output:
+Capture a representative factory baseline before testing ExoPilot output:
 
 1. power-off, wake, Ready, Park, Reverse, Neutral, Drive and shutdown;
 2. stationary steering center plus known left and right angles;
@@ -40,7 +40,7 @@ Capture a representative factory baseline before testing NagasPilot output:
 
 ## Offline cross-check
 
-Replay the raw CAN chronologically through NagasPilot without transmitting to
+Replay the raw CAN chronologically through ExoPilot without transmitting to
 the vehicle. For every replay, preserve the correspondence between CAN time and
 video frame time.
 
@@ -51,9 +51,9 @@ Compare:
 - speed scale, steering sign/ratio, pedal thresholds and gear mapping;
 - factory `0x1E2`, `0x316` and `0x32E` counters, checksums, cadence and state
   transitions;
-- NagasPilot steering/HUD bytes against factory-MPC bytes for equivalent
+- ExoPilot steering/HUD bytes against factory-MPC bytes for equivalent
   inactive, available, active, override and recovery states; and
-- optional NagasPilot longitudinal bytes against the factory command factor,
+- optional ExoPilot longitudinal bytes against the factory command factor,
   hold/resume encoding and observed comfort envelope.
 
 Generated commands are evaluated offline even if the checked-out interface is
@@ -66,7 +66,7 @@ replay validation.
 For each dataset, retain a machine-readable comparison report and a short human
 review containing:
 
-- source hashes and exact NagasPilot commit;
+- source hashes and exact ExoPilot commit;
 - video-to-CAN time alignment and measured offset/error;
 - expected and observed message/state transitions;
 - byte-level mismatches grouped by signal or state;

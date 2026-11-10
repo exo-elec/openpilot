@@ -141,7 +141,7 @@ Use [GitHub Issues](https://github.com/exo-elec/openpilot/issues). Include branc
 
 - [comma.ai openpilot](https://github.com/commaai/openpilot): baseline software and MIT notices.
 - [DragonPilot / Rick Lan](https://github.com/dragonpilot/dragonpilot): inherited DragonPilot implementation and history.
-- NagasPilot: selected portable policy ports, including BRSC.
+- ExoPilot: selected portable policy ports, including BRSC.
 - README presentation inspired by [FrogPilot](https://github.com/FrogAi/FrogPilot/blob/FrogPilot/README.md); feature claims remain specific to this branch.
 
 ## ⚖️ Safety & Validation

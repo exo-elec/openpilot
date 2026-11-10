@@ -11,7 +11,7 @@ narrow (`fcam`, about 2648 px). EOP10's 80 mm baseline describes its dedicated
 
 The comma 3 driving model deliberately consumes both road-camera images, but
 its calibration warps do not expose stereo disparity or metric object depth.
-NagasPilot must not manufacture a stereo `Q` matrix or copy EOP10's 80 mm
+ExoPilot must not manufacture a stereo `Q` matrix or copy EOP10's 80 mm
 default.
 
 ## Reuse assessment
@@ -28,7 +28,7 @@ default.
 
 ## Minimal comma 3 design
 
-Implement a NagasPilot-owned, default-off, **log-only** `monod` first:
+Implement a ExoPilot-owned, default-off, **log-only** `monod` first:
 
 1. Consume `VISION_STREAM_WIDE_ROAD` independently at 5 Hz. Preserve frame ID,
    `timestampSof`, source camera, and transform metadata.

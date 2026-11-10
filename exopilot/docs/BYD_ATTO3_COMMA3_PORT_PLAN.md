@@ -19,7 +19,7 @@ can generate the native BYD longitudinal command from openpilot. Both modes are
 validated first through manually synchronized factory-MPC video and raw CAN;
 runtime output selection is a separate activation decision.
 
-NagasPilot does not parse or use private radar CAN-FD tracks. “Retain radar
+ExoPilot does not parse or use private radar CAN-FD tracks. “Retain radar
 behavior” means leaving the car's factory radar, ACC, and AEB system untouched
 in the default mode. See the
 [camera-port parity audit](BYD_REFERENCE_PARITY_AUDIT.md) for the exact boundary.
@@ -37,7 +37,7 @@ The implementation will combine three clearly attributed sources:
 | DragonPilot 0.10.0-pre-build, base tag `base/dev-EDP10-dragonpilot-0.10.0` (`549577a29`) | Proven comma 3 base and DragonPilot features | Preserve Rick Lan's `dragonpilot/` namespace, attribution and history. Do not rebrand or rewrite it. |
 | [BYD Atto 3 openpilot port](https://github.com/shemps/byd-atto3-openpilot-port), local checkout `/home/vcar/panda/byd-atto3-openpilot-port`, commit `5b34194240bb831719629d2fd095fae5daaed1e0` | BYD CAN observations, DBC, fingerprint, firmware query, state decoding and control messages | Port only the relevant behavior to current APIs. Preserve its MIT notice and third-party attribution to openpilot/OpenDBC, CarrotPilot and BukaPilot. |
 
-New NagasPilot-owned features belong under `exopilot/` where possible.
+New ExoPilot-owned features belong under `exopilot/` where possible.
 Necessary vehicle registration, OpenDBC and Panda safety integration will use
 their normal shared locations, with source attribution kept in code and commit
 history. Rick Lan's `dragonpilot/` files are outside the modification scope.
@@ -64,7 +64,7 @@ Known measurements requiring confirmation on the target car:
 
 - Published implementations disagree on steering ratio: upstream OpenDBC uses
   `14.8`, the reference README reports a paired `19.5` drive fit, and its
-  executable code uses `19.8`. NagasPilot preserves the executable reference's
+  executable code uses `19.8`. ExoPilot preserves the executable reference's
   `19.8`/DBC-speed pair until manual analysis fits both parameters together. See
   [BYD_PARAMETER_EVIDENCE.md](BYD_PARAMETER_EVIDENCE.md).
 - The observed cluster-speed scaling of `0.758` may be specific to that car or
@@ -105,7 +105,7 @@ The initial factory-longitudinal capture baseline does not yet activate:
 
 Of the BYD reference capabilities, only private radar is excluded from scope.
 The POC, UI, query, and diagnostic items above are staged after the manual
-factory baseline. Their behavior may be adapted to normal NagasPilot/openpilot
+factory baseline. Their behavior may be adapted to normal ExoPilot/openpilot
 configuration rather than retaining the reference fork's exact plumbing.
 
 ### Comma 3 hardware profiles
@@ -221,7 +221,7 @@ comparisons pass without connecting the transmit path to a moving vehicle.
   appropriate. Start with ordinary stock-ACC lateral control; enable ALKA as a
   separate subphase.
 - Forward stock longitudinal and AEB traffic untouched. Statically block the
-  two NagasPilot-owned steering/HUD addresses from camera-to-main forwarding
+  two ExoPilot-owned steering/HUD addresses from camera-to-main forwarding
   via `CanMsg.check_relay`, matching the current `psa.h`/`nissan.h` pattern —
   the shared `safety_fwd_hook` API blocks `check_relay` addresses before any
   `.fwd` hook runs, so a `controls_allowed`-gated `.fwd` hook is both
@@ -322,7 +322,7 @@ Any mismatch returns the port to the previous non-transmitting stage.
 ### 7. DragonPilot feature compatibility
 
 After normal stock-ACC lateral operation is validated, test DragonPilot ALKA,
-LCA and road-edge behavior through small NagasPilot-side integration changes.
+LCA and road-edge behavior through small ExoPilot-side integration changes.
 Do not modify the original `dragonpilot/` implementation merely to make BYD
 fit. Each feature must be removable without changing the baseline BYD port.
 
@@ -362,7 +362,7 @@ Keep every commit buildable and reviewable:
 
 Do not squash these stages into an unattributed import. The history should make
 it possible to compare each BYD-derived change with commit `5b34194`, distinguish
-NagasPilot adaptations, and revert one capability without disturbing the rest.
+ExoPilot adaptations, and revert one capability without disturbing the rest.
 
 EDP10 execution status:
 

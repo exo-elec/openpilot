@@ -2,8 +2,8 @@
 
 **Status:** BYD Atto 3 lateral control live; Chery/Omoda/iCAUR/JAECOO added,
 active from the start. Both vendored inline in this branch's
-`opendbc_repo`, not yet a submodule of `exo-electronics/opendbc` — see
-"Relationship to the `exo-electronics/opendbc` fork" below for why that
+`opendbc_repo`, not yet a submodule of `exo-elec/opendbc` — see
+"Relationship to the `exo-elec/opendbc` fork" below for why that
 conversion hasn't happened yet.
 
 ## BYD Atto 3: dashcamOnly → live lateral control
@@ -37,7 +37,7 @@ output through `safety_tx_hook`, confirmed reject; not assumed from reading
 the code). Fixed with a matching upper clamp.
 
 The same bug, independently, was found and fixed in two other places this
-same pass: `exo-electronics/opendbc`'s own `byd.h` (same fork lineage,
+same pass: `exo-elec/opendbc`'s own `byd.h` (same fork lineage,
 same original source, same bug), and `~/panda/TC275_BrownPanda`'s deployed
 firmware (`Safety_ZoneInterp()` in `DBC/safety.c`) — the actual gateway
 hardware, a completely separate codebase that happened to share the same
@@ -49,7 +49,7 @@ interpolation pattern and the same bug.
 branch had no prior Chery support to flip. JAECOO is Chery's sub-brand
 (same module, no separate directory). Unlike BYD's port here, kommuai's
 source (the origin of this port's structure, via
-`exo-electronics/opendbc`'s own parallel port — see below) had **no C-side
+`exo-elec/opendbc`'s own parallel port — see below) had **no C-side
 max-angle backstop at all**, only rate tapering. Built one from scratch:
 `CHERY_ZONE_ANGLE_DEG`, a from-scratch max-angle backstop derived from real
 per-model physics (`max_angle = accel * wheelbase * steerRatio / v^2`, ISO
@@ -60,12 +60,12 @@ the same way the BYD zone-interp bug above was caught: real controller
 output accepted, sudden jumps rejected, correct hold behavior past the top
 breakpoint.
 
-## Relationship to the `exo-electronics/opendbc` fork
+## Relationship to the `exo-elec/opendbc` fork
 
 The *same* BYD/Chery/JAECOO port (plus MG, plus several of this branch's
-own patches) was independently ported onto `exo-electronics/opendbc`
+own patches) was independently ported onto `exo-elec/opendbc`
 (branch `port/upstream-bump-byd-chery-jaecoo`,
-[PR #1](https://github.com/exo-electronics/opendbc/pull/1)) — the fork
+[PR #1](https://github.com/exo-elec/opendbc/pull/1)) — the fork
 `dev/EOP10`/`dev/NGP10` already submodule. The eventual goal is converting
 *this* branch's vendored `opendbc_repo` to a submodule of that same fork,
 so all three branches share one opendbc tree instead of three diverging
@@ -109,7 +109,7 @@ branch's `latcontrol_torque.py`/`car.capnp` consumers to the fork's
 current API shape, or extending the fork with EDP10-compatible opt-in
 accessors the same way GM's neural FF was added — a deliberate, separate
 pass, not a mechanical `.gitmodules` edit. See
-`exo-electronics/opendbc`'s own `docs/BYD_CHERY_JAECOO_PORT.md` for the
+`exo-elec/opendbc`'s own `docs/BYD_CHERY_JAECOO_PORT.md` for the
 fork-side detail, and `dev/EOP10`'s
 `docs/upstream-audit/NODE_03_opendbc_submodule_vendoring.md` for the
 cross-branch summary.
@@ -176,6 +176,6 @@ this session, but in core longitudinal control this time. Full detail in
 green via direct `libsafety_py` round-trips (accept real controller
 output, reject out-of-bounds commands, correct clamp behavior past the top
 breakpoint) — this branch has no `unittest-parallel`/CI config of its own
-to run a full-suite sweep the way `exo-electronics/opendbc` does, so
+to run a full-suite sweep the way `exo-elec/opendbc` does, so
 verification here was targeted at the specific files changed rather than a
 full-repo regression.
