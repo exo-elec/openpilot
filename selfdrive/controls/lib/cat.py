@@ -10,7 +10,7 @@ steer ratio and stiffness factor values.
 - Gates:  speed > 5 m/s, |steerAngle| < 45°, sensors valid
 - Output: CATStatus with confidence and adaptive geometry params
 
-Reference: NagasPilot np_cat_controller.py
+Reference: ExoPilot np_cat_controller.py
 """
 
 from __future__ import annotations

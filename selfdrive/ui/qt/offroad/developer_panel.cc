@@ -4,7 +4,7 @@
 
 DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   adbToggle = new ParamControl("AdbEnabled", tr("Enable ADB"),
-            tr("USB/network debug access. See docs.exo-electronics.com for details."), "");
+            tr("USB/network debug access."), "");
   addItem(adbToggle);
 
   // SSH keys
@@ -27,8 +27,8 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   experimentalLongitudinalToggle = new ParamControl(
     "AlphaLongitudinalEnabled",
-    tr("openpilot Longitudinal Control (Alpha)"),
-    tr("WARNING: Disables stock AEB. Switches from car's ACC to openpilot longitudinal (alpha)."),
+    tr("ExoPilot Longitudinal Control (Alpha)"),
+    tr("WARNING: Disables stock AEB. Switches from car's ACC to ExoPilot longitudinal (alpha)."),
     ""
   );
   experimentalLongitudinalToggle->setConfirmation(true, false);
