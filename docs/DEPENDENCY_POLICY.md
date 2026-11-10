@@ -10,7 +10,7 @@ Submodule rules shared with NGP10:
 2. Pin every dependency to an exact public commit. A branch field is only an
    update hint and never replaces the gitlink.
 3. When either product must modify a dependency, create one
-   `exo-electronics/<dependency>` fork and keep the shared stable dependency on
+   `exo-elec/<dependency>` fork and keep the shared stable dependency on
    that fork's `master` branch.
 4. Never pin a local-only or unreachable commit. A clean recursive clone must
    reproduce the source tree without developer-machine directories.

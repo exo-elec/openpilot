@@ -15,7 +15,7 @@ WiFiPromptWidget::WiFiPromptWidget(QWidget *parent) : QFrame(parent) {
   title->setStyleSheet("font-size: 38px; font-weight: 500;");
   main_layout->addWidget(title);
 
-  QLabel *desc = new QLabel(tr("Maximize your training data uploads to improve openpilot's driving models."));
+  QLabel *desc = new QLabel(tr("Maximize your training data uploads to improve ExoPilot's driving models."));
   desc->setStyleSheet("font-size: 40px; font-weight: 400;");
   desc->setWordWrap(true);
   main_layout->addWidget(desc);
