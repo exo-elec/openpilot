@@ -115,7 +115,7 @@ class DeveloperPanel(ListWidget):
 
     self.adb = ToggleControl(
       "AdbEnabled", self.tr("Enable ADB"),
-      self.tr("USB/network debug access. See docs.exo-electronics.com for details."),
+      self.tr("USB/network debug access."),
       self._store)
     self.add_row(self.adb)
 

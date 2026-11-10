@@ -19,8 +19,8 @@ FONT_SIZE = 96
 LINE_HEIGHT = 104
 DARKGRAY = (55, 55, 55, 255)
 
-# EXO-ELECTRONICS branding
-BRAND_TEXT = "EXO-ELECTRONICS"
+# ExoPilot branding
+BRAND_TEXT = "ExoPilot"
 BRAND_FONT_SIZE = 72
 BRAND_SPACING = 12  # letter spacing
 
@@ -57,7 +57,7 @@ class Spinner(Widget):
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
 
-    # Draw EXO-ELECTRONICS brand text in bold white
+    # Draw ExoPilot brand text in bold white
     bold_font = gui_app.font(cast(FontWeight, FontWeight.BOLD))
     text_size = measure_text_cached(bold_font, BRAND_TEXT, BRAND_FONT_SIZE)
     text_x = center.x - text_size.x / 2.0
