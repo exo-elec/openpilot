@@ -1,6 +1,6 @@
 <div align="center" style="text-align: center;">
 
-<h1>NagasPilot</h1>
+<h1>ExoPilot</h1>
 
 <p>
   <b>A fork of openpilot v0.10.0 with smarter cruise control, steering and lane changes.</b>
@@ -27,21 +27,21 @@
 
 ------
 
-Using NagasPilot in a car
+Using ExoPilot in a car
 ------
 
-To use **NagasPilot** in a car, you need four things:
+To use **ExoPilot** in a car, you need four things:
 
 1. **Device:** a **comma 3 / 3X**.
 2. **Software:** this branch (`dev/NGP10`). See *How to install* below.
 3. **Car:** a supported car. See [docs/CARS.md](docs/CARS.md).
 4. **Harness:** the harness that matches your car's make and model, to connect the device to the car.
 
-NagasPilot has not been tested on a real vehicle yet. Read *Safety and legal* before you drive.
+ExoPilot has not been tested on a real vehicle yet. Read *Safety and legal* before you drive.
 
 ------
 
-**NagasPilot** is based on **openpilot v0.10.0** (the full release, not v0.10.1 or later) and runs on the **comma 3 / 3X**. It is in development and has not yet been tested on a real vehicle.
+**ExoPilot** is based on **openpilot v0.10.0** (the full release, not v0.10.1 or later) and runs on the **comma 3 / 3X**. It is in development and has not yet been tested on a real vehicle.
 
 Feature comparison: openpilot → NGP10 → EOP10 → 01M → 02M
 ------
@@ -181,7 +181,7 @@ Implementation references: [portable monitoring](exopilot/docs/STEERING_ACTIVITY
 | `dev/EOP10` | `git clone -b dev/EOP10` | The shared ExoPilot base. Every ExoPilot device gets these features. | ExoPilot&nbsp;Developers |
 | `dev/01M` | `git clone -b dev/01M` | Shared EOP features with a 1024×600 full-screen PyQt5 display. | ExoPilot&nbsp;01M&nbsp;owners |
 | `dev/02M` | `git clone -b dev/02M` | Shared EOP features with a 1600×600 PyQt5 display and floating side panels. | ExoPilot&nbsp;02M&nbsp;owners |
-| `dev/NGP10`&nbsp;(this&nbsp;branch) | `git clone -b dev/NGP10` | NagasPilot: the smarter cruise, steering and lane-change features for the comma 3 / 3X. | comma&nbsp;3&nbsp;/&nbsp;3X&nbsp;owners |
+| `dev/NGP10`&nbsp;(this&nbsp;branch) | `git clone -b dev/NGP10` | ExoPilot: the smarter cruise, steering and lane-change features for the comma 3 / 3X. | comma&nbsp;3&nbsp;/&nbsp;3X&nbsp;owners |
 
 Every branch is in development and has not been tested on a real vehicle. **Do not** treat any of them as a release.
 
@@ -218,7 +218,7 @@ Star History
 ⚖️ Safety and legal
 ------
 
-- **NagasPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
+- **ExoPilot** is a modified version of **openpilot v0.10.0** by comma.ai, used under the MIT license (see [LICENSE](LICENSE)). It is not made, endorsed or supported by comma.ai.
 - Camera-based driver monitoring is removed from this software; SAM does not use a driver camera. Driver activity monitoring only warns and slows the car when you stop touching the wheel, brake or gas; it never switches off by itself. Keep watching the road.
 - Baseline safety concepts are inherited, but monitoring and optional control policies are modified. See [docs/SAFETY.md](docs/SAFETY.md); this fork has no vehicle safety validation.
 - New features have **not** been validated on a real vehicle. Always stay attentive and ready to take over.

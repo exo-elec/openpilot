@@ -56,7 +56,7 @@ def rate_limited_request(url: str, data: bytes, timeout: int = REQUEST_TIMEOUT) 
         data=data,
         headers={
             'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'NagasPilot-mapd/1.0'
+            'User-Agent': 'ExoPilot-mapd/1.0'
         }
     )
 

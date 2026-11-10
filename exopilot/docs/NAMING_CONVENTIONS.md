@@ -7,7 +7,7 @@ stable when a release advances from 10 to a later version.
 | Line | Branch/release label | Implementation prefix | Example |
 | --- | --- | --- | --- |
 | dragonpilot / EDP | `dev/EDP10` | `dp_` | `dp_lat_alka` |
-| NagasPilot | `dev/NGP10` | `ngp_` | `ngp_speed_policy.py` |
+| ExoPilot (comma 3) | `dev/NGP10` | `ngp_` | `ngp_speed_policy.py` |
 | EnhancedOpenPilot | `dev/EOP10` | `eop_` | `eop_settings_backup.py` |
 
 Python classes use the corresponding stable uppercase product prefix where a

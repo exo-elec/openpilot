@@ -1,4 +1,4 @@
-"""Canonical NagasPilot operating-speed ranges."""
+"""Canonical ExoPilot operating-speed ranges."""
 
 from enum import IntEnum
 

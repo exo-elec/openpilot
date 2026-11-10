@@ -71,7 +71,7 @@ struct CustomReserved19 @0xa4f1eb3323f5f582 {
 }
 
 # Mono Detection structs (same ids and ordinals as EOP10).
-# NagasPilot: monod runs a YOLO detector on the road camera on the GPU (exopilot/runtime/monod.py).
+# ExoPilot: monod runs a YOLO detector on the road camera on the GPU (exopilot/runtime/monod.py).
 
 struct MonoDetection @0xf8a9b0c1d2e3f4a5 {
   # Single detection from one camera
@@ -126,7 +126,7 @@ struct MonoDetections @0xa9b0c1d2e3f4a5b6 {
   modelExecutionTime @4 :Float32;   # seconds, detector forward pass only
 }
 
-# pathd add-on layer (NagasPilot): bounded lateral offset and speed factor chosen around the policy path.
+# pathd add-on layer (ExoPilot): bounded lateral offset and speed factor chosen around the policy path.
 # Publish-only until the replay proof; EOP10 maps these fields onto its own enhancedTrajectory.
 struct PathAdjust @0x86ee74962cb31a1d {
   frameId @0 :UInt32;

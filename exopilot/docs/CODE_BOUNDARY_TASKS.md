@@ -13,7 +13,7 @@ Related: [`BOUNDARIES.md`](BOUNDARIES.md) (layer rules), [`NAMING_CONVENTIONS.md
 
 | Stage | Branch | Prefix | Hardware |
 | --- | --- | --- | --- |
-| NagasPilot | `dev/NGP10` | `ngp_` / `NGP` | comma 3 |
+| ExoPilot (comma 3) | `dev/NGP10` | `ngp_` / `NGP` | comma 3 |
 | ExoPilot foundation (RK3588, old C++ UI) | `dev/EOP10` | `eop_` / `EOP` | RK3588 |
 | ExoPilot 01M | `dev/01M` | `eop_` / `EOP` | RK3588 |
 | ExoPilot 02M | `dev/02M` | `eop_` / `EOP` | RK3576 |

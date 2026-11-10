@@ -2737,7 +2737,7 @@ struct Event {
     audioFeedback @149 :AudioFeedback;
     removedService150DEPRECATED @150 :Void;
     monoDetections @151 :Custom.MonoDetections;   # EOP10 has this at @218
-    pathAdjust @152 :Custom.PathAdjust;           # NagasPilot pathd add-on (publish-only)
+    pathAdjust @152 :Custom.PathAdjust;           # ExoPilot pathd add-on (publish-only)
     stereoObjects @153 :StereoObjects;            # fused camera objects (EOP10: gridd @155)
     mapData @154 :MapData;                        # OSM speed limits and curvature (EOP10: mapd @215)
 

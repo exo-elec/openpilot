@@ -1,1 +1,1 @@
-"""NagasPilot application contracts for the NGP10 proving line."""
+"""ExoPilot application contracts for the NGP10 proving line."""

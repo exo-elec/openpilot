@@ -1,4 +1,4 @@
-# NagasPilot NGP10
+# ExoPilot NGP10
 
 NGP10 is the comma 3-focused, minimized successor path derived from EOP10 and
 kept feature-compatible with EDP10 where the hardware can support it.

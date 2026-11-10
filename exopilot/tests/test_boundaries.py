@@ -1,4 +1,4 @@
-"""Code-boundary rules for the NagasPilot/ExoPilot layer (see docs/BOUNDARIES.md)."""
+"""Code-boundary rules for the ExoPilot layer (see docs/BOUNDARIES.md)."""
 import ast
 import subprocess
 from pathlib import Path
@@ -31,7 +31,7 @@ def test_pure_modules_do_not_import_runtime():
   assert not bad, "\n".join(bad)
 
 
-def test_no_ngp_or_eop_modules_outside_nagaspilot():
+def test_no_ngp_or_eop_modules_outside_exopilot():
   files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n")
   stray = [f for f in files if f and f.split("/")[0] not in SKIP_TOP and f not in ALLOWED_OUTSIDE
            and (Path(f).name.startswith(("ngp_", "eop_")) or "/ngp_" in f or "/eop_" in f)

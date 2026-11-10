@@ -76,6 +76,6 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
   between 2 m/s and a driver-chosen ceiling; `ngp_lat_turn_desire_mph` = 0 (off) by default.
 - EOP10 keeps its existing always-on behaviour untouched. It is *not* refactored onto the NGP10 core: the two differ on purpose
   (EOP does not require lateral active), and changing an always-on path without a replay is the wrong trade. The README therefore marks
-  the feature "basic, optional" on NagasPilot and "always on" on ExoPilot, not "extended".
+  the feature "basic, optional" on NGP10 and "always on" on EOP10, not "extended".
 - Open question for a replay: should EOP10 also require lateral active and no lane change, as NGP10 does? Compare `desirePrediction[turn]`
   and path curvature with and without the pulse on drives with turns.
