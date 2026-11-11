@@ -946,7 +946,7 @@ El Modo Firehose te permite maximizar las subidas de datos de entrenamiento para
         <translation>Relajado</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Personalidad de conducción</translation>
     </message>
     <message>

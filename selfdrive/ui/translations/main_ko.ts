@@ -961,7 +961,7 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>편안한</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>주행 모드</translation>
     </message>
     <message>

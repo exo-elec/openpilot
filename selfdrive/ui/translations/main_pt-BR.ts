@@ -966,7 +966,7 @@ O Modo Firehose permite maximizar o envio de dados de treinamento para melhorar 
         <translation>Calmo</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Temperamento de Direção</translation>
     </message>
     <message>
