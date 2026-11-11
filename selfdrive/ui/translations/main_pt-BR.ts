@@ -924,7 +924,7 @@ A calibração do atraso da direção foi concluída.</translation>
         <translation>Calmo</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Temperamento de Direção</translation>
     </message>
     <message>

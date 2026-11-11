@@ -895,7 +895,7 @@ Steering lag calibration is complete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

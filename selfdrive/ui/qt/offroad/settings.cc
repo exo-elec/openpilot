@@ -46,7 +46,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       {tr("Highway (Rule)"), tr("Urban (AI)"), tr("Dynamic")});
   addItem(drive_mode_setting);
 
-  long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
+  long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driver Personality"),
       tr("How closely ExoPilot follows lead cars. Standard recommended. "
          "Also changeable while driving: tap the round button at the top right."),
       "../assets/icons/speed_limit.png",
