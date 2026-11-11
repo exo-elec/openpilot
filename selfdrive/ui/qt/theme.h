@@ -71,6 +71,31 @@ inline QFont inter(int pixel_size, QFont::Weight weight = QFont::Normal) {
   return f;
 }
 
+// ---- settings controls -----------------------------------------------------
+// The five control styles every settings page uses (step 4.4): one primary,
+// one secondary and one danger action button, one segmented choice and one
+// value stepper. Sizes follow the text (padding, no fixed width) so a longer
+// label or translation is never clipped.
+constexpr int CONTROL_H = 52;
+constexpr int CONTROL_RADIUS = 10;
+constexpr int CONTROL_FONT_PX = 24;
+
+inline const QColor CONTROL_BG{0x39, 0x39, 0x39};          // on the #292929 panel
+inline const QColor CONTROL_BG_PRESSED{0x4a, 0x4a, 0x4a};
+inline const QColor CONTROL_TEXT{0xe4, 0xe4, 0xe4};
+
+enum class Control {
+  PRIMARY,    // the one action a page is for (Connect, Install)
+  SECONDARY,  // every other action (Review, Change, Reboot, Forget, Advanced)
+  DANGER,     // cannot be undone or turns the device off (Power Off, Uninstall)
+  SEGMENTED,  // one of a few exclusive choices (checkable QPushButtons)
+  VALUE,      // QSpinBox / QDoubleSpinBox
+};
+
+// QSS for one control. PRIMARY..SEGMENTED style QPushButton, VALUE styles
+// QAbstractSpinBox; set it on the control itself.
+QString controlStyle(Control kind);
+
 // ---- QSS layers ------------------------------------------------------------
 // base, then the theme, then the per-view sheets, read from the :/qss/ resource.
 // Applied per screen as it is ported (Phase 4), not app-wide: the theme's

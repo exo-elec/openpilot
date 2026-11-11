@@ -25,15 +25,7 @@ public:
     spin->setSuffix(suffix);
     spin->setSpecialValueText(placeholder);
     spin->setAlignment(Qt::AlignRight);
-    spin->setStyleSheet(R"(
-      QSpinBox {
-        background-color: #393939;
-        border-radius: 10px;
-        padding: 5px 15px;
-        font-size: 32px;
-        color: #E4E4E4;
-      }
-    )");
+    spin->setStyleSheet(theme::controlStyle(theme::Control::VALUE));
     hlayout->addWidget(spin);
 
     default_val = default_value;
@@ -77,15 +69,7 @@ public:
     spin->setDecimals(1);
     spin->setSpecialValueText(placeholder);
     spin->setAlignment(Qt::AlignRight);
-    spin->setStyleSheet(R"(
-      QDoubleSpinBox {
-        background-color: #393939;
-        border-radius: 10px;
-        padding: 5px 15px;
-        font-size: 32px;
-        color: #E4E4E4;
-      }
-    )");
+    spin->setStyleSheet(theme::controlStyle(theme::Control::VALUE));
     hlayout->addWidget(spin);
 
     default_val = default_value;

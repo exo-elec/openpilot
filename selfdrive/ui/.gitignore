@@ -3,3 +3,7 @@ translations/*.qm
 
 # Installer binaries
 installer/installers/*
+
+# Build output: Qt moc sources and the ui binary (scons)
+moc_*.cc
+/ui

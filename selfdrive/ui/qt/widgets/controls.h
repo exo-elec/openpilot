@@ -11,6 +11,7 @@
 #include <QPushButton>
 
 #include "common/params.h"
+#include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 #include "selfdrive/ui/qt/widgets/toggle.h"
 
@@ -188,29 +189,15 @@ class MultiButtonControl : public AbstractControl {
 public:
   MultiButtonControl(const QString &title, const QString &desc, const QString &icon,
                      const std::vector<QString> &button_texts, const int minimum_button_width = 100) : AbstractControl(title, desc, icon) {
-    const QString style = R"(
-      QPushButton {
-        border-radius: 10px;
-        font-size: 18px;
-        font-weight: 500;
-        height: 44px;
-        padding: 0 10px;
-        color: #E4E4E4;
-        background-color: #393939;
-      }
-      QPushButton:pressed {
-        background-color: #4a4a4a;
-      }
-      QPushButton:checked:enabled {
-        background-color: #33Ab4C;
-      }
-      QPushButton:checked:disabled {
-        background-color: #9933Ab4C;
-      }
-      QPushButton:disabled {
-        color: #33E4E4E4;
-      }
-    )";
+    const QString style = theme::controlStyle(theme::Control::SEGMENTED);
+
+    // The choices get their own line under the title: title + three labels
+    // do not fit one 1024x600 settings row without clipping. Indented to
+    // line up with the title when the row has an icon.
+    QHBoxLayout *choices = new QHBoxLayout;
+    choices->setContentsMargins(icon.isEmpty() ? 0 : 80 + hlayout->spacing(), 8, 0, 0);
+    choices->setSpacing(12);
+    qobject_cast<QVBoxLayout *>(layout())->insertLayout(1, choices);
 
     button_group = new QButtonGroup(this);
     button_group->setExclusive(true);
@@ -220,7 +207,7 @@ public:
       button->setChecked(i == 0);
       button->setStyleSheet(style);
       button->setMinimumWidth(minimum_button_width);
-      hlayout->addWidget(button);
+      choices->addWidget(button, 1);
       button_group->addButton(button, i);
     }
 
