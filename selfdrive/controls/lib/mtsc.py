@@ -73,11 +73,11 @@ class MTSC:
 
   def _update_params(self):
     """Update parameters periodically."""
-    self.enabled = self.params.get_bool("EOPMTSCEnabled")
-    self.mapd_enabled = self.params.get_bool("EOPMapdEnabled")
-    self.curve_learn_enabled = self.params.get_bool("EOPCurveSpeedLearnEnabled")
+    self.enabled = self.params.get_bool("MTSCEnabled")
+    self.mapd_enabled = self.params.get_bool("MapdEnabled")
+    self.curve_learn_enabled = self.params.get_bool("CurveSpeedLearnEnabled")
     try:
-      self.a_comfort = float(self.params.get("EOPTSCTargetLatAccel") or 1.8)
+      self.a_comfort = float(self.params.get("TSCTargetLatAccel") or 1.8)
     except (ValueError, TypeError):
       self.a_comfort = 1.8
 

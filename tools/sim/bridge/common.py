@@ -54,7 +54,7 @@ class SimulatorBridge(ABC):
     self.high_quality = high_quality
     # ExoPilot 01M (RK3588) has no tele camera — that's an ExoPilot 02M feature
     self.tele_camera = False
-    self.stereo_camera = stereo_camera if stereo_camera is not None else self.params.get_bool("EOPStereoEnabled")
+    self.stereo_camera = stereo_camera if stereo_camera is not None else self.params.get_bool("StereoEnabled")
 
     self._exit_event: threading.Event | None = None
     self._threads = []

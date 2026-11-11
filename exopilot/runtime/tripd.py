@@ -163,7 +163,7 @@ class TripD:
 
     def __init__(self, keys=None):
         """`keys(suffix) -> param name` maps a stat to its param: `ngp_trip_total_distance` by default, EOP10's shim passes
-        `EOPTrip<Suffix>` so its UI keeps reading the same keys."""
+        `Trip<Suffix>` so its UI keeps reading the same keys."""
         self._key_fn = keys or _ngp_key
         self.params = Params()
 

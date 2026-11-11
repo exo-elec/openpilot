@@ -29,7 +29,7 @@ class VehicleEvents:
     self.silent_steer_warning = True
 
     # EOP: ALC toggle (same param used by desire_helper)
-    self.lca_enabled = Params().get_bool("EOPLCAControllerEnabled")
+    self.lca_enabled = Params().get_bool("LCAControllerEnabled")
 
   def update(self, CS: car.CarState, CS_prev: car.CarState, CC: car.CarControl):
     """Update and return vehicle events."""

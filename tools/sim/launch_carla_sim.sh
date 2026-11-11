@@ -89,10 +89,10 @@ import os
 os.environ['OPENPILOT_STUB_PARAMS_PYX'] = '1'
 from openpilot.common.params import Params
 p = Params()
-p.put('EOPSimPlatform', '$PLATFORM')
-p.put('EOPSimWeather', '$WEATHER')
-p.put_bool('EOPSideCamerasEnabled', True)
-p.put_bool('EOPTLSCEnabled', True)
+p.put('SimPlatform', '$PLATFORM')
+p.put('SimWeather', '$WEATHER')
+p.put_bool('SideCamerasEnabled', True)
+p.put_bool('TLSCEnabled', True)
 "
 
   if [ -n "$SCENARIO" ]; then
@@ -102,7 +102,7 @@ import os
 os.environ['OPENPILOT_STUB_PARAMS_PYX'] = '1'
 from openpilot.common.params import Params
 p = Params()
-p.put('EOPSimScenario', '$SCENARIO')
+p.put('SimScenario', '$SCENARIO')
 " 2>/dev/null || true
   else
     log_info "No scenario selected (free drive)"

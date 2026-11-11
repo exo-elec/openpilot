@@ -52,7 +52,7 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
   - sport: profile sport, aggressive, adaptive gap off (adaptive gap stays an explicit opt-in)
 - `exopilot/runtime/drive_mode.py`: applies a preset by writing the three params, only when the mode param changes.
 - One hook in `plannerd` (NGP10) that calls the applier in its loop. Param `ngp_lon_drive_mode` (`custom` default). ExoPilot
-  uses its own keys (`EOPAccelerationProfile`, `EOPAdaptiveGapEnabled`) through the same pure presets.
+  uses its own keys (`AccelerationProfile`, `AdaptiveGapEnabled`) through the same pure presets.
 
 ## 2. Lane turn desire
 

@@ -130,7 +130,7 @@ For full workstation setup instructions, see [TESTING.md](TESTING.md).
 
 ### Platform-Specific Camera Geometry
 
-The simulation respects `EOPSimPlatform` (set via UI or param):
+The simulation respects `SimPlatform` (set via UI or param):
 
 **RK3588 (ExoPilot 01M)** — selectable in EOP Settings panel:
 - road @ −40 mm, wide_road @ +40 mm
@@ -153,20 +153,20 @@ The CARLA bridge supports targeted scenario spawning for ADAS validation
 
 ### Traffic Light Testing (TLSC)
 
-When `EOPTLSCEnabled` is true, the bridge queries CARLA traffic lights near
+When `TLSCEnabled` is true, the bridge queries CARLA traffic lights near
 the ego vehicle and publishes their states as `stereoObjects`. This lets the
 Traffic Light Speed Controller react to red/yellow lights without a real
 traffic-light classifier.
 
 ```bash
 # Enable TLSC in openpilot, then run bridge
-params put EOPTLSCEnabled 1
+params put TLSCEnabled 1
 python tools/sim/run_bridge.py --simulator carla --dual_camera
 ```
 
 ### Scenario Spawner
 
-Set `EOPSimScenario` to spawn specific test scenarios:
+Set `SimScenario` to spawn specific test scenarios:
 
 | Scenario | Description | Validates |
 |----------|-------------|-----------|
@@ -177,7 +177,7 @@ Set `EOPSimScenario` to spawn specific test scenarios:
 
 ```bash
 # Example: test emergency braking
-params put EOPSimScenario emergency_brake
+params put SimScenario emergency_brake
 python tools/sim/run_bridge.py --simulator carla --dual_camera
 ```
 
@@ -190,8 +190,8 @@ feature using cameras only.
 
 ```bash
 # RK3576 platform with side cameras
-params put EOPSimPlatform rk3576
-params put EOPSideCamerasEnabled 1
+params put SimPlatform rk3576
+params put SideCamerasEnabled 1
 python tools/sim/run_bridge.py --simulator carla --dual_camera --side_camera
 ```
 
@@ -200,7 +200,7 @@ python tools/sim/run_bridge.py --simulator carla --dual_camera --side_camera
 Dynamic weather presets let you test perception and control under varying conditions:
 
 ```bash
-params put EOPSimWeather rain
+params put SimWeather rain
 # Options: clear_day, clear_night, rain, heavy_rain, fog, overcast
 ```
 

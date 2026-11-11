@@ -35,11 +35,11 @@ DLAT/DLON's NGP implementation, NGP SOC, driving modes, blinker pause and
 green-light policy keep their established NGP ownership. Neutral shared
 plumbing (settings caching and geometry) needs no product prefix.
 
-Canonical EOP-origin map switches use `EOP*` keys. `OriginParams` falls back
+Canonical EOP-origin map switches use unprefixed keys (`MTSCEnabled`, ...; the `EOP` prefix on param keys was dropped 2026-11-12, see below). `OriginParams` falls back
 to old saved `ngp_lon_*` values only if the canonical key is absent; an explicit
 canonical off overrides a legacy on. Persisted keys and cereal field names
 already deployed are compatibility APIs: do not rename ordinals or discard
-saved settings merely to change spelling. Existing EOPDriveMode and related
+saved settings merely to change spelling. Existing DriveMode and related
 parameter mappings remain supported adapters for earlier device settings.
 
 Hardware availability determines adapter selection, not naming ownership.
@@ -62,3 +62,14 @@ internal `dp_lat_alka`, `STATUS_ALKA`, and cereal compatibility fields remain
 stable for persisted settings and wire compatibility. Existing `LKAS`
 identifiers remain unchanged only when they describe an OEM interface or an
 upstream generic API.
+
+## Param keys: no prefix (2026-11-12)
+
+Owner decision: ExoPilot's own param keys carry no product prefix
+(`TJAEnabled`, `DlonMode`, `MapRegion`), not `EOP<Feature><Param>`. The set of
+keys ExoPilot adds lives in `exopilot/param_names.py` (`FORK_KEYS`); code that
+used to test `key.startswith("EOP")` uses that set. `exopilot/param_migration.py`
+moves saved `EOP<name>` files to `<name>` once at manager start, keeping any
+value already saved under the new name. Shared NGP keys (`ngp_*`) and
+dragonpilot keys (`dp_*`) are unchanged. Module and class names (`eop_utils`,
+`EopPanel`) are a separate rename step.

@@ -19,7 +19,7 @@
 
 ## Overview
 
-LCA assists lane changes when the driver activates a turn signal. **Human steering nudge is the default**; automatic (nudgeless) lane change is opt-in via `EOPAutoLaneChange`.
+LCA assists lane changes when the driver activates a turn signal. **Human steering nudge is the default**; automatic (nudgeless) lane change is opt-in via `AutoLaneChange`.
 
 When the driver activates a turn signal, LCA evaluates whether the adjacent lane is clear using:
 - Vehicle-native BSM CAN signals (if available)
@@ -46,17 +46,17 @@ Turn signal ──► desire_helper.py ──► Gap evaluation ──► BSM/Ha
 
 All must be true simultaneously:
 
-1. `EOPLCAControllerEnabled == 1`
-2. Vehicle speed > minimum lane change speed (configurable via `EOPLatLCASpeed`)
+1. `LCAControllerEnabled == 1`
+2. Vehicle speed > minimum lane change speed (configurable via `LatLCASpeed`)
 3. Turn signal active (left or right)
 4. **Human nudge** (`steeringPressed` + torque in signal direction) — default
-5. **Gap evaluation passed** (if `EOPLCAGapEvalEnabled`)
+5. **Gap evaluation passed** (if `LCAGapEvalEnabled`)
 6. **BSM/Hailo BSD clear** (fused vehicle CAN + camera-based detection)
-7. **Lane width sufficient** (if `EOPLCALaneWidthEnabled`)
+7. **Lane width sufficient** (if `LCALaneWidthEnabled`)
 
 ### Nudgeless Mode (Opt-In)
 
-When `EOPAutoLaneChange == 1`, the driver does **not** need to apply steering torque. After `EOPLaneChangeDelay` seconds, the lane change starts automatically if all other safety checks pass.
+When `AutoLaneChange == 1`, the driver does **not** need to apply steering torque. After `LaneChangeDelay` seconds, the lane change starts automatically if all other safety checks pass.
 
 > **Safety:** Nudgeless is disabled by default. Even when enabled, the driver can override at any time with steering input.
 
@@ -73,7 +73,7 @@ LCA fuses **two sources** of blind-spot data:
 | `LEFT_BLINDSPOT` | Vehicle CAN | Vehicle detected in left blindspot |
 | `RIGHT_BLINDSPOT` | Vehicle CAN | Vehicle detected in right blindspot |
 
-Controlled by `EOPLCABSMEnabled`.
+Controlled by `LCABSMEnabled`.
 
 ### 2. Camera-Based BSD (YOLOv8 on RKNN)
 
@@ -88,7 +88,7 @@ not depend on anything that can be unfitted.
 | RKNN yolo_640 model | BSD Alert | Chime |
 |---------------------|-----------|-------|
 | ❌ Missing | Visual overlay only | ❌ No AI-detected blind-spot events to chime on |
-| ✅ Loaded | Visual + fused blocking | ✅ If `EOPBSDChimeEnabled` |
+| ✅ Loaded | Visual + fused blocking | ✅ If `BSDChimeEnabled` |
 
 ---
 
@@ -115,7 +115,7 @@ This matches the proven FrogPilot pattern for mid-maneuver BSD intervention.
 
 ## Adjacent Lead Handoff
 
-When `EOPLCAdjacentLeadHandoff` is enabled and the lane change enters `laneChangeStarting`, longitudinal control switches to track the **lead vehicle in the target lane** (from `modelV2.leadsV3`) instead of the current-lane lead.
+When `LCAdjacentLeadHandoff` is enabled and the lane change enters `laneChangeStarting`, longitudinal control switches to track the **lead vehicle in the target lane** (from `modelV2.leadsV3`) instead of the current-lane lead.
 
 This creates human-like gap behavior: as you merge, you naturally start following the car in the lane you're entering — rather than continuing to track the car you just left behind.
 
@@ -142,7 +142,7 @@ Both checks are pure functions in `exopilot/controls/ngp_lane_change.py`, shared
 (there from modelV2 only, opt-in). `desire_helper.py` keeps the state machine and calls them
 while waiting in `preLaneChange`. Missing or malformed data never blocks.
 
-**Gap** (`EOPLCAGapEvalEnabled`, default 1) looks at leads in the target lane, from `radarState`
+**Gap** (`LCAGapEvalEnabled`, default 1) looks at leads in the target lane, from `radarState`
 (`yRel`, left positive) and `modelV2.leadsV3` (flipped once from the right-positive model frame):
 
 | Check | Threshold |
@@ -152,9 +152,9 @@ while waiting in `preLaneChange`. Missing or malformed data never blocks.
 | Time to collision | closing, `dRel / |vRel|` < 2 s blocks |
 | Level or pulling away | closer than 10 m blocks (confidence 0.3) |
 
-**Lane width** (`EOPLCALaneWidthEnabled`, default 1): median of target-lane width at 5, 10, 20, 30
+**Lane width** (`LCALaneWidthEnabled`, default 1): median of target-lane width at 5, 10, 20, 30
 and 40 m. The road edge caps the outer boundary, so a close edge (shoulder) collapses the width.
-Blocks below `EOPMinimumLaneWidth` (3.0 m).
+Blocks below `MinimumLaneWidth` (3.0 m).
 
 On NGP10 the same checks sit behind `ngp_lat_lca_gap_eval` and `ngp_lat_lca_lane_width`
 (default off) and use `modelV2` only: `radarState.leadOne/leadTwo` are radard's copies of
@@ -166,17 +166,17 @@ On NGP10 the same checks sit behind `ngp_lat_lca_gap_eval` and `ngp_lat_lca_lane
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `EOPLCAControllerEnabled` | 1 | Enable LCA |
-| `EOPLCAGapEvalEnabled` | 1 | Active gap evaluation |
-| `EOPLCALaneWidthEnabled` | 1 | Target-lane width / shoulder check |
-| `EOPLCAdjacentLeadHandoff` | 0 | Track target-lane lead during lane change |
-| `EOPLCABSMEnabled` | 0 | Use vehicle BSM signals |
-| `EOPLatLCASpeed` | 0 | Minimum speed for LCA (km/h, 0 = any speed) |
-| `EOPAutoLaneChange` | 0 | **Nudgeless** auto lane change (opt-in) |
-| `EOPOneLaneChange` | 0 | Single lane change limit per signal |
-| `EOPLaneChangeDelay` | 1.0 | Delay before nudgeless lane change (s) |
-| `EOPMinimumLaneWidth` | 3.0 | Minimum lane width (m) |
-| `EOPBSDChimeEnabled` | 0 | BSD chime (requires side cameras) |
+| `LCAControllerEnabled` | 1 | Enable LCA |
+| `LCAGapEvalEnabled` | 1 | Active gap evaluation |
+| `LCALaneWidthEnabled` | 1 | Target-lane width / shoulder check |
+| `LCAdjacentLeadHandoff` | 0 | Track target-lane lead during lane change |
+| `LCABSMEnabled` | 0 | Use vehicle BSM signals |
+| `LatLCASpeed` | 0 | Minimum speed for LCA (km/h, 0 = any speed) |
+| `AutoLaneChange` | 0 | **Nudgeless** auto lane change (opt-in) |
+| `OneLaneChange` | 0 | Single lane change limit per signal |
+| `LaneChangeDelay` | 1.0 | Delay before nudgeless lane change (s) |
+| `MinimumLaneWidth` | 3.0 | Minimum lane width (m) |
+| `BSDChimeEnabled` | 0 | BSD chime (requires side cameras) |
 
 ---
 
@@ -184,13 +184,13 @@ On NGP10 the same checks sit behind `ngp_lat_lca_gap_eval` and `ngp_lat_lca_lane
 
 | Feature | Implementation |
 |---------|----------------|
-| **Default mode** | Human nudge required (`EOPAutoLaneChange = 0`) |
+| **Default mode** | Human nudge required (`AutoLaneChange = 0`) |
 | Driver override | Steering torque > threshold cancels lane change |
 | Turn signal cancel | Signal off → cancel pending lane change |
 | Speed check | Below minimum speed → block lane change |
 | BSM veto (pre-start) | BSM/Hailo active → block lane change start |
 | BSM veto (mid-maneuver) | BSM/Hailo active → abort and return to original lane |
-| One-shot | `EOPOneLaneChange` prevents multiple consecutive changes |
+| One-shot | `OneLaneChange` prevents multiple consecutive changes |
 
 ---
 

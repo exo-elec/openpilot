@@ -13,6 +13,8 @@ The test catches it if the format ever moves.
 
 from __future__ import annotations
 
+from exopilot.param_names import FORK_KEYS
+
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -36,7 +38,7 @@ class ParamKey:
 
   @property
   def is_eop(self) -> bool:
-    return self.name.startswith("EOP")
+    return self.name in FORK_KEYS  # ExoPilot-added keys (unprefixed since 2026-11-12)
 
 
 @lru_cache(maxsize=1)

@@ -21,7 +21,7 @@ class NSLC:
 
   def __init__(self):
     self._params = Params()
-    self._enabled = self._params.get_bool("EOPNSLCEnabled")
+    self._enabled = self._params.get_bool("NSLCEnabled")
     self._last_param_t = 0.0
 
     self._offset = SpeedLimitOffset(self._params)
@@ -38,7 +38,7 @@ class NSLC:
     now = time.monotonic()
     if now - self._last_param_t >= self.PARAM_REFRESH_S:
       self._last_param_t = now
-      self._enabled = self._params.get_bool("EOPNSLCEnabled")
+      self._enabled = self._params.get_bool("NSLCEnabled")
       self._offset.refresh(now)
       self._confirmation.refresh_params(self._params, now)
 

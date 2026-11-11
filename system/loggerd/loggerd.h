@@ -94,7 +94,7 @@ const EncoderInfo main_wide_road_encoder_info = {
 const EncoderInfo main_rear_encoder_info = {
   .publish_name = "rearEncodeData",
   .filename = "rcamera.hevc",
-  .record = Params().getBool("EOPRearCameraEnabled"),
+  .record = Params().getBool("RearCameraEnabled"),
   .get_settings = [](int in_width){return EncoderSettings::MainEncoderSettings(in_width);},
   INIT_ENCODE_FUNCTIONS(RearEncode),
 };

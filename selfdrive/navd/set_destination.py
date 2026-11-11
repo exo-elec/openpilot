@@ -43,8 +43,8 @@ def set_destination(lat: float, lon: float, place_name: str = ""):
         "place_name": place_name
     }
 
-    params.put("EOPNavDestination", json.dumps(dest))
-    params.remove("EOPNavDestinationWaypoints")
+    params.put("NavDestination", json.dumps(dest))
+    params.remove("NavDestinationWaypoints")
 
     print(f"✅ Destination set: {place_name or 'Custom'}")
     print(f"   Lat: {lat}, Lon: {lon}")
@@ -53,8 +53,8 @@ def set_destination(lat: float, lon: float, place_name: str = ""):
 def clear_destination():
     """Clear current destination."""
     params = Params()
-    params.remove("EOPNavDestination")
-    params.remove("EOPNavDestinationWaypoints")
+    params.remove("NavDestination")
+    params.remove("NavDestinationWaypoints")
     print("✅ Destination cleared")
 
 

@@ -50,7 +50,7 @@ def test_ngp_origin_switches_are_not_remapped():
 
 def test_saved_offset_bytes_are_decoded_before_map_configuration():
   adapter = OriginParams(Params({'ngp_lon_slc_offsets': b'5,5,5,5,5,5,5'}))
-  assert adapter.get_text('EOPSharedSLCOffsets') == '5,5,5,5,5,5,5'
+  assert adapter.get_text('SharedSLCOffsets') == '5,5,5,5,5,5,5'
   from exopilot.runtime.map_speed import MapSpeed
   controller = MapSpeed(adapter.get_bool, adapter.get_text)
   controller._refresh_config(100.0)

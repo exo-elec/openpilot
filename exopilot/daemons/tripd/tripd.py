@@ -1,4 +1,4 @@
-"""tripd (relocated daemon): the implementation is shared with NGP10 in exopilot/runtime/tripd.py; this keeps EOP's EOPTrip* param names for the UI."""
+"""tripd (relocated daemon): the implementation is shared with NGP10 in exopilot/runtime/tripd.py; this keeps the Trip* param names the UI reads."""
 from exopilot.runtime import tripd as _shared
 from exopilot.runtime.tripd import *  # noqa: F401,F403
 from exopilot.runtime.tripd import DailyStats, DriveDetector, DriveState, TripStats  # noqa: F401
@@ -6,7 +6,7 @@ from exopilot.runtime.tripd import DailyStats, DriveDetector, DriveState, TripSt
 
 class TripD(_shared.TripD):
   def __init__(self):
-    super().__init__(keys=lambda suffix: "EOPTrip" + suffix)
+    super().__init__(keys=lambda suffix: "Trip" + suffix)
 
 
 def main():

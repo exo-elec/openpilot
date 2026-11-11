@@ -150,7 +150,7 @@ class SpkD:
     def update(self):
         """Main update loop."""
         self.sm.update(0)
-        cloud_enabled = self.params.get_bool('EOPCloudVoiceEnabled') and self.params.get_bool('EOPVoiceEnabled')
+        cloud_enabled = self.params.get_bool('CloudVoiceEnabled') and self.params.get_bool('VoiceEnabled')
         if not cloud_enabled:
             self.speech.clear()
         for evt in messaging.drain_sock(self.cloud_sock):

@@ -171,7 +171,7 @@ for p in ACTUATOR_FIELDS:     # line 315 — shadows the dict!
   attr = getattr(actuators, p)
 ```
 
-After the loop, `p` is the last field name string (e.g. `"accel"`), not the params dict. Any code after the loop that calls `p.get('EOPAEBEnabled')` would crash with `AttributeError: 'str' object has no attribute 'get'`. Currently the loop is near the end of `state_control()` so there's no call after it in this method, but this is fragile and will break if code is reordered.
+After the loop, `p` is the last field name string (e.g. `"accel"`), not the params dict. Any code after the loop that calls `p.get('AEBEnabled')` would crash with `AttributeError: 'str' object has no attribute 'get'`. Currently the loop is near the end of `state_control()` so there's no call after it in this method, but this is fragile and will break if code is reordered.
 
 **Fix required:** Rename the loop variable.
 ```python

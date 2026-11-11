@@ -84,7 +84,7 @@ This is then clamped to `[0, v_ego]` and applied as a floor on `v_cruise`.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPTLSCEnabled` | Bool | `0` | Master toggle |
+| `TLSCEnabled` | Bool | `0` | Master toggle |
 
 ---
 
@@ -103,7 +103,7 @@ This is then clamped to `[0, v_ego]` and applied as a floor on `v_cruise`.
 
 All must be true simultaneously:
 
-1. `EOPTLSCEnabled == 1`
+1. `TLSCEnabled == 1`
 2. No lead vehicle: `radarState.leadOne.status == False`
 3. Traffic light detected: `stereoObjects` contains at least one object with
    `obstacleType == trafficLight` AND `trafficLightState ∈ {red, yellow}`
@@ -150,9 +150,9 @@ For CARLA-based testing without a real traffic-light classifier, use the `Traffi
 
 ```bash
 # Enable TLSC and traffic light publisher
-params put_bool EOPTLSCEnabled 1
+params put_bool TLSCEnabled 1
 
-# Run bridge (publisher starts automatically when EOPTLSCEnabled is true)
+# Run bridge (publisher starts automatically when TLSCEnabled is true)
 ./run_bridge.py --simulator carla --dual_camera
 ```
 
@@ -160,7 +160,7 @@ The `TrafficLightPublisher` (`tools/sim/lib/traffic_light_publisher.py`) queries
 
 **Test scenarios:**
 - Town10HD has dense traffic light coverage for intersection testing
-- Set `EOPSimWeather` to `rain` or `fog` to test reduced-visibility behavior
+- Set `SimWeather` to `rain` or `fog` to test reduced-visibility behavior
 
 ---
 

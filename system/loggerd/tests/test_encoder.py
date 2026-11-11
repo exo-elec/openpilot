@@ -53,7 +53,7 @@ class TestEncoder:
   # TODO: this should run faster than real time
   @parameterized.expand([(True, ), (False, )])
   def test_log_rotation(self, record_rear):
-    Params().put_bool("EOPRearCameraEnabled", record_rear)
+    Params().put_bool("RearCameraEnabled", record_rear)
 
     managed_processes['loggerd'].start()
     managed_processes['encoderd'].start()

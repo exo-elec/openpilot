@@ -138,7 +138,7 @@ first.
   sessions at `858419d7d` (last reachable pre-rewrite topic commit) instead.
 - **BLE central msgq single-publisher check** (Node 8 coverage gap, closed)
   — verified `BLECentral.__init__` never constructs a `PubMaster`; it's only
-  built inside `start()`, itself gated behind `EOPBluetoothRadarEnabled`
+  built inside `start()`, itself gated behind `BluetoothRadarEnabled`
   (default off) at two levels. Grepped for other `radar2d` publishers: none.
   Clean — the exact bug class `CLAUDE.md` records as having crashed msgq
   once does not recur here.
@@ -167,11 +167,11 @@ first.
    `self._trigger_enabled['stop_prediction']` entirely. That toggle is only
    checked in one place in the whole file (`_evaluate_auto_mode`'s own E2E-
    mode-switch line). Concrete, verified claim: setting
-   `EOPDLONStopPredictionEnabled=0` / `ngp_lon_dlon_stop_prediction=0` does
+   `DLONStopPredictionEnabled=0` / `ngp_lon_dlon_stop_prediction=0` does
    **not** stop the car from force-stopping on the same underlying signal —
    confirmed identical on both EOP10 (live production branch) and NGP10.
    The actual `force_stop` feature gate is the separate
-   `EOPDLONForceStopsEnabled` master switch, which works correctly. Not
+   `DLONForceStopsEnabled` master switch, which works correctly. Not
    fixed here — the right resolution (gate `force_stop` behind the same
    toggle? give `traffic_control` its own toggle? rename to clarify scope?)
    is a deliberate call to make on the production branch, not something to

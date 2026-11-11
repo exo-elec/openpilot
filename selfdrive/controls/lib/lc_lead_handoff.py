@@ -12,7 +12,7 @@ class LaneChangeLeadHandoff(NGPLeadHandoff):
 
   def __init__(self):
     super().__init__(radar_to_camera=RADAR_TO_CAMERA)
-    self.enabled = bool(Params().get_bool("EOPLCAdjacentLeadHandoff"))
+    self.enabled = bool(Params().get_bool("LCAdjacentLeadHandoff"))
 
   @staticmethod
   def _pick_adjacent_lead(model_v2, direction: int, v_ego: float) -> _LeadProxy | None:

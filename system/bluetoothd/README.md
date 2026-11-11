@@ -138,15 +138,15 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPBluetoothEnabled` | bool | `true` | Master enable |
-| `EOPBluetoothRadarEnabled` | bool | `false` | BLE central for ESP32 corner radars (`ble_central.py`, sole `radar2d` publisher when on) |
+| `BluetoothEnabled` | bool | `true` | Master enable |
+| `BluetoothRadarEnabled` | bool | `false` | BLE central for ESP32 corner radars (`ble_central.py`, sole `radar2d` publisher when on) |
 | `BLECornerPairs` | str (JSON) | — | Learned BLE MAC → corner_id pair set (`ble_central.py`), written automatically |
 | `BLERadarPairingOpen` | bool | `false` | Corner-radar pairing window — while `1`, unknown units may be learned/connected; close after pairing (mirrors WiFi MAC-ACL ritual) |
 | `BLERadarRoster` | str | — | Extra corner-radar identity MACs (factory WiFi STA MAC from the unit label/boot log), JSON list or whitespace/comma separated; merged with `/etc/hostapd/ap0.accept`. Needed for BLE-only nodes (ESP32_RADAR `dev/TR13`, no WiFi) |
-| `EOPDeviceName` | str | `EXOPILOT` | BT adapter name — set per unit: `EXOPILOT 01`, `EXOPILOT 02M`, `EXOPILOT 02M` |
-| `EOPSPPEnabled` | bool | `false` | Classic SPP sub-daemon enable |
-| `EOPSPPAutoReconnect` | bool | `true` | Outward-connect to saved mobile device |
-| `EOPSPPPairedDevice` | str | — | Paired mobile device MAC |
+| `DeviceName` | str | `EXOPILOT` | BT adapter name — set per unit: `EXOPILOT 01`, `EXOPILOT 02M`, `EXOPILOT 02M` |
+| `SPPEnabled` | bool | `false` | Classic SPP sub-daemon enable |
+| `SPPAutoReconnect` | bool | `true` | Outward-connect to saved mobile device |
+| `SPPPairedDevice` | str | — | Paired mobile device MAC |
 | `BluetoothPairingPin` | str | — | 6-digit pairing code — set by agent, read by ADAS UI |
 | `BluetoothPairingAddr` | str | — | MAC of device being paired |
 | `BluetoothPairingActive` | str | `0` | `1` while pairing dialog is active |
@@ -174,9 +174,9 @@ SPP additionally carries raw ELM327 ASCII on the same socket (detected by first-
 ## Quick Start
 
 ```bash
-params put_bool EOPBluetoothEnabled true
-params put_bool EOPSPPEnabled true
-params put EOPDeviceName "EXOPILOT 01"   # set per unit at flash time
+params put_bool BluetoothEnabled true
+params put_bool SPPEnabled true
+params put DeviceName "EXOPILOT 01"   # set per unit at flash time
 
 python3 system/bluetoothd/bluetoothd.py
 ```

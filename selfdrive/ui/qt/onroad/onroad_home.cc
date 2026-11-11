@@ -70,8 +70,8 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   QObject::connect(uiState(), &UIState::offroadTransition, this, &OnroadWindow::offroadTransition);
 
   pairing_watch_ = new ParamWatcher(this);
-  pairing_watch_->addParam("EOPBluetoothPairingPin");
-  pairing_watch_->addParam("EOPBluetoothPairingActive");
+  pairing_watch_->addParam("BluetoothPairingPin");
+  pairing_watch_->addParam("BluetoothPairingActive");
   QObject::connect(pairing_watch_, &ParamWatcher::paramChanged, [=](const QString &, const QString &) {
     refreshPairingCache();
   });
@@ -80,8 +80,8 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
 
 void OnroadWindow::refreshPairingCache() {
   auto params = Params();
-  cached_pairing_pin_ = params.get("EOPBluetoothPairingPin");
-  cached_pairing_active_ = params.get("EOPBluetoothPairingActive") == "1";
+  cached_pairing_pin_ = params.get("BluetoothPairingPin");
+  cached_pairing_active_ = params.get("BluetoothPairingActive") == "1";
 }
 
 void OnroadWindow::createOverlays() {

@@ -23,9 +23,9 @@ class VoicePanel(SidePanel):
       from openpilot.common.params import Params
 
       self.params = Params()
-    allowed = self.params.get_bool('EOPCloudVoiceEnabled') and self.params.get_bool('EOPVoiceEnabled')
+    allowed = self.params.get_bool('CloudVoiceEnabled') and self.params.get_bool('VoiceEnabled')
     self.recording = bool(active and allowed)
-    self.params.put_bool('EOPVoiceRecording', self.recording)
+    self.params.put_bool('VoiceRecording', self.recording)
     self.button.setText('Listening… release to send' if self.recording else 'Hold to speak')
     self.update()
 

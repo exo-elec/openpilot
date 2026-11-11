@@ -23,7 +23,7 @@ class SpeedLimitOffset:
     self.set_offsets_kph(offsets_kph or [])
 
   def set_offsets_kph(self, offsets_kph):
-    """Per-bucket offsets in km/h (what the EOPSLCOffset1..7 params hold); missing or invalid entries are 0."""
+    """Per-bucket offsets in km/h (what the SLCOffset1..7 params hold); missing or invalid entries are 0."""
     for i in range(len(self._offsets)):
       try:
         self._offsets[i] = float(offsets_kph[i]) * (1000.0 / 3600.0) if i < len(offsets_kph) and offsets_kph[i] is not None else 0.0

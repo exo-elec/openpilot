@@ -13,7 +13,7 @@ Architecture:
 
     pathd → LongHorizonPlanner → enhancedTrajectory (500m)
 
-Reference: Matches OSM planning horizon (EOPMTSCEnabled: 250-500m)
+Reference: Matches OSM planning horizon (MTSCEnabled: 250-500m)
 """
 
 from __future__ import annotations

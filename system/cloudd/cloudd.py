@@ -91,9 +91,9 @@ def main():
   if client is None:
     cloudlog.error('cloudd: HTTPS gateway/private credential file not configured')
     # Stay healthy but inert until restart after configuration changes.
-  enabled = lambda: params.get_bool('EOPCloudVoiceEnabled') and params.get_bool('EOPVoiceEnabled')
-  params.put_bool("EOPVoiceProcessing", False)
-  worker = CloudWorker(client, enabled=enabled, activity=lambda active: params.put_bool("EOPVoiceProcessing", active))
+  enabled = lambda: params.get_bool('CloudVoiceEnabled') and params.get_bool('VoiceEnabled')
+  params.put_bool("VoiceProcessing", False)
+  worker = CloudWorker(client, enabled=enabled, activity=lambda active: params.put_bool("VoiceProcessing", active))
   worker.thread.start()
   audio = messaging.sub_sock('voiceAudioChunk', conflate=False)
   speech = messaging.sub_sock('ttsRequest', conflate=False)
@@ -108,7 +108,7 @@ def main():
           worker.submit('voice', bytes(a.chunk), language, priority=1)
       for evt in messaging.drain_sock(speech):
         r = evt.ttsRequest
-        if enabled() and params.get_bool('EOPNavVoiceEnabled'):
+        if enabled() and params.get_bool('NavVoiceEnabled'):
           worker.submit('tts', str(r.text), str(r.language) or language, int(r.priority))
       while not worker.results.empty():
         result, pcm, error = worker.results.get_nowait()

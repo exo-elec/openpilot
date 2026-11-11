@@ -72,23 +72,23 @@ class TestTripDExport:
   def test_drive_end_exports_to_params(self):
     self.tripd._handle_drive_end()
     puts = dict(self.tripd.params._puts)
-    assert "EOPTripLastDistance" in puts
-    assert "EOPTripLastMaxAccel" in puts
-    assert "EOPTripLastOverrideFreeDistance" in puts
-    assert "EOPTripLastDuration" in puts
-    assert "EOPTripLastPersonalityTime" in puts
+    assert "TripLastDistance" in puts
+    assert "TripLastMaxAccel" in puts
+    assert "TripLastOverrideFreeDistance" in puts
+    assert "TripLastDuration" in puts
+    assert "TripLastPersonalityTime" in puts
 
   def test_drive_end_distance_is_float(self):
     self.tripd._handle_drive_end()
     puts = dict(self.tripd.params._puts)
-    val = puts["EOPTripLastDistance"]
+    val = puts["TripLastDistance"]
     assert isinstance(val, float)
     assert abs(val - 1234.5) < 0.1
 
   def test_drive_end_personality_json_is_string(self):
     self.tripd._handle_drive_end()
     puts = dict(self.tripd.params._puts)
-    val = puts["EOPTripLastPersonalityTime"]
+    val = puts["TripLastPersonalityTime"]
     assert isinstance(val, str)
     parsed = json.loads(val)
     assert isinstance(parsed, dict)
@@ -113,11 +113,11 @@ class TestTripDExport:
     self.tripd.lifetime.engaged_time = 1800
     self.tripd._save_stats()
     puts = dict(self.tripd.params._puts)
-    assert "EOPTripTotalDistance" in puts
-    assert "EOPTripUptimeOnroad" in puts
-    assert "EOPTripUptimeEngaged" in puts
+    assert "TripTotalDistance" in puts
+    assert "TripUptimeOnroad" in puts
+    assert "TripUptimeEngaged" in puts
     # Verify values are floats (or at least numeric)
-    assert isinstance(puts["EOPTripTotalDistance"], (int, float))
+    assert isinstance(puts["TripTotalDistance"], (int, float))
 
 
 if __name__ == '__main__':

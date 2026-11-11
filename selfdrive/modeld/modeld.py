@@ -493,7 +493,7 @@ def main(demo=False) -> int:
         CP = messaging.log_from_bytes(params.get("CarParams", block=True), car.CarParams)
     cloudlog.info("Model got CarParams: %s", CP.brand)
 
-    is_rhd = params.get_bool("EOPDeviceIsRhd")
+    is_rhd = params.get_bool("DeviceIsRhd")
     cloudlog.info("Model RHD: %s", is_rhd)
 
     long_delay = CP.longitudinalActuatorDelay + LONG_SMOOTH_SECONDS

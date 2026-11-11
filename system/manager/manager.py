@@ -29,7 +29,7 @@ def manager_init() -> None:
   build_metadata = get_build_metadata()
 
   params = Params()
-  migrate_renamed_params(params.get_param_path())  # old fork param names -> EOP<Feature><Param>
+  migrate_renamed_params(params.get_param_path())  # saved EOP<name> params -> <name> (prefix dropped 2026-11-12)
   params.clear_all(ParamKeyFlag.CLEAR_ON_MANAGER_START)
   params.clear_all(ParamKeyFlag.CLEAR_ON_ONROAD_TRANSITION)
   params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
@@ -69,26 +69,26 @@ def manager_init() -> None:
 
   # Auto-configure voice pipeline based on hardware detection
   # Default to whether the board has a mic (01M and 02M both carry a 2-mic I2S pair)
-  if not params.get("EOPVoiceEnabled"):
+  if not params.get("VoiceEnabled"):
     # Only set default if user hasn't explicitly configured it
-    params.put_bool("EOPVoiceEnabled", HAS_VOICE_INPUT)
-    cloudlog.info(f"manager: Auto-configured EOPVoiceEnabled={HAS_VOICE_INPUT} based on hardware")
+    params.put_bool("VoiceEnabled", HAS_VOICE_INPUT)
+    cloudlog.info(f"manager: Auto-configured VoiceEnabled={HAS_VOICE_INPUT} based on hardware")
 
   # Auto-configure side cameras based on hardware detection
-  if not params.get("EOPSideCamerasEnabled"):
-    params.put_bool("EOPSideCamerasEnabled", HAS_SIDE_CAMERAS)
-    cloudlog.info(f"manager: Auto-configured EOPSideCamerasEnabled={HAS_SIDE_CAMERAS} based on hardware")
+  if not params.get("SideCamerasEnabled"):
+    params.put_bool("SideCamerasEnabled", HAS_SIDE_CAMERAS)
+    cloudlog.info(f"manager: Auto-configured SideCamerasEnabled={HAS_SIDE_CAMERAS} based on hardware")
 
   # Auto-configure rear camera based on hardware detection
-  if not params.get("EOPRearCameraEnabled"):
-    params.put_bool("EOPRearCameraEnabled", HAS_REAR_CAMERA)
-    cloudlog.info(f"manager: Auto-configured EOPRearCameraEnabled={HAS_REAR_CAMERA} based on hardware")
+  if not params.get("RearCameraEnabled"):
+    params.put_bool("RearCameraEnabled", HAS_REAR_CAMERA)
+    cloudlog.info(f"manager: Auto-configured RearCameraEnabled={HAS_REAR_CAMERA} based on hardware")
 
   # Auto-configure mono detection daemon (RKNN NPU only — no PCIe accelerator required)
-  if not params.get("EOPMonoDEnabled"):
+  if not params.get("MonoDEnabled"):
     has_npu = HardwareCapability.NPU in HARDWARE.get_capabilities()
-    params.put_bool("EOPMonoDEnabled", has_npu)
-    cloudlog.info(f"manager: Auto-configured EOPMonoDEnabled={has_npu} based on hardware")
+    params.put_bool("MonoDEnabled", has_npu)
+    cloudlog.info(f"manager: Auto-configured MonoDEnabled={has_npu} based on hardware")
 
   # Log hardware capabilities for debugging
   cloudlog.info(f"manager: Hardware - speaker={HAS_SPEAKER}, voice={HAS_VOICE_INPUT}, side_cameras={HAS_SIDE_CAMERAS}, rear_camera={HAS_REAR_CAMERA}")
@@ -165,7 +165,7 @@ def manager_thread() -> None:
     elif not started and started_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
 
-    ignition = params.get_bool("EOPIgnitionOn")
+    ignition = params.get_bool("IgnitionOn")
     if ignition and not ignition_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_IGNITION_ON)
 

@@ -199,7 +199,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
     Calibration starts from these and is clamped to the HAL's `MOUNT_LIMITS`.
   - x/y cannot be seen from motion and stay nominal. The Device panel's
     "Side/Rear Camera Calibration" row (dev/01M, dev/02M) shows per-camera
-    status and resets via `EOPSideRearCalibReset`.
+    status and resets via `SideRearCalibReset`.
   - **Camera ↔ BLE radar association has one owner: `controlsd`'s
     `radar_zones._associate_camera_objects`** (reads `sideDetections`/
     `rearDetections` directly, same-side and rear gating, noisy-OR
@@ -331,7 +331,7 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
 - Pure policy lives in `exopilot/controls/ngp_brsc.py` (`NGPBRSC` class, zero
   cereal/Params deps) so the identical file ports to `dev/NGP10` and `dev/EDP10`.
   `NGP`-prefixed (not `EOP`-prefixed) param `ngp_lon_brsc` is a deliberate
-  exception to the `EOP<Feature><Param>` rule, made for features shared verbatim
+  exception to the unprefixed `<Feature><Param>` rule (the `EOP` prefix was dropped 2026-11-12), made for features shared verbatim
   across branches — see `docs/eop/03_Software/Controllers/BRSC.md`.
 - EOP10 wiring: `selfdrive/controls/plannerd.py` (subscribes `accelerometer`) +
   `selfdrive/controls/lib/longitudinal_planner.py` (same `_apply_speed_limit`
@@ -402,15 +402,15 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
 - `spp.py`: socket write race — `Client._send_lock` and `_send_locked` were independent; fixed with shared lock per connection
 - `ble_gatt.py`: GATT TX chunk interleave — `PropertiesChanged` emitted outside `_lock`; fixed
 - `ble_gatt.py`: `StartNotify`/`StopNotify` not wired to session — route state never reset between connections
-- `bluetoothd.py`: `int(bytes)` TypeError for `EOPBluetoothPairWindow` param
+- `bluetoothd.py`: `int(bytes)` TypeError for `BluetoothPairWindow` param
 - `protocol.py`: command codes 0x22–0x2F did not match Dart `frame_protocol.dart` — all NCP commands silently misrouted
 
 **Earlier (2026-05-30):**
 - `spp.py`: missing `import struct`, missing `_handle_voice_intent` / `_handle_driving_profile` handlers
 - `pairing_agent.py`: wrong BlueZ capability (`DisplayYesNo` → `DisplayOnly`), missing `DisplayPasskey`
 - `bluetoothd.py`: GLib main loop never ran
-- `adaptd`: not in `process_config.py`; `EOPAdaptdEnabled` undefined in `params_keys.h`
-- `BluetoothPairingPin/Addr/Active`, `EOPDeviceName`, `EOPAdaptdEnabled` missing from `params_keys.h`
+- `adaptd`: not in `process_config.py`; `AdaptdEnabled` undefined in `params_keys.h`
+- `BluetoothPairingPin/Addr/Active`, `DeviceName`, `AdaptdEnabled` missing from `params_keys.h`
 
 See `docs/upstream-audit/DELTA_AUDIT.md` Step 15 for earlier Python runtime bugs (thermald, sqsc, camera_calibrationd, surface_quality_db, eop_utils).
 

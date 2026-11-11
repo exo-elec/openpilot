@@ -57,7 +57,7 @@ where:
 ```
 
 **Default Parameters:**
-- `a_comfort` = 1.8 m/s² (tunable via `EOPTSCTargetLatAccel`)
+- `a_comfort` = 1.8 m/s² (tunable via `TSCTargetLatAccel`)
 - Valid curvature range: 0.001 to 0.1 (1/m)
 
 ### 2.3 Learned Speed Priority
@@ -303,7 +303,7 @@ class SmartCruiseControlVision:
 
 2. **Simplicity**
    - **Problem:** JSON storage, training logic, data management
-   - **EOP Solution:** Single parameter `EOPTSCTargetLatAccel`
+   - **EOP Solution:** Single parameter `TSCTargetLatAccel`
    - **Benefit:** Easier testing and maintenance
 
 **Key Design Decisions:**
@@ -371,8 +371,8 @@ class VTSC:
     
     def __init__(self):
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPVTSCEnabled")
-        self.a_comfort = self.params.get_float("EOPTSCTargetLatAccel")
+        self.enabled = self.params.get_bool("VTSCEnabled")
+        self.a_comfort = self.params.get_float("TSCTargetLatAccel")
         if self.a_comfort <= 0:
             self.a_comfort = 1.8  # default
         
@@ -389,8 +389,8 @@ class VTSC:
     def update_params(self):
         """Update parameters periodically."""
         if self.frame % int(1.0 / DT_MDL) == 0:
-            self.enabled = self.params.get_bool("EOPVTSCEnabled")
-            self.a_comfort = self.params.get_float("EOPTSCTargetLatAccel")
+            self.enabled = self.params.get_bool("VTSCEnabled")
+            self.a_comfort = self.params.get_float("TSCTargetLatAccel")
             if self.a_comfort <= 0:
                 self.a_comfort = 1.8
                 
@@ -581,8 +581,8 @@ class ControlsD:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPVTSCEnabled` | Bool | `0` | Master toggle for VTSC |
-| `EOPTSCTargetLatAccel` | Float | `1.8` | Comfort lateral acceleration (m/s²) |
+| `VTSCEnabled` | Bool | `0` | Master toggle for VTSC |
+| `TSCTargetLatAccel` | Float | `1.8` | Comfort lateral acceleration (m/s²) |
 
 ---
 
@@ -700,7 +700,7 @@ CarController
 | Requirement | Status | Note |
 |-------------|--------|------|
 | Design Document | ✅ Complete | This document |
-| Parameter Definition | ✅ Done | `EOPVTSCEnabled`, `EOPTSCTargetLatAccel` |
+| Parameter Definition | ✅ Done | `VTSCEnabled`, `TSCTargetLatAccel` |
 | State Machine Design | ✅ Complete | 5-state architecture |
 | Core Implementation | ✅ Complete | `selfdrive/controls/lib/vtsc.py` |
 | Planner Integration | ✅ Complete | longitudinal_planner.py |

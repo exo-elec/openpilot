@@ -604,7 +604,7 @@ class ControlsD:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `EOPDLATMode` | String | `"Auto"` | Mode: "Auto", "Laneful", "Laneless" |
-| `EOPDLPCurvesEnabled` | Bool | `0` | Allow Auto to switch to Laneless for tight curves |
+| `DLPCurvesEnabled` | Bool | `0` | Allow Auto to switch to Laneless for tight curves |
 
 ---
 
@@ -715,7 +715,7 @@ CarController
 |-------------|--------|------|
 | Design Document | ✅ Complete | This document |
 | State Machine Design | ✅ Complete | 3-state with hysteresis |
-| Parameter Definition | ✅ Complete | `EOPDLATMode`, `EOPDLPCurvesEnabled` |
+| Parameter Definition | ✅ Complete | `EOPDLATMode`, `DLPCurvesEnabled` |
 | Core Implementation | ✅ Complete | `selfdrive/controls/lib/dlat.py` |
 | controlsd Integration | ✅ Complete | Laneful/Laneless switching |
 | Unit Tests | ⏳ Pending | Test scenarios defined |

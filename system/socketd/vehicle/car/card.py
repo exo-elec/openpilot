@@ -93,7 +93,7 @@ class Car:
     CP = car.CarParams.new_message()
 
     # Read vehicle type from params (simulation or real)
-    vehicle_type_name = self.params.get("EOPVehicleType") or "SUV_C"
+    vehicle_type_name = self.params.get("VehicleType") or "SUV_C"
     if isinstance(vehicle_type_name, bytes):
       vehicle_type_name = vehicle_type_name.decode()
     vehicle_cfg = VehicleType.get(vehicle_type_name)

@@ -210,7 +210,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     QMap<QString, QString> langs = getSupportedLanguages();
     QString selection = MultiOptionDialog::getSelection(tr("Select a language"), langs.keys(), langs.key(uiState()->language), this);
     if (!selection.isEmpty()) {
-      // Sync EOPLanguage (2-letter TTS code) with UI language selection.
+      // Sync Language (2-letter TTS code) with UI language selection.
       // Mapping: main_xx[-YY] → 2-letter code; zh-CHS/CHT both → "zh"
       static const QMap<QString, QString> langToEop = {
         {"main_en", "en"}, {"main_de", "de"}, {"main_fr", "fr"},
@@ -221,7 +221,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
       };
       QString langFile = langs[selection];
       QString eopLang = langToEop.value(langFile, "en");
-      params.put("EOPLanguage", eopLang.toStdString());
+      params.put("Language", eopLang.toStdString());
       params.put("LanguageSetting", langFile.toStdString());
       qApp->exit(18);
       watchdog_kick(0);

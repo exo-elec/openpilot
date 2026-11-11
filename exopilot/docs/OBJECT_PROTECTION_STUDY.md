@@ -108,7 +108,7 @@ Next candidates from this study: collision-time-margin scoring (replace raw TTC)
 ## 12. pathd as the rule-based add-on layer: what EOP10 does, and the NGP10 base layer (2026-10-04)
 
 **EOP10 `selfdrive/pathd` (read, not run)**: the module docstring says pathd's job is emergency longitudinal avoidance for objects stock openpilot misses, plus occupancy-grid speed reduction. Pipeline: gridd/stereo -> `track.py` (cluster tracker) -> `predict.py` (constant velocity, 3 s, threat level from TTC and lateral position) -> `compute_speed_reduction` -> `LatNudge`/`LonNudge` (stereo boundary lateral nudge; speed trim <= 30 %) -> published as `enhancedTrajectory`, which `controlsd` (curvature, SOC offset) and `longitudinal_planner` (speed limits, `lhlc*` fields) consume.
-**Hybrid A\* is not in the policy loop.** `hybrid_astar.py` (805 lines, from Autoware's freespace_planner and Dolgov et al.) is used only by `OsmHybridPlanner` for the 500 m long-horizon path (LHLC), behind `EOPHybridPlannerEnabled`, and needs `mapData` (OSM) and `gridObjects` (BEV occupancy grid). So steering/accel add-ons today are the rules above, not a search planner.
+**Hybrid A\* is not in the policy loop.** `hybrid_astar.py` (805 lines, from Autoware's freespace_planner and Dolgov et al.) is used only by `OsmHybridPlanner` for the 500 m long-horizon path (LHLC), behind `HybridPlannerEnabled`, and needs `mapData` (OSM) and `gridObjects` (BEV occupancy grid). So steering/accel add-ons today are the rules above, not a search planner.
 
 **Why Hybrid A\* does not go to NGP10**: it needs an occupancy/drivable grid and a map; a comma 3 with one forward camera has neither. The base-layer alternative is a **Frenet-style sampler** around the policy's own path: few lateral offsets, predicted objects, a cost for clearance/comfort/deviation.
 
@@ -250,9 +250,9 @@ Rule: anything in EOP10 that is **not** tied to the extra hardware `../exopilot`
 |---|---|---|
 | pathd cores (`LatNudge`, `LonNudge`, `predict`, `compute_speed_reduction`) | **ported** | section 22 |
 | MTSC, MSLC, DDSC, TLSC (+ curve-speed helpers, MTSC->VTSC blend) | **ported** | `ngp_{mtsc,mslc,ddsc,tlsc,curve_speed}.py`; `runtime/map_speed.py` is the one planner adapter (`ngp_lon_mtsc/mslc/tlsc/ddsc`) |
-| mapd (OSM geometry, speed limit, curve lookahead, tile cache) | **ported** | `exopilot/mapd/`, `MapData` schema with EOP10's ordinals (Event @154 here, @215 there), process `mapd` behind `ngp_map_enabled`; EOP10's files are shims keeping `EOPMapdEnabled` |
+| mapd (OSM geometry, speed limit, curve lookahead, tile cache) | **ported** | `exopilot/mapd/`, `MapData` schema with EOP10's ordinals (Event @154 here, @215 there), process `mapd` behind `ngp_map_enabled`; EOP10's files are shims keeping `MapdEnabled` |
 | traffic lights (class 9 + HSV lamp colour) | **ported** | `runtime/traffic_light.py`, monod senses, gridd passes them through untracked into `stereoObjects` |
-| tripd | **ported** | `runtime/tripd.py`, key mapping (`ngp_trip_*` by default, `EOPTrip*` through EOP10/01M/02M shims), process behind `ngp_tripd_enabled` |
+| tripd | **ported** | `runtime/tripd.py`, key mapping (`ngp_trip_*` by default, `Trip*` through EOP10/01M/02M shims), process behind `ngp_tripd_enabled` |
 | LDW | nothing to port | EOP10's `ldw.py` is identical to upstream's, already on NGP10 |
 | following distance, driver prefs | nothing to port | NGP10 already has `longitudinal_policy.py` and the speed offset |
 | adaptd (adaptive personality from vehicle telemetry) | **core portable, input is not** | its only input is `ncpVehicleData` from NavPilot over BLE (bluetoothd), i.e. the BLE hardware link: port the core and schema, the producer stays EOP-only |

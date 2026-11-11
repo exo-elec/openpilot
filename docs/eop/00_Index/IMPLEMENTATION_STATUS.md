@@ -146,10 +146,10 @@
 
 | # | Issue | Location | Status |
 |---|-------|----------|--------|
-| ✅ 1 | EOPMSLCEnabled not registered | `params_keys.h` | **FIXED** |
+| ✅ 1 | MSLCEnabled not registered | `params_keys.h` | **FIXED** |
 | ✅ 2 | MAPD entry point bug | `mapd.py:331` | **FIXED** (`MapDD` → `MapD`) |
 | ✅ 3 | OVERVIEW.md param name wrong | `OVERVIEW.md` | **FIXED** |
-| ✅ 4 | EOPTJAMaxHoldMinutes default mismatch | `OVERVIEW.md` | **FIXED** |
+| ✅ 4 | TJAMaxHoldMinutes default mismatch | `OVERVIEW.md` | **FIXED** |
 | ✅ 5 | UI missing MSLC/ELAT/ELON/AEB controls | `eop_panel.cc` | **FIXED** |
 | ✅ 6 | Naming inconsistency DLat/DLon vs DLAT/DLON | Multiple files | **FIXED** |
 | ✅ 7 | SOC algorithm evolved | `soc.py` | **RESOLVED** — closing-speed approach better |
@@ -163,7 +163,7 @@
 | ✅ 15 | NAVD skeleton — no routing, no BLE | `selfdrive/navd/` | **FIXED 2026-03-19** — on-device Valhalla offline routing; BLE SPP via bluetoothd (NavPilot → NCP v4.1) |
 | ✅ 16 | Map panel hidden on RK3576 widescreen | `map_panel.cc`, `onroad_home.cc` | **FIXED 2026-03-19** — fixed 576 px left side, auto-show on nav route, manual toggle |
 | ✅ 31 | `navInstruction`/`navRoute`/`mapData` missing from `cereal/services.py` | `cereal/services.py`, `cereal/services.h` | **FIXED 2026-05-02** — SubMaster assert crash on C++ UI startup; all 4 services registered |
-| ✅ 32 | `pandaStates` referenced but EOP has no Panda | `ui.cc`, `ui_state.py`, `manager.py` | **FIXED 2026-05-02** — ignition now reads `EOPIgnitionOn` param (SocketD/TC275); `pandaStates` removed from SubMasters |
+| ✅ 32 | `pandaStates` referenced but EOP has no Panda | `ui.cc`, `ui_state.py`, `manager.py` | **FIXED 2026-05-02** — ignition now reads `IgnitionOn` param (SocketD/TC275); `pandaStates` removed from SubMasters |
 | ✅ 33 | `route.getTotalDistance()` compile error in NavCard | `nav_card.cc` | **FIXED 2026-05-02** — uses `navInstruction.getDistanceRemaining()` (schema-valid) |
 | ✅ 34 | `updateFavoritesMarkers()` undefined in `map.cc` | `map.cc` | **FIXED 2026-05-02** — removed undefined call |
 | ✅ 35 | `navigate_on_openpilot` field missing in UIScene | `map.cc` | **FIXED 2026-05-02** — removed reference to missing field |
@@ -325,7 +325,7 @@
 | `helpers.py` — Valhalla offline routing + OSM tile management | `selfdrive/navd/helpers.py` | ✅ Done |
 | `spp.py` — BLE SPP server for NavPilot NCP v4.1 (`CMD_NAVIGATE` → `NavDestination` param) | `system/bluetoothd/spp.py` | ✅ Done |
 | `navd.py` — on-device Valhalla routing, step tracking, 5 Hz publish | `selfdrive/navd/navd.py` | ✅ Done |
-| Add params: `EOPNavBleEnabled`, `EOPSPPEnabled`, `EOPSPPAutoReconnect` | `common/params_keys.h` | ✅ Done |
+| Add params: `NavBleEnabled`, `SPPEnabled`, `SPPAutoReconnect` | `common/params_keys.h` | ✅ Done |
 | BLE toggle + SPP settings in UI | `eop_panel.cc` | ✅ Done |
 
 ### ✅ RK3576 Map Panel — COMPLETE (2026-03-19)
@@ -372,7 +372,7 @@
   - SGMLocalizerModule (ex-sgm_localizer)
   - FusionEngine
 - [x] cereal: `SgmCorrectedPose`, `FusedPosition`, `OsrCorrectedPose`
-- [x] params: `EOPGlobaldEnabled`, `EOPOsmLocalizerEnabled`, `EOPSGMLocalizerEnabled`
+- [x] params: `GlobaldEnabled`, `OsmLocalizerEnabled`, `SGMLocalizerEnabled`
 
 ### Surface Perception Pipeline — Complete (2026-04-04)
 Phase 1/2/3 of REFACTOR_SURFACE.md complete:
@@ -419,7 +419,7 @@ Phase 1/2/3 of REFACTOR_SURFACE.md complete:
 
 | Element | Pattern | Example |
 |---------|---------|---------|
-| Parameters | `EOP<Feature><Param>` | `EOPTJAEnabled` |
+| Parameters | `<Feature><Param>` (no prefix since 2026-11-12) | `TJAEnabled` |
 | Files | `<feature>.py` | `vtsc.py` |
 | Classes | `<FEATURE>` | `class VTSC:` |
 | Daemon Files | `*d.py` | `navd.py` |

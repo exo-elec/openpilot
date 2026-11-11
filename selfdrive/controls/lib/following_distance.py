@@ -25,7 +25,7 @@ class FollowingDistanceProfiles:
         - normal: 1.5s (balanced, default)
         - far: 2.2s (conservative)
 
-    Parameter: EOPFollowingDistance (str)
+    Parameter: FollowingDistance (str)
     """
 
     def __init__(self):
@@ -41,7 +41,7 @@ class FollowingDistanceProfiles:
         if now - self._last_param_t < self.PARAM_REFRESH_S:
             return
         self._last_param_t = now
-        profile = self.params.get("EOPFollowingDistance")
+        profile = self.params.get("FollowingDistance")
         if profile is not None:
             profile = profile.decode('utf-8') if isinstance(profile, bytes) else profile
             if profile in TIME_GAPS:

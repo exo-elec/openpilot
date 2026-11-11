@@ -188,7 +188,7 @@ The following fixes — previously documented in their respective review files �
 | `COMMIT_93374F4C` | `pigeond.py` | `params.put_bool('UbloxAvailable', True)` | ✅ |
 | `COMMIT_93374F4C` | `thermald.py` | Hailo throttle only cleared when all monitors read successfully | ✅ |
 | `COMMIT_93374F4C` | `hw.py` | `'LOG_ROOT' in os.environ` (empty-string fix) | ✅ |
-| `COMMIT_9E5B84ED` | `aeb.py` | Re-read `EOPAEBEnabled` param inside `update()` | ✅ |
+| `COMMIT_9E5B84ED` | `aeb.py` | Re-read `AEBEnabled` param inside `update()` | ✅ |
 | `COMMIT_9E5B84ED` | `longitudinal_planner.py` | Reset `mtsc_v_target` / `mslc_v_target` each cycle | ✅ |
 | `COMMIT_9E5B84ED` | `red.py` + `controlsd.py` | Add `edge_side` to return dict, fix sign inversion | ✅ |
 | `COMMIT_9E5B84ED` | `desire_helper.py` | Reset `lane_change_completed` on BSD abort | ✅ |

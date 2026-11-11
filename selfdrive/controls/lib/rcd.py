@@ -1,6 +1,6 @@
 """
 RCD - Road Condition Detection controller. The logic lives in exopilot/controls/eop_rcd.py (shared with ExoPilot, golden-tested
-against the original of this file); this module keeps EOP10's names and its `EOPRCDEnabled` switch.
+against the original of this file); this module keeps EOP10's names and its `RCDEnabled` switch.
 
 Sources, as before: surfaced's `surfaceStatus`, then the card's `monoSegments`. The classical-CV classifier (`RoadConditionClassifier`) is kept for
 callers that have a frame; nothing in the drive loop feeds it one.
@@ -48,7 +48,7 @@ class RCD:
   def __init__(self):
     self.params = Params()
     self.classifier = RoadConditionClassifier()
-    self._rt = RCDRuntime(self.params.get_bool, "EOPRCDEnabled")
+    self._rt = RCDRuntime(self.params.get_bool, "RCDEnabled")
 
   @property
   def enabled(self) -> bool:

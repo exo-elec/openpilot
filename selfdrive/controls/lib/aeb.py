@@ -465,7 +465,7 @@ class AEB:
 
   def __init__(self):
     self.params = Params()
-    self.enabled = self.params.get_bool("EOPAEBEnabled")
+    self.enabled = self.params.get_bool("AEBEnabled")
     self.predictor = CollisionPredictor()
     self.braking = BrakingController()
     self._last_update_time = 0.0
@@ -486,7 +486,7 @@ class AEB:
     Returns:
       AEBResult with braking request
     """
-    self.enabled = self.params.get_bool("EOPAEBEnabled")
+    self.enabled = self.params.get_bool("AEBEnabled")
     if not self.enabled:
       return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "AEB disabled")
 

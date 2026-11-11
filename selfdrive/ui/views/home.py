@@ -54,10 +54,10 @@ M_TO_MILE = 0.000621371
 
 # The fork keeps its own trip counters in Params -- it has no drive-stats API
 # cache. Distances are metres, times are seconds, ratios are percentages.
-TRIP_DISTANCE = "EOPTripTotalDistance"
-TRIP_ONROAD_TIME = "EOPTripUptimeOnroad"
-TRIP_DRIVES = "EOPTripTotalDrives"
-TRIP_ENGAGEMENT = "EOPTripLifetimeEngagementRatio"
+TRIP_DISTANCE = "TripTotalDistance"
+TRIP_ONROAD_TIME = "TripUptimeOnroad"
+TRIP_DRIVES = "TripTotalDrives"
+TRIP_ENGAGEMENT = "TripLifetimeEngagementRatio"
 
 # Offroad alerts are one param per alert, each holding a JSON object, and the
 # catalogue of which alerts exist is a file shipped with selfdrived. That is

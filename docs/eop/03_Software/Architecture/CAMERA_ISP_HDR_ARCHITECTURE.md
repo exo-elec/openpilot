@@ -373,7 +373,7 @@ class RKIAQWrapper:
 | Step | Task | Files | Verification |
 |------|------|-------|------------|
 | 3.1 | Implement HDR switching | `system/v4l2d/drivers/ox03c10.py` | HDR4 → SDR → HDR4 stream restart works |
-| 3.2 | Add runtime HDR config | Params: `EOPRoadHDR`, `EOPWideHDR` | Param change triggers mode switch |
+| 3.2 | Add runtime HDR config | Params: `RoadHDR`, `WideHDR` | Param change triggers mode switch |
 | 3.3 | Stereo exposure sync | `system/v4l2d/drivers/gc4653.py` | stereo_left/stereo_right exposure match ±1 line |
 | 3.4 | OTP black level read | `system/v4l2d/drivers/gc4653.py` | OTP values read, common BLC applied |
 
@@ -393,8 +393,8 @@ class RKIAQWrapper:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPRoadHDR` | string | `"hdr4"` | Road camera HDR mode: sdr, hdr2, hdr3, hdr4 |
-| `EOPWideHDR` | string | `"hdr4"` | Wide road camera HDR mode |
+| `RoadHDR` | string | `"hdr4"` | Road camera HDR mode: sdr, hdr2, hdr3, hdr4 |
+| `WideHDR` | string | `"hdr4"` | Wide road camera HDR mode |
 | `EOPCameraFPS` | int | `20` | Target framerate (20=safe for 2-lane HDR4, 30=SDR only) |
 | `EOPStereoHDR` | string | `"sdr"` | Stereo HDR mode — MUST stay SDR |
 | `EOPStereoSync` | bool | `true` | Enable stereo exposure synchronization |

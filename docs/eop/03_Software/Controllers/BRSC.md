@@ -18,7 +18,7 @@
 > **Naming:** `NGP`-prefixed, not `EOP`-prefixed — this feature lives in the shared
 > `exopilot/controls/` package (see `exopilot/docs/NAMING_CONVENTIONS.md`) and is
 > ported byte-identical across `dev/EOP10`, `dev/NGP10`, and `dev/EDP10`. This is a
-> deliberate exception to EOP10's own `EOP<Feature><Param>` rule, made specifically
+> deliberate exception to EOP10's own unprefixed `<Feature><Param>` rule, made specifically
 > for features shared verbatim across branches.
 > **EOP Integration:** `selfdrive/controls/lib/longitudinal_planner.py`
 
@@ -118,7 +118,7 @@ copy-portable to `dev/NGP10` and `dev/EDP10` without modification.
 - Debug fields on `longitudinalPlan`: `ngpBrscActive`, `ngpBrscSpeed`,
   `ngpBrscRoughness` (capnp `@66`-`@68`, next free after `ddscSpeed @65`).
 - Toggle: `ngp_lon_brsc` (default on), `selfdrive/ui/qt/offroad/eop_panel.cc`
-  under Speed Control, cached/refreshed every 2s like `EOPAdaptiveGapEnabled`.
+  under Speed Control, cached/refreshed every 2s like `AdaptiveGapEnabled`.
 
 ### 3.4 Cross-Branch Port
 

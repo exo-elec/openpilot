@@ -290,7 +290,7 @@ class AdaptD:
     """Refresh daemon params."""
     if not self.params:
       return
-    self._enabled = self.params.get_bool('EOPAdaptdEnabled')
+    self._enabled = self.params.get_bool('AdaptdEnabled')
     self.computer.set_enabled(self._enabled)
 
   def _publish_profile(self, profile: AdaptiveProfile) -> None:

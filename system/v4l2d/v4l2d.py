@@ -87,9 +87,9 @@ CAMERA_RESTART_COOLDOWN_SEC = float(os.getenv("CSI_RESTART_COOLDOWN_SEC", "1.0")
 #   role          stream        sensor   I2C bus-addr
 #   mono_narrow   road          OX03C10  3-0x36   (8.0 mm)
 #   mono_wide     wide_road     OX03C10  4-0x36   (1.7 mm)
-#   mono_tele     tele_road     OX03C10  5-0x36   (16.0 mm, EOPTeleEnabled)
-#   stereo_left   stereo_left   GC4653   5-0x29   (EOPStereoEnabled)
-#   stereo_right  stereo_right  GC4653   6-0x29   (EOPStereoEnabled)
+#   mono_tele     tele_road     OX03C10  5-0x36   (16.0 mm, TeleEnabled)
+#   stereo_left   stereo_left   GC4653   5-0x29   (StereoEnabled)
+#   stereo_right  stereo_right  GC4653   6-0x29   (StereoEnabled)
 # ---------------------------------------------------------------------------
 Camera02M = namedtuple("Camera02M", ["role", "stream", "msg_name", "stream_type", "cam_id",
                                      "sensor_name", "i2c_bus", "i2c_addr", "hdr_param", "gate_param",
@@ -97,15 +97,15 @@ Camera02M = namedtuple("Camera02M", ["role", "stream", "msg_name", "stream_type"
 
 CAMERAS_02M = (
   Camera02M("mono_narrow", "road", "roadCameraState", STREAM_ROAD, "road_camera",
-            "ox03c10", 3, 0x36, "EOPRoadHDR", None, ["/dev/video0"]),
+            "ox03c10", 3, 0x36, "RoadHDR", None, ["/dev/video0"]),
   Camera02M("mono_wide", "wide_road", "wideRoadCameraState", STREAM_WIDE_ROAD, "wide_camera",
-            "ox03c10", 4, 0x36, "EOPWideHDR", None, ["/dev/video1"]),
+            "ox03c10", 4, 0x36, "WideHDR", None, ["/dev/video1"]),
   Camera02M("mono_tele", "tele_road", "teleRoadCameraState", STREAM_TELE_ROAD, "tele_camera",
-            "ox03c10", 5, 0x36, "EOPRoadHDR", "EOPTeleEnabled", ["/dev/video2"]),
+            "ox03c10", 5, 0x36, "RoadHDR", "TeleEnabled", ["/dev/video2"]),
   Camera02M("stereo_left", "stereo_left", "stereoCameraState", STREAM_STEREO_LEFT, "stereo_left_camera",
-            "gc4653", 5, 0x29, None, "EOPStereoEnabled", ["/dev/video3"]),
+            "gc4653", 5, 0x29, None, "StereoEnabled", ["/dev/video3"]),
   Camera02M("stereo_right", "stereo_right", "stereoCameraStateRight", STREAM_STEREO_RIGHT, "stereo_right_camera",
-            "gc4653", 6, 0x29, None, "EOPStereoEnabled", ["/dev/video4"]),
+            "gc4653", 6, 0x29, None, "StereoEnabled", ["/dev/video4"]),
 )
 
 
@@ -166,7 +166,7 @@ def _rk3588_camera_configs() -> list[CameraConfig]:
   + up to 3 USB cameras (side_left, side_right, rear_camera)
   """
   sensor = messaging.log.FrameData.ImageSensor
-  stereo_enabled = _params.get_bool("EOPStereoEnabled")
+  stereo_enabled = _params.get_bool("StereoEnabled")
 
   # Get camera array configuration from BSP
   try:
@@ -192,8 +192,8 @@ def _rk3588_camera_configs() -> list[CameraConfig]:
   #
   # FPS NOTE: All cameras run at 20fps. 2-lane MIPI bandwidth limits HDR4
   # to ~20fps. 30fps would require 4-lane MIPI or SDR mode.
-  road_hdr = _params.get("EOPRoadHDR") or "hdr4"
-  wide_hdr = _params.get("EOPWideHDR") or "hdr4"
+  road_hdr = _params.get("RoadHDR") or "hdr4"
+  wide_hdr = _params.get("WideHDR") or "hdr4"
   # Stereo is ALWAYS SDR — GC4653 has no HDR hardware, and even if it did,
   # HDR temporal misalignment would degrade stereo depth accuracy 2-5x
   stereo_hdr = "sdr"
@@ -319,8 +319,8 @@ def _default_camera_configs(device_type: str | None = None) -> list[CameraConfig
 def load_camera_configs() -> list[CameraConfig]:
   """Load configs from HAL; fall back to defaults."""
   sensor = messaging.log.FrameData.ImageSensor
-  stereo_enabled = _params.get_bool("EOPStereoEnabled")
-  tele_enabled = _params.get_bool("EOPTeleEnabled")
+  stereo_enabled = _params.get_bool("StereoEnabled")
+  tele_enabled = _params.get_bool("TeleEnabled")
 
   # Map HAL stream name → (stream_type, vipc_server, sensor, sensor_name)
   _HAL_STREAM_MAP = {

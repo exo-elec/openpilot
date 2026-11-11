@@ -28,7 +28,7 @@ unit-tested. Everything we add is opt-in and off by default until it has been dr
 
 | Feature | Idea from | What it does | Where |
 |---|---|---|---|
-| Driving modes (`ngp_drive_mode.py`) | CarrotPilot `driving_mode`, FrogPilot personalities | One setting (eco / normal / sport) that sets acceleration profile, following style and adaptive gap together. `ngp_lon_drive_mode` / `EOPDriveMode`, default `custom` = nothing written. | all branches |
+| Driving modes (`ngp_drive_mode.py`) | CarrotPilot `driving_mode`, FrogPilot personalities | One setting (eco / normal / sport) that sets acceleration profile, following style and adaptive gap together. `ngp_lon_drive_mode` / `DriveMode`, default `custom` = nothing written. | all branches |
 | Lane turn desire, opt-in (`ngp_turn_desire.py`) | sunnypilot `lane_turn_desire` | Turn pulse to the model below a chosen speed with a signal on, lateral active and no lane change. `ngp_lat_turn_desire_mph`, 0 = off. EOP10 already had its own always-on version. | NGP10 |
 | Blinker pause (`ngp_blinker_pause.py`) | sunnypilot `blinker_pause_lateral` | Pauses steering assistance while a turn signal is on below a chosen speed (and for 1.5 s after), so lane centering does not fight a turn or a parking manoeuvre. Param `ngp_lat_blinker_pause_mph`, 0 = off. | all branches |
 | Green-light notice (`ngp_green_light.py`) | dragonpilot / FrogPilot / sunnypilot e2e alerts | Notice when the car is released from a planner stop while still standing. Param `ngp_lon_green_light`. NGP10 shows it; ExoPilot also speaks it (it already did). | all branches |

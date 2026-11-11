@@ -37,7 +37,7 @@ class VoiceD:
       from openpilot.common.params import Params
       params = Params()
     self.params = params
-    self.params.put_bool("EOPVoiceRecording", False)
+    self.params.put_bool("VoiceRecording", False)
     self.playback = playback or messaging.SubMaster(['audioStatus'])
     self._recording = False
     self._recording_started = 0.0
@@ -45,7 +45,7 @@ class VoiceD:
     self._pre_roll = bytearray()
     self._sequence = 0
     self._endpoint = None
-    self.params.put_bool("EOPVoiceWakeTrigger", False)
+    self.params.put_bool("VoiceWakeTrigger", False)
     self.sample_rate = DEFAULT_SAMPLE_RATE
     self.beamformer = Beamformer(MONO, self.sample_rate)
     self.vad = VAD(self.sample_rate)
@@ -61,17 +61,17 @@ class VoiceD:
   def step(self) -> None:
     self.playback.update(0)
     speaking = self.playback.valid['audioStatus'] and self.playback['audioStatus'].ttsPlaying
-    if self.params.get_bool('EOPVoiceWakeTrigger'):
-      self.params.put_bool('EOPVoiceWakeTrigger', False)
-      if self.params.get_bool('EOPCloudVoiceEnabled') and not speaking and not self._recording:
+    if self.params.get_bool('VoiceWakeTrigger'):
+      self.params.put_bool('VoiceWakeTrigger', False)
+      if self.params.get_bool('CloudVoiceEnabled') and not speaking and not self._recording:
         self._utterance = bytearray(self._pre_roll)
         self._endpoint = Endpoint()
-        self.params.put_bool('EOPVoiceRecording', True)
-    requested = (self.params.get_bool('EOPCloudVoiceEnabled') and
-                 self.params.get_bool('EOPVoiceRecording') and not speaking)
+        self.params.put_bool('VoiceRecording', True)
+    requested = (self.params.get_bool('CloudVoiceEnabled') and
+                 self.params.get_bool('VoiceRecording') and not speaking)
     if speaking:
       self._utterance.clear()
-      self.params.put_bool('EOPVoiceRecording', False)
+      self.params.put_bool('VoiceRecording', False)
     if self._recording and not requested:
       self._finish()
     if requested and not self._recording:
@@ -82,7 +82,7 @@ class VoiceD:
       if self._endpoint and not self._endpoint.heard_speech:
         self._utterance.clear()
       self._finish()
-      self.params.put_bool('EOPVoiceRecording', False)
+      self.params.put_bool('VoiceRecording', False)
       self._recording = False
     for evt in messaging.drain_sock(self.sock):
       audio = evt.rawAudioData
@@ -96,7 +96,7 @@ class VoiceD:
       if rate == 16000:
         self._pre_roll.extend((np.clip(mono, -1, 1) * 32767).astype("<i2").tobytes())
         self._pre_roll = self._pre_roll[-8000:]
-      if self.params.get_bool('EOPWakeEnabled') and rate == 16000 and not speaking:
+      if self.params.get_bool('WakeEnabled') and rate == 16000 and not speaking:
         frame = messaging.new_message('voiceFrame', valid=True)
         frame.voiceFrame.data = (np.clip(mono, -1, 1) * 32767).astype('<i2').tobytes()
         frame.voiceFrame.sampleRate, frame.voiceFrame.channels = 16000, 1
@@ -110,7 +110,7 @@ class VoiceD:
           self._utterance.clear()
         if end or len(self._utterance) >= 16000 * 2 * 15:
           self._finish()
-          self.params.put_bool('EOPVoiceRecording', False)
+          self.params.put_bool('VoiceRecording', False)
           self._recording = False
 
     msg = messaging.new_message('micStatus', valid=True)
@@ -123,7 +123,7 @@ class VoiceD:
 
   def _finish(self):
     # Do not upload canceled/disabled sessions or very short taps.
-    if self.params.get_bool('EOPCloudVoiceEnabled') and len(self._utterance) >= 16000:
+    if self.params.get_bool('CloudVoiceEnabled') and len(self._utterance) >= 16000:
       msg = messaging.new_message('voiceAudioChunk', valid=True)
       a = msg.voiceAudioChunk
       a.timestamp = time.monotonic_ns()

@@ -8,7 +8,7 @@ Lightweight port of the v0.8.13 fork's simplified shutdown timer:
 
 This is application-layer policy. Voltage integration / PMIC details live in
 ExoPilot HAL; manager consumes the binary `deviceState.started` signal from
-`stated` and the `EOPIgnitionOn` param from `socketd`.
+`stated` and the `IgnitionOn` param from `socketd`.
 """
 
 from __future__ import annotations
@@ -36,8 +36,8 @@ class PowerMonitoring:
     self._shutdown_requested = False
 
   def _get_timeout_s(self) -> float:
-    """Read EOPPowerSaverEntryDuration in minutes; 0 means disabled."""
-    raw = self.params.get("EOPPowerSaverEntryDuration")
+    """Read PowerSaverEntryDuration in minutes; 0 means disabled."""
+    raw = self.params.get("PowerSaverEntryDuration")
     if raw is None:
       return DEFAULT_POWER_SAVER_ENTRY_MIN * 60.0
     try:
@@ -97,7 +97,7 @@ def main() -> None:
   params = Params()
   while True:
     started = params.get_bool("IsOnroad")
-    ignition = params.get_bool("EOPIgnitionOn")
+    ignition = params.get_bool("IgnitionOn")
     pm.update(started, ignition)
     time.sleep(1.0)
 

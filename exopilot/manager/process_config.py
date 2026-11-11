@@ -82,26 +82,26 @@ def and_(*fns):
 # Ignition-aware process control (EXO platforms)
 def ignition_on(started: bool, params: Params, CP: car.CarParams) -> bool:
   """Process runs when ignition is ON (GPIO low)."""
-  return _cached_param_bool(params, "EOPIgnitionOn")
+  return _cached_param_bool(params, "IgnitionOn")
 
 def ignition_or_parking(started: bool, params: Params, CP: car.CarParams) -> bool:
   """Process runs when ignition ON or in parking mode (always for DVR/crash detection)."""
-  return _cached_param_bool(params, "EOPIgnitionOn") or _cached_param_bool(params, "EOPParkingMode")
+  return _cached_param_bool(params, "IgnitionOn") or _cached_param_bool(params, "ParkingMode")
 
 def parking_mode_only(started: bool, params: Params, CP: car.CarParams) -> bool:
   """Process runs only in parking mode (ignition OFF)."""
-  return _cached_param_bool(params, "EOPParkingMode")
+  return _cached_param_bool(params, "ParkingMode")
 
 # Optional condition functions
 def voice_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return _cached_param_bool(params, "EOPVoiceEnabled")
+  return _cached_param_bool(params, "VoiceEnabled")
 
 def cloud_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return voice_enabled(started, params, CP) and _cached_param_bool(params, "EOPCloudVoiceEnabled")
+  return voice_enabled(started, params, CP) and _cached_param_bool(params, "CloudVoiceEnabled")
 
 
 def wake_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return cloud_enabled(started, params, CP) and _cached_param_bool(params, "EOPWakeEnabled")
+  return cloud_enabled(started, params, CP) and _cached_param_bool(params, "WakeEnabled")
 
 
 def corner_wifi_enabled(started, params, CP):
@@ -115,7 +115,7 @@ def joystick(started: bool, params: Params, CP: car.CarParams) -> bool:
   return _cached_param_bool(params, "JoystickDebugMode")
 
 def not_remote_control(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return not _cached_param_bool(params, "EOPSteamDRemoteControl")
+  return not _cached_param_bool(params, "SteamDRemoteControl")
 
 
 procs = [
@@ -205,41 +205,41 @@ procs = [
   # Stereo Depth
   PythonProcess("stereod", "exopilot.daemons.stereod.stereod", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPStereoEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "StereoEnabled")),
 
   # Surface Perception
   PythonProcess("surfaced", "exopilot.daemons.surfaced.surfaced", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPSurfaceEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "SurfaceEnabled")),
 
   # Coordination (sensor fusion: odometry + GPS + OSM/SGM constraints)
   PythonProcess("coordinationd", "exopilot.daemons.coordinationd.coordinationd", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPGlobaldEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "GlobaldEnabled")),
 
   # Point cloud recording
   PythonProcess("pointcloudd", "exopilot.daemons.pointcloudd.pointcloudd", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPPointcloudEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "PointcloudEnabled")),
 
   # Mono Detection (RKNN NPU)
   PythonProcess("monod", "exopilot.daemons.monod.monod", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPMonoDEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "MonoDEnabled")),
 
   # Side / Rear Cameras (UVC via USB 3.0 hub RTS5411S)
   PythonProcess("uvcd", "system.uvcd.uvcd", camera_on,
                 enabled_callback=lambda started, params, CP:
                   camera_on(started, params, CP) and (
-                    _cached_param_bool(params, "EOPSideCamerasEnabled") or
-                    _cached_param_bool(params, "EOPRearCameraEnabled")
+                    _cached_param_bool(params, "SideCamerasEnabled") or
+                    _cached_param_bool(params, "RearCameraEnabled")
                   )),
   PythonProcess("sided", "exopilot.daemons.sided.sided", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPSideCamerasEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "SideCamerasEnabled")),
   PythonProcess("reard", "exopilot.daemons.reard.reard", ignition_on,
                 enabled_callback=lambda started, params, CP:
-                  ignition_on(started, params, CP) and _cached_param_bool(params, "EOPRearCameraEnabled")),
+                  ignition_on(started, params, CP) and _cached_param_bool(params, "RearCameraEnabled")),
   # Semantic segmentation, every camera, on the camera-tier card (Hailo-8 /
   # DX-M1M). Idles when no card is fitted.
   PythonProcess("segd", "exopilot.daemons.segd.segd", ignition_on),
@@ -248,7 +248,7 @@ procs = [
   # VR Teleoperation (SteamD replaces teleoprtc + webrtcd)
   PythonProcess("steamd", "exopilot.daemons.steamd.steamd", always_run,
                 enabled_callback=lambda started, params, CP:
-                  always_run(started, params, CP) and _cached_param_bool(params, "EOPSteamDEnabled")),
+                  always_run(started, params, CP) and _cached_param_bool(params, "SteamDEnabled")),
 
 
 ]

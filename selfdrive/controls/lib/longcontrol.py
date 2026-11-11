@@ -83,9 +83,9 @@ class LongControl:
       return
     self._last_tja_param_update = now
 
-    self._tja_enabled = self.params.get_bool("EOPTJAEnabled")
+    self._tja_enabled = self.params.get_bool("TJAEnabled")
     try:
-      max_hold_min = int(self.params.get("EOPTJAMaxHoldMinutes") or 10)
+      max_hold_min = int(self.params.get("TJAMaxHoldMinutes") or 10)
       max_hold_min = max(2, min(20, max_hold_min))
       self._tja_max_hold_s = max_hold_min * 60.0
     except (ValueError, TypeError):

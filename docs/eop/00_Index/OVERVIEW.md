@@ -324,66 +324,66 @@ Quick reference:
 
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `EOPStereoEnabled` | 1 | Stereo vision pipeline |
-| `EOPGridEnabled` | 1 | BEV occupancy grid |
-| `EOPLatALCC` | 1 | Lateral ALCC offset |
-| `EOPLatRoadEdgeDetection` | 1 | Road edge detection |
-| `EOPLCAControllerEnabled` | 1 | Lane change assist |
-| `EOPDLPCurvesEnabled` | 1 | DLAT curves |
+| `StereoEnabled` | 1 | Stereo vision pipeline |
+| `GridEnabled` | 1 | BEV occupancy grid |
+| `LatALCC` | 1 | Lateral ALCC offset |
+| `LatRoadEdgeDetection` | 1 | Road edge detection |
+| `LCAControllerEnabled` | 1 | Lane change assist |
+| `DLPCurvesEnabled` | 1 | DLAT curves |
 | `EOPDLATMode` | 2 | Dynamic Lateral: 0=Laneful, 1=Laneless, 2=Dynamic |
 | `EOPDLONMode` | 2 | Dynamic Longitudinal: 0=ACC, 1=E2E, 2=Dynamic |
-| `EOPALCCAllowAlways` | 0 | ALCC unconditional |
-| `EOPALCCHoldAtStandstill` | 0 | ALCC at stop |
-| `EOPVTSCEnabled` | 0 | Vision turn speed control (0-150m, with learned speeds) |
-| `EOPMTSCEnabled` | 0 | Map turn speed control (150-500m, with learned speeds) |
-| `EOPMSLCEnabled` | 0 | Map speed limit control |
-| `EOPCurveSpeedLearnEnabled` | 1 | Curve speed learning (for VTSC/MTSC) |
-| `EOPSurfaceEnabled` | 1 | Road surface monitoring |
-| `EOPSQSCEnabled` | 1 | Surface Quality Speed Controller |
-| `EOPMSLCOffsetPercent` | 0 | Speed limit offset (percent) |
-| `EOPMSLCOffsetFixed` | 0 | Speed limit offset (km/h) |
-| `EOPTSCTargetLatAccel` | 1.8 | TSC comfort threshold (m/s²) |
-| `EOPAccelerationProfile` | "normal" | eco/normal/sport/traffic accel profile |
-| `EOPAdaptiveGapEnabled` | 0 | Dynamic gap modulation |
-| `EOPTJAEnabled` | 0 | Traffic Jam Assist toggle |
-| `EOPTJAMaxHoldMinutes` | 10 | TJA max hold at standstill |
-| `EOPMapdEnabled` | 0 | Background MAPD service |
-| `EOPNavEnabled` | 0 | On-device Valhalla routing daemon |
-| `EOPNavVoiceEnabled` | 1 | Navigation voice announcements (Azure) |
-| `EOPTTSAlertsEnabled` | 1 | Alert voice announcements (Azure) |
-| `EOPTTSVoice` | "en_US-amy-medium" | Azure voice model (no local Piper) |
-| `EOPNavBleEnabled` | 0 | Enable NavPilot BLE SPP navigation |
+| `ALCCAllowAlways` | 0 | ALCC unconditional |
+| `ALCCHoldAtStandstill` | 0 | ALCC at stop |
+| `VTSCEnabled` | 0 | Vision turn speed control (0-150m, with learned speeds) |
+| `MTSCEnabled` | 0 | Map turn speed control (150-500m, with learned speeds) |
+| `MSLCEnabled` | 0 | Map speed limit control |
+| `CurveSpeedLearnEnabled` | 1 | Curve speed learning (for VTSC/MTSC) |
+| `SurfaceEnabled` | 1 | Road surface monitoring |
+| `SQSCEnabled` | 1 | Surface Quality Speed Controller |
+| `MSLCOffsetPercent` | 0 | Speed limit offset (percent) |
+| `MSLCOffsetFixed` | 0 | Speed limit offset (km/h) |
+| `TSCTargetLatAccel` | 1.8 | TSC comfort threshold (m/s²) |
+| `AccelerationProfile` | "normal" | eco/normal/sport/traffic accel profile |
+| `AdaptiveGapEnabled` | 0 | Dynamic gap modulation |
+| `TJAEnabled` | 0 | Traffic Jam Assist toggle |
+| `TJAMaxHoldMinutes` | 10 | TJA max hold at standstill |
+| `MapdEnabled` | 0 | Background MAPD service |
+| `NavEnabled` | 0 | On-device Valhalla routing daemon |
+| `NavVoiceEnabled` | 1 | Navigation voice announcements (Azure) |
+| `TTSAlertsEnabled` | 1 | Alert voice announcements (Azure) |
+| `TTSVoice` | "en_US-amy-medium" | Azure voice model (no local Piper) |
+| `NavBleEnabled` | 0 | Enable NavPilot BLE SPP navigation |
 
-| `EOPBluetoothCANInterface` | canmpc | SocketCAN for BLE/OBD2 (semantic name; HAL resolves to can0/can1 at runtime) |
-| `EOPRecordEnabled` | 1 | DVR on/off |
+| `BluetoothCANInterface` | canmpc | SocketCAN for BLE/OBD2 (semantic name; HAL resolves to can0/can1 at runtime) |
+| `RecordEnabled` | 1 | DVR on/off |
 | `EOPRecordDurationMin` | 5 | Ring buffer depth (min) |
 | `EOPRecordSnapOnCrash` | 1 | Auto-snap on exit |
-| `EOPRecordSnap` | 0 | Manual snap trigger |
-| `EOPTripTotalDistance` | 0.0 | Lifetime total distance (meters) |
-| `EOPTripTotalDrives` | 0 | Lifetime total drives count |
-| `EOPTripUptimeOnroad` | 0.0 | Lifetime onroad time (seconds) |
-| `EOPTripLifetimeEngagementRatio` | 0.0 | Lifetime engagement percentage |
-| `EOPRCDEnabled` | 1 | Road condition detection |
-| `EOPAEBEnabled` | 1 | Automatic emergency braking |
-| `EOPGlobaldEnabled` | 1 | Enable global position daemon |
-| `EOPOsmLocalizerEnabled` | 0 | Enable OSM road matching |
-| `EOPSGMLocalizerEnabled` | 0 | Enable SGM geometry matching |
-| `EOPSGMMode` | live | SGM mode: live, map, fused |
-| `EOPMultiCameraCalibEnabled` | 0 | Use camera_calibrationd (multi-camera) |
-| `EOPFactoryCalibrated` | 0 | Device has factory ChArUco calibration |
+| `RecordSnap` | 0 | Manual snap trigger |
+| `TripTotalDistance` | 0.0 | Lifetime total distance (meters) |
+| `TripTotalDrives` | 0 | Lifetime total drives count |
+| `TripUptimeOnroad` | 0.0 | Lifetime onroad time (seconds) |
+| `TripLifetimeEngagementRatio` | 0.0 | Lifetime engagement percentage |
+| `RCDEnabled` | 1 | Road condition detection |
+| `AEBEnabled` | 1 | Automatic emergency braking |
+| `GlobaldEnabled` | 1 | Enable global position daemon |
+| `OsmLocalizerEnabled` | 0 | Enable OSM road matching |
+| `SGMLocalizerEnabled` | 0 | Enable SGM geometry matching |
+| `SGMMode` | live | SGM mode: live, map, fused |
+| `MultiCameraCalibEnabled` | 0 | Use camera_calibrationd (multi-camera) |
+| `FactoryCalibrated` | 0 | Device has factory ChArUco calibration |
 
 ### SocketD Safety Parameters (Layer 1)
 
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `EOPSafetyMaxSteeringAngle` | 2700 | Max steering angle (0.1 deg, 270°) |
-| `EOPSafetyMaxSteeringRate` | 200 | Max steering rate (0.1 deg/s, 20°/s) |
-| `EOPSafetyMaxAngleError` | 240 | Max angle error (0.1 deg, 24°) |
-| `EOPSafetyMaxAccel` | 340 | Max acceleration (Tesla units, ~1.6 m/s²) |
-| `EOPSafetyMinAccel` | 312 | Normal-control floor (Tesla units, ~-2.5 m/s²); explicit AEB has a separately checked envelope |
-| `EOPSafetyHeartbeatTimeout` | 200 | Heartbeat timeout (ms) |
-| `EOPSafetyEventLogEnabled` | 1 | Enable safety event logging |
-| `EOPSafetyEventLogPath` | "/data/safety_violations.log" | Safety log file path |
+| `SafetyMaxSteeringAngle` | 2700 | Max steering angle (0.1 deg, 270°) |
+| `SafetyMaxSteeringRate` | 200 | Max steering rate (0.1 deg/s, 20°/s) |
+| `SafetyMaxAngleError` | 240 | Max angle error (0.1 deg, 24°) |
+| `SafetyMaxAccel` | 340 | Max acceleration (Tesla units, ~1.6 m/s²) |
+| `SafetyMinAccel` | 312 | Normal-control floor (Tesla units, ~-2.5 m/s²); explicit AEB has a separately checked envelope |
+| `SafetyHeartbeatTimeout` | 200 | Heartbeat timeout (ms) |
+| `SafetyEventLogEnabled` | 1 | Enable safety event logging |
+| `SafetyEventLogPath` | "/data/safety_violations.log" | Safety log file path |
 | `EOPSafetyEventLogMaxEvents` | 1000 | Max events to keep in log |
 
 ---
@@ -423,7 +423,7 @@ adaptd ──(adaptiveDrivingState)──► controlsd
 obd2d never interprets proprietary Mode 22 PIDs. All Chinese EV decoding (BYD, MG, GAC, etc.) lives in NavPilot.
 
 ### Device Pairing
-Device advertises as `EXOPILOT 01` / `EXOPILOT 02M` (set via `EOPDeviceName` param). During OS pairing, the BlueZ agent uses `DisplayOnly` capability → phone user must type the 6-digit code shown on the ADAS screen (Passkey Entry, not just tap-to-confirm).
+Device advertises as `EXOPILOT 01` / `EXOPILOT 02M` (set via `DeviceName` param). During OS pairing, the BlueZ agent uses `DisplayOnly` capability → phone user must type the 6-digit code shown on the ADAS screen (Passkey Entry, not just tap-to-confirm).
 
 See `docs/eop/04_Integration/BLE_DESIGN.md` for full architecture.
 

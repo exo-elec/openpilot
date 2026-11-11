@@ -6,7 +6,7 @@ SideD — Side Camera Perception Daemon (Blind Spot / RCTA)
 
 SideD provides side-mounted blind-spot camera perception for **ExoPilot 01M (RK3588)**. It consumes BGR frames from `uvcd` VisionIPC, runs YOLOv8 object detection on the SoC's RKNN NPU (core 1), reprojects detections into BEV (Bird's Eye View), and publishes tracked objects for BSD/RCTA warnings and lane-change blocking.
 
-**Platform:** ExoPilot 01M (requires `EOPSideCamerasEnabled=True`)
+**Platform:** ExoPilot 01M (requires `SideCamerasEnabled=True`)
 
 **Where the models run:**
 - **Object detection** (what BSD and lane-change blocking use): YOLOv8n on RKNN, in-process (`yolo_detector.py`). Left and right both run every frame, 20 Hz each. It does not depend on the PCIe card.
@@ -103,7 +103,7 @@ any stored calibration), then `CalibrationStorage`, then
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPSideCamerasEnabled` | bool | `true` | Master side camera toggle |
+| `SideCamerasEnabled` | bool | `true` | Master side camera toggle |
 Side detection is RKNN; side segmentation is the camera-tier card
 (`segd`, `seg_side`). See `docs/eop/05_Features/CAMERA_ACCEL_TIER.md`.
 

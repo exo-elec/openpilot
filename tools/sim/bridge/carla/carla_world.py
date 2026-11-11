@@ -18,7 +18,7 @@ class CarlaWorld(World):
   - Multiple camera setup (road, wide_road, tele_road)
   - Optional Traffic Manager NPC traffic
   - Weather presets
-  - Vehicle-type-aware physics tuning from EOPVehicleType param
+  - Vehicle-type-aware physics tuning from VehicleType param
   """
 
   # CARLA blueprint mapping for generic size categories
@@ -68,7 +68,7 @@ class CarlaWorld(World):
 
     # Read params
     self.params = Params()
-    sim_platform = self.params.get("EOPSimPlatform") or HARDWARE.get_device_type()
+    sim_platform = self.params.get("SimPlatform") or HARDWARE.get_device_type()
 
     # Hardware geometry (ExoPilot 01M / RK3588)
     self.stereo_baseline = 0.08  # 80mm
@@ -81,10 +81,10 @@ class CarlaWorld(World):
     self.has_side = True  # ExoPilot 01M has side cameras via USB hub
 
     # Read vehicle type from params and load matching platform config
-    vehicle_type_name = self.params.get("EOPVehicleType") or "SUV_C"
+    vehicle_type_name = self.params.get("VehicleType") or "SUV_C"
     vehicle_type_name = vehicle_type_name.upper()
     if not hasattr(VEHICLE, vehicle_type_name):
-      print(f"WARNING: Unknown EOPVehicleType '{vehicle_type_name}', falling back to SUV_C")
+      print(f"WARNING: Unknown VehicleType '{vehicle_type_name}', falling back to SUV_C")
       vehicle_type_name = "SUV_C"
 
     self.platform = getattr(VEHICLE, vehicle_type_name)
@@ -171,7 +171,7 @@ class CarlaWorld(World):
     # Side cameras (UVC, hood fender under side mirrors, pointing backward) — ExoPilot 01M & 02
     self.side_left_camera = None
     self.side_right_camera = None
-    if self.has_side and self.params.get_bool("EOPSideCamerasEnabled"):
+    if self.has_side and self.params.get_bool("SideCamerasEnabled"):
       side_w, side_h = 1280, 720
       # Side cameras: rear-pointing, yawed 30° outward from straight back
       # (parallel to ground — no pitch tilt). Left cam points back+left,
@@ -219,7 +219,7 @@ class CarlaWorld(World):
     # Simulated side-camera perception (publishes sideDetections for bsd.py)
     self.simulated_sided = None
     self._sided_thread = None
-    if self.has_side and self.params.get_bool("EOPSideCamerasEnabled"):
+    if self.has_side and self.params.get_bool("SideCamerasEnabled"):
       from openpilot.tools.sim.lib.simulated_sided import SimulatedSideD
       import functools
       import threading
@@ -234,7 +234,7 @@ class CarlaWorld(World):
     # Traffic light publisher (for TLSC testing)
     self.traffic_light_publisher = None
     self._tl_thread = None
-    if self.params.get_bool("EOPTLSCEnabled"):
+    if self.params.get_bool("TLSCEnabled"):
       from openpilot.tools.sim.lib.traffic_light_publisher import TrafficLightPublisher
       import functools
       import threading

@@ -47,7 +47,7 @@ class MapD:
   """
 
   def __init__(self, enabled_key: str = "ngp_map_enabled", query=None):
-    """`enabled_key`: the param that switches it on (EOP10's shim passes EOPMapdEnabled). `query(lat, lon, radius=)`: the OSM fetch,
+    """`enabled_key`: the param that switches it on (EOP10's shim passes MapdEnabled). `query(lat, lon, radius=)`: the OSM fetch,
     injectable so tests never touch the network."""
     set_daemon_affinity("mapd")
     self.pm = messaging.PubMaster(['mapData'])

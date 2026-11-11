@@ -50,7 +50,7 @@ Wired into the same places every other trigger is wired: the EMA filter in
 `_evaluate_auto_mode()` (medium priority, alongside `low_speed`), the debug
 `triggers`/`confidences` dicts, and `_calculate_confidence()`.
 
-**EOP10:** `dlon.py` + `EOPDLONSpeedLimitEnabled` restored to
+**EOP10:** `dlon.py` + `DLONSpeedLimitEnabled` restored to
 `params_keys.h`. `plannerd.py` already subscribed `mapData`+`navInstruction`
 correctly (both in `ignore_alive`) — no wiring changes needed there.
 
@@ -137,12 +137,12 @@ stop-prediction can switch the planner into E2E mode — a *different*,
 weaker effect than force-stopping the car.
 
 **Concrete behavioral claim:** a user (or engineer) who sets
-`EOPDLONStopPredictionEnabled=0` (or `ngp_lon_dlon_stop_prediction=0`)
+`DLONStopPredictionEnabled=0` (or `ngp_lon_dlon_stop_prediction=0`)
 expecting to disable "the car sometimes force-stops itself when it thinks
 it sees a stop sign/light" will find **it still happens** — the same
 `model.action.shouldStop` signal reaches `force_stop` through two other,
 untoggled paths. The only thing that actually gates `force_stop` as a
-feature is the separate master switch `EOPDLONForceStopsEnabled`
+feature is the separate master switch `DLONForceStopsEnabled`
 (`force_stops_enabled`) — which does work correctly (checked at the top of
 the `if self.force_stops_enabled:` block).
 
@@ -151,7 +151,7 @@ This is a naming/scope mismatch, not dead code like the (now-removed)
 than its name implies once `force_stop` and `traffic_control` are in the
 picture. Not fixed here — the right resolution isn't obvious (gate
 `force_stop`'s stop-prediction contribution behind the same toggle? give
-`traffic_control` its own toggle? rename `EOPDLONStopPredictionEnabled` to
+`traffic_control` its own toggle? rename `DLONStopPredictionEnabled` to
 clarify its actual narrower scope?) and this sits on EOP10, the live
 production branch, so it's a decision worth making deliberately rather than
 unilaterally during an audit.

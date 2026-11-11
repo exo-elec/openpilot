@@ -33,7 +33,7 @@ class TrafficLightPublisher:
   def __init__(self):
     self.pm = messaging.PubMaster(['stereoObjects'])
     self.params = Params()
-    self.enabled = self.params.get_bool("EOPTLSCEnabled")
+    self.enabled = self.params.get_bool("TLSCEnabled")
     self.frame_id = 0
 
   def _get_nearest_traffic_light(self, world, vehicle) -> dict | None:

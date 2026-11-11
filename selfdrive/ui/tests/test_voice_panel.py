@@ -10,7 +10,7 @@ from openpilot.selfdrive.ui.state import UIState
 
 
 class Params:
-  values = {'EOPCloudVoiceEnabled': False, 'EOPVoiceEnabled': True}
+  values = {'CloudVoiceEnabled': False, 'VoiceEnabled': True}
   def __init__(self): self.values = dict(self.values)
   def get_bool(self, key): return self.values.get(key, False)
   def put_bool(self, key, value): self.values[key] = value
@@ -21,17 +21,17 @@ def test_hold_is_gated_release_and_hide_stop_recording():
   params = Params()
   panel = VoicePanel('right', params=params)
   panel.set_recording(True)
-  assert not params.get_bool('EOPVoiceRecording')
-  params.put_bool('EOPCloudVoiceEnabled', True)
+  assert not params.get_bool('VoiceRecording')
+  params.put_bool('CloudVoiceEnabled', True)
   panel.show()
   app.processEvents()
   panel.set_recording(True)
-  assert params.get_bool('EOPVoiceRecording')
+  assert params.get_bool('VoiceRecording')
   panel.set_recording(False)
-  assert not params.get_bool('EOPVoiceRecording')
+  assert not params.get_bool('VoiceRecording')
   panel.set_recording(True)
   panel.hide()
-  assert not params.get_bool('EOPVoiceRecording')
+  assert not params.get_bool('VoiceRecording')
   panel.deleteLater()
 
 

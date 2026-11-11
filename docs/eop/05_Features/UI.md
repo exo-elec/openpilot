@@ -87,85 +87,85 @@ private:
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPLatALCC` | Toggle | Always-on Lane Centering Control (ALCC) |
-| `EOPALCCAllowAlways` | Toggle | ALCC without cruise main |
-| `EOPALCCHoldAtStandstill` | Toggle | Keep lateral torque at stop |
-| `EOPALCCBrakeMode` | ButtonSelect | Maintain/Pause/Disengage |
+| `LatALCC` | Toggle | Always-on Lane Centering Control (ALCC) |
+| `ALCCAllowAlways` | Toggle | ALCC without cruise main |
+| `ALCCHoldAtStandstill` | Toggle | Keep lateral torque at stop |
+| `ALCCBrakeMode` | ButtonSelect | Maintain/Pause/Disengage |
 | `EOPDLATMode` | ButtonSelect | Laneful/Auto/Laneless |
-| `EOPDLPCurvesEnabled` | Toggle | Pre-switch to laneless in curves |
-| `EOPLCAControllerEnabled` | Toggle | Lane Change Assistant |
-| `EOPLCAGapEvalEnabled` | Toggle | Gap evaluation for LCA |
-| `EOPLCABSMEnabled` | Toggle | Use vehicle BSM |
-| `EOPSOCControllerEnabled` | Toggle | Smart Offset Control |
-| `EOPRedControllerEnabled` | Toggle | Road Edge Detection |
-| `EOPAutoLaneChange` | Toggle | Auto lane change on signal |
-| `EOPOneLaneChange` | Toggle | Single lane change limit |
-| `EOPLatLCASpeed` | SpinBox | LCA minimum speed (km/h) |
-| `EOPLaneChangeDelay` | DoubleSpinBox | Delay before lane change (s) |
-| `EOPMinimumLaneWidth` | DoubleSpinBox | Min lane width (m) |
+| `DLPCurvesEnabled` | Toggle | Pre-switch to laneless in curves |
+| `LCAControllerEnabled` | Toggle | Lane Change Assistant |
+| `LCAGapEvalEnabled` | Toggle | Gap evaluation for LCA |
+| `LCABSMEnabled` | Toggle | Use vehicle BSM |
+| `SOCControllerEnabled` | Toggle | Smart Offset Control |
+| `RedControllerEnabled` | Toggle | Road Edge Detection |
+| `AutoLaneChange` | Toggle | Auto lane change on signal |
+| `OneLaneChange` | Toggle | Single lane change limit |
+| `LatLCASpeed` | SpinBox | LCA minimum speed (km/h) |
+| `LaneChangeDelay` | DoubleSpinBox | Delay before lane change (s) |
+| `MinimumLaneWidth` | DoubleSpinBox | Min lane width (m) |
 
 ### 3.3 Section: Longitudinal Control
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPLonExtRadar` | Toggle | External radar addon |
+| `LonExtRadar` | Toggle | External radar addon |
 | `EOPDLONEnabled` | Toggle | Dynamic Longitudinal Profile |
 | `EOPDLONMode` | ButtonSelect | Chill/Auto/Experimental |
-| `EOPVTSCEnabled` | Toggle | Vision Turn Speed Control |
-| `EOPMTSCEnabled` | Toggle | Map Turn Speed Control |
-| `EOPTSCTargetLatAccel` | DoubleSpinBox | Target lateral accel (m/s2) |
-| `EOPMSLCEnabled` | Toggle | Map Speed Limit Control |
-| `EOPMSLCOffsetPercent` | SpinBox | Offset above limit (%) |
-| `EOPMSLCOffsetFixed` | SpinBox | Fixed offset (km/h) |
-| `EOPMapdEnabled` | Toggle | Map Daemon (OSM) |
-| `EOPNavEnabled` | Toggle | Navigation Daemon |
+| `VTSCEnabled` | Toggle | Vision Turn Speed Control |
+| `MTSCEnabled` | Toggle | Map Turn Speed Control |
+| `TSCTargetLatAccel` | DoubleSpinBox | Target lateral accel (m/s2) |
+| `MSLCEnabled` | Toggle | Map Speed Limit Control |
+| `MSLCOffsetPercent` | SpinBox | Offset above limit (%) |
+| `MSLCOffsetFixed` | SpinBox | Fixed offset (km/h) |
+| `MapdEnabled` | Toggle | Map Daemon (OSM) |
+| `NavEnabled` | Toggle | Navigation Daemon |
 | `EOPNavSource` | ButtonSelect | *(Deprecated — NAVD uses Valhalla only, no source selector needed)* |
-| `EOPTLSCEnabled` | Toggle | Traffic Light Speed Control |
-| `EOPTJAEnabled` | Toggle | Traffic Jam Assist |
-| `EOPTJAMaxHoldMinutes` | SpinBox | TJA hold timer (min) |
+| `TLSCEnabled` | Toggle | Traffic Light Speed Control |
+| `TJAEnabled` | Toggle | Traffic Jam Assist |
+| `TJAMaxHoldMinutes` | SpinBox | TJA hold timer (min) |
 
 ### 3.4 Section: Enhanced Perception
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPStereoEnabled` | Toggle | Stereo depth perception |
-| `EOPLeftCameraEnabled` | Toggle | Forward left camera |
-| `EOPRightCameraEnabled` | Toggle | Forward right camera |
-| `EOPSideCamerasSwapped` | Toggle | Swap camera outputs |
-| `EOPGridEnabled` | Toggle | Occupancy grid mapping |
+| `StereoEnabled` | Toggle | Stereo depth perception |
+| `LeftCameraEnabled` | Toggle | Forward left camera |
+| `RightCameraEnabled` | Toggle | Forward right camera |
+| `SideCamerasSwapped` | Toggle | Swap camera outputs |
+| `GridEnabled` | Toggle | Occupancy grid mapping |
 
 ### 3.5 Section: Enhanced Controllers (Stereo Required)
 
 | Parameter | UI Element | Description | Requires |
 |-----------|------------|-------------|----------|
-| `EOPAEBEnabled` | Toggle | Experimental bounded collision mitigation (confirmed forward 77 GHz radar only) | Forward radar |
+| `AEBEnabled` | Toggle | Experimental bounded collision mitigation (confirmed forward 77 GHz radar only) | Forward radar |
 
-**Note:** These toggles are disabled when `EOPStereoEnabled` is false.
+**Note:** These toggles are disabled when `StereoEnabled` is false.
 
 ### 3.6 Section: UI Preferences
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPUIRadarTracks` | Toggle | Display radar tracks |
-| `EOPUIRainbow` | Toggle | Rainbow driving path |
-| `EOPUIDisplayMode` | Toggle | Advanced display mode |
-| `EOPUIHideHudSpeedKph` | SpinBox | Hide HUD above speed |
-| `EOPUIBrightness` | SpinBox | Screen brightness |
+| `UIRadarTracks` | Toggle | Display radar tracks |
+| `UIRainbow` | Toggle | Rainbow driving path |
+| `UIDisplayMode` | Toggle | Advanced display mode |
+| `UIHideHudSpeedKph` | SpinBox | Hide HUD above speed |
+| `UIBrightness` | SpinBox | Screen brightness |
 
 ### 3.7 Section: Device Settings
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPDeviceIsRhd` | Toggle | Right-hand drive mode |
-| `EOPDeviceBeep` | Toggle | Enable warning beep |
-| `EOPDeviceAudibleAlertMode` | ButtonSelect | Std/Warning/Off |
-| `EOPDeviceAutoShutdownIn` | SpinBox | Auto shutdown timer |
+| `DeviceIsRhd` | Toggle | Right-hand drive mode |
+| `DeviceBeep` | Toggle | Enable warning beep |
+| `DeviceAudibleAlertMode` | ButtonSelect | Std/Warning/Off |
+| `DeviceAutoShutdownIn` | SpinBox | Auto shutdown timer |
 
 ### 3.8 Section: Recording
 
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
-| `EOPRecordEnabled` | Toggle | On-road recording |
+| `RecordEnabled` | Toggle | On-road recording |
 
 ---
 
@@ -246,53 +246,53 @@ selfdrive/ui/qt/onroad/
 
 | Section | Parameter | Type | Default | UI Element |
 |---------|-----------|------|---------|------------|
-| **Lateral** | EOPLatALCC | Bool | 0 | Toggle |
-| | EOPALCCAllowAlways | Bool | 0 | Toggle |
-| | EOPALCCHoldAtStandstill | Bool | 0 | Toggle |
-| | EOPALCCBrakeMode | String | "Maintain" | ButtonSelect |
+| **Lateral** | LatALCC | Bool | 0 | Toggle |
+| | ALCCAllowAlways | Bool | 0 | Toggle |
+| | ALCCHoldAtStandstill | Bool | 0 | Toggle |
+| | ALCCBrakeMode | String | "Maintain" | ButtonSelect |
 | | EOPDLATMode | String | "Auto" | ButtonSelect |
-| | EOPDLPCurvesEnabled | Bool | 0 | Toggle |
-| | EOPLCAControllerEnabled | Bool | 0 | Toggle |
-| | EOPLCAGapEvalEnabled | Bool | 0 | Toggle |
-| | EOPLCABSMEnabled | Bool | 0 | Toggle |
-| | EOPSOCControllerEnabled | Bool | 0 | Toggle |
-| | EOPRedControllerEnabled | Bool | 1 | Toggle |
-| | EOPAutoLaneChange | Bool | 0 | Toggle |
-| | EOPOneLaneChange | Bool | 0 | Toggle |
-| | EOPLatLCASpeed | Int | 0 | SpinBox |
-| | EOPLaneChangeDelay | Float | 1.0 | DoubleSpinBox |
-| | EOPMinimumLaneWidth | Float | 3.0 | DoubleSpinBox |
-| **Longitudinal** | EOPLonExtRadar | Bool | 0 | Toggle |
+| | DLPCurvesEnabled | Bool | 0 | Toggle |
+| | LCAControllerEnabled | Bool | 0 | Toggle |
+| | LCAGapEvalEnabled | Bool | 0 | Toggle |
+| | LCABSMEnabled | Bool | 0 | Toggle |
+| | SOCControllerEnabled | Bool | 0 | Toggle |
+| | RedControllerEnabled | Bool | 1 | Toggle |
+| | AutoLaneChange | Bool | 0 | Toggle |
+| | OneLaneChange | Bool | 0 | Toggle |
+| | LatLCASpeed | Int | 0 | SpinBox |
+| | LaneChangeDelay | Float | 1.0 | DoubleSpinBox |
+| | MinimumLaneWidth | Float | 3.0 | DoubleSpinBox |
+| **Longitudinal** | LonExtRadar | Bool | 0 | Toggle |
 | | EOPDLONEnabled | Bool | 0 | Toggle |
 | | EOPDLONMode | String | "Chill" | ButtonSelect |
-| | EOPVTSCEnabled | Bool | 0 | Toggle |
-| | EOPMTSCEnabled | Bool | 0 | Toggle |
-| | EOPTSCTargetLatAccel | Float | 1.8 | DoubleSpinBox |
-| | EOPMSLCEnabled | Bool | 0 | Toggle |
-| | EOPMSLCOffsetPercent | Int | 0 | SpinBox |
-| | EOPMSLCOffsetFixed | Int | 0 | SpinBox |
-| | EOPMapdEnabled | Bool | 0 | Toggle |
-| | EOPNavEnabled | Bool | 0 | Toggle |
+| | VTSCEnabled | Bool | 0 | Toggle |
+| | MTSCEnabled | Bool | 0 | Toggle |
+| | TSCTargetLatAccel | Float | 1.8 | DoubleSpinBox |
+| | MSLCEnabled | Bool | 0 | Toggle |
+| | MSLCOffsetPercent | Int | 0 | SpinBox |
+| | MSLCOffsetFixed | Int | 0 | SpinBox |
+| | MapdEnabled | Bool | 0 | Toggle |
+| | NavEnabled | Bool | 0 | Toggle |
 | | EOPNavSource | String | "None" | *(Deprecated — Valhalla only)* |
-| | EOPTLSCEnabled | Bool | 0 | Toggle |
-| | EOPTJAEnabled | Bool | 0 | Toggle |
-| | EOPTJAMaxHoldMinutes | Int | 10 | SpinBox |
-| **Enhanced Perception** | EOPStereoEnabled | Bool | 0 | Toggle |
-| | EOPLeftCameraEnabled | Bool | 0 | Toggle |
-| | EOPRightCameraEnabled | Bool | 0 | Toggle |
-| | EOPSideCamerasSwapped | Bool | 0 | Toggle |
-| | EOPGridEnabled | Bool | 0 | Toggle |
-| | EOPAEBEnabled | Bool | 0 | Toggle |
-| **UI** | EOPUIRadarTracks | Bool | 0 | Toggle |
-| | EOPUIRainbow | Bool | 0 | Toggle |
-| | EOPUIDisplayMode | Bool | 0 | Toggle |
-| | EOPUIHideHudSpeedKph | Int | 0 | SpinBox |
-| | EOPUIBrightness | Int | 0 | SpinBox |
-| **Device** | EOPDeviceIsRhd | Bool | 0 | Toggle |
-| | EOPDeviceBeep | Bool | 0 | Toggle |
-| | EOPDeviceAudibleAlertMode | String | "Std." | ButtonSelect |
-| | EOPDeviceAutoShutdownIn | Int | -1 | SpinBox |
-| **Recording** | EOPRecordEnabled | Bool | 1 | Toggle |
+| | TLSCEnabled | Bool | 0 | Toggle |
+| | TJAEnabled | Bool | 0 | Toggle |
+| | TJAMaxHoldMinutes | Int | 10 | SpinBox |
+| **Enhanced Perception** | StereoEnabled | Bool | 0 | Toggle |
+| | LeftCameraEnabled | Bool | 0 | Toggle |
+| | RightCameraEnabled | Bool | 0 | Toggle |
+| | SideCamerasSwapped | Bool | 0 | Toggle |
+| | GridEnabled | Bool | 0 | Toggle |
+| | AEBEnabled | Bool | 0 | Toggle |
+| **UI** | UIRadarTracks | Bool | 0 | Toggle |
+| | UIRainbow | Bool | 0 | Toggle |
+| | UIDisplayMode | Bool | 0 | Toggle |
+| | UIHideHudSpeedKph | Int | 0 | SpinBox |
+| | UIBrightness | Int | 0 | SpinBox |
+| **Device** | DeviceIsRhd | Bool | 0 | Toggle |
+| | DeviceBeep | Bool | 0 | Toggle |
+| | DeviceAudibleAlertMode | String | "Std." | ButtonSelect |
+| | DeviceAutoShutdownIn | Int | -1 | SpinBox |
+| **Recording** | RecordEnabled | Bool | 1 | Toggle |
 
 ---
 

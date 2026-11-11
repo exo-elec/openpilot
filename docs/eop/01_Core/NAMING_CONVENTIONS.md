@@ -206,7 +206,7 @@ Based on analysis of reference forks:
 
 | Element | Pattern | Example | Rationale |
 |---------|---------|---------|-----------|
-| **Parameters** | `EOP<Feature><Param>` | `EOPTJAEnabled`, `EOPVTSCEnabled` | Clear identification in database |
+| **Parameters** | `<Feature><Param>` (no prefix since 2026-11-12) | `TJAEnabled`, `VTSCEnabled` | Clear identification in database |
 | **File Name** | `<feature>.py` | `tja.py`, `vtsc.py` | Clean, no redundant prefix |
 | **Class Name** | `<Feature>Controller` or `<Feature>` | `TJA`, `VTSC` | Module location indicates EOP origin |
 | **Functions** | `snake_case` | `apply_ramp()`, `calculate_speed()` | Python convention |

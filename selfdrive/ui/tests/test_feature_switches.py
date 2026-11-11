@@ -31,14 +31,14 @@ def test_feature_switches_write_both_states_and_lock_when_driving():
 def test_core_eop10_custom_feature_switches_are_exposed():
   switches = {c.key for c in all_controls() if c.kind is Kind.TOGGLE}
   assert {
-    'EOPLatALCC',
-    'EOPTLSCEnabled',
-    'EOPVTSCEnabled',
-    'EOPMTSCEnabled',
-    'EOPMSLCEnabled',
-    'EOPNSLCEnabled',
-    'EOPSQSCEnabled',
-    'EOPCATEnabled',
-    'EOPTJAEnabled',
-    'EOPNeuralNetworkLateralControl',
+    'LatALCC',
+    'TLSCEnabled',
+    'VTSCEnabled',
+    'MTSCEnabled',
+    'MSLCEnabled',
+    'NSLCEnabled',
+    'SQSCEnabled',
+    'CATEnabled',
+    'TJAEnabled',
+    'NeuralNetworkLateralControl',
   } <= switches

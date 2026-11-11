@@ -19,9 +19,9 @@ All 6 bugs below were fixed in the same session.
 | | |
 |---|---|
 | **File** | `selfdrive/controls/lib/aeb.py:460` |
-| **Root cause** | `self.enabled` is read once in `__init__` from `EOPAEBEnabled` param and never refreshed in `update()`. `controlsd` correctly re-reads the param each second and calls `aeb.update()` when enabled, but `AEB.update()` short-circuits at `if not self.enabled` using the stale init-time value. |
+| **Root cause** | `self.enabled` is read once in `__init__` from `AEBEnabled` param and never refreshed in `update()`. `controlsd` correctly re-reads the param each second and calls `aeb.update()` when enabled, but `AEB.update()` short-circuits at `if not self.enabled` using the stale init-time value. |
 | **Failure** | User enables AEB while driving. `controlsd` starts calling `aeb.update()`. AEB always returns `AEBLevel.NONE` because `self.enabled` is still `False`. Emergency braking never fires. No warning logged. |
-| **Fix** | Added `self.enabled = self.params.get_bool("EOPAEBEnabled")` at the top of `update()` before the guard. |
+| **Fix** | Added `self.enabled = self.params.get_bool("AEBEnabled")` at the top of `update()` before the guard. |
 
 ---
 
@@ -53,7 +53,7 @@ All 6 bugs below were fixed in the same session.
 |---|---|
 | **File** | `selfdrive/controls/lib/desire_helper.py:314` |
 | **Root cause** | When BSD aborts a `laneChangeStarting` maneuver, `lane_change_state` goes to `off` and `lane_change_direction` to `none`, but `self.lane_change_completed` (set to `self.one_lane_change` at maneuver start) is not cleared. |
-| **Failure** | `EOPOneLaneChange=True`. BSD aborts mid-maneuver. Driver holds blinker and tries again. `preLaneChange` immediately exits at `if self.lane_change_completed:` (line 272). Vehicle cannot re-attempt a lane change until driver cycles the blinker fully off. |
+| **Failure** | `OneLaneChange=True`. BSD aborts mid-maneuver. Driver holds blinker and tries again. `preLaneChange` immediately exits at `if self.lane_change_completed:` (line 272). Vehicle cannot re-attempt a lane change until driver cycles the blinker fully off. |
 | **Fix** | Added `self.lane_change_completed = False` to the BSD abort block. |
 
 ---

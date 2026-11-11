@@ -9,7 +9,7 @@ Scenarios:
   emergency_brake      — Lead vehicle full brake via VehicleControl
   cyclist_overtake     — Slow-moving bicycle in adjacent lane
 
-Controlled via EOPSimScenario param.
+Controlled via SimScenario param.
 """
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class ScenarioSpawner:
 
   def __init__(self):
     self.params = Params()
-    self.scenario_name = (self.params.get("EOPSimScenario") or "").lower().strip()
+    self.scenario_name = (self.params.get("SimScenario") or "").lower().strip()
     self.active = self.scenario_name in SCENARIOS
     self._spawned = False
     self._actors: list = []

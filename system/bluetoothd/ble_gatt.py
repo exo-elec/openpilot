@@ -11,7 +11,7 @@ GATT layout:
 
 NavPilot writes NCP frames to RX; device notifies on TX.
 Pairing (OS-level): BLE bonding uses the same BlueZ PairingAgent as Classic BT.
-Device is discoverable as the name from 'EOPDeviceName' param (e.g. 'EXOPILOT 01').
+Device is discoverable as the name from 'DeviceName' param (e.g. 'EXOPILOT 01').
 """
 from __future__ import annotations
 
@@ -283,7 +283,7 @@ class GATTD:
 
     def _get_device_name(self) -> str:
         if self.params:
-            name = self.params.get('EOPDeviceName')
+            name = self.params.get('DeviceName')
             if name:
                 return name.decode() if isinstance(name, bytes) else name
         return 'EXOPILOT'

@@ -1,7 +1,7 @@
 """Simulated vehicle for EOP vehicled.
 
 EOP standardizes on Tesla DBC for all vehicle types. This simulator publishes
-Tesla-format CAN messages regardless of the selected EOPVehicleType (which only
+Tesla-format CAN messages regardless of the selected VehicleType (which only
 affects physics tuning, not the CAN protocol).
 """
 import traceback

@@ -14,7 +14,7 @@ Reference:
                      same pattern as VTSC/MTSC.
 
 Activation conditions (all must be true):
-  - EOPTLSCEnabled == 1
+  - TLSCEnabled == 1
   - No lead vehicle present (radarState.leadOne.status == False)
   - A traffic light with state red or yellow at dRel in [MIN_DIST, MAX_DIST]
   - trafficLightConfidence >= CONFIDENCE_THRESHOLD
@@ -47,7 +47,7 @@ class TLSC:
 
     def __init__(self) -> None:
         self._params = Params()
-        self.enabled = self._params.get_bool("EOPTLSCEnabled")
+        self.enabled = self._params.get_bool("TLSCEnabled")
         self._v_target: float | None = None
         self._last_param_t = 0.0
 
@@ -60,7 +60,7 @@ class TLSC:
         now = time.monotonic()
         if now - self._last_param_t >= self.PARAM_REFRESH_S:
             self._last_param_t = now
-            self.enabled = self._params.get_bool("EOPTLSCEnabled")
+            self.enabled = self._params.get_bool("TLSCEnabled")
 
         if not self.enabled:
             self._v_target = None

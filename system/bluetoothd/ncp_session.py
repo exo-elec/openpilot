@@ -256,10 +256,10 @@ class NCPSession:
             if lat is None or lon is None:
                 return protocol.make_error('Missing lat/lon')
             if self.params:
-                self.params.put('EOPNavDestination', json.dumps({
+                self.params.put('NavDestination', json.dumps({
                     'latitude': float(lat), 'longitude': float(lon), 'place_name': name,
                 }))
-                self.params.remove('EOPNavDestinationWaypoints')
+                self.params.remove('NavDestinationWaypoints')
             logger.info('%s: navigate → %s (%.5f, %.5f)', self._name, name, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_NAVIGATE)
         except Exception as e:
@@ -269,8 +269,8 @@ class NCPSession:
     def _handle_cancel_nav(self, frame: protocol.Frame) -> protocol.Frame:
         try:
             if self.params:
-                self.params.remove('EOPNavDestination')
-                self.params.remove('EOPNavDestinationWaypoints')
+                self.params.remove('NavDestination')
+                self.params.remove('NavDestinationWaypoints')
             return protocol.make_ack(protocol.MessageType.CMD_CANCEL_NAV)
         except Exception as e:
             return protocol.make_error(f'Cancel failed: {e}')
@@ -278,7 +278,7 @@ class NCPSession:
     def _handle_convoy_lead(self, frame: protocol.Frame) -> protocol.Frame:
         """Lead friend's live position → moving destination (dedicated convoy path).
 
-        Same effect as CMD_NAVIGATE (writes EOPNavDestination, which navd re-routes to);
+        Same effect as CMD_NAVIGATE (writes NavDestination, which navd re-routes to);
         the dedicated type just lets NavPilot distinguish "following a friend" from a
         one-off destination without touching the planner.
         """
@@ -290,11 +290,11 @@ class NCPSession:
             if lat is None or lon is None:
                 return protocol.make_error('Missing lat/lon')
             if self.params:
-                self.params.put('EOPNavDestination', json.dumps({
+                self.params.put('NavDestination', json.dumps({
                     'latitude': float(lat), 'longitude': float(lon),
                     'place_name': f'Convoy: {friend_id}' if friend_id else 'Convoy',
                 }))
-                self.params.remove('EOPNavDestinationWaypoints')
+                self.params.remove('NavDestinationWaypoints')
             logger.info('%s: convoy lead → %s (%.5f, %.5f)', self._name, friend_id, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_CONVOY_LEAD)
         except Exception as e:
@@ -304,8 +304,8 @@ class NCPSession:
     def _handle_convoy_cancel(self, frame: protocol.Frame) -> protocol.Frame:
         try:
             if self.params:
-                self.params.remove('EOPNavDestination')
-                self.params.remove('EOPNavDestinationWaypoints')
+                self.params.remove('NavDestination')
+                self.params.remove('NavDestinationWaypoints')
             logger.info('%s: convoy cancelled', self._name)
             return protocol.make_ack(protocol.MessageType.CMD_CONVOY_CANCEL)
         except Exception as e:
@@ -428,13 +428,13 @@ class NCPSession:
             code = frame.to_json().get('code', '')
             stored = b''
             if self.params:
-                stored = self.params.get('EOPBluetoothPairingPin') or b''
+                stored = self.params.get('BluetoothPairingPin') or b''
             stored_str = stored.decode() if isinstance(stored, bytes) else stored
             if stored_str and code == stored_str:
                 self._is_paired = True
                 if self.params:
-                    self.params.put('EOPNavPilotPaired', '1')
-                    self.params.put('EOPBluetoothPairingActive', '0')
+                    self.params.put('NavPilotPaired', '1')
+                    self.params.put('BluetoothPairingActive', '0')
                 logger.info('%s: NCP pair accepted', self._name)
                 return protocol.Frame.from_json(protocol.MessageType.RESPONSE_PAIR, {'success': True})
             logger.warning('%s: NCP pair rejected (code mismatch)', self._name)
@@ -446,7 +446,7 @@ class NCPSession:
     def _handle_unpair(self, frame: protocol.Frame) -> protocol.Frame:
         self._is_paired = False
         if self.params:
-            self.params.put('EOPNavPilotPaired', '0')
+            self.params.put('NavPilotPaired', '0')
         logger.info('%s: unpaired', self._name)
         return protocol.make_ack(protocol.MessageType.CMD_UNPAIR)
 
@@ -466,13 +466,13 @@ class NCPSession:
             return protocol.make_error(f'Search error: {e}')
 
     def _handle_radar_pair_control(self, frame: protocol.Frame) -> protocol.Frame:
-        """navpilot service tool: {"open": bool} → persisted EOPBLERadarPairingOpen
+        """navpilot service tool: {"open": bool} → persisted BLERadarPairingOpen
         param (ble_central re-reads it within its TTL). Mirrors the ACK/error
         reply semantics of the other inbound commands."""
         try:
             open_window = bool(frame.to_json().get('open', False))
             if self.params:
-                self.params.put('EOPBLERadarPairingOpen', '1' if open_window else '0')
+                self.params.put('BLERadarPairingOpen', '1' if open_window else '0')
             logger.info('%s: radar pairing window %s (service tool)',
                         self._name, 'OPEN' if open_window else 'CLOSED')
             return protocol.make_ack(protocol.MessageType.RADAR_PAIR_CONTROL)

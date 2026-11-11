@@ -6,7 +6,7 @@ MonoD — 2-Camera Mono Detection Daemon (RKNN NPU)
 
 MonoD runs neural network inference on **ExoPilot 01M (RK3588)** using the on-chip RKNN NPU. It consumes frames from `v4l2d` VisionIPC, runs YOLOv8 object detection, and publishes calibrated detections fused with stereo depth and driving model outputs. Semantic segmentation is handled by `segd` on the camera-tier card (Hailo-8 / DX-M1M).
 
-**Platform:** RK3588 only (`EOPMonoDEnabled=True`)
+**Platform:** RK3588 only (`MonoDEnabled=True`)
 
 ## Cameras
 
@@ -76,7 +76,7 @@ MonoD runs neural network inference on **ExoPilot 01M (RK3588)** using the on-ch
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPMonoDEnabled` | bool | `true` | Master monod toggle |
+| `MonoDEnabled` | bool | `true` | Master monod toggle |
 
 ## Safety Notes
 

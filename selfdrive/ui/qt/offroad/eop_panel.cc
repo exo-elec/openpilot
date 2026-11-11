@@ -54,43 +54,43 @@ void EopPanel::add_lateral_toggles() {
           "",
       },
       {
-          "EOPLatALCC",
+          "LatALCC",
           tr("Always-on Lane Centering Control (ALCC)"),
           tr("Keeps lateral control active when cruise main is available."
              "\nCan optionally run without cruise and hold at a stop."),
       },
       {
-          "EOPLatRoadEdgeDetection",
+          "LatRoadEdgeDetection",
           tr("Road Edge Detection (RED)"),
           tr("Block lane change when road edge is detected."),
       },
       {
-          "EOPALCCAllowAlways",
+          "ALCCAllowAlways",
           tr("ALCC Without Cruise"),
           tr("Allow ALCC even when cruise main is off. Useful for platforms without LCC button."),
       },
       {
-          "EOPALCCHoldAtStandstill",
+          "ALCCHoldAtStandstill",
           tr("ALCC Hold at Standstill"),
           tr("Keep lateral torque active while stopped if ALCC is engaged."),
       },
       {
-          "EOPDLPCurvesEnabled",
+          "DLPCurvesEnabled",
           tr("Curve Assist (DLP)"),
           tr("Switch to laneless mode pre-emptively for tight curves."),
       },
       {
-          "EOPLCAControllerEnabled",
+          "LCAControllerEnabled",
           tr("Lane Change Assistant (LCA)"),
           tr("Multi-camera blind spot detection for safer lane changes."),
       },
   };
   auto lca_speed_toggle = new ParamSpinBoxControl(
-      "EOPLatLCASpeed", tr("Lane Change Assist (LCA) Speed:"),
+      "LatLCASpeed", tr("Lane Change Assist (LCA) Speed:"),
       tr("Off = Disable Lane Change Assist"), "", 0, 160, 5, tr(" km/h"),
       tr("Off"));
   auto alcc_brake_mode = new ButtonParamControl(
-      "EOPALCCBrakeMode", QString::fromUtf8("　") + tr("ALCC Brake Behaviour"),
+      "ALCCBrakeMode", QString::fromUtf8("　") + tr("ALCC Brake Behaviour"),
       tr("Choose how ALCC responds when the brake pedal is pressed."
          "\nMaintain - keep steering active."
          "\nPause - hold steering until the brake is released."
@@ -102,19 +102,19 @@ void EopPanel::add_lateral_toggles() {
 
   // Auto Lane Change controls
   auto auto_lane_change_toggle = new ParamControl(
-      "EOPAutoLaneChange", tr("Auto Lane Change"),
+      "AutoLaneChange", tr("Auto Lane Change"),
       tr("Enable automatic lane changes when turn signal is activated."), "",
       this);
   lane_change_delay_slider = new ParamDoubleSpinBoxControl(
-      "EOPLaneChangeDelay", tr("Lane Change Delay:"),
+      "LaneChangeDelay", tr("Lane Change Delay:"),
       tr("Delay before executing lane change after turn signal activation."),
       "", 0.5, 5.0, 0.1, tr(" s"), tr(""));
   minimum_lane_width_slider = new ParamDoubleSpinBoxControl(
-      "EOPMinimumLaneWidth", tr("Minimum Lane Width:"),
+      "MinimumLaneWidth", tr("Minimum Lane Width:"),
       tr("Minimum lane width required for lane change assist."), "", 2.0, 4.0,
       0.1, tr(" m"), tr(""));
   auto one_lane_change_toggle = new ParamControl(
-      "EOPOneLaneChange", tr("One Lane Change Only"),
+      "OneLaneChange", tr("One Lane Change Only"),
       tr("Limit to one lane change per turn signal activation for safety."), "",
       this);
 
@@ -157,34 +157,34 @@ void EopPanel::add_enhanced_perception_toggles() {
           "",
       },
       {
-          "EOPStereoEnabled",
+          "StereoEnabled",
           tr("Stereo Depth Perception"),
           tr("Enable stereo vision for 3D object detection and depth "
              "estimation.\nEssential for accurate distance and height "
              "measurements.\nDisabled by default for upstream compatibility."),
       },
       {
-          "EOPLeftCameraEnabled",
+          "LeftCameraEnabled",
           tr("Forward Left Camera Helper"),
           tr("Optional forward-left helper camera for lane change "
              "suggestions.\nBlind-spot logic uses radar; camera assists only "
              "when available."),
       },
       {
-          "EOPRightCameraEnabled",
+          "RightCameraEnabled",
           tr("Forward Right Camera Helper"),
           tr("Optional forward-right helper camera for lane change "
              "suggestions.\nBlind-spot logic uses radar; camera assists only "
              "when available."),
       },
       {
-          "EOPSideCamerasSwapped",
+          "SideCamerasSwapped",
           tr("Swap Left/Right Cameras"),
           tr("Enable if side cameras are physically installed swapped.\n"
              "This corrects the data output without rewiring."),
       },
       {
-          "EOPGridEnabled",
+          "GridEnabled",
           tr("Spatial Mapping (gridd)"),
           tr("Enable occupancy grid mapping for spatial awareness.\nCreates "
              "cost map for path planning and obstacle avoidance.\nUses stereo "
@@ -218,7 +218,7 @@ void EopPanel::add_enhanced_perception_toggles() {
 }
 
 void EopPanel::add_enhanced_controllers_section() {
-  bool has_stereo = params.getBool("EOPStereoEnabled");
+  bool has_stereo = params.getBool("StereoEnabled");
 
   addItem(new LabelControl(QString::fromUtf8("🔮 ") + tr("Enhanced Controllers (Stereo Required)"), ""));
 
@@ -228,7 +228,7 @@ void EopPanel::add_enhanced_controllers_section() {
 
   // Stereo Nudge Toggle
   auto nudge_toggle = new ParamControl(
-      "EOPNudgeEnabled",
+      "NudgeEnabled",
       tr("Stereo Path Nudge"),
       tr("Enable stereo-based path enhancements:\n"
          "• LatNudge — lateral obstacle avoidance using stereo boundaries\n"
@@ -236,11 +236,11 @@ void EopPanel::add_enhanced_controllers_section() {
       "", this);
   nudge_toggle->setEnabled(has_stereo);
   addItem(nudge_toggle);
-  toggles["EOPNudgeEnabled"] = nudge_toggle;
+  toggles["NudgeEnabled"] = nudge_toggle;
 
   // AEB Toggle (with warning)
   auto aeb_toggle = new ParamControl(
-      "EOPAEBEnabled",
+      "AEBEnabled",
       tr("Automatic Emergency Braking (AEB)"),
       tr("⚠️ SAFETY-CRITICAL: Requires extensive testing.\n"
          "RSS-based emergency braking for collision avoidance.\n"
@@ -249,11 +249,11 @@ void EopPanel::add_enhanced_controllers_section() {
       "", this);
   aeb_toggle->setEnabled(has_stereo);
   addItem(aeb_toggle);
-  toggles["EOPAEBEnabled"] = aeb_toggle;
+  toggles["AEBEnabled"] = aeb_toggle;
   
   // RCD Toggle
   auto rcd_toggle = new ParamControl(
-      "EOPRCDEnabled",
+      "RCDEnabled",
       tr("Road Condition Detection (RCD)"),
       tr("Detects wet, icy, snowy, or debris-covered roads.\n"
          "Automatically reduces speed for hazardous conditions.\n"
@@ -261,7 +261,7 @@ void EopPanel::add_enhanced_controllers_section() {
       "", this);
   rcd_toggle->setEnabled(has_stereo);
   addItem(rcd_toggle);
-  toggles["EOPRCDEnabled"] = rcd_toggle;
+  toggles["RCDEnabled"] = rcd_toggle;
 }
 
 void EopPanel::add_longitudinal_toggles() {
@@ -272,34 +272,34 @@ void EopPanel::add_longitudinal_toggles() {
           "",
       },
       {
-          "EOPLonExtRadar",
+          "LonExtRadar",
           tr("Use External Radar"),
           tr("See https://github.com/eFiniLan/openpilot-ext-radar-addon for "
              "more information."),
       },
 
       {
-          "EOPVTSCEnabled",
+          "VTSCEnabled",
           tr("Vision Turn Speed Control (VTSC)"),
           tr("Slow down for upcoming curves (0-250m) using vision data."),
       },
       {
-          "EOPMTSCEnabled",
+          "MTSCEnabled",
           tr("Map Turn Speed Control (MTSC)"),
           tr("Slow down for upcoming curves (250-500m) using OSM data."),
       },
       {
-          "EOPTLSCEnabled",
+          "TLSCEnabled",
           tr("Traffic Light Speed Control (TLSC)"),
           tr("Slow down for yellow/red lights when no lead vehicle is ahead."),
       },
       {
-          "EOPMSLCEnabled",
+          "MSLCEnabled",
           tr("Map Speed Limit Control (MSLC)"),
           tr("Automatically adjust speed based on posted speed limits from OSM."),
       },
       {
-          "EOPTJAEnabled",
+          "TJAEnabled",
           tr("Traffic Jam Assist (TJA)"),
           tr("Gentle acceleration ramp after stops in stop-and-go traffic."),
       },
@@ -321,7 +321,7 @@ void EopPanel::add_longitudinal_toggles() {
       addItem(label);
       continue;
     }
-    if (param == "EOPLonExtRadar" && !vehicle_has_radar_unavailable) {
+    if (param == "LonExtRadar" && !vehicle_has_radar_unavailable) {
       continue;
     }
     has_toggle = true;
@@ -338,7 +338,7 @@ void EopPanel::add_longitudinal_toggles() {
   // or pure ACC directly.
 
   tsc_lat_accel_toggle = new ParamDoubleSpinBoxControl(
-      "EOPTSCTargetLatAccel",
+      "TSCTargetLatAccel",
       QString::fromUtf8("　") + tr("Curve Speed Limit:"),
       tr("Max lateral acceleration for curve speed control. Lower = more cautious."),
       "", 1.0, 2.5, 0.1, tr(" m/s²"), tr(""));
@@ -346,7 +346,7 @@ void EopPanel::add_longitudinal_toggles() {
 
   // BLE navigation app toggle
   addItem(new ParamControl(
-      "EOPNavBleEnabled",
+      "NavBleEnabled",
       QString::fromUtf8("　") + tr("BLE Navigation App"),
       tr("Bluetooth connection for wireless destination input via mobile app."),
       "", this));
@@ -365,23 +365,23 @@ void EopPanel::add_ui_toggles() {
           "",
       },
       {
-          "EOPUIRadarTracks",
+          "UIRadarTracks",
           tr("Display Radar Tracks"),
           "",
       },
       {
-          "EOPUIRainbow",
+          "UIRainbow",
           tr("Rainbow Driving Path"),
           tr("Why not?"),
       },
       {
-          "EOPUIDisplayMode",
+          "UIDisplayMode",
           tr("UI Display Mode"),
           tr("Advanced UI display mode with enhanced visualizations."),
       },
   };
   auto hide_hud = new ParamSpinBoxControl(
-      "EOPUIHideHudSpeedKph", tr("Hide HUD When Moves above:"),
+      "UIHideHudSpeedKph", tr("Hide HUD When Moves above:"),
       tr("To prevent screen burn-in, hide Speed, MAX Speed, and Steering "
          "Icons when the car moves.\nOff = Stock Behavior"),
       "", 0, 120, 5, tr(" km/h"), tr("Off"));
@@ -397,7 +397,7 @@ void EopPanel::add_ui_toggles() {
       has_toggle = true;
       continue;
     }
-    if (param == "EOPUIRadarTracks" && !vehicle_has_long_ctrl) {
+    if (param == "UIRadarTracks" && !vehicle_has_long_ctrl) {
       continue;
     }
 
@@ -420,12 +420,12 @@ void EopPanel::add_car_adaptive_toggles() {
                            tr("Learns and corrects steer ratio and stiffness from real driving data.")));
 
   auto cat_manual_sr_toggle = new ParamControl(
-      "EOPCATManualSREnabled",
+      "CATManualSREnabled",
       tr("Use Fixed Steer Ratio"),
       tr("Disable learning and apply a fixed steer ratio instead."),
       "", this);
   addItem(cat_manual_sr_toggle);
-  toggles["EOPCATManualSREnabled"] = cat_manual_sr_toggle;
+  toggles["CATManualSREnabled"] = cat_manual_sr_toggle;
 }
 
 void EopPanel::add_recording_controls() {
@@ -435,13 +435,13 @@ void EopPanel::add_recording_controls() {
     }
   };
 
-  ensure_bool("EOPRecordEnabled", true);
+  ensure_bool("RecordEnabled", true);
 
   addItem(new LabelControl(tr("Recording"),
                            tr("Enable or disable on-road recording")));
 
   recorders_toggle = new ParamControl(
-      "EOPRecordEnabled", tr("Enable On-Road Recording"),
+      "RecordEnabled", tr("Enable On-Road Recording"),
       tr("When enabled and storage is present, recordd runs "
          "automatically for loop recording, impact detection, and snapshots."),
       "", this);
@@ -453,7 +453,7 @@ void EopPanel::add_calibration_section() {
                            tr("Factory and runtime camera calibration settings.")));
 
   // Factory Calibration Status
-  bool factory_calibrated = params.getBool("EOPFactoryCalibrated");
+  bool factory_calibrated = params.getBool("FactoryCalibrated");
   QString factory_status = factory_calibrated ? tr("✓ Calibrated") : tr("✗ Not Calibrated");
   auto factory_status_label = new LabelControl(
       tr("Factory Calibration Status"),
@@ -485,21 +485,21 @@ void EopPanel::add_gps_rtk_toggles() {
                               "and an NTRIP-capable internet connection for RTK Fixed mode.")));
 
   auto rtk_toggle = new ParamControl(
-      "EOPRTKEnabled",
+      "RTKEnabled",
       tr("Enable RTK GPS"),
       tr("Activate centimeter-level positioning via u-blox ZED-F9P-04B.\n"
          "Baud is auto-negotiated from 38400 (factory) to 115200 on boot."),
       "", this);
   addItem(rtk_toggle);
-  toggles["EOPRTKEnabled"] = rtk_toggle;
+  toggles["RTKEnabled"] = rtk_toggle;
 
   auto ntrip_toggle = new ParamControl(
-      "EOPNTRIPEnabled",
+      "NTRIPEnabled",
       tr("Enable NTRIP Corrections"),
       tr("Receive RTCM3.3 differential corrections for RTK Fixed mode."),
       "", this);
   addItem(ntrip_toggle);
-  toggles["EOPNTRIPEnabled"] = ntrip_toggle;
+  toggles["NTRIPEnabled"] = ntrip_toggle;
 }
 
 void EopPanel::add_vehicle_platform_section() {
@@ -520,10 +520,10 @@ void EopPanel::add_vehicle_platform_section() {
     tr("MPV"),        // Minivan / people mover (D9, X9, Mega, etc.)
   };
 
-  QString current_type = QString::fromStdString(params.get("EOPVehicleType"));
+  QString current_type = QString::fromStdString(params.get("VehicleType"));
   if (current_type.isEmpty()) {
     current_type = "SUV_C";
-    params.put("EOPVehicleType", current_type.toStdString());
+    params.put("VehicleType", current_type.toStdString());
   }
 
   // Map param value to display name
@@ -593,7 +593,7 @@ void EopPanel::add_vehicle_platform_section() {
     }
 
     // Select current item
-    QString current_display = param_to_display(QString::fromStdString(params.get("EOPVehicleType")));
+    QString current_display = param_to_display(QString::fromStdString(params.get("VehicleType")));
     for (int i = 0; i < list->count(); ++i) {
       if (list->item(i)->text() == current_display) {
         list->setCurrentRow(i);
@@ -607,7 +607,7 @@ void EopPanel::add_vehicle_platform_section() {
 
     QObject::connect(list, &QListWidget::itemClicked, [&](QListWidgetItem *item) {
       QString selected = display_to_param(item->text());
-      params.put("EOPVehicleType", selected.toStdString());
+      params.put("VehicleType", selected.toStdString());
       vehicle_type_btn->setText(param_to_display(selected));
       dialog.accept();
     });
@@ -626,24 +626,24 @@ void EopPanel::add_device_toggles() {
           "",
       },
       {
-          "EOPDeviceIsRhd",
+          "DeviceIsRhd",
           tr("Right-Hand Drive Mode"),
           tr("Follow right-hand traffic rules (right-seat driver)."),
       },
       {
-          "EOPDeviceBeep",
+          "DeviceBeep",
           tr("Warning Beep"),
           "",
       }};
   std::vector<QString> audible_alert_mode_texts{tr("Std."), tr("Warning"),
                                                 tr("Off")};
   ButtonParamControl *audible_alert_mode_setting = new ButtonParamControl(
-      "EOPDeviceAudibleAlertMode", tr("Alert Sound"),
+      "DeviceAudibleAlertMode", tr("Alert Sound"),
       tr("Std - all alerts. Warning - warnings only. Off - silent."),
       "", audible_alert_mode_texts);
 
   auto auto_shutdown_toggle = new ParamSpinBoxControl(
-      "EOPDeviceAutoShutdownIn", tr("Auto Shutdown In:"),
+      "DeviceAutoShutdownIn", tr("Auto Shutdown In:"),
       tr("0 mins = Immediately"), "", -5, 300, 5, tr(" mins"), tr("Off"));
 
   QWidget *label = nullptr;
@@ -690,9 +690,9 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
   auto ensure_on = [&](const char *key) {
     if (params.get(key).empty()) params.putBool(key, true);
   };
-  ensure_on("EOPMapdEnabled");    // auto-started by MTSC/MSLC/NAV
-  ensure_on("EOPCATEnabled");     // always learns from driving
-  ensure_on("EOPBSDEnabled");     // safety: blind spot detection always active
+  ensure_on("MapdEnabled");    // auto-started by MTSC/MSLC/NAV
+  ensure_on("CATEnabled");     // always learns from driving
+  ensure_on("BSDEnabled");     // safety: blind spot detection always active
   // driveractivityd is always registered onroad; there is no monitoring-off key.
 
   // ── DRIVING ─────────────────────────────────────────
@@ -723,14 +723,14 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // Register all watched params once in the constructor
   for (const char *p : {
-    "EOPLatLCASpeed", "EOPLonExtRadar",
-    "EOPVTSCEnabled", "EOPMTSCEnabled", "EOPNavBleEnabled",
-    "EOPLCAControllerEnabled",
-    "EOPAutoLaneChange", "EOPLaneChangeDelay", "EOPMinimumLaneWidth", "EOPOneLaneChange",
-    "EOPUIDisplayMode",
-    "EOPMSLCEnabled",
-    "EOPMultiCameraCalibEnabled", "EOPFactoryCalibrated",
-    "EOPRearCameraEnabled",
+    "LatLCASpeed", "LonExtRadar",
+    "VTSCEnabled", "MTSCEnabled", "NavBleEnabled",
+    "LCAControllerEnabled",
+    "AutoLaneChange", "LaneChangeDelay", "MinimumLaneWidth", "OneLaneChange",
+    "UIDisplayMode",
+    "MSLCEnabled",
+    "MultiCameraCalibEnabled", "FactoryCalibrated",
+    "RearCameraEnabled",
   }) {
     fs_watch->addParam(p);
   }
@@ -756,7 +756,7 @@ void EopPanel::updateStates() {
   if (vehicle_has_long_ctrl) {
   }
 
-  tsc_lat_accel_toggle->setVisible(params.getBool("EOPVTSCEnabled") || params.getBool("EOPMTSCEnabled"));
+  tsc_lat_accel_toggle->setVisible(params.getBool("VTSCEnabled") || params.getBool("MTSCEnabled"));
 }
 
 void EopPanel::add_safety_toggles() {
@@ -780,7 +780,7 @@ void EopPanel::add_safety_toggles() {
 
   // BSD chime — user audio preference (BSD itself is always on)
   auto bsd_chime_toggle = new ParamControl(
-      "EOPBSDChimeEnabled",
+      "BSDChimeEnabled",
       tr("BSD Warning Chime"),
       tr("Audible warning when a fast-approaching vehicle enters the blind spot."),
       "", this);
@@ -788,7 +788,7 @@ void EopPanel::add_safety_toggles() {
 
   // BEV Widget toggle
   auto bev_toggle = new ParamControl(
-      "EOPBEVWidgetEnabled",
+      "BEVWidgetEnabled",
       tr("Bird's Eye View (BEV)"),
       tr("Top-down view of vehicle and surrounding objects on the driving screen."),
       "", this);
@@ -802,12 +802,12 @@ void EopPanel::add_voice_ai_toggles() {
       tr("On-board 2-mic pair, processed locally (beamformer + voice-activity detection). Offline.")));
 
   auto voice_toggle = new ParamControl(
-      "EOPVoiceEnabled",
+      "VoiceEnabled",
       tr("Voice Input (Local)"),
       tr("On-device microphone beamforming and voice-activity detection. Offline; no wake word, speech-to-text or cloud assistant yet."),
       "", this);
   addItem(voice_toggle);
-  toggles["EOPVoiceEnabled"] = voice_toggle;
+  toggles["VoiceEnabled"] = voice_toggle;
 }
 
 void EopPanel::add_driver_toggles() {
@@ -817,12 +817,12 @@ void EopPanel::add_driver_toggles() {
 
   // Rear camera toggle (display preference only — driver monitor always runs)
   auto rear_cam_toggle = new ParamControl(
-      "EOPRearCameraEnabled",
+      "RearCameraEnabled",
       tr("Rear Camera"),
       tr("USB rear camera for reverse view. Shows when reverse gear engaged."),
       "", this);
   addItem(rear_cam_toggle);
-  toggles["EOPRearCameraEnabled"] = rear_cam_toggle;
+  toggles["RearCameraEnabled"] = rear_cam_toggle;
 }
 
 void EopPanel::add_monod_toggles() {
@@ -832,43 +832,43 @@ void EopPanel::add_monod_toggles() {
 
   // Master toggle
   auto monod_toggle = new ParamControl(
-      "EOPMonoDEnabled",
+      "MonoDEnabled",
       tr("Enable Long-Range Detection"),
       tr("Activate Hailo-8 inference for distant object detection."
          "\nExtends detection range to 500m using 16mm tele_road camera."),
       "", this);
   addItem(monod_toggle);
-  toggles["EOPMonoDEnabled"] = monod_toggle;
+  toggles["MonoDEnabled"] = monod_toggle;
 
   // Scene segmentation toggle
   auto sceneseg_toggle = new ParamControl(
-      "EOPMonoDSceneSegEnabled",
+      "MonoDSceneSegEnabled",
       tr("Enable Scene Segmentation"),
       tr("Run PP-LiteSeg on tele_road feed for semantic understanding."),
       "", this);
   addItem(sceneseg_toggle);
-  toggles["EOPMonoDSceneSegEnabled"] = sceneseg_toggle;
+  toggles["MonoDSceneSegEnabled"] = sceneseg_toggle;
 
   // Camera toggles
   auto wide_toggle = new ParamControl(
-      "EOPMonoDWideEnabled",
+      "MonoDWideEnabled",
       tr("Enable 1.7mm Wide Camera"),
       tr("Use ultra-wide camera for close-range blind spot coverage."),
       "", this);
   addItem(wide_toggle);
-  toggles["EOPMonoDWideEnabled"] = wide_toggle;
+  toggles["MonoDWideEnabled"] = wide_toggle;
 
   auto tele_toggle = new ParamControl(
-      "EOPMonoDTeleEnabled",
+      "MonoDTeleEnabled",
       tr("Enable 16mm TeleRoad Camera"),
       tr("Use tele_road camera for long-range detection (primary MonoD input)."),
       "", this);
   addItem(tele_toggle);
-  toggles["EOPMonoDTeleEnabled"] = tele_toggle;
+  toggles["MonoDTeleEnabled"] = tele_toggle;
 
   // YOLO confidence threshold
   auto yolo_conf = new ParamDoubleSpinBoxControl(
-      "EOPMonoDYoloConf",
+      "MonoDYoloConf",
       tr("YOLO Confidence Threshold:"),
       tr("Minimum confidence for object detection. Lower = more detections but more false positives."),
       "", 0.1, 0.9, 0.05, "", "", 0.5);
@@ -876,7 +876,7 @@ void EopPanel::add_monod_toggles() {
 
   // Max tracks
   auto max_tracks = new ParamSpinBoxControl(
-      "EOPMonoDMaxTracks",
+      "MonoDMaxTracks",
       tr("Max Tracked Objects:"),
       tr("Maximum number of objects to track simultaneously."),
       "", 16, 128, 8, "", "", 64);
@@ -890,18 +890,18 @@ void EopPanel::add_pointcloud_toggles() {
 
   // Master toggle
   auto pc_toggle = new ParamControl(
-      "EOPPointcloudEnabled",
+      "PointcloudEnabled",
       tr("Enable Point Cloud Recording"),
       tr("Save 3D reconstructions from stereo depth to SD card."
          "\nUsed for fleet mapping and digital twin generation."
          "\nDoes not affect core ADAS functionality."),
       "", this);
   addItem(pc_toggle);
-  toggles["EOPPointcloudEnabled"] = pc_toggle;
+  toggles["PointcloudEnabled"] = pc_toggle;
 
   // Recording rate
   auto pc_rate = new ParamSpinBoxControl(
-      "EOPPointcloudRateHz",
+      "PointcloudRateHz",
       tr("Recording Rate (Hz):"),
       tr("Frame rate for point cloud capture. Higher = more data but more storage."),
       "", 1, 20, 1, " Hz", "", 5);
@@ -909,7 +909,7 @@ void EopPanel::add_pointcloud_toggles() {
 
   // Max storage
   auto pc_storage = new ParamDoubleSpinBoxControl(
-      "EOPPointcloudMaxGB",
+      "PointcloudMaxGB",
       tr("Max Storage (GB):"),
       tr("Maximum storage for point clouds. Oldest data auto-deleted when exceeded."),
       "", 1.0, 32.0, 0.5, " GB", "", 4.0);
@@ -917,13 +917,13 @@ void EopPanel::add_pointcloud_toggles() {
 
   // GPU acceleration toggle
   auto pc_gpu = new ParamControl(
-      "EOPPointcloudUseGPU",
+      "PointcloudUseGPU",
       tr("Use GPU Acceleration"),
       tr("Use Mali GPU for 3D reprojection. Faster but uses GPU resources."
          "\nFalls back to CPU if GPU unavailable."),
       "", this);
   addItem(pc_gpu);
-  toggles["EOPPointcloudUseGPU"] = pc_gpu;
+  toggles["PointcloudUseGPU"] = pc_gpu;
 }
 
 void EopPanel::add_globald_toggles() {
@@ -933,27 +933,27 @@ void EopPanel::add_globald_toggles() {
 
   // Master toggle
   auto globald_toggle = new ParamControl(
-      "EOPGlobaldEnabled",
+      "GlobaldEnabled",
       tr("Enable Global Localization"),
       tr("Fuse GPS with OSM road data and SGM point cloud matching."
          "\nProvides accurate lane-level positioning without RTK."),
       "", this);
   addItem(globald_toggle);
-  toggles["EOPGlobaldEnabled"] = globald_toggle;
+  toggles["GlobaldEnabled"] = globald_toggle;
 
   // SGM Localizer toggle
   auto sgm_localizer_toggle = new ParamControl(
-      "EOPSGMLocalizerEnabled",
+      "SGMLocalizerEnabled",
       tr("Enable SGM Point Cloud Matching"),
       tr("Match live stereo point clouds against SGM 3D map tiles."
          "\nRequires pre-built SGM map tiles in /data/maps/sgm/"),
       "", this);
   addItem(sgm_localizer_toggle);
-  toggles["EOPSGMLocalizerEnabled"] = sgm_localizer_toggle;
+  toggles["SGMLocalizerEnabled"] = sgm_localizer_toggle;
 
   // SGM Mode
   auto sgm_mode = new ButtonParamControl(
-      "EOPSGMMode",
+      "SGMMode",
       tr("SGM Matching Mode"),
       tr("Select localization mode:"
          "\nLive - Match against live point clouds only"
@@ -964,7 +964,7 @@ void EopPanel::add_globald_toggles() {
 
   // Confidence threshold
   auto sgm_conf = new ParamDoubleSpinBoxControl(
-      "EOPSGMConfidenceThreshold",
+      "SGMConfidenceThreshold",
       tr("Match Confidence Threshold:"),
       tr("Minimum confidence for SGM position match. Higher = more reliable but fewer matches."),
       "", 0.3, 0.95, 0.05, "", "", 0.7);
@@ -972,7 +972,7 @@ void EopPanel::add_globald_toggles() {
 
   // Max range
   auto sgm_range = new ParamDoubleSpinBoxControl(
-      "EOPSGMMaxRange",
+      "SGMMaxRange",
       tr("Max Matching Range (m):"),
       tr("Maximum search radius for point cloud matching."),
       "", 20.0, 200.0, 10.0, " m", "", 100.0);
@@ -980,21 +980,21 @@ void EopPanel::add_globald_toggles() {
 
   // Auto tile download toggle (for navigation)
   auto auto_tile_toggle = new ParamControl(
-      "EOPAutoTileEnabled",
+      "AutoTileEnabled",
       tr("Auto-Download Map Tiles"),
       tr("Automatically download OSM and SGM tiles based on GPS location."
          "\nRequires internet connection."),
       "", this);
   addItem(auto_tile_toggle);
-  toggles["EOPAutoTileEnabled"] = auto_tile_toggle;
+  toggles["AutoTileEnabled"] = auto_tile_toggle;
 
   auto wifi_only_toggle = new ParamControl(
-      "EOPAutoTileWifiOnly",
+      "AutoTileWifiOnly",
       tr("WiFi-Only Downloads"),
       tr("Only auto-download tiles when connected to WiFi to save cellular data."),
       "", this);
   addItem(wifi_only_toggle);
-  toggles["EOPAutoTileWifiOnly"] = wifi_only_toggle;
+  toggles["AutoTileWifiOnly"] = wifi_only_toggle;
 }
 
 void EopPanel::add_surface_toggles() {
@@ -1004,7 +1004,7 @@ void EopPanel::add_surface_toggles() {
 
   // Grid resolution
   auto grid_res = new ParamDoubleSpinBoxControl(
-      "EOPSurfaceGridResolution",
+      "SurfaceGridResolution",
       tr("Grid Resolution (m):"),
       tr("Size of each grid cell for surface quality mapping."),
       "", 0.1, 1.0, 0.05, " m", "", 0.25);
@@ -1012,7 +1012,7 @@ void EopPanel::add_surface_toggles() {
 
   // Grid range
   auto grid_range = new ParamDoubleSpinBoxControl(
-      "EOPSurfaceGridRange",
+      "SurfaceGridRange",
       tr("Grid Forward Range (m):"),
       tr("How far ahead to map surface conditions."),
       "", 30.0, 150.0, 10.0, " m", "", 60.0);
@@ -1020,7 +1020,7 @@ void EopPanel::add_surface_toggles() {
 
   // Grid width
   auto grid_width = new ParamDoubleSpinBoxControl(
-      "EOPSurfaceGridWidth",
+      "SurfaceGridWidth",
       tr("Grid Width (m):"),
       tr("Lateral coverage of surface quality grid."),
       "", 10.0, 60.0, 5.0, " m", "", 30.0);
@@ -1028,13 +1028,13 @@ void EopPanel::add_surface_toggles() {
 
   // Long horizon toggle
   auto long_horizon = new ParamControl(
-      "EOPSurfaceLongHorizon",
+      "SurfaceLongHorizon",
       tr("Enable Long Horizon"),
       tr("Extend surface quality detection to 100m for highway comfort."
          "\nUses more GPU resources."),
       "", this);
   addItem(long_horizon);
-  toggles["EOPSurfaceLongHorizon"] = long_horizon;
+  toggles["SurfaceLongHorizon"] = long_horizon;
 }
 
 void EopPanel::expandToggleDescription(const QString &param) {

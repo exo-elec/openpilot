@@ -24,7 +24,7 @@ def main() -> int:
 
     ldw = LaneDepartureWarning()
     longitudinal_planner = LongitudinalPlanner(CP)
-    drive_mode = DriveModeApplier(params, EOP_KEYS)  # EOPDriveMode: eco / normal / sport write the style params; custom writes nothing
+    drive_mode = DriveModeApplier(params, EOP_KEYS)  # DriveMode: eco / normal / sport write the style params; custom writes nothing
     pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'speedLimitState', 'ttsRequest'])
     sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
                               'mapData', 'navInstruction', 'stereoObjects', 'surfaceStatus', 'liveLocationKalman',

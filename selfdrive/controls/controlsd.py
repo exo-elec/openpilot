@@ -176,11 +176,11 @@ class Controls:
     if now - self._last_param_t >= self._param_refresh_s:
       self._last_param_t = now
       self._cached_eop_params = {
-        'EOPBSDEnabled': self.params.get_bool("EOPBSDEnabled"),
-        'EOPBSDMinSpeed': float(self.params.get("EOPBSDMinSpeed") or 5.5),
-        'EOPBSDChimeEnabled': self.params.get_bool("EOPBSDChimeEnabled"),
-        'EOPTTSAlertsEnabled': self.params.get_bool("EOPTTSAlertsEnabled"),
-        'EOPAEBEnabled': self.params.get_bool("EOPAEBEnabled"),
+        'BSDEnabled': self.params.get_bool("BSDEnabled"),
+        'BSDMinSpeed': float(self.params.get("BSDMinSpeed") or 5.5),
+        'BSDChimeEnabled': self.params.get_bool("BSDChimeEnabled"),
+        'TTSAlertsEnabled': self.params.get_bool("TTSAlertsEnabled"),
+        'AEBEnabled': self.params.get_bool("AEBEnabled"),
       }
     p = self._cached_eop_params
 
@@ -188,7 +188,7 @@ class Controls:
     # Camera-only operation remains available when a BLE corner is absent.
     # Feature-specific speed/gear gates are owned by RadarZoneMonitor so
     # low-speed cross-traffic warnings are not disabled by the BSD threshold.
-    if p.get('EOPBSDEnabled'):
+    if p.get('BSDEnabled'):
       if self.sm.updated['gridObjects'] and self.sm.valid.get('gridObjects'):
         self.zone_monitor.cache_drivable(self.sm['gridObjects'], now)
       self.zone_monitor.update(
@@ -227,9 +227,9 @@ class Controls:
       zone_msg.blindSpotAlert.lcaBlockedRight = zm.lca_blocked_right
 
       should_chime, _ = zm.chime_request(now)
-      zone_msg.blindSpotAlert.chimeRequest = should_chime and p.get('EOPBSDChimeEnabled', False)
+      zone_msg.blindSpotAlert.chimeRequest = should_chime and p.get('BSDChimeEnabled', False)
 
-      if should_chime and p.get('EOPTTSAlertsEnabled', False):
+      if should_chime and p.get('TTSAlertsEnabled', False):
         alert_txt = zm.alert_message()
         if alert_txt:
           tts_msg = messaging.new_message('ttsRequest')
@@ -348,7 +348,7 @@ class Controls:
       self._tja_resume_alerted = False
 
     # EOP: AEB - Autonomous Emergency Braking
-    if p.get('EOPAEBEnabled', False) and CC.longActive:
+    if p.get('AEBEnabled', False) and CC.longActive:
       aeb_result = self.aeb.update(self.sm, CS)
       if aeb_result.is_active and aeb_result.target_decel < 0 and math.isfinite(aeb_result.target_decel):
         # AEB requests emergency braking - clamp acceleration

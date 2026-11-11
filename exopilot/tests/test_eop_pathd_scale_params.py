@@ -21,7 +21,7 @@ def test_scale_switch_keeps_saved_settings_and_canonical_off_wins(canonical, leg
 
   class Params:
     def get(self, key):
-      assert key == 'EOPPathdFixScaleEnabled'
+      assert key == 'PathdFixScaleEnabled'
       return canonical
 
     def get_bool(self, key):

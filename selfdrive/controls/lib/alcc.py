@@ -64,15 +64,15 @@ class AlccController:
   def __init__(self, CP: car.CarParams):
     self.CP = CP
     self.params = Params()
-    self.enabled_toggle = self.params.get_bool("EOPLatALCC")
-    self.always_allow = self.params.get_bool("EOPALCCAllowAlways")
-    self.hold_at_standstill = self.params.get_bool("EOPALCCHoldAtStandstill")
-    self.unified_engagement = self.params.get_bool("EOPALCCUnifiedEngagement")
+    self.enabled_toggle = self.params.get_bool("LatALCC")
+    self.always_allow = self.params.get_bool("ALCCAllowAlways")
+    self.hold_at_standstill = self.params.get_bool("ALCCHoldAtStandstill")
+    self.unified_engagement = self.params.get_bool("ALCCUnifiedEngagement")
 
     # Steering mode on brake
     try:
       self.steering_mode_on_brake = SteeringModeOnBrake(
-        int(self.params.get("EOPALCCSteeringModeOnBrake") or 1)
+        int(self.params.get("ALCCSteeringModeOnBrake") or 1)
       )
     except (ValueError, TypeError):
       self.steering_mode_on_brake = SteeringModeOnBrake.PAUSE
@@ -102,13 +102,13 @@ class AlccController:
     if now - self._last_param_t < self.PARAM_REFRESH_S:
       return
     self._last_param_t = now
-    self.enabled_toggle = self.params.get_bool("EOPLatALCC")
-    self.always_allow = self.params.get_bool("EOPALCCAllowAlways")
-    self.hold_at_standstill = self.params.get_bool("EOPALCCHoldAtStandstill")
-    self.unified_engagement = self.params.get_bool("EOPALCCUnifiedEngagement")
+    self.enabled_toggle = self.params.get_bool("LatALCC")
+    self.always_allow = self.params.get_bool("ALCCAllowAlways")
+    self.hold_at_standstill = self.params.get_bool("ALCCHoldAtStandstill")
+    self.unified_engagement = self.params.get_bool("ALCCUnifiedEngagement")
     try:
       self.steering_mode_on_brake = SteeringModeOnBrake(
-        int(self.params.get("EOPALCCSteeringModeOnBrake") or 1)
+        int(self.params.get("ALCCSteeringModeOnBrake") or 1)
       )
     except (ValueError, TypeError):
       self.steering_mode_on_brake = SteeringModeOnBrake.PAUSE

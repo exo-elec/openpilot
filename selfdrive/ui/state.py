@@ -428,11 +428,11 @@ class UIState(QObject):
     self._is_metric = bool(self._params.get_bool("IsMetric"))
     # EOP has no Panda, so ignition comes from socketd via this param rather
     # than from pandaState (ui.cc does the same).
-    self._ignition = bool(self._params.get_bool("EOPIgnitionOn"))
-    self._voice_recording = self._params.get_bool("EOPVoiceRecording")
-    self._voice_processing = self._params.get_bool("EOPVoiceProcessing")
-    self._bev_enabled = (self._params.get_bool("EOPUIDisplayMode")
-                         and self._params.get_bool("EOPBEVWidgetEnabled"))
+    self._ignition = bool(self._params.get_bool("IgnitionOn"))
+    self._voice_recording = self._params.get_bool("VoiceRecording")
+    self._voice_processing = self._params.get_bool("VoiceProcessing")
+    self._bev_enabled = (self._params.get_bool("UIDisplayMode")
+                         and self._params.get_bool("BEVWidgetEnabled"))
 
   # ---- reading ----------------------------------------------------------
 

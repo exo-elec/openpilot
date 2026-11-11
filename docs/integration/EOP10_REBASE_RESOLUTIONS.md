@@ -4,7 +4,7 @@
 
 - 5b3273232 overlay conflict: retain saved EOP tip versions for README.md, cereal/log.capnp, common/params_keys.h, exopilot/docs/CODE_BOUNDARY_TASKS.md, exopilot/footprint_budget.json, selfdrive/modeld/SConscript, selfdrive/modeld/modeld.py, selfdrive/selfdrived/events.py, selfdrive/selfdrived/selfdrived.py, system/hardware/hardwared.py, system/manager/process_config.py. The saved tip contains subsequent NGP hooks plus EOP RKNN/daemon adapters and eGPU removal; do not select the old eGPU overlay or lose new baseline contracts. Validate exact final tree after all replay steps.
 
-- 861d8801f services/params: retain current shared+EOP registrations and canonical EOPPathdFixScaleEnabled with legacy alias; omit removed egpuState and Chestnut parameters.
+- 861d8801f services/params: retain current shared+EOP registrations and canonical PathdFixScaleEnabled with legacy alias; omit removed egpuState and Chestnut parameters.
 
 - 70bdcb0fe native settings: reject CHES/EOPEgpuDrivingEnabled toggle; retain saved settings without removed hardware.
 

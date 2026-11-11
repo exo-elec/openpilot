@@ -69,24 +69,24 @@ Wait for " Carla server ready! " in the logs before starting the bridge.
 
 ```bash
 # Platform selection (affects camera geometry)
-params put EOPSimPlatform rk3576    # or rk3588
+params put SimPlatform rk3576    # or rk3588
 
 # Side-camera BSD testing
-params put_bool EOPSideCamerasEnabled 1
+params put_bool SideCamerasEnabled 1
 
 # Traffic light speed controller testing
-params put_bool EOPTLSCEnabled 1
+params put_bool TLSCEnabled 1
 
 # Scenario selection
-params put EOPSimScenario pedestrian_crossing
+params put SimScenario pedestrian_crossing
 # Options: pedestrian_crossing, cut_in, emergency_brake, cyclist_overtake
 
 # Weather selection
-params put EOPSimWeather rain
+params put SimWeather rain
 # Options: clear_day, clear_night, rain, heavy_rain, fog, overcast
 
 # Vehicle type (affects physics tuning)
-params put EOPVehicleType SUV_C
+params put VehicleType SUV_C
 ```
 
 ### 5. Run openpilot Sim Bridge
@@ -101,18 +101,18 @@ The bridge will:
 2. Spawn ego vehicle with platform-specific cameras
 3. Start `SimulatedSideD` (publishes `sideDetections`)
 4. Start `TrafficLightPublisher` (publishes `stereoObjects`)
-5. Spawn scenario actors if `EOPSimScenario` is set
-6. Apply weather preset if `EOPSimWeather` is set
+5. Spawn scenario actors if `SimScenario` is set
+6. Apply weather preset if `SimWeather` is set
 7. Run the openpilot stack (controlsd, plannerd, etc.)
 
 ### 6. Enable Features Under Test
 
 ```bash
 # In a separate terminal while bridge is running:
-params put_bool EOPBSDChimeEnabled 1
-params put_bool EOPTTSAlertsEnabled 1
-params put_bool EOPTLSCEnabled 1
-params put_bool EOPSideCamerasEnabled 1
+params put_bool BSDChimeEnabled 1
+params put_bool TTSAlertsEnabled 1
+params put_bool TLSCEnabled 1
+params put_bool SideCamerasEnabled 1
 ```
 
 ## Platform-Specific Camera Geometry
@@ -162,12 +162,12 @@ params put_bool EOPSideCamerasEnabled 1
 - Try explicit host: `python tools/sim/run_bridge.py --simulator carla --host localhost`
 
 ### No sideDetections published
-- Check `EOPSimPlatform` is `rk3576` (RK3588 has no side cameras)
-- Verify `EOPSideCamerasEnabled` is `1`
+- Check `SimPlatform` is `rk3576` (RK3588 has no side cameras)
+- Verify `SideCamerasEnabled` is `1`
 - Check that NPC vehicles are near ego (within 1.5–5.0m lateral, -20 to +5m longitudinal)
 
 ### No traffic light detections
-- Verify `EOPTLSCEnabled` is `1`
+- Verify `TLSCEnabled` is `1`
 - Ensure town has traffic lights (Town10HD has many)
 - Check ego is within 3–100m of a traffic light and roughly aligned
 

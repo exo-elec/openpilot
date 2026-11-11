@@ -21,7 +21,7 @@ class SimulatedUvc:
   def __init__(self):
     params = Params()
     # Side cameras are available on ExoPilot 01M (RK3588) via USB hub
-    self.enabled = params.get_bool("EOPSideCamerasEnabled")
+    self.enabled = params.get_bool("SideCamerasEnabled")
 
     if not self.enabled:
       return

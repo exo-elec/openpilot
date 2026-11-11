@@ -63,10 +63,10 @@ class TestPersonalityParams:
   def test_custom_params_override_defaults(self):
     from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import _load_personality_params
     p = MockParams()
-    p.put("EOPAggressiveJerk", "0.9")
-    p.put("EOPAggressiveFollow", "1.35")
-    p.put("EOPRelaxedJerk", "1.5")
-    p.put("EOPRelaxedFollow", "2.0")
+    p.put("AggressiveJerk", "0.9")
+    p.put("AggressiveFollow", "1.35")
+    p.put("RelaxedJerk", "1.5")
+    p.put("RelaxedFollow", "2.0")
 
     # Pre-seed mock into the module by calling with a fresh cache
     self._cache['ts'] = 0.0
@@ -83,7 +83,7 @@ class TestPersonalityParams:
   def test_invalid_param_falls_back_to_default(self):
     from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import _load_personality_params
     p = MockParams()
-    p.put("EOPStandardJerk", "not_a_number")
+    p.put("StandardJerk", "not_a_number")
     self._cache['ts'] = 0.0
     self._cache['vals'] = {}
     vals = _load_personality_params(now=time.monotonic())
@@ -95,7 +95,7 @@ class TestPersonalityParams:
     vals1 = _load_personality_params(now=now)
     # Change mock param after cache is populated — cache should shield us
     p = MockParams()
-    p.put("EOPStandardJerk", "99.0")
+    p.put("StandardJerk", "99.0")
     vals2 = _load_personality_params(now=now + 1.0)  # Within 2s TTL
     assert vals1 == vals2
     assert vals2['standard']['jerk'] != 99.0
@@ -105,7 +105,7 @@ class TestPersonalityParams:
     now = time.monotonic()
     _ = _load_personality_params(now=now)
     p = MockParams()
-    p.put("EOPStandardJerk", "3.14")
+    p.put("StandardJerk", "3.14")
     self._cache['ts'] = 0.0  # Force cache expiry
     self._cache['vals'] = {}
     vals2 = _load_personality_params(now=now + 2.5)
@@ -145,7 +145,7 @@ class TestPersonalityParams:
   def test_get_jerk_factor_with_custom_params(self):
     from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import get_jerk_factor
     p = MockParams()
-    p.put("EOPTrafficJerk", "0.6")
+    p.put("TrafficJerk", "0.6")
     self._cache['ts'] = 0.0
     self._cache['vals'] = {}
     jerk = get_jerk_factor(log.LongitudinalPersonality.traffic)
@@ -154,7 +154,7 @@ class TestPersonalityParams:
   def test_get_t_follow_with_custom_params(self):
     from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import get_T_FOLLOW
     p = MockParams()
-    p.put("EOPTrafficFollow", "1.5")
+    p.put("TrafficFollow", "1.5")
     self._cache['ts'] = 0.0
     self._cache['vals'] = {}
     t_follow = get_T_FOLLOW(log.LongitudinalPersonality.traffic)

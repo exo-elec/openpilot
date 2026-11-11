@@ -56,7 +56,7 @@ python selfdrive/navd/tile_manager.py ensure thailand
 **Auto (Recommended):**
 ```bash
 # Enable auto-download (default: enabled)
-python -c "from openpilot.common.params import Params; Params().put_bool('EOPAutoTileEnabled', True)"
+python -c "from openpilot.common.params import Params; Params().put_bool('AutoTileEnabled', True)"
 
 # Auto-detects region from GPS and downloads on WiFi
 python selfdrive/navd/tile_auto_manager.py --daemon
@@ -112,9 +112,9 @@ python selfdrive/navd/tile_manager.py cleanup
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPNavEnabled` | bool | `0` | Enable navigation daemon |
-| `EOPAutoTileEnabled` | bool | `1` | Auto-download tiles based on GPS |
-| `EOPAutoTileWifiOnly` | bool | `1` | Only auto-download on WiFi |
+| `NavEnabled` | bool | `0` | Enable navigation daemon |
+| `AutoTileEnabled` | bool | `1` | Auto-download tiles based on GPS |
+| `AutoTileWifiOnly` | bool | `1` | Only auto-download on WiFi |
 | `NavDestination` | string | `""` | Current destination (JSON) |
 
 ### Valhalla Config

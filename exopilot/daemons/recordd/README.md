@@ -51,14 +51,14 @@ Environment variables:
 - `RECORD_POST_BUFFER_S`: Post-impact recording seconds (default: 30)
 
 Params (UI configurable):
-- `EOPRecorddImpactSensitivity`: 0-100
-- `EOPRecorddPreBufferSec`: Seconds before impact
-- `EOPRecorddPostBufferSec`: Seconds after impact
-- `EOPRecorddParkingEnabled`: Enable parking mode
-- `EOPRecorddParkingHours`: Max parking record time
-- `EOPRecorddQuality`: low/medium/high
-- `EOPRecorddSnapImuMs`: IMU history for snapshots
-- `EOPRecorddSnapAutoG`: Auto-trigger threshold (0=off)
+- `RecorddImpactSensitivity`: 0-100
+- `RecorddPreBufferSec`: Seconds before impact
+- `RecorddPostBufferSec`: Seconds after impact
+- `RecorddParkingEnabled`: Enable parking mode
+- `RecorddParkingHours`: Max parking record time
+- `RecorddQuality`: low/medium/high
+- `RecorddSnapImuMs`: IMU history for snapshots
+- `RecorddSnapAutoG`: Auto-trigger threshold (0=off)
 
 ## Cereal Messages
 

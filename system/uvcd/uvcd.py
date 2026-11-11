@@ -98,8 +98,8 @@ def _find_device(candidates: list[str]) -> str:
 def _load_side_camera_resolution() -> tuple[int, int]:
   """Read resolution from params; default 1280×720 (typical 720p)."""
   try:
-    w = int(_params.get("EOPSideCameraWidth") or "1280")
-    h = int(_params.get("EOPSideCameraHeight") or "720")
+    w = int(_params.get("SideCameraWidth") or "1280")
+    h = int(_params.get("SideCameraHeight") or "720")
     return w, h
   except Exception:
     return 1280, 720
@@ -108,8 +108,8 @@ def _load_side_camera_resolution() -> tuple[int, int]:
 def _load_rear_camera_resolution() -> tuple[int, int]:
   """Read resolution from params; default 1280×720 (720p AHD, matches camera_config.py)."""
   try:
-    w = int(_params.get("EOPRearCameraWidth") or "1280")
-    h = int(_params.get("EOPRearCameraHeight") or "720")
+    w = int(_params.get("RearCameraWidth") or "1280")
+    h = int(_params.get("RearCameraHeight") or "720")
     return w, h
   except Exception:
     return 1280, 720
@@ -119,7 +119,7 @@ def _default_camera_configs() -> list[CameraConfig]:
   configs: list[CameraConfig] = []
 
   # Rear camera (enabled on platforms that report has_rear_camera)
-  if HARDWARE.has_rear_camera() and _params.get_bool("EOPRearCameraEnabled"):
+  if HARDWARE.has_rear_camera() and _params.get_bool("RearCameraEnabled"):
     rw, rh = _load_rear_camera_resolution()
     configs.append(CameraConfig(
       msg_name    = "rearCameraState",
@@ -133,7 +133,7 @@ def _default_camera_configs() -> list[CameraConfig]:
     ))
 
   # Side cameras (enabled on platforms that report has_side_cameras)
-  if HARDWARE.has_side_cameras() and _params.get_bool("EOPSideCamerasEnabled"):
+  if HARDWARE.has_side_cameras() and _params.get_bool("SideCamerasEnabled"):
     sw, sh = _load_side_camera_resolution()
     configs.extend([
       CameraConfig(

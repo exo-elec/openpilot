@@ -53,7 +53,7 @@ WHAT PATHD DOES NOT DO:
 
 ENABLE/DISABLE:
   - Emergency braking: Always active (safety critical)
-  - SOC lateral offset: EOPSOCControllerEnabled (handled by controlsd, not pathd)
+  - SOC lateral offset: SOCControllerEnabled (handled by controlsd, not pathd)
 """
 from __future__ import annotations
 
@@ -248,7 +248,7 @@ class OccupancyGridView:
 
 
 def set_scale_fix(enabled: bool) -> None:
-  """EOPPathdFixScaleEnabled: use the corrected lookup in controls/eop_speed_reduction.py."""
+  """PathdFixScaleEnabled: use the corrected lookup in controls/eop_speed_reduction.py."""
   global _SCALE_FIX
   _SCALE_FIX = bool(enabled)
 
@@ -516,16 +516,16 @@ class PathD:
 
     # Grid-based cluster tracker and predictor (internal track.py)
     # EOP: Track/Predict can be disabled via parameters
-    self._tracker_enabled = self.params.get_bool("EOPTrackEnabled")
-    self._predict_enabled = self.params.get_bool("EOPPredictEnabled")
+    self._tracker_enabled = self.params.get_bool("TrackEnabled")
+    self._predict_enabled = self.params.get_bool("PredictEnabled")
     self._tracker = ObjectTracker() if self._tracker_enabled else None
     self._last_track_time = time.monotonic()
     # Cached params for high-frequency loop (refreshed every 2s)
     self._last_param_t: float = 0.0
-    self._aeb_enabled: bool = self.params.get_bool("EOPAEBEnabled")
-    self._soc_enabled: bool = self.params.get_bool("EOPSOCControllerEnabled")
-    stereo_enabled = self.params.get_bool("EOPStereoEnabled")
-    nudge_enabled = self.params.get_bool("EOPNudgeEnabled")
+    self._aeb_enabled: bool = self.params.get_bool("AEBEnabled")
+    self._soc_enabled: bool = self.params.get_bool("SOCControllerEnabled")
+    stereo_enabled = self.params.get_bool("StereoEnabled")
+    nudge_enabled = self.params.get_bool("NudgeEnabled")
     self._stereo_enabled: bool = stereo_enabled and nudge_enabled
     self._grid_tracks: list[Any] = []
 
@@ -543,7 +543,7 @@ class PathD:
     self.log_counter = 0
 
     # Long horizon planner (500m) - integrates navd + Hybrid A*
-    self._long_horizon_enabled = self.params.get_bool("EOPHybridPlannerEnabled")
+    self._long_horizon_enabled = self.params.get_bool("HybridPlannerEnabled")
     if self._long_horizon_enabled:
       try:
         from openpilot.exopilot.daemons.pathd.osm_hybrid_planner import OsmHybridPlanner
@@ -791,12 +791,12 @@ class PathD:
     if now - self._last_param_t < 2.0:
       return
     self._last_param_t = now
-    self._aeb_enabled = self.params.get_bool("EOPAEBEnabled")
-    scale_fix = self.params.get("EOPPathdFixScaleEnabled")
+    self._aeb_enabled = self.params.get_bool("AEBEnabled")
+    scale_fix = self.params.get("PathdFixScaleEnabled")
     set_scale_fix(self.params.get_bool("ngp_pathd_fix_scale") if scale_fix is None else scale_fix in (True, b"1", "1"))
-    self._soc_enabled = self.params.get_bool("EOPSOCControllerEnabled")
-    stereo_enabled = self.params.get_bool("EOPStereoEnabled")
-    nudge_enabled = self.params.get_bool("EOPNudgeEnabled")
+    self._soc_enabled = self.params.get_bool("SOCControllerEnabled")
+    stereo_enabled = self.params.get_bool("StereoEnabled")
+    nudge_enabled = self.params.get_bool("NudgeEnabled")
     self._stereo_enabled = stereo_enabled and nudge_enabled
 
   def update(self):

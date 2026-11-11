@@ -78,8 +78,8 @@ class SGMLocalizerModule:
         if params is None:
             params = Params()
 
-        self.enabled = params.get_bool("EOPSGMLocalizerEnabled")
-        map_path = params.get("EOPSGMMapPath") or b"/data/maps/sgm"
+        self.enabled = params.get_bool("SGMLocalizerEnabled")
+        map_path = params.get("SGMMapPath") or b"/data/maps/sgm"
         self.map_path = Path(map_path.decode())
 
         # Map tile cache

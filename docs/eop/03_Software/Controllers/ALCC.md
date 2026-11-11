@@ -17,7 +17,7 @@
 
 ## Overview
 
-ALCC is the baseline lateral control mode that keeps the vehicle centered in the lane. It is the default lateral mode when no other lateral feature is explicitly engaged. Unlike stock openpilot which requires cruise control to be active for lane centering, ALCC can operate independently (when `EOPALCCAllowAlways` is enabled).
+ALCC is the baseline lateral control mode that keeps the vehicle centered in the lane. It is the default lateral mode when no other lateral feature is explicitly engaged. Unlike stock openpilot which requires cruise control to be active for lane centering, ALCC can operate independently (when `ALCCAllowAlways` is enabled).
 
 ---
 
@@ -40,10 +40,10 @@ ALCC runs as the default lateral mode in `controlsd.py`:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `EOPALCCEnabled` | 1 | Enable ALCC |
-| `EOPLatALCC` | 1 | Lateral ALCC offset |
-| `EOPALCCAllowAlways` | 0 | ALCC without cruise main |
-| `EOPALCCHoldAtStandstill` | 0 | Keep lateral torque at stop |
-| `EOPALCCBrakeMode` | "Maintain" | Maintain/Pause/Disengage on brake |
+| `LatALCC` | 1 | Lateral ALCC offset |
+| `ALCCAllowAlways` | 0 | ALCC without cruise main |
+| `ALCCHoldAtStandstill` | 0 | Keep lateral torque at stop |
+| `ALCCBrakeMode` | "Maintain" | Maintain/Pause/Disengage on brake |
 
 ---
 
@@ -62,9 +62,9 @@ ALCC runs as the default lateral mode in `controlsd.py`:
 | Condition | Action |
 |-----------|--------|
 | Driver steering override | Temporary disengage, resume when released |
-| Brake pressed | Depends on `EOPALCCBrakeMode` |
+| Brake pressed | Depends on `ALCCBrakeMode` |
 | Turn signal active | May pause (vehicle-dependent) |
-| Standstill | Hold if `EOPALCCHoldAtStandstill` enabled |
+| Standstill | Hold if `ALCCHoldAtStandstill` enabled |
 
 ### Brake Mode Behavior
 

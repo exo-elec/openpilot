@@ -420,7 +420,7 @@ class RED:
     
     def __init__(self):
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPRedControllerEnabled")
+        self.enabled = self.params.get_bool("RedControllerEnabled")
         
         # State
         self.state = REDState.INACTIVE
@@ -553,7 +553,7 @@ class RED:
         Returns:
             Dict with costs, override info, and state
         """
-        self.enabled = self.params.get_bool("EOPRedControllerEnabled")
+        self.enabled = self.params.get_bool("RedControllerEnabled")
         
         if not self.enabled or not is_laneless:
             # RED only active in Laneless mode
@@ -720,7 +720,7 @@ class ControlsD:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `EOPRedControllerEnabled` | Bool | `1` | Master toggle (default on) |
+| `RedControllerEnabled` | Bool | `1` | Master toggle (default on) |
 
 ---
 
@@ -796,7 +796,7 @@ def test_path_override():
 | Design Document | ✅ Complete | This document |
 | Multi-sensor fusion | ✅ Complete | Vision + YOLO + Stereo weights |
 | Core Implementation | ✅ Complete | `selfdrive/controls/lib/red.py` |
-| UI Toggle | ✅ Complete | `EOPRedControllerEnabled` in eop_panel.cc |
+| UI Toggle | ✅ Complete | `RedControllerEnabled` in eop_panel.cc |
 | controlsd Integration | ✅ Complete | Curvature adjustment in Laneless |
 | gridd Integration | ⏳ Pending | Testing with stereo data |
 | Safety Review | ⏳ Pending | High-risk feature |

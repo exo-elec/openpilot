@@ -52,7 +52,7 @@ class TestNSLC:
   def setup_method(self):
     self.nslc = NSLC()
     self.nslc._params = MockParams()
-    self.nslc._params.put("EOPNSLCEnabled", b"1")
+    self.nslc._params.put("NSLCEnabled", b"1")
     self.nslc._enabled = True
     # Neutralize offset and confirmation so tests see raw converted values
     self.nslc._offset.get_offset_ms = lambda limit_ms: 0.0
@@ -112,7 +112,7 @@ class TestNSLC:
     assert status == "unavailable"
 
   def test_disabled_returns_none(self):
-    self.nslc._params.put("EOPNSLCEnabled", b"0")
+    self.nslc._params.put("NSLCEnabled", b"0")
     self.nslc._enabled = False
     map_data = log.MapData.new_message()
     map_data.speedLimit = 50.0

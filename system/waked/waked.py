@@ -23,7 +23,7 @@ def main():
   was_blocked = False
   while True:
     playback.update(0)
-    blocked = params.get_bool('EOPVoiceRecording') or params.get_bool('EOPVoiceProcessing') or (
+    blocked = params.get_bool('VoiceRecording') or params.get_bool('VoiceProcessing') or (
       playback.valid['audioStatus'] and playback['audioStatus'].ttsPlaying)
     if detector and blocked and not was_blocked:
       detector.reset()
@@ -34,7 +34,7 @@ def main():
         if blocked:
           continue
         elif detector.process(bytes(frame.data)):
-          params.put_bool('EOPVoiceWakeTrigger', True)
+          params.put_bool('VoiceWakeTrigger', True)
           blocked = True
     rk.keep_time()
 

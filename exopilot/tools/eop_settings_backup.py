@@ -19,6 +19,7 @@ if os.path.exists('/home/vcar/pilot/openpilot'):
   sys.path.insert(0, '/home/vcar/pilot/openpilot')
 
 from openpilot.common.params import Params
+from exopilot.param_names import FORK_KEYS
 
 
 def export_settings(path: str):
@@ -27,7 +28,7 @@ def export_settings(path: str):
   keys = p.all_keys()
   eop_settings = {}
   for key in keys:
-    if key.startswith("EOP"):
+    if key in FORK_KEYS:
       val = p.get(key)
       if val is not None:
         try:
@@ -51,7 +52,7 @@ def import_settings(path: str):
   imported = 0
   skipped = 0
   for key, val in eop_settings.items():
-    if not key.startswith("EOP"):
+    if key not in FORK_KEYS:
       skipped += 1
       continue
     p.put(key, val.encode('utf-8') if isinstance(val, str) else str(val).encode('utf-8'))

@@ -158,7 +158,7 @@ class NGPDLAT:
     exist in this schema.
 
     ``curve_assist_enabled`` gates DLP curve assist (matches EOP10's
-    ``EOPDLPCurvesEnabled``, default on): when a tight curve is predicted
+    ``DLPCurvesEnabled``, default on): when a tight curve is predicted
     from ``orientationRate``, pre-emptively force laneless instead of
     waiting on the ordinary lane-confidence hysteresis. When disabled,
     curve detection is still computed and reported in the result (for

@@ -41,7 +41,7 @@ class MSLC:
     self._update_params()
 
   def _update_params(self):
-    self.enabled = self.params.get_bool("EOPMSLCEnabled")
+    self.enabled = self.params.get_bool("MSLCEnabled")
 
   def _parse_speed_limit(self, maxspeed_tag):
     if maxspeed_tag is None:

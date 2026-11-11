@@ -139,7 +139,7 @@ Checked directly: `BLECentral.__init__` sets `self._pm = None` (comment:
 "created in start() — never a publisher while disabled"); `PubMaster(['radar2d'])`
 is only constructed inside `start()`, which itself returns early
 (`if not self.enabled: return`) before reaching that line when
-`EOPBluetoothRadarEnabled` is off (default `"0"`). `bluetoothd.py` additionally
+`BluetoothRadarEnabled` is off (default `"0"`). `bluetoothd.py` additionally
 gates the `start()` call itself on `self.ble_central.enabled`. Grepped the
 whole tree for other `PubMaster(['radar2d'])` construction sites — none found
 (`gridd.py` and `ncp_session.py` only ever subscribe to `radar2d`, never

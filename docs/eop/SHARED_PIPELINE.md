@@ -81,9 +81,9 @@ compares all inherited controls, runtime and map Python files.
 
 The EOP-only planner preserves its existing controller adapters and sensor
 inputs; importing a portable core does not enable a second controller.
-EOPDDSCEnabled, EOPPathdNudgesEnabled and EOPSharedSLCOffsets are canonical
+DDSCEnabled, PathdNudgesEnabled and SharedSLCOffsets are canonical
 keys for NGP's portable adapter and are deliberately excluded from the EOP
-UI. EOP retains its existing distraction path, EOPNudgeEnabled and speed
+UI. EOP retains its existing distraction path, NudgeEnabled and speed
 limit offset controls.
 
 The upstream footprint budget records the smaller turn hook (173 added lines,
@@ -91,7 +91,7 @@ previously 177; one more upstream line replaced) and the inherited NGP replay
 README. Other upstream budgets remain unchanged. The direct parent parity
 check covers portable source independently of those documentation edits.
 
-The EOP-only distance-scale fix uses EOPPathdFixScaleEnabled (PDSF in the
+The EOP-only distance-scale fix uses PathdFixScaleEnabled (PDSF in the
 PyQt5 settings). Old ngp_pathd_fix_scale values remain a read fallback when
 the canonical key is absent. It stays off by default; this does not change
 existing speed-reduction behavior automatically.

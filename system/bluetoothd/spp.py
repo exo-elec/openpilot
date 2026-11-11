@@ -147,9 +147,9 @@ class SPPD:
                  session: ncp_session.NCPSession | None = None):
         self.params = params or (Params() if Params else None)
 
-        self.enabled        = self.params.get_bool('EOPSPPEnabled') if self.params else False
-        self.auto_reconnect = self.params.get_bool('EOPSPPAutoReconnect') if self.params else True
-        paired = self.params.get('EOPSPPPairedDevice') if self.params else b''
+        self.enabled        = self.params.get_bool('SPPEnabled') if self.params else False
+        self.auto_reconnect = self.params.get_bool('SPPAutoReconnect') if self.params else True
+        paired = self.params.get('SPPPairedDevice') if self.params else b''
         self.paired_addr    = (paired or b'').decode() if isinstance(paired, bytes) else (paired or '')
 
         self.running = False
@@ -232,7 +232,7 @@ class SPPD:
         self._reconnect_count = 0
         self._reconnect_delay = self.BASE_DELAY
         if self.params:
-            self.params.put('EOPSPPPairedDevice', addr)
+            self.params.put('SPPPairedDevice', addr)
 
     def _on_disconnect(self):
         logger.info('SPP client disconnected')
@@ -311,7 +311,7 @@ class SPPD:
                 if not self.paired_addr:
                     self.paired_addr = addr_str
                     if self.params:
-                        self.params.put('EOPSPPPairedDevice', addr_str)
+                        self.params.put('SPPPairedDevice', addr_str)
                 self._on_connect(sock, addr_str)
                 logger.info('SPP client connected: %s', addr_str)
             except Exception:

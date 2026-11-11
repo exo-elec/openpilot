@@ -80,7 +80,7 @@ class DLAT:
     self._last_param_t = now
     self.mode = DLATMode.auto
     try:
-      self._curve_assist_enabled = self.params.get_bool("EOPDLPCurvesEnabled")
+      self._curve_assist_enabled = self.params.get_bool("DLPCurvesEnabled")
     except (ValueError, TypeError):
       self._curve_assist_enabled = True
 
@@ -168,7 +168,7 @@ class DLAT:
     Predict if there's a curve ahead that warrants laneless mode.
 
     Uses orientation rate from modelV2 to detect upcoming curves.
-    Returns True if curve detected and EOPDLPCurvesEnabled is set.
+    Returns True if curve detected and DLPCurvesEnabled is set.
     """
     if not self._curve_assist_enabled:
       return False

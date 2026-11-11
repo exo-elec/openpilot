@@ -230,7 +230,7 @@ inference while preserving the canonical openpilot driving model's deadlines.
 - [x] Update `system/stated/stated.py`:
   - use `carState.engineRpm`
   - publish `deviceState.started`
-  - sync `EOPIgnitionOn` param
+  - sync `IgnitionOn` param
 - [x] Simulation tooling:
   - block EOP-incompatible daemons in `tools/sim/launch_openpilot.sh`
   - suppress OpenCL compiler warnings in `tools/sim/lib/camera_sim.py`
@@ -285,7 +285,7 @@ Completed:
 ## Known remaining work
 
 - [ ] **On-road validation of the accel-limit fix**: the corrected MAX 415 / MIN 305
-  defaults (and `EOPSafetyMaxAccel`/`EOPSafetyMinAccel` param overrides) should be
+  defaults (and `SafetyMaxAccel`/`SafetyMinAccel` param overrides) should be
   sanity-checked on hardware before relying on layer-1 longitudinal enforcement.
 - [x] **Safety limits duplication**: DONE — `system/socketd/safety/tesla_safety.py`
   is now the single canonical module (TC275 0x712 cross-core checks merged in,
@@ -1009,7 +1009,7 @@ outstanding.
   (per request), then built. Split by branch model, as designed:
   - Backend (`dev/EOP10`, not UI): `SideRearCalibration.reset()` (drops the
     in-progress calibrator, leaves the persisted `sensors_tf.yaml` link
-    alone), `camera_calibrationd.py` polls `EOPSideRearCalibReset` at 4 Hz
+    alone), `camera_calibrationd.py` polls `SideRearCalibReset` at 4 Hz
     and clears it after acting, `common/params_keys.h` gets the new key
     (`CLEAR_ON_MANAGER_START`, same reasoning as `DoReboot`/`DoShutdown`).
     12/12 `test_side_rear_calibration.py` passing (real pytest run against
@@ -1027,7 +1027,7 @@ outstanding.
     `state.py`/`test_state.py` `calibrationState`/`camera_calib` plumbing
     written for the original plan once it turned out unused -- shipping
     live-message infrastructure nothing reads was exactly the kind of
-    unused code worth not carrying. `EOPSideRearCalibReset` is a one-shot
+    unused code worth not carrying. `SideRearCalibReset` is a one-shot
     daemon trigger, not a real toggle, so it's excluded from the generic
     settings descriptor with a reason rather than added there. 7/7
     `test_device_panel.py` passing (real pytest, real Qt offscreen, real
@@ -1219,14 +1219,14 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 ## Launching the daemons (2026-10-04)
 
 - [x] Every `PythonProcess` launched once in `~/work/openpilot`; start-up crashes fixed (see the plan log). 
-- [x] `tripd` (2026-10-04): daily stats now live in one registered JSON param `EOPTripDailyStats` (last 7 days) instead of unregistered `Daily_<date>_*` keys; `json` was also never imported, so the drive-end export would have raised `NameError`.
+- [x] `tripd` (2026-10-04): daily stats now live in one registered JSON param `TripDailyStats` (last 7 days) instead of unregistered `Daily_<date>_*` keys; `json` was also never imported, so the drive-end export would have raised `NameError`.
 - [x] `lagd` "Failed to retrieve initial lag": upstream behaviour (a stale `LiveDelay` param with no `CarParamsPrevRoute`); it logs and falls back. Not a bug.
 - [ ] Dev-PC `Pc` hardware class lacks `get_can_interfaces` and `get_camera_geometry` (socketd, gridd and stereod cannot start on a PC).
 
 ## Final sweep and what remains (2026-10-04)
 
 - Per-file pytest sweep on EOP10 in `~/work/openpilot` (controls, selfdrived, socketd, radar3d, tripd, exopilot, locationd, gridd, pathd, sided, monod tests): everything passes except three stale/environmental files, none touched by this work:
-  `test_brownpanda_contract` (2, NGP10 opendbc checks), `test_desire_helper_lane_confidence` (NGP10-style stubs), and `test_nslc::test_get_nslc_speed_helper` (the helper builds a fresh `NSLC` that reads the real `EOPNSLCEnabled` param, default off; the test was written against a stubbed Params).
+  `test_brownpanda_contract` (2, NGP10 opendbc checks), `test_desire_helper_lane_confidence` (NGP10-style stubs), and `test_nslc::test_get_nslc_speed_helper` (the helper builds a fresh `NSLC` that reads the real `NSLCEnabled` param, default off; the test was written against a stubbed Params).
 - [ ] Decide: dev-PC `Pc` hardware class has no `get_can_interfaces` / `get_camera_geometry` (the ExoPilot HAL provides them on boards). Inventing nominal geometry for the PC would be speculative; `monod/calibration_fusion.py` already falls back to `CameraArrayGeometry.for_platform`, the others (`gridd`, `stereod`, `socketd`) do not.
 - [ ] Hardware / artifacts: driving-model `.onnx`, 02M board checks, card bench, side/rear calibration, on-car drivable-layer check.
 - [ ] Not launched: `modeld` (models), `steamd`/`uvcd`/`sided`/`reard`/`imud`/`v4l2d` (hardware).
@@ -1239,13 +1239,13 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 ## RED / SOC / CAT / lead departure on NGP10, and fork review (2026-10-04)
 
 - [x] Decision: RED, SOC, CAT and lead departure exist on NGP10 in a basic comma-3 form and are extended on EOP10. CAT and RED: shared pure core in `exopilot/controls/` + EOP adapter with old-vs-new equivalence tests (`test_cat_equivalence`, `test_red_equivalence`). SOC: separate designs (NGP: blind-spot/neighbouring-lane vision lead; EOP: tracked objects ahead in `pathd`). Lead departure: shared module, EOP adds speech.
-- [x] RED on EOP10 changed behaviour on purpose: `edge_side` pointed at the edge (nudge pushed toward it) and `prob` does not exist on modelV2 edges, so RED never fired. Now live in laneless mode with the default `EOPRedControllerEnabled=1` (nudge <= 0.002 1/m within 1 m of an edge). Decide whether the default should stay 1 until driven.
+- [x] RED on EOP10 changed behaviour on purpose: `edge_side` pointed at the edge (nudge pushed toward it) and `prob` does not exist on modelV2 edges, so RED never fired. Now live in laneless mode with the default `RedControllerEnabled=1` (nudge <= 0.002 1/m within 1 m of an edge). Decide whether the default should stay 1 until driven.
 - [x] Fork review: `exopilot/docs/FORK_FEATURE_REVIEW.md` (sunnypilot, FrogPilot, CarrotPilot source trees; dragonpilot README only). Added: blinker pause, green-light notice. Next in the doc: lane turn desire, driving-mode bundle, model selector, radar lead validation tools.
 - [ ] 01M/02M: rebase/merge these (CAT/RED adapters touch `selfdrive/controls/lib`; controlsd/selfdrived hooks).
 
 ## Driving modes and lane turn desire (2026-10-04)
 
-- [x] Study first (`exopilot/docs/DRIVE_MODE_AND_TURN_DESIRE_STUDY.md`, numbers read from the code). Driving modes (eco / normal / sport) added on all branches (`ngp_lon_drive_mode` / `EOPDriveMode`, default `custom` writes nothing).
+- [x] Study first (`exopilot/docs/DRIVE_MODE_AND_TURN_DESIRE_STUDY.md`, numbers read from the code). Driving modes (eco / normal / sport) added on all branches (`ngp_lon_drive_mode` / `DriveMode`, default `custom` writes nothing).
 - [x] Lane turn desire: EOP10 already sent turn desires (always on, FrogPilot-derived). NGP10 got an opt-in stricter version. EOP10's code is left as is.
 - [ ] Replay check: do the models react to a turn pulse? Should EOP10 also require lateral active / no lane change?
 
@@ -1276,7 +1276,7 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 - [x] Finding: for same-direction constant-velocity cut-ins, Autoware's collision-time margin equals the headway at entry (gap / v_ego), which our policy already tests next to TTC. No separate margin trigger needed.
 - [ ] In progress (NGP10): corridor from the planned path (`modelV2.position`, y-right flipped once) instead of a fixed straight half width; then the shadow replay on a real route to tune the profiles.
 - [ ] EOP10 carry-over (unchanged, nothing done here): its `bike_hazard` is a boolean from `stereoGround` with a fixed 12 % bump (`pathd/lon_nudge.py`), no class-aware prediction: adopt the shared `ngp_cutin_speed` core through an adapter after NGP10 proof; fix `aeb.py _is_in_path` direction check (see the finding above).
-- [x] pathd study (2026-10-04): EOP10 pathd is a rule-based add-on (cluster tracker, 3 s constant-velocity prediction, speed reduction, LatNudge/LonNudge) published as `enhancedTrajectory`; Hybrid A* is only used for the 500 m OSM/BEV long-horizon path (`EOPHybridPlannerEnabled`), not for the policy steering/accel. NGP10 base layer: pure `ngp_path_selector.py` (Frenet-style sampler, 13 tests, not wired). Details: NGP10 `exopilot/docs/OBJECT_PROTECTION_STUDY.md` section 12. EOP10 carry-over idea: replace `LatNudge`'s stereo-only logic with the shared selector behind an adapter, after NGP10 proof; wiring choice (pathd daemon+message vs hooks) pending the user.
+- [x] pathd study (2026-10-04): EOP10 pathd is a rule-based add-on (cluster tracker, 3 s constant-velocity prediction, speed reduction, LatNudge/LonNudge) published as `enhancedTrajectory`; Hybrid A* is only used for the 500 m OSM/BEV long-horizon path (`HybridPlannerEnabled`), not for the policy steering/accel. NGP10 base layer: pure `ngp_path_selector.py` (Frenet-style sampler, 13 tests, not wired). Details: NGP10 `exopilot/docs/OBJECT_PROTECTION_STUDY.md` section 12. EOP10 carry-over idea: replace `LatNudge`'s stereo-only logic with the shared selector behind an adapter, after NGP10 proof; wiring choice (pathd daemon+message vs hooks) pending the user.
 - [x] NGP10 pathd add-on daemon (2026-10-04, publish-only): `exopilot/runtime/pathd.py` publishes `pathAdjust` (offset, speed factor, clearance, reason; Event @152 there) from the shared pure `ngp_path_selector`; no consumer yet; replay tool reports selector stats. EOP10 carry-over (not done): map `pathAdjust` fields onto `enhancedTrajectory` in an adapter, never run NGP10's `pathd` process next to EOP10's `pathd` (same name). Next on NGP10: replay real routes, tune, then consumers behind opt-in params.
 - [x] **Carried from NGP10 (2026-10-04)**: shared pure cores + adapters + tests + replay tool, inert here; schema aligned (`MonoDetections.modelExecutionTime @4`, `PathAdjust`, Event `pathAdjust @304`, service). 60 pure tests pass. `exopilot.runtime.monod/pathd` are NOT registered here. To do (EOP adapters, not started): feed `ngp_cutin_speed` and `ngp_path_selector` from gridd `trackedObjects`/RKNN `monoDetections` in `longitudinal_planner`/`pathd`; map `pathAdjust` onto `enhancedTrajectory`; fill `modelExecutionTime` in RKNN monod.
 - [x] **pathd control style decided (2026-10-04)**: proposer + envelope with a tighten-only arbiter (`exopilot/controls/ngp_arbiter.py`: speed = min of caps; lateral: same-side offsets do not add, opposite sides cancel, bounded by lane room and 0.6 m); `PathAdjust` carries a horizon profile (`horizonDt`, `offsetProfile`, `speedCapProfile`, append-only). Chosen over scalar nudges and over a replacement trajectory (Hybrid A*) because the policy stays primary and any proposer can plug in. Carried here inert with the toy closed-loop simulator `exopilot/tools/sim_scenarios.py` (70 pure tests pass). Reasoning and results: `exopilot/docs/OBJECT_PROTECTION_STUDY.md` section 15. EOP10 use: a Hybrid-A* or `LatNudge` proposer would emit `Proposal`s instead of writing `enhancedTrajectory` directly (adapter, not started).
@@ -1288,8 +1288,8 @@ commit on `dev/EOP10`, rebased into both UI branches and tested there.
 - [x] **Layering (user, 2026-10-04)**: sensing = monod/stereod, perception = gridd, planning = pathd (only planner). Done: single `pathd`, gridd velocity annotation, `GriddSource`. Still to move later (after proof): EOP10's pathd cluster tracker/predictor (`track.py`, `predict.py`) into gridd's `TrackedObjects`; cut-in prediction to consume gridd's predicted paths; an NGP10 gridd-lite so monod only senses. Study section 20.
 - [x] **NGP10 got a gridd (2026-10-04)**: `exopilot/runtime/gridd_lite.py` (process `gridd` on NGP10 only; NOT registered here, EOP10 has the real gridd) publishes the same `stereoObjects` message; carried here inert with the shared tracker change (the annotator now assigns track ids where a source has none; EOP10's monod already has ids, so nothing changes here), `monod` runtime `detect`/`fill_raw_detections` (NGP10 monod now senses only). EOP10/01M/02M schema already has `CameraObject`/`StereoObjects`. Study section 21.
 - [x] **EOP10 pathd cores moved to the shared base (2026-10-04, user: port as much as possible to NGP10, EOP10 carries it and adds features)**: `LatNudge`, `LonNudge`, `predict` and `compute_speed_reduction` now live in `exopilot/controls/{ngp_lat_nudge,ngp_lon_nudge,ngp_predict,ngp_speed_reduction}.py`; `selfdrive/pathd/{lat_nudge,lon_nudge,predict}.py` are shims, pathd's `compute_speed_reduction` is a wrapper (max depth from HARDWARE, the BEV-grid hit passed in). Verified against outputs recorded from the ORIGINAL modules before the move (`exopilot/tests/eop_golden.json`, `selfdrive/pathd/test/test_shared_cores.py`). **Bug found**: `DISTANCE_SCALE_THRESHOLDS` is a lower-bound table (highest ratio first) but the loop tested `ratio <= threshold`, so the first entry (`inf`, scale 0) always matched: `compute_speed_reduction` never reduced speed for any threat. The shared core fixes the lookup; EOP10 keeps its behaviour unchanged by default (`_SCALE_FIX = False`) and adopts the fix with param `ngp_pathd_fix_scale` (default off) once decided. Sim: EOP10's reactive proposers (in-lane only, no prediction) leave cut-in overlaps unchanged (14/60 runs vs 4-7 for the shared prediction-based logic) and LatNudge ignores object width and is off above 80 km/h.
-- [x] **mapd, tripd, MTSC/MSLC/TLSC/DDSC moved to the shared base (2026-10-04; user: port everything that is not BLE/stereo hardware, not safety, not NPU)**: `selfdrive/mapd/*` and `selfdrive/tripd/tripd.py` are shims over `exopilot/mapd/` and `exopilot/runtime/tripd.py` (EOP10 keeps `EOPMapdEnabled` and the `EOPTrip*` params; its UI and tests unchanged: tripd export + daily-stats tests pass on the built clone through the shim). `exopilot/controls/ngp_{mtsc,mslc,ddsc,tlsc,curve_speed}.py` reproduce the ORIGINALS' recorded outputs (`eop_golden_map.json`); EOP10's `selfdrive/controls/lib/{mtsc,mslc,ddsc,tlsc}.py` are left untouched. **Findings** (checking the originals before porting): (1) the planner applies the MTSC and MSLC target only on the one cycle in twenty when a `mapData` message arrives (it resets the target every cycle and sets it only `if sm.updated['mapData']`); the shared `MapSpeed` adapter holds the result for 3 s: EOP10's planner can adopt it; (2) DDSC is dead on EOP10: nothing publishes `driverStatus` (no camera DMS); the shared adapter feeds it from the driver-activity monitor; (3) MSLC returns no target while the car is more than 10 km/h above it (read as a driver override), so it does not slow a car that is well over a new, lower limit; (4) TLSC has no lane association (any red light in view): the adapter keeps only lights within 3.5 m of the planned path. mapd uses the public Overpass servers: usage-policy and ODbL attribution are decisions for the user.
-- [x] **RCD moved to the shared base (2026-10-04)**: `exopilot/controls/ngp_rcd.py` + `runtime/rcd.py`; `selfdrive/controls/lib/rcd.py` is a shim (`EOPRCDEnabled`, old API kept; segd test updated). Fixed: the cap used to start at ~0.3 m/s and take ~10 s to reach 12 m/s (filter held at 0 with no cap). The planner still calls `RCD().update(sm)` directly (MapSpeed adoption pending). adaptd stays EOP10-only (user); CSLB not ported (nothing writes its DB).
+- [x] **mapd, tripd, MTSC/MSLC/TLSC/DDSC moved to the shared base (2026-10-04; user: port everything that is not BLE/stereo hardware, not safety, not NPU)**: `selfdrive/mapd/*` and `selfdrive/tripd/tripd.py` are shims over `exopilot/mapd/` and `exopilot/runtime/tripd.py` (EOP10 keeps `MapdEnabled` and the `EOPTrip*` params; its UI and tests unchanged: tripd export + daily-stats tests pass on the built clone through the shim). `exopilot/controls/ngp_{mtsc,mslc,ddsc,tlsc,curve_speed}.py` reproduce the ORIGINALS' recorded outputs (`eop_golden_map.json`); EOP10's `selfdrive/controls/lib/{mtsc,mslc,ddsc,tlsc}.py` are left untouched. **Findings** (checking the originals before porting): (1) the planner applies the MTSC and MSLC target only on the one cycle in twenty when a `mapData` message arrives (it resets the target every cycle and sets it only `if sm.updated['mapData']`); the shared `MapSpeed` adapter holds the result for 3 s: EOP10's planner can adopt it; (2) DDSC is dead on EOP10: nothing publishes `driverStatus` (no camera DMS); the shared adapter feeds it from the driver-activity monitor; (3) MSLC returns no target while the car is more than 10 km/h above it (read as a driver override), so it does not slow a car that is well over a new, lower limit; (4) TLSC has no lane association (any red light in view): the adapter keeps only lights within 3.5 m of the planned path. mapd uses the public Overpass servers: usage-policy and ODbL attribution are decisions for the user.
+- [x] **RCD moved to the shared base (2026-10-04)**: `exopilot/controls/ngp_rcd.py` + `runtime/rcd.py`; `selfdrive/controls/lib/rcd.py` is a shim (`RCDEnabled`, old API kept; segd test updated). Fixed: the cap used to start at ~0.3 m/s and take ~10 s to reach 12 m/s (filter held at 0 with no cap). The planner still calls `RCD().update(sm)` directly (MapSpeed adoption pending). adaptd stays EOP10-only (user); CSLB not ported (nothing writes its DB).
 
 ## 2026-10-12: the big-model link is NavPilot's own (carried from dev/NGP10)
 

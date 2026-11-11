@@ -882,23 +882,23 @@ class RecordD:
     def _load_settings(self):
         """Load settings from params."""
         try:
-            self.settings.impact_sensitivity = int(self.params.get("EOPRecorddImpactSensitivity") or "50")
-            self.settings.impact_pre_buffer_sec = float(self.params.get("EOPRecorddPreBufferSec") or "10.0")
-            self.settings.impact_post_buffer_sec = float(self.params.get("EOPRecorddPostBufferSec") or "30.0")
-            self.settings.parking_mode_enabled = self.params.get_bool("EOPRecorddParkingEnabled")
-            self.settings.parking_duration_hours = float(self.params.get("EOPRecorddParkingHours") or "12.0")
-            self.settings.quality = self.params.get("EOPRecorddQuality") or "medium"
-            self.settings.snap_imu_history_ms = int(self.params.get("EOPRecorddSnapImuMs") or "500")
-            self.settings.snap_auto_trigger_g = float(self.params.get("EOPRecorddSnapAutoG") or "2.0")
+            self.settings.impact_sensitivity = int(self.params.get("RecorddImpactSensitivity") or "50")
+            self.settings.impact_pre_buffer_sec = float(self.params.get("RecorddPreBufferSec") or "10.0")
+            self.settings.impact_post_buffer_sec = float(self.params.get("RecorddPostBufferSec") or "30.0")
+            self.settings.parking_mode_enabled = self.params.get_bool("RecorddParkingEnabled")
+            self.settings.parking_duration_hours = float(self.params.get("RecorddParkingHours") or "12.0")
+            self.settings.quality = self.params.get("RecorddQuality") or "medium"
+            self.settings.snap_imu_history_ms = int(self.params.get("RecorddSnapImuMs") or "500")
+            self.settings.snap_auto_trigger_g = float(self.params.get("RecorddSnapAutoG") or "2.0")
         except Exception as e:
             cloudlog.warning(f"Failed to load settings: {e}")
 
     def _save_settings(self):
         """Save settings to params."""
-        self.params.put("EOPRecorddImpactSensitivity", str(self.settings.impact_sensitivity))
-        self.params.put("EOPRecorddPreBufferSec", str(self.settings.impact_pre_buffer_sec))
-        self.params.put("EOPRecorddPostBufferSec", str(self.settings.impact_post_buffer_sec))
-        self.params.put_bool("EOPRecorddParkingEnabled", self.settings.parking_mode_enabled)
+        self.params.put("RecorddImpactSensitivity", str(self.settings.impact_sensitivity))
+        self.params.put("RecorddPreBufferSec", str(self.settings.impact_pre_buffer_sec))
+        self.params.put("RecorddPostBufferSec", str(self.settings.impact_post_buffer_sec))
+        self.params.put_bool("RecorddParkingEnabled", self.settings.parking_mode_enabled)
 
     def _discover_available_streams(self) -> dict[str, set[VisionStreamType]]:
         """Query all known servers for available streams."""
@@ -935,7 +935,7 @@ class RecordD:
             return RecordingMode.IMPACT if self._stats['last_impact_gforce'] > 0 else RecordingMode.EVENT
 
         # Check ignition
-        ignition = self.params.get_bool("EOPIgnitionOn")
+        ignition = self.params.get_bool("IgnitionOn")
 
         if ignition:
             return RecordingMode.NORMAL

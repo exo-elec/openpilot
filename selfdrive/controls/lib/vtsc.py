@@ -38,9 +38,9 @@ _DEFAULT_BUCKET_LAT_ACC = {
 }
 
 _BUCKET_PARAM_KEYS = {
-  CurvatureBucket.MILD:   'EOPTSCTargetLatAccelMild',
-  CurvatureBucket.MEDIUM: 'EOPTSCTargetLatAccelMedium',
-  CurvatureBucket.SHARP:  'EOPTSCTargetLatAccelSharp',
+  CurvatureBucket.MILD:   'TSCTargetLatAccelMild',
+  CurvatureBucket.MEDIUM: 'TSCTargetLatAccelMedium',
+  CurvatureBucket.SHARP:  'TSCTargetLatAccelSharp',
 }
 
 def _bucket_for_kappa(kappa: float) -> CurvatureBucket:
@@ -75,7 +75,7 @@ CAL_MIN_SAMPLES     = 50      # samples before calibrated value is trusted
 CAL_DEFAULT_LAT_ACC = 1.8     # m/s² — initial (and fallback) target
 CAL_MIN_LAT_ACC     = 1.2     # m/s² — safety floor
 CAL_MAX_LAT_ACC     = 2.5     # m/s² — comfort ceiling
-CAL_PARAM_KEY       = "EOPTSCTargetLatAccel"   # legacy global param (used as seed fallback)
+CAL_PARAM_KEY       = "TSCTargetLatAccel"   # legacy global param (used as seed fallback)
 CAL_WRITE_EVERY_S   = 30.0    # write to Params at most every 30 s
 
 
@@ -128,8 +128,8 @@ class VTSC:
     if now - self._last_param_update < self._param_interval:
       return self._cached_enabled, self._cached_curve_learn
     self._last_param_update = now
-    self._cached_enabled = self.params.get_bool("EOPVTSCEnabled")
-    self._cached_curve_learn = self.params.get_bool("EOPCurveSpeedLearnEnabled")
+    self._cached_enabled = self.params.get_bool("VTSCEnabled")
+    self._cached_curve_learn = self.params.get_bool("CurveSpeedLearnEnabled")
     return self._cached_enabled, self._cached_curve_learn
 
   def _calculate_lateral_acceleration(self, v_ego, model_v2):

@@ -94,7 +94,7 @@ class SelfdriveD:
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
-    if not self.params.get_bool("EOPRearCameraEnabled"):
+    if not self.params.get_bool("RearCameraEnabled"):
       ignore += ['rearCameraState']
     _eop_status = ['stereoStatus', 'monoStatus', 'gridStatus', 'pointcloudStatus',
                    'rgaStatus', 'mppStatus', 'inferencedStatus', 'blindSpotAlert']
@@ -116,7 +116,7 @@ class SelfdriveD:
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
-    self.alcc_enabled = self.params.get_bool("EOPLatALCC")
+    self.alcc_enabled = self.params.get_bool("LatALCC")
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     car_recognized = self.CP.brand != 'mock'
@@ -150,7 +150,7 @@ class SelfdriveD:
     self.rk = Ratekeeper(100, print_delay_threshold=None)
 
     # TTS alert announcement tracking
-    self.tts_alerts_enabled = self.params.get_bool("EOPTTSAlertsEnabled")
+    self.tts_alerts_enabled = self.params.get_bool("TTSAlertsEnabled")
     self._last_tts_alert_text = ""  # deduplicate repeated alerts
     self._tts_green_light_active = False
     self._tts_lead_departing_active = False
@@ -161,7 +161,7 @@ class SelfdriveD:
     self._big_model_gate = NGPBigModelGate()
 
     # EOP: Health Monitor — graduated system degradation on thermal/CPU/memory stress
-    self._health_monitor_enabled = self.params.get_bool("EOPHealthMonitorEnabled")
+    self._health_monitor_enabled = self.params.get_bool("HealthMonitorEnabled")
     self._health_cpu_history = []  # CPU usage samples for trend detection
     self._health_thermal_history = []  # Thermal level samples
     self._health_warning_active = False

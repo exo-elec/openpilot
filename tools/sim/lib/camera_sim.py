@@ -20,7 +20,7 @@ class CameraSim:
     params = Params()
     # ExoPilot 01M (RK3588) has no tele camera — that's an ExoPilot 02M feature
     self.tele_camera = False
-    self.stereo_camera = stereo_camera if stereo_camera is not None else params.get_bool("EOPStereoEnabled")
+    self.stereo_camera = stereo_camera if stereo_camera is not None else params.get_bool("StereoEnabled")
 
     pub_types = ['roadCameraState', 'wideRoadCameraState']
     if self.tele_camera:

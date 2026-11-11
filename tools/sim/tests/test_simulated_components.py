@@ -150,7 +150,7 @@ class TestScenarioSpawner:
     os.environ["OPENPILOT_STUB_PARAMS_PYX"] = "1"
     from openpilot.common.params import Params
     p = Params()
-    p.put("EOPSimScenario", "emergency_brake")
+    p.put("SimScenario", "emergency_brake")
     spawner = ScenarioSpawner()
     assert spawner.active is True
     assert spawner.scenario_name == "emergency_brake"

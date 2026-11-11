@@ -45,7 +45,7 @@ class TestSpeedLimitOffset:
   def test_offset_lookup_by_bucket(self):
     p = MockParams()
     # Set offset for bucket 0 (0-29 km/h range, i.e. 0-8.1 m/s)
-    p.put("EOPSLCOffset1", "5.0")  # 5 km/h offset
+    p.put("SLCOffset1", "5.0")  # 5 km/h offset
     slo = SpeedLimitOffset(p)
     slo.refresh(now=time.monotonic())
     # At 5 m/s (18 km/h), should be in bucket 0
@@ -55,7 +55,7 @@ class TestSpeedLimitOffset:
 
   def test_offset_lookup_second_bucket(self):
     p = MockParams()
-    p.put("EOPSLCOffset2", "10.0")  # 10 km/h offset
+    p.put("SLCOffset2", "10.0")  # 10 km/h offset
     slo = SpeedLimitOffset(p)
     slo.refresh(now=time.monotonic())
     # At 10 m/s (36 km/h), should be in bucket 1 (8.1-13.6 m/s)
@@ -65,36 +65,36 @@ class TestSpeedLimitOffset:
 
   def test_offset_cache_avoids_repeated_io(self):
     p = MockParams()
-    p.put("EOPSLCOffset1", "3.0")
+    p.put("SLCOffset1", "3.0")
     slo = SpeedLimitOffset(p)
     slo.refresh(now=0.0)
     first = slo.get_offset_ms(5.0)
-    p.put("EOPSLCOffset1", "99.0")
+    p.put("SLCOffset1", "99.0")
     slo.refresh(now=1.0)  # Within 2s TTL, should not read
     second = slo.get_offset_ms(5.0)
     assert first == second
 
   def test_offset_cache_expires(self):
     p = MockParams()
-    p.put("EOPSLCOffset1", "3.0")
+    p.put("SLCOffset1", "3.0")
     slo = SpeedLimitOffset(p)
     slo.refresh(now=0.0)
     first = slo.get_offset_ms(5.0)
-    p.put("EOPSLCOffset1", "7.0")
+    p.put("SLCOffset1", "7.0")
     slo.refresh(now=3.0)  # Past 2s TTL
     second = slo.get_offset_ms(5.0)
     assert second > first
 
   def test_invalid_param_defaults_to_zero(self):
     p = MockParams()
-    p.put("EOPSLCOffset1", "bad")
+    p.put("SLCOffset1", "bad")
     slo = SpeedLimitOffset(p)
     slo.refresh(now=time.monotonic())
     assert slo.get_offset_ms(5.0) == 0.0
 
   def test_fallback_for_high_speed(self):
     p = MockParams()
-    p.put("EOPSLCOffset7", "15.0")
+    p.put("SLCOffset7", "15.0")
     slo = SpeedLimitOffset(p)
     slo.refresh(now=time.monotonic())
     # 40 m/s (~144 km/h) is above all bucket edges
@@ -163,7 +163,7 @@ class TestSpeedLimitResolver:
     self.resolver.params = MockParams()
 
   def test_policy_none_ignores_all(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"0")
+    self.resolver.params.put("SpeedLimitPolicy", b"0")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=12.0,
@@ -174,7 +174,7 @@ class TestSpeedLimitResolver:
     assert not resolved.active
 
   def test_policy_car_only(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"1")
+    self.resolver.params.put("SpeedLimitPolicy", b"1")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=12.0,
@@ -186,7 +186,7 @@ class TestSpeedLimitResolver:
     assert abs(resolved.limit_mps - 11.0) < 0.01
 
   def test_policy_map_only(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"2")
+    self.resolver.params.put("SpeedLimitPolicy", b"2")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=12.0,
@@ -198,7 +198,7 @@ class TestSpeedLimitResolver:
     assert abs(resolved.limit_mps - 10.0) < 0.01
 
   def test_policy_nav_only(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"3")
+    self.resolver.params.put("SpeedLimitPolicy", b"3")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=12.0,
@@ -210,7 +210,7 @@ class TestSpeedLimitResolver:
     assert abs(resolved.limit_mps - 12.0) < 0.01
 
   def test_policy_both_uses_lowest(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"4")
+    self.resolver.params.put("SpeedLimitPolicy", b"4")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=12.0,
@@ -222,7 +222,7 @@ class TestSpeedLimitResolver:
     assert abs(resolved.limit_mps - 10.0) < 0.01
 
   def test_policy_car_fallback(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"5")
+    self.resolver.params.put("SpeedLimitPolicy", b"5")
     # When MSLC/NSLC available, prefer them
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
@@ -245,7 +245,7 @@ class TestSpeedLimitResolver:
     assert abs(resolved2.limit_mps - 11.0) < 0.01
 
   def test_apply_to_v_cruise_lowers_when_active(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"4")
+    self.resolver.params.put("SpeedLimitPolicy", b"4")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=None,
@@ -257,7 +257,7 @@ class TestSpeedLimitResolver:
     assert abs(v_cruise - 10.0) < 0.01
 
   def test_apply_to_v_cruise_ignores_when_inactive(self):
-    self.resolver.params.put("EOPSpeedLimitPolicy", b"0")
+    self.resolver.params.put("SpeedLimitPolicy", b"0")
     resolved = self.resolver.update(
       mslc_limit_mps=10.0,
       nslc_limit_mps=None,

@@ -793,7 +793,7 @@ on road/path shape and less on lane markings when the markings are faded or
 absent. A stale or missing `controlsState` resolves to no-trigger (neutral),
 matching DLAT's own convention of defaulting to laneful rather than laneless
 when its input is missing. Gated by a new per-trigger toggle,
-`EOPDLONLaneConfidenceEnabled` (default on), following the existing sibling
+`DLONLaneConfidenceEnabled` (default on), following the existing sibling
 pattern — only consulted while `EOPDLONMode` is `Auto`, same scope as the
 other per-trigger toggles.
 

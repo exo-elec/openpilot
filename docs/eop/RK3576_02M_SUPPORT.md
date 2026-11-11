@@ -394,23 +394,23 @@ pattern, not a native SoC pin).
 up via a clean rebase, no conflicts): `eop_utils.py`'s
 `GPS_TOLERANCE_M`/`get_gps_tolerance()` comments claimed ExoPilot has no
 RTK at all, contradicting 02M's RTK-capable hardware and the existing
-`EOPRTKEnabled`/`EOPNTRIPEnabled` UI toggles (both UI-only today — the
+`RTKEnabled`/`NTRIPEnabled` UI toggles (both UI-only today — the
 tolerance value itself, 50.0, is unchanged, since no correction path
 actually flows yet); `radar3d.py`'s docstring said "ExoPilot
 (RK3588/openpilot)" even though the daemon already resolved its UART port
 generically via `HARDWARE.hal_module("pins")` and runs on both boards.
-Also removed a duplicate `EOPNTRIPEnabled`/`EOPRTKEnabled` pair in this
+Also removed a duplicate `NTRIPEnabled`/`RTKEnabled` pair in this
 branch's `params_keys.h` (local to `dev/02M`, not inherited from EOP10).
 
 **Deferred on purpose, not half-built**: an actual NTRIP client daemon.
-`EOPRTKEnabled`/`EOPNTRIPEnabled` are UI toggles with no backend consumer
+`RTKEnabled`/`NTRIPEnabled` are UI toggles with no backend consumer
 today — building one is a new daemon + credential storage +
 `process_config.py` gating, a feature rather than a hardware port, and
 needs real caster host/mountpoint/credentials this session doesn't have.
 
 **Not confirmed, flagged rather than guessed**:
 - `UART["GPS"]`'s baud (460800, from the DTS) conflicts with
-  `selfdrive/ui/settings/descriptor.py`'s `EOPRTKEnabled` copy, which
+  `selfdrive/ui/settings/descriptor.py`'s `RTKEnabled` copy, which
   describes negotiating 38400 (F9P factory default) up to 115200. Left
   both in place rather than silently picking one — needs the team to
   resolve which is actually right.

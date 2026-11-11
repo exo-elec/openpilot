@@ -3,7 +3,7 @@ red.py - Road Edge Detection (RED), ExoPilot version
 
 The shared core (states, temporal filter, repulsive cost, path override, vision-only edges) lives in
 exopilot/controls/ngp_red.py and is also on NGP10. ExoPilot extends it by corroborating each vision edge with YOLO
-barrier detections and stereo depth, classifying the edge type, and running only when EOPRedControllerEnabled is set.
+barrier detections and stereo depth, classifying the edge type, and running only when RedControllerEnabled is set.
 
 Multi-sensor fusion: Vision roadEdges + YOLO barriers + Stereo depth. An edge is kept when the fused confidence reaches
 MIN_FUSED_CONF, or when vision alone is already that confident (so this is never weaker than the vision-only core).
@@ -218,7 +218,7 @@ class RED(NGPRED):
     now = time.monotonic()
     if now - self._last_param_t >= self.PARAM_REFRESH_S:
       self._last_param_t = now
-      self.enabled = self.params.get_bool("EOPRedControllerEnabled")
+      self.enabled = self.params.get_bool("RedControllerEnabled")
 
     # RED only active when enabled AND in Laneless mode
     if not self.enabled or not is_laneless:

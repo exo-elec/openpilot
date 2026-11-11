@@ -42,7 +42,7 @@ for `exopilot/` implementations. A missing old filename alone is not a gap.
 | Feature family | Active target implementation |
 | --- | --- |
 | RK3576 identity, five MIPI roles, 160 mm stereo geometry | `system/hardware/rk3576/`, `system/v4l2d/v4l2d.py`; HAL board data |
-| Telephoto capture/detection/fusion | `CAMERAS_02M`, `teleRoadCameraState`, `exopilot/daemons/monod/monod.py` road/tele fusion, `EOPTeleEnabled` |
+| Telephoto capture/detection/fusion | `CAMERAS_02M`, `teleRoadCameraState`, `exopilot/daemons/monod/monod.py` road/tele fusion, `TeleEnabled` |
 | ISP, AE/AWB and HDR plumbing | `system/v4l2d/isp/` and V4L2 capture; ROS register-driver packages intentionally replaced by BSP/V4L2/ISP |
 | Stereo, occupancy, tracking and path planning | `exopilot/daemons/stereod`, `gridd`, `pathd`; includes Hybrid A* helpers |
 | Surface detection/history and localization constraints | `exopilot/daemons/surfaced`, `coordinationd/{osm_localizer,sgm_localizer}.py` |
@@ -58,7 +58,7 @@ parity or hardware operation.
 
 ## Still incomplete, but not a completed VisionPilot feature lost in the port
 
-- **RTK/NTRIP:** target exposes `EOPRTKEnabled`/`EOPNTRIPEnabled` UI controls,
+- **RTK/NTRIP:** target exposes `RTKEnabled`/`NTRIPEnabled` UI controls,
   but no correction client or RTCM consumer exists. ExoPilot HAL has a
   `send_rtcm()` primitive with no caller. Inspected VisionPilot `src/` also
   has no NTRIP/RTCM implementation; `system/gnss/gnss_node.py` says it

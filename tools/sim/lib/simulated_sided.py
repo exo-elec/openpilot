@@ -34,7 +34,7 @@ class SimulatedSideD:
   def __init__(self):
     self.pm = messaging.PubMaster(['sideDetections', 'sideStatus'])
     self.params = Params()
-    self.enabled = self.params.get_bool("EOPSideCamerasEnabled")
+    self.enabled = self.params.get_bool("SideCamerasEnabled")
     self.rk = Ratekeeper(20, print_delay_threshold=None)
     self.frame_id = 0
 

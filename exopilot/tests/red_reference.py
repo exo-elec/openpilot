@@ -412,7 +412,7 @@ class RED:
     now = time.monotonic()
     if now - self._last_param_t >= self.PARAM_REFRESH_S:
       self._last_param_t = now
-      self.enabled = self.params.get_bool("EOPRedControllerEnabled")
+      self.enabled = self.params.get_bool("RedControllerEnabled")
 
     # RED only active when enabled AND in Laneless mode
     if not self.enabled or not is_laneless:

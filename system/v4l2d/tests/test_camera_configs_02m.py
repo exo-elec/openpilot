@@ -55,12 +55,12 @@ def _roles(configs):
 
 
 def test_nothing_opens_on_02m_without_confirmed_paths(setup):
-  setup({}, EOPTeleEnabled=True, EOPStereoEnabled=True)
+  setup({}, TeleEnabled=True, StereoEnabled=True)
   assert v4l2d._default_camera_configs("rk3576") == []
 
 
 def test_all_five_with_confirmed_paths(setup):
-  setup({r: [f"/dev/video{i}"] for i, r in enumerate(ALL_ROLES)}, EOPTeleEnabled=True, EOPStereoEnabled=True)
+  setup({r: [f"/dev/video{i}"] for i, r in enumerate(ALL_ROLES)}, TeleEnabled=True, StereoEnabled=True)
   configs = v4l2d._default_camera_configs("rk3576")
   assert _roles(configs) == ALL_ROLES
   tele = next(c for c in configs if c.cam_id == "tele_camera")
@@ -83,7 +83,7 @@ def test_stream_name_keys_accepted(setup):
 
 
 def test_partial_table_opens_only_confirmed_roles(setup):
-  setup({"mono_wide": ["/dev/video1"]}, EOPTeleEnabled=True)
+  setup({"mono_wide": ["/dev/video1"]}, TeleEnabled=True)
   assert _roles(v4l2d._default_camera_configs("rk3576")) == ["mono_wide"]
 
 
@@ -114,7 +114,7 @@ def test_i2c_identity_names_the_role():
 
 
 def test_rk3588_keeps_its_four_camera_provider(setup, monkeypatch):
-  setup({}, EOPStereoEnabled=True)
+  setup({}, StereoEnabled=True)
   monkeypatch.setattr(v4l2d, '_find_device', lambda candidates, sensor_name=None, exclude=None: candidates[0])
   configs = v4l2d._default_camera_configs('rk3588')
   assert [c.cam_id for c in configs] == ['road_camera', 'wide_camera', 'stereo_left_camera', 'stereo_right_camera']

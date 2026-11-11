@@ -213,7 +213,7 @@ params.put_bool("EOPStereoForceCPU", True)
 
 ### Disable stereo (if GPU overloaded)
 ```python
-params.put_bool("EOPStereoEnabled", False)
+params.put_bool("StereoEnabled", False)
 ```
 
 ### GPU Governor
