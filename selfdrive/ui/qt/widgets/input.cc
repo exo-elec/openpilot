@@ -117,15 +117,17 @@ InputDialog::InputDialog(const QString &title, QWidget *parent, const QString &s
   if (secret) {
     eye_btn = new QPushButton();
     eye_btn->setCheckable(true);
-    eye_btn->setFixedSize(55, 42);
+    // sized for 1024x600 (comma's 81x54 icons overflowed a 55x42 button)
+    eye_btn->setFixedSize(64, 44);
+    eye_btn->setStyleSheet("QPushButton { border: none; background: transparent; padding: 0; }");
     QObject::connect(eye_btn, &QPushButton::toggled, [=](bool checked) {
       if (checked) {
         eye_btn->setIcon(QIcon(ASSET_PATH + "icons/eye_closed.svg"));
-        eye_btn->setIconSize(QSize(81, 54));
+        eye_btn->setIconSize(QSize(54, 36));
         line->setEchoMode(QLineEdit::Password);
       } else {
         eye_btn->setIcon(QIcon(ASSET_PATH + "icons/eye_open.svg"));
-        eye_btn->setIconSize(QSize(81, 44));
+        eye_btn->setIconSize(QSize(54, 30));
         line->setEchoMode(QLineEdit::Normal);
       }
     });
