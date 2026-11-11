@@ -5,11 +5,14 @@
 
 #include "common/params.h"
 
-class ExperimentalModeButton : public QPushButton {
+// Offroad home card showing the DLON Drive Mode (EOPDlonMode: Highway /
+// Urban / Dynamic). Tapping it opens Settings -> Driving.
+class DriveModeButton : public QPushButton {
   Q_OBJECT
 
 public:
-  explicit ExperimentalModeButton(QWidget* parent = 0);
+  explicit DriveModeButton(QWidget* parent = 0);
+  static QString modeName(int mode);
 
 signals:
   void openSettings(int index = 0, const QString &toggle = "");
@@ -18,13 +21,10 @@ private:
   void showEvent(QShowEvent *event) override;
 
   Params params;
-  bool experimental_mode;
-  int img_width = 70;
+  int mode = 2;
   int horizontal_padding = 20;
-  QPixmap experimental_pixmap;
-  QPixmap chill_pixmap;
+  QLabel *title_label;
   QLabel *mode_label;
-  QLabel *mode_icon;
 
 protected:
   void paintEvent(QPaintEvent *event) override;
