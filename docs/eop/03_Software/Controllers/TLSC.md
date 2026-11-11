@@ -160,7 +160,7 @@ The `TrafficLightPublisher` (`tools/sim/lib/traffic_light_publisher.py`) queries
 
 **Test scenarios:**
 - Town10HD has dense traffic light coverage for intersection testing
-- Set `EOPSimWeather` to `rain` or `fog` to test reduced-visibility behavior
+- Set `SimWeather` to `rain` or `fog` to test reduced-visibility behavior
 
 ---
 

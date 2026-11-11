@@ -117,7 +117,7 @@ class TestOnroad:
     # setup env
     params = Params()
     params.remove("CurrentRoute")
-    params.put_bool("EOPRearCameraEnabled", True)
+    params.put_bool("RearCameraEnabled", True)
     set_params_enabled()
     os.environ['REPLAY'] = '1'
     os.environ['TESTING_CLOSET'] = '1'

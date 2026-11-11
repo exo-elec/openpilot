@@ -101,8 +101,8 @@ def test_the_sim_platform_param_has_no_board_baked_in():
   """params_keys.h is branch-independent, so a board name in a default there
   is wrong on whichever branch does not carry that board."""
   keys = (REPO / "common/params_keys.h").read_text()
-  m = re.search(r'\{"EOPSimPlatform",\s*\{[^}]*\}\}', keys)
-  assert m, "EOPSimPlatform not declared"
+  m = re.search(r'\{"SimPlatform",\s*\{[^}]*\}\}', keys)
+  assert m, "SimPlatform not declared"
   assert "rk3588" not in m.group(0) and "rk3576" not in m.group(0), m.group(0)
 
 

@@ -61,7 +61,7 @@ Most restrictive (lowest speed) wins when multiple sources active.
 | balanced | 0.4 | 50% | 40 | Yes |
 | comfort | 0.2 | 70% | 20 | Yes |
 
-Parameter: `EOPSQSCProfile` = sport / balanced / comfort
+Parameter: `SQSCProfile` = sport / balanced / comfort
 
 ---
 
@@ -114,9 +114,9 @@ Curves already have their own DB (`curve_speeds.db` via CSLB). If a curve also h
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `EOPSQSCRecordMinSpeedKph` | 18 | Below this = traffic/stop, don't record |
-| `EOPSQSCRecordMinLeadM` | 40 | Below this + slow = congestion, don't record |
-| `EOPSQSCRecordMinQuality` | 0.25 | Must have roughness OR shock to record |
+| `SQSCRecordMinSpeedKph` | 18 | Below this = traffic/stop, don't record |
+| `SQSCRecordMinLeadM` | 40 | Below this + slow = congestion, don't record |
+| `SQSCRecordMinQuality` | 0.25 | Must have roughness OR shock to record |
 | `EOPSQSCRecordInterval` | 5.0s | Minimum seconds between recordings |
 
 ---
@@ -191,17 +191,17 @@ if should_record(v_ego, lead_distance, surface_quality, is_curve):
 ## Parameters
 
 ```cpp
-EOPSQSCEnabled               // 1 = enabled
-EOPSQSCProfile               // sport / balanced / comfort
-EOPSQSCSensitivity           // 0.5-2.0 quality multiplier
-EOPSQSCLookaheadEnabled      // 1 = GPS history predictive mode
-EOPSQSCUseLearnedSpeed       // 1 = use recommended_speed_ms from history
-EOPShockDetection            // 1 = IMU shock detection
-EOPShockSpeedLimit           // kph after shock (default 15)
-EOPShockDuration             // seconds at reduced speed (default 3)
-EOPSQSCRecordMinSpeedKph     // min speed to record (default 18)
-EOPSQSCRecordMinLeadM        // min lead distance to record (default 40)
-EOPSQSCRecordMinQuality      // min roughness to record (default 0.25)
+SQSCEnabled               // 1 = enabled
+SQSCProfile               // sport / balanced / comfort
+SQSCSensitivity           // 0.5-2.0 quality multiplier
+SQSCLookaheadEnabled      // 1 = GPS history predictive mode
+SQSCUseLearnedSpeed       // 1 = use recommended_speed_ms from history
+ShockDetection            // 1 = IMU shock detection
+ShockSpeedLimit           // kph after shock (default 15)
+ShockDuration             // seconds at reduced speed (default 3)
+SQSCRecordMinSpeedKph     // min speed to record (default 18)
+SQSCRecordMinLeadM        // min lead distance to record (default 40)
+SQSCRecordMinQuality      // min roughness to record (default 0.25)
 EOPSQSCRecordInterval        // seconds between recordings (default 5.0)
 ```
 

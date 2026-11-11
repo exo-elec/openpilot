@@ -45,9 +45,9 @@ static void update_state(UIState *s) {
     scene.light_sensor = -1;
   }
 
-  // EOP: Ignition from EOPIgnitionOn param (no Panda — SocketD + BrownPanda)
+  // EOP: Ignition from IgnitionOn param (no Panda — SocketD + BrownPanda)
   auto params = Params();
-  scene.ignition = params.getBool("EOPIgnitionOn");
+  scene.ignition = params.getBool("IgnitionOn");
   scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
   scene.recording_audio = params.getBool("RecordAudio") && scene.started;
 

@@ -61,7 +61,7 @@ class StereoD:
         self.client = InferenceClient("stereod")
 
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPStereoEnabled")
+        self.enabled = self.params.get_bool("StereoEnabled")
 
         # Acquired lazily on the first valid camera pair, with bounded retries.
         self.gpu = None

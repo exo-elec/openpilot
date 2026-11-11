@@ -513,11 +513,11 @@ class PointcloudD:
         self.client = InferenceClient("pointcloudd")
 
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPPointcloudEnabled")
+        self.enabled = self.params.get_bool("PointcloudEnabled")
         self.save_to_disk = self.enabled
-        self.enable_semantic = self.params.get_bool("EOPGridEnabled")
+        self.enable_semantic = self.params.get_bool("GridEnabled")
 
-        rate_hz = int(self.params.get("EOPPointcloudRateHz") or DEFAULT_RATE_HZ)
+        rate_hz = int(self.params.get("PointcloudRateHz") or DEFAULT_RATE_HZ)
         self.rate_hz = max(1, min(rate_hz, 20))
 
         # Subscribe to 2D outputs from stereod + position for geo-tagging.
@@ -546,7 +546,7 @@ class PointcloudD:
         self.rk = Ratekeeper(self.rate_hz, print_delay_threshold=None)
 
         # 3D reconstruction with GPU support via HAL
-        use_gpu = self.params.get_bool("EOPPointcloudUseGPU")
+        use_gpu = self.params.get_bool("PointcloudUseGPU")
         self.reconstructor = Reconstructor3D(self.client, use_gpu=use_gpu)
 
         # Semantic pipeline

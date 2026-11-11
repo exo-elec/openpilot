@@ -90,10 +90,10 @@ These are consumed by `selfdrived` for fault detection.
 | `EOPDriverCameraEnabled` | bool | `false` | Enable driver driver camera stream |
 | `EOPDriverCameraWidth` | int | `640` | Face cam width |
 | `EOPDriverCameraHeight` | int | `480` | Face cam height |
-| `EOPSideCamerasEnabled` | bool | `true` | Enable side camera streams |
-| `EOPSideCameraWidth` | int | `1280` | Side cam width |
-| `EOPSideCameraHeight` | int | `720` | Side cam height |
-| `EOPSideCamerasSwapped` | bool | `false` | Swap left/right side cameras |
+| `SideCamerasEnabled` | bool | `true` | Enable side camera streams |
+| `SideCameraWidth` | int | `1280` | Side cam width |
+| `SideCameraHeight` | int | `720` | Side cam height |
+| `SideCamerasSwapped` | bool | `false` | Swap left/right side cameras |
 
 ## Relationship to v4l2d
 

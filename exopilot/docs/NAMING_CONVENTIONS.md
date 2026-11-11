@@ -52,3 +52,14 @@ internal `dp_lat_alka`, `STATUS_ALKA`, and cereal compatibility fields remain
 stable for persisted settings and wire compatibility. Existing `LKAS`
 identifiers remain unchanged only when they describe an OEM interface or an
 upstream generic API.
+
+## Param keys: no prefix (2026-11-12)
+
+Owner decision: ExoPilot's own param keys carry no product prefix
+(`TJAEnabled`, `DlonMode`, `MapRegion`), not `EOP<Feature><Param>`. The set of
+keys ExoPilot adds lives in `exopilot/common/param_names.py` (`FORK_KEYS`); code that
+used to test `key.startswith("EOP")` uses that set. `exopilot/common/param_migration.py`
+moves saved `EOP<name>` files to `<name>` once at manager start, keeping any
+value already saved under the new name. Shared NGP keys (`ngp_*`) and
+dragonpilot keys (`dp_*`) are unchanged. Module and class names (`speed_utils`,
+`EopPanel`) are a separate rename step.

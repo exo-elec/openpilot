@@ -391,7 +391,7 @@ class MTSC:
     def __init__(self):
         self.params = Params()
         self.enabled = self.params.get_bool("MTSCEnabled")
-        self.mapd_enabled = self.params.get_bool("EOPMapdEnabled")
+        self.mapd_enabled = self.params.get_bool("MapdEnabled")
         
         # State
         self.state = MTSCState.DISABLED
@@ -406,7 +406,7 @@ class MTSC:
         """Update parameters periodically."""
         if self.frame % int(1.0 / DT_MDL) == 0:
             self.enabled = self.params.get_bool("MTSCEnabled")
-            self.mapd_enabled = self.params.get_bool("EOPMapdEnabled")
+            self.mapd_enabled = self.params.get_bool("MapdEnabled")
             
     def extract_upcoming_curvature(self, map_data, v_ego: float) -> list:
         """
@@ -581,8 +581,8 @@ else:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `MTSCEnabled` | Bool | `0` | Master toggle |
-| `EOPMapdEnabled` | Bool | `0` | MapD service toggle |
-| `EOPTSCTargetLatAccel` | Float | `1.8` | Shared with VTSC |
+| `MapdEnabled` | Bool | `0` | MapD service toggle |
+| `TSCTargetLatAccel` | Float | `1.8` | Shared with VTSC |
 
 ---
 

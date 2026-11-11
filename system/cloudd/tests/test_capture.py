@@ -8,7 +8,7 @@ import pytest
 
 
 class Params:
-  def __init__(self): self.values = {'EOPCloudVoiceEnabled': True}
+  def __init__(self): self.values = {'CloudVoiceEnabled': True}
   def get_bool(self, name): return self.values.get(name, False)
   def put_bool(self, name, value): self.values[name] = value
 
@@ -63,19 +63,19 @@ def test_no_upload_without_hold_and_enabled(capture):
   d, params, _, sent, feed = capture
   feed()
   assert not d._utterance
-  params.put_bool('EOPVoiceRecording', True)
+  params.put_bool('VoiceRecording', True)
   feed()
-  params.put_bool('EOPCloudVoiceEnabled', False)
-  params.put_bool('EOPVoiceRecording', False)
+  params.put_bool('CloudVoiceEnabled', False)
+  params.put_bool('VoiceRecording', False)
   d.step()
   assert not d._utterance and all(name == 'micStatus' for name, _ in sent)
 
 
 def test_release_sends_bounded_mono_pcm(capture):
   d, params, _, sent, feed = capture
-  params.put_bool('EOPVoiceRecording', True)
+  params.put_bool('VoiceRecording', True)
   feed()
-  params.put_bool('EOPVoiceRecording', False)
+  params.put_bool('VoiceRecording', False)
   d.step()
   uploads = [m.voiceAudioChunk for name, m in sent if name == 'voiceAudioChunk']
   assert len(uploads) == 1 and len(uploads[0].chunk) == 32000
@@ -85,28 +85,28 @@ def test_release_sends_bounded_mono_pcm(capture):
 
 def test_max_duration_resets_capture(capture):
   d, params, _, sent, feed = capture
-  params.put_bool('EOPVoiceRecording', True)
+  params.put_bool('VoiceRecording', True)
   feed(16)
   uploads = [m.voiceAudioChunk for name, m in sent if name == 'voiceAudioChunk']
   assert len(uploads[0].chunk) == 16000 * 2 * 15
-  assert not params.get_bool('EOPVoiceRecording') and not d._recording
+  assert not params.get_bool('VoiceRecording') and not d._recording
 
 
 def test_playback_cancels_recording_not_upload_echo(capture):
   d, params, playback, sent, feed = capture
-  params.put_bool('EOPVoiceRecording', True)
+  params.put_bool('VoiceRecording', True)
   feed()
   playback.playing = True
   feed()
-  assert not d._utterance and not params.get_bool('EOPVoiceRecording')
+  assert not d._utterance and not params.get_bool('VoiceRecording')
   assert not any(name == 'voiceAudioChunk' for name, _ in sent)
 
 
 def test_wake_starts_capture_and_pause_submits(capture):
   d, params, _, sent, feed = capture
-  params.put_bool('EOPVoiceWakeTrigger', True)
+  params.put_bool('VoiceWakeTrigger', True)
   feed()
-  assert d._recording and params.get_bool('EOPVoiceRecording')
+  assert d._recording and params.get_bool('VoiceRecording')
   # Endpoint receives continued speech, then a pause after the VAD releases.
   assert d._endpoint.feed(16000, True) == ''
   assert d._endpoint.feed(16000, False) == 'send'
@@ -117,10 +117,10 @@ def test_wake_starts_capture_and_pause_submits(capture):
 def test_stalled_microphone_expires_wake_session(capture):
   import time
   d, params, _, sent, _ = capture
-  params.put_bool('EOPVoiceWakeTrigger', True)
+  params.put_bool('VoiceWakeTrigger', True)
   d.step()
   assert d._recording
   d._recording_started = time.monotonic() - 4
   d.step()
-  assert not d._recording and not params.get_bool('EOPVoiceRecording')
+  assert not d._recording and not params.get_bool('VoiceRecording')
   assert not any(name == 'voiceAudioChunk' for name, _ in sent)

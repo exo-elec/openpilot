@@ -18,7 +18,7 @@ from openpilot.common.params import Params
 # GPS tolerance for curve-speed DB lookups (CSLB/MTSC/VTSC). ExoPilot 02M's
 # ZED-F9P is RTK-capable hardware, but no RTCM correction path exists yet
 # (no NTRIP client) — see selfdrive/ui/settings/descriptor.py's
-# EOPRTKEnabled/EOPNTRIPEnabled toggles, which are UI-only today. Until
+# RTKEnabled/NTRIPEnabled toggles, which are UI-only today. Until
 # corrections actually flow, every ExoPilot platform's fix is uncorrected
 # standard GPS, so 50m stays the right tolerance regardless of module.
 GPS_TOLERANCE_M: float = 50.0
@@ -147,7 +147,7 @@ class SpeedLimitOffset:
     self._last_update = now
     for i in range(len(self._offsets)):
       try:
-        val = self._params.get(f"EOPSLCOffset{i + 1}")
+        val = self._params.get(f"SLCOffset{i + 1}")
         self._offsets[i] = float(val) * (1000.0 / 3600.0) if val is not None else 0.0  # km/h -> m/s
       except (ValueError, TypeError):
         self._offsets[i] = 0.0
@@ -181,8 +181,8 @@ class SpeedLimitConfirmation:
     if now - self._last_param_t < 2.0:
       return
     self._last_param_t = now
-    self._confirmation_lower = params.get_bool("EOPSLCConfirmLower")
-    self._confirmation_higher = params.get_bool("EOPSLCConfirmHigher")
+    self._confirmation_lower = params.get_bool("SLCConfirmLower")
+    self._confirmation_higher = params.get_bool("SLCConfirmHigher")
 
   def update(self, new_limit_ms: float | None, driver_overriding: bool, now: float) -> float | None:
     """Return the speed limit to apply, or None if not confirmed yet."""

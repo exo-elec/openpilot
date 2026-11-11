@@ -308,9 +308,9 @@ def main() -> NoReturn:
     # Checked at the same 4Hz cadence as publish -- a one-shot action needs
     # no faster polling than that.
     if sm.frame % 5 == 0:
-      if params_reader.get_bool("EOPSideRearCalibReset"):
+      if params_reader.get_bool("SideRearCalibReset"):
         side_rear.reset()
-        params_reader.put_bool("EOPSideRearCalibReset", False)
+        params_reader.put_bool("SideRearCalibReset", False)
 
       calibrator.send_data(pm, sm.all_checks())
 
