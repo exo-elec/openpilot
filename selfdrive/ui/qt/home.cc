@@ -7,7 +7,7 @@
 #include <QVBoxLayout>
 
 #include "common/params.h"
-#include "selfdrive/ui/qt/offroad/experimental_mode.h"
+#include "selfdrive/ui/qt/offroad/drive_mode.h"
 #include "selfdrive/ui/qt/offroad/safety_panel.h"
 #include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/qt/widgets/drive_stats.h"
@@ -135,16 +135,16 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
 
     home_layout->addWidget(left_widget, 1);
 
-    // right: ExperimentalModeButton, SetupWidget
+    // right: DriveModeButton, SetupWidget
     QWidget* right_widget = new QWidget(this);
     QVBoxLayout* right_column = new QVBoxLayout(right_widget);
     right_column->setContentsMargins(0, 0, 0, 0);
     right_widget->setFixedWidth(350);
     right_column->setSpacing(18);
 
-    ExperimentalModeButton *experimental_mode = new ExperimentalModeButton(this);
-    QObject::connect(experimental_mode, &ExperimentalModeButton::openSettings, this, &OffroadHome::openSettings);
-    right_column->addWidget(experimental_mode, 1);
+    DriveModeButton *drive_mode = new DriveModeButton(this);
+    QObject::connect(drive_mode, &DriveModeButton::openSettings, this, &OffroadHome::openSettings);
+    right_column->addWidget(drive_mode, 1);
 
     // EOP: SetupWidget shows EOP info dialog on click
     SetupWidget *setup_widget = new SetupWidget(this);
