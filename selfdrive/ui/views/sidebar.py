@@ -55,8 +55,8 @@ HOME_BTN = QRect(60, 860, 180, 180)
 # in practice and does not need a watcher per key.
 BLE_POLL_MS = 2000
 
-BLE_KEYS = ("EOPBluetoothPairingPin", "EOPBluetoothPairingActive",
-            "EOPSPPPairedDevice", "EOPNavPilotPaired")
+BLE_KEYS = ("BluetoothPairingPin", "BluetoothPairingActive",
+            "SPPPairedDevice", "NavPilotPaired")
 
 
 @dataclass(frozen=True)
@@ -138,7 +138,7 @@ def ble_card(pairing_active: bool, pairing_pin: str,
              gatt_paired: bool, spp_paired: bool) -> Card:
   """BLE GATT is checked alongside classic SPP.
 
-  The bug this encodes: the sidebar used to look only at EOPSPPPairedDevice,
+  The bug this encodes: the sidebar used to look only at SPPPairedDevice,
   but SPP is reserved for legacy OBD scanners. NavPilot's actual companion-app
   transport is BLE GATT (docs/eop/04_Integration/BLE_DESIGN.md), so the card
   read "BLE OFF" for the whole time a phone was connected over the transport
@@ -191,10 +191,10 @@ class Sidebar(QWidget):
       temp_card(snap.thermal_status),
       panda_card(snap.panda_connected),
       network_card(snap.network_type, snap.network_strength),
-      ble_card(self._ble["EOPBluetoothPairingActive"] == "1",
-               self._ble["EOPBluetoothPairingPin"],
-               self._ble["EOPNavPilotPaired"] == "1",
-               bool(self._ble["EOPSPPPairedDevice"])),
+      ble_card(self._ble["BluetoothPairingActive"] == "1",
+               self._ble["BluetoothPairingPin"],
+               self._ble["NavPilotPaired"] == "1",
+               bool(self._ble["SPPPairedDevice"])),
     )
     self.update()
 

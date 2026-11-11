@@ -52,17 +52,17 @@ Your fork already had basic ALCC in `controlsd.py` — a boolean that keeps `lat
 Your fork already has these ALCC params:
 
 ```cpp
-{"EOPLatALCC", {PERSISTENT, BOOL, "1"}},
-{"EOPALCCAllowAlways", {PERSISTENT, BOOL, "0"}},
-{"EOPALCCHoldAtStandstill", {PERSISTENT, BOOL, "0"}},
-{"EOPALCCBrakeMode", {PERSISTENT, STRING, "Maintain"}},
+{"LatALCC", {PERSISTENT, BOOL, "1"}},
+{"ALCCAllowAlways", {PERSISTENT, BOOL, "0"}},
+{"ALCCHoldAtStandstill", {PERSISTENT, BOOL, "0"}},
+{"ALCCBrakeMode", {PERSISTENT, STRING, "Maintain"}},
 ```
 
 Add the new ones for merged MADS behavior:
 
 ```cpp
-{"EOPALCCSteeringModeOnBrake", {PERSISTENT, INT, "1"}},   // 0=remain, 1=pause, 2=disengage
-{"EOPALCCUnifiedEngagement", {PERSISTENT, BOOL, "0"}},
+{"ALCCSteeringModeOnBrake", {PERSISTENT, INT, "1"}},   // 0=remain, 1=pause, 2=disengage
+{"ALCCUnifiedEngagement", {PERSISTENT, BOOL, "0"}},
 ```
 
 ### Step 2: Create `AlccController`
@@ -205,13 +205,13 @@ Your fork already has `dlon.py` — Dynamic Longitudinal Profile — which switc
 ```cpp
 {"EOPDLONEnabled", {PERSISTENT, BOOL, "0"}},
 {"EOPDLONMode", {PERSISTENT, STRING, "Chill"}},
-{"EOPDLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONSlowLeadEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONStopPredictionEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONSignalEnabled", {PERSISTENT, BOOL, "1"}},
-{"EOPDLONSpeedLimitEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONSlowLeadEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONStopPredictionEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONSignalEnabled", {PERSISTENT, BOOL, "1"}},
+{"DLONSpeedLimitEnabled", {PERSISTENT, BOOL, "1"}},
 ```
 
 ### Step 2: Enhance `dlon.py`
@@ -241,8 +241,8 @@ Add missing CEM triggers:
 
 3. **Per-trigger enable toggles** — read from params in `update_params()`
    ```python
-   self._trigger_enabled['curves'] = self.params.get_bool("EOPDLONCurvesEnabled")
-   self._trigger_enabled['slow_lead'] = self.params.get_bool("EOPDLONSlowLeadEnabled")
+   self._trigger_enabled['curves'] = self.params.get_bool("DLONCurvesEnabled")
+   self._trigger_enabled['slow_lead'] = self.params.get_bool("DLONSlowLeadEnabled")
    # ... etc
    ```
 
@@ -416,8 +416,8 @@ lp = LayeredParams([
     ("", False),                  # default persistent (fallback read-only)
 ])
 
-val = lp.get("EOPLatALCC")          # tries /dev/shm → /cache → default
-lp.put_bool("EOPLatALCC", True)     # writes to /dev/shm/params
+val = lp.get("LatALCC")          # tries /dev/shm → /cache → default
+lp.put_bool("LatALCC", True)     # writes to /dev/shm/params
 ```
 
 Implemented methods:

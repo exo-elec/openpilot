@@ -133,8 +133,8 @@ for cam1, cam2 in combinations(cameras, 2):
 | `FactoryCalibrationParams` | BYTES | Immutable factory intrinsics |
 | `CalibrationParams` | BYTES | Runtime extrinsics (legacy) |
 | `CameraCalibrationParams` | BYTES | Multi-camera runtime extrinsics |
-| `EOPFactoryCalibrated` | BOOL | Device has factory calibration |
-| `EOPMultiCameraCalibEnabled` | BOOL | Use enhanced daemon |
+| `FactoryCalibrated` | BOOL | Device has factory calibration |
+| `MultiCameraCalibEnabled` | BOOL | Use enhanced daemon |
 
 ## 6. API Usage
 
@@ -161,7 +161,7 @@ CalibrationStorage.import_from_factory('/data/params/calibration/camera_calibrat
 # This:
 # 1. Saves to FactoryCalibrationParams (immutable)
 # 2. Saves to CalibrationParams (initial extrinsics)
-# 3. Sets EOPFactoryCalibrated = true
+# 3. Sets FactoryCalibrated = true
 ```
 
 ### 6.3 Runtime Reset (Preserves Factory)
@@ -253,10 +253,10 @@ split only, predating side/rear entirely.
     touch the persisted `sensors_tf.yaml` link — `_maybe_save()` overwrites
     it once the camera reconverges, so a reset that never drives again keeps
     the last-good calibration rather than silently losing it.
-  - `camera_calibrationd.py`'s `main()` polls `EOPSideRearCalibReset` at the
+  - `camera_calibrationd.py`'s `main()` polls `SideRearCalibReset` at the
     same 4 Hz cadence it already publishes at; on a set trigger it calls
     `side_rear.reset()` and clears the param.
-  - `common/params_keys.h`: `EOPSideRearCalibReset` (`CLEAR_ON_MANAGER_START`,
+  - `common/params_keys.h`: `SideRearCalibReset` (`CLEAR_ON_MANAGER_START`,
     not `PERSISTENT` — same reasoning as `DoReboot`/`DoShutdown`: a stuck
     "true" across a manager restart would reset calibration every boot).
 
@@ -280,7 +280,7 @@ split only, predating side/rear entirely.
     line from `load_links()`, "not available" when `hal.calibration` isn't
     installed (dev PC) -- same lazy-import-with-fallback shape
     `side_rear_calibration.py` itself uses.
-  - `EOPSideRearCalibReset` is a one-shot daemon trigger, not a real toggle,
+  - `SideRearCalibReset` is a one-shot daemon trigger, not a real toggle,
     so it is excluded from the generic descriptor renderer with a reason in
     `settings/exclusions.py` rather than added to `settings/descriptor.py`.
   - Tests: `selfdrive/ui/tests/test_device_panel.py` (7 tests, run against

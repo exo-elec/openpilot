@@ -56,14 +56,14 @@ class DriverPrefs:
             return
         self._last_param_t = now
         try:
-            offset = self.params.get("EOPSpeedLimitOffset")
+            offset = self.params.get("SpeedLimitOffset")
             if offset is not None:
                 self.speed_offset_kph = int(offset)
         except (ValueError, TypeError):
             self.speed_offset_kph = 0
 
         try:
-            profile = self.params.get("EOPFollowingDistance")
+            profile = self.params.get("FollowingDistance")
             if profile is not None:
                 profile = profile.decode() if isinstance(profile, bytes) else profile
                 if profile in TIME_GAPS:

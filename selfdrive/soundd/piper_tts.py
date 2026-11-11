@@ -4,7 +4,7 @@ Piper TTS Integration for ExoPilot
 
 Offline neural TTS using Piper (https://github.com/rhasspy/piper).
 Supports 20 languages (Piper ∩ Whisper overlap, ≥20M speakers) + English fallback.
-Language selected via EOPLanguage param; EOPTTSVoice="auto" → auto-select.
+Language selected via Language param; TTSVoice="auto" → auto-select.
 
 Models downloaded on first use to ~/.local/share/piper
 """
@@ -164,7 +164,7 @@ SAMPLE_RATE = 22050
 
 
 def resolve_voice(voice_param: str, language: str) -> str:
-  """Resolve Piper voice from EOPTTSVoice + EOPLanguage params.
+  """Resolve Piper voice from TTSVoice + Language params.
 
   Priority:
   1. Explicit voice name in VOICE_MODELS → use it

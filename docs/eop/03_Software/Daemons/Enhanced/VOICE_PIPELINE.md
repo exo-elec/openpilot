@@ -9,7 +9,7 @@
 > mono amp (exopilot docs/02-HARDWARE/RK3588_PINMUX_01M.md and
 > RK3576_PINMUX_02M.md section 4). What runs is `system/voiced`: micd audio
 > (both channels) -> broadside beamformer -> energy VAD -> `micStatus`
-> (vadActive, micLevelDb), when `EOPVoiceEnabled`. It is offline and drives
+> (vadActive, micLevelDb), when `VoiceEnabled`. It is offline and drives
 > nothing. The cloud design below (wake word, STT, intents, Azure) is **not
 > implemented and not planned for now**; keep it as background only.
 
@@ -151,7 +151,7 @@ predated the boards' audio design; both boards have the mic pair and amp.
 
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `EOPVoiceEnabled` | 0 | Enable voice pipeline |
+| `VoiceEnabled` | 0 | Enable voice pipeline |
 | `EOPWakeWordSensitivity` | 0.7 | Wake word detection threshold (server-side) |
 | `EOPVoiceLanguage` | "en" | STT/TTS language |
 | `QuietMode` | 0 | Reduce local alert-tone volume |

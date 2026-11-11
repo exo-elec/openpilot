@@ -32,7 +32,7 @@ struct AlccState @0xf35cc4560bbf6ec2 {
 }
 
 struct SpeedLimitState @0xda96579883444c35 {
-  # Resolver is policy-only — offsets are applied inside MSLC (EOPMSLCOffsetPercent / EOPMSLCOffsetFixed).
+  # Resolver is policy-only — offsets are applied inside MSLC (MSLCOffsetPercent / MSLCOffsetFixed).
   source @0 :SpeedLimitSource;
   limitMps @1 :Float32;
   distanceToChangeM @2 :Float32;

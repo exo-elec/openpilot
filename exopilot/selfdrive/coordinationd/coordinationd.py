@@ -93,9 +93,9 @@ class GlobalD:
         set_daemon_affinity("coordinationd")
 
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPGlobaldEnabled")
-        self.use_osm = self.params.get_bool("EOPOsmLocalizerEnabled")
-        self.use_sgm = self.params.get_bool("EOPSGMLocalizerEnabled")
+        self.enabled = self.params.get_bool("GlobaldEnabled")
+        self.use_osm = self.params.get_bool("OsmLocalizerEnabled")
+        self.use_sgm = self.params.get_bool("SGMLocalizerEnabled")
 
         # Messaging
         self.pm = messaging.PubMaster([

@@ -115,7 +115,7 @@ EOP10's ALCC).
 
 **Fix:** restored the exemption, renamed to match EOP10's ALCC feature —
 `StateMachine(alcc_enabled=False)`, `self.alcc_enabled` read once via
-`EOPLatALCC` param (same pattern as neighboring `is_metric`/`is_ldw_enabled`
+`LatALCC` param (same pattern as neighboring `is_metric`/`is_ldw_enabled`
 reads in `selfdrived.py`, no new capnp subscription needed).
 
 ### 🟠 `selfdrive/ui/qt/onroad/hud.cc` — cruise "MAX" speed always showed "–"

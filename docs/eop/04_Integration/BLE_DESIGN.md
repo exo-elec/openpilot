@@ -152,13 +152,13 @@ SPP carries this framed format plus raw ELM327 ASCII on the same socket (auto-de
 
 ## 6. Device Naming
 
-Device name is set from the `EOPDeviceName` param at startup:
+Device name is set from the `DeviceName` param at startup:
 
 | Hardware | Param value |
 |----------|-------------|
 | ExoPilot 01M (RK3588) | `EXOPILOT 01` |
 
-Set at flash time: `params put EOPDeviceName "EXOPILOT 01"`
+Set at flash time: `params put DeviceName "EXOPILOT 01"`
 
 ---
 

@@ -180,7 +180,7 @@ class TestLoggerd:
 
   @pytest.mark.xdist_group("camera_encoder_tests")  # setting xdist group ensures tests are run in same worker, prevents encoderd from crashing
   def test_rotation(self):
-    Params().put("EOPRearCameraEnabled", True)
+    Params().put("RearCameraEnabled", True)
 
     expected_files = {"rlog.zst", "qlog.zst", "qcamera.ts", "fcamera.hevc", "rcamera.hevc", "ecamera.hevc"}
 
@@ -287,7 +287,7 @@ class TestLoggerd:
   @pytest.mark.parametrize("record_rear", [True, False])
   def test_record_rear(self, record_rear):
     params = Params()
-    params.put_bool("EOPRearCameraEnabled", record_rear)
+    params.put_bool("RearCameraEnabled", record_rear)
 
     self._publish_camera_and_audio_messages()
 

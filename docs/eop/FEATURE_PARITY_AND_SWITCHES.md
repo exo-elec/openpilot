@@ -132,8 +132,8 @@ Current HUD/navigation icons are drawn primitives and warning glyphs; offroad na
 
 ## EOP10 registry preservation
 
-All 259 distinct EOP10 parameter keys remain in the shared registry. `EOPBEVWidgetEnabled` has been restored with a PyQt5 BEV renderer for lanes, road edges, radar leads and blind-spot severity. BEV Display Mode is optional; the normal 01M view remains a full-screen camera without floating panels.
+All 259 distinct EOP10 parameter keys remain in the shared registry. `BEVWidgetEnabled` has been restored with a PyQt5 BEV renderer for lanes, road edges, radar leads and blind-spot severity. BEV Display Mode is optional; the normal 01M view remains a full-screen camera without floating panels.
 
-Every persistent boolean with a direct runtime reader is now exposed except `EOPNavPilotPaired` (provisioning state) and `EOPSubscriptionSkipVerify` (internal entitlement verification bypass). No-direct-reader results are static findings, not proof that dynamic readers do not exist.
+Every persistent boolean with a direct runtime reader is now exposed except `NavPilotPaired` (provisioning state) and `SubscriptionSkipVerify` (internal entitlement verification bypass). No-direct-reader results are static findings, not proof that dynamic readers do not exist.
 
 Restored switch: `BEVWidget` → `selfdrive/ui/state.py`, with live drawing in `components/bev.py`. Shared UI settings add 64 controls total.

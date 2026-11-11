@@ -42,8 +42,8 @@ class SafetyManager:
             try:
                 from openpilot.common.params import Params
                 params = Params()
-                enable_file_logging = params.get_bool("EOPSafetyEventLogEnabled")
-                log_path = params.get("EOPSafetyEventLogPath")
+                enable_file_logging = params.get_bool("SafetyEventLogEnabled")
+                log_path = params.get("SafetyEventLogPath")
                 if log_path:
                     self._log_file_path = log_path.decode() if isinstance(log_path, bytes) else log_path
             except Exception:

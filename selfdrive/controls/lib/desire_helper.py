@@ -75,14 +75,14 @@ class DesireHelper:
       return
     self._last_param_update = now
 
-    self.lca_enabled = self.params.get_bool("EOPLCAControllerEnabled")
-    self.auto_lane_change = self.params.get_bool("EOPAutoLaneChange")
-    self.one_lane_change = self.params.get_bool("EOPOneLaneChange")
-    self.gap_eval_enabled = self.params.get_bool("EOPLCAGapEvalEnabled")
-    self.lane_width_check_enabled = self.params.get_bool("EOPLCALaneWidthEnabled")
+    self.lca_enabled = self.params.get_bool("LCAControllerEnabled")
+    self.auto_lane_change = self.params.get_bool("AutoLaneChange")
+    self.one_lane_change = self.params.get_bool("OneLaneChange")
+    self.gap_eval_enabled = self.params.get_bool("LCAGapEvalEnabled")
+    self.lane_width_check_enabled = self.params.get_bool("LCALaneWidthEnabled")
     try:
-      self.lane_change_delay = float(self.params.get("EOPLaneChangeDelay") or 1.0)
-      self.min_lane_width = float(self.params.get("EOPMinimumLaneWidth") or MIN_LANE_WIDTH)
+      self.lane_change_delay = float(self.params.get("LaneChangeDelay") or 1.0)
+      self.min_lane_width = float(self.params.get("MinimumLaneWidth") or MIN_LANE_WIDTH)
     except (ValueError, TypeError):
       self.lane_change_delay = 1.0
       self.min_lane_width = MIN_LANE_WIDTH

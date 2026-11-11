@@ -56,8 +56,8 @@ def main():
   print("\n🔧 Parameters:")
   with open("common/params_keys.h") as f:
     content = f.read()
-    for param in ["EOPRTKEnabled", "EOPNTRIPEnabled", "EOPNTRIPCaster", "EOPNTRIPMount",
-                  "EOPNavVoiceEnabled", "EOPTTSVoice", "EOPLanguage", "EOPMicAdaptiveLoudness"]:
+    for param in ["RTKEnabled", "NTRIPEnabled", "NTRIPCaster", "NTRIPMount",
+                  "NavVoiceEnabled", "TTSVoice", "Language", "MicAdaptiveLoudness"]:
       if param in content:
         print(f"✅ {param} defined")
       else:
@@ -70,7 +70,7 @@ def main():
     print("\nNext steps:")
     print("1. Install pygnssutils: pip install -e third_party/pygnssutils")
     print("2. Configure RTK: params put EOPNTRIPMount 'YOUR-MOUNTPOINT'")
-    print("3. Enable RTK: params put_bool EOPRTKEnabled true")
+    print("3. Enable RTK: params put_bool RTKEnabled true")
     return 0
   print("❌ Some checks failed. Please review the output above.")
   return 1

@@ -815,8 +815,8 @@ class GridD:
 
     def run(self) -> None:
         """Main loop - fuses stereod, monod, and modeld outputs."""
-        if not self.params.get_bool("EOPGridEnabled"):
-            cloudlog.info("GridD disabled (EOPGridEnabled=false), exiting")
+        if not self.params.get_bool("GridEnabled"):
+            cloudlog.info("GridD disabled (GridEnabled=false), exiting")
             return
 
         cloudlog.info("GridD running (fusing: stereod + monod + modeld)")

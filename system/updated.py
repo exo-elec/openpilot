@@ -197,7 +197,7 @@ def init_overlay() -> None:
 
 def finalize_update() -> None:
   params = Params()
-  params.put("EOPUpdateStatus", "installing")
+  params.put("UpdateStatus", "installing")
   cloudlog.info("creating finalized version of the overlay")
   set_consistent_flag(False)
 
@@ -234,7 +234,7 @@ def check_for_update() -> tuple[bool, bool]:
 
 def fetch_update(wait_helper: WaitTimeHelper) -> bool:
   params = Params()
-  params.put("EOPUpdateStatus", "checking")
+  params.put("UpdateStatus", "checking")
   cloudlog.info("attempting git fetch inside staging overlay")
 
   setup_git_options(OVERLAY_MERGED)
@@ -260,13 +260,13 @@ def fetch_update(wait_helper: WaitTimeHelper) -> bool:
         run(["git", "submodule", "update"], OVERLAY_MERGED, low_priority=True),
       ]
       cloudlog.info("git reset success: %s", '\n'.join(r))
-      params.put("EOPUpdateStatus", "prepareDownload")
+      params.put("UpdateStatus", "prepareDownload")
 
     finalize_update()
-    params.put("EOPUpdateStatus", "success")
+    params.put("UpdateStatus", "success")
     cloudlog.info("EOP10 update successful!")
   else:
-    params.put("EOPUpdateStatus", "latest")
+    params.put("UpdateStatus", "latest")
     cloudlog.info("nothing new from git at this time")
 
   return new_version
@@ -343,7 +343,7 @@ def main() -> None:
 
     saved = check_git_saved()
     if not saved:
-      params.put("EOPUpdateStatus", "unsavedChanges" if time.monotonic() > 65 else "waiting")
+      params.put("UpdateStatus", "unsavedChanges" if time.monotonic() > 65 else "waiting")
 
     exception = None
     new_version = False
@@ -356,7 +356,7 @@ def main() -> None:
         update_failed_count = 0
 
       if not internet_ok and saved:
-        params.put("EOPUpdateStatus", "noInternet")
+        params.put("UpdateStatus", "noInternet")
 
       if saved and internet_ok and (update_now or time.monotonic() - last_fetch_time > 60*10):
         new_version = fetch_update(wait_helper)
@@ -383,7 +383,7 @@ def main() -> None:
 
     try:
       if update_failed_count > 0 and internet_ok:
-        params.put("EOPUpdateStatus", "fetchFailed")
+        params.put("UpdateStatus", "fetchFailed")
       set_params(new_version, update_failed_count, exception)
     except Exception:
       cloudlog.exception("uncaught updated exception while setting params, shouldn't happen")

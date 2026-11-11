@@ -70,8 +70,8 @@ After the lead car moves, TJA waits a configurable delay before accelerating:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `EOPTJAEnabled` | 0 | Enable TJA |
-| `EOPTJAMaxHoldMinutes` | 10 | Max hold at standstill (minutes) |
+| `TJAEnabled` | 0 | Enable TJA |
+| `TJAMaxHoldMinutes` | 10 | Max hold at standstill (minutes) |
 
 ---
 
@@ -80,7 +80,7 @@ After the lead car moves, TJA waits a configurable delay before accelerating:
 TJA modifies the behavior of `longcontrol.py` when:
 - Vehicle speed < 20 km/h (low-speed regime)
 - Lead car is present or recently was present
-- `EOPTJAEnabled` is true
+- `TJAEnabled` is true
 
 It does **not** replace the standard longitudinal planner — it applies a smoothing filter to the acceleration output in the low-speed regime.
 

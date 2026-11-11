@@ -13,7 +13,7 @@ BEVWidget::BEVWidget(QWidget *parent) : QWidget(parent) {
 void BEVWidget::updateState(const UIState &s) {
   const SubMaster &sm = *(s.sm);
   
-  enabled = Params().getBool("EOPBEVWidgetEnabled");
+  enabled = Params().getBool("BEVWidgetEnabled");
   if (!enabled) {
     data_valid = false;
     update();  // repaint to reflect the now-invalid state -- this widget no
@@ -141,7 +141,7 @@ void BEVWidget::paintEvent(QPaintEvent *event) {
   // whenever !data_valid, which masked that the point/lead arrays below are
   // never cleared on the invalid path (they just hold their last values);
   // now that a caller can keep it visible while disabled/invalid (e.g.
-  // with EOPBEVWidgetEnabled off), that would otherwise paint stale lane
+  // with BEVWidgetEnabled off), that would otherwise paint stale lane
   // lines/leads instead of an empty grid.
   if (data_valid) {
     drawRoadEdges(p);

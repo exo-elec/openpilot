@@ -10,7 +10,7 @@ Requirements:
     - Valhalla service running locally on port 8002
     - Offline tiles at /data/valhalla/tiles/
 
-Destination is written to the EOPNavDestination param by bluetoothd/spp.py
+Destination is written to the NavDestination param by bluetoothd/spp.py
 (NCP 0x0302) or by set_destination.py.
 
 Usage:
@@ -79,7 +79,7 @@ class NavD:
         # TTS announcement tracking — prevent duplicate announcements
         # Stores (step_idx, threshold_key) tuples that have been announced
         self.announced: set[tuple[int, str]] = set()
-        self.nav_voice_enabled = self.params.get_bool("EOPNavVoiceEnabled")
+        self.nav_voice_enabled = self.params.get_bool("NavVoiceEnabled")
 
         # Log initialization mode - OpenPilot is OFFLINE ONLY
         tile_status = self._check_tile_status()
@@ -93,7 +93,7 @@ class NavD:
     def _get_valhalla_url(self) -> str:
         """Get Valhalla URL - OpenPilot is OFFLINE ONLY."""
         # Check for explicit override (development only)
-        url = self.params.get("EOPValhallaUrl")
+        url = self.params.get("ValhallaUrl")
         if url:
             return url.strip()
 
@@ -172,7 +172,7 @@ class NavD:
     # ------------------------------------------------------------------
 
     def update_destination(self) -> bool:
-        dest_json = self.params.get("EOPNavDestination")
+        dest_json = self.params.get("NavDestination")
 
         if not dest_json:
             if self.nav_destination is not None:

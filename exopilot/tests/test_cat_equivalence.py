@@ -59,13 +59,13 @@ def _status_tuple(s):
 @pytest.mark.parametrize("fingerprint,seed_store,manual", [
   ("TESLA_MODEL_3", {}, False),
   ("OTHER_CAR", {}, False),
-  ("OTHER_CAR", {"EOPCATManualSREnabled": True, "EOPCATManualSR": b"13.5"}, True),
-  ("OTHER_CAR", {"EOPCATPersist": json.dumps({"carFingerprint": "OTHER_CAR", "steerRatio": 17.0, "stiffnessFactor": 1.2, "angleOffsetDeg": 0.4})}, False),
+  ("OTHER_CAR", {"CATManualSREnabled": True, "CATManualSR": b"13.5"}, True),
+  ("OTHER_CAR", {"CATPersist": json.dumps({"carFingerprint": "OTHER_CAR", "steerRatio": 17.0, "stiffnessFactor": 1.2, "angleOffsetDeg": 0.4})}, False),
 ])
 def test_old_and_new_cat_agree_on_random_drives(monkeypatch, fingerprint, seed_store, manual):
   monkeypatch.setattr(time, "monotonic", _Clock.monotonic)
-  stores = ({"EOPCATEnabled": True, **seed_store}, {"EOPCATEnabled": True, **seed_store})
-  stores[0].setdefault("EOPCATEnabled", True)
+  stores = ({"CATEnabled": True, **seed_store}, {"CATEnabled": True, **seed_store})
+  stores[0].setdefault("CATEnabled", True)
   monkeypatch.setattr(ref, "Params", lambda: _Params(stores[0]))
   monkeypatch.setattr(new, "Params", lambda: _Params(stores[1]))
   CP = NS(steerRatio=15.0, carFingerprint=fingerprint)
@@ -88,7 +88,7 @@ def test_old_and_new_cat_agree_on_random_drives(monkeypatch, fingerprint, seed_s
       old.reset()
       cat.reset()
   assert saw_adaptive and (saw_gated or manual)  # the sequence exercised both regimes, so agreement is not vacuous
-  assert ("EOPCATPersist" in stores[0]) == ("EOPCATPersist" in stores[1])
-  if "EOPCATPersist" in stores[0] and not seed_store.get("EOPCATPersist"):
-    a_, b_ = json.loads(stores[0]["EOPCATPersist"]), json.loads(stores[1]["EOPCATPersist"])
+  assert ("CATPersist" in stores[0]) == ("CATPersist" in stores[1])
+  if "CATPersist" in stores[0] and not seed_store.get("CATPersist"):
+    a_, b_ = json.loads(stores[0]["CATPersist"]), json.loads(stores[1]["CATPersist"])
     assert {k: v for k, v in a_.items() if k != "ts"} == {k: v for k, v in b_.items() if k != "ts"}

@@ -174,15 +174,15 @@ class DLON:
     if current_time - self.last_param_update >= 1.0:
       self.mode = DLONMode.AUTO
       # Per-trigger toggles (CEM merge)
-      self._trigger_enabled['curves'] = self.params.get_bool("EOPDLONCurvesEnabled")
-      self._trigger_enabled['lane_confidence'] = self.params.get_bool("EOPDLONLaneConfidenceEnabled")
-      self._trigger_enabled['slow_lead'] = self.params.get_bool("EOPDLONSlowLeadEnabled")
-      self._trigger_enabled['low_speed'] = self.params.get_bool("EOPDLONLowSpeedEnabled")
-      self._trigger_enabled['stop_prediction'] = self.params.get_bool("EOPDLONStopPredictionEnabled")
-      self._trigger_enabled['navigation'] = self.params.get_bool("EOPDLONNavigationEnabled")
-      self._trigger_enabled['signal'] = self.params.get_bool("EOPDLONSignalEnabled")
-      self._trigger_enabled['speed_limit'] = self.params.get_bool("EOPDLONSpeedLimitEnabled")
-      self.force_stops_enabled = self.params.get_bool("EOPDLONForceStopsEnabled")
+      self._trigger_enabled['curves'] = self.params.get_bool("DLONCurvesEnabled")
+      self._trigger_enabled['lane_confidence'] = self.params.get_bool("DLONLaneConfidenceEnabled")
+      self._trigger_enabled['slow_lead'] = self.params.get_bool("DLONSlowLeadEnabled")
+      self._trigger_enabled['low_speed'] = self.params.get_bool("DLONLowSpeedEnabled")
+      self._trigger_enabled['stop_prediction'] = self.params.get_bool("DLONStopPredictionEnabled")
+      self._trigger_enabled['navigation'] = self.params.get_bool("DLONNavigationEnabled")
+      self._trigger_enabled['signal'] = self.params.get_bool("DLONSignalEnabled")
+      self._trigger_enabled['speed_limit'] = self.params.get_bool("DLONSpeedLimitEnabled")
+      self.force_stops_enabled = self.params.get_bool("DLONForceStopsEnabled")
       self.last_param_update = current_time
 
   def detect_traffic_control(self, model_v2, radar_state, v_ego) -> bool:

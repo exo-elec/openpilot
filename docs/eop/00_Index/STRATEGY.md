@@ -170,7 +170,7 @@ navInstruction / navRoute cereal (5 Hz)
   MTSC           MSLC speed limit (SpeedLimitController)
 ```
 
-- **New params:** `EOPNavEnabled`, `EOPAutoTileEnabled`, `EOPAutoTileWifiOnly`, `NavDestination`
+- **New params:** `NavEnabled`, `AutoTileEnabled`, `AutoTileWifiOnly`, `NavDestination`
 - **Files:** `selfdrive/navd/navd.py`, `selfdrive/navd/helpers.py`, `selfdrive/navd/tile_manager.py`, `selfdrive/navd/tile_auto_manager.py`
 - **Storage:** `/data/media/0/valhalla/` (tiles tar + config)
 
@@ -239,7 +239,7 @@ Reference Fork Analysis
 ```
 
 ### 3.3 Safety-First Approach
-- All features require explicit user toggle (`EOP<Feature>Enabled`)
+- All features require explicit user toggle (`<Feature>Enabled`)
 - Default-off for experimental features
 - Conservative tuning initially
 
