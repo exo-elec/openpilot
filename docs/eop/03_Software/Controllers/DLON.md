@@ -37,11 +37,19 @@ DLON manages the longitudinal acceleration and braking strategy, seamlessly swit
 
 ### 2.1 Strategic Modes
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| **Chill** | Standard ACC | Highway cruising, clear lane, no stops |
-| **Experimental (E2E)** | End-to-End control | Urban driving, traffic lights, intersections |
-| **Auto** | Dynamic switching | Default mode, selects best approach automatically |
+| Mode | Settings label | Description | Use Case |
+|------|----------------|-------------|----------|
+| **Chill** | Highway (Rule) | Standard ACC | Highway cruising, clear lane, no stops |
+| **Experimental (E2E)** | Urban (AI) | End-to-End control | Urban driving, traffic lights, intersections |
+| **Auto** | Dynamic | Dynamic switching | Default mode, selects best approach automatically |
+
+**User choice (owner, 2026-11-11, dev/01M and later):** the driver picks the
+mode under Settings → Driving → *Drive Mode*, stored in `EOPDlonMode`
+(0 = Highway, 1 = Urban, 2 = Dynamic, default 2) and read by
+`dlon.update_params()` once a second. This replaces the earlier
+"always AUTO, no user choice" rule copied from dev/NGP10 (see DLAT.md §12).
+openpilot's own Experimental mode is gone from the UI and from
+`selfdrived`: DLON is the only thing that selects ACC or E2E.
 
 ### 2.2 Auto Switching Triggers (Contextual E2E)
 

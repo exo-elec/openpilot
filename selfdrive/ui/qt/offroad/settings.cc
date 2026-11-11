@@ -4,7 +4,9 @@
 #include <tuple>
 #include <vector>
 
+#include <QDateTime>
 #include <QDebug>
+#include <QEvent>
 
 #include "common/watchdog.h"
 #include "common/util.h"
@@ -13,97 +15,49 @@
 #include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
-#include "selfdrive/ui/qt/offroad/developer_panel.h"
 #include "selfdrive/ui/qt/offroad/eop_panel.h"
 #include "selfdrive/ui/qt/widgets/bluetooth.h"
 #include "selfdrive/ui/qt/network/bluetooth_manager.h"
 
 TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
-  // param, title, desc, icon, restart needed
-  std::vector<std::tuple<QString, QString, QString, QString, bool>> toggle_defs{
-    {
-      "OpenpilotEnabledToggle",
-      tr("Enable ExoPilot"),
+  // Settings -> Driving. Top: the three choices a driver actually makes;
+  // then steering & lane change and speed (EopPanel::DRIVING).
+  auto enable = new ParamControl("OpenpilotEnabledToggle", tr("Enable ExoPilot"),
       tr("Adaptive cruise control and lane keep assist. Pay attention at all times."),
-      "../assets/icons/chffr_wheel.png",
-      true,
-    },
-    {
-      "ExperimentalMode",
-      tr("Experimental Mode"),
-      "",
-      "../assets/icons/experimental_white.svg",
-      false,
-    },
-    {
-      "DisengageOnAccelerator",
-      tr("Disengage on Accelerator"),
-      tr("Pressing the accelerator will disengage openpilot."),
-      "../assets/icons/disengage_on_accelerator.svg",
-      false,
-    },
-    {
-      "IsLdwEnabled",
-      tr("Lane Departure Warnings"),
-      tr("Alert when drifting over a lane line without turn signal above 50 km/h."),
-      "../assets/icons/warning.png",
-      false,
-    },
-    {
-      "RecordAudio",
-      tr("Record Microphone Audio"),
-      tr("Include audio in dashcam recording."),
-      "../assets/icons/microphone.png",
-      true,
-    },
-    {
-      "IsMetric",
-      tr("Use Metric System"),
-      tr("Display speed in km/h instead of mph."),
-      "../assets/icons/metric.png",
-      false,
-    },
-  };
+      "../assets/icons/chffr_wheel.png", this);
+  enable->setDescription(enable->getDescription() + tr(" Changing this setting will restart ExoPilot if the car is powered on."));
+  QObject::connect(uiState(), &UIState::engagedChanged, [enable](bool engaged) { enable->setEnabled(!engaged); });
+  QObject::connect(enable, &ParamControl::toggleFlipped, [=](bool) { params.putBool("OnroadCycleRequested", true); });
+  addItem(enable);
+  toggles["OpenpilotEnabledToggle"] = enable;
 
-  std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
+  // Drive Mode replaces openpilot's Experimental mode: DLON picks ACC (rule)
+  // or E2E (AI), or switches between them (Dynamic). See DLON.md.
+  if (params.get("EOPDlonMode").empty()) params.put("EOPDlonMode", "2");
+  drive_mode_setting = new ButtonParamControl("EOPDlonMode", tr("Drive Mode"),
+      tr("Highway (Rule): rule-based cruise, best for open roads.\n"
+         "Urban (AI): the driving model controls speed, stops for lights.\n"
+         "Dynamic: switches between them automatically (recommended)."),
+      "../assets/icons/speed_limit.png",
+      {tr("Highway (Rule)"), tr("Urban (AI)"), tr("Dynamic")});
+  addItem(drive_mode_setting);
+
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
-                                          tr("How closely ExoPilot follows lead cars. Standard recommended."),
-                                          "../assets/icons/speed_limit.png",
-                                          longi_button_texts);
+      tr("How closely ExoPilot follows lead cars. Standard recommended. "
+         "Also changeable while driving: tap the round button at the top right."),
+      "../assets/icons/speed_limit.png",
+      {tr("Aggressive"), tr("Standard"), tr("Relaxed")});
+  addItem(long_personality_setting);
 
-  // set up uiState update for personality setting
+  auto doa = new ParamControl("DisengageOnAccelerator", tr("Disengage on Accelerator"),
+      tr("Pressing the accelerator will disengage ExoPilot."),
+      "../assets/icons/disengage_on_accelerator.svg", this);
+  addItem(doa);
+  toggles["DisengageOnAccelerator"] = doa;
+
+  addItem(new EopPanel(parent, EopPanel::DRIVING));
+
   QObject::connect(uiState(), &UIState::uiUpdate, this, &TogglesPanel::updateState);
-
-  for (auto &[param, title, desc, icon, needs_restart] : toggle_defs) {
-    auto toggle = new ParamControl(param, title, desc, icon, this);
-
-    bool locked = params.getBool((param + "Lock").toStdString());
-    toggle->setEnabled(!locked);
-
-    if (needs_restart && !locked) {
-      toggle->setDescription(toggle->getDescription() + tr(" Changing this setting will restart ExoPilot if the car is powered on."));
-
-      QObject::connect(uiState(), &UIState::engagedChanged, [toggle](bool engaged) {
-        toggle->setEnabled(!engaged);
-      });
-
-      QObject::connect(toggle, &ParamControl::toggleFlipped, [=](bool state) {
-        params.putBool("OnroadCycleRequested", true);
-      });
-    }
-
-    addItem(toggle);
-    toggles[param.toStdString()] = toggle;
-
-    // insert longitudinal personality after NDOG toggle
-    if (param == "DisengageOnAccelerator") {
-      addItem(long_personality_setting);
-    }
-  }
-
-  // Toggles with confirmation dialogs
-  toggles["ExperimentalMode"]->setActiveIcon("../assets/icons/experimental.svg");
-  toggles["ExperimentalMode"]->setConfirmation(true, true);
 }
 
 void TogglesPanel::updateState(const UIState &s) {
@@ -119,7 +73,7 @@ void TogglesPanel::updateState(const UIState &s) {
 }
 
 void TogglesPanel::expandToggleDescription(const QString &param) {
-  toggles[param.toStdString()]->showDescription();
+  if (auto it = toggles.find(param.toStdString()); it != toggles.end()) it->second->showDescription();
 }
 
 void TogglesPanel::scrollToToggle(const QString &param) {
@@ -136,54 +90,39 @@ void TogglesPanel::showEvent(QShowEvent *event) {
 }
 
 void TogglesPanel::updateToggles() {
-  auto experimental_mode_toggle = toggles["ExperimentalMode"];
-  const QString e2e_description =
-      tr("Alpha features: E2E longitudinal (model controls gas/brake, stops for lights) "
-         "and wide-angle low-speed visualization. Mistakes should be expected.");
-
+  // Drive Mode and personality only act with ExoPilot longitudinal control.
   auto cp_bytes = params.get("CarParamsPersistent");
   if (!cp_bytes.empty()) {
     AlignedBuffer aligned_buf;
     capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
     cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
-
-    if (hasLongitudinalControl(CP)) {
-      // normal description and toggle
-      experimental_mode_toggle->setEnabled(true);
-      experimental_mode_toggle->setDescription(e2e_description);
-      long_personality_setting->setEnabled(true);
-    } else {
-      // no long for now
-      experimental_mode_toggle->setEnabled(false);
-      long_personality_setting->setEnabled(false);
-      params.remove("ExperimentalMode");
-
-      const QString unavailable = tr("Experimental mode unavailable — car uses stock ACC for longitudinal control.");
-      experimental_mode_toggle->setDescription(unavailable + " " + e2e_description);
-    }
-
-    experimental_mode_toggle->refresh();
-  } else {
-    experimental_mode_toggle->setDescription(e2e_description);
+    const bool has_long = hasLongitudinalControl(CP);
+    drive_mode_setting->setEnabled(has_long);
+    long_personality_setting->setEnabled(has_long);
   }
 }
 
 DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   setSpacing(50);
-  addItem(new LabelControl(tr("Dongle ID"), getDongleId().value_or(tr("N/A"))));
+  auto dongle = new LabelControl(tr("Dongle ID"), getDongleId().value_or(tr("N/A")));
+  // 8 quick taps anywhere on this row reveal the Advanced page.
+  dongle->installEventFilter(this);
+  for (auto *child : dongle->findChildren<QWidget *>()) child->installEventFilter(this);
+  addItem(dongle);
   addItem(new LabelControl(tr("Serial"), params.get("HardwareSerial").c_str()));
 
-  // offroad-only buttons
-
+  // Vehicle (type, RHD) and calibration status
+  addItem(new EopPanel(parent, EopPanel::DEVICE_VEHICLE));
 
   resetCalibBtn = new ButtonControl(tr("Reset Calibration"), tr("RESET"), "");
   connect(resetCalibBtn, &ButtonControl::showDescriptionEvent, this, &DevicePanel::updateCalibDescription);
   connect(resetCalibBtn, &ButtonControl::clicked, [&]() {
     if (!uiState()->engaged()) {
-      if (ConfirmationDialog::confirm(tr("Are you sure you want to reset calibration?"), tr("Reset"), this)) {
+      if (ConfirmationDialog::confirm(tr("Are you sure you want to reset calibration? Factory camera intrinsics are kept."), tr("Reset"), this)) {
         // Check engaged again in case it changed while the dialog was open
         if (!uiState()->engaged()) {
           params.remove("CalibrationParams");
+          params.remove("CameraCalibrationParams");
           params.remove("LiveTorqueParameters");
           params.remove("LiveParameters");
           params.remove("LiveParametersV2");
@@ -197,6 +136,15 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     }
   });
   addItem(resetCalibBtn);
+
+  // Software: one branch per product, so only check / download / install.
+  addItem(settingsSection(tr("Software")));
+  addItem(new SoftwarePanel(this));
+
+  addOfflineMaps();
+
+  // Phone, recording, language, power
+  addItem(new EopPanel(parent, EopPanel::DEVICE_SYSTEM));
 
   auto retrainingBtn = new ButtonControl(tr("Review Training Guide"), tr("REVIEW"), "");
   connect(retrainingBtn, &ButtonControl::clicked, [=]() {
@@ -231,10 +179,8 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(translateBtn);
 
   QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
-    for (auto btn : findChildren<ButtonControl *>()) {
-      if (btn != resetCalibBtn) {
-        btn->setEnabled(offroad);
-      }
+    for (auto btn : {retrainingBtn, translateBtn, mapRegionBtn, mapDownloadBtn}) {
+      if (btn) btn->setEnabled(offroad);
     }
   });
 
@@ -259,6 +205,80 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   reboot_btn->setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
   poweroff_btn->setStyleSheet(theme::controlStyle(theme::Control::DANGER));
   addItem(power_layout);
+}
+
+bool DevicePanel::eventFilter(QObject *obj, QEvent *event) {
+  // Fast taps arrive as press / double-click alternately, and a press on the
+  // value label propagates to the row as well: count each tap once.
+  if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonDblClick) {
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - last_tap_ms >= 40) {
+      dongle_taps = (now - last_tap_ms <= 600) ? dongle_taps + 1 : 1;  // continuous taps only
+      last_tap_ms = now;
+      if (dongle_taps >= 8) {
+        dongle_taps = 0;
+        emit advancedUnlocked();
+      }
+    }
+  }
+  return ListWidget::eventFilter(obj, event);
+}
+
+// Offline maps: OSM extracts for Valhalla routing and the onroad map.
+// The UI only records the request (EOPMapDownloadRequest); the tile manager
+// downloads/builds and reports progress in EOPMapStatus.
+void DevicePanel::addOfflineMaps() {
+  static const QMap<QString, QString> regions = {
+    {tr("Thailand"), "thailand"}, {tr("Malaysia / Singapore"), "malaysia-singapore"},
+    {tr("Japan"), "japan"}, {tr("South Korea"), "south-korea"}, {tr("Taiwan"), "taiwan"},
+  };
+  addItem(settingsSection(tr("Offline Maps")));
+
+  mapRegionBtn = new ButtonControl(tr("Map Region"), tr("CHANGE"),
+      tr("Region used for offline routing, speed limits and the map view."));
+  connect(mapRegionBtn, &ButtonControl::clicked, [=]() {
+    const QString cur = regions.key(QString::fromStdString(params.get("EOPMapRegion")));
+    const QString sel = MultiOptionDialog::getSelection(tr("Select a map region"), regions.keys(), cur, this);
+    if (!sel.isEmpty()) {
+      params.put("EOPMapRegion", regions[sel].toStdString());
+      updateMapStatus();
+    }
+  });
+  addItem(mapRegionBtn);
+
+  mapDownloadBtn = new ButtonControl(tr("Map Data"), tr("DOWNLOAD"),
+      tr("Downloads the region's OpenStreetMap data and builds the offline routing tiles. "
+         "Large download; Wi-Fi recommended."));
+  connect(mapDownloadBtn, &ButtonControl::clicked, [=]() {
+    params.put("EOPMapDownloadRequest", params.get("EOPMapRegion"));
+    params.put("EOPMapStatus", "requested");
+    updateMapStatus();
+  });
+  addItem(mapDownloadBtn);
+
+  addItem(new ParamControl("EOPAutoTileEnabled", tr("Keep Maps Updated"),
+      tr("Refresh the region's map data automatically when it is out of date."), "", this));
+  addItem(new ParamControl("EOPAutoTileWifiOnly", tr("Map Updates on Wi-Fi Only"), "", "", this));
+
+  auto watch = new ParamWatcher(this);
+  watch->addParam("EOPMapStatus");
+  connect(watch, &ParamWatcher::paramChanged, [=](const QString &, const QString &) { updateMapStatus(); });
+  updateMapStatus();
+}
+
+void DevicePanel::updateMapStatus() {
+  static const QMap<QString, QString> names = {
+    {"thailand", tr("Thailand")}, {"malaysia-singapore", tr("Malaysia / Singapore")},
+    {"japan", tr("Japan")}, {"south-korea", tr("South Korea")}, {"taiwan", tr("Taiwan")},
+  };
+  QString region = QString::fromStdString(params.get("EOPMapRegion"));
+  if (region.isEmpty()) {
+    region = "thailand";
+    params.put("EOPMapRegion", region.toStdString());
+  }
+  mapRegionBtn->setValue(names.value(region, region));
+  const QString status = QString::fromStdString(params.get("EOPMapStatus"));
+  mapDownloadBtn->setValue(status.isEmpty() ? tr("not downloaded") : status);
 }
 
 void DevicePanel::updateCalibDescription() {
@@ -374,7 +394,7 @@ void SettingsWindow::setCurrentPanel(int index, const QString &param) {
       // reordering a panel here (e.g. Bluetooth) can't silently misroute an
       // openSettings(<stale index>, "SomeToggle") caller to the wrong panel.
       for (int i = 0; i < nav_btns->buttons().size(); i++) {
-        if (nav_btns->buttons()[i]->text() == tr("Toggles")) {
+        if (nav_btns->buttons()[i]->text() == tr("Driving")) {
           index = i;
           break;
         }
@@ -386,6 +406,12 @@ void SettingsWindow::setCurrentPanel(int index, const QString &param) {
 
   panel_widget->setCurrentIndex(index);
   nav_btns->buttons()[index]->setChecked(true);
+}
+
+void SettingsWindow::unlockAdvanced() {
+  if (!advanced_btn) return;
+  advanced_btn->setVisible(true);  // until the UI restarts
+  advanced_btn->click();
 }
 
 SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
@@ -417,6 +443,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
   // setup panels
   DevicePanel *device = new DevicePanel(this);
   QObject::connect(device, &DevicePanel::reviewTrainingGuide, this, &SettingsWindow::reviewTrainingGuide);
+  QObject::connect(device, &DevicePanel::advancedUnlocked, this, &SettingsWindow::unlockAdvanced);
 
   TogglesPanel *toggles = new TogglesPanel(this);
   QObject::connect(this, &SettingsWindow::expandToggleDescription, toggles, &TogglesPanel::expandToggleDescription);
@@ -431,10 +458,11 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Device"), device},
     {tr("WiFi"), networking},
     {tr("Bluetooth"), bluetooth_ui},
-    {tr("Toggles"), toggles},
-    {tr("Software"), new SoftwarePanel(this)},
-    {tr("Developer"), new DeveloperPanel(this)},
-    {tr("ExoPilot"), new EopPanel(this)},
+    {tr("Driving"), toggles},
+    {tr("Safety"), new EopPanel(this, EopPanel::SAFETY)},
+    {tr("Display"), new EopPanel(this, EopPanel::DISPLAY)},
+    // Engineering settings; shown after 8 quick taps on Device -> Dongle ID.
+    {tr("Advanced"), new EopPanel(this, EopPanel::ADVANCED)},
   };
 
   nav_btns = new QButtonGroup(this);
@@ -460,6 +488,10 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     nav_btns->addButton(btn);
     sidebar_layout->addWidget(btn, 0, Qt::AlignRight);
+    if (name == tr("Advanced")) {
+      advanced_btn = btn;
+      btn->setVisible(false);
+    }
 
     const int lr_margin = (name == tr("WiFi") || name == tr("Bluetooth")) ? 0 : 50;
     panel->setContentsMargins(lr_margin, 25, lr_margin, 25);

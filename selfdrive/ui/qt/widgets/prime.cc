@@ -14,7 +14,7 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QFrame(parent) {
   subscribed->setStyleSheet("font-size: 41px; font-weight: bold; color: #86FF4E;");
   mainLayout->addWidget(subscribed);
 
-  QLabel *eopLabel = new QLabel(tr("EnhancedOpenPilot"));
+  QLabel *eopLabel = new QLabel(tr("ExoPilot"));
   eopLabel->setStyleSheet("font-size: 45px; font-weight: bold;");
   mainLayout->addWidget(eopLabel);
 
@@ -36,7 +36,7 @@ PrimeAdWidget::PrimeAdWidget(QWidget* parent) : QFrame(parent) {
   main_layout->setContentsMargins(30, 20, 30, 20);
   main_layout->setSpacing(20);
 
-  QLabel *title = new QLabel(tr("EnhancedOpenPilot"));
+  QLabel *title = new QLabel(tr("ExoPilot"));
   title->setStyleSheet("font-size: 45px; font-weight: bold;");
   main_layout->addWidget(title, 0, Qt::AlignTop);
 
@@ -69,7 +69,7 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   title->setStyleSheet("font-size: 45px; font-weight: bold;");
   setupLayout->addWidget(title);
 
-  QLabel* description = new QLabel(tr("EnhancedOpenPilot (EOP) is ready to use. No cloud account required."));
+  QLabel* description = new QLabel(tr("ExoPilot is ready to use. No cloud account required."));
   description->setWordWrap(true);
   description->setStyleSheet("font-size: 30px; font-weight: light;");
   setupLayout->addWidget(description);
@@ -101,8 +101,6 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
 }
 
 void SetupWidget::mousePressEvent(QMouseEvent *event) {
-  // "ExoPilotPanel" resolves by name via SettingsWindow::setCurrentPanel(),
-  // not a hardcoded index, so this keeps working regardless of where the
-  // ExoPilot panel sits in the settings panel list.
-  emit openSettings(0, "ExoPilotPanel");
+  // Resolved by name in SettingsWindow::setCurrentPanel().
+  emit openSettings(0, "DrivingPanel");
 }

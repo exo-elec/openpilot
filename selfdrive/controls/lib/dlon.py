@@ -111,6 +111,9 @@ class DLON:
   # continuous, so a small margin avoids chatter at the zone edge).
   SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
 
+  # EOPDlonMode value -> mode; anything else (unset, bad value) is AUTO.
+  MODE_BY_PARAM = {0: DLONMode.CHILL, 1: DLONMode.EXPERIMENTAL, 2: DLONMode.AUTO}
+
   def __init__(self):
     self.params = Params()
     self.mode = DLONMode.AUTO
@@ -164,15 +167,14 @@ class DLON:
   def update_params(self):
     """Update parameters periodically (every 1 second).
 
-    Mode is always AUTO (automatic Chill/Experimental switching) -- a
-    default, standard behavior of this branch, not a user-selectable
-    choice. There is no param or panel control that forces a fixed CHILL
-    or EXPERIMENTAL mode; users cannot force pure E2E driving directly,
-    matching dev/NGP10's design.
+    The driver picks the mode in Settings -> Driving -> Drive Mode
+    (`EOPDlonMode`): 0 Highway (rule-based ACC), 1 Urban (AI/E2E),
+    2 Dynamic (AUTO switching, the default). Owner decision 2026-11-11:
+    this replaces dev/NGP10's always-AUTO rule on EOP branches.
     """
     current_time = time.monotonic()
     if current_time - self.last_param_update >= 1.0:
-      self.mode = DLONMode.AUTO
+      self.mode = self.MODE_BY_PARAM.get(self.params.get("EOPDlonMode"), DLONMode.AUTO)
       # Per-trigger toggles (CEM merge)
       self._trigger_enabled['curves'] = self.params.get_bool("DLONCurvesEnabled")
       self._trigger_enabled['lane_confidence'] = self.params.get_bool("DLONLaneConfidenceEnabled")

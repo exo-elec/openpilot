@@ -121,7 +121,7 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
-    emit openSettings(2, "RecordAudio");
+    emit openSettings(0, "DevicePanel");
   }
 }
 

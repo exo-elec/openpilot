@@ -5,10 +5,18 @@
 
 class LabelControl;
 
+// One section header style for every settings page: a centred caps title
+// between two hairlines.
+QWidget *settingsSection(const QString &title);
+
+// The ExoPilot settings, split by what the driver is doing (step 4.4b).
+// Each page is its own instance; DRIVING and DEVICE_* are embedded in the
+// Driving / Device pages, the others are pages of their own.
 class EopPanel : public ListWidget {
   Q_OBJECT
 public:
-  explicit EopPanel(SettingsWindow *parent);
+  enum Page { DRIVING, SAFETY, DISPLAY, DEVICE_VEHICLE, DEVICE_SYSTEM, ADVANCED };
+  EopPanel(SettingsWindow *parent, Page page);
 
 public slots:
   void expandToggleDescription(const QString &param);
@@ -19,8 +27,8 @@ private:
   std::map<std::string, ParamControl*> toggles;
   bool is_metric;
   bool is_onroad = false;
-  bool vehicle_has_long_ctrl;
-  bool vehicle_has_radar_unavailable;
+  bool vehicle_has_long_ctrl = false;
+  bool vehicle_has_radar_unavailable = false;
 
   void add_lateral_toggles();
   void add_longitudinal_toggles();
@@ -40,11 +48,13 @@ private:
   void add_pointcloud_toggles();    // 3D point cloud recording
   void add_globald_toggles();       // Global localization (OSM + SGM)
   void add_surface_toggles();       // Surface/Gridd configuration
+  void add_display_page();
+  void add_param_toggle(const char *param, const QString &title, const QString &desc);
   void updateStates();
   void showEvent(QShowEvent *event) override;
 
-  ParamDoubleSpinBoxControl* tsc_lat_accel_toggle;
-  ParamDoubleSpinBoxControl* lane_change_delay_slider;
-  ParamDoubleSpinBoxControl* minimum_lane_width_slider;
+  ParamDoubleSpinBoxControl* tsc_lat_accel_toggle = nullptr;
+  ParamDoubleSpinBoxControl* lane_change_delay_slider = nullptr;
+  ParamDoubleSpinBoxControl* minimum_lane_width_slider = nullptr;
   ParamControl *recorders_toggle = nullptr;
 };

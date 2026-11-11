@@ -21,11 +21,12 @@
 #include "selfdrive/ui/qt/widgets/scrollview.h"
 #include "system/hardware/hw.h"
 
-static QWidget *makeDivider(const QString &title) {
+QWidget *settingsSection(const QString &title) {
   auto *w = new QWidget();
-  w->setFixedHeight(52);
+  w->setObjectName("settingsSection");  // ListWidget skips its dividers here
+  w->setFixedHeight(56);
   auto *layout = new QHBoxLayout(w);
-  layout->setContentsMargins(40, 16, 40, 0);
+  layout->setContentsMargins(0, 20, 0, 0);
   layout->setSpacing(16);
 
   auto makeLine = [&]() {
@@ -37,7 +38,7 @@ static QWidget *makeDivider(const QString &title) {
   };
 
   auto *lbl = new QLabel(title.toUpper());
-  lbl->setStyleSheet("font-size: 15px; font-weight: bold; color: #E4E4E4; letter-spacing: 3px;");
+  lbl->setStyleSheet("font-size: 16px; font-weight: bold; color: #E4E4E4; letter-spacing: 3px;");
   lbl->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 
   layout->addWidget(makeLine(), 1);
@@ -46,114 +47,61 @@ static QWidget *makeDivider(const QString &title) {
   return w;
 }
 
+void EopPanel::add_param_toggle(const char *param, const QString &title, const QString &desc) {
+  auto toggle = new ParamControl(param, title, desc, "", this);
+  toggle->setEnabled(!params.getBool(std::string(param) + "Lock"));
+  addItem(toggle);
+  toggles[param] = toggle;
+}
+
 void EopPanel::add_lateral_toggles() {
-  std::vector<std::tuple<QString, QString, QString>> toggle_defs{
-      {
-          "",
-          tr("Lateral Control"),
-          "",
-      },
-      {
-          "LatALCC",
-          tr("Always-on Lane Centering Control (ALCC)"),
-          tr("Keeps lateral control active when cruise main is available."
-             "\nCan optionally run without cruise and hold at a stop."),
-      },
-      {
-          "LatRoadEdgeDetection",
-          tr("Road Edge Detection (RED)"),
-          tr("Block lane change when road edge is detected."),
-      },
-      {
-          "ALCCAllowAlways",
-          tr("ALCC Without Cruise"),
-          tr("Allow ALCC even when cruise main is off. Useful for platforms without LCC button."),
-      },
-      {
-          "ALCCHoldAtStandstill",
-          tr("ALCC Hold at Standstill"),
-          tr("Keep lateral torque active while stopped if ALCC is engaged."),
-      },
-      {
-          "DLPCurvesEnabled",
-          tr("Curve Assist (DLP)"),
-          tr("Switch to laneless mode pre-emptively for tight curves."),
-      },
-      {
-          "LCAControllerEnabled",
-          tr("Lane Change Assistant (LCA)"),
-          tr("Multi-camera blind spot detection for safer lane changes."),
-      },
-  };
-  auto lca_speed_toggle = new ParamSpinBoxControl(
-      "LatLCASpeed", tr("Lane Change Assist (LCA) Speed:"),
-      tr("Off = Disable Lane Change Assist"), "", 0, 160, 5, tr(" km/h"),
-      tr("Off"));
-  auto alcc_brake_mode = new ButtonParamControl(
-      "ALCCBrakeMode", QString::fromUtf8("　") + tr("ALCC Brake Behaviour"),
-      tr("Choose how ALCC responds when the brake pedal is pressed."
+  addItem(settingsSection(tr("Steering & Lane Change")));
+  add_param_toggle("EOPLatALCC", tr("Always-on Lane Centering (ALCC)"),
+      tr("Keeps steering active when cruise main is available."
+         "\nCan optionally run without cruise and hold at a stop."));
+  add_param_toggle("EOPALCCAllowAlways", tr("ALCC Without Cruise"),
+      tr("Allow ALCC even when cruise main is off. Useful for platforms without an LCC button."));
+  add_param_toggle("EOPALCCHoldAtStandstill", tr("ALCC Hold at Standstill"),
+      tr("Keep steering torque active while stopped if ALCC is engaged."));
+  addItem(new ButtonParamControl(
+      "EOPALCCBrakeMode", tr("ALCC on Brake"),
+      tr("What steering does when the brake pedal is pressed."
          "\nMaintain - keep steering active."
          "\nPause - hold steering until the brake is released."
          "\nDisengage - fully release ALCC when braking."),
-      "", {tr("Maintain"), tr("Pause"), tr("Disengage")});
-  // DLAT (Dynamic Lateral Profile) is a default, always-on automatic
-  // Laneful/Laneless arbitration -- no user-selectable mode, matching
-  // dev/NGP10's design. No panel control by design.
+      "", {tr("Maintain"), tr("Pause"), tr("Disengage")}));
+  add_param_toggle("EOPDLPCurvesEnabled", tr("Curve Assist"),
+      tr("Switch to laneless steering early for tight curves."));
+  add_param_toggle("EOPLatRoadEdgeDetection", tr("Road Edge Detection"),
+      tr("Block a lane change towards a detected road edge."));
+  // DLAT (Laneful/Laneless arbitration) is always automatic; no control.
 
-  // Auto Lane Change controls
-  auto auto_lane_change_toggle = new ParamControl(
-      "AutoLaneChange", tr("Auto Lane Change"),
-      tr("Enable automatic lane changes when turn signal is activated."), "",
-      this);
+  add_param_toggle("EOPLCAControllerEnabled", tr("Lane Change Assist (LCA)"),
+      tr("Blind-spot checks from all cameras before a lane change."));
+  addItem(new ParamSpinBoxControl(
+      "EOPLatLCASpeed", tr("Lane Change Assist From:"),
+      tr("Minimum speed for lane change assist. Off = disabled."), "", 0, 160, 5, tr(" km/h"),
+      tr("Off")));
+  add_param_toggle("EOPAutoLaneChange", tr("Auto Lane Change"),
+      tr("Change lanes automatically when the turn signal is on."));
   lane_change_delay_slider = new ParamDoubleSpinBoxControl(
-      "LaneChangeDelay", tr("Lane Change Delay:"),
-      tr("Delay before executing lane change after turn signal activation."),
+      "EOPLaneChangeDelay", tr("Lane Change Delay:"),
+      tr("Delay before the lane change starts after the turn signal."),
       "", 0.5, 5.0, 0.1, tr(" s"), tr(""));
+  addItem(lane_change_delay_slider);
   minimum_lane_width_slider = new ParamDoubleSpinBoxControl(
-      "MinimumLaneWidth", tr("Minimum Lane Width:"),
-      tr("Minimum lane width required for lane change assist."), "", 2.0, 4.0,
+      "EOPMinimumLaneWidth", tr("Minimum Lane Width:"),
+      tr("Narrowest target lane a lane change is allowed into."), "", 2.0, 4.0,
       0.1, tr(" m"), tr(""));
-  auto one_lane_change_toggle = new ParamControl(
-      "OneLaneChange", tr("One Lane Change Only"),
-      tr("Limit to one lane change per turn signal activation for safety."), "",
-      this);
-
-  QWidget *label = nullptr;
-  bool has_toggle = false;
-
-  for (auto &[param, title, desc] : toggle_defs) {
-    if (param.isEmpty()) {
-      label = new LabelControl(title, "");
-      addItem(label);
-      addItem(lca_speed_toggle);
-      addItem(alcc_brake_mode);
-      addItem(auto_lane_change_toggle);
-      addItem(lane_change_delay_slider);
-      addItem(minimum_lane_width_slider);
-      addItem(one_lane_change_toggle);
-      has_toggle = true;
-      continue;
-    }
-
-    has_toggle = true;
-    auto toggle = new ParamControl(param, title, desc, "", this);
-    bool locked = params.getBool((param + "Lock").toStdString());
-    toggle->setEnabled(!locked);
-    addItem(toggle);
-    toggles[param.toStdString()] = toggle;
-  }
-
-  // If no toggles were added, hide the label
-  if (!has_toggle && label) {
-    label->hide();
-  }
+  addItem(minimum_lane_width_slider);
+  add_param_toggle("EOPOneLaneChange", tr("One Lane Change per Signal"),
+      tr("Change at most one lane per turn signal activation."));
 }
-
 void EopPanel::add_enhanced_perception_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
-          QString::fromUtf8("🔍 ") + tr("Enhanced Perception"),
+          tr("Enhanced Perception"),
           "",
       },
       {
@@ -198,7 +146,7 @@ void EopPanel::add_enhanced_perception_toggles() {
 
   for (auto &[param, title, desc] : toggle_defs) {
     if (param.isEmpty()) {
-      label = new LabelControl(title, "");
+      label = settingsSection(title);
       addItem(label);
       continue;
     }
@@ -220,10 +168,10 @@ void EopPanel::add_enhanced_perception_toggles() {
 void EopPanel::add_enhanced_controllers_section() {
   bool has_stereo = params.getBool("StereoEnabled");
 
-  addItem(new LabelControl(QString::fromUtf8("🔮 ") + tr("Enhanced Controllers (Stereo Required)"), ""));
+  addItem(settingsSection(tr("Enhanced Controllers (Stereo Required)")));
 
   if (!has_stereo) {
-    addItem(new LabelControl(tr("Stereo cameras not detected. Enhanced features unavailable."), ""));
+    addItem(settingsSection(tr("Stereo cameras not detected. Enhanced features unavailable.")));
   }
 
   // Stereo Nudge Toggle
@@ -265,224 +213,71 @@ void EopPanel::add_enhanced_controllers_section() {
 }
 
 void EopPanel::add_longitudinal_toggles() {
-  std::vector<std::tuple<QString, QString, QString>> toggle_defs{
-      {
-          "",
-          tr("Speed Control"),
-          "",
-      },
-      {
-          "LonExtRadar",
-          tr("Use External Radar"),
-          tr("See https://github.com/eFiniLan/openpilot-ext-radar-addon for "
-             "more information."),
-      },
-
-      {
-          "VTSCEnabled",
-          tr("Vision Turn Speed Control (VTSC)"),
-          tr("Slow down for upcoming curves (0-250m) using vision data."),
-      },
-      {
-          "MTSCEnabled",
-          tr("Map Turn Speed Control (MTSC)"),
-          tr("Slow down for upcoming curves (250-500m) using OSM data."),
-      },
-      {
-          "TLSCEnabled",
-          tr("Traffic Light Speed Control (TLSC)"),
-          tr("Slow down for yellow/red lights when no lead vehicle is ahead."),
-      },
-      {
-          "MSLCEnabled",
-          tr("Map Speed Limit Control (MSLC)"),
-          tr("Automatically adjust speed based on posted speed limits from OSM."),
-      },
-      {
-          "TJAEnabled",
-          tr("Traffic Jam Assist (TJA)"),
-          tr("Gentle acceleration ramp after stops in stop-and-go traffic."),
-      },
-      {
-          "ngp_lon_brsc",
-          tr("Bumpy Road Speed Controller (BRSC)"),
-          tr("Reduce speed and acceleration on rough pavement, detected from "
-             "vertical IMU acceleration. Recovers gradually a few seconds "
-             "after the road smooths out."),
-      },
-  };
-
-  QWidget *label = nullptr;
-  bool has_toggle = false;
-
-  for (auto &[param, title, desc] : toggle_defs) {
-    if (param.isEmpty()) {
-      label = new LabelControl(title, "");
-      addItem(label);
-      continue;
-    }
-    if (param == "LonExtRadar" && !vehicle_has_radar_unavailable) {
-      continue;
-    }
-    has_toggle = true;
-    auto toggle = new ParamControl(param, title, desc, "", this);
-    bool locked = params.getBool((param + "Lock").toStdString());
-    toggle->setEnabled(!locked);
-    addItem(toggle);
-    toggles[param.toStdString()] = toggle;
-  }
-
-  // DLON (Dynamic Longitudinal Profile) is a default, always-on automatic
-  // ACC/E2E switch -- no user-selectable mode, matching dev/NGP10's design.
-  // No panel control by design: users cannot force pure E2E (Experimental)
-  // or pure ACC directly.
-
+  addItem(settingsSection(tr("Speed")));
+  // DLON's ACC/E2E choice is Drive Mode at the top of this page.
+  add_param_toggle("EOPVTSCEnabled", tr("Vision Curve Speed (VTSC)"),
+      tr("Slow down for curves 0-250 m ahead, from the camera."));
+  add_param_toggle("EOPMTSCEnabled", tr("Map Curve Speed (MTSC)"),
+      tr("Slow down for curves 250-500 m ahead, from the offline map."));
   tsc_lat_accel_toggle = new ParamDoubleSpinBoxControl(
-      "TSCTargetLatAccel",
-      QString::fromUtf8("　") + tr("Curve Speed Limit:"),
-      tr("Max lateral acceleration for curve speed control. Lower = more cautious."),
+      "EOPTSCTargetLatAccel", tr("Curve Speed Limit:"),
+      tr("Max lateral acceleration in curves. Lower = slower, more cautious."),
       "", 1.0, 2.5, 0.1, tr(" m/s²"), tr(""));
   addItem(tsc_lat_accel_toggle);
-
-  // BLE navigation app toggle
-  addItem(new ParamControl(
-      "NavBleEnabled",
-      QString::fromUtf8("　") + tr("BLE Navigation App"),
-      tr("Bluetooth connection for wireless destination input via mobile app."),
-      "", this));
-
-  // If no toggles were added, hide the label
-  if (!has_toggle && label) {
-    label->hide();
+  add_param_toggle("EOPMSLCEnabled", tr("Map Speed Limit (MSLC)"),
+      tr("Follow posted speed limits from the offline map."));
+  add_param_toggle("EOPTLSCEnabled", tr("Traffic Light Speed (TLSC)"),
+      tr("Slow down for yellow/red lights when no car is ahead."));
+  add_param_toggle("EOPTJAEnabled", tr("Traffic Jam Assist (TJA)"),
+      tr("Gentle acceleration after stops in stop-and-go traffic."));
+  add_param_toggle("ngp_lon_brsc", tr("Bumpy Road Speed (BRSC)"),
+      tr("Reduce speed on rough pavement, detected from the IMU. "
+         "Recovers a few seconds after the road smooths out."));
+  if (vehicle_has_radar_unavailable) {
+    add_param_toggle("EOPLonExtRadar", tr("Use External Radar"),
+        tr("Use the add-on forward radar for lead tracking."));
   }
 }
-
 void EopPanel::add_ui_toggles() {
-  std::vector<std::tuple<QString, QString, QString>> toggle_defs{
-      {
-          "",
-          tr("UI"),
-          "",
-      },
-      {
-          "UIRadarTracks",
-          tr("Display Radar Tracks"),
-          "",
-      },
-      {
-          "UIRainbow",
-          tr("Rainbow Driving Path"),
-          tr("Why not?"),
-      },
-      {
-          "UIDisplayMode",
-          tr("UI Display Mode"),
-          tr("Advanced UI display mode with enhanced visualizations."),
-      },
-  };
-  auto hide_hud = new ParamSpinBoxControl(
-      "UIHideHudSpeedKph", tr("Hide HUD When Moves above:"),
-      tr("To prevent screen burn-in, hide Speed, MAX Speed, and Steering "
-         "Icons when the car moves.\nOff = Stock Behavior"),
-      "", 0, 120, 5, tr(" km/h"), tr("Off"));
-
-  QWidget *label = nullptr;
-  bool has_toggle = false;
-
-  for (auto &[param, title, desc] : toggle_defs) {
-    if (param.isEmpty()) {
-      label = new LabelControl(title, "");
-      addItem(label);
-      addItem(hide_hud);
-      has_toggle = true;
-      continue;
-    }
-    if (param == "UIRadarTracks" && !vehicle_has_long_ctrl) {
-      continue;
-    }
-
-    has_toggle = true;
-    auto toggle = new ParamControl(param, title, desc, "", this);
-    bool locked = params.getBool((param + "Lock").toStdString());
-    toggle->setEnabled(!locked);
-    addItem(toggle);
-    toggles[param.toStdString()] = toggle;
+  add_param_toggle("IsMetric", tr("Use Metric System"), tr("Display speed in km/h instead of mph."));
+  add_param_toggle("EOPUIDisplayMode", tr("Detailed Driving View"),
+      tr("Show extra visualisations on the driving screen."));
+  add_param_toggle("EOPBEVWidgetEnabled", tr("Bird's Eye View"),
+      tr("Top-down view of the car and surrounding objects on the driving screen."));
+  if (vehicle_has_long_ctrl) {
+    add_param_toggle("EOPUIRadarTracks", tr("Show Radar Tracks"), "");
   }
-
-  // If no toggles were added, hide the label
-  if (!has_toggle && label) {
-    label->hide();
-  }
+  add_param_toggle("EOPUIRainbow", tr("Rainbow Driving Path"), "");
+  addItem(new ParamSpinBoxControl(
+      "ngp_ui_hide_hud_speed_kph", tr("Hide HUD Above:"),
+      tr("Hide speed, set speed and steering icons above this speed to prevent "
+         "screen burn-in. Off = always shown."),
+      "", 0, 120, 5, tr(" km/h"), tr("Off")));
 }
-
 void EopPanel::add_car_adaptive_toggles() {
-  addItem(new LabelControl(tr("Car Adaptive Tuning (CAT)"),
-                           tr("Learns and corrects steer ratio and stiffness from real driving data.")));
-
-  auto cat_manual_sr_toggle = new ParamControl(
-      "CATManualSREnabled",
-      tr("Use Fixed Steer Ratio"),
-      tr("Disable learning and apply a fixed steer ratio instead."),
-      "", this);
-  addItem(cat_manual_sr_toggle);
-  toggles["CATManualSREnabled"] = cat_manual_sr_toggle;
+  addItem(settingsSection(tr("Car Adaptive Tuning")));
+  add_param_toggle("EOPCATManualSREnabled", tr("Use Fixed Steer Ratio"),
+      tr("Stop learning steer ratio and stiffness from driving; use the fixed value."));
 }
-
 void EopPanel::add_recording_controls() {
-  auto ensure_bool = [&](const std::string &key, bool val) {
-    if (params.get(key).empty()) {
-      params.putBool(key, val);
-    }
-  };
-
-  ensure_bool("RecordEnabled", true);
-
-  addItem(new LabelControl(tr("Recording"),
-                           tr("Enable or disable on-road recording")));
-
+  if (params.get("EOPRecordEnabled").empty()) params.putBool("EOPRecordEnabled", true);
+  addItem(settingsSection(tr("Recording")));
   recorders_toggle = new ParamControl(
-      "RecordEnabled", tr("Enable On-Road Recording"),
-      tr("When enabled and storage is present, recordd runs "
-         "automatically for loop recording, impact detection, and snapshots."),
+      "EOPRecordEnabled", tr("On-Road Recording"),
+      tr("Loop recording, impact detection and snapshots when storage is present."),
       "", this);
   addItem(recorders_toggle);
+  add_param_toggle("RecordAudio", tr("Record Microphone Audio"),
+      tr("Include audio in recordings. Changing this restarts ExoPilot if the car is on."));
 }
-
 void EopPanel::add_calibration_section() {
-  addItem(new LabelControl(tr("Camera Calibration"),
-                           tr("Factory and runtime camera calibration settings.")));
-
-  // Factory Calibration Status
-  bool factory_calibrated = params.getBool("FactoryCalibrated");
-  QString factory_status = factory_calibrated ? tr("✓ Calibrated") : tr("✗ Not Calibrated");
-  auto factory_status_label = new LabelControl(
-      tr("Factory Calibration Status"),
-      factory_status);
-  addItem(factory_status_label);
-
-  // Runtime calibration reset button
-  auto reset_runtime_btn = new ButtonControl(
-      tr("Reset Calibration"),
-      tr("RESET"),
-      tr("Reset on-road calibration. Use after remounting camera."));
-  QObject::connect(reset_runtime_btn, &ButtonControl::clicked, [=]() {
-    if (uiState()->engaged()) {
-      ConfirmationDialog::alert(tr("Disengage to reset calibration"), this);
-      return;
-    }
-    if (ConfirmationDialog::confirm(tr("Reset runtime calibration? Factory intrinsics are preserved."), tr("Reset"), this)) {
-      params.remove("CalibrationParams");
-      params.remove("CameraCalibrationParams");
-      params.putBool("OnroadCycleRequested", true);
-    }
-  });
-  addItem(reset_runtime_btn);
+  addItem(settingsSection(tr("Calibration")));
+  const bool factory_calibrated = params.getBool("EOPFactoryCalibrated");
+  addItem(new LabelControl(tr("Factory Calibration"),
+                           factory_calibrated ? tr("calibrated") : tr("not calibrated")));
 }
-
 void EopPanel::add_gps_rtk_toggles() {
-  addItem(new LabelControl(tr("🛰 GPS / RTK Corrections"),
-                           tr("Requires u-blox ZED-F9P-04B on UART7 "
-                              "and an NTRIP-capable internet connection for RTK Fixed mode.")));
+  addItem(settingsSection(tr("GPS / RTK Corrections")));
 
   auto rtk_toggle = new ParamControl(
       "RTKEnabled",
@@ -503,8 +298,7 @@ void EopPanel::add_gps_rtk_toggles() {
 }
 
 void EopPanel::add_vehicle_platform_section() {
-  addItem(new LabelControl(tr("Vehicle Platform"),
-                           tr("Select your vehicle size category for baseline physics tuning.")));
+  addItem(settingsSection(tr("Vehicle")));
 
   // Vehicle type options (ordered by size)
   const std::vector<QString> vehicle_types = {
@@ -584,7 +378,7 @@ void EopPanel::add_vehicle_platform_section() {
         border-bottom: 1px solid #3a3a3a;
       }
       QListWidget::item:selected {
-        background-color: #33Ab4C;
+        background-color: #2f7566;
       }
     )");
 
@@ -616,65 +410,21 @@ void EopPanel::add_vehicle_platform_section() {
   });
 
   addItem(vehicle_type_btn);
+  add_param_toggle("EOPDeviceIsRhd", tr("Right-Hand Drive"),
+      tr("The driver sits on the right (left-hand traffic)."));
 }
 
 void EopPanel::add_device_toggles() {
-  std::vector<std::tuple<QString, QString, QString>> toggle_defs{
-      {
-          "",
-          tr("Device"),
-          "",
-      },
-      {
-          "DeviceIsRhd",
-          tr("Right-Hand Drive Mode"),
-          tr("Follow right-hand traffic rules (right-seat driver)."),
-      },
-      {
-          "DeviceBeep",
-          tr("Warning Beep"),
-          "",
-      }};
-  std::vector<QString> audible_alert_mode_texts{tr("Std."), tr("Warning"),
-                                                tr("Off")};
-  ButtonParamControl *audible_alert_mode_setting = new ButtonParamControl(
-      "DeviceAudibleAlertMode", tr("Alert Sound"),
-      tr("Std - all alerts. Warning - warnings only. Off - silent."),
-      "", audible_alert_mode_texts);
+  addItem(settingsSection(tr("Phone")));
+  add_param_toggle("EOPNavBleEnabled", tr("Navigation App over Bluetooth"),
+      tr("Send destinations from the ExoPilot phone app over Bluetooth."));
 
-  auto auto_shutdown_toggle = new ParamSpinBoxControl(
-      "DeviceAutoShutdownIn", tr("Auto Shutdown In:"),
-      tr("0 mins = Immediately"), "", -5, 300, 5, tr(" mins"), tr("Off"));
-
-  QWidget *label = nullptr;
-  bool has_toggle = false;
-
-  for (auto &[param, title, desc] : toggle_defs) {
-    if (param.isEmpty()) {
-      label = new LabelControl(title, "");
-      addItem(label);
-      addItem(auto_shutdown_toggle);
-      has_toggle = true;
-      continue;
-    }
-
-    has_toggle = true;
-    auto toggle = new ParamControl(param, title, desc, "", this);
-    bool locked = params.getBool((param + "Lock").toStdString());
-    toggle->setEnabled(!locked);
-    addItem(toggle);
-    toggles[param.toStdString()] = toggle;
-  }
-  addItem(audible_alert_mode_setting);
-  has_toggle = true;
-
-  // If no toggles were added, hide the label
-  if (!has_toggle && label) {
-    label->hide();
-  }
+  addItem(settingsSection(tr("Power")));
+  addItem(new ParamSpinBoxControl(
+      "EOPDeviceAutoShutdownIn", tr("Auto Shutdown After:"),
+      tr("Time after the car turns off. 0 mins = immediately."), "", -5, 300, 5, tr(" mins"), tr("Off")));
 }
-
-EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
+EopPanel::EopPanel(SettingsWindow *parent, Page page) : ListWidget(parent) {
   is_metric = params.getBool("IsMetric");
   auto cp_bytes = params.get("CarParamsPersistent");
   if (!cp_bytes.empty()) {
@@ -695,29 +445,37 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
   ensure_on("BSDEnabled");     // safety: blind spot detection always active
   // driveractivityd is always registered onroad; there is no monitoring-off key.
 
-  // ── DRIVING ─────────────────────────────────────────
-  addItem(makeDivider(QString::fromUtf8("🚗  ") + tr("Driving")));
-  add_lateral_toggles();
-  add_longitudinal_toggles();
-  add_safety_toggles();
-
-  // ── ASSISTANCE ───────────────────────────────────────
-  addItem(makeDivider(QString::fromUtf8("👁  ") + tr("Assistance")));
-  add_driver_toggles();
-
-  // ── DISPLAY ──────────────────────────────────────────
-  addItem(makeDivider(QString::fromUtf8("🖥  ") + tr("Display")));
-  add_ui_toggles();
-
-  // ── DEVICE ───────────────────────────────────────────
-  addItem(makeDivider(QString::fromUtf8("⚙️  ") + tr("Device")));
-  add_recording_controls();
-  add_device_toggles();
-
-  // ── SETUP ────────────────────────────────────────────
-  addItem(makeDivider(QString::fromUtf8("🔧  ") + tr("Setup")));
-  add_calibration_section();
-  add_car_adaptive_toggles();
+  switch (page) {
+    case DRIVING:
+      add_lateral_toggles();
+      add_longitudinal_toggles();
+      break;
+    case SAFETY:
+      add_safety_toggles();
+      break;
+    case DISPLAY:
+      add_ui_toggles();
+      break;
+    case DEVICE_VEHICLE:
+      add_vehicle_platform_section();
+      add_calibration_section();
+      break;
+    case DEVICE_SYSTEM:
+      add_device_toggles();
+      add_recording_controls();
+      break;
+    case ADVANCED:
+      // Engineering settings, behind the Dongle ID unlock (owner 2026-11-11).
+      add_car_adaptive_toggles();
+      add_enhanced_perception_toggles();
+      add_enhanced_controllers_section();
+      add_monod_toggles();
+      add_globald_toggles();
+      add_gps_rtk_toggles();
+      add_surface_toggles();
+      add_pointcloud_toggles();
+      break;
+  }
 
   fs_watch = new ParamWatcher(this);
 
@@ -756,50 +514,38 @@ void EopPanel::updateStates() {
   if (vehicle_has_long_ctrl) {
   }
 
-  tsc_lat_accel_toggle->setVisible(params.getBool("VTSCEnabled") || params.getBool("MTSCEnabled"));
+  if (tsc_lat_accel_toggle) {
+    tsc_lat_accel_toggle->setVisible(params.getBool("EOPVTSCEnabled") || params.getBool("EOPMTSCEnabled"));
+  }
 }
 
 void EopPanel::add_safety_toggles() {
-  addItem(new LabelControl(
-      tr("Safety"),
-      tr("Blind spot detection and driver safety.")));
+  addItem(settingsSection(tr("Warnings")));
+  add_param_toggle("IsLdwEnabled", tr("Lane Departure Warnings"),
+      tr("Alert when drifting over a lane line without the turn signal above 50 km/h."));
+  add_param_toggle("EOPBSDChimeEnabled", tr("Blind Spot Chime"),
+      tr("Chime when a fast-approaching vehicle enters the blind spot. Blind spot detection itself is always on."));
+  addItem(new ButtonParamControl(
+      "EOPDeviceAudibleAlertMode", tr("Alert Sound"),
+      tr("Standard - all alerts. Warnings - warnings only. Off - silent."),
+      "", {tr("Standard"), tr("Warnings"), tr("Off")}));
+  add_param_toggle("EOPDeviceBeep", tr("Warning Beep"), "");
 
-  auto monitor_row = new QWidget(this);
-  auto monitor_layout = new QHBoxLayout(monitor_row);
-  monitor_layout->addWidget(new QLabel(tr("SAM · Steering Activity Decay"), monitor_row));
-  auto monitor_policy = new QComboBox(monitor_row);
-  monitor_policy->addItem(tr("Relaxed (legacy)"), "relaxed");
-  monitor_policy->addItem(tr("Tight"), "tight");
-  monitor_policy->setCurrentIndex(std::max(0, monitor_policy->findData(
-    QString::fromStdString(params.get("ngp_dm_policy")))));
-  monitor_layout->addWidget(monitor_policy);
-  addItem(monitor_row);
-  connect(monitor_policy, qOverload<int>(&QComboBox::activated), this, [=](int index) {
-    params.put("ngp_dm_policy", monitor_policy->itemData(index).toString().toStdString());
+  addItem(settingsSection(tr("Driver Attention")));
+  // ngp_dm_policy is a string param, so this is a plain MultiButtonControl.
+  auto sam = new MultiButtonControl(tr("Steering Activity Monitor"),
+      tr("How quickly hands-off time builds up.\nRelaxed - the earlier behaviour.\nTight - warns sooner."),
+      "", {tr("Relaxed"), tr("Tight")});
+  sam->setCheckedButton(params.get("ngp_dm_policy") == "tight" ? 1 : 0);
+  connect(sam, &MultiButtonControl::buttonClicked, this, [=](int id) {
+    params.put("ngp_dm_policy", id == 1 ? "tight" : "relaxed");
   });
-
-  // BSD chime — user audio preference (BSD itself is always on)
-  auto bsd_chime_toggle = new ParamControl(
-      "BSDChimeEnabled",
-      tr("BSD Warning Chime"),
-      tr("Audible warning when a fast-approaching vehicle enters the blind spot."),
-      "", this);
-  addItem(bsd_chime_toggle);
-
-  // BEV Widget toggle
-  auto bev_toggle = new ParamControl(
-      "BEVWidgetEnabled",
-      tr("Bird's Eye View (BEV)"),
-      tr("Top-down view of vehicle and surrounding objects on the driving screen."),
-      "", this);
-  addItem(bev_toggle);
-
+  addItem(sam);
+  add_param_toggle("EOPRearCameraEnabled", tr("Rear Camera View"),
+      tr("Show the rear camera when reverse is engaged."));
 }
-
 void EopPanel::add_voice_ai_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("🎤 ") + tr("Voice Input"),
-      tr("On-board 2-mic pair, processed locally (beamformer + voice-activity detection). Offline.")));
+  addItem(settingsSection(tr("Voice Input")));
 
   auto voice_toggle = new ParamControl(
       "VoiceEnabled",
@@ -811,24 +557,10 @@ void EopPanel::add_voice_ai_toggles() {
 }
 
 void EopPanel::add_driver_toggles() {
-  addItem(new LabelControl(
-      tr("Driver Attention"),
-      tr("Attention monitoring via steering torque and rear camera.")));
-
-  // Rear camera toggle (display preference only — driver monitor always runs)
-  auto rear_cam_toggle = new ParamControl(
-      "RearCameraEnabled",
-      tr("Rear Camera"),
-      tr("USB rear camera for reverse view. Shows when reverse gear engaged."),
-      "", this);
-  addItem(rear_cam_toggle);
-  toggles["RearCameraEnabled"] = rear_cam_toggle;
+  // Driver attention rows live in add_safety_toggles().
 }
-
 void EopPanel::add_monod_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("📷 ") + tr("Hailo Long-Range Detection (MonoD)"),
-      tr("Hailo-8 NPU-based long-range object detection using tele_road camera.")));
+  addItem(settingsSection(tr("Hailo Long-Range Detection (MonoD)")));
 
   // Master toggle
   auto monod_toggle = new ParamControl(
@@ -884,9 +616,7 @@ void EopPanel::add_monod_toggles() {
 }
 
 void EopPanel::add_pointcloud_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("☁️ ") + tr("3D Point Cloud Recording"),
-      tr("Record 3D point clouds for fleet digital twin. Non-critical for driving.")));
+  addItem(settingsSection(tr("3D Point Cloud Recording")));
 
   // Master toggle
   auto pc_toggle = new ParamControl(
@@ -927,9 +657,7 @@ void EopPanel::add_pointcloud_toggles() {
 }
 
 void EopPanel::add_globald_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("🌍 ") + tr("Global Localization"),
-      tr("Map-based position refinement using OSM and SGM point cloud matching.")));
+  addItem(settingsSection(tr("Global Localization")));
 
   // Master toggle
   auto globald_toggle = new ParamControl(
@@ -998,9 +726,7 @@ void EopPanel::add_globald_toggles() {
 }
 
 void EopPanel::add_surface_toggles() {
-  addItem(new LabelControl(
-      QString::fromUtf8("🛣️ ") + tr("Surface Quality Mapping"),
-      tr("Road surface condition detection and longitudinal control tuning.")));
+  addItem(settingsSection(tr("Surface Quality Mapping")));
 
   // Grid resolution
   auto grid_res = new ParamDoubleSpinBoxControl(

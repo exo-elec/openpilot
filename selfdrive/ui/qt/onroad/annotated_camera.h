@@ -17,7 +17,7 @@ public:
 
 private:
   QVBoxLayout *main_layout;
-  ExperimentalButton *experimental_btn;
+  PersonalityButton *experimental_btn;
   HudRenderer hud;
   ModelRenderer model;
   // Small corner overlay floating over the camera view. Not in main_layout

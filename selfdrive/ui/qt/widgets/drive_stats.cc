@@ -454,7 +454,7 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   content_layout->setSpacing(20);
 
   // Information panel header
-  QLabel *info_title = new QLabel(tr("EnhancedOpenPilot"));
+  QLabel *info_title = new QLabel(tr("ExoPilot"));
   info_title->setStyleSheet("font-size: 26px; font-weight: 600; color: #86FF4E;");
   content_layout->addWidget(info_title);
 

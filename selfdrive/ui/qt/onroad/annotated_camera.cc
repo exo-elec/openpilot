@@ -18,7 +18,7 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
   main_layout->setMargin(UI_BORDER_SIZE);
   main_layout->setSpacing(0);
 
-  experimental_btn = new ExperimentalButton(this);
+  experimental_btn = new PersonalityButton(this);
   main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
   
   // BEV Widget (Bird's Eye View) -- a small corner overlay floating over the

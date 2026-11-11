@@ -192,3 +192,29 @@ if __name__ == '__main__':
   msg = 'All passed' if failures == 0 else f'{failures} failure(s)'
   print(f'\n{msg}')
   exit(0 if failures == 0 else 1)
+
+
+class TestDLONDriveModeParam:
+  """Settings -> Driving -> Drive Mode (EOPDlonMode) selects the DLON mode."""
+
+  def _mode_for(self, value):
+    dlon = DLON()
+    dlon.params = MagicMock()
+    dlon.params.get = lambda key: value if key == "EOPDlonMode" else None
+    dlon.params.get_bool = lambda key: False
+    dlon.last_param_update = -1e9
+    dlon.update_params()
+    return dlon.mode
+
+  def test_highway_is_chill(self):
+    assert self._mode_for(0) == DLONMode.CHILL
+
+  def test_urban_is_experimental(self):
+    assert self._mode_for(1) == DLONMode.EXPERIMENTAL
+
+  def test_dynamic_is_auto(self):
+    assert self._mode_for(2) == DLONMode.AUTO
+
+  def test_unset_or_bad_value_is_auto(self):
+    assert self._mode_for(None) == DLONMode.AUTO
+    assert self._mode_for(7) == DLONMode.AUTO

@@ -840,6 +840,10 @@ paths in isolation (same reason `dev/NGP10` kept its equivalent branches
 in `ngp_dlon.py`). They're unreachable via any param/UI path now, reachable
 only by a test setting `.mode` directly, same as NGP10.
 
+**2026-11-11 (dev/01M):** DLON's mode is user-selectable again through
+`EOPDlonMode` (Highway / Urban / Dynamic, see DLON.md §2.1). DLAT stays
+always-auto.
+
 Verified: `.venv/bin/python -m pytest selfdrive/controls/tests/` —
 200/201 pass (same pre-existing, unrelated `test_nslc.py` failure noted in
 §11); `g++ -fsyntax-only -fPIC` on `eop_panel.cc` against system Qt5

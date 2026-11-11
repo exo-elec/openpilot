@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
 #include <QButtonGroup>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -193,9 +195,9 @@ public:
 
     // The choices get their own line under the title: title + three labels
     // do not fit one 1024x600 settings row without clipping. Indented to
-    // line up with the title when the row has an icon.
+    // stay inside the panel, the line is not indented under an icon.
     QHBoxLayout *choices = new QHBoxLayout;
-    choices->setContentsMargins(icon.isEmpty() ? 0 : 80 + hlayout->spacing(), 8, 0, 0);
+    choices->setContentsMargins(0, 8, 0, 0);  // full row width, icon or not
     choices->setSpacing(12);
     qobject_cast<QVBoxLayout *>(layout())->insertLayout(1, choices);
 
@@ -206,7 +208,10 @@ public:
       button->setCheckable(true);
       button->setChecked(i == 0);
       button->setStyleSheet(style);
-      button->setMinimumWidth(minimum_button_width);
+      // never narrower than its label (the QSS font: 24 px, medium)
+      const int label_w = QFontMetrics(theme::inter(theme::CONTROL_FONT_PX, QFont::DemiBold))
+                              .horizontalAdvance(button_texts[i]) + 2 * 16 + 8;
+      button->setMinimumWidth(std::max(minimum_button_width, label_w));
       choices->addWidget(button, 1);
       button_group->addButton(button, i);
     }
@@ -282,8 +287,14 @@ private:
   void paintEvent(QPaintEvent *) override {
     QPainter p(this);
     p.setPen(Qt::gray);
+    auto is_section = [&](int i) {
+      QWidget *w = inner_layout.itemAt(i)->widget();
+      return w != nullptr && w->objectName() == "settingsSection";
+    };
     for (int i = 0; i < inner_layout.count() - 1; ++i) {
       QWidget *widget = inner_layout.itemAt(i)->widget();
+      // a section header draws its own rule; no divider above or below it
+      if (is_section(i) || is_section(i + 1)) continue;
       if (widget == nullptr || widget->isVisible()) {
         QRect r = inner_layout.itemAt(i)->geometry();
         int bottom = r.bottom() + inner_layout.spacing() / 2;

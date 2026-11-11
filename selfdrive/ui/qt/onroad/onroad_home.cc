@@ -57,7 +57,7 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   pairing_overlay_->hide();
   // Same reasoning as the camera overlays above -- this is a status label,
   // not an interactive control, so it shouldn't block clicks to whatever's
-  // underneath (e.g. ExperimentalButton) while a pairing PIN is shown.
+  // underneath (e.g. PersonalityButton) while a pairing PIN is shown.
   pairing_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
   stacked_layout->addWidget(pairing_overlay_);
 
@@ -92,7 +92,7 @@ void OnroadWindow::createOverlays() {
   rear_overlay_->setCornerRadius(12);
   rear_overlay_->hide();
   // Purely informational PIP, same as `alerts` below -- let clicks pass
-  // through to whatever's underneath (e.g. ExperimentalButton, bev_widget)
+  // through to whatever's underneath (e.g. PersonalityButton, bev_widget)
   // instead of this overlay silently swallowing them while shown.
   rear_overlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
 
