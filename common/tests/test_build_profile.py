@@ -22,7 +22,7 @@ profile.UI_BACKEND = sys.argv[1]
 sys.modules[profile.__name__] = profile
 params = types.ModuleType('openpilot.common.params')
 class Params:
-  def get_bool(self,key): return key == 'EOPIgnitionOn'
+  def get_bool(self,key): return key == 'IgnitionOn'
 params.Params = Params
 sys.modules[params.__name__] = params
 process = types.ModuleType('openpilot.system.manager.process')

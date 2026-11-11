@@ -168,7 +168,7 @@ class RearD:
 
     self.rk = Ratekeeper(RATE, print_delay_threshold=None)
     self.params = Params()
-    self.enabled = self.params.get_bool("EOPRearCameraEnabled")
+    self.enabled = self.params.get_bool("RearCameraEnabled")
 
     self.frame_id = 0
     self._camera_health = CameraHealthTracker()

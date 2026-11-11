@@ -58,7 +58,7 @@ class BluetoothD:
 
     def __init__(self):
         self.params = Params()
-        self.enabled = self.params.get_bool('EOPBluetoothEnabled')
+        self.enabled = self.params.get_bool('BluetoothEnabled')
 
         # GLib main loop (required for D-Bus callbacks — pairing agent + GATT)
         self._glib_loop: GLib.MainLoop | None = None
@@ -70,7 +70,7 @@ class BluetoothD:
         else:
             self.bus = None
 
-        # BLE central for ESP32 corner radars — self-gates on EOPBluetoothRadarEnabled.
+        # BLE central for ESP32 corner radars — self-gates on BluetoothRadarEnabled.
         # Created BEFORE the NCP session so the session can serve its pairing
         # service-tool messages (RADAR_PAIR_CONTROL/STATUS) against it.
         self.ble_central = ble_central.BLECentral(params=self.params)
@@ -85,7 +85,7 @@ class BluetoothD:
         self._pairing_agent = None
 
     def _device_name(self) -> str:
-        name = self.params.get('EOPDeviceName')
+        name = self.params.get('DeviceName')
         if name:
             return name.decode() if isinstance(name, bytes) else name
         return 'EXOPILOT'
@@ -107,7 +107,7 @@ class BluetoothD:
         # Set device name; discoverable for the pairing window then go dark
         if self.bus:
             _set_adapter_name(self.bus, self._device_name())
-            _raw = self.params.get('EOPBluetoothPairWindow') or b'300'
+            _raw = self.params.get('BluetoothPairWindow') or b'300'
             pair_window = int(_raw.decode() if isinstance(_raw, bytes) else _raw)
             _set_adapter_discoverable(self.bus, discoverable=True, timeout=pair_window)
             cloudlog.info(f'bluetoothd: discoverable for {pair_window}s pairing window')

@@ -154,7 +154,7 @@ class AutoTileManager:
     def should_auto_download(self, region: str) -> bool:
         """Check if we should auto-download this region."""
         # Check if auto-tile is enabled
-        if not self.params.get_bool("EOPAutoTileEnabled"):
+        if not self.params.get_bool("AutoTileEnabled"):
             return False
 
         if region not in TILE_SOURCES:
@@ -169,7 +169,7 @@ class AutoTileManager:
                 return False  # Have fresh tiles
 
         # Check WiFi-only setting
-        wifi_only = self.params.get_bool("EOPAutoTileWifiOnly")
+        wifi_only = self.params.get_bool("AutoTileWifiOnly")
         tile_size_mb = cast(float, info['tiles_size_mb'])
         if wifi_only and tile_size_mb > WIFI_ONLY_THRESHOLD_MB:
             if not self.is_on_wifi():

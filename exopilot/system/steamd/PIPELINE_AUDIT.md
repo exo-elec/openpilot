@@ -293,7 +293,7 @@ SteamD is a unified teleoperation daemon replacing `teleoprtc` + `webrtcd` + `jo
 **File:** `system/manager/process_config.py:192-194`  
 **Issue:** SteamD's process condition is `always_run(...) and SteamDEnabled`. This means the web server and video streaming are active even when the vehicle is parked/ignition-off. While monitoring is useful, publishing `carControl` while parked is dangerous (e.g., commanding actuators during a firmware update or charging session).  
 **Impact:** Potential unintended vehicle motion while the car is supposed to be off.  
-**Fix:** Split into two conditions: `steamd` (monitoring, always_run) and a stricter condition for the control-publisher thread. Or simply ensure the control loop never publishes unless `ignition_on` or `EOPIgnitionOn` is True.
+**Fix:** Split into two conditions: `steamd` (monitoring, always_run) and a stricter condition for the control-publisher thread. Or simply ensure the control loop never publishes unless `ignition_on` or `IgnitionOn` is True.
 
 ### MEDIUM-12: No `SteamDRemoteControl` Gate in `process_config.py`
 **File:** `system/manager/process_config.py`  
@@ -417,7 +417,7 @@ SteamD is a unified teleoperation daemon replacing `teleoprtc` + `webrtcd` + `jo
 
 2. **Before first on-road use:**
    - Verify the auth token is distributed securely to authorized operators only.
-   - Confirm `EOPIgnitionOn` is wired correctly to the vehicle ignition GPIO.
+   - Confirm `IgnitionOn` is wired correctly to the vehicle ignition GPIO.
    - Test local override with brake, gas, and steering torque to ensure handoff is instantaneous.
    - Review `/data/shared/exopilot/teleop_audit.db` after each session to confirm logging is working.
 

@@ -32,7 +32,7 @@ static QLabel* newLabel(const QString& text, const QString &type) {
 
 DriveStats::DriveStats(QWidget* parent) : QFrame(parent) {
   metric_ = Params().getBool("IsMetric");
-  std::string trip_mode_str = params_.get("EOPTripMode");
+  std::string trip_mode_str = params_.get("TripMode");
   current_trip_mode_ = TRIP_A;
   if (!trip_mode_str.empty()) {
     try {
@@ -92,8 +92,8 @@ DriveStats::DriveStats(QWidget* parent) : QFrame(parent) {
   add_stats_layouts(current_trip_mode_ == TRIP_A ? tr("TRIP A") : tr("TRIP B"), current_, &trip_mode_label_);
 
   // Initialize session tracking for recent activity tracking
-  std::string distance_str = params_.get("EOPTripTotalDistance");
-  std::string time_str = params_.get("EOPTripUptimeOnroad");
+  std::string distance_str = params_.get("TripTotalDistance");
+  std::string time_str = params_.get("TripUptimeOnroad");
   session_start_distance_ = safe_stof(distance_str);
   session_start_time_ = safe_stof(time_str);
   session_date_ = QDateTime::currentDateTime().toString("yyyy-MM-dd");
@@ -135,13 +135,13 @@ void DriveStats::updateStats() {
   };
 
   // Get current stats and convert to sunnypilot's format (with safe parsing)
-  std::string distance_str = params_.get("EOPTripTotalDistance");
-  std::string time_str = params_.get("EOPTripUptimeOnroad");
-  std::string drives_str = params_.get("EOPTripTotalDrives");
+  std::string distance_str = params_.get("TripTotalDistance");
+  std::string time_str = params_.get("TripUptimeOnroad");
+  std::string drives_str = params_.get("TripTotalDrives");
   
   // Read engagement ratio parameters
-  std::string lifetime_engagement_str = params_.get("EOPTripLifetimeEngagementRatio");
-  std::string current_engagement_str = params_.get("EOPTripCurrentEngagementRatio");
+  std::string lifetime_engagement_str = params_.get("TripLifetimeEngagementRatio");
+  std::string current_engagement_str = params_.get("TripCurrentEngagementRatio");
 
   float total_distance_meters = safe_stof(distance_str);
   float total_time_seconds = safe_stof(time_str);
@@ -188,8 +188,8 @@ void DriveStats::updateStats() {
   if (trip_a_distance_meters >= 1000000.0f) {
     trip_a_.start_distance = total_distance_meters;
     trip_a_.start_time = total_time_seconds;
-    params_.put("EOPTripAStartDistance", std::to_string(trip_a_.start_distance));
-    params_.put("EOPTripAStartTime", std::to_string(trip_a_.start_time));
+    params_.put("TripAStartDistance", std::to_string(trip_a_.start_distance));
+    params_.put("TripAStartTime", std::to_string(trip_a_.start_time));
     trip_a_distance_meters = 0.0f;
     trip_a_time_seconds = 0.0f;
   }
@@ -204,8 +204,8 @@ void DriveStats::updateStats() {
   if (trip_b_distance_meters >= 1000000.0f) {
     trip_b_.start_distance = total_distance_meters;
     trip_b_.start_time = total_time_seconds;
-    params_.put("EOPTripBStartDistance", std::to_string(trip_b_.start_distance));
-    params_.put("EOPTripBStartTime", std::to_string(trip_b_.start_time));
+    params_.put("TripBStartDistance", std::to_string(trip_b_.start_distance));
+    params_.put("TripBStartTime", std::to_string(trip_b_.start_time));
     trip_b_distance_meters = 0.0f;
     trip_b_time_seconds = 0.0f;
   }
@@ -267,7 +267,7 @@ void DriveStats::switchTripMode() {
   current_trip_mode_ = (current_trip_mode_ == TRIP_A) ? TRIP_B : TRIP_A;
   
   // Save the new mode
-  params_.put("EOPTripMode", std::to_string(static_cast<int>(current_trip_mode_)));
+  params_.put("TripMode", std::to_string(static_cast<int>(current_trip_mode_)));
   
   // Update the display
   trip_mode_label_->setText(current_trip_mode_ == TRIP_A ? tr("TRIP A") : tr("TRIP B"));
@@ -278,8 +278,8 @@ void DriveStats::switchTripMode() {
 
 void DriveStats::resetCurrentTrip() {
   // Get current totals
-  std::string distance_str = params_.get("EOPTripTotalDistance");
-  std::string time_str = params_.get("EOPTripUptimeOnroad");
+  std::string distance_str = params_.get("TripTotalDistance");
+  std::string time_str = params_.get("TripUptimeOnroad");
   
   float total_distance_meters = safe_stof(distance_str);
   float total_time_seconds = safe_stof(time_str);
@@ -291,9 +291,9 @@ void DriveStats::resetCurrentTrip() {
   current_trip.active = false;
   
   // Save trip data
-  QString trip_prefix = (current_trip_mode_ == TRIP_A) ? "EOPTripA" : "EOPTripB";
-  params_.put((trip_prefix + "_StartDistance").toStdString(), std::to_string(current_trip.start_distance));
-  params_.put((trip_prefix + "_StartTime").toStdString(), std::to_string(current_trip.start_time));
+  QString trip_prefix = (current_trip_mode_ == TRIP_A) ? "TripA" : "TripB";
+  params_.put((trip_prefix + "StartDistance").toStdString(), std::to_string(current_trip.start_distance));
+  params_.put((trip_prefix + "StartTime").toStdString(), std::to_string(current_trip.start_time));
   
   // Force immediate refresh
   updateStats();
@@ -335,8 +335,8 @@ void DriveStats::loadDailyStats() {
   }
   
   // Load trip data - initialize from current totals if no saved data
-  std::string total_distance_str = params_.get("EOPTripTotalDistance");
-  std::string total_time_str = params_.get("EOPTripUptimeOnroad");
+  std::string total_distance_str = params_.get("TripTotalDistance");
+  std::string total_time_str = params_.get("TripUptimeOnroad");
   float current_total_distance = 0.0f;
   float current_total_time = 0.0f;
   
@@ -347,10 +347,10 @@ void DriveStats::loadDailyStats() {
     // Keep default values on error
   }
   
-  std::string trip_a_dist_str = params_.get("EOPTripAStartDistance");
-  std::string trip_a_time_str = params_.get("EOPTripAStartTime");
-  std::string trip_b_dist_str = params_.get("EOPTripBStartDistance");
-  std::string trip_b_time_str = params_.get("EOPTripBStartTime");
+  std::string trip_a_dist_str = params_.get("TripAStartDistance");
+  std::string trip_a_time_str = params_.get("TripAStartTime");
+  std::string trip_b_dist_str = params_.get("TripBStartDistance");
+  std::string trip_b_time_str = params_.get("TripBStartTime");
   
   trip_a_.start_distance = current_total_distance;
   trip_a_.start_time = current_total_time;
@@ -368,12 +368,12 @@ void DriveStats::loadDailyStats() {
   
   // If these are new trips (no saved data), save the initial values
   if (trip_a_dist_str.empty()) {
-    params_.put("EOPTripAStartDistance", std::to_string(trip_a_.start_distance));
-    params_.put("EOPTripAStartTime", std::to_string(trip_a_.start_time));
+    params_.put("TripAStartDistance", std::to_string(trip_a_.start_distance));
+    params_.put("TripAStartTime", std::to_string(trip_a_.start_time));
   }
   if (trip_b_dist_str.empty()) {
-    params_.put("EOPTripBStartDistance", std::to_string(trip_b_.start_distance));
-    params_.put("EOPTripBStartTime", std::to_string(trip_b_.start_time));
+    params_.put("TripBStartDistance", std::to_string(trip_b_.start_distance));
+    params_.put("TripBStartTime", std::to_string(trip_b_.start_time));
   }
 }
 
@@ -381,9 +381,9 @@ void DriveStats::saveDailyStats() {
   QString today = QDateTime::currentDateTime().toString("yyyy-MM-dd");
   
   // Get current totals
-  std::string distance_str = params_.get("EOPTripTotalDistance");
-  std::string time_str = params_.get("EOPTripUptimeOnroad");
-  std::string drives_str = params_.get("EOPTripTotalDrives");
+  std::string distance_str = params_.get("TripTotalDistance");
+  std::string time_str = params_.get("TripUptimeOnroad");
+  std::string drives_str = params_.get("TripTotalDrives");
   
   float total_distance = safe_stof(distance_str);
   float total_engaged_time = safe_stof(time_str);

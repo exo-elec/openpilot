@@ -32,7 +32,7 @@ QWidget* ModelSelector::setupUI() {
     vehicle_model_label->setStyleSheet("margin-right: 2px; font-size: 22px;");
     model_selector_btn_layout->addWidget(vehicle_model_label);
 
-    QString model_selected = QString::fromUtf8(Params().get("EOPDeviceModelSelected").c_str());
+    QString model_selected = QString::fromUtf8(Params().get("DeviceModelSelected").c_str());
     model_selector_btn = new QPushButton(model_selected.isEmpty() ? tr("[AUTO DETECT]") : model_selected);
     model_selector_btn->setObjectName("ModelSelectorBtn");
     model_selector_btn->setStyleSheet(SELECTOR_BTN_STYLE);
@@ -82,7 +82,7 @@ void ModelSelector::loadModelList() {
     model_list->addItem(autoDetectItem);
 
     Params params;
-    QString model_list_str = QString::fromStdString(params.get("EOPDeviceModelList"));
+    QString model_list_str = QString::fromStdString(params.get("DeviceModelList"));
 
     QJsonDocument document = QJsonDocument::fromJson(model_list_str.toUtf8());
     if (document.isArray()) {
@@ -121,7 +121,7 @@ void ModelSelector::loadModelList() {
 void ModelSelector::updateCurrentSelection() {
     // Get the currently selected model from params
     Params params;
-    QString currentModel = QString::fromStdString(params.get("EOPDeviceModelSelected"));
+    QString currentModel = QString::fromStdString(params.get("DeviceModelSelected"));
 
     // If empty, select the AUTO DETECT option
     if (currentModel.isEmpty()) {
@@ -185,7 +185,7 @@ void ModelSelector::connectSignals() {
             QString param_value = (model_name == tr("[AUTO DETECT]")) ? QString() : model_name;
 
             // Update param and button text
-            Params().put("EOPDeviceModelSelected", param_value.toStdString());
+            Params().put("DeviceModelSelected", param_value.toStdString());
             updateButtonText(param_value.isEmpty() ? tr("[AUTO DETECT]") : model_name);
 
             // Emit signal that model was selected

@@ -6,7 +6,7 @@ Everything here runs on the SoC's RKNN NPU (last core; 01M core 2, 02M core 1):
   * road (8mm): YOLOv8 multi-object detection -- every road user in view
     (cars, trucks, buses, bikes, pedestrians) with class and road-frame
     position, where openpilot's modelV2 carries only three lead hypotheses.
-  * tele (16mm, 02M mono_tele with EOPTeleEnabled): the same detector at long
+  * tele (16mm, 02M mono_tele with TeleEnabled): the same detector at long
     range, 20 Hz.
   * traffic lights (road camera only): lamp colour by HSV, published in
     monoDetections for gridd to hand to TLSC through stereoObjects.
@@ -300,10 +300,10 @@ class MonoD:
         self.pm = messaging.PubMaster(['monoDetections', 'monoStatus'])
 
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPMonoDEnabled")
+        self.enabled = self.params.get_bool("MonoDEnabled")
 
         # Telephoto: only on a board that has one (02M's mono_tele) and has it on.
-        self.has_tele = board_has_tele() and self.params.get_bool("EOPTeleEnabled")
+        self.has_tele = board_has_tele() and self.params.get_bool("TeleEnabled")
 
         # (SubMaster: this used to call messaging.SubManager, which does not
         # exist, so monod died in __init__.)

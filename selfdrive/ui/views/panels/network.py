@@ -203,15 +203,15 @@ class BluetoothPanel(ListWidget):
     self._timer.stop()
 
   def refresh(self) -> None:
-    self.device_name.set_value(self._store.get_text("EOPDeviceName") or "ExoPilot")
+    self.device_name.set_value(self._store.get_text("DeviceName") or "ExoPilot")
 
-    pairing_open = self._store.get_text("EOPBluetoothPairingActive") == "1"
-    pin = self._store.get_text("EOPBluetoothPairingPin")
+    pairing_open = self._store.get_text("BluetoothPairingActive") == "1"
+    pin = self._store.get_text("BluetoothPairingPin")
     # GATT is checked alongside SPP: SPP is reserved for legacy OBD scanners,
     # and NavPilot's actual transport is BLE GATT. Looking only at SPP is why
     # the sidebar used to read "BLE OFF" with a phone plainly connected.
-    gatt = self._store.get_bool("EOPNavPilotPaired")
-    spp = bool(self._store.get_text("EOPSPPPairedDevice"))
+    gatt = self._store.get_bool("NavPilotPaired")
+    spp = bool(self._store.get_text("SPPPairedDevice"))
 
     if pairing_open and pin:
       self.status.set_value(f"pairing — PIN {pin}")
@@ -221,20 +221,20 @@ class BluetoothPanel(ListWidget):
       self.status.set_value("not paired")
 
     self.pairing.set_button_text("STOP" if pairing_open else "START")
-    self.forget.set_value(self._store.get_text("EOPSPPPairedDevice") or
+    self.forget.set_value(self._store.get_text("SPPPairedDevice") or
                           ("NavPilot" if gatt else "none"))
     self.forget.set_enabled(gatt or spp)
     self.update()
 
   def _toggle_pairing(self) -> None:
-    now_open = self._store.get_text("EOPBluetoothPairingActive") == "1"
-    self._store.put_bool("EOPBluetoothPairingActive", not now_open)
+    now_open = self._store.get_text("BluetoothPairingActive") == "1"
+    self._store.put_bool("BluetoothPairingActive", not now_open)
     self.refresh()
 
   def _forget(self) -> None:
     if not confirm_dialog("Forget the paired device?", "Forget", self):
       return
-    self._store.put_text("EOPSPPPairedDevice", "")
-    self._store.put_bool("EOPNavPilotPaired", False)
-    self._store.put_text("EOPBluetoothPairingAddr", "")
+    self._store.put_text("SPPPairedDevice", "")
+    self._store.put_bool("NavPilotPaired", False)
+    self._store.put_text("BluetoothPairingAddr", "")
     self.refresh()

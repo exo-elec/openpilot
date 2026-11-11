@@ -527,12 +527,12 @@ class SurfaceD:
         set_daemon_affinity("surfaced")
 
         self.params = Params()
-        self.enabled = self.params.get_bool("EOPSurfaceEnabled")
+        self.enabled = self.params.get_bool("SurfaceEnabled")
 
         # Grid parameters
-        self.grid_resolution = float(self.params.get("EOPSurfaceGridResolution") or 0.25)
-        self.grid_range_m = float(self.params.get("EOPSurfaceGridRange") or 60.0)
-        self.grid_width_m = float(self.params.get("EOPSurfaceGridWidth") or 30.0)
+        self.grid_resolution = float(self.params.get("SurfaceGridResolution") or 0.25)
+        self.grid_range_m = float(self.params.get("SurfaceGridRange") or 60.0)
+        self.grid_width_m = float(self.params.get("SurfaceGridWidth") or 30.0)
 
         # Subscribe to inputs
         # - pointcloudProcessed: 3D point cloud from pointcloudd
@@ -561,8 +561,8 @@ class SurfaceD:
         self.historical_pcd_loader = HistoricalPCDLoader()
 
         # Long horizon fusion settings
-        self.long_horizon_enabled = self.params.get_bool("EOPSurfaceLongHorizon")
-        self.long_horizon_range_m = float(self.params.get("EOPSurfaceLongRange") or 100.0)
+        self.long_horizon_enabled = self.params.get_bool("SurfaceLongHorizon")
+        self.long_horizon_range_m = float(self.params.get("SurfaceLongRange") or 100.0)
 
         # Stats
         self.stats = SurfaceDStats()

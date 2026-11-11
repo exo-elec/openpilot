@@ -9,13 +9,13 @@ See full documentation:
 
 ```bash
 # Enable coordinationd
-python3 -c "from openpilot.common.params import Params; Params().put_bool('EOPGlobaldEnabled', True)"
+python3 -c "from openpilot.common.params import Params; Params().put_bool('GlobaldEnabled', True)"
 
 # Enable OSM road constraint
-python3 -c "from openpilot.common.params import Params; Params().put_bool('EOPOsmLocalizerEnabled', True)"
+python3 -c "from openpilot.common.params import Params; Params().put_bool('OsmLocalizerEnabled', True)"
 
 # Enable SGM geometry constraint  
-python3 -c "from openpilot.common.params import Params; Params().put_bool('EOPSGMLocalizerEnabled', True)"
+python3 -c "from openpilot.common.params import Params; Params().put_bool('SGMLocalizerEnabled', True)"
 ```
 
 ## Architecture

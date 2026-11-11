@@ -1,10 +1,10 @@
 """CARLA weather controller using native WeatherParameters presets.
 
-Maps EOPSimWeather param names directly to carla.WeatherParameters.
+Maps SimWeather param names directly to carla.WeatherParameters.
 No custom dataclasses — just native CARLA weather presets.
 
 Usage:
-  params put EOPSimWeather HardRainNoon
+  params put SimWeather HardRainNoon
   # The bridge applies the matching carla.WeatherParameters on next tick.
 """
 from __future__ import annotations
@@ -62,7 +62,7 @@ class WeatherController:
     self._applied_name: str | None = None
 
   def _read_param(self) -> str | None:
-    name = self.params.get("EOPSimWeather") or ""
+    name = self.params.get("SimWeather") or ""
     name = name.lower().strip()
     if not name or name not in WEATHER_PRESETS:
       return None

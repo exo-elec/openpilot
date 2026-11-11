@@ -101,7 +101,7 @@ class StateD:
         """Read ignition state from EOP GPIO."""
         # TODO: Read actual GPIO from BSP
         # For now, use param set by external ignition monitor
-        return self.params.get_bool("EOPIgnitionOn")
+        return self.params.get_bool("IgnitionOn")
 
     def _read_can_ignition(self) -> bool:
         """Read ignition from CAN (if Panda available)."""

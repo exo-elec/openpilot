@@ -53,7 +53,7 @@ volume to ambient noise level.
 - `selfdriveState` — AudibleAlert enum (tones, 500 ms cooldown)
 - `soundPressure` — ambient dB SPL for adaptive loudness *(not yet implemented)*
 
-**Hot-reloads** Piper voice model when `EOPLanguage` / `EOPTTSVoice` params change.
+**Hot-reloads** Piper voice model when `Language` / `TTSVoice` params change.
 
 **Adaptive loudness (planned):** scale Piper TTS output gain proportional to
 `soundPressure` so TTS is always audible without manual volume adjustment.

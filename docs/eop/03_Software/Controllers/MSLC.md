@@ -309,8 +309,8 @@ class MSLC:
         self.enabled = self.params.get_bool("MSLCEnabled")
         
         # User settings
-        self.offset_percent = self.params.get_int("EOPMSLCOffsetPercent")
-        self.offset_fixed = self.params.get_int("EOPMSLCOffsetFixed")
+        self.offset_percent = self.params.get_int("MSLCOffsetPercent")
+        self.offset_fixed = self.params.get_int("MSLCOffsetFixed")
         
         # State
         self.state = self.STATE_DISABLED
@@ -422,8 +422,8 @@ class ControlsD:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `MSLCEnabled` | Bool | `0` | Master toggle for MSLC |
-| `EOPMSLCOffsetPercent` | Int | `5` | Speed limit offset in percent |
-| `EOPMSLCOffsetFixed` | Int | `0` | Fixed offset in km/h |
+| `MSLCOffsetPercent` | Int | `5` | Speed limit offset in percent |
+| `MSLCOffsetFixed` | Int | `0` | Fixed offset in km/h |
 | `EOPMSLCUseNavdFallback` | Bool | `1` | Use NAVD speed limit fallback when OSM missing |
 
 ---

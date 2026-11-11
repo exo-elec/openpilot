@@ -323,12 +323,12 @@ class SideD:
 
     self.rk = Ratekeeper(RATE, print_delay_threshold=None)
     self.params = Params()
-    self.enabled = self.params.get_bool("EOPSideCamerasEnabled")
+    self.enabled = self.params.get_bool("SideCamerasEnabled")
 
     # EOP: Per-camera enablement + swap support
-    self._left_enabled = self.params.get_bool("EOPLeftCameraEnabled")
-    self._right_enabled = self.params.get_bool("EOPRightCameraEnabled")
-    self._cameras_swapped = self.params.get_bool("EOPSideCamerasSwapped")
+    self._left_enabled = self.params.get_bool("LeftCameraEnabled")
+    self._right_enabled = self.params.get_bool("RightCameraEnabled")
+    self._cameras_swapped = self.params.get_bool("SideCamerasSwapped")
 
     self.frame_id = 0
     self._camera_health = CameraHealthTracker()
@@ -340,11 +340,11 @@ class SideD:
     self._vipc_right = None
     self._init_visionipc()
 
-    # Load geometry; swap if user requested via EOPSideCamerasSwapped
+    # Load geometry; swap if user requested via SideCamerasSwapped
     left_geo, right_geo = self._load_geometry_pair()
     if self._cameras_swapped:
       left_geo, right_geo = right_geo, left_geo
-      cloudlog.info("SideD: cameras swapped via EOPSideCamerasSwapped")
+      cloudlog.info("SideD: cameras swapped via SideCamerasSwapped")
 
     self.tracker_core = SideTrackerCore(left_geometry=left_geo, right_geometry=right_geo)
 
