@@ -124,7 +124,7 @@ class SelfdriveD:
     # cleanup old params
     if not self.CP.alphaLongitudinalAvailable:
       self.params.remove("AlphaLongitudinalEnabled")
-    # EOP: no Experimental mode -- DLON alone selects ACC/E2E (EOPDlonMode).
+    # EOP: no Experimental mode -- DLON alone selects ACC/E2E (DlonMode).
     self.params.remove("ExperimentalMode")
 
     self.CS_prev = car.CarState.new_message()
@@ -786,7 +786,7 @@ class SelfdriveD:
       self.is_metric = self.params.get_bool("IsMetric")
       self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
       self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
-      self.experimental_mode = False  # EOP: DLON selects ACC/E2E; see EOPDlonMode
+      self.experimental_mode = False  # EOP: DLON selects ACC/E2E; see DlonMode
       self.personality = self.params.get("LongitudinalPersonality", return_default=True)
       time.sleep(0.1)
 
