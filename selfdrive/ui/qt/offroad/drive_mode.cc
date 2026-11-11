@@ -48,7 +48,7 @@ void DriveModeButton::paintEvent(QPaintEvent *event) {
 }
 
 void DriveModeButton::showEvent(QShowEvent *event) {
-  const std::string v = params.get("EOPDlonMode");
+  const std::string v = params.get("DlonMode");
   mode = v.empty() ? 2 : std::atoi(v.c_str());
   mode_label->setText(modeName(mode));
 }

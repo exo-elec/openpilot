@@ -841,7 +841,7 @@ in `ngp_dlon.py`). They're unreachable via any param/UI path now, reachable
 only by a test setting `.mode` directly, same as NGP10.
 
 **2026-11-11 (dev/01M):** DLON's mode is user-selectable again through
-`EOPDlonMode` (Highway / Urban / Dynamic, see DLON.md §2.1). DLAT stays
+`DlonMode` (Highway / Urban / Dynamic, see DLON.md §2.1). DLAT stays
 always-auto.
 
 Verified: `.venv/bin/python -m pytest selfdrive/controls/tests/` —

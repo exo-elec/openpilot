@@ -37,8 +37,8 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // Drive Mode replaces openpilot's Experimental mode: DLON picks ACC (rule)
   // or E2E (AI), or switches between them (Dynamic). See DLON.md.
-  if (params.get("EOPDlonMode").empty()) params.put("EOPDlonMode", "2");
-  drive_mode_setting = new ButtonParamControl("EOPDlonMode", tr("Drive Mode"),
+  if (params.get("DlonMode").empty()) params.put("DlonMode", "2");
+  drive_mode_setting = new ButtonParamControl("DlonMode", tr("Drive Mode"),
       tr("Highway (Rule): rule-based cruise, best for open roads.\n"
          "Urban (AI): the driving model controls speed, stops for lights.\n"
          "Dynamic: switches between them automatically (recommended)."),
@@ -284,8 +284,8 @@ void DevicePanel::updateNetworkInfo() {
 }
 
 // Offline maps: OSM extracts for Valhalla routing and the onroad map.
-// The UI only records the request (EOPMapDownloadRequest); the tile manager
-// downloads/builds and reports progress in EOPMapStatus.
+// The UI only records the request (MapDownloadRequest); the tile manager
+// downloads/builds and reports progress in MapStatus.
 void DevicePanel::addOfflineMaps() {
   static const QMap<QString, QString> regions = {
     {tr("Thailand"), "thailand"}, {tr("Malaysia / Singapore"), "malaysia-singapore"},
@@ -296,10 +296,10 @@ void DevicePanel::addOfflineMaps() {
   mapRegionBtn = new ButtonControl(tr("Map Region"), tr("CHANGE"),
       tr("Region used for offline routing, speed limits and the map view."));
   connect(mapRegionBtn, &ButtonControl::clicked, [=]() {
-    const QString cur = regions.key(QString::fromStdString(params.get("EOPMapRegion")));
+    const QString cur = regions.key(QString::fromStdString(params.get("MapRegion")));
     const QString sel = MultiOptionDialog::getSelection(tr("Select a map region"), regions.keys(), cur, this);
     if (!sel.isEmpty()) {
-      params.put("EOPMapRegion", regions[sel].toStdString());
+      params.put("MapRegion", regions[sel].toStdString());
       updateMapStatus();
     }
   });
@@ -309,18 +309,18 @@ void DevicePanel::addOfflineMaps() {
       tr("Downloads the region's OpenStreetMap data and builds the offline routing tiles. "
          "Large download; Wi-Fi recommended."));
   connect(mapDownloadBtn, &ButtonControl::clicked, [=]() {
-    params.put("EOPMapDownloadRequest", params.get("EOPMapRegion"));
-    params.put("EOPMapStatus", "requested");
+    params.put("MapDownloadRequest", params.get("MapRegion"));
+    params.put("MapStatus", "requested");
     updateMapStatus();
   });
   addItem(mapDownloadBtn);
 
-  addItem(new ParamControl("EOPAutoTileEnabled", tr("Keep Maps Updated"),
+  addItem(new ParamControl("AutoTileEnabled", tr("Keep Maps Updated"),
       tr("Refresh the region's map data automatically when it is out of date."), "", this));
-  addItem(new ParamControl("EOPAutoTileWifiOnly", tr("Map Updates on Wi-Fi Only"), "", "", this));
+  addItem(new ParamControl("AutoTileWifiOnly", tr("Map Updates on Wi-Fi Only"), "", "", this));
 
   auto watch = new ParamWatcher(this);
-  watch->addParam("EOPMapStatus");
+  watch->addParam("MapStatus");
   connect(watch, &ParamWatcher::paramChanged, [=](const QString &, const QString &) { updateMapStatus(); });
   updateMapStatus();
 }
@@ -330,13 +330,13 @@ void DevicePanel::updateMapStatus() {
     {"thailand", tr("Thailand")}, {"malaysia-singapore", tr("Malaysia / Singapore")},
     {"japan", tr("Japan")}, {"south-korea", tr("South Korea")}, {"taiwan", tr("Taiwan")},
   };
-  QString region = QString::fromStdString(params.get("EOPMapRegion"));
+  QString region = QString::fromStdString(params.get("MapRegion"));
   if (region.isEmpty()) {
     region = "thailand";
-    params.put("EOPMapRegion", region.toStdString());
+    params.put("MapRegion", region.toStdString());
   }
   mapRegionBtn->setValue(names.value(region, region));
-  const QString status = QString::fromStdString(params.get("EOPMapStatus"));
+  const QString status = QString::fromStdString(params.get("MapStatus"));
   mapDownloadBtn->setValue(status.isEmpty() ? tr("not downloaded") : status);
 }
 

@@ -56,45 +56,45 @@ void EopPanel::add_param_toggle(const char *param, const QString &title, const Q
 
 void EopPanel::add_lateral_toggles() {
   addItem(settingsSection(tr("Steering & Lane Change")));
-  add_param_toggle("EOPLatALCC", tr("Always-on Lane Centering (ALCC)"),
+  add_param_toggle("LatALCC", tr("Always-on Lane Centering (ALCC)"),
       tr("Keeps steering active when cruise main is available."
          "\nCan optionally run without cruise and hold at a stop."));
-  add_param_toggle("EOPALCCAllowAlways", tr("ALCC Without Cruise"),
+  add_param_toggle("ALCCAllowAlways", tr("ALCC Without Cruise"),
       tr("Allow ALCC even when cruise main is off. Useful for platforms without an LCC button."));
-  add_param_toggle("EOPALCCHoldAtStandstill", tr("ALCC Hold at Standstill"),
+  add_param_toggle("ALCCHoldAtStandstill", tr("ALCC Hold at Standstill"),
       tr("Keep steering torque active while stopped if ALCC is engaged."));
   addItem(new ButtonParamControl(
-      "EOPALCCBrakeMode", tr("ALCC on Brake"),
+      "ALCCBrakeMode", tr("ALCC on Brake"),
       tr("What steering does when the brake pedal is pressed."
          "\nMaintain - keep steering active."
          "\nPause - hold steering until the brake is released."
          "\nDisengage - fully release ALCC when braking."),
       "", {tr("Maintain"), tr("Pause"), tr("Disengage")}));
-  add_param_toggle("EOPDLPCurvesEnabled", tr("Curve Assist"),
+  add_param_toggle("DLPCurvesEnabled", tr("Curve Assist"),
       tr("Switch to laneless steering early for tight curves."));
-  add_param_toggle("EOPLatRoadEdgeDetection", tr("Road Edge Detection"),
+  add_param_toggle("LatRoadEdgeDetection", tr("Road Edge Detection"),
       tr("Block a lane change towards a detected road edge."));
   // DLAT (Laneful/Laneless arbitration) is always automatic; no control.
 
-  add_param_toggle("EOPLCAControllerEnabled", tr("Lane Change Assist (LCA)"),
+  add_param_toggle("LCAControllerEnabled", tr("Lane Change Assist (LCA)"),
       tr("Blind-spot checks from all cameras before a lane change."));
   addItem(new ParamSpinBoxControl(
-      "EOPLatLCASpeed", tr("Lane Change Assist From:"),
+      "LatLCASpeed", tr("Lane Change Assist From:"),
       tr("Minimum speed for lane change assist. Off = disabled."), "", 0, 160, 5, tr(" km/h"),
       tr("Off")));
-  add_param_toggle("EOPAutoLaneChange", tr("Auto Lane Change"),
+  add_param_toggle("AutoLaneChange", tr("Auto Lane Change"),
       tr("Change lanes automatically when the turn signal is on."));
   lane_change_delay_slider = new ParamDoubleSpinBoxControl(
-      "EOPLaneChangeDelay", tr("Lane Change Delay:"),
+      "LaneChangeDelay", tr("Lane Change Delay:"),
       tr("Delay before the lane change starts after the turn signal."),
       "", 0.5, 5.0, 0.1, tr(" s"), tr(""));
   addItem(lane_change_delay_slider);
   minimum_lane_width_slider = new ParamDoubleSpinBoxControl(
-      "EOPMinimumLaneWidth", tr("Minimum Lane Width:"),
+      "MinimumLaneWidth", tr("Minimum Lane Width:"),
       tr("Narrowest target lane a lane change is allowed into."), "", 2.0, 4.0,
       0.1, tr(" m"), tr(""));
   addItem(minimum_lane_width_slider);
-  add_param_toggle("EOPOneLaneChange", tr("One Lane Change per Signal"),
+  add_param_toggle("OneLaneChange", tr("One Lane Change per Signal"),
       tr("Change at most one lane per turn signal activation."));
 }
 void EopPanel::add_enhanced_perception_toggles() {
@@ -215,39 +215,39 @@ void EopPanel::add_enhanced_controllers_section() {
 void EopPanel::add_longitudinal_toggles() {
   addItem(settingsSection(tr("Speed")));
   // DLON's ACC/E2E choice is Drive Mode at the top of this page.
-  add_param_toggle("EOPVTSCEnabled", tr("Vision Curve Speed (VTSC)"),
+  add_param_toggle("VTSCEnabled", tr("Vision Curve Speed (VTSC)"),
       tr("Slow down for curves 0-250 m ahead, from the camera."));
-  add_param_toggle("EOPMTSCEnabled", tr("Map Curve Speed (MTSC)"),
+  add_param_toggle("MTSCEnabled", tr("Map Curve Speed (MTSC)"),
       tr("Slow down for curves 250-500 m ahead, from the offline map."));
   tsc_lat_accel_toggle = new ParamDoubleSpinBoxControl(
-      "EOPTSCTargetLatAccel", tr("Curve Speed Limit:"),
+      "TSCTargetLatAccel", tr("Curve Speed Limit:"),
       tr("Max lateral acceleration in curves. Lower = slower, more cautious."),
       "", 1.0, 2.5, 0.1, tr(" m/s²"), tr(""));
   addItem(tsc_lat_accel_toggle);
-  add_param_toggle("EOPMSLCEnabled", tr("Map Speed Limit (MSLC)"),
+  add_param_toggle("MSLCEnabled", tr("Map Speed Limit (MSLC)"),
       tr("Follow posted speed limits from the offline map."));
-  add_param_toggle("EOPTLSCEnabled", tr("Traffic Light Speed (TLSC)"),
+  add_param_toggle("TLSCEnabled", tr("Traffic Light Speed (TLSC)"),
       tr("Slow down for yellow/red lights when no car is ahead."));
-  add_param_toggle("EOPTJAEnabled", tr("Traffic Jam Assist (TJA)"),
+  add_param_toggle("TJAEnabled", tr("Traffic Jam Assist (TJA)"),
       tr("Gentle acceleration after stops in stop-and-go traffic."));
   add_param_toggle("ngp_lon_brsc", tr("Bumpy Road Speed (BRSC)"),
       tr("Reduce speed on rough pavement, detected from the IMU. "
          "Recovers a few seconds after the road smooths out."));
   if (vehicle_has_radar_unavailable) {
-    add_param_toggle("EOPLonExtRadar", tr("Use External Radar"),
+    add_param_toggle("LonExtRadar", tr("Use External Radar"),
         tr("Use the add-on forward radar for lead tracking."));
   }
 }
 void EopPanel::add_ui_toggles() {
   add_param_toggle("IsMetric", tr("Use Metric System"), tr("Display speed in km/h instead of mph."));
-  add_param_toggle("EOPUIDisplayMode", tr("Detailed Driving View"),
+  add_param_toggle("UIDisplayMode", tr("Detailed Driving View"),
       tr("Show extra visualisations on the driving screen."));
-  add_param_toggle("EOPBEVWidgetEnabled", tr("Bird's Eye View"),
+  add_param_toggle("BEVWidgetEnabled", tr("Bird's Eye View"),
       tr("Top-down view of the car and surrounding objects on the driving screen."));
   if (vehicle_has_long_ctrl) {
-    add_param_toggle("EOPUIRadarTracks", tr("Show Radar Tracks"), "");
+    add_param_toggle("UIRadarTracks", tr("Show Radar Tracks"), "");
   }
-  add_param_toggle("EOPUIRainbow", tr("Rainbow Driving Path"), "");
+  add_param_toggle("UIRainbow", tr("Rainbow Driving Path"), "");
   addItem(new ParamSpinBoxControl(
       "ngp_ui_hide_hud_speed_kph", tr("Hide HUD Above:"),
       tr("Hide speed, set speed and steering icons above this speed to prevent "
@@ -256,14 +256,14 @@ void EopPanel::add_ui_toggles() {
 }
 void EopPanel::add_car_adaptive_toggles() {
   addItem(settingsSection(tr("Car Adaptive Tuning")));
-  add_param_toggle("EOPCATManualSREnabled", tr("Use Fixed Steer Ratio"),
+  add_param_toggle("CATManualSREnabled", tr("Use Fixed Steer Ratio"),
       tr("Stop learning steer ratio and stiffness from driving; use the fixed value."));
 }
 void EopPanel::add_recording_controls() {
-  if (params.get("EOPRecordEnabled").empty()) params.putBool("EOPRecordEnabled", true);
+  if (params.get("RecordEnabled").empty()) params.putBool("RecordEnabled", true);
   addItem(settingsSection(tr("Recording")));
   recorders_toggle = new ParamControl(
-      "EOPRecordEnabled", tr("On-Road Recording"),
+      "RecordEnabled", tr("On-Road Recording"),
       tr("Loop recording, impact detection and snapshots when storage is present."),
       "", this);
   addItem(recorders_toggle);
@@ -272,7 +272,7 @@ void EopPanel::add_recording_controls() {
 }
 void EopPanel::add_calibration_section() {
   addItem(settingsSection(tr("Calibration")));
-  const bool factory_calibrated = params.getBool("EOPFactoryCalibrated");
+  const bool factory_calibrated = params.getBool("FactoryCalibrated");
   addItem(new LabelControl(tr("Factory Calibration"),
                            factory_calibrated ? tr("calibrated") : tr("not calibrated")));
 }
@@ -410,18 +410,18 @@ void EopPanel::add_vehicle_platform_section() {
   });
 
   addItem(vehicle_type_btn);
-  add_param_toggle("EOPDeviceIsRhd", tr("Right-Hand Drive"),
+  add_param_toggle("DeviceIsRhd", tr("Right-Hand Drive"),
       tr("The driver sits on the right (left-hand traffic)."));
 }
 
 void EopPanel::add_device_toggles() {
   addItem(settingsSection(tr("Phone")));
-  add_param_toggle("EOPNavBleEnabled", tr("Navigation App over Bluetooth"),
+  add_param_toggle("NavBleEnabled", tr("Navigation App over Bluetooth"),
       tr("Send destinations from the ExoPilot phone app over Bluetooth."));
 
   addItem(settingsSection(tr("Power")));
   addItem(new ParamSpinBoxControl(
-      "EOPDeviceAutoShutdownIn", tr("Auto Shutdown After:"),
+      "DeviceAutoShutdownIn", tr("Auto Shutdown After:"),
       tr("Time after the car turns off. 0 mins = immediately."), "", -5, 300, 5, tr(" mins"), tr("Off")));
 }
 EopPanel::EopPanel(SettingsWindow *parent, Page page) : ListWidget(parent) {
@@ -515,7 +515,7 @@ void EopPanel::updateStates() {
   }
 
   if (tsc_lat_accel_toggle) {
-    tsc_lat_accel_toggle->setVisible(params.getBool("EOPVTSCEnabled") || params.getBool("EOPMTSCEnabled"));
+    tsc_lat_accel_toggle->setVisible(params.getBool("VTSCEnabled") || params.getBool("MTSCEnabled"));
   }
 }
 
@@ -523,13 +523,13 @@ void EopPanel::add_safety_toggles() {
   addItem(settingsSection(tr("Warnings")));
   add_param_toggle("IsLdwEnabled", tr("Lane Departure Warnings"),
       tr("Alert when drifting over a lane line without the turn signal above 50 km/h."));
-  add_param_toggle("EOPBSDChimeEnabled", tr("Blind Spot Chime"),
+  add_param_toggle("BSDChimeEnabled", tr("Blind Spot Chime"),
       tr("Chime when a fast-approaching vehicle enters the blind spot. Blind spot detection itself is always on."));
   addItem(new ButtonParamControl(
-      "EOPDeviceAudibleAlertMode", tr("Alert Sound"),
+      "DeviceAudibleAlertMode", tr("Alert Sound"),
       tr("Standard - all alerts. Warnings - warnings only. Off - silent."),
       "", {tr("Standard"), tr("Warnings"), tr("Off")}));
-  add_param_toggle("EOPDeviceBeep", tr("Warning Beep"), "");
+  add_param_toggle("DeviceBeep", tr("Warning Beep"), "");
 
   addItem(settingsSection(tr("Driver Attention")));
   // ngp_dm_policy is a string param, so this is a plain MultiButtonControl.
@@ -541,7 +541,7 @@ void EopPanel::add_safety_toggles() {
     params.put("ngp_dm_policy", id == 1 ? "tight" : "relaxed");
   });
   addItem(sam);
-  add_param_toggle("EOPRearCameraEnabled", tr("Rear Camera View"),
+  add_param_toggle("RearCameraEnabled", tr("Rear Camera View"),
       tr("Show the rear camera when reverse is engaged."));
 }
 void EopPanel::add_voice_ai_toggles() {

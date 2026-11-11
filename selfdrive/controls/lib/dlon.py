@@ -111,7 +111,7 @@ class DLON:
   # continuous, so a small margin avoids chatter at the zone edge).
   SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
 
-  # EOPDlonMode value -> mode; anything else (unset, bad value) is AUTO.
+  # DlonMode value -> mode; anything else (unset, bad value) is AUTO.
   MODE_BY_PARAM = {0: DLONMode.CHILL, 1: DLONMode.EXPERIMENTAL, 2: DLONMode.AUTO}
 
   def __init__(self):
@@ -168,13 +168,13 @@ class DLON:
     """Update parameters periodically (every 1 second).
 
     The driver picks the mode in Settings -> Driving -> Drive Mode
-    (`EOPDlonMode`): 0 Highway (rule-based ACC), 1 Urban (AI/E2E),
+    (`DlonMode`): 0 Highway (rule-based ACC), 1 Urban (AI/E2E),
     2 Dynamic (AUTO switching, the default). Owner decision 2026-11-11:
     this replaces dev/NGP10's always-AUTO rule on EOP branches.
     """
     current_time = time.monotonic()
     if current_time - self.last_param_update >= 1.0:
-      self.mode = self.MODE_BY_PARAM.get(self.params.get("EOPDlonMode"), DLONMode.AUTO)
+      self.mode = self.MODE_BY_PARAM.get(self.params.get("DlonMode"), DLONMode.AUTO)
       # Per-trigger toggles (CEM merge)
       self._trigger_enabled['curves'] = self.params.get_bool("DLONCurvesEnabled")
       self._trigger_enabled['lane_confidence'] = self.params.get_bool("DLONLaneConfidenceEnabled")

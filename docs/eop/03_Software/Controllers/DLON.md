@@ -44,7 +44,7 @@ DLON manages the longitudinal acceleration and braking strategy, seamlessly swit
 | **Auto** | Dynamic | Dynamic switching | Default mode, selects best approach automatically |
 
 **User choice (owner, 2026-11-11, dev/01M and later):** the driver picks the
-mode under Settings → Driving → *Drive Mode*, stored in `EOPDlonMode`
+mode under Settings → Driving → *Drive Mode*, stored in `DlonMode`
 (0 = Highway, 1 = Urban, 2 = Dynamic, default 2) and read by
 `dlon.update_params()` once a second. This replaces the earlier
 "always AUTO, no user choice" rule copied from dev/NGP10 (see DLAT.md §12).
