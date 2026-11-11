@@ -5,7 +5,7 @@
 
 #include "common/params.h"
 
-// Offroad home card showing the DLON Drive Mode (EOPDlonMode: Highway /
+// Offroad home card showing the DLON Drive Mode (DlonMode: Highway /
 // Urban / Dynamic). Tapping it opens Settings -> Driving.
 class DriveModeButton : public QPushButton {
   Q_OBJECT
