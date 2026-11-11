@@ -4,6 +4,8 @@
 
 #include <QHBoxLayout>
 #include <QScrollBar>
+
+#include "selfdrive/ui/qt/theme.h"
 #include <QStyle>
 
 #include "selfdrive/ui/qt/qt_window.h"
@@ -28,11 +30,10 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
   if (show_advanced) {
     QPushButton* advancedSettings = new QPushButton(tr("Advanced"));
     advancedSettings->setObjectName("advanced_btn");
-    advancedSettings->setStyleSheet("margin-right: 30px;");
-    advancedSettings->setFixedSize(140, 40);
+    advancedSettings->setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
     connect(advancedSettings, &QPushButton::clicked, [=]() { main_layout->setCurrentWidget(an); });
     vlayout->addSpacing(10);
-    vlayout->addWidget(advancedSettings, 0, Qt::AlignRight);
+    vlayout->addWidget(advancedSettings, 0, Qt::AlignRight);  // sized by its text: 140x40 cut "Advanced"
     vlayout->addSpacing(10);
   }
 
@@ -60,7 +61,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
   setPalette(pal);
 
   setStyleSheet(R"(
-    #wifiWidget > QPushButton, #back_btn, #advanced_btn {
+    #wifiWidget > QPushButton {
       font-size: 30px;
       margin: 0px;
       padding: 15px;
@@ -69,7 +70,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
       color: #dddddd;
       background-color: #393939;
     }
-    #back_btn:pressed, #advanced_btn:pressed {
+    #wifiWidget > QPushButton:pressed {
       background-color:  #4a4a4a;
     }
   )");
@@ -130,7 +131,7 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
   // Back button
   QPushButton* back = new QPushButton(tr("Back"));
   back->setObjectName("back_btn");
-  back->setFixedSize(140, 40);
+  back->setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
   connect(back, &QPushButton::clicked, [=]() { emit backPress(); });
   main_layout->addWidget(back, 0, Qt::AlignLeft);
 
@@ -296,20 +297,6 @@ WifiUI::WifiUI(QWidget *parent, WifiManager* wifi) : QWidget(parent), wifi(wifi)
       border-radius: 4px;
       background-color: #8A8A8A;
     }
-    #forgetBtn {
-      font-size: 32px;
-      font-weight: 600;
-      color: #292929;
-      background-color: #BDBDBD;
-      border-width: 1px solid #828282;
-      border-radius: 5px;
-      padding: 40px;
-      padding-bottom: 16px;
-      padding-top: 16px;
-    }
-    #forgetBtn:pressed {
-      background-color: #828282;
-    }
     #connecting {
       font-size: 32px;
       font-weight: 600;
@@ -393,6 +380,7 @@ WifiItem::WifiItem(const QString &connecting_text, const QString &forget_text, Q
   connecting->setObjectName("connecting");
   hlayout->addWidget(forgetBtn = new QPushButton(forget_text), 0, Qt::AlignRight);
   forgetBtn->setObjectName("forgetBtn");
+  forgetBtn->setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
   hlayout->addWidget(iconLabel = new QLabel(), 0, Qt::AlignRight);
   hlayout->addWidget(strengthLabel = new QLabel(), 0, Qt::AlignRight);
 

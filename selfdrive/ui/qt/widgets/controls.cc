@@ -1,5 +1,7 @@
 #include "selfdrive/ui/qt/widgets/controls.h"
 
+#include "selfdrive/ui/qt/theme.h"
+
 #include <QPainter>
 #include <QStyleOption>
 
@@ -67,23 +69,8 @@ void AbstractControl::hideEvent(QHideEvent *e) {
 
 ButtonControl::ButtonControl(const QString &title, const QString &text, const QString &desc, QWidget *parent) : AbstractControl(title, desc, "", parent) {
   btn.setText(text);
-  btn.setStyleSheet(R"(
-    QPushButton {
-      padding: 0 8px;
-      border-radius: 10px;
-      font-size: 26px;
-      font-weight: 500;
-      color: #E4E4E4;
-      background-color: #393939;
-    }
-    QPushButton:pressed {
-      background-color: #4a4a4a;
-    }
-    QPushButton:disabled {
-      color: #33E4E4E4;
-    }
-  )");
-  btn.setFixedSize(200, 44);
+  btn.setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
+  btn.setMinimumWidth(160);  // short labels line up; longer ones grow
   QObject::connect(&btn, &QPushButton::clicked, this, &ButtonControl::clicked);
   hlayout->addWidget(&btn);
 }
