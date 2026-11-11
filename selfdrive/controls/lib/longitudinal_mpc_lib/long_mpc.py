@@ -93,7 +93,7 @@ def _load_personality_params(now: float = None):
     return vals
   vals = {}
   for pname in ('aggressive', 'standard', 'relaxed', 'traffic'):
-    prefix = f"EOP{pname.title()}"
+    prefix = pname.title()  # AggressiveJerk, StandardFollow, ...
     try:
       jerk_val = p.get(f"{prefix}Jerk")
       follow_val = p.get(f"{prefix}Follow")

@@ -36,7 +36,7 @@ CALIBRATION_PARAMS = (
 # "Side/rear calibration lives in exopilot"). Unlike the road camera above,
 # there is no CalibrationParams blob to clear -- the persisted state is
 # hal.calibration's own sensors_tf.yaml, and the daemon-side reset
-# (camera_calibrationd.py polling EOPSideRearCalibReset) is what actually
+# (camera_calibrationd.py polling SideRearCalibReset) is what actually
 # drops the in-progress calibrator; see side_rear_calibration.py.
 SIDE_REAR_CAMERAS = ("side_left", "side_right", "rear_camera")
 
@@ -154,7 +154,7 @@ class DevicePanel(ListWidget):
       return
     # One-shot trigger: camera_calibrationd.py polls this, resets
     # SideRearCalibration and clears it back to false.
-    self._store.put_bool("EOPSideRearCalibReset", True)
+    self._store.put_bool("SideRearCalibReset", True)
     self._refresh_side_rear_calibration_text()
 
   def _review_training(self) -> None:
@@ -171,9 +171,9 @@ class DevicePanel(ListWidget):
       return
     lang_file = self._languages[chosen]
     self._store.put_text("LanguageSetting", lang_file)
-    # Kept in step deliberately: EOPLanguage drives text-to-speech, and a UI
+    # Kept in step deliberately: Language drives text-to-speech, and a UI
     # in Thai reading alerts aloud in English is worse than either alone.
-    self._store.put_text("EOPLanguage", LANGUAGE_TO_TTS.get(lang_file, "en"))
+    self._store.put_text("Language", LANGUAGE_TO_TTS.get(lang_file, "en"))
     _restart_ui()
 
   def _reboot(self) -> None:

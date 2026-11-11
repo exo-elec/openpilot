@@ -121,7 +121,7 @@ class FakeParams:
   """Just the two keys UIState reads, and a count so the polling decimation
   in update() can be asserted rather than assumed."""
   def __init__(self, **d):
-    self.d = {"IsMetric": True, "EOPIgnitionOn": False}
+    self.d = {"IsMetric": True, "IgnitionOn": False}
     self.d.update(d)
     self.reads = 0
 
@@ -164,13 +164,13 @@ class TestSnapshot:
 class TestUIState:
   def test_polls_the_submaster(self, app):
     sm = StubSM(carState=car())
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert sm.update_calls == 1
 
   def test_reads_car_state(self, app):
     sm = StubSM(carState=car(vEgo=13.5, leftBlinker=True, gearShifter="reverse"))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     snap = st.snapshot
     assert snap.v_ego == pytest.approx(13.5)
@@ -179,7 +179,7 @@ class TestUIState:
 
   def test_engaged_status(self, app):
     sm = onroad_sm(selfdriveState=selfdrive(enabled=True, state="enabled"))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.status is UIStatus.ENGAGED
     assert st.snapshot.started
@@ -192,21 +192,21 @@ class TestUIState:
     # went amber constantly while openpilot was in full control. The real
     # signal is the openpilot state machine being in preEnabled/overriding.
     sm = onroad_sm(selfdriveState=selfdrive(enabled=True, state=op_state))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.status is UIStatus.OVERRIDE
 
   def test_engaged_with_hands_on_wheel_is_not_override(self, app):
     sm = onroad_sm(selfdriveState=selfdrive(enabled=True, state="enabled",
                                             overrideLateral=True))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.status is UIStatus.ENGAGED
 
   def test_alcc_only_shows_while_disengaged(self, app):
     sm = onroad_sm(selfdriveState=selfdrive(enabled=False),
                    alccState=Msg(active=True))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.status is UIStatus.ALCC
 
@@ -220,19 +220,19 @@ class TestUIState:
     # the entire trip. It is deviceState.started AND ignition.
     sm = StubSM(deviceState=device(started=True),
                 selfdriveState=selfdrive(enabled=False))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.started
 
   def test_ignition_off_is_offroad_even_with_device_started(self, app):
     sm = StubSM(deviceState=device(started=True))
-    st = ui_state(sm, EOPIgnitionOn=False)
+    st = ui_state(sm, IgnitionOn=False)
     st.update()
     assert not st.snapshot.started
 
   def test_blind_spot_is_fused_from_both_sources(self, app):
     sm = StubSM(carState=car(rightBlindspot=True), controlsState=controls(left=WARNING))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     bs = st.snapshot.blind_spot
     assert bs.left == WARNING   # from controlsState severity
@@ -242,7 +242,7 @@ class TestUIState:
     # The failure this guards: a severity-2 that outlives the message that
     # raised it, because fuse's max() can only raise.
     sm = StubSM(carState=car(), controlsState=controls(left=WARNING))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.blind_spot.left == WARNING
     sm.invalidate("controlsState")
@@ -256,7 +256,7 @@ class TestUIState:
 
   def test_emits_updated_with_the_snapshot(self, app):
     sm = StubSM(carState=car(vEgo=7.0))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     seen = []
     st.updated.connect(seen.append)
     st.update()
@@ -264,7 +264,7 @@ class TestUIState:
 
   def test_offroad_transition_fires_only_on_change(self, app):
     sm = StubSM(deviceState=device(started=False))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     seen = []
     st.offroad_transition.connect(seen.append)
 
@@ -293,7 +293,7 @@ class TestUIState:
   def test_params_are_polled_at_a_divisor_of_the_ui_rate(self, app):
     # Params live on disk. At UI_FREQ_HZ this would be 40 reads a second for
     # the whole drive, which is why update() decimates.
-    fp = FakeParams(EOPIgnitionOn=True)
+    fp = FakeParams(IgnitionOn=True)
     st = ui_state(StubSM(), params=fp)
     fp.reads = 0                           # ignore the constructor's read
     for _ in range(PARAM_POLL_DIVISOR * 2):
@@ -301,12 +301,12 @@ class TestUIState:
     assert fp.reads == 5 * 2               # five keys; BEV mode is skipped while BEV is off
 
   def test_ignition_change_reaches_the_snapshot(self, app):
-    fp = FakeParams(EOPIgnitionOn=False)
+    fp = FakeParams(IgnitionOn=False)
     sm = StubSM(deviceState=device(started=True))
     st = ui_state(sm, params=fp)
     st.update()
     assert not st.snapshot.started
-    fp.d["EOPIgnitionOn"] = True
+    fp.d["IgnitionOn"] = True
     for _ in range(PARAM_POLL_DIVISOR):
       st.update()
     assert st.snapshot.started
@@ -314,80 +314,80 @@ class TestUIState:
   def test_set_speed_converts_only_for_imperial_display(self, app):
     # vCruiseCluster is km/h on every platform, so metric must not scale it.
     sm = onroad_sm(carState=car(vCruiseCluster=100.0))
-    assert ui_state(sm, IsMetric=True, EOPIgnitionOn=True)._read().set_speed == pytest.approx(100.0)
-    assert ui_state(sm, IsMetric=False, EOPIgnitionOn=True)._read().set_speed == pytest.approx(62.1371)
+    assert ui_state(sm, IsMetric=True, IgnitionOn=True)._read().set_speed == pytest.approx(100.0)
+    assert ui_state(sm, IsMetric=False, IgnitionOn=True)._read().set_speed == pytest.approx(62.1371)
 
   def test_set_speed_na_is_not_a_set_point(self, app):
     sm = onroad_sm(carState=car(vCruiseCluster=SET_SPEED_NA))
-    snap = ui_state(sm, EOPIgnitionOn=True)._read()
+    snap = ui_state(sm, IgnitionOn=True)._read()
     assert snap.cruise_available and not snap.cruise_set and snap.set_speed == 0.0
 
   def test_no_cruise_hardware_reports_unavailable(self, app):
     sm = onroad_sm(carState=car(vCruiseCluster=-1.0))
-    assert not ui_state(sm, EOPIgnitionOn=True)._read().cruise_available
+    assert not ui_state(sm, IgnitionOn=True)._read().cruise_available
 
   def test_v_ego_prefers_the_cluster_reading(self, app):
     # vEgoCluster is what the car's own speedometer shows; showing something
     # a few km/h off from the cluster next to it reads as a broken UI.
     sm = onroad_sm(carState=car(vEgo=13.5, vEgoCluster=14.0))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().v_ego == pytest.approx(14.0)
+    assert ui_state(sm, IgnitionOn=True)._read().v_ego == pytest.approx(14.0)
 
   def test_v_ego_falls_back_when_the_cluster_value_is_absent(self, app):
     sm = onroad_sm(carState=car(vEgo=13.5, vEgoCluster=0.0))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().v_ego == pytest.approx(13.5)
+    assert ui_state(sm, IgnitionOn=True)._read().v_ego == pytest.approx(13.5)
 
   def test_osm_speed_limit_outranks_the_route_step(self, app):
     sm = onroad_sm(mapData=Msg(speedLimit=80.0),
                    navInstruction=Msg(speedLimit=25.0, maneuverType="none"))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().speed_limit_ms == pytest.approx(80.0 / 3.6)
+    assert ui_state(sm, IgnitionOn=True)._read().speed_limit_ms == pytest.approx(80.0 / 3.6)
 
   def test_nav_speed_limit_is_used_when_osm_has_none(self, app):
     sm = onroad_sm(mapData=Msg(speedLimit=0.0),
                    navInstruction=Msg(speedLimit=25.0, maneuverType="none"))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().speed_limit_ms == pytest.approx(25.0)
+    assert ui_state(sm, IgnitionOn=True)._read().speed_limit_ms == pytest.approx(25.0)
 
   def test_maneuver_none_is_not_a_maneuver(self, app):
     sm = onroad_sm(navInstruction=Msg(maneuverType="none", speedLimit=0.0))
-    assert not ui_state(sm, EOPIgnitionOn=True)._read().nav.valid
+    assert not ui_state(sm, IgnitionOn=True)._read().nav.valid
 
   def test_maneuver_is_read_whole(self, app):
     sm = onroad_sm(navInstruction=Msg(maneuverType="turn", maneuverModifier="left",
                                       maneuverPrimaryText="Sukhumvit Rd",
                                       maneuverDistance=180.0, speedLimit=0.0))
-    nav = ui_state(sm, EOPIgnitionOn=True)._read().nav
+    nav = ui_state(sm, IgnitionOn=True)._read().nav
     assert nav.valid and nav.modifier == "left"
     assert nav.primary_text == "Sukhumvit Rd" and nav.distance_m == pytest.approx(180.0)
 
   def test_driver_monitor_reads_same_service_as_controls(self, app):
     sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.8))
-    d = ui_state(sm, EOPIgnitionOn=True)._read().driver
+    d = ui_state(sm, IgnitionOn=True)._read().driver
     assert d.valid and d.awareness == pytest.approx(0.8)
     assert d.stage == "ok"
 
   def test_driver_monitor_works_without_a_camera(self, app):
     sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.3))
-    d = ui_state(sm, EOPIgnitionOn=True)._read().driver
+    d = ui_state(sm, IgnitionOn=True)._read().driver
     assert d.valid and d.stage == "soft"
 
   def test_driver_monitor_rejects_stale_or_nonfinite_awareness(self, app):
     sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=0.8))
     sm.go_quiet("driverMonitoringState", 1.0)
-    assert not ui_state(sm, EOPIgnitionOn=True)._read().driver.valid
+    assert not ui_state(sm, IgnitionOn=True)._read().driver.valid
     sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=float("nan")))
-    assert not ui_state(sm, EOPIgnitionOn=True)._read().driver.valid
+    assert not ui_state(sm, IgnitionOn=True)._read().driver.valid
 
   def test_critical_awareness_has_zero_display_availability(self, app):
     sm = onroad_sm(driverMonitoringState=Msg(awarenessStatus=-0.1))
-    d = ui_state(sm, EOPIgnitionOn=True)._read().driver
+    d = ui_state(sm, IgnitionOn=True)._read().driver
     assert d.valid and d.awareness == -0.1 and d.stage == "critical"
 
   def test_panda_is_connected_when_any_panda_reports_a_type(self, app):
     sm = onroad_sm(pandaStates=[Msg(pandaType="unknown"), Msg(pandaType="dos")])
-    assert ui_state(sm, EOPIgnitionOn=True)._read().panda_connected
+    assert ui_state(sm, IgnitionOn=True)._read().panda_connected
 
   def test_all_unknown_pandas_is_not_connected(self, app):
     sm = onroad_sm(pandaStates=[Msg(pandaType="unknown")])
-    assert not ui_state(sm, EOPIgnitionOn=True)._read().panda_connected
+    assert not ui_state(sm, IgnitionOn=True)._read().panda_connected
 
   def test_speed_display_follows_the_unit_setting(self, app):
     assert Snapshot(v_ego=10.0, is_metric=True).speed_display == pytest.approx(36.0)
@@ -406,13 +406,13 @@ class TestUIState:
     # selfdrived legitimately takes a moment to come up after ignition. The
     # UI must not call that a fault.
     sm = StubSM(deviceState=device(started=True))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, 3)
     assert st.snapshot.alert_size == "none"
 
   def test_selfdrived_never_seen_says_waiting_to_start(self, app):
     sm = StubSM(deviceState=device(started=True))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     assert st.snapshot.alert_text1 == "openpilot Unavailable"
     assert st.snapshot.alert_text2 == "Waiting to start"
@@ -423,7 +423,7 @@ class TestUIState:
     # process doing the driving has stopped reporting.
     sm = StubSM(deviceState=device(started=True),
                 selfdriveState=selfdrive(enabled=True, state="enabled"))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     assert st.snapshot.alert_size == "none"    # healthy so far
 
@@ -436,7 +436,7 @@ class TestUIState:
   def test_disengaged_and_unresponsive_asks_for_a_reboot(self, app):
     sm = StubSM(deviceState=device(started=True),
                 selfdriveState=selfdrive(enabled=False))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S + 1)
     st.update()
@@ -446,7 +446,7 @@ class TestUIState:
   def test_a_brief_gap_is_not_a_timeout(self, app):
     sm = StubSM(deviceState=device(started=True),
                 selfdriveState=selfdrive(enabled=True, state="enabled"))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S - 1)
     st.update()
@@ -455,7 +455,7 @@ class TestUIState:
   def test_offroad_never_raises_a_timeout_alert(self, app):
     sm = StubSM(deviceState=device(started=False),
                 selfdriveState=selfdrive(enabled=False))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     sm.go_quiet("selfdriveState", SELFDRIVE_TIMEOUT_S + 60)
     st.update()
@@ -465,7 +465,7 @@ class TestUIState:
     sm = onroad_sm(selfdriveState=selfdrive(
       enabled=True, state="enabled", alertText1="Speed too low",
       alertText2="", alertStatus="userPrompt", alertSize="small"))
-    snap = ui_state(sm, EOPIgnitionOn=True)._read()
+    snap = ui_state(sm, IgnitionOn=True)._read()
     assert snap.alert_severity == "warning" and snap.alert_size == "small"
 
   def test_submaster_tables_may_be_dicts_or_methods(self, app):
@@ -484,7 +484,7 @@ class TestUIState:
         self.recv_time = lambda n, t=tables[3]: t.get(n, 0.0)
 
     sm = MethodSM(deviceState=device(started=True))
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     self._onroad_for(st, sm, SELFDRIVE_GRACE_FRAMES + 2)
     assert st.snapshot.alert_text1 == "openpilot Unavailable"
 
@@ -498,7 +498,7 @@ class TestUIState:
                                       networkType=FakeEnum("wifi"),
                                       networkStrength=FakeEnum("good"),
                                       thermalStatus=FakeEnum("yellow")))
-    snap = ui_state(sm, EOPIgnitionOn=True)._read()
+    snap = ui_state(sm, IgnitionOn=True)._read()
     assert snap.network_type == "wifi"
     assert snap.network_strength == 3
     assert snap.thermal_status == "yellow"
@@ -509,26 +509,26 @@ class TestUIState:
   def test_every_network_strength_maps_to_a_level(self, app, name, level):
     sm = onroad_sm(deviceState=device(started=True,
                                       networkStrength=FakeEnum(name)))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().network_strength == level
+    assert ui_state(sm, IgnitionOn=True)._read().network_strength == level
 
   def test_an_unrecognised_strength_reads_as_no_signal(self, app):
     # Better to draw no bars than to draw a full set for something the
     # schema grew after this table was written.
     sm = onroad_sm(deviceState=device(started=True,
                                       networkStrength=FakeEnum("cell6G")))
-    assert ui_state(sm, EOPIgnitionOn=True)._read().network_strength == 0
+    assert ui_state(sm, IgnitionOn=True)._read().network_strength == 0
 
   def test_started_does_not_require_deviceState_to_be_valid(self, app):
     # ui.cc reads deviceState.started ungated. Whether the car is on is not
     # something to suppress because another field in deviceState is degraded.
     sm = StubSM(deviceState=device(started=True))
     sm.invalidate("deviceState")
-    st = ui_state(sm, EOPIgnitionOn=True)
+    st = ui_state(sm, IgnitionOn=True)
     st.update()
     assert st.snapshot.started
 
   def test_a_never_seen_deviceState_is_offroad_not_a_crash(self, app):
-    st = ui_state(StubSM(), EOPIgnitionOn=True)
+    st = ui_state(StubSM(), IgnitionOn=True)
     st.update()
     assert not st.snapshot.started
 
@@ -554,12 +554,12 @@ def test_model_geometry_keeps_nonempty_numpy_lane_and_edge_arrays(app):
 
 
 def test_bev_requires_display_mode_and_feature_switch(app):
-  params = FakeParams(EOPUIDisplayMode=True, EOPBEVWidgetEnabled=True)
+  params = FakeParams(UIDisplayMode=True, BEVWidgetEnabled=True)
   state = ui_state(StubSM(), params=params)
   assert state._read().bev_enabled
-  params.d['EOPBEVWidgetEnabled'] = False
+  params.d['BEVWidgetEnabled'] = False
   state._refresh_params()
   assert not state._read().bev_enabled
-  params.d.update(EOPBEVWidgetEnabled=True, EOPUIDisplayMode=False)
+  params.d.update(BEVWidgetEnabled=True, UIDisplayMode=False)
   state._refresh_params()
   assert not state._read().bev_enabled

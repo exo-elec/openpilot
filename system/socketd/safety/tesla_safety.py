@@ -80,16 +80,16 @@ class SafetyLimits:
             params = params or Params()
 
             return cls(
-                MAX_STEERING_ANGLE=int(params.get("EOPSafetyMaxSteeringAngle") or 2700),
-                MAX_STEERING_RATE=int(params.get("EOPSafetyMaxSteeringRate") or 200),
-                MAX_ANGLE_ERROR=int(params.get("EOPSafetyMaxAngleError") or 240),
-                MAX_ACCEL=int(params.get("EOPSafetyMaxAccel") or 415),
+                MAX_STEERING_ANGLE=int(params.get("SafetyMaxSteeringAngle") or 2700),
+                MAX_STEERING_RATE=int(params.get("SafetyMaxSteeringRate") or 200),
+                MAX_ANGLE_ERROR=int(params.get("SafetyMaxAngleError") or 240),
+                MAX_ACCEL=int(params.get("SafetyMaxAccel") or 415),
                 # A persisted value may tighten this bound, but cannot widen
                 # normal operation beyond the research-backed comfort floor.
-                MIN_ACCEL=max(312, int(params.get("EOPSafetyMinAccel") or 312)),
-                HEARTBEAT_TIMEOUT_MS=int(params.get("EOPSafetyHeartbeatTimeout") or 200),
-                MESSAGE_TIMEOUT_MS=int(params.get("EOPSafetyMessageTimeout") or 1200),
-                DRIVER_TORQUE_THRESHOLD=int(params.get("EOPSafetyDriverTorqueThreshold") or 200),
+                MIN_ACCEL=max(312, int(params.get("SafetyMinAccel") or 312)),
+                HEARTBEAT_TIMEOUT_MS=int(params.get("SafetyHeartbeatTimeout") or 200),
+                MESSAGE_TIMEOUT_MS=int(params.get("SafetyMessageTimeout") or 1200),
+                DRIVER_TORQUE_THRESHOLD=int(params.get("SafetyDriverTorqueThreshold") or 200),
             )
         except Exception as e:
             # If params not available (e.g., testing), use defaults

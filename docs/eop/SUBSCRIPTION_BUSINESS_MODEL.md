@@ -178,7 +178,7 @@ Since the device code is open source, a determined user could:
 ### Device-side (open source)
 - [x] `subscribed` daemon — subscription state + hardware auth
 - [x] `rk_device_id.py` — eMMC CID / RK OTP fingerprinting
-- [x] Feature-gate params — `EOPFeatureTelemetry`, `EOPFeatureAiVoice`, etc.
+- [x] Feature-gate params — `FeatureTelemetry`, `EOPFeatureAiVoice`, etc.
 - [x] JSON-RPC over BLE — remote commands (`takeSnapshot`, `getMessage`, etc.)
 - [ ] voiced → NavPilot bridge — send voice intents via BLE
 - [ ] UI watermark — show "Community" vs "Official" vs tier badge

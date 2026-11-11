@@ -253,12 +253,12 @@ assert_true(preset is None, "default weather param is None")
 # Test param reading (stub Params is per-instance, so use same instance)
 from openpilot.common.params import Params
 p = Params()
-p.put("EOPSimWeather", "rain")
+p.put("SimWeather", "rain")
 # WeatherController creates its own Params() — with stub it won't see p's data.
 # Instead verify the param read logic directly.
-assert_true(p.get("EOPSimWeather") == b"rain", "param stores rain")
+assert_true(p.get("SimWeather") == b"rain", "param stores rain")
 
-p.put("EOPSimWeather", "alien_storm")
+p.put("SimWeather", "alien_storm")
 ctrl3 = WeatherController()
 # ctrl3 has its own empty Params stub, so _read_param returns None
 assert_true(ctrl3._read_param() is None, "unknown preset returns None")

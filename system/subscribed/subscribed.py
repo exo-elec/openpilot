@@ -227,7 +227,7 @@ class SubscribedD:
     Anti-sharing: the token contains the device_id (eMMC CID). A token
     issued for device A will NOT validate on device B.
     """
-    if self.params.get_bool("EOPSubscriptionSkipVerify"):
+    if self.params.get_bool("SubscriptionSkipVerify"):
       return True, SubscriptionTier.PREMIUM
 
     if not token:
@@ -264,23 +264,23 @@ class SubscribedD:
   # ------------------------------------------------------------------
 
   def _load_params(self) -> None:
-    tier_str = self.params.get("EOPSubscriptionTier") or "none"
+    tier_str = self.params.get("SubscriptionTier") or "none"
     self._tier = {
       "none": SubscriptionTier.NONE,
       "basic": SubscriptionTier.BASIC,
       "premium": SubscriptionTier.PREMIUM,
     }.get(tier_str.lower(), SubscriptionTier.NONE)
 
-    self._expiry = self.params.get("EOPSubscriptionExpiry") or ""
-    self._navpilot_paired = self.params.get_bool("EOPNavPilotPaired")
-    self._navpilot_addr = self.params.get("EOPNavPilotAddress") or ""
+    self._expiry = self.params.get("SubscriptionExpiry") or ""
+    self._navpilot_paired = self.params.get_bool("NavPilotPaired")
+    self._navpilot_addr = self.params.get("NavPilotAddress") or ""
 
   def _save_params(self) -> None:
     tier_map = {SubscriptionTier.NONE: "none", SubscriptionTier.BASIC: "basic", SubscriptionTier.PREMIUM: "premium"}
-    self.params.put("EOPSubscriptionTier", tier_map.get(self._tier, "none"))
-    self.params.put("EOPSubscriptionExpiry", self._expiry)
-    self.params.put_bool("EOPNavPilotPaired", self._navpilot_paired)
-    self.params.put("EOPNavPilotAddress", self._navpilot_addr)
+    self.params.put("SubscriptionTier", tier_map.get(self._tier, "none"))
+    self.params.put("SubscriptionExpiry", self._expiry)
+    self.params.put_bool("NavPilotPaired", self._navpilot_paired)
+    self.params.put("NavPilotAddress", self._navpilot_addr)
 
   def _is_expired(self) -> bool:
     if not self._expiry:
@@ -297,11 +297,11 @@ class SubscribedD:
     if device_id == "unknown":
       return SubscriptionStatus.INVALID
 
-    current_stored = self.params.get("EOPSubscriptionDeviceId") or ""
+    current_stored = self.params.get("SubscriptionDeviceId") or ""
     if device_id != current_stored:
-      self.params.put("EOPSubscriptionDeviceId", device_id)
+      self.params.put("SubscriptionDeviceId", device_id)
 
-    token = self.params.get("EOPSubscriptionToken")
+    token = self.params.get("SubscriptionToken")
     is_valid, token_tier = self._verify_subscription_token(device_id, token)
 
     # If NavPilot is not paired, downgrade to free tier unless we have
@@ -356,23 +356,23 @@ class SubscribedD:
     #   These are NOT gated — they work even without NavPilot
 
     # BASIC tier — Telemetry & data features
-    self.params.put_bool("EOPFeatureTelemetry", tier >= SubscriptionTier.BASIC)
-    self.params.put_bool("EOPFeatureTripSync", tier >= SubscriptionTier.BASIC)
-    self.params.put_bool("EOPFeatureRouteReplay", tier >= SubscriptionTier.BASIC)
-    self.params.put_bool("EOPFeatureObdDashboard", tier >= SubscriptionTier.BASIC)
-    self.params.put_bool("EOPFeatureDrivingScore", tier >= SubscriptionTier.BASIC)
+    self.params.put_bool("FeatureTelemetry", tier >= SubscriptionTier.BASIC)
+    self.params.put_bool("FeatureTripSync", tier >= SubscriptionTier.BASIC)
+    self.params.put_bool("FeatureRouteReplay", tier >= SubscriptionTier.BASIC)
+    self.params.put_bool("FeatureObdDashboard", tier >= SubscriptionTier.BASIC)
+    self.params.put_bool("FeatureDrivingScore", tier >= SubscriptionTier.BASIC)
 
     # PREMIUM tier — advanced integration
-    self.params.put_bool("EOPFeatureAiRouting", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureLiveTraffic", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureCloudBackup", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureAdvancedAnalytics", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureFleetMode", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureRemoteCamera", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureLiveLocationShare", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureEmergencyAlert", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeaturePriorityTiles", tier >= SubscriptionTier.PREMIUM)
-    self.params.put_bool("EOPFeatureCrossDeviceSync", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureAiRouting", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureLiveTraffic", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureCloudBackup", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureAdvancedAnalytics", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureFleetMode", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureRemoteCamera", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureLiveLocationShare", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureEmergencyAlert", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeaturePriorityTiles", tier >= SubscriptionTier.PREMIUM)
+    self.params.put_bool("FeatureCrossDeviceSync", tier >= SubscriptionTier.PREMIUM)
 
     cloudlog.info(f"subscribed: feature gates updated for tier={tier.name}")
 
@@ -381,8 +381,8 @@ class SubscribedD:
   # ------------------------------------------------------------------
 
   def _update_navpilot_status(self) -> None:
-    paired = self.params.get_bool("EOPNavPilotPaired")
-    addr = self.params.get("EOPNavPilotAddress") or ""
+    paired = self.params.get_bool("NavPilotPaired")
+    addr = self.params.get("NavPilotAddress") or ""
     if paired != self._navpilot_paired or addr != self._navpilot_addr:
       self._navpilot_paired = paired
       self._navpilot_addr = addr
@@ -398,7 +398,7 @@ class SubscribedD:
 
     self._tier = min(tier, token_tier)
     self._expiry = expiry
-    self.params.put("EOPSubscriptionToken", token)
+    self.params.put("SubscriptionToken", token)
     self._save_params()
     cloudlog.info(f"subscribed: handshake accepted tier={self._tier.name} expiry={expiry}")
     return True
@@ -577,17 +577,17 @@ class SubscribedD:
           continue
 
         # Stage upload metadata for bluetoothd to read
-        self.params.put("EOPUploadCurrentId", item.id)
-        self.params.put("EOPUploadCurrentPath", str(path))
-        self.params.put("EOPUploadCurrentUrl", item.url)
-        self.params.put("EOPUploadCurrentHeaders", json.dumps(item.headers))
-        self.params.put("EOPUploadCurrentSize", str(path.stat().st_size))
+        self.params.put("UploadCurrentId", item.id)
+        self.params.put("UploadCurrentPath", str(path))
+        self.params.put("UploadCurrentUrl", item.url)
+        self.params.put("UploadCurrentHeaders", json.dumps(item.headers))
+        self.params.put("UploadCurrentSize", str(path.stat().st_size))
 
         # Wait for bluetoothd to drain this file (or timeout)
-        # bluetoothd sets EOPUploadCurrentProgress param as it sends chunks
+        # bluetoothd sets UploadCurrentProgress param as it sends chunks
         deadline = time.monotonic() + 300.0
         while time.monotonic() < deadline:
-          progress_str = self.params.get("EOPUploadCurrentProgress") or "0"
+          progress_str = self.params.get("UploadCurrentProgress") or "0"
           try:
             item.progress = float(progress_str)
           except ValueError:
@@ -611,8 +611,8 @@ class SubscribedD:
       finally:
         item.current = False
         self._upload_current = None
-        for key in ("EOPUploadCurrentId", "EOPUploadCurrentPath", "EOPUploadCurrentUrl",
-                    "EOPUploadCurrentHeaders", "EOPUploadCurrentSize", "EOPUploadCurrentProgress"):
+        for key in ("UploadCurrentId", "UploadCurrentPath", "UploadCurrentUrl",
+                    "UploadCurrentHeaders", "UploadCurrentSize", "UploadCurrentProgress"):
           self.params.remove(key)
 
   # ------------------------------------------------------------------
@@ -642,14 +642,14 @@ class SubscribedD:
     """Check for incoming RPC requests from bluetoothd."""
     # bluetoothd writes incoming JSON-RPC frames to params
     # We drain them here and write responses back
-    frame = self.params.get("EOPSPPRpcRequest")
+    frame = self.params.get("SPPRpcRequest")
     if not frame:
       return
 
-    self.params.remove("EOPSPPRpcRequest")
+    self.params.remove("SPPRpcRequest")
     response = self._process_rpc_frame(frame)
     if response:
-      self.params.put("EOPSPPRpcResponse", response)
+      self.params.put("SPPRpcResponse", response)
 
   # ------------------------------------------------------------------
   # Publish state
@@ -686,7 +686,7 @@ class SubscribedD:
     self._upload_thread = threading.Thread(target=self._upload_worker, daemon=True)
     self._upload_thread.start()
 
-    check_interval = float(self.params.get("EOPSubscriptionCheckInterval") or self.DEFAULT_CHECK_INTERVAL)
+    check_interval = float(self.params.get("SubscriptionCheckInterval") or self.DEFAULT_CHECK_INTERVAL)
     rk = Ratekeeper(1.0, print_delay_threshold=None)
 
     last_validation = 0.0

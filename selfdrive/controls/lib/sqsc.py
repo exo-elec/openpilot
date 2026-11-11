@@ -8,9 +8,9 @@ Like VTSC/MTSC: consumes perception output, produces speed limits.
 Previous version had internal IMU/stereo analyzers - now reads from surfaced.
 
 Parameters:
-  - EOPSQSCEnabled - Master enable
-  - EOPSQSCProfile (sport/balanced/comfort)
-  - EOPSQSCUseLearnedSpeed - Use driver-learned speeds from history
+  - SQSCEnabled - Master enable
+  - SQSCProfile (sport/balanced/comfort)
+  - SQSCUseLearnedSpeed - Use driver-learned speeds from history
 """
 from __future__ import annotations
 
@@ -209,14 +209,14 @@ class SQSC:
             return
         self._last_param_update = now
 
-        self._cached_enabled = self.params.get_bool("EOPSQSCEnabled")
-        self._cached_lookahead = self.params.get_bool("EOPSQSCLookaheadEnabled")
-        self._cached_use_learned = self.params.get_bool("EOPSQSCUseLearnedSpeed")
-        self._cached_shock_limit = self._read_param_float("EOPShockSpeedLimit", 15.0)
-        self._cached_shock_duration = self._read_param_float("EOPShockDuration", 3.0)
-        self._cached_record_min_speed_ms = self._read_param_float("EOPSQSCRecordMinSpeedKph", 18.0) / 3.6
-        self._cached_record_min_lead_m = self._read_param_float("EOPSQSCRecordMinLeadM", 40.0)
-        self._cached_record_min_quality = self._read_param_float("EOPSQSCRecordMinQuality", 0.25)
+        self._cached_enabled = self.params.get_bool("SQSCEnabled")
+        self._cached_lookahead = self.params.get_bool("SQSCLookaheadEnabled")
+        self._cached_use_learned = self.params.get_bool("SQSCUseLearnedSpeed")
+        self._cached_shock_limit = self._read_param_float("ShockSpeedLimit", 15.0)
+        self._cached_shock_duration = self._read_param_float("ShockDuration", 3.0)
+        self._cached_record_min_speed_ms = self._read_param_float("SQSCRecordMinSpeedKph", 18.0) / 3.6
+        self._cached_record_min_lead_m = self._read_param_float("SQSCRecordMinLeadM", 40.0)
+        self._cached_record_min_quality = self._read_param_float("SQSCRecordMinQuality", 0.25)
         self._cached_profile = self._read_profile()
         self._cached_sensitivity = self._read_sensitivity()
 
@@ -231,7 +231,7 @@ class SQSC:
 
     def _read_profile(self) -> str:
         try:
-            profile = self.params.get("EOPSQSCProfile")
+            profile = self.params.get("SQSCProfile")
             if profile is not None:
                 profile = profile.decode() if isinstance(profile, bytes) else profile
                 if profile in self.PROFILES:
@@ -242,7 +242,7 @@ class SQSC:
 
     def _read_sensitivity(self) -> float:
         try:
-            sens = self.params.get("EOPSQSCSensitivity")
+            sens = self.params.get("SQSCSensitivity")
             if sens is not None:
                 return max(0.5, min(2.0, float(sens)))
         except Exception:

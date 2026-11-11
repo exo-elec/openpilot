@@ -4,8 +4,14 @@ Params are plain files under Params().get_param_path(); the old names are no lon
 read through the Params API. The stored files are renamed before the manager reads anything. A value already saved
 under the new name wins and the stale old file is dropped. Several old names map to one key where two settings of
 the same feature were merged (ngp_lon_mtsc and EOPMTSCEnabled -> MTSCEnabled); the first one found is kept.
+
+Two sources of old names: RENAMED (NGP10's ngp_<name> keys and its EOP<name> keys) and every key ExoPilot adds
+(exopilot/common/param_names.py FORK_KEYS) saved as EOP<name>. This replaces the earlier migration that moved fork params
+*to* EOP<Feature><Param> (e.g. QuietMode -> EOPQuietMode); those names are unprefixed again.
 """
 import os
+
+from exopilot.common.param_names import FORK_KEYS, OLD_PREFIX
 
 RENAMED = {
   "EOPDDSCEnabled": "DDSCEnabled",
@@ -90,49 +96,16 @@ RENAMED = {
   "ngp_ui_hide_hud_speed_kph": "UIHideHudSpeedKph",
 }
 
-# EOP10: fork-added params -> EOP<Feature><Param>, applied after the table above.
-RENAMES = {
-  "BLECornerPairs": "EOPBLECornerPairs",
-  "BLERadarPairingOpen": "EOPBLERadarPairingOpen",
-  "BLERadarRoster": "EOPBLERadarRoster",
-  "BluetoothPairingActive": "EOPBluetoothPairingActive",
-  "BluetoothPairingAddr": "EOPBluetoothPairingAddr",
-  "BluetoothPairingPin": "EOPBluetoothPairingPin",
-  "CameraCalibrationParams": "EOPCameraCalibrationParams",
-  "CarMake": "EOPCarMake",
-  "CarType": "EOPCarType",
-  "CarVin": "EOPCarVin",
-  "CurrentMCAPRoute": "EOPCurrentMCAPRoute",
-  "FactoryCalibrationParams": "EOPFactoryCalibrationParams",
-  "LastGPSAltitude": "EOPLastGPSAltitude",
-  "LastGPSLatitude": "EOPLastGPSLatitude",
-  "LastGPSLongitude": "EOPLastGPSLongitude",
-  "NavDestination": "EOPNavDestination",
-  "NavDestinationWaypoints": "EOPNavDestinationWaypoints",
-  "NavPilotOAuthEmail": "EOPNavPilotOAuthEmail",
-  "NavPilotOAuthToken": "EOPNavPilotOAuthToken",
-  "NeuralNetworkLateralControl": "EOPNeuralNetworkLateralControl",
-  "OpenBLTFirmwareVersion": "EOPOpenBLTFirmwareVersion",
-  "OpenBLTState": "EOPOpenBLTState",
-  "OpenBLTUpdateAvailable": "EOPOpenBLTUpdateAvailable",
-  "PowerSaverEntryDuration": "EOPPowerSaverEntryDuration",
-  "QuietMode": "EOPQuietMode",
-  "SpeedLimitPolicy": "EOPSpeedLimitPolicy",
-  "SteamDAuthToken": "EOPSteamDAuthToken",
-  "SteamDControlRequest": "EOPSteamDControlRequest",
-  "SteamDEnabled": "EOPSteamDEnabled",
-  "SteamDGeofencePolygon": "EOPSteamDGeofencePolygon",
-  "SteamDJoystickInput": "EOPSteamDJoystickInput",
-  "SteamDRemoteControl": "EOPSteamDRemoteControl",
-  "UbloxAssistNowToken": "EOPUbloxAssistNowToken",
-  "UpdateStatus": "EOPUpdateStatus",
-}
+
+def _moves():
+  yield from sorted(RENAMED.items())
+  yield from ((OLD_PREFIX + name, name) for name in sorted(FORK_KEYS))
 
 
 def migrate_renamed_params(param_dir: str) -> list[str]:
   """Rename stored old-name params to their new names. Returns the old names that were moved."""
   migrated = []
-  for old, new in [*sorted(RENAMED.items()), *RENAMES.items()]:
+  for old, new in _moves():
     src, dst = os.path.join(param_dir, old), os.path.join(param_dir, new)
     if not os.path.lexists(src):
       continue

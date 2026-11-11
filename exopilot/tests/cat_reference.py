@@ -77,7 +77,7 @@ class CAT:
 
     self.manual_sr_enabled = False
     self.manual_sr         = self.base_sr
-    self.cat_enabled       = self.params.get_bool("EOPCATEnabled")
+    self.cat_enabled       = self.params.get_bool("CATEnabled")
 
     self.status = CATStatus(
       adaptive=False, confidence=0.0,
@@ -103,7 +103,7 @@ class CAT:
   def _load_persisted_seed(self) -> tuple[float, float, float]:
     """Return (steer_ratio, stiffness, angle_offset) from last persist."""
     try:
-      raw = self.params.get("EOPCATPersist")
+      raw = self.params.get("CATPersist")
       if not raw:
         return self.base_sr, 1.0, 0.0
       data = json.loads(raw.decode() if isinstance(raw, (bytes, bytearray)) else raw)
@@ -123,13 +123,13 @@ class CAT:
 
     # Refresh user params every PARAM_REFRESH_S
     if now - self.last_param_t > self.PARAM_REFRESH_S:
-      self.manual_sr_enabled = self.params.get_bool("EOPCATManualSREnabled")
+      self.manual_sr_enabled = self.params.get_bool("CATManualSREnabled")
       try:
-        val = self.params.get("EOPCATManualSR")
+        val = self.params.get("CATManualSR")
         self.manual_sr = float(val) if val not in (None, b"", "") else self.base_sr
       except Exception:
         self.manual_sr = self.base_sr
-      self.cat_enabled = self.params.get_bool("EOPCATEnabled")
+      self.cat_enabled = self.params.get_bool("CATEnabled")
       self.last_param_t = now
 
     if not self.cat_enabled:
@@ -231,6 +231,6 @@ class CAT:
         "angleOffsetDeg":  float(angle),
         "ts":              time.monotonic(),
       }
-      self.params.put_nonblocking("EOPCATPersist", json.dumps(payload))
+      self.params.put_nonblocking("CATPersist", json.dumps(payload))
     except Exception as e:
       cloudlog.exception(f"CAT persist failed: {e}")

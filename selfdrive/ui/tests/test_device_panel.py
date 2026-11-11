@@ -99,7 +99,7 @@ class TestDevicePanelSideRearRow:
     params = FakeParams()
     panel = DevicePanel(ParamStore(params))
     panel._reset_side_rear_calibration()
-    assert params.d.get("EOPSideRearCalibReset") is True
+    assert params.d.get("SideRearCalibReset") is True
 
   def test_reset_refused_while_engaged(self, app, monkeypatch):
     import openpilot.selfdrive.ui.views.panels.device as device_mod
@@ -109,7 +109,7 @@ class TestDevicePanelSideRearRow:
     panel = DevicePanel(ParamStore(params))
     panel.set_driving_state(engaged=True, offroad=False)
     panel._reset_side_rear_calibration()
-    assert "EOPSideRearCalibReset" not in params.d
+    assert "SideRearCalibReset" not in params.d
 
   def test_side_rear_calib_stays_enabled_onroad(self, app):
     """Same policy as the road-camera reset: guarded by engagement, not
