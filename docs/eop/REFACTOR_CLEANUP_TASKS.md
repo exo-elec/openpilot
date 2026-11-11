@@ -125,6 +125,12 @@ Order: what the driver sees first, the new screens last. Each step must build (`
   - **Bugs found and fixed:** software CHECK sent SIGUSR1 to `system.updated.updated`; the updater runs as `system.updated` and handles only SIGHUP (SIGUSR1 would kill it). CHECK showed disabled when the updater had not started. Hide HUD wrote `EOPUIHideHudSpeedKph`, but `ui.cc` reads `ngp_ui_hide_hud_speed_kph`.
   - **Open: settings that nothing reads** (grep of selfdrive, system, exopilot, the onroad UI and ../exopilot, 2026-11-12). These rows save but change nothing: `EOPALCCBrakeMode`, `EOPLatLCASpeed`, `EOPLatRoadEdgeDetection` (its `ngp_lat_road_edge_detection` twin is unread too), `EOPLonExtRadar`, `EOPDeviceAudibleAlertMode`, `EOPDeviceBeep`, `EOPDeviceAutoShutdownIn` (and `ngp_device_shutdown_minutes`), `EOPRecordEnabled`, `EOPNavBleEnabled`, `EOPUIDisplayMode`, `EOPUIRadarTracks`, `EOPUIRainbow`; Advanced: `EOPMonoD*`, `EOPSGM*`, `EOPPointcloudMaxGB`, `EOPMultiCameraCalibEnabled`. Owner to decide per row: wire it, or hide it until it is.
   - **Open: offline map download backend.** The Device rows record `EOPMapDownloadRequest`/`EOPMapRegion`; nothing consumes them yet (`tile_auto_manager.py` is not run by any process). Done with 4.9.
+- [ ] 4.4c Owner follow-ups (2026-11-12):
+  - [x] **Device identity rows show only the last 6 characters** of Dongle ID and Serial. (Dongle ID: the device's identity for logs/uploads, created at registration. Serial: the board's hardware serial. Both kept; the Dongle ID row keeps the 8-tap unlock.)
+  - [x] **Device shows the IP address and Wi-Fi signal strength** (refreshed every 2 s while the page is open; percent from the dBm level, -100 -> 0 %, -50 -> 100 %, because the RTL8822CE's link-quality column is not 0-70).
+  - [x] **Keyboard eye icon clipped:** the button was 55x42 with icons drawn at 81x54 (comma's 1080p sizes); now 64x44 with 54x36/54x30 icons.
+  - **Advanced page is long** (8 groups). Trim it with the unread-settings decision above.
+  - **Drop the `EOP` prefix from param names (owner: "no prefix at all").** 307 `EOP*` keys in `params_keys.h`, used in ~122 files across openpilot and exopilot, plus docs and `exopilot/docs/NAMING_CONVENTIONS.md`. Needs: one rename table, a one-time migration at manager start that copies each saved `EOPx` value to `x` (users keep their settings), collision check against existing unprefixed keys (e.g. upstream's), all branches (NGP10's shared `ngp_` keys stay). Own step, after the owner confirms scope (params only, or class/file names like `EopPanel`, `eop_utils` too).
 - [ ] 4.5 EOP panel, onboarding
 - [ ] 4.6 Onroad restyle: HUD, alerts, chrome bar, warnings
 - [ ] 4.7 Side/rear overlays, blind spot, BEV
@@ -172,5 +178,6 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-11 | R.6 | one name ExoPilot on NGP10/EOP10/01M/02M/EDP10; proper rebase chain, duplicates dropped |
 | 2026-11-11 | 4.4 | settings controls: five theme styles, segmented choices on their own line; built and checked on :0 |
 | 2026-11-11 | 4.4b, 4.9 | owner requests recorded: no Software/Developer pages, Update + offline maps on Device, no Experimental mode (Drive Mode Highway/Urban/Dynamic), old names, keyboard check; proposed nav order; swipe map view |
+| 2026-11-12 | 4.4c | short IDs, IP + Wi-Fi signal on Device, keyboard eye sized; prefix rename recorded, scope to confirm |
 | 2026-11-12 | 4.4b | settings restructure built and checked on :0; Drive Mode (EOPDlonMode) + personality quick button; updater signal and Hide HUD key bugs fixed; unread-settings audit recorded |
 | 2026-11-09 | 4.1, 4.2 | 4.1 done (no app-wide sheet: it boxed every label); 4.2 sidebar palette + BLE pairing key bug; built and checked on :0 |

@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QWidget>
 
 #include "selfdrive/ui/ui.h"
@@ -62,11 +63,17 @@ private slots:
 private:
   void addOfflineMaps();
   void updateMapStatus();
+  void updateNetworkInfo();
+  void showEvent(QShowEvent *event) override;
+  void hideEvent(QHideEvent *event) override;
 
   Params params;
   ButtonControl *resetCalibBtn;
   ButtonControl *mapRegionBtn = nullptr;
   ButtonControl *mapDownloadBtn = nullptr;
+  LabelControl *ipLbl = nullptr;
+  LabelControl *wifiLbl = nullptr;
+  QTimer *net_timer = nullptr;
   int dongle_taps = 0;
   qint64 last_tap_ms = 0;
 };

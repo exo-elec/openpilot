@@ -4,7 +4,11 @@
 #include <tuple>
 #include <vector>
 
+#include <algorithm>
+
 #include <QDateTime>
+#include <QFile>
+#include <QNetworkInterface>
 #include <QDebug>
 #include <QEvent>
 
@@ -104,12 +108,24 @@ void TogglesPanel::updateToggles() {
 
 DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   setSpacing(50);
-  auto dongle = new LabelControl(tr("Dongle ID"), getDongleId().value_or(tr("N/A")));
+  // Only the last 6 characters: enough to tell devices apart on screen.
+  auto tail6 = [](const QString &id) { return id.size() > 6 ? QString::fromUtf8("…") + id.right(6) : id; };
+  auto dongle = new LabelControl(tr("Dongle ID"), tail6(getDongleId().value_or(tr("N/A"))),
+      tr("This device's identity for logs and uploads."));
   // 8 quick taps anywhere on this row reveal the Advanced page.
   dongle->installEventFilter(this);
   for (auto *child : dongle->findChildren<QWidget *>()) child->installEventFilter(this);
   addItem(dongle);
-  addItem(new LabelControl(tr("Serial"), params.get("HardwareSerial").c_str()));
+  addItem(new LabelControl(tr("Serial"), tail6(QString::fromStdString(params.get("HardwareSerial"))),
+      tr("The board's hardware serial number.")));
+
+  // Network: refreshed every 2 s while the page is open.
+  wifiLbl = new LabelControl(tr("Wi-Fi Signal"), "");
+  ipLbl = new LabelControl(tr("IP Address"), "");
+  addItem(wifiLbl);
+  addItem(ipLbl);
+  net_timer = new QTimer(this);
+  connect(net_timer, &QTimer::timeout, this, &DevicePanel::updateNetworkInfo);
 
   // Vehicle (type, RHD) and calibration status
   addItem(new EopPanel(parent, EopPanel::DEVICE_VEHICLE));
@@ -222,6 +238,49 @@ bool DevicePanel::eventFilter(QObject *obj, QEvent *event) {
     }
   }
   return ListWidget::eventFilter(obj, event);
+}
+
+void DevicePanel::showEvent(QShowEvent *event) {
+  updateNetworkInfo();
+  net_timer->start(2000);
+  ListWidget::showEvent(event);
+}
+
+void DevicePanel::hideEvent(QHideEvent *event) {
+  net_timer->stop();
+  ListWidget::hideEvent(event);
+}
+
+void DevicePanel::updateNetworkInfo() {
+  // IPv4 of the first interface that is up: Wi-Fi first, then Ethernet.
+  QString ip;
+  for (const QString &name : {QString("wlan0"), QString("eth0")}) {
+    const QNetworkInterface iface = QNetworkInterface::interfaceFromName(name);
+    if (!iface.isValid() || !(iface.flags() & QNetworkInterface::IsUp)) continue;
+    for (const QNetworkAddressEntry &e : iface.addressEntries()) {
+      if (e.ip().protocol() == QAbstractSocket::IPv4Protocol) { ip = e.ip().toString(); break; }
+    }
+    if (!ip.isEmpty()) break;
+  }
+  ipLbl->setText(ip.isEmpty() ? tr("not connected") : ip);
+
+  // /proc/net/wireless: "wlan0: 0000   5.  -44.  -91. ..." (link, level dBm, noise).
+  // The RTL8822CE's "link" column is not a 0-70 quality, so use the level:
+  // -100 dBm -> 0 %, -50 dBm or better -> 100 %.
+  QString signal = tr("not connected");
+  QFile f("/proc/net/wireless");
+  if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    for (const QString &line : QString(f.readAll()).split('\n')) {
+      const QStringList cols = line.simplified().split(' ');
+      if (cols.size() >= 4 && cols[0] == "wlan0:") {
+        const int dbm = int(cols[3].toFloat());
+        const int quality = std::clamp(2 * (dbm + 100), 0, 100);
+        const QString word = quality >= 70 ? tr("excellent") : quality >= 50 ? tr("good") : quality >= 30 ? tr("fair") : tr("weak");
+        signal = tr("%1% %2 (%3 dBm)").arg(quality).arg(word).arg(dbm);
+      }
+    }
+  }
+  wifiLbl->setText(signal);
 }
 
 // Offline maps: OSM extracts for Valhalla routing and the onroad map.
