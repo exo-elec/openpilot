@@ -10,6 +10,7 @@
 #include "common/util.h"
 #include "selfdrive/ui/qt/network/networking.h"
 #include "selfdrive/ui/qt/offroad/settings.h"
+#include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
 #include "selfdrive/ui/qt/offroad/developer_panel.h"
@@ -255,12 +256,8 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     connect(uiState(), &UIState::offroadTransition, poweroff_btn, &QPushButton::setVisible);
   }
 
-  setStyleSheet(R"(
-    #reboot_btn { height: 60px; border-radius: 12px; background-color: #393939; }
-    #reboot_btn:pressed { background-color: #4a4a4a; }
-    #poweroff_btn { height: 60px; border-radius: 12px; background-color: #E22C2C; }
-    #poweroff_btn:pressed { background-color: #FF2424; }
-  )");
+  reboot_btn->setStyleSheet(theme::controlStyle(theme::Control::SECONDARY));
+  poweroff_btn->setStyleSheet(theme::controlStyle(theme::Control::DANGER));
   addItem(power_layout);
 }
 
