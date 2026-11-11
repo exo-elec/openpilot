@@ -1,5 +1,8 @@
 #include "selfdrive/ui/qt/onroad/buttons.h"
 
+#include <algorithm>
+#include <string>
+
 #include <QPainter>
 
 #include "selfdrive/ui/qt/util.h"
@@ -15,35 +18,51 @@ void drawIcon(QPainter &p, const QPoint &center, const QPixmap &img, const QBrus
   p.setOpacity(1.0);
 }
 
-// ExperimentalButton
-ExperimentalButton::ExperimentalButton(QWidget *parent) : experimental_mode(false), engageable(false), QPushButton(parent) {
+// PersonalityButton
+PersonalityButton::PersonalityButton(QWidget *parent) : QPushButton(parent) {
   setFixedSize(btn_size, btn_size);
-
-  engage_img = loadPixmap("../assets/icons/chffr_wheel.png", {img_size, img_size});
-  experimental_img = loadPixmap("../assets/icons/experimental.svg", {img_size, img_size});
-  QObject::connect(this, &QPushButton::clicked, this, &ExperimentalButton::changeMode);
+  QObject::connect(this, &QPushButton::clicked, this, &PersonalityButton::cyclePersonality);
 }
 
-void ExperimentalButton::changeMode() {
-  const auto cp = (*uiState()->sm)["carParams"].getCarParams();
-  bool can_change = hasLongitudinalControl(cp) && params.getBool("ExperimentalModeConfirmed");
-  if (can_change) {
-    params.putBool("ExperimentalMode", !experimental_mode);
-  }
+void PersonalityButton::cyclePersonality() {
+  // selfdrived re-reads the param every 0.1 s and publishes it back in
+  // selfdriveState.personality, which updateState() shows.
+  personality = (personality + 1) % 3;
+  params.put("LongitudinalPersonality", std::to_string(personality));
+  update();
 }
 
-void ExperimentalButton::updateState(const UIState &s) {
+void PersonalityButton::updateState(const UIState &s) {
   const auto cs = (*s.sm)["selfdriveState"].getSelfdriveState();
-  bool eng = cs.getEngageable() || cs.getEnabled();
-  if ((cs.getExperimentalMode() != experimental_mode) || (eng != engageable)) {
+  const bool eng = cs.getEngageable() || cs.getEnabled();
+  const int pers = static_cast<int>(cs.getPersonality());
+  if (pers != personality || eng != engageable) {
+    personality = pers;
     engageable = eng;
-    experimental_mode = cs.getExperimentalMode();
     update();
   }
 }
 
-void ExperimentalButton::paintEvent(QPaintEvent *event) {
+void PersonalityButton::paintEvent(QPaintEvent *event) {
+  static const char *labels[] = {QT_TR_NOOP("AGGR"), QT_TR_NOOP("STD"), QT_TR_NOOP("RELAX")};
   QPainter p(this);
-  QPixmap img = experimental_mode ? experimental_img : engage_img;
-  drawIcon(p, QPoint(btn_size / 2, btn_size / 2), img, QColor(0, 0, 0, 166), (isDown() || !engageable) ? 0.6 : 1.0);
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setPen(Qt::NoPen);
+  p.setBrush(QColor(0, 0, 0, isDown() ? 210 : 166));
+  p.drawEllipse(QPoint(btn_size / 2, btn_size / 2), btn_size / 2, btn_size / 2);
+
+  // three distance bars: more bars = larger following gap
+  const int bars = personality + 1;
+  p.setBrush(QColor(255, 255, 255, engageable ? 255 : 150));
+  for (int i = 0; i < 3; i++) {
+    p.setOpacity(i < bars ? 1.0 : 0.25);
+    p.drawRoundedRect(QRect(28 + i * 20, 30, 14, 26), 3, 3);
+  }
+  p.setOpacity(1.0);
+  p.setPen(QColor(255, 255, 255, engageable ? 255 : 150));
+  QFont f = p.font();
+  f.setPixelSize(20);
+  f.setBold(true);
+  p.setFont(f);
+  p.drawText(QRect(0, 62, btn_size, 26), Qt::AlignCenter, tr(labels[std::clamp(personality, 0, 2)]));
 }

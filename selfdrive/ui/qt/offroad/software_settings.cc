@@ -16,8 +16,11 @@
 #include "system/hardware/hw.h"
 
 
+// The updater runs as "system.updated" (setproctitle) and handles SIGHUP
+// only: check, download and finalize in one pass. SIGUSR1 is not handled
+// (its default action would kill the process).
 void SoftwarePanel::checkForUpdates() {
-  std::system("pkill -SIGUSR1 -f system.updated.updated");
+  std::system("pkill -SIGHUP -f '^system\\.updated$'");
 }
 
 SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
@@ -30,13 +33,14 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
   addItem(versionLbl);
 
   // download update btn
-  downloadBtn = new ButtonControl(tr("Download"), tr("CHECK"));
+  // One branch per product (no branch select, no uninstall): Device -> Update.
+  downloadBtn = new ButtonControl(tr("Software Update"), tr("CHECK"));
   connect(downloadBtn, &ButtonControl::clicked, [=]() {
     downloadBtn->setEnabled(false);
     if (downloadBtn->text() == tr("CHECK")) {
       checkForUpdates();
     } else {
-      std::system("pkill -SIGHUP -f system.updated.updated");
+      checkForUpdates();
     }
   });
   addItem(downloadBtn);
@@ -48,40 +52,6 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
     params.putBool("DoReboot", true);
   });
   addItem(installBtn);
-
-  // branch selecting
-  targetBranchBtn = new ButtonControl(tr("Target Branch"), tr("SELECT"));
-  connect(targetBranchBtn, &ButtonControl::clicked, [=]() {
-    auto current = params.get("GitBranch");
-    QStringList branches = QString::fromStdString(params.get("UpdaterAvailableBranches")).split(",");
-    for (QString b : {current.c_str(), "devel-staging", "devel", "nightly", "nightly-dev", "master"}) {
-      auto i = branches.indexOf(b);
-      if (i >= 0) {
-        branches.removeAt(i);
-        branches.insert(0, b);
-      }
-    }
-
-    QString cur = QString::fromStdString(params.get("UpdaterTargetBranch"));
-    QString selection = MultiOptionDialog::getSelection(tr("Select a branch"), branches, cur, this);
-    if (!selection.isEmpty()) {
-      params.put("UpdaterTargetBranch", selection.toStdString());
-      targetBranchBtn->setValue(QString::fromStdString(params.get("UpdaterTargetBranch")));
-      checkForUpdates();
-    }
-  });
-  if (!params.getBool("IsTestedBranch")) {
-    addItem(targetBranchBtn);
-  }
-
-  // uninstall button
-  auto uninstallBtn = new ButtonControl(tr("Uninstall %1").arg(getBrand()), tr("UNINSTALL"));
-  connect(uninstallBtn, &ButtonControl::clicked, [&]() {
-    if (ConfirmationDialog::confirm(tr("Are you sure you want to uninstall?"), tr("Uninstall"), this)) {
-      params.putBool("DoUninstall", true);
-    }
-  });
-  addItem(uninstallBtn);
 
   fs_watch = new ParamWatcher(this);
   QObject::connect(fs_watch, &ParamWatcher::paramChanged, [=](const QString &param_name, const QString &param_value) {
@@ -121,7 +91,7 @@ void SoftwarePanel::updateLabels() {
   // download update
   QString updater_state = QString::fromStdString(params.get("UpdaterState"));
   bool failed = std::atoi(params.get("UpdateFailedCount").c_str()) > 0;
-  if (updater_state != "idle") {
+  if (!updater_state.isEmpty() && updater_state != "idle") {  // empty: updater not started yet
     downloadBtn->setEnabled(false);
     downloadBtn->setValue(updater_state);
   } else {
@@ -142,7 +112,6 @@ void SoftwarePanel::updateLabels() {
     }
     downloadBtn->setEnabled(true);
   }
-  targetBranchBtn->setValue(QString::fromStdString(params.get("UpdaterTargetBranch")));
 
   // current + new versions
   versionLbl->setText(QString::fromStdString(params.get("UpdaterCurrentDescription")));
