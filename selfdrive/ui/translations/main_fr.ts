@@ -900,7 +900,7 @@ Steering lag calibration is complete.</source>
         <translation>Détendu</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Personnalité de conduite</translation>
     </message>
     <message>

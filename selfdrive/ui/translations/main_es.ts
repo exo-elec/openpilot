@@ -904,7 +904,7 @@ La calibración del retraso de la dirección está completa.</translation>
         <translation>Relajado</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Personalidad de conducción</translation>
     </message>
     <message>
