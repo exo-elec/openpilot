@@ -7,7 +7,7 @@
 const int btn_size = 110;
 const int img_size = (btn_size / 4) * 3;
 
-// Onroad quick access (owner 2026-11-11): tap to cycle Driving Personality
+// Onroad quick access (owner 2026-11-11): tap to cycle Driver Personality
 // Aggressive -> Standard -> Relaxed. Replaces openpilot's Experimental mode
 // button; the ACC/E2E choice is Settings -> Driving -> Drive Mode.
 class PersonalityButton : public QPushButton {

@@ -960,7 +960,7 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
         <translation>Entspannt</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>Fahrstil</translation>
     </message>
     <message>
