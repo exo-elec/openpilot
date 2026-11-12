@@ -266,7 +266,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AggressiveJerk", {PERSISTENT, FLOAT, "0.5"}},
     {"AutoLaneChange", {PERSISTENT, BOOL, "0"}},
     {"AutoTileEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DlonMode", {PERSISTENT, INT, "2"}},  // DLON: 0 Highway (rule/ACC), 1 Urban (AI/E2E), 2 Dynamic
     {"MapRegion", {PERSISTENT, STRING, "thailand"}},
     {"MapDownloadRequest", {CLEAR_ON_MANAGER_START, STRING}},  // region name; consumed by the tile manager
     {"MapStatus", {PERSISTENT, STRING}},  // tile manager: e.g. "installed 2026-11-11", "downloading 40%"
