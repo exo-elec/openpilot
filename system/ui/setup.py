@@ -32,7 +32,7 @@ BUTTON_SPACING = 50
 
 # EOP: No cloud installer URLs. Offline-first setup.
 OPENPILOT_URL = ""
-USER_AGENT = f"EOPSetup-{HARDWARE.get_os_version()}"
+USER_AGENT = f"ExoPilotSetup-{HARDWARE.get_os_version()}"
 
 CONTINUE_PATH = "/data/continue.sh"
 TMP_CONTINUE_PATH = "/data/continue.sh.new"

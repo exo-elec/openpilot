@@ -282,7 +282,7 @@ exists and captures this exact class of dual-platform bug precisely.
 Added `("rk3576", "ox03c10"/"gc4653"/"unknown")` entries sourced from
 `hal.platform.rk3576_camera_geometry`'s already-existing `FOCAL_PX`/
 `IMAGE_SIZE_PX` data (same pattern as RK3588's entries, refactored into a
-shared `_load_eop_config()` helper instead of duplicating the loader body).
+shared `_load_board_config()` helper instead of duplicating the loader body).
 Confirmed by reading `rk3576_camera_geometry.py` directly: `mono_narrow`/
 `mono_wide` use the identical lens/sensor specs as RK3588's `road`/
 `wide_road` (8.0mm/1.7mm OX03C10), so RK3576's fcam/ecam values come out
@@ -297,7 +297,7 @@ ox03c10 config") that was already wrong before this session touched RK3576
 at all — the actual fallback is `_ar_ox_config` (stock comma), never an
 rk3588 config.
 
-5 new regression tests in `common/transformations/tests/test_eop_camera_config.py`,
+5 new regression tests in `common/transformations/tests/test_camera_config.py`,
 including an end-to-end check (subprocess-per-platform, since `HARDWARE`
 is a singleton computed at import time) confirming RK3576 no longer falls
 through to the stock comma-3 config.

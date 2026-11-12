@@ -10,4 +10,4 @@ from openwakeword.utils import download_models
 download_models(model_names=['hey_jarvis'])
 PY
 fi
-echo 'CPU runtime ready. Supply EOP_WAKE_MODEL for Hi EXO; --reference-model installs Hey Jarvis for evaluation.'
+echo 'CPU runtime ready. Supply WAKE_MODEL for Hi EXO; --reference-model installs Hey Jarvis for evaluation.'

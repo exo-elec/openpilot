@@ -251,7 +251,7 @@ class MPPBackend:
     buf = get_buf(frame)
     if not buf:
       return None
-    ptr = get_ptr(buf, b"eop_ui")
+    ptr = get_ptr(buf, b"ui_frame")
     if not ptr:
       return None
 

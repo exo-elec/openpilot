@@ -58,13 +58,13 @@ _neo_config = DeviceCameraConfig(CameraConfig(1164, 874, 910.0), CameraConfig(81
 # Focal lengths are derived from the lens focal length and sensor pixel pitch:
 #   OX03C10 pixel pitch = 3.0 µm  →  8.0mm lens ≈ 2667 px, 1.7mm lens ≈ 567 px.
 # Resolution matches the OX03C10 native 1920x1280 readout used by the driver.
-_eop_ox03c10_config = DeviceCameraConfig(
+_ox03c10_config = DeviceCameraConfig(
   CameraConfig(1920, 1280, 2667.0),   # road: 8.0mm lens, ~40deg HFOV
   _NoneCameraConfig(),                 # no driver monitoring camera
   CameraConfig(1920, 1280, 567.0),    # wide_road: 1.7mm lens, ~118deg HFOV
 )
 
-def _load_eop_config(platform: str, road_cam: str, wide_cam: str, fallback: DeviceCameraConfig) -> DeviceCameraConfig:
+def _load_board_config(platform: str, road_cam: str, wide_cam: str, fallback: DeviceCameraConfig) -> DeviceCameraConfig:
   """Load camera geometry for an ExoPilot Rockchip platform from exopilot HAL.
 
   `road_cam`/`wide_cam` are the camera-geometry names (from
@@ -87,17 +87,17 @@ def _load_eop_config(platform: str, road_cam: str, wide_cam: str, fallback: Devi
     # HAL not installed or geometry incomplete — use the public fallback.
     return fallback
 
-def _load_eop_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
-  return _load_eop_config("rk3588", "road", "wide_road", _eop_ox03c10_config)
+def _load_rk3588_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+  return _load_board_config("rk3588", "road", "wide_road", _ox03c10_config)
 
 
-def _load_eop_rk3576_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
+def _load_rk3576_config(sensor: str = "ox03c10") -> DeviceCameraConfig:
   """Load 02M narrow/wide geometry; telephoto is a separate capture stream.
 
   The sensors and lens specs match the public OX03C10 fallback. Runtime
   camera roles and confirmed paths come from the matching board's HAL.
   """
-  return _load_eop_config("rk3576", "mono_narrow", "mono_wide", _eop_ox03c10_config)
+  return _load_board_config("rk3576", "mono_narrow", "mono_wide", _ox03c10_config)
 
 DEVICE_CAMERAS = {
   # A "device camera" is defined by a device type and sensor
@@ -114,18 +114,18 @@ DEVICE_CAMERAS = {
   # simulator (emulates a tici)
   ("pc", "unknown"): _ar_ox_config,
 
-  ("rk3588", "ox03c10"): _load_eop_rk3588_config("ox03c10"),
-  ("rk3588", "gc4653"): _load_eop_rk3588_config("gc4653"),
-  ("rk3588", "unknown"): _load_eop_rk3588_config("ox03c10"),
+  ("rk3588", "ox03c10"): _load_rk3588_config("ox03c10"),
+  ("rk3588", "gc4653"): _load_rk3588_config("gc4653"),
+  ("rk3588", "unknown"): _load_rk3588_config("ox03c10"),
   # ExoPilot 02M (RK3576) - mono_narrow/mono_wide are OX03C10, stereo is
-  # GC4653, mono_tele has no slot yet (see _load_eop_rk3576_config). Without
+  # GC4653, mono_tele has no slot yet (see _load_rk3576_config). Without
   # these entries, a lookup for ("rk3576", ...) would miss this dict
   # entirely and fall back to stock comma-3's _ar_ox_config (wrong
   # resolution and focal length, not just "less precise than RK3588's") --
   # added 2026-08-26 during the dual-platform audit.
-  ("rk3576", "ox03c10"): _load_eop_rk3576_config("ox03c10"),
-  ("rk3576", "gc4653"): _load_eop_rk3576_config("gc4653"),
-  ("rk3576", "unknown"): _load_eop_rk3576_config("ox03c10"),
+  ("rk3576", "ox03c10"): _load_rk3576_config("ox03c10"),
+  ("rk3576", "gc4653"): _load_rk3576_config("gc4653"),
+  ("rk3576", "unknown"): _load_rk3576_config("ox03c10"),
 }
 prods = itertools.product(('tici', 'tizi', 'mici'), (('ar0231', _ar_ox_config), ('ox03c10', _ar_ox_config), ('os04c10', _os_config)))
 DEVICE_CAMERAS.update({(d, c[0]): c[1] for d, c in prods})

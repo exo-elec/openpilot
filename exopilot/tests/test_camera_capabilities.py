@@ -1,8 +1,8 @@
-from exopilot.perception.eop_capabilities import CameraRole, Feature, EOPCapabilities
+from exopilot.system.hardware.camera_capabilities import CameraRole, Feature, CameraCapabilities
 
 
 def test_comma3_road_features_and_safe_fallbacks():
-  caps = EOPCapabilities.comma3(driver_camera=False)
+  caps = CameraCapabilities.comma3(driver_camera=False)
   assert caps.supports(Feature.GRID)
   assert caps.supports(Feature.SOC)
   assert not caps.supports(Feature.SIDE_OVERLAY)
@@ -12,14 +12,14 @@ def test_comma3_road_features_and_safe_fallbacks():
 
 
 def test_driver_camera_is_monitoring_only():
-  caps = EOPCapabilities.comma3(driver_camera=True)
+  caps = CameraCapabilities.comma3(driver_camera=True)
   assert caps.has_camera(CameraRole.DRIVER)
   assert caps.supports(Feature.GRID)
   assert not caps.supports(Feature.SIDE_OVERLAY)
 
 
-def test_eop_side_rear_capability_requires_streams():
-  caps = EOPCapabilities(
+def test_side_rear_capability_requires_streams():
+  caps = CameraCapabilities(
     cameras=frozenset(CameraRole), driver_camera=True,
     depth_backend=True, accelerator_backend=True,
   )

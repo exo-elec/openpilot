@@ -46,7 +46,7 @@ static QWidget *makeDivider(const QString &title) {
   return w;
 }
 
-void EopPanel::add_lateral_toggles() {
+void ExoPilotPanel::add_lateral_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
@@ -149,7 +149,7 @@ void EopPanel::add_lateral_toggles() {
   }
 }
 
-void EopPanel::add_enhanced_perception_toggles() {
+void ExoPilotPanel::add_enhanced_perception_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
@@ -217,7 +217,7 @@ void EopPanel::add_enhanced_perception_toggles() {
   }
 }
 
-void EopPanel::add_enhanced_controllers_section() {
+void ExoPilotPanel::add_enhanced_controllers_section() {
   bool has_stereo = params.getBool("StereoEnabled");
 
   addItem(new LabelControl(QString::fromUtf8("🔮 ") + tr("Enhanced Controllers (Stereo Required)"), ""));
@@ -264,7 +264,7 @@ void EopPanel::add_enhanced_controllers_section() {
   toggles["RCDEnabled"] = rcd_toggle;
 }
 
-void EopPanel::add_longitudinal_toggles() {
+void ExoPilotPanel::add_longitudinal_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
@@ -357,7 +357,7 @@ void EopPanel::add_longitudinal_toggles() {
   }
 }
 
-void EopPanel::add_ui_toggles() {
+void ExoPilotPanel::add_ui_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
@@ -415,7 +415,7 @@ void EopPanel::add_ui_toggles() {
   }
 }
 
-void EopPanel::add_car_adaptive_toggles() {
+void ExoPilotPanel::add_car_adaptive_toggles() {
   addItem(new LabelControl(tr("Car Adaptive Tuning (CAT)"),
                            tr("Learns and corrects steer ratio and stiffness from real driving data.")));
 
@@ -428,7 +428,7 @@ void EopPanel::add_car_adaptive_toggles() {
   toggles["CATManualSREnabled"] = cat_manual_sr_toggle;
 }
 
-void EopPanel::add_recording_controls() {
+void ExoPilotPanel::add_recording_controls() {
   auto ensure_bool = [&](const std::string &key, bool val) {
     if (params.get(key).empty()) {
       params.putBool(key, val);
@@ -448,7 +448,7 @@ void EopPanel::add_recording_controls() {
   addItem(recorders_toggle);
 }
 
-void EopPanel::add_calibration_section() {
+void ExoPilotPanel::add_calibration_section() {
   addItem(new LabelControl(tr("Camera Calibration"),
                            tr("Factory and runtime camera calibration settings.")));
 
@@ -479,7 +479,7 @@ void EopPanel::add_calibration_section() {
   addItem(reset_runtime_btn);
 }
 
-void EopPanel::add_gps_rtk_toggles() {
+void ExoPilotPanel::add_gps_rtk_toggles() {
   addItem(new LabelControl(tr("🛰 GPS / RTK Corrections"),
                            tr("Requires u-blox ZED-F9P-04B on UART7 "
                               "and an NTRIP-capable internet connection for RTK Fixed mode.")));
@@ -502,7 +502,7 @@ void EopPanel::add_gps_rtk_toggles() {
   toggles["NTRIPEnabled"] = ntrip_toggle;
 }
 
-void EopPanel::add_vehicle_platform_section() {
+void ExoPilotPanel::add_vehicle_platform_section() {
   addItem(new LabelControl(tr("Vehicle Platform"),
                            tr("Select your vehicle size category for baseline physics tuning.")));
 
@@ -618,7 +618,7 @@ void EopPanel::add_vehicle_platform_section() {
   addItem(vehicle_type_btn);
 }
 
-void EopPanel::add_device_toggles() {
+void ExoPilotPanel::add_device_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
       {
           "",
@@ -674,7 +674,7 @@ void EopPanel::add_device_toggles() {
   }
 }
 
-EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
+ExoPilotPanel::ExoPilotPanel(SettingsWindow *parent) : ListWidget(parent) {
   is_metric = params.getBool("IsMetric");
   auto cp_bytes = params.get("CarParamsPersistent");
   if (!cp_bytes.empty()) {
@@ -748,9 +748,9 @@ EopPanel::EopPanel(SettingsWindow *parent) : ListWidget(parent) {
   updateStates();
 }
 
-void EopPanel::showEvent(QShowEvent *event) { updateStates(); }
+void ExoPilotPanel::showEvent(QShowEvent *event) { updateStates(); }
 
-void EopPanel::updateStates() {
+void ExoPilotPanel::updateStates() {
   if (!isVisible()) return;
 
   if (vehicle_has_long_ctrl) {
@@ -759,7 +759,7 @@ void EopPanel::updateStates() {
   tsc_lat_accel_toggle->setVisible(params.getBool("VTSCEnabled") || params.getBool("MTSCEnabled"));
 }
 
-void EopPanel::add_safety_toggles() {
+void ExoPilotPanel::add_safety_toggles() {
   addItem(new LabelControl(
       tr("Safety"),
       tr("Blind spot detection and driver safety.")));
@@ -796,7 +796,7 @@ void EopPanel::add_safety_toggles() {
 
 }
 
-void EopPanel::add_voice_ai_toggles() {
+void ExoPilotPanel::add_voice_ai_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("🎤 ") + tr("Voice Input"),
       tr("On-board 2-mic pair, processed locally (beamformer + voice-activity detection). Offline.")));
@@ -810,7 +810,7 @@ void EopPanel::add_voice_ai_toggles() {
   toggles["VoiceEnabled"] = voice_toggle;
 }
 
-void EopPanel::add_driver_toggles() {
+void ExoPilotPanel::add_driver_toggles() {
   addItem(new LabelControl(
       tr("Driver Attention"),
       tr("Attention monitoring via steering torque and rear camera.")));
@@ -825,7 +825,7 @@ void EopPanel::add_driver_toggles() {
   toggles["RearCameraEnabled"] = rear_cam_toggle;
 }
 
-void EopPanel::add_monod_toggles() {
+void ExoPilotPanel::add_monod_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("📷 ") + tr("Hailo Long-Range Detection (MonoD)"),
       tr("Hailo-8 NPU-based long-range object detection using tele_road camera.")));
@@ -883,7 +883,7 @@ void EopPanel::add_monod_toggles() {
   addItem(max_tracks);
 }
 
-void EopPanel::add_pointcloud_toggles() {
+void ExoPilotPanel::add_pointcloud_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("☁️ ") + tr("3D Point Cloud Recording"),
       tr("Record 3D point clouds for fleet digital twin. Non-critical for driving.")));
@@ -926,7 +926,7 @@ void EopPanel::add_pointcloud_toggles() {
   toggles["PointcloudUseGPU"] = pc_gpu;
 }
 
-void EopPanel::add_globald_toggles() {
+void ExoPilotPanel::add_globald_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("🌍 ") + tr("Global Localization"),
       tr("Map-based position refinement using OSM and SGM point cloud matching.")));
@@ -997,7 +997,7 @@ void EopPanel::add_globald_toggles() {
   toggles["AutoTileWifiOnly"] = wifi_only_toggle;
 }
 
-void EopPanel::add_surface_toggles() {
+void ExoPilotPanel::add_surface_toggles() {
   addItem(new LabelControl(
       QString::fromUtf8("🛣️ ") + tr("Surface Quality Mapping"),
       tr("Road surface condition detection and longitudinal control tuning.")));
@@ -1037,6 +1037,6 @@ void EopPanel::add_surface_toggles() {
   toggles["SurfaceLongHorizon"] = long_horizon;
 }
 
-void EopPanel::expandToggleDescription(const QString &param) {
+void ExoPilotPanel::expandToggleDescription(const QString &param) {
   toggles[param.toStdString()]->showDescription();
 }

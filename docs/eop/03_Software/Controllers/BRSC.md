@@ -139,7 +139,7 @@ Each branch exposes `BRSCEnabled` through its own settings-panel convention:
 
 | Branch | Panel class / file | Notes |
 |---|---|---|
-| `dev/EOP10` | `EopPanel` (`exopilot_panel.cc`), under "ExoPilot" tab | Full EOP toggle panel, pre-existing |
+| `dev/EOP10` | `ExoPilotPanel` (`exopilot_panel.cc`), under "ExoPilot" tab | Full EOP toggle panel, pre-existing |
 | `dev/EDP10` | `DPPanel` (`dp_panel.cc`), under "DP" tab | Pre-existing dragonpilot-style panel, `add_longitudinal_toggles()` |
 | `dev/NGP10` | `FeaturesPanel` (`features_panel.cc`), under "NGP" tab | NGP10 previously had no dedicated toggle panel (only `DeveloperPanel`). Added for BRSC, then expanded to cover ALCC/LCA/road-edge/DLON. A EDP10-derived "Adaptive Coasting" toggle was added and then retired the same week (2026-08-09) once direct comparison showed `dev/EOP10` has no ACM-equivalent concept at all — full detail in `exopilot/docs/NGP10_FEATURE_MATRIX.md` on `dev/NGP10`, not duplicated here since it's outside BRSC's own scope. Named `NGP` rather than `DP` because NGP10 is mid-migration toward `dev/EOP10`'s naming/architecture, not EDP10's. Registered in `settings.cc`'s panel list and `selfdrive/ui/SConscript`. |
 

@@ -40,9 +40,9 @@ provider or self-host tiles and configure these environment variables:
 
 | Variable | Purpose |
 | --- | --- |
-| `EOP_OSM_TILE_URL` | HTTPS PNG URL template containing `{z}`, `{x}`, `{y}`; 256-pixel tiles |
-| `EOP_OSM_ATTRIBUTION` | Provider attribution shown inside the map |
-| `EOP_OSM_CACHE_DIR` | Persistent cache directory; default Qt application cache directory |
+| `OSM_TILE_URL` | HTTPS PNG URL template containing `{z}`, `{x}`, `{y}`; 256-pixel tiles |
+| `OSM_ATTRIBUTION` | Provider attribution shown inside the map |
+| `OSM_CACHE_DIR` | Persistent cache directory; default Qt application cache directory |
 
 Follow the [OSM tile policy](https://operations.osmfoundation.org/policies/tiles/)
 and the selected provider's terms. Qt honors HTTP cache freshness through

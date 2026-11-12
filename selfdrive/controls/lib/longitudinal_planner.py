@@ -30,7 +30,6 @@ from exopilot.common.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX
 from openpilot.selfdrive.controls.lib.tja import TrafficJamAssist
 from exopilot.selfdrive.controls.lib.runtime_policy import limit_accel_in_turns
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_speed_target
-from exopilot.selfdrive.controls.lib.feature_keys import EOP_KEYS
 from exopilot.selfdrive.controls.lib.longitudinal_params import LongitudinalSettings
 from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_accel
 from exopilot.selfdrive.controls.lib.longitudinal_policy import (
@@ -57,7 +56,7 @@ from openpilot.selfdrive.controls.lib.sqsc import SQSC
 # EOP: RCD - Road Condition Detection (speed limits for wet/icy/debris)
 from openpilot.selfdrive.controls.lib.rcd import RCD
 # EOP: Speed Limit Resolver (Topic 05 — offset + policy)
-from exopilot.selfdrive.controls.lib.eop_speed_limit_resolver import SpeedLimitResolver
+from exopilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 # EOP: Lane Change Lead Handoff (pure camera — adjacent lead tracking during lane change)
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
@@ -83,7 +82,7 @@ ALLOW_THROTTLE_THRESHOLD = 0.4
 MIN_ALLOW_THROTTLE_SPEED = 2.5
 
 # Product names stay at this boundary; policies and cache implementation are shared.
-_longitudinal_settings = LongitudinalSettings(EOP_KEYS)
+_longitudinal_settings = LongitudinalSettings()
 _load_accel_profile = _longitudinal_settings.load_accel_profile
 _load_adaptive_gap_enabled = _longitudinal_settings.load_adaptive_gap_enabled
 
@@ -159,7 +158,6 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # EOP: VTSC initialization
     self.vtsc = VTSC()
@@ -169,7 +167,7 @@ class LongitudinalPlanner:
     self.dlon = DLON()
     self.dlon_e2e_enabled = False
     self.dlon_force_stop = False
-    self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False}
+    self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # EOP: MTSC initialization (Map-based curve speed with learned priority)
     self.mtsc = MTSC()
@@ -264,8 +262,6 @@ class LongitudinalPlanner:
     # EOP: DLON - Dynamic Longitudinal Profile
     # DLON can override experimental mode based on environmental triggers
     self.dlon_result = self.dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
-    # Keep the shared NGP telemetry fields aligned with EOP's active policy.
-    self.dlon_result = self.dlon_result
     self.dlon_e2e_enabled = self.dlon_result['e2e_enabled']
     self.dlon_force_stop = self.dlon_result.get('force_stop', False)
 
@@ -672,10 +668,7 @@ class LongitudinalPlanner:
     longitudinalPlan.shouldStop = bool(self.output_should_stop)
     longitudinalPlan.allowBrake = True
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
-    longitudinalPlan.dlonMode = self.dlon_result['mode']
     longitudinalPlan.dlonModeKind = self.dlon_result['mode'].lower()  # enum names are the lower-cased mode strings
-    longitudinalPlan.dlonE2EEnabled = bool(self.dlon_result['e2e_enabled'])
-    longitudinalPlan.dlonForceStop = bool(self.dlon_result.get('force_stop', False))
     longitudinalPlan.tjaActive = bool(self.tja_result.active)
     longitudinalPlan.tjaCutIn = bool(self.tja_result.cut_in)
     longitudinalPlan.tjaDesiredGap = float(self.tja_result.desired_gap)

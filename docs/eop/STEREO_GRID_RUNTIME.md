@@ -147,8 +147,8 @@ Tests start from cereal.messaging's default-invalid envelope so this wiring is c
 Required GPU acceptance commands on each actual RK3588/RK3576 target:
 
 ```bash
-EOP_GPU_TESTS=1 python3 exopilot/selfdrive/stereod/test_stereo_runtime.py
-EOP_GPU_TESTS=1 python3 exopilot/selfdrive/gridd/test_stereo_grid_runtime.py
+GPU_TESTS=1 python3 exopilot/selfdrive/stereod/test_stereo_runtime.py
+GPU_TESTS=1 python3 exopilot/selfdrive/gridd/test_stereo_grid_runtime.py
 ```
 
 On this PC, explicitly requested GPU checks fail with

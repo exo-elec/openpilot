@@ -187,7 +187,7 @@ class InferenceD:
     if not path_template:
       return ''  # Operation-type backend (RGA, MPP, ACL SGM) — no file needed
     # Allow override via env var
-    env_key = f"EOP_MODEL_{model_name.upper()}"
+    env_key = f"INFERENCED_MODEL_{model_name.upper()}"
     env_path = os.getenv(env_key)
     if env_path:
       return env_path
@@ -199,9 +199,9 @@ class InferenceD:
   def _accel_artifact(self, model_name: str, backend_type: BackendType) -> tuple[str, tuple[int, int]] | None:
     """(artifact, input_hw) for a camera-tier model on one card: the first present on disk.
 
-    EOP_MODEL_<ID>_<CARD>=path:HxW overrides the list.
+    INFERENCED_MODEL_<ID>_<CARD>=path:HxW overrides the list.
     """
-    env = os.getenv(f"EOP_MODEL_{model_name.upper()}_{backend_type.name}")
+    env = os.getenv(f"INFERENCED_MODEL_{model_name.upper()}_{backend_type.name}")
     if env and ':' in env:
       path, hw = env.rsplit(':', 1)
       h, w = (int(v) for v in hw.lower().split('x'))

@@ -13,7 +13,7 @@ def camera_malfunction_alert(CP, CS, sm, metric, soft_disable_time, personality,
   return normal_permanent_alert("Camera Malfunction", ', '.join(bad_cams))
 
 
-def register_eop_events(events: dict[int, dict[str, Any]], *, EventName, ET, Alert,
+def register_events(events: dict[int, dict[str, Any]], *, EventName, ET, Alert,
                         AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert,
                         ImmediateDisableAlert, NoEntryAlert, NormalPermanentAlert,
                         EngagementAlert, soft_disable_alert) -> None:

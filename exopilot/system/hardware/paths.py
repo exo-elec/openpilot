@@ -112,13 +112,13 @@ class Paths:
     Preferred base directory for persistent recorder outputs (recordd).
 
     Priority:
-    1. RECORD_ROOT or EOP_RECORD_ROOT environment variables
+    1. RECORD_ROOT environment variable
     2. SD card mount point (via storage manager) + "crashes"
-    3. /media/<user>/eop_recorder fallback
+    3. /media/<user>/recorder fallback
 
     With storage manager, automatically uses SD card if available.
     """
-    for env_var in ("RECORD_ROOT", "EOP_RECORD_ROOT"):
+    for env_var in ("RECORD_ROOT",):
       if env_var in os.environ:
         return os.environ[env_var]
 
@@ -134,4 +134,4 @@ class Paths:
 
     # Fallback to traditional path
     username = Path.home().name or "comma"
-    return str(Path("/media") / username / "eop_recorder")
+    return str(Path("/media") / username / "recorder")

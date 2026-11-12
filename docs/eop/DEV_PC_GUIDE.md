@@ -94,7 +94,7 @@ print('Inference time:', round(result.inference_time_ms, 1), 'ms')
 ### Force ONNX backend (bypass mock RKNN)
 
 ```bash
-export EOP_BACKEND=onnx
+export INFERENCE_BACKEND=onnx
 ```
 
 ---
@@ -171,7 +171,7 @@ inference_backend() selection:
   2. ONNX Runtime  (x86 dev PC — loads from models/onnx/)
   3. Mock RKNN  (last resort — random outputs, framework smoke only)
 
-Override: EOP_BACKEND=onnx  forces ONNX on any platform
+Override: INFERENCE_BACKEND=onnx  forces ONNX on any platform
 ```
 
 ---

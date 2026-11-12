@@ -21,7 +21,7 @@ from pathlib import Path
 from openpilot.selfdrive.ui.qt import Qt, QtWidgets, QWidget, Signal
 
 # Where recordd writes. Overridable for a dev machine.
-SEGMENT_ROOT = Path(os.environ.get("EOP_DVR_ROOT", "/data/media/0/realdata"))
+SEGMENT_ROOT = Path(os.environ.get("DVR_ROOT", "/data/media/0/realdata"))
 VIDEO_SUFFIXES = (".hevc", ".mp4", ".ts")
 
 

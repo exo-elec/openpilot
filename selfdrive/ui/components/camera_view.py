@@ -35,8 +35,8 @@ from openpilot.selfdrive.ui.qt import (
   QWidget,
 )
 
-# Set EOP_UI_CAMERA=cpu|gl|none to force a path; default probes.
-FORCE = os.environ.get("EOP_UI_CAMERA", "").strip().lower()
+# Set UI_CAMERA=cpu|gl|none to force a path; default probes.
+FORCE = os.environ.get("UI_CAMERA", "").strip().lower()
 
 
 def _vision_client(stream_name: str, publisher: str = "camerad"):

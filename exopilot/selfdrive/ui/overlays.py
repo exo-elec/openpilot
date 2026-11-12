@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from exopilot.perception.eop_capabilities import CameraRole, EOPCapabilities
+from exopilot.system.hardware.camera_capabilities import CameraRole, CameraCapabilities
 
 
 class OverlaySide(IntEnum):
@@ -21,7 +21,7 @@ class OverlaySelection:
   control_authority: bool = False
 
 
-def select_overlay(capabilities: EOPCapabilities, side: OverlaySide) -> OverlaySelection:
+def select_overlay(capabilities: CameraCapabilities, side: OverlaySide) -> OverlaySelection:
   requested = {
     OverlaySide.LEFT: CameraRole.SIDE_LEFT,
     OverlaySide.RIGHT: CameraRole.SIDE_RIGHT,
