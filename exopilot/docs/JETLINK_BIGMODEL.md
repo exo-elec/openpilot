@@ -38,7 +38,7 @@ On NGP10 that adapter must supply:
 
 - `selfdrive/` stays near upstream: only hooks in `modeld.py`, `selfdrived.py`,
   `cereal/log.capnp`. Everything else is under `exopilot/` (pure cores in
-  `exopilot/selfdrive/controls/lib`-style modules, adapter in `exopilot/runtime/`).
+  `exopilot/selfdrive/controls/lib`-style modules, adapter in the feature module itself).
 - New behaviour is default off behind `ngp_` params; the small model is always
   loaded and authoritative, the phone model is additive with one-way fallback.
 - The model-swap safety rules are kept as Jetlink has them: never swap while

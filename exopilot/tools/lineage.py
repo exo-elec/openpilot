@@ -1,12 +1,17 @@
 """Require portable NGP source to stay identical in its EOP descendants.
 
 Run: python3 exopilot/tools/lineage.py --parent dev/NGP10 --child dev/EOP10
-New EOP adapters are allowed; deleting or editing a parent policy is not.
+New EOP adapters are allowed; deleting or editing a parent policy is not. Scope: every NGP10 Python file under
+exopilot/ except tests and tools, minus EXEMPT (files each branch writes for itself).
 """
 import argparse
 import subprocess
 
-SCOPES = ('exopilot/selfdrive/controls/lib/', 'exopilot/runtime/', 'exopilot/selfdrive/mapd/')
+SCOPES = ('exopilot/selfdrive/', 'exopilot/system/', 'exopilot/common/')
+EXEMPT = {
+  'exopilot/common/param_migration.py',            # each branch adds the keys it renamed
+  'exopilot/selfdrive/modeld/bigmodel/platform.py',  # "the one file a branch rewrites" (port role, camera geometry)
+}
 
 
 def source_tree(ref):
@@ -14,7 +19,7 @@ def source_tree(ref):
   entries = {}
   for row in output.splitlines():
     metadata, path = row.split('\t', 1)
-    if path.startswith(SCOPES) and path.endswith('.py'):
+    if path.startswith(SCOPES) and path.endswith('.py') and path not in EXEMPT and '/tests/' not in path and '/test/' not in path:
       entries[path] = metadata.split()[2]
   return entries
 

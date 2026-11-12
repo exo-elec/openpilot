@@ -1,8 +1,10 @@
 """Write an allow-list entry for a combined model, from its ONNX file.
 
-    python3 -m exopilot.selfdrive.modeld.bigmodel.tools.allow_model model.onnx --name "Cinque Terre V2" --evidence "route <id> replay, bench report <ref>" [--add]
+    python3 -m exopilot.selfdrive.modeld.bigmodel.tools.allow_model model.onnx --name "Cinque Terre V2" \
+        --evidence "route <id> replay, bench report <ref>" [--add]
 
-Prints the entry (or, with --add, appends it to exopilot/selfdrive/modeld/bigmodel/allowed_models.json). The comma runs a combined model only if its sha256 is listed with
+Prints the entry (or, with --add, appends it to
+exopilot/selfdrive/modeld/bigmodel/allowed_models.json). The comma runs a combined model only if its sha256 is listed with
 the layout it parses, so adding one is a release decision: --evidence is required and is recorded in the entry (the route the model was replayed
 against and where the bench numbers are). The tool refuses what the comma cannot serve: a stateful graph (not served yet), frames other than the
 comma's warp (2, 6, 128, 256), a hidden_state that is not the feature the graph feeds back, or a slice that overlaps it.

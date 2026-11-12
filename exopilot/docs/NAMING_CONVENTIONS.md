@@ -21,6 +21,22 @@ Saved settings and logs stay readable across renames: `exopilot/common/param_mig
 moves saved values to the new key once at manager start (a value already under the new
 name wins), and a renamed capnp field keeps its ordinal.
 
+## Folders (owner decision 2026-11-13)
+
+`exopilot/` mirrors openpilot's tree, like `dragonpilot/` does; names follow sunnypilot (a class
+per feature, named for what it does). One file per feature, which reads its own params (a `params=`
+argument lets tests pass a fake one); there is no separate "runtime" layer.
+
+| Folder | Holds |
+| --- | --- |
+| `exopilot/selfdrive/controls/lib/` | feature controllers and policies (`dlon.py`, `dlat.py`, `cat.py`, `vtsc.py`, `mtsc.py`, ...) |
+| `exopilot/selfdrive/<daemon>/` | driving-stack daemons (`monod`, `gridd`, `pathd`, `tripd`, `mapd`, `monitoring`, ...) |
+| `exopilot/selfdrive/modeld/bigmodel/` | the phone big-model link |
+| `exopilot/selfdrive/locationd/` | localization helpers |
+| `exopilot/system/<service>/` | device services (`plp`, `dashboard`, `manager`, and on EOP `hardware`, `obd2d`, `recordd`, ...) |
+| `exopilot/common/` | shared helpers (`param_migration.py`, `speed_zones.py`) |
+| `exopilot/tools/` | offline tools, the lineage gate |
+
 ## Driver-facing lateral names
 
 | Name | Meaning | Where it is used |

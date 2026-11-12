@@ -1,6 +1,7 @@
 """What differs per branch in the big-model link (T16/T17): the one file a branch rewrites.
 
-Param names (a branch's naming rule), how to tell a real device from a PC, the camera geometry, and how the gadget owner drives the port. Everything else under exopilot/selfdrive/modeld/bigmodel/,
+Param names (a branch's naming rule), how to tell a real device from a PC, the camera geometry, and how the gadget owner drives the port.
+Everything else under exopilot/selfdrive/modeld/bigmodel/,
 exopilot/selfdrive/controls/lib/bigmodel*.py and exopilot/selfdrive/controls/lib/bigmodel_*.py is byte-identical across NGP10, EOP10, 01M
 and 02M. Standard library only at import time: the resident gadget owner imports it.
 """

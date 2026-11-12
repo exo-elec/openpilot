@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 NP = ROOT / "exopilot"
 
-FEATURE_DIRS = ("controls",)
+FEATURE_DIRS = ("selfdrive/controls/lib",)
 
 SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "teleoprtc"}
 # Owner decision 2026-11-12: no product prefix on any name. Only the saved-param migration may spell the old names.
@@ -59,6 +59,6 @@ def test_dlon_modes_match_cereal_enum():
   schema = (ROOT / "cereal" / "log.capnp").read_text()
   body = re.search(r"enum DlonModeKind \{(.*?)\}", schema, re.S).group(1)
   enumerants = set(re.findall(r"(\w+) @\d+;", body))
-  src = (NP / "controls" / "dlon.py").read_text()
+  src = (NP / "selfdrive" / "controls" / "lib" / "dlon.py").read_text()
   modes = set(re.findall(r'^\s+[A-Z]+ = "(\w+)"$', src.split("class DLONMode")[1].split("class DriveMode")[0], re.M))
   assert {m.lower() for m in modes | {"Disabled"}} <= enumerants
