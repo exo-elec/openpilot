@@ -87,7 +87,7 @@ def _as_int(raw: str) -> int:
 def read_drive_stats(store: ParamStore, is_metric: bool) -> list[tuple[str, str]]:
   """(value, label) pairs for the drive summary card.
 
-  Reads the EOPTrip* counters the trip daemon maintains. A device that has
+  Reads the Trip* counters the trip daemon maintains. A device that has
   never been driven reads zeros, which is correct rather than an error.
   """
   distance_m = _as_float(store.get_text(TRIP_DISTANCE))

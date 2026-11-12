@@ -90,7 +90,7 @@ public:
   }
 
  private:
-  // Used by RK3588(): an EOP_PLATFORM env var override (for
+  // Used by RK3588(): an BOARD_PLATFORM env var override (for
   // testing) checked first, then a substring match against the device
   // tree's compatible string, read from disk once and cached -- the
   // physical SoC can't change at runtime, so re-reading it on every call
@@ -98,7 +98,7 @@ public:
   // ROCKCHIP(), none of them hot-path today, but no reason to redo I/O
   // that can only ever have one answer per process) is pure waste.
   static bool matchesPlatform(const char *name) {
-    const char *platform = std::getenv("EOP_PLATFORM");
+    const char *platform = std::getenv("BOARD_PLATFORM");
     if (platform && std::string(platform) == name) {
       return true;
     }

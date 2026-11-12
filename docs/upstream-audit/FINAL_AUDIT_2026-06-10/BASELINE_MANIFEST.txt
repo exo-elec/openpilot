@@ -167,7 +167,7 @@ A	scripts/settings_backup.py
 A	scripts/install_pygnssutils.sh
 A	scripts/install_rockchip_deps.sh
 M	scripts/lint/lint.sh
-A	scripts/validate_eop.sh
+A	scripts/validate_setup.sh
 A	scripts/validate_params_api.py
 A	scripts/verify_setup.py
 M	selfdrive/SConscript
@@ -256,9 +256,9 @@ M	selfdrive/assets/images/button_continue_triangle.svg
 M	selfdrive/assets/images/button_flag.png
 M	selfdrive/assets/images/button_home.png
 M	selfdrive/assets/images/button_settings.png
-A	selfdrive/assets/images/eop_qr.png
+A	selfdrive/assets/images/pairing_qr.png
 M	selfdrive/assets/images/spinner_comma.png
-A	selfdrive/assets/images/spinner_eop.png
+A	selfdrive/assets/images/spinner_logo.png
 M	selfdrive/assets/images/spinner_track.png
 A	selfdrive/assets/img_spinner_comma.png
 A	selfdrive/assets/navigation/default_marker.svg

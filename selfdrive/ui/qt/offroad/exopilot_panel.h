@@ -5,10 +5,10 @@
 
 class LabelControl;
 
-class EopPanel : public ListWidget {
+class ExoPilotPanel : public ListWidget {
   Q_OBJECT
 public:
-  explicit EopPanel(SettingsWindow *parent);
+  explicit ExoPilotPanel(SettingsWindow *parent);
 
 public slots:
   void expandToggleDescription(const QString &param);

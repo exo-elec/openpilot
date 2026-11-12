@@ -31,7 +31,7 @@ class Feature(str, Enum):
 
 
 @dataclass(frozen=True)
-class EOPCapabilities:
+class CameraCapabilities:
   """Declared streams and optional compute support for one device."""
 
   cameras: frozenset[CameraRole] = frozenset((CameraRole.ROAD, CameraRole.WIDE_ROAD))
@@ -43,7 +43,7 @@ class EOPCapabilities:
   adaptive_telemetry: bool = False
 
   @classmethod
-  def comma3(cls, driver_camera: bool = False) -> "EOPCapabilities":
+  def comma3(cls, driver_camera: bool = False) -> "CameraCapabilities":
     return cls(driver_camera=driver_camera)
 
   def has_camera(self, role: CameraRole) -> bool:

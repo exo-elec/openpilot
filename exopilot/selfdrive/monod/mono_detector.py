@@ -7,7 +7,7 @@ positions. EOP never estimates metric depth from bounding-box size alone.
 from dataclasses import dataclass
 from typing import Protocol
 
-from exopilot.perception.eop_capabilities import CameraRole, Feature, EOPCapabilities
+from exopilot.system.hardware.camera_capabilities import CameraRole, Feature, CameraCapabilities
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class MonoDBackend(Protocol):
   def infer(self, frame) -> list[dict]: ...
 
 
-class EOPMonoD:
+class MonoDetector:
   def __init__(self, enabled: bool = False, backend: MonoDBackend | None = None,
                min_confidence: float = 0.5):
     self.enabled = enabled
@@ -44,7 +44,7 @@ class EOPMonoD:
     self.min_confidence = max(0.0, min(1.0, float(min_confidence)))
 
   def update(self, frame, frame_id: int, timestamp_sof: int,
-             capabilities: EOPCapabilities, calibration_valid: bool) -> MonoDResult:
+             capabilities: CameraCapabilities, calibration_valid: bool) -> MonoDResult:
     if not self.enabled:
       return MonoDResult(frame_id, timestamp_sof, CameraRole.ROAD, (), False, "disabled")
     if not capabilities.supports(Feature.MONOD):

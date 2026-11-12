@@ -210,13 +210,13 @@ class TestDaemonExecution(unittest.TestCase):
         self.assertIn("rknn/driving_vision.rknn", path)
 
     def test_resolve_model_path_env_override(self):
-        """EOP_MODEL_* env var overrides registry."""
+        """INFERENCED_MODEL_* env var overrides registry."""
         import os
-        os.environ["EOP_MODEL_DRIVING_VISION"] = "/custom/model.rknn"
+        os.environ["INFERENCED_MODEL_DRIVING_VISION"] = "/custom/model.rknn"
         daemon = self._make_daemon()
         path = daemon._resolve_model_path("driving_vision")
         self.assertEqual(path, "/custom/model.rknn")
-        del os.environ["EOP_MODEL_DRIVING_VISION"]
+        del os.environ["INFERENCED_MODEL_DRIVING_VISION"]
 
     def test_resolve_model_path_no_file(self):
         """Operations like resize have no model file."""

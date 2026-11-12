@@ -15,7 +15,7 @@ def main():
   sock = messaging.sub_sock('voiceFrame', conflate=False)
   playback = messaging.SubMaster(['audioStatus'])
   try:
-    detector = WakeDetector(os.environ.get('EOP_WAKE_MODEL', 'hey_jarvis'))
+    detector = WakeDetector(os.environ.get('WAKE_MODEL', 'hey_jarvis'))
   except Exception:
     detector = None
     cloudlog.error('waked: install CPU runtime and a valid phrase model; wake activation disabled')

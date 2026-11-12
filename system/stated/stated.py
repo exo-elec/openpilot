@@ -93,11 +93,11 @@ class StateD:
         self.ignition_off_time = None
 
         # GPIO ignition (EOP platforms)
-        self.eop_ignition_gpio = False
+        self.gpio_ignition_available = False
 
         cloudlog.info("stated: Initialized")
 
-    def _read_eop_ignition(self) -> bool:
+    def _read_gpio_ignition(self) -> bool:
         """Read ignition state from EOP GPIO."""
         # TODO: Read actual GPIO from BSP
         # For now, use param set by external ignition monitor
@@ -159,10 +159,10 @@ class StateD:
         """Update vehicle state based on inputs."""
         # Read ignition from multiple sources
         can_ignition = self._read_can_ignition()
-        eop_ignition = self._read_eop_ignition()
+        gpio_ignition = self._read_gpio_ignition()
 
         # Combine ignition sources (OR logic)
-        ignition = can_ignition or eop_ignition
+        ignition = can_ignition or gpio_ignition
 
         # Detect state changes
         if ignition != self.ignition_on:

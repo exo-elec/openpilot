@@ -7,7 +7,7 @@ ARCHITECTURE:
 ===========================
 SOC (Smart Offset Controller) - MOVED TO CONTROLSD
   - Legacy pathd SOC code removed
-  - Now handled by eop_soc_controller in controlsd
+  - Now handled by soc in controlsd
   - Provides MPC crosscheck + universal lateral offset
 
 CURRENT PATHD RESPONSIBILITIES:
@@ -38,7 +38,7 @@ ARCHITECTURE:
                                   enhancedTrajectory
                                          ↓
                                   controlsd
-                                  ├─ eop_soc_controller (lateral offset)
+                                  ├─ soc (lateral offset)
                                   ├─ longitudinal_planner (braking)
                                   └─ desire_helper (lane changes)
 
@@ -47,7 +47,7 @@ WHAT PATHD DOES:
 - Grid-based obstacle detection
 
 WHAT PATHD DOES NOT DO:
-- Smart lateral offset from large vehicles (eop_soc_controller handles this)
+- Smart lateral offset from large vehicles (soc handles this)
 - Direct lateral control
 - Convoy Mode (Removed)
 
@@ -79,7 +79,7 @@ from openpilot.exopilot.selfdrive.pathd.path_corridor_fusion import (
     validate_corridor_boundaries,
 )
 from openpilot.exopilot.selfdrive.pathd.soc import SOC, OffsetResult
-from exopilot.selfdrive.pathd.pathd import SharedPathdHost, extras_from_eop
+from exopilot.selfdrive.pathd.pathd import SharedPathdHost, extras_from_proposers
 from exopilot.selfdrive.pathd.object_sources import GriddSource
 from openpilot.exopilot.selfdrive.pathd.lane_change import evaluate_lane_change_gate
 from openpilot.exopilot.selfdrive.pathd.lat_nudge import LatNudge, BOUNDARY_DISTANCES as LN_BOUNDARY_DISTANCES
@@ -311,7 +311,7 @@ def compute_speed_reduction(tracked_objects, predicted_objects, ego_velocity, gr
   return _shared_speed_reduction(tracked_objects, predicted_objects, ego_velocity, HARDWARE.get_max_reliable_depth_m(),
                                  grid_hit, legacy_scale_bug=not _SCALE_FIX)
 
-# Legacy SOC code removed - now handled by eop_soc_controller in controlsd
+# Legacy SOC code removed - now handled by soc in controlsd
 
 
 @dataclass
@@ -1273,7 +1273,7 @@ class PathD:
     enhanced_traj.corridorConfidence = self._corridor_confidence
 
     self.pm.send('enhancedTrajectory', msg)
-    self._shared_extras = extras_from_eop(speed_reduction, lon_delta, lateral_adjustments, ego_velocity)   # joins the shared arbitration next tick
+    self._shared_extras = extras_from_proposers(speed_reduction, lon_delta, lateral_adjustments, ego_velocity)   # joins the shared arbitration next tick
     self.log_counter += 1
 
   def run(self):

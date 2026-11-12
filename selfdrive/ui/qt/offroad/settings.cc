@@ -212,7 +212,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     if (!selection.isEmpty()) {
       // Sync Language (2-letter TTS code) with UI language selection.
       // Mapping: main_xx[-YY] → 2-letter code; zh-CHS/CHT both → "zh"
-      static const QMap<QString, QString> langToEop = {
+      static const QMap<QString, QString> langToApp = {
         {"main_en", "en"}, {"main_de", "de"}, {"main_fr", "fr"},
         {"main_pt-BR", "pt"}, {"main_es", "es"}, {"main_tr", "tr"},
         {"main_ar", "ar"}, {"main_nl", "nl"}, {"main_pl", "pl"},
@@ -220,8 +220,8 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
         {"main_ja", "ja"}, {"main_ko", "ko"}, {"main_th", "th"},
       };
       QString langFile = langs[selection];
-      QString eopLang = langToEop.value(langFile, "en");
-      params.put("Language", eopLang.toStdString());
+      QString appLang = langToApp.value(langFile, "en");
+      params.put("Language", appLang.toStdString());
       params.put("LanguageSetting", langFile.toStdString());
       qApp->exit(18);
       watchdog_kick(0);
@@ -437,7 +437,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Toggles"), toggles},
     {tr("Software"), new SoftwarePanel(this)},
     {tr("Developer"), new DeveloperPanel(this)},
-    {tr("ExoPilot"), new EopPanel(this)},
+    {tr("ExoPilot"), new ExoPilotPanel(this)},
   };
 
   nav_btns = new QButtonGroup(this);

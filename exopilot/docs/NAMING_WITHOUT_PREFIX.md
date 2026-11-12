@@ -104,13 +104,13 @@ need ExoPilot hardware (side/rear YOLO, stereo, radar) stay on EOP10.
 | `NGPFlags` / `ngp_flags` (planner feature bits) | `FeatureFlags` / `feature_flags` |
 | `runtime/bigmodel.py` `NgpSmallModel` | `LocalModel` (the comma 3's own model while the phone model is off) |
 | `runtime/bigmodel_warp.py` `NgpWarp` | `ModelWarp` |
-| `eop_mtsc.py`, `eop_mslc.py`, `eop_tlsc.py`, `eop_ddsc.py`, `eop_rcd.py`, `eop_lat_nudge.py`, `eop_lon_nudge.py`, `eop_predict.py`, `eop_speed_reduction.py`, `eop_curve_speed.py`, `eop_curvature.py` (already on NGP10) | `mtsc.py`, `mslc.py`, ... |
+| `eop_mtsc.py`, `eop_mslc.py`, `eop_tlsc.py`, `eop_ddsc.py`, `eop_rcd.py`, `eop_lat_nudge.py`, `eop_lon_nudge.py`, `eop_predict.py`, `eop_speed_reduction.py`, `eop_curve_speed.py`, `route_curvature.py` (already on NGP10) | `mtsc.py`, `mslc.py`, ... |
 | all other `ngp_X.py` (arbiter, bigmodel_*, cutin_speed, detect, dpp, drive_mode, driver_activity, object_tracker, path_selector, pathd_consumer, policy_arbiter, radar2d, ranging, road_edge, rule_planner, tja, vehicle_model) | `X.py`, classes unchanged |
 | `ngp_curve_speed`, `ngp_ddsc`, `ngp_lat_nudge`, `ngp_lon_nudge`, `ngp_mslc`, `ngp_mtsc`, `ngp_predict`, `ngp_rcd`, `ngp_speed_reduction`, `ngp_tlsc`, `ngp_longitudinal_policy` | deleted: 5-line aliases |
 | `exopilot/tests/test_ngp_X.py` / `test_eop_X.py` | `test_X.py` |
 | `selfdrive/ui/qt/offroad/ngp_panel.*` / `NGPPanel`, tab "NGP" | `features_panel.*` / `FeaturesPanel`, tab "Features" |
 | `selfdrive/ui/qt/offroad/ngp_controls.h` | `param_controls.h` |
-| `bigmodel/scripts/ngp-bigmodel-root.sh`, `/dev/ffs-ngpbigmodel`, `NGP_CONFIGFS`, `NGP_UDC_DIR`, `NGP_RUN_DIR`, `NGP_TEST`, `NGP_FFS_MOUNT`, `NGP_USER` | `bigmodel-root.sh`, `/dev/ffs-bigmodel`, `BIGMODEL_CONFIGFS`, ... (test hooks named after the feature) |
+| `bigmodel/scripts/bigmodel-root.sh`, `/dev/ffs-bigmodel`, `NGP_CONFIGFS`, `NGP_UDC_DIR`, `NGP_RUN_DIR`, `NGP_TEST`, `NGP_FFS_MOUNT`, `NGP_USER` | `bigmodel-root.sh`, `/dev/ffs-bigmodel`, `BIGMODEL_CONFIGFS`, ... (test hooks named after the feature) |
 | `validate_ranging.py` report fields `ngp_by_class`, `ngp_median_*`, `ngp_p90_*` | `ground_by_class`, `ground_median_*`, `ground_p90_*` (the ground-plane ranger) |
 | `docs/integration/SHARED_NGP_EOP_PIPELINE.md` | `SHARED_BRANCH_PIPELINE.md` |
 | `feature_keys.py` `NGP_KEYS` / `EOP_KEYS` / `EOP_MAP_KEYS` / `EOP_LEGACY_KEYS` / `OriginParams` | `LONGITUDINAL_KEYS` / (same) / `MAP_SPEED_KEYS` / removed: one key per feature, saved values moved by `exopilot/common/param_migration.py` |
@@ -135,8 +135,8 @@ for what it carries.
 
 ## 4. Later layers (EOP10, 01M, 02M), to be filled in at each step
 
-`eop_` modules (`eop_mtsc.py` → `mtsc.py`, `eop_utils.py`, `eop_panel.*` / `EopPanel`, …),
-`EOPCapabilities`, `EOPTripStats`, `EopControlsState` / `EopThermalStatus` (clash with
-upstream structs, named by content), local variables such as `eop_params` / `eop_keys`,
+`eop_` modules (`eop_mtsc.py` → `mtsc.py`, `eop_utils.py`, `exopilot_panel.*` / `ExoPilotPanel`, …),
+`CameraCapabilities`, `TripAccumulator`, `ReservedControlsState` / `BoardThermalStatus` (clash with
+upstream structs, named by content), local variables such as `fork_params` / `fork_keys`,
 and the `EOP_*` environment variables (each checked: drop where nothing outside reads it,
-otherwise named after the feature, e.g. `EOP_CLOUD_URL` → `CLOUDD_URL`).
+otherwise named after the feature, e.g. `CLOUDD_URL` → `CLOUDD_URL`).

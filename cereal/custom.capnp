@@ -255,7 +255,7 @@ struct MapdOut @0xa4f1eb3323f5f582 {
 }
 
 # EOP10 fork-specific structs
-struct EopControlsState @0xa4b8f242816cbfcc {
+struct ReservedControlsState @0xa4b8f242816cbfcc {
 }
 
 struct ModelExt @0xd1d06c516b291666 {
@@ -1279,18 +1279,18 @@ struct VehicleState @0xab3bc87d7453c6e3 {
   standstill @4 :Bool;
 }
 
-struct EopThermalZone @0xbc4cd98e8564d7f4 {
+struct BoardThermalZone @0xbc4cd98e8564d7f4 {
   name @0 :Text;
   temp @1 :Float32;
 }
 
-struct EopThermalStatus @0xcd5de0a9f675e8a5 {
+struct BoardThermalStatus @0xcd5de0a9f675e8a5 {
   cpu @0 :Float32;
   gpu @1 :Float32;
   mem @2 :Float32;
   fanSpeed @3 :Int32;
   thermalThrottling @4 :Bool;
-  thermalZones @5 :List(EopThermalZone);
+  thermalZones @5 :List(BoardThermalZone);
 }
 
 # ---- EOP: Radar pipeline structs ----

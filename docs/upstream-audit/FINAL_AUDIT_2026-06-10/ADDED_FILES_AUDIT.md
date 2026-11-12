@@ -30,7 +30,7 @@ so a future pass can re-check which have since been wired.)
 | `system/hardware/tune_udev_usb_cameras.py` | name suggests udev hook; no udev rule references it |
 | `system/v4l2d/move_detector.py` | |
 
-(Reachable near-misses, kept: `selfdrive/gridd/yolo_objdet.py` ← `scripts/validate_eop.sh`;
+(Reachable near-misses, kept: `selfdrive/gridd/yolo_objdet.py` ← `scripts/validate_setup.sh`;
 `selfdrive/modeld/vision/models/download_models.py` ← `models/download_models.sh`.)
 
 Non-Python additions (capnp, .cc/.h, models, docs, scripts) are exercised via SConscript builds,

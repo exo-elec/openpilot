@@ -152,8 +152,8 @@ class TestStereoDegradation(unittest.TestCase):
       def __getattr__(self, name):
         return name
     events = {'cameraMalfunction': {}}
-    implementation = load('eop_events_stereo_test', ROOT / 'exopilot/system/manager/eop_events.py')
-    implementation.register_eop_events(events, EventName=Names(), ET=Names(), Alert=Mock(),
+    implementation = load('events_stereo_test', ROOT / 'exopilot/selfdrive/selfdrived/events.py')
+    implementation.register_events(events, EventName=Names(), ET=Names(), Alert=Mock(),
                                        AlertStatus=Names(), AlertSize=Names(), Priority=Names(), VisualAlert=Names(), AudibleAlert=Names(),
                                        ImmediateDisableAlert=Mock(), NoEntryAlert=Mock(), NormalPermanentAlert=Mock(),
                                        EngagementAlert=Mock(), soft_disable_alert=Mock())

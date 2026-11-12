@@ -100,10 +100,10 @@ private:
 };
 
 // EnhancedOpenPilot Information Dialog
-class EopInfoDialog : public DialogBase {
+class DriveInfoDialog : public DialogBase {
   Q_OBJECT
 public:
-  explicit EopInfoDialog(QWidget* parent = nullptr);
+  explicit DriveInfoDialog(QWidget* parent = nullptr);
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;

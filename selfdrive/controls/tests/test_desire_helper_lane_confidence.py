@@ -51,6 +51,6 @@ def test_lane_confidence_blocks_only_initiation(helper, confidence, expected):
   (True, False, True, 0.0, log.Desire.none),
   (True, False, False, 15.0, log.Desire.none),
 ])
-def test_eop_turn_gate_preserved_even_with_inactive_lateral(helper, left, right, standstill, v, expected):
+def test_turn_gate_preserved_even_with_inactive_lateral(helper, left, right, standstill, v, expected):
   helper.update(carstate(v, left, right, standstill=standstill), False, 0.0)
   assert helper.desire == expected

@@ -13,9 +13,9 @@ class PrimeWidget(Widget):
   BG_COLOR = rl.Color(51, 51, 51, 255)
 
   def _render(self, rect):
-    self._render_eop_status(rect)
+    self._render_device_status(rect)
 
-  def _render_eop_status(self, rect: rl.Rectangle):
+  def _render_device_status(self, rect: rl.Rectangle):
     """Renders the EOP offline status widget."""
 
     rl.draw_rectangle_rounded(rect, 0.02, 10, self.BG_COLOR)

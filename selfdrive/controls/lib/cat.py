@@ -19,7 +19,8 @@ import json
 import time
 
 from openpilot.common.params import Params
-from exopilot.selfdrive.controls.lib.cat import CATStatus, CAT, live_params_gated
+from exopilot.selfdrive.controls.lib import cat as base
+from exopilot.selfdrive.controls.lib.cat import CATStatus, live_params_gated
 from openpilot.common.swaglog import cloudlog
 
 
@@ -48,7 +49,7 @@ class CAT:
 
     self._apply_model_overrides()
 
-    self.core = CAT(self.base_sr, self.min_sr, self.max_sr, self._load_persisted_seed(), filter_tc, now=time.monotonic())
+    self.core = base.CAT(self.base_sr, self.min_sr, self.max_sr, self._load_persisted_seed(), filter_tc, now=time.monotonic())
 
     self.last_param_t   = 0.0
     self.last_persist_t = 0.0

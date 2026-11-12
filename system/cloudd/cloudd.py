@@ -99,7 +99,7 @@ def main():
   speech = messaging.sub_sock('ttsRequest', conflate=False)
   pm = messaging.PubMaster(['cloudAudioData', 'voiceCommand'])
   rk = Ratekeeper(20)
-  language = os.environ.get('EOP_CLOUD_LANGUAGE', 'en-US')
+  language = os.environ.get('CLOUDD_LANGUAGE', 'en-US')
   try:
     while True:
       for evt in messaging.drain_sock(audio):
