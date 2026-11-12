@@ -17,4 +17,4 @@ def data_root() -> str:
     except AttributeError:
       return str(Paths.comma_home())
   except Exception:
-    return os.environ.get('EXOPILOT_DATA', '/data')
+    return os.environ.get('MAPD_DATA_ROOT', '/data')
