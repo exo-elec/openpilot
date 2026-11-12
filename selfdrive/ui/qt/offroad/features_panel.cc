@@ -123,6 +123,7 @@ void FeaturesPanel::add_extended_controls() {
     {"SOCControllerEnabled", tr("SOC · Smart Offset"), tr("Optional bounded offset away from adjacent threats.")},
     {"RedControllerEnabled", tr("RED · Edge Guard"), tr("Optional curvature guard near a road edge.")},
     {"CATEnabled", tr("CAT · Adaptive Tuning"), tr("Use filtered live vehicle parameters.")},
+    {"CATManualSREnabled", tr("CAT · Fixed Steer Ratio"), tr("Use the steer ratio set below instead of the learned one.")},
     {"LCAGapEvalEnabled", tr("LCA · Gap Check"), tr("Check the adjacent lane before lane changes.")},
     {"LCALaneWidthEnabled", tr("LCA · Lane Width Check"), tr("Check that the adjacent lane has sufficient width.")},
     {"AdaptiveGapEnabled", tr("AFG · Adaptive Following Gap"), tr("Adjust following comfort from lead motion.")},
@@ -152,6 +153,8 @@ void FeaturesPanel::add_extended_controls() {
   }
   addItem(new ParamSpinBoxControl("BlinkerPauseLateralSpeed", tr("BP · Blinker Pause Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
   addItem(new ParamSpinBoxControl("TurnDesireSpeed", tr("TURN · Turn Hint Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
+  addItem(new ParamDoubleSpinBoxControl("CATManualSR", tr("CAT · Steer Ratio"), tr("Used when Fixed Steer Ratio is on. Off = the car's own value."),
+                                        "", 0.0, 30.0, 0.1, "", tr("Off"), 0.0));
   addItem(new ParamSpinBoxControl("SpeedLimitOffset", tr("SPO · Cruise Speed Offset"), "", "", -20, 20, 1, tr(" km/h")));
   auto add_choice = [this](const QString &key, const QString &title, const QStringList &options) {
     auto widget = new QWidget(this);

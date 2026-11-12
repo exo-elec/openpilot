@@ -118,6 +118,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LCALaneWidthEnabled", {PERSISTENT, BOOL, "0"}},
     // CAT: smoothed and validated steer ratio / stiffness from liveParameters. Default off.
     {"CATEnabled", {PERSISTENT, BOOL, "0"}},
+    {"CATManualSR", {PERSISTENT, FLOAT, "0.0"}},          // fixed steer ratio when CATManualSREnabled
+    {"CATManualSREnabled", {PERSISTENT, BOOL, "0"}},
+    {"CATPersist", {PERSISTENT, STRING, ""}},             // JSON: learned steer ratio / stiffness / angle offset per fingerprint
     {"LatLCASpeed", {PERSISTENT, INT, "20"}},
     {"LatRoadEdgeDetection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10

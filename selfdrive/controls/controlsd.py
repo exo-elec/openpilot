@@ -14,7 +14,7 @@ from opendbc.car.car_helpers import interfaces
 from exopilot.controls.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from exopilot.controls.dlat import DLAT, DLATSuggestion
-from exopilot.controls.cat import CAT, live_params_gated
+from exopilot.runtime.cat import CATRuntime
 from exopilot.controls.red import RED, curvature_nudge
 from exopilot.controls.blinker_pause import BlinkerPause
 from exopilot.controls.driver_activity import monitoring_force_decel
@@ -84,8 +84,9 @@ class Controls:
     self.rule_consumer = RuleChannelConsumer()
     # RED (RedControllerEnabled, default off): push away from a close road edge in laneless mode, vision only
     self.red = RED() if self.params.get_bool("RedControllerEnabled") else None
-    # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
-    self.cat = CAT(self.CP.steerRatio) if self.params.get_bool("CATEnabled") else None
+    # CAT: smoothed/validated steer ratio and stiffness (CATEnabled, default off; re-read every 5 s), manual
+    # steer-ratio override (CATManualSR), seed saved per fingerprint (CATPersist)
+    self.cat = CATRuntime(self.CP)
     self.alcc_active = False
     self.alcc = ALCC()
 
@@ -114,11 +115,9 @@ class Controls:
     lp = self.sm['liveParameters']
     x = max(lp.stiffnessFactor, 0.1)
     sr = max(lp.steerRatio, 0.1)
-    if self.cat is not None:
-      if self.sm.updated['liveParameters']:
-        self.cat.step(time.monotonic(), live_params_gated(lp, CS), lp.steerRatio, lp.stiffnessFactor, lp.angleOffsetDeg)
-      if self.cat.status.adaptive:  # held between liveParameters updates so the model does not flicker
-        x, sr = max(self.cat.status.stiffness_factor, 0.1), max(self.cat.status.steer_ratio, 0.1)
+    cat_status = self.cat.update(self.sm)
+    if cat_status.adaptive:  # held between liveParameters updates so the model does not flicker
+      x, sr = max(cat_status.stiffness_factor, 0.1), max(cat_status.steer_ratio, 0.1)
     self.VM.update_params(x, sr)
 
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - lp.angleOffsetDeg)
