@@ -6,7 +6,7 @@ the rule planner against the stand-in policy. Randomised: gap, closing speed, la
 class (car / motorcycle), range noise, detection dropouts. Negative cases (steady or receding neighbours at
 random offsets) measure the false-trigger rate.
 
-`eop_legacy` / `eop` are EOP10's ported LatNudge/LonNudge/speed-reduction proposers with the original (always-zero) and the corrected
+`nudges_legacy` / `eop` are EOP10's ported LatNudge/LonNudge/speed-reduction proposers with the original (always-zero) and the corrected
 distance scale. Gates (exit code 1 if any fails): in the cut-in set every system is never worse than the
 baseline in >= 95 % of runs and have no more overlaps; in the benign set fewer than 2 % of runs trigger.
 This is a logic and tuning-direction check, not a statement about the real car.
@@ -20,7 +20,7 @@ import sys
 from exopilot.tools.sim_scenarios import Actor, run
 
 CONTROLLERS = (('layer', {'layer': True}), ('rule', {'controller': 'rule'}), ('dpp', {'controller': 'dpp'}),
-               ('eop_legacy', {'controller': 'eop_legacy'}), ('eop', {'controller': 'eop'}))   # eop* = EOP10's ported proposers
+               ('nudges_legacy', {'controller': 'nudges_legacy'}), ('eop', {'controller': 'eop'}))   # eop* = EOP10's ported proposers
 KEYS = tuple(k for k, _ in CONTROLLERS)
 GATES = {'not_worse_fraction': 0.95, 'false_trigger_rate': 0.02}
 

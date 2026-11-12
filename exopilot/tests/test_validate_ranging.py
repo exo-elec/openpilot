@@ -40,12 +40,12 @@ def run(msgs, **kw):
   return analyze(msgs, lambda a, b, c: VIEW, **kw)
 
 
-def test_ngp_ranging_beats_the_published_prior_against_stereo_and_gates_pass():
+def test_ranging_beats_the_published_prior_against_stereo_and_gates_pass():
   r = run(log([15.0 + 0.5 * i for i in range(80)]))
   assert r['overall']['ngp']['median_abs'] < 0.01 and abs(r['overall']['published']['median_abs'] - 0.15) < 0.01
   assert r['gates']['beats_published_p90'] and r['pass']
   assert set(r['by_band']) == {'5-20m', '20-40m', '40-80m'} or set(r['by_band']) <= {'5-20m', '20-40m', '40-80m'}
-  assert r['ngp_by_class']['car']['n'] > 70
+  assert r['ground_by_class']['car']['n'] > 70
 
 
 def test_anchoring_learns_a_wrong_camera_height_from_the_reference():

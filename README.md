@@ -135,7 +135,7 @@ SAM resets on actual `steeringPressed`, `brakePressed` or `gasPressed`, and on d
 | 22–33 m/s | 30 seconds | 15 seconds |
 | Above 33 m/s | 15 seconds | 10 seconds |
 
-Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteresis. `ngp_dm_policy` is shared across descendants; persisted `strict` means the deployed relaxed table for compatibility. SAM detects missing driver input, not gaze, sleep or consciousness. These custom timings are not ISO-certified. See [the monitoring contract](exopilot/docs/STEERING_ACTIVITY_MONITORING.md).
+Soft/prompt warnings occur at 50%/75% elapsed; boundaries use ±0.5 m/s hysteresis. `DriverActivityPolicy` is shared across descendants; persisted `strict` means the deployed relaxed table for compatibility. SAM detects missing driver input, not gaze, sleep or consciousness. These custom timings are not ISO-certified. See [the monitoring contract](exopilot/docs/STEERING_ACTIVITY_MONITORING.md).
 
 ### Inference, voice, navigation and optional services
 
@@ -162,8 +162,8 @@ Wake inference uses ONNX CPUExecutionProvider, not the NPU or GPU. After activat
 
 ### Switches, inheritance and validation
 
-- **NGP-origin settings stay `ngp_*`** on descendants, including `ngp_dm_policy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform runtime and back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
-- Optional experimental consumers are separately gated: enabling MonoD alone does not enable PathD control. `ngp_monod_enabled`, `ngp_pathd_enabled`, `ngp_lat_pathd`, `ngp_lon_pathd` and DPP mode must match the intended experiment. Map policies require their producer. ALCC/SOC/CAT/adaptive-gap and cloud/wake voice are opt-in. BRSC is enabled by default in NGP. Consult actual parameter defaults and UI availability rather than assuming every row has a master on/off switch.
+- **NGP-origin settings stay `ngp_*`** on descendants, including `DriverActivityPolicy`, ALCC/SOC/CAT controls, MonoD and portable services. **EOP-origin settings stay `EOP*`**, including cloud/wake voice, platform runtime and back-ported MTSC/MSLC/TLSC/DDSC/RCD policies. Some older `ngp_*` aliases remain for migration; a prefix describes feature origin, not necessarily hardware dependency.
+- Optional experimental consumers are separately gated: enabling MonoD alone does not enable PathD control. `MonoDEnabled`, `PathdEnabled`, `PathdLateral`, `PathdLongitudinal` and DPP mode must match the intended experiment. Map policies require their producer. ALCC/SOC/CAT/adaptive-gap and cloud/wake voice are opt-in. BRSC is enabled by default in NGP. Consult actual parameter defaults and UI availability rather than assuming every row has a master on/off switch.
 - The lineage gate checks **86 portable Python source files** under `exopilot/controls`, `exopilot/runtime` and `exopilot/mapd`. EOP inherits these unchanged and adds adapters. The full NGP/EOP controller/planner files still differ because EOP has additional integration; HAL does not justify divergent monitoring policy.
 - EOP10 → 01M → 02M source differences are limited to `common/build_profile.py`. Both PyQt variants use the same resize-aware driving view, offroad pages, icons and voice popup. At the normal 01M width no side widgets are created; wide layouts create them lazily.
 - Host regression checks cover shared control/monitoring, protocol frame equivalence, radar contracts, compiled-model loading and PyQt layout/popup behavior. Native UI syntax checks passed. These checks do not replace vehicle, Rockchip, microphone, radar, GPU or firmware hardware validation. TASKING firmware compilation and paid Google end-to-end inference remain unverified.

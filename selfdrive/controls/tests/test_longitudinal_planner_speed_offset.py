@@ -39,7 +39,7 @@ def test_large_negative_offset_is_not_bounded_and_can_go_negative():
   """Bounded-output gap, not a regression: _apply_speed_offset has no floor
   or ceiling on either the input offset or the result, matching EOP10's own
   driver_prefs.py::get_speed_with_offset() (also unconditional addition, no
-  clamp). ngp_lon_speed_offset_kph has no panel toggle on either branch, so
+  clamp). SpeedLimitOffset has no panel toggle on either branch, so
   nothing in the UI constrains what value gets written to the param -- only
   a direct param write (SSH/API) can set it, but nothing downstream of
   _apply_speed_offset clamps the result before it reaches the MPC either.

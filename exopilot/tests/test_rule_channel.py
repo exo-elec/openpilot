@@ -1,7 +1,7 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.ngp_path_selector import PObj
-from exopilot.controls.ngp_policy_arbiter import Mode
+from exopilot.controls.path_selector import PObj
+from exopilot.controls.policy_arbiter import Mode
 from exopilot.runtime.pathd import PathD, fill_path_adjust
 from exopilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer, apply_accel, apply_curvature, lane_polyline
 

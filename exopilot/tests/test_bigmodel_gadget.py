@@ -108,8 +108,8 @@ def test_root_runs_the_script_directly_and_others_through_sudo(monkeypatch):
 
 # -- the root script against a fake configfs
 def sh(tmp_path, *args):
-  env = dict(os.environ, NGP_TEST='1', NGP_CONFIGFS=str(tmp_path / 'cfg'), NGP_UDC_DIR=str(tmp_path / 'udc'),
-             NGP_RUN_DIR=str(tmp_path / 'run'))
+  env = dict(os.environ, BIGMODEL_TEST='1', BIGMODEL_CONFIGFS=str(tmp_path / 'cfg'), BIGMODEL_UDC_DIR=str(tmp_path / 'udc'),
+             BIGMODEL_RUN_DIR=str(tmp_path / 'run'))
   return subprocess.run(['bash', str(SCRIPT), *args], env=env, capture_output=True, text=True)
 
 
@@ -183,8 +183,8 @@ def test_an_unknown_command_is_a_usage_error(fake):
 def test_the_script_is_not_runnable_as_a_normal_user_without_the_test_hook(fake):
   if os.geteuid() == 0:
     pytest.skip('root')
-  env = dict(os.environ, NGP_CONFIGFS=str(fake / 'cfg'), NGP_UDC_DIR=str(fake / 'udc'), NGP_RUN_DIR=str(fake / 'run'))
-  env.pop('NGP_TEST', None)
+  env = dict(os.environ, BIGMODEL_CONFIGFS=str(fake / 'cfg'), BIGMODEL_UDC_DIR=str(fake / 'udc'), BIGMODEL_RUN_DIR=str(fake / 'run'))
+  env.pop('BIGMODEL_TEST', None)
   r = subprocess.run(['bash', str(SCRIPT), 'gadget'], env=env, capture_output=True, text=True)
   assert r.returncode != 0 and 'root' in r.stderr
 

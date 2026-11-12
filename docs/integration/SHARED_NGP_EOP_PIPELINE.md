@@ -41,8 +41,8 @@ redirect to the same module, including private helpers and class identities.
 NGP-origin modules keep their NGP names in every descendant. Existing wire
 fields and parameter aliases are retained for compatibility, not relabelled.
 
-EOP-origin map flags use EOPMTSCEnabled, EOPMSLCEnabled, EOPTLSCEnabled,
-EOPDDSCEnabled and EOPRCDEnabled. OriginParams reads these first, then old
-ngp_lon_* values if no canonical value has been stored. EOPSharedSLCOffsets
-and EOPPathdNudgesEnabled have equivalent legacy fallback. Canonical off wins
+EOP-origin map flags use MTSCEnabled, MSLCEnabled, TLSCEnabled,
+DDSCEnabled and RCDEnabled. OriginParams reads these first, then old
+ngp_lon_* values if no canonical value has been stored. SharedSLCOffsets
+and PathdNudgesEnabled have equivalent legacy fallback. Canonical off wins
 over legacy on. No extra control path is enabled during migration.

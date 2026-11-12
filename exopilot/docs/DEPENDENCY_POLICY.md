@@ -35,4 +35,4 @@ imports nothing but the standard library and numpy; there is no `jetlink_repo` g
 - Lock-step: the phone app and the comma share a protocol version in the NPBM header (a mismatch is a broken stream, the comma drives
   on the small model) and a contract id in the hello (`ngp-v0.10-split`). The app and this tree are updated together.
 - Nothing requires a phone: without model metadata or a connected phone the link stays idle and `modeld` is a plain small-model
-  `modeld`. `bigmodeld` runs only while `ngp_bigmodel_link` is nonzero.
+  `modeld`. `bigmodeld` runs only while `BigModelLink` is nonzero.

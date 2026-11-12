@@ -7,7 +7,7 @@ negotiated; the frame budget needs SuperSpeed (about 1 ms a frame on USB 3, 10 m
 import time
 from pathlib import Path
 
-from exopilot.controls.ngp_bigmodel_status import ALERTS, PhoneLinkStatus
+from exopilot.controls.bigmodel_status import ALERTS, PhoneLinkStatus
 from exopilot.runtime import bigmodel_platform as platform
 
 UDC_ROOT = Path('/sys/class/udc')

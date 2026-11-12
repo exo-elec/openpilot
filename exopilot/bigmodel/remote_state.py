@@ -65,7 +65,7 @@ class Trips:
 
 
 class RemoteModelState:
-  """Duck-types modeld's ModelState for the phone. `warp` is a bigmodel_warp.NgpWarp (start_buffers / wait / output)."""
+  """Duck-types modeld's ModelState for the phone. `warp` is a bigmodel_warp.ModelWarp (start_buffers / wait / output)."""
 
   is_big = True              # modelV2.big: this is the big model
   vision_input_names = ['img', 'big_img']

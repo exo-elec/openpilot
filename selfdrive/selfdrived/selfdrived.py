@@ -22,9 +22,9 @@ from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
-from exopilot.controls.ngp_bigmodel_gate import NGPBigModelGate
-from exopilot.controls.ngp_green_light import NGPGreenLight
-from exopilot.controls.ngp_lead_departure import NGPLeadDeparture
+from exopilot.controls.bigmodel_gate import BigModelGate
+from exopilot.controls.green_light import GreenLightNotice
+from exopilot.controls.lead_departure import LeadDepartureNotice
 from openpilot.system.version import get_build_metadata
 
 REPLAY = "REPLAY" in os.environ
@@ -94,10 +94,10 @@ class SelfdriveD:
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
-    self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
-    self.green_light = NGPGreenLight() if self.params.get_bool("ngp_lon_green_light") else None
-    self.lead_departure = NGPLeadDeparture() if self.params.get_bool("ngp_lon_lead_departure") else None
-    self.big_model_gate = NGPBigModelGate()
+    self.alcc_enabled = self.params.get_bool("LatALCC")
+    self.green_light = GreenLightNotice() if self.params.get_bool("GreenLightAlert") else None
+    self.lead_departure = LeadDepartureNotice() if self.params.get_bool("LeadDepartAlert") else None
+    self.big_model_gate = BigModelGate()
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
 
     car_recognized = self.CP.brand != 'mock'
@@ -323,7 +323,7 @@ class SelfdriveD:
     elif any(self.sm['radarState'].radarErrors.to_dict().values()):
       self.events.add(EventName.radarFault)
     if self.green_light is not None and self.green_light.update(
-        self.sm.valid['longitudinalPlan'] and self.sm['longitudinalPlan'].ngpDlonForceStop, CS.standstill):
+        self.sm.valid['longitudinalPlan'] and self.sm['longitudinalPlan'].dlonForceStop, CS.standstill):
       self.events.add(EventName.greenLightAlert)
     if self.lead_departure and self.lead_departure.update(CS.standstill, self.sm['radarState'].leadOne):
       self.events.add(EventName.leadDepartingAlert)

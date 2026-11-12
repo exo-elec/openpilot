@@ -8,7 +8,7 @@ keep their measured Doppler `vRel`. Pure: dicts in, dicts annotated; no cereal.
 import math
 import time
 
-from exopilot.controls.ngp_object_tracker import Measurement, ObjectTracker, measurement_sigma
+from exopilot.controls.object_tracker import Measurement, ObjectTracker, measurement_sigma
 
 CAMERA_CLASSES = {'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'}
 MIN_X, MAX_X = 1.0, 150.0

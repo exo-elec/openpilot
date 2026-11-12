@@ -21,13 +21,13 @@ import math
 import statistics
 import sys
 
-from exopilot.controls.ngp_ranging import LeadAnchoredRanger, Ranged, RoadCamera
+from exopilot.controls.ranging import LeadAnchoredRanger, Ranged, RoadCamera
 
 IMG_W, IMG_H = 1928, 1208
 BEARING_GATE_RAD = 0.05
 RATIO_GATE = (0.5, 2.0)
 BANDS = ((5, 20), (20, 40), (40, 80))
-GATES = {'ngp_median_abs_rel_err': 0.08, 'ngp_p90_abs_rel_err': 0.20, 'min_samples': 30}
+GATES = {'ground_median_abs_rel_err': 0.08, 'ground_p90_abs_rel_err': 0.20, 'min_samples': 30}
 CLASS_NAMES = {'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'}
 
 
@@ -127,7 +127,7 @@ def analyze(msgs, view_from_calib_fn, depth_ok=lambda o: str(getattr(o, 'depthSo
     'frames': frames, 'detections_without_box': no_box, 'unmatched': unmatched,
     'overall': {k: _stats(v) for k, v in errs.items()},
     'by_band': {b: {k: _stats(v) for k, v in d.items()} for b, d in sorted(by_band.items())},
-    'ngp_by_class': {c: _stats(v) for c, v in sorted(by_class.items())},
+    'ground_by_class': {c: _stats(v) for c, v in sorted(by_class.items())},
     'learned_scale': {c: round(ranger.k_cls[c], 3) for c in ranger.k_cls},
     'caveat': 'a reference from the same camera model proves nothing: use stereo/radar logs',
   }
@@ -135,8 +135,8 @@ def analyze(msgs, view_from_calib_fn, depth_ok=lambda o: str(getattr(o, 'depthSo
   ng, pub = res['overall']['ngp'], res['overall']['published']
   res['gates'] = {
     'enough_samples': n >= GATES['min_samples'],
-    'ngp_median_ok': n > 0 and ng['median_abs'] <= GATES['ngp_median_abs_rel_err'],
-    'ngp_p90_ok': n > 0 and ng['p90_abs'] <= GATES['ngp_p90_abs_rel_err'],
+    'ground_median_ok': n > 0 and ng['median_abs'] <= GATES['ground_median_abs_rel_err'],
+    'ground_p90_ok': n > 0 and ng['p90_abs'] <= GATES['ground_p90_abs_rel_err'],
     'beats_published_p90': n > 0 and pub.get('n', 0) > 0 and ng['p90_abs'] <= pub['p90_abs'],
   }
   res['pass'] = all(res['gates'].values())

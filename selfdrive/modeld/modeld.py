@@ -21,8 +21,8 @@ from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.common.transformations.camera import DEVICE_CAMERAS
 from openpilot.common.transformations.model import get_warp_matrix
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
-from exopilot.controls.ngp_road_edge import evaluate_road_edges
-from exopilot.controls.ngp_dlat import NGPDLAT, DEFAULT_ENTER_THRESHOLD
+from exopilot.controls.road_edge import evaluate_road_edges
+from exopilot.controls.dlat import DLAT, DEFAULT_ENTER_THRESHOLD
 from exopilot.runtime.bigmodel import BigModelHook
 from openpilot.selfdrive.controls.lib.drive_helpers import get_accel_from_plan, smooth_value, get_curvature_from_plan
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
@@ -177,7 +177,7 @@ class ModelState:
 def main(demo=False):
   cloudlog.warning("modeld init")
 
-  bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (ngp_bigmodel_link, default off)
+  bigmodel = BigModelHook(Params(), get_action_from_model)  # phone-over-USB big model (BigModelLink, default off)
   bigmodel.prepare()  # reads the model metadata and opens the phone listener before the process goes realtime
 
   config_realtime_process(7, 54)
@@ -251,13 +251,13 @@ def main(demo=False):
   prev_action = log.ModelDataV2.Action()
 
   DH = DesireHelper(
-    ngp_lca_speed_mph=int(params.get("ngp_lat_lca_speed", return_default=True)),
-    ngp_lca_auto_sec=float(params.get("ngp_lat_lca_auto_sec", return_default=True)),
-    ngp_lca_gap_eval=params.get_bool("ngp_lat_lca_gap_eval"),
-    ngp_lca_lane_width=params.get_bool("ngp_lat_lca_lane_width"),
-    ngp_turn_desire_mph=int(params.get("ngp_lat_turn_desire_mph", return_default=True)),
+    lca_speed_mph=int(params.get("LatLCASpeed", return_default=True)),
+    lca_auto_sec=float(params.get("AutoLaneChangeDelay", return_default=True)),
+    lca_gap_eval=params.get_bool("LCAGapEvalEnabled"),
+    lca_lane_width=params.get_bool("LCALaneWidthEnabled"),
+    turn_desire_mph=int(params.get("TurnDesireSpeed", return_default=True)),
   )
-  ngp_road_edge_enabled = params.get_bool("ngp_lat_road_edge_detection")
+  road_edge_enabled = params.get_bool("LatRoadEdgeDetection")
 
   while True:
     # Keep receiving frames until we are at least 1 frame ahead of previous extra frame
@@ -357,13 +357,13 @@ def main(demo=False):
       l_lane_change_prob = desire_state[log.Desire.laneChangeLeft]
       r_lane_change_prob = desire_state[log.Desire.laneChangeRight]
       lane_change_prob = l_lane_change_prob + r_lane_change_prob
-      road_edges = evaluate_road_edges(modelv2_send.modelV2.roadEdgeStds, modelv2_send.modelV2.laneLineProbs) if ngp_road_edge_enabled else None
+      road_edges = evaluate_road_edges(modelv2_send.modelV2.roadEdgeStds, modelv2_send.modelV2.laneLineProbs) if road_edge_enabled else None
       # DLAT lane-confidence LCA initiation gate: default on, no toggle -- see
-      # desire_helper.py's low_lane_confidence docstring. Reuses NGPDLAT's own
-      # static confidence formula + enter threshold directly (no NGPDLAT
+      # desire_helper.py's low_lane_confidence docstring. Reuses DLAT's own
+      # static confidence formula + enter threshold directly (no DLAT
       # instance/hysteresis needed here; this is a one-shot check, not the
       # stateful Laneful/Laneless arbiter that lives in controlsd.py).
-      lane_confidence = NGPDLAT.lane_confidence(modelv2_send.modelV2.laneLineProbs)
+      lane_confidence = DLAT.lane_confidence(modelv2_send.modelV2.laneLineProbs)
       DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob,
                 left_edge_detected=bool(road_edges and road_edges.left_blocked),
                 right_edge_detected=bool(road_edges and road_edges.right_blocked),

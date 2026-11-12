@@ -1,4 +1,4 @@
-"""PLP over the USB cable: a TCP server on the comma's end of the cable network, for the iPhone (CDC-NCM, comma 192.168.60.1; ngp_bigmodel_link = 2).
+"""PLP over the USB cable: a TCP server on the comma's end of the cable network, for the iPhone (CDC-NCM, comma 192.168.60.1; BigModelLink = 2).
 
 This is the baseline transport on every branch. A comma 3 has no BLE hardware, so on NGP10 the cable is the only link; BLE (ExoPilot boards, EOP10 and up) is a second
 transport that feeds the same `PlpSession`. Android's cable is a FunctionFS bulk pipe with no network; it gets its own transport class on the same session.

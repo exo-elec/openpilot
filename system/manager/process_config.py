@@ -11,19 +11,19 @@ from exopilot.runtime import bigmodel_platform
 WEBCAM = os.getenv("USE_WEBCAM") is not None
 
 def dashboard_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return params.get_bool("ngp_dashboard_enabled")
+  return params.get_bool("DashboardEnabled")
 
 def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started and params.get_bool("ngp_monod_enabled")
+  return started and params.get_bool("MonoDEnabled")
 
 def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started and params.get_bool("ngp_pathd_enabled")
+  return started and params.get_bool("PathdEnabled")
 
 def map_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started and params.get_bool("ngp_map_enabled")
+  return started and params.get_bool("MapdEnabled")
 
 def tripd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started and params.get_bool("ngp_tripd_enabled")
+  return started and params.get_bool("TripdEnabled")
 
 def notcar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and CP.notCar
@@ -67,7 +67,7 @@ def bigmodel_link(started: bool, params: Params, CP: car.CarParams) -> bool:
   return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) != 0
 
 def plp_link(started: bool, params: Params, CP: car.CarParams) -> bool:
-  # PLP over the iPhone cable (ngp_bigmodel_link = 2): the gadget owner makes the network, plpd serves it
+  # PLP over the iPhone cable (BigModelLink = 2): the gadget owner makes the network, plpd serves it
   return int(params.get(bigmodel_platform.LINK, return_default=True) or 0) == 2
 
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
@@ -119,7 +119,7 @@ procs = [
   PythonProcess("gridd", "exopilot.runtime.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
   PythonProcess("mapd", "exopilot.mapd.mapd", map_enabled),
-  PythonProcess("ngp_dashboard", "exopilot.runtime.dashboard", dashboard_enabled),
+  PythonProcess("dashboard", "exopilot.runtime.dashboard", dashboard_enabled),
   PythonProcess("tripd", "exopilot.runtime.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "exopilot.runtime.pathd", pathd_enabled),
   PythonProcess("bigmodeld", "exopilot.bigmodel.gadget", bigmodel_link, enabled=TICI),

@@ -1,9 +1,9 @@
-from exopilot.controls.ngp_radar2d import blindspot_blocked
+from exopilot.controls.radar2d import blindspot_blocked
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
-from exopilot.controls.ngp_turn_desire import NGPTurnDesire
-from exopilot.controls.ngp_lane_change import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
+from exopilot.controls.turn_desire import TurnDesire
+from exopilot.controls.lane_gap import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
@@ -34,7 +34,7 @@ DESIRES = {
 
 
 class DesireHelper:
-  def __init__(self, ngp_lca_speed_mph=20, ngp_lca_auto_sec=0.0, ngp_lca_gap_eval=False, ngp_lca_lane_width=False, ngp_turn_desire_mph=0):
+  def __init__(self, lca_speed_mph=20, lca_auto_sec=0.0, lca_gap_eval=False, lca_lane_width=False, turn_desire_mph=0):
     self.lane_change_state = LaneChangeState.off
     self.lane_change_direction = LaneChangeDirection.none
     self.lane_change_timer = 0.0
@@ -42,25 +42,25 @@ class DesireHelper:
     self.keep_pulse_timer = 0.0
     self.prev_one_blinker = False
     self.desire = log.Desire.none
-    self.ngp_lca_speed = float(ngp_lca_speed_mph) * CV.MPH_TO_MS
-    self.ngp_lca_auto_sec = max(0.0, float(ngp_lca_auto_sec))
-    self.ngp_lca_auto_timer = 0.0
-    self.ngp_lca_gap_eval = bool(ngp_lca_gap_eval)
-    self.ngp_lca_lane_width = bool(ngp_lca_lane_width)
-    self.ngp_turn = NGPTurnDesire(float(ngp_turn_desire_mph) * CV.MPH_TO_MS) if ngp_turn_desire_mph else None
+    self.lca_speed = float(lca_speed_mph) * CV.MPH_TO_MS
+    self.lca_auto_sec = max(0.0, float(lca_auto_sec))
+    self.lca_auto_timer = 0.0
+    self.lca_gap_eval = bool(lca_gap_eval)
+    self.lca_lane_width = bool(lca_lane_width)
+    self.turn_desire = TurnDesire(float(turn_desire_mph) * CV.MPH_TO_MS) if turn_desire_mph else None
 
   def _lane_blocked(self, model_v2, direction, v_ego):
     # Opt-in modelV2 guards (adjacent-lane TTC gap, target-lane width). Unknown data never blocks.
     side = 'left' if direction == LaneChangeDirection.left else 'right'
-    if self.ngp_lca_gap_eval and not evaluate_gap(model_v2, side, v_ego)[0]:
+    if self.lca_gap_eval and not evaluate_gap(model_v2, side, v_ego)[0]:
       return True
-    return self.ngp_lca_lane_width and not validate_lane_width(model_v2, side, MIN_LANE_WIDTH)
+    return self.lca_lane_width and not validate_lane_width(model_v2, side, MIN_LANE_WIDTH)
 
   def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected=False, right_edge_detected=False,
              low_lane_confidence=False, model_v2=None):
     v_ego = carstate.vEgo
     one_blinker = carstate.leftBlinker != carstate.rightBlinker
-    below_lane_change_speed = self.ngp_lca_speed <= 0.0 or v_ego < self.ngp_lca_speed
+    below_lane_change_speed = self.lca_speed <= 0.0 or v_ego < self.lca_speed
 
     if not lateral_active or self.lane_change_timer > LANE_CHANGE_TIME_MAX:
       self.lane_change_state = LaneChangeState.off
@@ -71,7 +71,7 @@ class DesireHelper:
         self.lane_change_state = LaneChangeState.preLaneChange
         self.lane_change_direction = LaneChangeDirection.left if carstate.leftBlinker else LaneChangeDirection.right
         self.lane_change_ll_prob = 1.0
-        self.ngp_lca_auto_timer = 0.0
+        self.lca_auto_timer = 0.0
 
       # LaneChangeState.preLaneChange
       elif self.lane_change_state == LaneChangeState.preLaneChange:
@@ -92,10 +92,10 @@ class DesireHelper:
         blindspot_detected = blindspot_detected or self._lane_blocked(model_v2, self.lane_change_direction, v_ego)
 
         if blindspot_detected or low_lane_confidence:
-          self.ngp_lca_auto_timer = 0.0
+          self.lca_auto_timer = 0.0
         else:
-          self.ngp_lca_auto_timer += DT_MDL
-          if self.ngp_lca_auto_sec > 0.0 and self.ngp_lca_auto_timer >= self.ngp_lca_auto_sec:
+          self.lca_auto_timer += DT_MDL
+          if self.lca_auto_sec > 0.0 and self.lca_auto_timer >= self.lca_auto_sec:
             torque_applied = True
 
         if not one_blinker or below_lane_change_speed:
@@ -132,7 +132,7 @@ class DesireHelper:
 
     self.prev_one_blinker = one_blinker
     if self.lane_change_state == LaneChangeState.off:
-      self.ngp_lca_auto_timer = 0.0
+      self.lca_auto_timer = 0.0
 
     self.desire = DESIRES[self.lane_change_direction][self.lane_change_state]
 
@@ -146,9 +146,9 @@ class DesireHelper:
       elif self.desire in (log.Desire.keepLeft, log.Desire.keepRight):
         self.desire = log.Desire.none
 
-    # Opt-in turn desire (ngp_lat_turn_desire_mph): a turnLeft/turnRight pulse for the model at low speed with a signal on
-    if self.ngp_turn is not None and self.desire == log.Desire.none:
-      turn = self.ngp_turn.update(v_ego, carstate.leftBlinker, carstate.rightBlinker, lateral_active,
+    # Opt-in turn desire (TurnDesireSpeed): a turnLeft/turnRight pulse for the model at low speed with a signal on
+    if self.turn_desire is not None and self.desire == log.Desire.none:
+      turn = self.turn_desire.update(v_ego, carstate.leftBlinker, carstate.rightBlinker, lateral_active,
                                   self.lane_change_state != LaneChangeState.off)
       if turn is not None:
         self.desire = log.Desire.turnLeft if turn == 'left' else log.Desire.turnRight

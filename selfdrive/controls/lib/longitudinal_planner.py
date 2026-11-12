@@ -25,34 +25,34 @@ from exopilot.controls.longitudinal_policy import (
   apply_adaptive_accel_limit as _apply_adaptive_accel_limit,
   apply_cruise_speed_offset_mps as _apply_speed_offset,
 )
-from exopilot.controls.ngp_tja import TrafficJamAssist
-from exopilot.controls.ngp_driver_activity import monitoring_speed_target
+from exopilot.controls.tja import TrafficJamAssist
+from exopilot.controls.driver_activity import monitoring_speed_target
 from exopilot.runtime.longitudinal_params import (
   load_accel_profile as _load_accel_profile, load_adaptive_gap_enabled as _load_adaptive_gap_enabled,
 )
-from exopilot.controls.ngp_dlon import NGPDLON
+from exopilot.controls.dlon import DLON
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
-# EOP10/NGP10/EDP10 via exopilot/controls (see exopilot/controls/ngp_brsc.py).
+# EOP10/NGP10/EDP10 via exopilot/controls (see exopilot/controls/brsc.py).
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp.
-from exopilot.controls.ngp_brsc import NGPBRSC
-from exopilot.controls.ngp_cutin_speed import CutInSpeed
-from exopilot.controls.ngp_pathd_consumer import speed_cap
+from exopilot.controls.brsc import BRSC
+from exopilot.controls.cutin_speed import CutInSpeed
+from exopilot.controls.pathd_consumer import speed_cap
 from exopilot.runtime.cutin_adapter import cutin_objects, cutin_path
 from exopilot.runtime.map_speed import MapSpeed
 from exopilot.runtime.feature_keys import OriginParams
 from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
-# laneChangeStarting. See exopilot/controls/ngp_lc_lead_handoff.py.
-from exopilot.controls.ngp_lc_lead_handoff import NGPLeadHandoff
+# laneChangeStarting. See exopilot/controls/lc_lead_handoff.py.
+from exopilot.controls.lc_lead_handoff import LeadHandoff
 # VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
-# vtsc.py -- no learned-speed DB, no self-calibration. See ngp_vtsc.py.
-from exopilot.controls.ngp_vtsc import NGPVTSC
+# vtsc.py -- no learned-speed DB, no self-calibration. See vtsc.py.
+from exopilot.controls.vtsc import VTSC
 # NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
-# EOPNSLCEnabled (no panel toggle there either). Nav-only on this branch --
+# NSLCEnabled (no panel toggle there either). Nav-only on this branch --
 # NGP10 has no map-data source at all (see EOP10_PARITY_CANDIDATES.md's
 # Tier 2.5 MTSC entry); MSLC is not portable here for the same reason.
-from exopilot.controls.ngp_speed_policy import NGPSpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
+from exopilot.controls.speed_policy import SpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = list(ACCELERATION_PROFILES["normal"])
@@ -66,7 +66,7 @@ _A_TOTAL_MAX_V = [1.7, 3.2]
 _A_TOTAL_MAX_BP = [20., 40.]
 
 
-class NGPFlags:
+class FeatureFlags:
   BRSC = 2 ** 3
   LC_LEAD_HANDOFF = 2 ** 4
   VTSC = 2 ** 5
@@ -130,11 +130,11 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.ngp_dlon = NGPDLON(get_bool=Params().get_bool)
-    self.ngp_dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
+    self.dlon = DLON(get_bool=Params().get_bool)
+    self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
-    self.brsc = NGPBRSC()
+    self.brsc = BRSC()
     self.brsc_result = None
     self.brsc_v_target = None
 
@@ -148,16 +148,16 @@ class LongitudinalPlanner:
     self.rule_consumer = RuleChannelConsumer()
 
     # Lane Change Lead Handoff (pure camera)
-    self.lc_handoff = NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
+    self.lc_handoff = LeadHandoff(radar_to_camera=RADAR_TO_CAMERA)
 
     # VTSC: Vision Turn Speed Control (0-250m advisory)
-    self.vtsc = NGPVTSC(enabled=False)
+    self.vtsc = VTSC(enabled=False)
     self.vtsc_result = None
     self.vtsc_v_target = None
 
     # NSLC-equivalent: nav-source speed-limit enforcement (nav-only, see
-    # ngp_speed_policy import comment above for why map isn't an option here).
-    self.speed_policy = NGPSpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
+    # speed_policy import comment above for why map isn't an option here).
+    self.speed_policy = SpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
     self.speed_policy_result = None
     self.speed_policy_v_target = None
     self._adaptive_gap_enabled = _load_adaptive_gap_enabled()
@@ -184,22 +184,22 @@ class LongitudinalPlanner:
       throttle_prob = 1.0
     return x, v, a, j, throttle_prob
 
-  def update(self, sm, ngp_flags=0):
+  def update(self, sm, feature_flags=0):
     self._adaptive_gap_enabled = _load_adaptive_gap_enabled()
 
     # BRSC: vertical-IMU roughness policy (always fed so its internal baseline/hold
     # state stays current; application is gated below). accel_max_full=1.0 makes
     # result.accel_max double as the [0-1] accel-scale fraction directly, matching
     # TJA's own accel_scale usage below.
-    brsc_enabled = bool(ngp_flags & NGPFlags.BRSC)
+    brsc_enabled = bool(feature_flags & FeatureFlags.BRSC)
     if sm.valid.get('accelerometer', False):
       az = sm['accelerometer'].acceleration.v[2]
       self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
 
     # DLON: always-on standard behavior of this branch, not user-selectable
     # (automatic ACC/E2E switching only -- no forced-mode override exists).
-    self.ngp_dlon_result = self.ngp_dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
-    mode = 'blended' if self.ngp_dlon_result['e2e_enabled'] else 'acc'
+    self.dlon_result = self.dlon.update(sm, mpc_crash_cnt=getattr(self.mpc, 'crash_cnt', 0))
+    mode = 'blended' if self.dlon_result['e2e_enabled'] else 'acc'
 
     if len(sm['carControl'].orientationNED) == 3:
       accel_coast = get_coast_accel(sm['carControl'].orientationNED[1])
@@ -259,25 +259,25 @@ class LongitudinalPlanner:
 
     # Cut-in speed trim (monoDetections, opt-in): only ever lowers v_cruise; the MPC keeps braking authority.
     cutin_objs, cutin_fresh = cutin_objects(sm)
-    cutin = self.cutin.update(v_ego, cutin_objs, self.dt, enabled=bool(ngp_flags & NGPFlags.CUTIN), fresh=cutin_fresh,
+    cutin = self.cutin.update(v_ego, cutin_objs, self.dt, enabled=bool(feature_flags & FeatureFlags.CUTIN), fresh=cutin_fresh,
                             path=cutin_path(sm) if cutin_fresh else None)
     if cutin.target_speed is not None:
       v_cruise = min(v_cruise, cutin.target_speed)
 
     # pathd add-on speed factor (opt-in): only ever lowers v_cruise, floored; the MPC keeps braking authority.
-    if ngp_flags & NGPFlags.PATHD:
+    if feature_flags & FeatureFlags.PATHD:
       pa_cap = speed_cap(v_ego, sm['pathAdjust'].speedFactor, bool(sm.alive.get('pathAdjust', False) and sm.valid.get('pathAdjust', False)))
       if pa_cap is not None:
         v_cruise = min(v_cruise, pa_cap)
 
     # VTSC: advisory vision-only turn speed, 0-250m. Only clamps v_cruise while
-    # ENTERING/TURNING (see ngp_vtsc.py's state machine); target_speed is None
+    # ENTERING/TURNING (see vtsc.py's state machine); target_speed is None
     # otherwise, matching TJA/BRSC's "only ever tightens" contract. No speed
     # floor here -- checked against EOP10's own application site
     # (longitudinal_planner.py's `if self.vtsc_v_target < v_cruise: v_cruise =
     # self.vtsc_v_target`), which has none either; this matches parity rather
     # than being a gap relative to it.
-    vtsc_enabled = bool(ngp_flags & NGPFlags.VTSC)
+    vtsc_enabled = bool(feature_flags & FeatureFlags.VTSC)
     self.vtsc_v_target = None
     if sm.valid.get('modelV2', False):
       self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
@@ -290,8 +290,8 @@ class LongitudinalPlanner:
       v_cruise = min(v_cruise, map_speed.cap)
 
     # NSLC-equivalent: clamp v_cruise to the posted nav speed limit.
-    # ngp_speed_policy.py's evaluate() never applies anything itself (it's a
-    # pure resolver, like ngp_vtsc.py/ngp_mtsc.py); this is the one place
+    # speed_policy.py's evaluate() never applies anything itself (it's a
+    # pure resolver, like vtsc.py/mtsc.py); this is the one place
     # that acts on its suggestion. Uses min(v_cruise, target) rather than
     # evaluate()'s own suggested_cruise_mps, matching BRSC/VTSC's idiom
     # exactly -- decouples this call site from how evaluate() recomputes its
@@ -302,7 +302,7 @@ class LongitudinalPlanner:
     # driver_overriding concept, no offset, and no SpeedLimitConfirmation
     # (EOP10's nslc.py gates limit *changes* on driver confirmation; this
     # doesn't). Default off, opt-in, so this isn't a surprise until enabled.
-    nslc_enabled = bool(ngp_flags & NGPFlags.NSLC)
+    nslc_enabled = bool(feature_flags & FeatureFlags.NSLC)
     self.speed_policy_v_target = None
     if nslc_enabled and sm.valid.get('navInstruction', False):
       nav_limit = sm['navInstruction'].speedLimit  # m/s
@@ -344,7 +344,7 @@ class LongitudinalPlanner:
 
     # Lane Change Lead Handoff — if laneChangeStarting, replace radarState.leadOne
     # with the lead in the target lane so MPC tracks it instead of the old lane's lead.
-    lc_lead_handoff_enabled = bool(ngp_flags & NGPFlags.LC_LEAD_HANDOFF)
+    lc_lead_handoff_enabled = bool(feature_flags & FeatureFlags.LC_LEAD_HANDOFF)
     radar_state_for_mpc = sm['radarState']
     if sm.valid.get('modelV2', False):
       model_meta = sm['modelV2'].meta
@@ -389,7 +389,7 @@ class LongitudinalPlanner:
       output_a_target = min(output_a_target_mpc, output_a_target_e2e)
       self.output_should_stop = output_should_stop_e2e or output_should_stop_mpc
 
-    if self.ngp_dlon_result.get('force_stop', False):
+    if self.dlon_result.get('force_stop', False):
       self.output_should_stop = True
 
     for idx in range(2):
@@ -431,19 +431,19 @@ class LongitudinalPlanner:
     longitudinalPlan.shouldStop = bool(self.output_should_stop)
     longitudinalPlan.allowBrake = True
     longitudinalPlan.allowThrottle = bool(self.allow_throttle)
-    longitudinalPlan.ngpDlonMode = self.ngp_dlon_result['mode']
-    longitudinalPlan.ngpDlonModeKind = self.ngp_dlon_result['mode'].lower()  # enum names are the lower-cased mode strings
-    longitudinalPlan.ngpDlonE2EEnabled = bool(self.ngp_dlon_result['e2e_enabled'])
-    longitudinalPlan.ngpDlonForceStop = bool(self.ngp_dlon_result.get('force_stop', False))
-    longitudinalPlan.ngpTjaActive = bool(self.tja_result.active)
-    longitudinalPlan.ngpTjaCutIn = bool(self.tja_result.cut_in)
-    longitudinalPlan.ngpTjaDesiredGap = float(self.tja_result.desired_gap)
+    longitudinalPlan.dlonMode = self.dlon_result['mode']
+    longitudinalPlan.dlonModeKind = self.dlon_result['mode'].lower()  # enum names are the lower-cased mode strings
+    longitudinalPlan.dlonE2EEnabled = bool(self.dlon_result['e2e_enabled'])
+    longitudinalPlan.dlonForceStop = bool(self.dlon_result.get('force_stop', False))
+    longitudinalPlan.tjaActive = bool(self.tja_result.active)
+    longitudinalPlan.tjaCutIn = bool(self.tja_result.cut_in)
+    longitudinalPlan.tjaDesiredGap = float(self.tja_result.desired_gap)
 
     # BRSC debug info
     if self.brsc_result is not None:
-      longitudinalPlan.ngpBrscActive = self.brsc_result.active
-      longitudinalPlan.ngpBrscRoughness = float(self.brsc_result.roughness_rms)
+      longitudinalPlan.brscActive = self.brsc_result.active
+      longitudinalPlan.brscRoughness = float(self.brsc_result.roughness_rms)
     if self.brsc_v_target is not None:
-      longitudinalPlan.ngpBrscSpeed = float(self.brsc_v_target)
+      longitudinalPlan.brscSpeed = float(self.brsc_v_target)
 
     pm.send('longitudinalPlan', plan_send)

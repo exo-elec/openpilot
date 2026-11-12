@@ -47,7 +47,7 @@ WRITE_CHUNK = 8 * 1024               # the largest size SLUB serves from a slab 
 WRITE_TIMEOUT = 15.0
 MAX_QUEUED = 512 << 10
 UDC_ROOT = Path('/sys/class/udc')
-MOUNT = '/dev/ffs-ngpbigmodel'
+MOUNT = '/dev/ffs-bigmodel'
 _IO_SIGNALS = signal.valid_signals()
 
 

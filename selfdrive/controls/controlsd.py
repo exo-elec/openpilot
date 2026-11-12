@@ -11,19 +11,19 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
-from exopilot.controls.ngp_vehicle_model import VehicleModel
+from exopilot.controls.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
-from exopilot.controls.ngp_dlat import NGPDLAT, DLATSuggestion
-from exopilot.controls.ngp_cat import NGPCAT, live_params_gated
-from exopilot.controls.ngp_red import NGPRED, curvature_nudge
-from exopilot.controls.ngp_blinker_pause import NGPBlinkerPause
-from exopilot.controls.ngp_driver_activity import monitoring_force_decel
-from exopilot.controls.ngp_arbiter import Proposal, arbitrate
-from exopilot.controls.ngp_pathd_consumer import BIAS_PER_METER, PathAdjustFollower
+from exopilot.controls.dlat import DLAT, DLATSuggestion
+from exopilot.controls.cat import CAT, live_params_gated
+from exopilot.controls.red import RED, curvature_nudge
+from exopilot.controls.blinker_pause import BlinkerPause
+from exopilot.controls.driver_activity import monitoring_force_decel
+from exopilot.controls.arbiter import Proposal, arbitrate
+from exopilot.controls.pathd_consumer import BIAS_PER_METER, PathAdjustFollower
 from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
-from exopilot.controls.ngp_soc import NGPSOC, SOCInput, threats_from
+from exopilot.controls.soc import SOC, SOCInput, threats_from
 from exopilot.runtime.path_adapter import lane_room
-from exopilot.controls.ngp_alcc import ALCCInput, NGPALCC
+from exopilot.controls.alcc import ALCCInput, ALCC
 from exopilot.runtime.lateral_authorization import lateral_authorized
 from exopilot.controls.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -72,32 +72,32 @@ class Controls:
     elif self.CP.lateralTuning.which() == 'torque':
       self.LaC = LatControlTorque(self.CP, self.CI)
 
-    self.alcc_enabled = self.params.get_bool("ngp_lat_alcc")
-    # Blinker pause (ngp_lat_blinker_pause_mph, 0 = off): no lateral assistance with a signal on below this speed
-    pause_mph = self.params.get("ngp_lat_blinker_pause_mph", return_default=True)
-    self.blinker_pause = NGPBlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
-    # SOC (ngp_lat_soc, default off): small slow offset away from a vehicle beside you on the highway
-    self.soc = NGPSOC() if self.params.get_bool("ngp_lat_soc") else None
-    # pathd add-on offset (ngp_lat_pathd, default off): bounded lateral offset from `pathAdjust`; replaces SOC's own offset when on
-    self.pathd_lat = PathAdjustFollower() if self.params.get_bool("ngp_lat_pathd") else None
+    self.alcc_enabled = self.params.get_bool("LatALCC")
+    # Blinker pause (BlinkerPauseLateralSpeed, 0 = off): no lateral assistance with a signal on below this speed
+    pause_mph = self.params.get("BlinkerPauseLateralSpeed", return_default=True)
+    self.blinker_pause = BlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
+    # SOC (SOCControllerEnabled, default off): small slow offset away from a vehicle beside you on the highway
+    self.soc = SOC() if self.params.get_bool("SOCControllerEnabled") else None
+    # pathd add-on offset (PathdLateral, default off): bounded lateral offset from `pathAdjust`; replaces SOC's own offset when on
+    self.pathd_lat = PathAdjustFollower() if self.params.get_bool("PathdLateral") else None
     # Parallel rule channel (pathd + DPP): applies pathd's mode to the policy curvature; no pathd or mode < 4 = policy unchanged
     self.rule_consumer = RuleChannelConsumer()
-    # RED (ngp_lat_edge_guard, default off): push away from a close road edge in laneless mode, vision only
-    self.red = NGPRED() if self.params.get_bool("ngp_lat_edge_guard") else None
+    # RED (RedControllerEnabled, default off): push away from a close road edge in laneless mode, vision only
+    self.red = RED() if self.params.get_bool("RedControllerEnabled") else None
     # CAT: smoothed/validated steer ratio and stiffness (opt-in, default off)
-    self.cat = NGPCAT(self.CP.steerRatio) if self.params.get_bool("ngp_lat_cat") else None
+    self.cat = CAT(self.CP.steerRatio) if self.params.get_bool("CATEnabled") else None
     self.alcc_active = False
-    self.alcc = NGPALCC()
+    self.alcc = ALCC()
 
     # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling
     # in the curvature/steering sense). Always automatic -- a default behavior
     # of this branch, no user-selectable mode and no panel control for the
-    # mode itself. DLP curve assist (ngp_lat_dlp_curves) is a separate,
+    # mode itself. DLP curve assist (DLPCurvesEnabled) is a separate,
     # panel-exposed pre-emptive override on top of that arbitration.
-    self.dlat = NGPDLAT()
+    self.dlat = DLAT()
     self.dlat_use_laneless = False
     self.dlat_lane_confidence = 1.0
-    self.dlp_curves_enabled = self.params.get_bool("ngp_lat_dlp_curves")
+    self.dlp_curves_enabled = self.params.get_bool("DLPCurvesEnabled")
 
   def update(self):
     self.sm.update(15)
@@ -187,7 +187,7 @@ class Controls:
 
     # DLAT: automatic Laneful/Laneless confidence arbitration, a default
     # always-on behavior of this branch -- no user-selectable mode. DLP curve
-    # assist (ngp_lat_dlp_curves) pre-emptively forces laneless on a
+    # assist (DLPCurvesEnabled) pre-emptively forces laneless on a
     # predicted tight curve, ahead of the ordinary confidence hysteresis.
     dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo, curve_assist_enabled=self.dlp_curves_enabled)
     self.dlat_lane_confidence = dlat_result.lane_confidence
@@ -199,7 +199,7 @@ class Controls:
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
     # Lateral add-ons (SOC, pathd) are proposers merged by the tighten-only arbiter: same-side offsets do not add,
-    # opposite sides cancel, and the result stays inside the lane room (exopilot/controls/ngp_arbiter.py).
+    # opposite sides cancel, and the result stays inside the lane room (exopilot/controls/arbiter.py).
     proposals = []
     if self.soc is not None and CC.latActive:
       left, right = threats_from(CS, model_v2)
@@ -291,9 +291,9 @@ class Controls:
     cs.ufAccelCmd = float(self.LoC.pid.f)
     cs.forceDecel = monitoring_force_decel(self.sm['driverMonitoringState'].awarenessStatus,
                                          self.sm['selfdriveState'].state == State.softDisabling)
-    cs.ngpAlccActive = bool(self.alcc_active)
-    cs.ngpDlatUseLaneless = bool(self.dlat_use_laneless)
-    cs.ngpDlatLaneConfidence = float(self.dlat_lane_confidence)
+    cs.alccActive = bool(self.alcc_active)
+    cs.dlatUseLaneless = bool(self.dlat_use_laneless)
+    cs.dlatLaneConfidence = float(self.dlat_lane_confidence)
 
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:

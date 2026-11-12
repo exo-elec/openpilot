@@ -1,8 +1,8 @@
 """NGP10's camera path for the big model: the small model's own OpenCL warp.
 
 NGP10 (v0.10.0) warps with OpenCL (`DrivingModelFrame`, selfdrive/modeld/models/commonmodel.cc), which the small model
-already runs every frame. NgpWarp reads those same frame objects: each frame the big model needs is the newest frame of
-each camera, so there is no second warp and no extra GPU work. See `exopilot/controls/ngp_bigmodel_frames.py` for the
+already runs every frame. ModelWarp reads those same frame objects: each frame the big model needs is the newest frame of
+each camera, so there is no second warp and no extra GPU work. See `exopilot/controls/bigmodel_frames.py` for the
 layout and exopilot/docs/NAVPILOT_BIGMODEL.md.
 
 Not exercised on a device: the OpenCL warp is not numerically identical to the warp the big models were
@@ -10,12 +10,12 @@ trained with, which needs a replay comparison before the phone model may drive.
 """
 import numpy as np
 
-from exopilot.controls.ngp_bigmodel_frames import OUTPUT_SHAPE, fill_output
+from exopilot.controls.bigmodel_frames import OUTPUT_SHAPE, fill_output
 
 CAMERA_NAMES = ('img', 'big_img')  # narrow, then wide: the order of the output's first axis
 
 
-class NgpWarp:
+class ModelWarp:
   """start_buffers / wait / output, as RemoteModelState uses a warp."""
 
   def __init__(self, frames):

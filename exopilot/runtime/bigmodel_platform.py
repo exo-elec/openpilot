@@ -9,11 +9,11 @@ from pathlib import Path
 # the setting: 0 off; 3 USB tethering, the phone is the USB device and the comma its host (RECOMMENDED, same for iPhone and Android);
 # 2 an iPhone as host of the comma's CDC-NCM gadget; 1 an Android phone as host of a FunctionFS bulk gadget. One NPBM protocol on all
 # three (exopilot/bigmodel/framing.py adds the bulk padding for 1)
-LINK = "ngp_bigmodel_link"
+LINK = "BigModelLink"
 
-# written by modeld, read by selfdrived's gate (exopilot/controls/ngp_bigmodel_gate.py)
-LOADING = "ngp_bigmodel_loading"
-ACTIVE = "ngp_bigmodel_active"
+# written by modeld, read by selfdrived's gate (exopilot/controls/bigmodel_gate.py)
+LOADING = "BigModelLoading"
+ACTIVE = "BigModelActive"
 # (cam_w, cam_h, model_w, model_h): a comma 3 / 3X road camera and the model frame DrivingModelFrame warps to
 DEVICE_CAMERA = (1928, 1208, 512, 256)
 

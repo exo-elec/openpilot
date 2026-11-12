@@ -2,13 +2,13 @@
 
 The parser and constants are NGP10's own (v0.10.0 Parser reads the big model's plan, lanes, lead and pose the same
 way; `action` passes through unparsed). The action function is the only thing that differs: a big model outputs
-an `action` head, which upstream's modeld uses directly (ngp_bigmodel_action.py); an output without one falls back
+an `action` head, which upstream's modeld uses directly (bigmodel_action.py); an output without one falls back
 to NGP10's plan-based function, passed in because this module must not import modeld.
 
 Not verified against a real big-model output: the parser's expected slices and the action head's units have to be
 checked on a recorded route before the phone model may drive.
 """
-from exopilot.controls.ngp_bigmodel_action import action_from_head
+from exopilot.controls.bigmodel_action import action_from_head
 
 
 def make_action_function(fallback):

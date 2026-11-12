@@ -2,7 +2,7 @@
 
 pathd side  : builds the lane polyline from modelV2, runs RulePlanner, measures the disagreement with the policy
               action in modelV2, derives the DPP Situation and lets DPP pick the arbiter mode inside the
-              ceiling `ngp_dpp_max_mode` (0 = rule channel idle).
+              ceiling `DPPMaxMode` (0 = rule channel idle).
 consumer    : controlsd (curvature) and the planner (accel) each own a PolicyArbiter and apply the mode that
               pathd published to THEIR real policy value. No message, a stale message or an idle channel means
               the policy value passes through unchanged.
@@ -11,11 +11,11 @@ Adapters only; the policy of every decision lives in exopilot/controls/.
 import math
 from dataclasses import dataclass
 
-from exopilot.controls.ngp_cutin_speed import CutInSpeed, Obj, PlannedPath, evaluate
-from exopilot.controls.ngp_dpp import DPP, Situation
-from exopilot.controls.ngp_path_selector import LONG_WINDOW_M, PObj
-from exopilot.controls.ngp_policy_arbiter import Mode, PolicyArbiter
-from exopilot.controls.ngp_rule_planner import RuleCmd, RulePlanner
+from exopilot.controls.cutin_speed import CutInSpeed, Obj, PlannedPath, evaluate
+from exopilot.controls.dpp import DPP, Situation
+from exopilot.controls.path_selector import LONG_WINDOW_M, PObj
+from exopilot.controls.policy_arbiter import Mode, PolicyArbiter
+from exopilot.controls.rule_planner import RuleCmd, RulePlanner
 
 EXEC_TIME_BUDGET_S = 0.15
 LANE_PROB_MIN = 0.5

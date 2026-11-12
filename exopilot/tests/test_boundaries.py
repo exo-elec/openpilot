@@ -11,7 +11,7 @@ PURE_DIRS = ("controls",)
 FORBIDDEN_PREFIXES = ("openpilot.selfdrive", "openpilot.system", "openpilot.common.params", "cereal.messaging")
 
 # NGP/EOP-prefixed files may live outside exopilot/ only at these reviewed UI hooks.
-ALLOWED_OUTSIDE = {"selfdrive/ui/qt/offroad/ngp_panel.cc", "selfdrive/ui/qt/offroad/ngp_panel.h", "selfdrive/ui/qt/offroad/ngp_controls.h"}
+ALLOWED_OUTSIDE = {"selfdrive/ui/qt/offroad/features_panel.cc", "selfdrive/ui/qt/offroad/features_panel.h", "selfdrive/ui/qt/offroad/param_controls.h"}
 SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "exopilot"}
 
 
@@ -31,7 +31,7 @@ def test_pure_modules_do_not_import_runtime():
   assert not bad, "\n".join(bad)
 
 
-def test_no_ngp_or_eop_modules_outside_exopilot():
+def test_no_or_eop_modules_outside_exopilot():
   files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n")
   stray = [f for f in files if f and f.split("/")[0] not in SKIP_TOP and f not in ALLOWED_OUTSIDE
            and (Path(f).name.startswith(("ngp_", "eop_")) or "/ngp_" in f or "/eop_" in f)
@@ -52,12 +52,12 @@ def test_no_release_number_in_identifiers():
 
 
 def test_dlon_modes_match_cereal_enum():
-  # longitudinal_planner writes ngpDlonModeKind = mode.lower(); every DLON mode (and the
-  # initial 'Disabled') must therefore be an enumerant of LongitudinalPlan.NgpDlonModeKind.
+  # longitudinal_planner writes dlonModeKind = mode.lower(); every DLON mode (and the
+  # initial 'Disabled') must therefore be an enumerant of LongitudinalPlan.DlonModeKind.
   import re
   schema = (ROOT / "cereal" / "log.capnp").read_text()
-  body = re.search(r"enum NgpDlonModeKind \{(.*?)\}", schema, re.S).group(1)
+  body = re.search(r"enum DlonModeKind \{(.*?)\}", schema, re.S).group(1)
   enumerants = set(re.findall(r"(\w+) @\d+;", body))
-  src = (NP / "controls" / "ngp_dlon.py").read_text()
-  modes = set(re.findall(r'^\s+[A-Z]+ = "(\w+)"$', src.split("class NGPDLONMode")[1].split("class NGPDriveMode")[0], re.M))
+  src = (NP / "controls" / "dlon.py").read_text()
+  modes = set(re.findall(r'^\s+[A-Z]+ = "(\w+)"$', src.split("class DLONMode")[1].split("class DriveMode")[0], re.M))
   assert {m.lower() for m in modes | {"Disabled"}} <= enumerants

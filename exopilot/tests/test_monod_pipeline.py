@@ -1,6 +1,6 @@
 import numpy as np
 
-from exopilot.controls.ngp_detect import Box
+from exopilot.controls.detect import Box
 from exopilot.runtime.monod import MonoPipeline, fill_detections, vanishing_point
 
 K = np.array([[2648.0, 0, 964.0], [0, 2648.0, 604.0], [0, 0, 1.0]])

@@ -149,7 +149,7 @@ if __name__ == '__main__':
   exit(0 if failures == 0 else 1)
 
 
-def test_default_keys_are_ngp_snake_case_and_the_eop_mapping_is_a_prefix():
-  from exopilot.runtime.tripd import _ngp_key
-  assert _ngp_key("TotalDistance") == "ngp_trip_total_distance" and _ngp_key("LastOverrideFreeDistance") == "ngp_trip_last_override_free_distance"
-  assert _ngp_key("AStartDistance") == "ngp_trip_a_start_distance" and _ngp_key("DailyStats") == "ngp_trip_daily_stats"
+def test_default_keys_are_snake_case_and_the_eop_mapping_is_a_prefix():
+  from exopilot.runtime.tripd import _key
+  assert _key("TotalDistance") == "TripTotalDistance" and _key("LastOverrideFreeDistance") == "TripLastOverrideFreeDistance"
+  assert _key("AStartDistance") == "TripAStartDistance" and _key("DailyStats") == "TripDailyStats"

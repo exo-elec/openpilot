@@ -16,7 +16,7 @@ import math
 import random
 from dataclasses import dataclass
 
-from exopilot.controls.ngp_ranging import RoadCamera
+from exopilot.controls.ranging import RoadCamera
 
 IMG_W, IMG_H = 1928, 1208
 CLASS_HEIGHT_M = {'car': 1.5, 'truck': 2.5, 'bus': 2.8, 'motorcycle': 1.2, 'bicycle': 1.0, 'person': 1.7}

@@ -8,9 +8,9 @@ does not use this. Pure apart from the message accessors; no Params.
 import math
 import time
 
-from exopilot.controls.ngp_cutin_speed import PROFILES, Obj
-from exopilot.controls.ngp_object_tracker import Measurement, ObjectTracker, Track, measurement_sigma
-from exopilot.controls.ngp_path_selector import OBJECT_WIDTH_M, PObj
+from exopilot.controls.cutin_speed import PROFILES, Obj
+from exopilot.controls.object_tracker import Measurement, ObjectTracker, Track, measurement_sigma
+from exopilot.controls.path_selector import OBJECT_WIDTH_M, PObj
 
 MIN_X, MAX_X = 1.0, 150.0
 MAX_DT, MIN_DT = 0.5, 0.01

@@ -9,7 +9,7 @@ code on every branch. pathd does no tracking and no sensor fusion itself.
 """
 import math
 
-from exopilot.controls.ngp_path_selector import PObj
+from exopilot.controls.path_selector import PObj
 from exopilot.runtime.path_adapter import pobjects
 
 OBSTACLE_NAMES = {'vehicle': 'car', 'motorcycle': 'motorcycle', 'person': 'person'}

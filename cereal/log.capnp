@@ -877,12 +877,12 @@ struct ControlsState @0x97ff69c53601abf1 {
   curvature @37 :Float32;  # path curvature from vehicle model
   desiredCurvature @61 :Float32;  # lag adjusted curvatures used by lateral controllers
   forceDecel @51 :Bool;
-  ngpAlccActive @67 :Bool;
+  alccActive @67 :Bool;
 
   # DLAT: Dynamic Lateral Profile -- automatic Laneful/Laneless confidence
   # arbitration. Always-on behavior of this branch; no user-selectable mode.
-  ngpDlatUseLaneless @68 :Bool;    # resolved laneless state actually in effect
-  ngpDlatLaneConfidence @69 :Float32;
+  dlatUseLaneless @68 :Bool;    # resolved laneless state actually in effect
+  dlatLaneConfidence @69 :Float32;
 
   lateralControlState :union {
     pidState @53 :LateralPIDState;
@@ -1272,20 +1272,20 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   shouldStop @37: Bool;
   allowThrottle @38: Bool;
   allowBrake @39: Bool;
-  ngpDlonMode @40 :Text;  # DEPRECATED: free-form string, use ngpDlonModeKind; remove after one release
-  ngpDlonE2EEnabled @41 :Bool;
-  ngpDlonForceStop @42 :Bool;
-  ngpTjaActive @43 :Bool;
-  ngpTjaCutIn @44 :Bool;
-  ngpTjaDesiredGap @45 :Float32;
+  dlonMode @40 :Text;  # DEPRECATED: free-form string, use dlonModeKind; remove after one release
+  dlonE2EEnabled @41 :Bool;
+  dlonForceStop @42 :Bool;
+  tjaActive @43 :Bool;
+  tjaCutIn @44 :Bool;
+  tjaDesiredGap @45 :Float32;
 
   # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via exopilot/controls)
-  ngpBrscActive @46 :Bool;
-  ngpBrscSpeed @47 :Float32;
-  ngpBrscRoughness @48 :Float32;
+  brscActive @46 :Bool;
+  brscSpeed @47 :Float32;
+  brscRoughness @48 :Float32;
 
-  ngpDlonModeKind @49 :NgpDlonModeKind;
-  enum NgpDlonModeKind {
+  dlonModeKind @49 :DlonModeKind;
+  enum DlonModeKind {
     disabled @0;
     chill @1;
     experimental @2;

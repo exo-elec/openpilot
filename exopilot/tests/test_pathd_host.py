@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.ngp_path_selector import Selection
+from exopilot.controls.path_selector import Selection
 from exopilot.runtime.object_sources import GriddSource
 from exopilot.runtime.pathd import Extras, SharedPathdHost, merge_extras
 
@@ -95,7 +95,7 @@ def test_extras_flow_into_the_published_message():
   assert abs(pa.offsetM - 0.3) < 1e-9 and abs(pa.speedFactor - 0.85) < 1e-9
 
 
-def test_extras_from_eop_flips_the_lateral_frame_and_keeps_the_speed_contract():
+def test_extras_flip_the_lateral_frame_and_keep_the_speed_contract():
   from exopilot.runtime.pathd import extras_from_eop
   e = extras_from_eop(-2.5, -0.5, [0.3, 0.2], 25.0)
   assert abs(e.offset_m + 0.3) < 1e-9                                 # +0.3 right in EOP's frame is -0.3 in the left-positive frame

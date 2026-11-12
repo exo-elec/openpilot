@@ -1,5 +1,5 @@
-"""monoDetections -> cut-in objects for the planner (adapter; the policy is exopilot/controls/ngp_cutin_speed.py)."""
-from exopilot.controls.ngp_cutin_speed import Obj, PlannedPath
+"""monoDetections -> cut-in objects for the planner (adapter; the policy is exopilot/controls/cutin_speed.py)."""
+from exopilot.controls.cutin_speed import Obj, PlannedPath
 
 
 def cutin_objects(sm) -> tuple[list[Obj], bool]:

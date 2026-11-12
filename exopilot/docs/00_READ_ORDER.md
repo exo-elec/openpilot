@@ -17,9 +17,9 @@
 Runtime code follows the same order:
 
 1. `exopilot/speed_zones.py` defines the shared 2/6/12/24/36 m/s contract.
-2. `exopilot/controls/ngp_tja.py` gates positive acceleration from lead state.
+2. `exopilot/controls/tja.py` gates positive acceleration from lead state.
 3. `selfdrive/controls/lib/longitudinal_planner.py` is the small upstream hook
-   that composes `exopilot/controls/ngp_dlon.py` and `ngp_tja.py`.
+   that composes `exopilot/controls/dlon.py` and `tja.py`.
 4. `selfdrive/controls/controlsd.py` and car control produce commands.
 5. OpenDBC/Panda enforces vehicle-model steering safety.
 6. NGP10 uses standard comma card/OpenDBC; EOP10 owns BrownPanda vehicled/socketd integration.

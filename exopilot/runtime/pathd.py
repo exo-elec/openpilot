@@ -12,17 +12,17 @@ Reads modelV2 (policy path, lane lines, policy action), carState, radarState and
 Objects come from a source adapter (`object_sources`): monod's tracks on NGP10, gridd's fused `stereoObjects` on
 EOP10/01M/02M. The same code is the one process `pathd` on every branch; the board's own planner logic joins it as
 `Extras` (more proposals into the same arbitration), it does not run a second channel.
-The rule channel is idle (dppMode 0) unless `ngp_dpp_max_mode` > 0; the whole process runs only with
-`ngp_pathd_enabled` (default off). With no process, a stale message or mode 0 every consumer passes the policy through.
+The rule channel is idle (dppMode 0) unless `DPPMaxMode` > 0; the whole process runs only with
+`PathdEnabled` (default off). With no process, a stale message or mode 0 every consumer passes the policy through.
 """
 import math
 import time
 from exopilot.runtime.feature_keys import OriginParams
 from dataclasses import dataclass, replace
 
-from exopilot.controls.ngp_arbiter import Proposal, arbitrate
-from exopilot.controls.ngp_cutin_speed import PlannedPath
-from exopilot.controls.ngp_path_selector import PROFILE_DT_S, PathSelector, build_profile
+from exopilot.controls.arbiter import Proposal, arbitrate
+from exopilot.controls.cutin_speed import PlannedPath
+from exopilot.controls.path_selector import PROFILE_DT_S, PathSelector, build_profile
 from exopilot.runtime.cutin_adapter import cutin_path
 from exopilot.runtime.object_sources import MonoDetectionsSource
 from exopilot.runtime.path_adapter import lane_room
@@ -143,7 +143,7 @@ class SharedPathdHost:
     dt = min(max(now - self._last_t, 0.01), 0.2)
     self._last_t = now
     if now - self._ceiling_t > 1.0:                       # the DPP ceiling can be changed while driving
-      self.ceiling, self._ceiling_t = int(self.params.get("ngp_dpp_max_mode") or 0), now
+      self.ceiling, self._ceiling_t = int(self.params.get("DPPMaxMode") or 0), now
     cs = sm['carState']
     v_ego = float(cs.vEgo)
     sel, room, n = self.pathd.step(sm, v_ego)
@@ -171,7 +171,7 @@ def run(source=None) -> None:
                  ignore_alive=['monoDetections', 'radarState', 'stereoObjects'])
   params = Params()
   provider = None
-  if OriginParams(params).get_bool("EOPPathdNudgesEnabled"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
+  if OriginParams(params).get_bool("PathdNudgesEnabled"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
     from exopilot.runtime.nudge_extras import NudgeExtras
     nudges = NudgeExtras()
     provider = lambda sm, objs, v_ego: nudges.update(sm['modelV2'], objs, v_ego)  # noqa: E731

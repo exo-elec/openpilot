@@ -2,7 +2,7 @@
 """monod on comma 3 / 3X and clones: road-camera YOLO detections, ranged (sensing only, untracked), published as `monoDetections`.
 
 NGP10 base only: EOP10/01M/02M do not register this process (their RKNN `selfdrive.monod` publishes `monoDetections`; one publisher per service).
-Publish-only and default off (`ngp_monod_enabled`): nothing in controls reads `monoDetections` yet.
+Publish-only and default off (`MonoDEnabled`): nothing in controls reads `monoDetections` yet.
 Needs a detector ONNX (YOLOv8-style head) compiled by SCons to `models/yolo_detector_tinygrad.pkl`;
 without it the process idles. The weights are not part of this repo (check their licence).
 
@@ -10,7 +10,7 @@ Parts:
   MonoPipeline     SENSING: boxes -> ranged detections (`detect`); `step` adds the tracker for tests/tools only
   fill_detections  tracks -> MonoDetections builder (same schema as EOP10)
   TinygradYolo     the model behind an interface (device only, not tested here)
-  main             VisionIPC road stream at `ngp_monod_hz`, liveCalibration, radarState leads; publishes untracked detections
+  main             VisionIPC road stream at `MonoDHz`, liveCalibration, radarState leads; publishes untracked detections
                    (tracking, velocity and the fused-object message belong to `gridd`: runtime/gridd.py)
 """
 import math
@@ -21,9 +21,9 @@ from pathlib import Path
 
 import numpy as np
 
-from exopilot.controls.ngp_detect import LIGHT_CLASSES, TRAFFIC_LIGHT, Box, Letterbox, decode
-from exopilot.controls.ngp_object_tracker import Measurement, ObjectTracker, Track, measurement_sigma
-from exopilot.controls.ngp_ranging import LeadAnchoredRanger, RoadCamera
+from exopilot.controls.detect import LIGHT_CLASSES, TRAFFIC_LIGHT, Box, Letterbox, decode
+from exopilot.controls.object_tracker import Measurement, ObjectTracker, Track, measurement_sigma
+from exopilot.controls.ranging import LeadAnchoredRanger, RoadCamera
 
 MODEL_SIZE = 640
 MODEL_PKL = Path(__file__).resolve().parents[2] / 'selfdrive/modeld/models/yolo_detector_tinygrad.pkl'
@@ -217,7 +217,7 @@ def main():
     buf = vipc.recv()
     if buf is None:
       continue
-    hz = min(max(params.get("ngp_monod_hz") or 5, MIN_HZ), MAX_HZ)
+    hz = min(max(params.get("MonoDHz") or 5, MIN_HZ), MAX_HZ)
     now = time.monotonic()
     if now - last_t < 1.0 / hz:
       continue

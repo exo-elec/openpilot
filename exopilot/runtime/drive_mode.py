@@ -1,7 +1,7 @@
 """Applies a driving mode by writing the underlying params once whenever the mode param changes."""
 import time
 
-from exopilot.controls.ngp_drive_mode import CUSTOM, detect, settings_for
+from exopilot.controls.drive_mode import CUSTOM, detect, settings_for
 
 POLL_S = 1.0
 

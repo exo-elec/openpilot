@@ -11,8 +11,8 @@ Enforced by `exopilot/tests/test_boundaries.py`.
 | UI | `selfdrive/ui/qt/offroad/ngp_{panel,controls}.*` | Reviewed exception; keep upstream edits to a registration line. |
 | Tests | `exopilot/tests/` | All NGP/EOP tests live here. |
 
-Hook-passed values: `NGPDLON(get_bool=Params().get_bool)`,
-`NGPLeadHandoff(radar_to_camera=RADAR_TO_CAMERA)`.
+Hook-passed values: `DLON(get_bool=Params().get_bool)`,
+`LeadHandoff(radar_to_camera=RADAR_TO_CAMERA)`.
 
 ## Hardware rule
 

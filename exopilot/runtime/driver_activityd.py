@@ -8,7 +8,7 @@ Drop-in for `dmonitoringd`: same message, same 20 Hz, so `selfdrived` (events), 
 import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.realtime import DT_DMON, Ratekeeper
-from exopilot.controls.ngp_driver_activity import DEFAULT_POLICY, DriverActivityMonitor, MonitorStatus
+from exopilot.controls.driver_activity import DEFAULT_POLICY, DriverActivityMonitor, MonitorStatus
 
 EventName = log.OnroadEvent.EventName
 
@@ -53,7 +53,7 @@ class DriverActivityD:
 def main():
   from openpilot.common.params import Params
   params = Params()
-  policy = (params.get("ngp_dm_policy") or DEFAULT_POLICY)
+  policy = (params.get("DriverActivityPolicy") or DEFAULT_POLICY)
   policy = policy.decode() if isinstance(policy, bytes) else str(policy)
   daemon = DriverActivityD(policy)
   sm = messaging.SubMaster(['carState', 'selfdriveState'], poll='carState')
@@ -63,7 +63,7 @@ def main():
   while True:
     sm.update(0)
     if frame % 20 == 0:
-      daemon.monitor.set_policy(params.get("ngp_dm_policy") or DEFAULT_POLICY)
+      daemon.monitor.set_policy(params.get("DriverActivityPolicy") or DEFAULT_POLICY)
     status = daemon.step(sm['carState'], bool(sm['selfdriveState'].enabled))
     pm.send('driverMonitoringState', state_msg(status, sm.all_checks(['carState', 'selfdriveState'])))
     rk.keep_time()

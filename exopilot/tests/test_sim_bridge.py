@@ -1,6 +1,6 @@
 import random
 
-from exopilot.controls.ngp_ranging import LeadAnchoredRanger, RoadCamera
+from exopilot.controls.ranging import LeadAnchoredRanger, RoadCamera
 from exopilot.tools.sim_bridge import Actor, Pose, ground_truth_detections, project_box, range_from_box
 
 EGO = Pose(0.0, 0.0, 25.0)
@@ -14,7 +14,7 @@ def test_box_projection_round_trips_through_the_flat_ground_ranging():
       assert abs(rx - x) < 1e-6 and abs(ry - y) < 1e-6
 
 
-def test_ngp_ranger_recovers_the_true_range_from_a_simulated_box():
+def test_ranger_recovers_the_true_range_from_a_simulated_box():
   r = LeadAnchoredRanger(RoadCamera())
   for x in (15.0, 40.0, 90.0):
     u, v, w, h = project_box('car', x, 1.5)

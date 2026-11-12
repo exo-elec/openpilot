@@ -83,7 +83,7 @@ class Car:
 
     is_release = self.params.get_bool("IsReleaseBranch")
 
-    selected = vehicle_override(self.params.get("ngp_device_vehicle_selected"), interfaces)
+    selected = vehicle_override(self.params.get("DeviceModelSelected"), interfaces)
     if selected:
       os.environ["FINGERPRINT"] = selected
 

@@ -13,15 +13,15 @@ import math
 import random
 from dataclasses import dataclass
 
-from exopilot.controls.ngp_arbiter import Proposal, arbitrate
-from exopilot.controls.ngp_cutin_speed import CutInSpeed, Obj
-from exopilot.controls.ngp_path_selector import PathSelector, PObj, build_profile
-from exopilot.controls.ngp_pathd_consumer import PathAdjustFollower, speed_cap
-from exopilot.controls.ngp_cutin_speed import PlannedPath
-from exopilot.controls.ngp_rule_planner import RulePlanner
+from exopilot.controls.arbiter import Proposal, arbitrate
+from exopilot.controls.cutin_speed import CutInSpeed, Obj
+from exopilot.controls.path_selector import PathSelector, PObj, build_profile
+from exopilot.controls.pathd_consumer import PathAdjustFollower, speed_cap
+from exopilot.controls.cutin_speed import PlannedPath
+from exopilot.controls.rule_planner import RulePlanner
 from exopilot.runtime.nudge_extras import NudgeExtras
 from exopilot.runtime.pathd import merge_extras
-from exopilot.controls.ngp_path_selector import Selection
+from exopilot.controls.path_selector import Selection
 from exopilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer
 from types import SimpleNamespace as NS
 
@@ -62,7 +62,7 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
   follower = PathAdjustFollower()
   target_off = 0.0
   channel, consumer = RuleChannel(), RuleChannelConsumer()
-  nudges = NudgeExtras(legacy_scale_bug=(controller == 'eop_legacy'))
+  nudges = NudgeExtras(legacy_scale_bug=(controller == 'nudges_legacy'))
   last_pobjs: list = []
   stale_t = 0.0
   modes: dict[int, int] = {}
@@ -97,7 +97,7 @@ def run(actors: list[Actor], set_speed: float = 25.0, layer: bool = True, second
       room_l = max(LANE_HALF - ey - 0.95 - 0.15, 0.0)
       room_r = max(LANE_HALF + ey - 0.95 - 0.15, 0.0)
       rule_cmd = rule.plan(ev, set_speed, PlannedPath([0.0, 100.0], [-ey, -ey]), room_l, room_r, pobjs)
-    elif controller in ('eop', 'eop_legacy'):
+    elif controller in ('eop', 'nudges_legacy'):
       pobjs = []
       for i, a in enumerate(actors):
         if dropped:

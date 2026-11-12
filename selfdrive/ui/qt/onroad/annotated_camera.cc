@@ -130,8 +130,8 @@ void AnnotatedCameraWidget::paintGL() {
 
   model.draw(painter, rect());
   hud.updateState(*s);
-  bool hide_hud = s->scene.ngp_hide_hud_speed_kph > 0 &&
-                  sm["carState"].getCarState().getVEgo() * 3.6 > s->scene.ngp_hide_hud_speed_kph;
+  bool hide_hud = s->scene.hide_hud_speed_kph > 0 &&
+                  sm["carState"].getCarState().getVEgo() * 3.6 > s->scene.hide_hud_speed_kph;
   if (!hide_hud) hud.draw(painter, rect());
 
   double cur_draw_t = millis_since_boot();

@@ -68,9 +68,9 @@ On NGP10 that adapter must supply:
 | T16.1 warp source | ☑ spike below; implemented as `exopilot/runtime/bigmodel_warp.py` |
 | T16.3 modeld | ☑ hook (+12 lines, budgeted) over `exopilot/runtime/bigmodel.py`: facade between modeld and Jetlink's joining model, `action_t`, `prepare_only`, `modelV2.big`, handover reset |
 | T16.4 cereal | ☑ `bigModelLoading @100`, `bigModelFailed @102` (renamed placeholders), `ModelDataV2.big @27` |
-| T16.5 selfdrived | ☑ `ngp_bigmodel_gate.py`: loading blocks entry; failure announces once and soft-disables only if it was driving while engaged; latch clears on disengage |
+| T16.5 selfdrived | ☑ `bigmodel_gate.py`: loading blocks entry; failure announces once and soft-disables only if it was driving while engaged; latch clears on disengage |
 | T16.6 adapter | ☑ `jetlink_adapter.py` passes Jetlink's `conformance()` and uses Jetlink's optional `warp_source` seam; the Jetlink changes are on `exo-elec/jetlink` branch `static-role-platform` and `jetlink_repo` is pinned to `37e89e32` (see `DEPENDENCY_POLICY.md`) |
-| T16.7 setting | ☑ `ngp_bigmodel_link` INT (0 off, 1 USB/Android, 2 iOS) + Jetlink's JSON keys; manager starts `jetlinkd` (TICI only). No UI toggle yet |
+| T16.7 setting | ☑ `BigModelLink` INT (0 off, 1 USB/Android, 2 iOS) + Jetlink's JSON keys; manager starts `jetlinkd` (TICI only). No UI toggle yet |
 | T16.8 footprint | ☑ budget raised by name (events +9, selfdrived +4, modeld +12) |
 | T16.2, T16.9 device | ☐ needs a comma 3X |
 
@@ -80,12 +80,12 @@ On NGP10 that adapter must supply:
   upstream's big model ([`BIGMODEL_PARITY.md`](BIGMODEL_PARITY.md)): fail, fall back to the small model, never switch back onroad.
   Jetlink's own late join and rejoin is the `JETLINK` policy in `bigmodel.py`, not the default.
 - **Settling window: 5 s** after a load ends and after a failure, as upstream's `big_model_settling`: `commIssue`, the
-  localizer checks and `frameDropPerc` are suppressed (`NGPBigModelGate.settling()`; see [`BIGMODEL_PARITY.md`](BIGMODEL_PARITY.md) row 13).
+  localizer checks and `frameDropPerc` are suppressed (`BigModelGate.settling()`; see [`BIGMODEL_PARITY.md`](BIGMODEL_PARITY.md) row 13).
 - **Dropped camera frames while the big model drives still run it**, as upstream does (it has no `prepare_only`):
   the server's history advances once per frame sent, and skipping one would lose a second frame and leave a
   hand-back one short. On the small model a dropped frame stays prepare-only.
 - **`action_t` is built the way upstream builds it** from the raw lateral delay and the longitudinal actuator
-  delay plus the *big* model's smoothing (`ngp_bigmodel_action.action_times`), not modeld's small-model values,
+  delay plus the *big* model's smoothing (`bigmodel_action.action_times`), not modeld's small-model values,
   because the model is conditioned on it.
 - **`in_control()` fails towards "in control"**: until `carControl` and `selfdriveState` have both been seen and are
   alive it says True, so a swap never lands on a frame nobody can vouch for.

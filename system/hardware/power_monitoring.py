@@ -112,7 +112,7 @@ class PowerMonitoring:
 
     now = time.monotonic()
     offroad_time = now - offroad_timestamp
-    should_shutdown = custom_shutdown_due(self.params.get("ngp_device_shutdown_minutes"), offroad_time, ignition,
+    should_shutdown = custom_shutdown_due(self.params.get("OffroadShutdownMinutes"), offroad_time, ignition,
                                           in_car, self.params.get_bool("DisablePowerDown"), started_seen)
     low_voltage_shutdown = (self.car_voltage_mV < (VBATT_PAUSE_CHARGING * 1e3) and
                             offroad_time > VOLTAGE_SHUTDOWN_MIN_OFFROAD_TIME_S)

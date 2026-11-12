@@ -116,7 +116,7 @@ def manager_thread() -> None:
   params = Params()
   from opendbc.car.car_helpers import interfaces
   import json
-  params.put("ngp_device_vehicle_list", json.dumps(sorted(interfaces)))
+  params.put("VehicleModelList", json.dumps(sorted(interfaces)))
 
   ignore: list[str] = []
   if params.get("DongleId") in (None, UNREGISTERED_DONGLE_ID):
@@ -157,7 +157,7 @@ def manager_thread() -> None:
     started_prev = started
     ignition_prev = ignition
 
-    delayed = recording_delay.blocked(started, time.monotonic(), params.get("ngp_device_logger_delay_seconds"))
+    delayed = recording_delay.blocked(started, time.monotonic(), params.get("LoggerStartDelay"))
     ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore + delayed)
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)

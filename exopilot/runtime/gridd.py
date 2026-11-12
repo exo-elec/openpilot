@@ -9,7 +9,7 @@ Reads monod's untracked `monoDetections` and publishes the same fused-object mes
 (`stereoObjects`: dRel/yRel left positive, `vRel`, `vyRel`, class, probability, a stable track id) so pathd reads one
 interface everywhere. It runs the shared Kalman tracker (`CameraTrackAnnotator`) and publishes only CONFIRMED tracks. If
 monod goes stale it publishes nothing, so a missing detector is never mistaken for an empty road. Process name `gridd`; runs with
-monod (`ngp_monod_enabled`).
+monod (`MonoDEnabled`).
 """
 import math
 import time

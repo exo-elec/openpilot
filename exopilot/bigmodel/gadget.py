@@ -1,6 +1,6 @@
 """bigmodeld: hold the comma's USB-C port as a network gadget for the phone while the link is on.
 
-The root work is `scripts/ngp-bigmodel-root.sh` under `sudo -n`; this is the policy around it. The owner does nothing while
+The root work is `scripts/bigmodel-root.sh` under `sudo -n`; this is the policy around it. The owner does nothing while
 the setting is off, and otherwise keeps the gadget created,
 bound and addressed, redoing whichever step is missing: the netdev only appears after the bind, and a replugged phone
 can make the kernel rebuild it. Standard library only: manager runs this as a resident process.
@@ -18,7 +18,7 @@ from exopilot.runtime import bigmodel_platform as platform
 
 log = logging.getLogger('exopilot.bigmodel.gadget')
 
-SCRIPT = Path(__file__).resolve().parent / 'scripts' / 'ngp-bigmodel-root.sh'
+SCRIPT = Path(__file__).resolve().parent / 'scripts' / 'bigmodel-root.sh'
 TIMEOUT = 30.0
 PERIOD = 2.0
 NET_STATUS = Path('/dev/shm/ngp-bigmodel-net')
@@ -54,7 +54,7 @@ def net_ok(path: Path = NET_STATUS) -> bool:
     return False
 
 
-# ngp_bigmodel_link: 2 iPhone (the comma is the USB device, NCM), 1 Android (bulk interface), 3 tethering (the comma is the host)
+# BigModelLink: 2 iPhone (the comma is the USB device, NCM), 1 Android (bulk interface), 3 tethering (the comma is the host)
 NETWORK, BULK, TETHER = 2, 1, 3
 
 

@@ -1,4 +1,4 @@
-from exopilot.controls.ngp_bigmodel_status import MODEL_ERROR, NOT_DETECTED, USB_SLOW
+from exopilot.controls.bigmodel_status import MODEL_ERROR, NOT_DETECTED, USB_SLOW
 from exopilot.runtime import bigmodel_platform as platform
 from exopilot.runtime.bigmodel_link import PhoneLinkMonitor, cable_connected, udc_speed_mbps
 

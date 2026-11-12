@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from exopilot.controls.ngp_tja import TrafficJamAssist
+from exopilot.controls.tja import TrafficJamAssist
 
 
 def lead(d_rel=12.0, v_rel=0.0, model_prob=0.95, track_id=1, status=True):

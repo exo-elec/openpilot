@@ -5,7 +5,7 @@ import pytest
 
 from exopilot.runtime import bigmodel_platform as platform
 from exopilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, ONE_WAY, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
-                                         NgpSmallModel)
+                                         LocalModel)
 from exopilot.runtime.bigmodel_link import cable_connected, host_enumerated
 
 LOADING, ACTIVE = platform.LOADING, platform.ACTIVE
@@ -66,7 +66,7 @@ class FakeJoining:
 
 def make(policy=LATE_JOIN):
   inner = FakeInner()
-  small = NgpSmallModel(inner)
+  small = LocalModel(inner)
   joining = FakeJoining(small)
   params = FakeParams()
   facade = BigModelFacade(joining, small, params, lambda *a: 'small-action', policy=policy)
@@ -76,7 +76,7 @@ def make(policy=LATE_JOIN):
 
 def test_the_small_model_shim_maps_run_and_calls_after_enqueue():
   inner = FakeInner()
-  small = NgpSmallModel(inner)
+  small = LocalModel(inner)
   called = []
   assert small.run({}, {}, {}, lambda: called.append(1), True) == {'small': True}
   assert inner.runs == [True] and called == [1]
@@ -252,7 +252,7 @@ def test_a_swap_and_a_handback_through_the_real_joining_model(monkeypatch):
 
   big = Big()
   inner = FakeInner()
-  shim = NgpSmallModel(inner)
+  shim = LocalModel(inner)
   in_control = [True]
   joined = threading.Event()
 
@@ -341,7 +341,7 @@ class Clock:
 
 def one_way(cable=True, enumerated=True, runnable=True):
   inner = FakeInner()
-  small = NgpSmallModel(inner)
+  small = LocalModel(inner)
   joining = FakeJoining(small)
   params = FakeParams()
   clock = Clock()
@@ -493,7 +493,7 @@ def test_one_way_policy_through_the_real_joining_model_a_hand_back_is_not_follow
 
   big = Big()
   inner = FakeInner()
-  shim = NgpSmallModel(inner)
+  shim = LocalModel(inner)
   connects = []
   joined = threading.Event()
 

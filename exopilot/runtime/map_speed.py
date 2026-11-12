@@ -1,8 +1,8 @@
 """One speed-cap adapter for the map-, light- and distraction-based controllers (MTSC, MSLC, TLSC, DDSC, RCD).
 
 The planner calls `update` once per cycle and takes `min(v_cruise, cap)`: these controllers only ever LOWER the cruise speed, so
-the speed the driver set is never exceeded. Per-controller switches (default off): `EOPMTSCEnabled`, `EOPMSLCEnabled`,
-`EOPTLSCEnabled`, `EOPDDSCEnabled`, `EOPRCDEnabled`; MSLC per-range offsets `EOPSharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
+the speed the driver set is never exceeded. Per-controller switches (default off): `MTSCEnabled`, `MSLCEnabled`,
+`TLSCEnabled`, `DDSCEnabled`, `RCDEnabled`; MSLC per-range offsets `SharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
 
 Two fixes over EOP10's inline planner code:
   - EOP10 reset the MTSC/MSLC target every cycle and set it only on the cycle a `mapData` message arrived (1 Hz): the cap existed for
@@ -18,12 +18,12 @@ import time
 from dataclasses import dataclass
 from types import SimpleNamespace as NS
 
-from exopilot.controls.eop_curve_speed import blend_mtsc_vtsc
+from exopilot.controls.curve_speed import blend_mtsc_vtsc
 from exopilot.runtime.feature_keys import EOP_MAP_KEYS
-from exopilot.controls.eop_ddsc import DMS_BASE_LIMIT_MPS, DDSC
-from exopilot.controls.eop_mslc import MSLC
-from exopilot.controls.eop_mtsc import MTSC
-from exopilot.controls.eop_tlsc import TLSC
+from exopilot.controls.ddsc import DMS_BASE_LIMIT_MPS, DDSC
+from exopilot.controls.mslc import MSLC
+from exopilot.controls.mtsc import MTSC
+from exopilot.controls.tlsc import TLSC
 from exopilot.runtime.cutin_adapter import cutin_path
 from exopilot.runtime.rcd import RCDRuntime
 

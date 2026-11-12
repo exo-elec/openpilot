@@ -7,15 +7,15 @@ stable when a release advances from 10 to a later version.
 | Line | Branch/release label | Implementation prefix | Example |
 | --- | --- | --- | --- |
 | dragonpilot / EDP | `dev/EDP10` | `dp_` | `dp_lat_alka` |
-| ExoPilot (comma 3) | `dev/NGP10` | `ngp_` | `ngp_speed_policy.py` |
-| EnhancedOpenPilot | `dev/EOP10` | `eop_` | `eop_settings_backup.py` |
+| ExoPilot (comma 3) | `dev/NGP10` | `ngp_` | `speed_policy.py` |
+| EnhancedOpenPilot | `dev/EOP10` | `eop_` | `settings_backup.py` |
 
 Python classes use the corresponding stable uppercase product prefix where a
-prefix is needed, for example `NGPDLAT` and `NGPALCC`, never
+prefix is needed, for example `DLAT` and `ALCC`, never
 `NGP10Capabilities` or `NGP10DLAT`. NGP-owned policy modules live in
-`exopilot/controls/` and retain names such as `ngp_tja.py`. Upstream runtime
+`exopilot/controls/` and retain names such as `tja.py`. Upstream runtime
 files contain only integration hooks. Cereal fields use normal lower-camel
-names such as `ngpDlonMode`.
+names such as `dlonMode`.
 
 The EDP branch intentionally retains dragonpilot's established `dp_` names.
 Renaming those persisted parameters to `edp_` would break existing device

@@ -8,10 +8,10 @@ Read from our own code first; the other forks were only the starting idea (see `
 
 | Knob | Where it is read | How often | Effect |
 |---|---|---|---|
-| Acceleration profile `ngp_lon_accel_profile` (normal / eco / sport) | `longitudinal_params.load_accel_profile` → `get_max_accel` | every 2 s | ceiling on commanded acceleration by speed |
+| Acceleration profile `AccelerationProfile` (normal / eco / sport) | `longitudinal_params.load_accel_profile` → `get_max_accel` | every 2 s | ceiling on commanded acceleration by speed |
 | Personality `LongitudinalPersonality` (aggressive / standard / relaxed) | `selfdrived.params_thread`, every 0.1 s; also the steering-wheel distance button cycles it | 0.1 s | follow time gap (`get_T_FOLLOW`) and jerk factor (`get_jerk_factor`) |
-| Adaptive following gap `ngp_lon_adaptive_gap` | `longitudinal_params.load_adaptive_gap_enabled` | every 2 s | shrinks/grows the gap from the lead's motion |
-| Speed offset `ngp_lon_speed_offset_kph` | `plannerd`, once at start | start only | constant offset on the set speed |
+| Adaptive following gap `AdaptiveGapEnabled` | `longitudinal_params.load_adaptive_gap_enabled` | every 2 s | shrinks/grows the gap from the lead's motion |
+| Speed offset `SpeedLimitOffset` | `plannerd`, once at start | start only | constant offset on the set speed |
 
 So all three style knobs are already live-readable: a bundle only has to write them, with no restart and a worst-case 2 s delay.
 Speed offset is read once and is a speed choice, not a style, so it stays out of the bundle.
@@ -46,12 +46,12 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
 
 ### Design chosen
 
-- Pure `exopilot/controls/ngp_drive_mode.py`: presets and `detect(...)`; no Params access.
+- Pure `exopilot/controls/drive_mode.py`: presets and `detect(...)`; no Params access.
   - eco: profile eco, relaxed, adaptive gap off
   - normal: profile normal, standard, adaptive gap off
   - sport: profile sport, aggressive, adaptive gap off (adaptive gap stays an explicit opt-in)
 - `exopilot/runtime/drive_mode.py`: applies a preset by writing the three params, only when the mode param changes.
-- One hook in `plannerd` (NGP10) that calls the applier in its loop. Param `ngp_lon_drive_mode` (`custom` default). ExoPilot
+- One hook in `plannerd` (NGP10) that calls the applier in its loop. Param `DriveMode` (`custom` default). ExoPilot
   uses its own keys (`EOPAccelerationProfile`, `EOPAdaptiveGapEnabled`) through the same pure presets.
 
 ## 2. Lane turn desire
@@ -72,8 +72,8 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
 
 ### Decision
 
-- NGP10 gets a stricter, opt-in version (`ngp_turn_desire.py`): exactly one signal, lateral active, no lane change running, speed
-  between 2 m/s and a driver-chosen ceiling; `ngp_lat_turn_desire_mph` = 0 (off) by default.
+- NGP10 gets a stricter, opt-in version (`turn_desire.py`): exactly one signal, lateral active, no lane change running, speed
+  between 2 m/s and a driver-chosen ceiling; `TurnDesireSpeed` = 0 (off) by default.
 - EOP10 keeps its existing always-on behaviour untouched. It is *not* refactored onto the NGP10 core: the two differ on purpose
   (EOP does not require lateral active), and changing an always-on path without a replay is the wrong trade. The README therefore marks
   the feature "basic, optional" on NGP10 and "always on" on EOP10, not "extended".

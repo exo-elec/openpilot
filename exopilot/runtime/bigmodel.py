@@ -10,7 +10,7 @@ model. exopilot.bigmodel.joining does the join, swap, hold and hand-back; this a
   frame it is sent, and skipping one would cost a second frame and leave a hand-back one short.
 - NGP10's inputs have no `action_t`; the facade builds it as upstream does from the lateral delay and the
   longitudinal actuator delay (the big model's smoothing, not the small model's), which modeld hands over.
-- ngp_bigmodel_loading / ngp_bigmodel_active for selfdrived (ngp_bigmodel_gate.py), as upstream's selfdrived reads for its big model:
+- BigModelLoading / BigModelActive for selfdrived (bigmodel_gate.py), as upstream's selfdrived reads for its big model:
   loading while a big model is expected and not yet driving or still proving itself,
   active true while it drives and false once it failed or handed back.
 - The default policy (ONE_WAY) reproduces upstream's big-model behaviour (a one-way fallback), with the phone as the compute: if the
@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass
 import numpy as np
 
-from exopilot.controls.ngp_bigmodel_action import action_times
+from exopilot.controls.bigmodel_action import action_times
 from exopilot.runtime import bigmodel_platform as platform
 from exopilot.runtime.bigmodel_link import UDC_ROOT, cable_connected, host_enumerated  # noqa: F401 (re-exported probes)
 
@@ -48,7 +48,7 @@ ONE_WAY = BigModelPolicy(window_s=BIG_MODEL_TIMEOUT, one_way=True, late_join=Fal
 LATE_JOIN = BigModelPolicy(window_s=0.0, one_way=False, late_join=True)
 
 
-class NgpSmallModel:
+class LocalModel:
   """NGP10's ModelState as the joining model drives its small model: the attributes it reads and writes, and run() with
   after_enqueue."""
 
@@ -148,7 +148,7 @@ class BigModelFacade:
   def close(self) -> None:
     self._joining.close()
 
-  # -- ngp_bigmodel_loading / ngp_bigmodel_active
+  # -- BigModelLoading / BigModelActive
   def _give_up(self) -> None:
     """Stop joining: the big model will not be used again this drive (upstream never switches back onroad)."""
     if not self._given_up:
@@ -279,7 +279,7 @@ class BigModelHook:
       return small_model
     from openpilot.common.swaglog import cloudlog
     try:
-      shim = NgpSmallModel(small_model)
+      shim = LocalModel(small_model)
       joining = self._joining(shim)
     except Exception:
       cloudlog.exception("bigmodel: did not attach, staying on the small model")
@@ -293,7 +293,7 @@ class BigModelHook:
     from exopilot.bigmodel import protocol as P
     from exopilot.bigmodel.remote_state import RemoteModelState, RemoteSpecModelState
     from exopilot.runtime.bigmodel_face import make_action_function
-    from exopilot.runtime.bigmodel_warp import NgpWarp, reset_function
+    from exopilot.runtime.bigmodel_warp import ModelWarp, reset_function
     from openpilot.common.swaglog import cloudlog
     contract, listener, allow = self.contract, self.listener, self.allow
     action = make_action_function(self.fallback_action)
@@ -320,9 +320,9 @@ class BigModelHook:
     def build(client, info):
       from openpilot.selfdrive.modeld.parse_model_outputs import Parser
       if info.spec is not None:
-        return RemoteSpecModelState(client, info, NgpWarp(shim.frames), parse=Parser().parse_outputs, get_action_from_model=action,
+        return RemoteSpecModelState(client, info, ModelWarp(shim.frames), parse=Parser().parse_outputs, get_action_from_model=action,
                                     log=cloudlog)
-      return RemoteModelState(client, info, NgpWarp(shim.frames), parser=Parser(), vision_slices=contract.vision_slices,
+      return RemoteModelState(client, info, ModelWarp(shim.frames), parser=Parser(), vision_slices=contract.vision_slices,
                               policy_slices=contract.policy_slices, get_action_from_model=action, log=cloudlog)
 
     return Joining(shim, connect, build, reset_function(shim), log=cloudlog, in_control=InControl())

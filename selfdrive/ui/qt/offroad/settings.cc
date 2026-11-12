@@ -15,7 +15,7 @@
 #include "selfdrive/ui/qt/widgets/scrollview.h"
 #include "selfdrive/ui/qt/offroad/developer_panel.h"
 #include "selfdrive/ui/qt/offroad/firehose.h"
-#include "selfdrive/ui/qt/offroad/ngp_panel.h"
+#include "selfdrive/ui/qt/offroad/features_panel.h"
 
 TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   // param, title, desc, icon, restart needed
@@ -456,7 +456,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Software"), new SoftwarePanel(this)},
     {tr("Firehose"), new FirehosePanel(this)},
     {tr("Developer"), new DeveloperPanel(this)},
-    {"NGP", new NGPPanel(this)},
+    {"NGP", new FeaturesPanel(this)},
   };
 
   nav_btns = new QButtonGroup(this);

@@ -1,18 +1,18 @@
-"""RCD adapter: reads the surface source out of the SubMaster-like `sm` and feeds the pure core (controls/eop_rcd.py).
+"""RCD adapter: reads the surface source out of the SubMaster-like `sm` and feeds the pure core (controls/rcd.py).
 
 Sources, in EOP10's priority order: `surfaceStatus` (surfaced's roughness score), then `monoSegments` (the camera-tier card's road/edge/drivable hint).
 Both exist only on EOP hardware; where the service is not in this branch's SERVICE_LIST (NGP10) there is no source and RCD reports "No data source".
-Switch: `enabled_key` param (NGP10: `ngp_lon_rcd`; EOP10's shim passes `EOPRCDEnabled` and legacy_filter_bug=True), re-read every 5 s.
+Switch: `enabled_key` param (NGP10: `RCDEnabled`; EOP10's shim passes `RCDEnabled` and legacy_filter_bug=True), re-read every 5 s.
 """
 import time
 
-from exopilot.controls.eop_rcd import RCD, RCDState, RoadCondition, from_segmentation, from_surface_score
+from exopilot.controls.rcd import RCD, RCDState, RoadCondition, from_segmentation, from_surface_score
 
 PARAM_REFRESH_S = 5.0
 
 
 class RCDRuntime:
-  def __init__(self, get_bool=None, enabled_key: str = "EOPRCDEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
+  def __init__(self, get_bool=None, enabled_key: str = "RCDEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
     self._get_bool, self._key, self._clock = get_bool or (lambda k: False), enabled_key, clock
     self.core = RCD(legacy_filter_bug=legacy_filter_bug)
     self._t = -1e9

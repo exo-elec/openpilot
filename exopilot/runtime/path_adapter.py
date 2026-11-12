@@ -1,5 +1,5 @@
-"""monoDetections / modelV2 -> inputs for the path selector (adapter; policy in exopilot/controls/ngp_path_selector.py)."""
-from exopilot.controls.ngp_path_selector import PObj
+"""monoDetections / modelV2 -> inputs for the path selector (adapter; policy in exopilot/controls/path_selector.py)."""
+from exopilot.controls.path_selector import PObj
 
 EGO_HALF_WIDTH_M = 0.95
 LINE_MARGIN_M = 0.15       # keep the tyre this far inside the lane line

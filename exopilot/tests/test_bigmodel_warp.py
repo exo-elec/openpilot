@@ -1,7 +1,7 @@
 import numpy as np
 
-from exopilot.controls.ngp_bigmodel_frames import FRAME_BYTES
-from exopilot.runtime.bigmodel_warp import NgpWarp, reset_function
+from exopilot.controls.bigmodel_frames import FRAME_BYTES
+from exopilot.runtime.bigmodel_warp import ModelWarp, reset_function
 
 
 class FakeFrame:
@@ -32,7 +32,7 @@ def small_model():
 
 def test_the_output_is_the_newest_frame_of_each_camera_narrow_then_wide():
   m = small_model()
-  warp = NgpWarp(m.frames)
+  warp = ModelWarp(m.frames)
   bufs = {'img': 'main', 'big_img': 'extra'}
   tfm = {'img': np.eye(3, dtype=np.float64), 'big_img': 2 * np.eye(3)}
   warp.start_buffers(bufs, tfm)
@@ -48,7 +48,7 @@ def test_the_output_is_the_newest_frame_of_each_camera_narrow_then_wide():
 
 def test_the_output_is_a_stable_view_that_follows_the_next_frame():
   m = small_model()
-  warp = NgpWarp(m.frames)
+  warp = ModelWarp(m.frames)
   view = warp.output
   warp.start_buffers({'img': 0, 'big_img': 0}, {'img': np.eye(3), 'big_img': np.eye(3)})
   m.frames['img'].newest = 9

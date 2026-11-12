@@ -29,8 +29,8 @@ from openpilot.common.swaglog import cloudlog
 _PERSONALITY_NAME_MAP = {v: k for k, v in log.LongitudinalPersonality.schema.enumerants.items()}
 
 
-def _ngp_key(suffix: str) -> str:
-    """TotalDistance -> ngp_trip_total_distance."""
+def _key(suffix: str) -> str:
+    """TotalDistance -> TripTotalDistance."""
     return "ngp_trip_" + re.sub(r"(?<!^)(?=[A-Z])", "_", suffix).lower()
 
 
@@ -162,9 +162,9 @@ class TripD:
     SAVE_INTERVAL = 5.0  # seconds
 
     def __init__(self, keys=None):
-        """`keys(suffix) -> param name` maps a stat to its param: `ngp_trip_total_distance` by default, EOP10's shim passes
+        """`keys(suffix) -> param name` maps a stat to its param: `TripTotalDistance` by default, EOP10's shim passes
         `EOPTrip<Suffix>` so its UI keeps reading the same keys."""
-        self._key_fn = keys or _ngp_key
+        self._key_fn = keys or _key
         self.params = Params()
 
         # Messaging

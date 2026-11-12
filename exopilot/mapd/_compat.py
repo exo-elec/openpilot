@@ -13,7 +13,7 @@ def data_root() -> str:
   try:
     from openpilot.system.hardware.hw import Paths
     try:
-      return str(Paths.eop_data_root())
+      return str(Paths.data_root())
     except AttributeError:
       return str(Paths.comma_home())
   except Exception:

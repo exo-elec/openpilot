@@ -124,7 +124,7 @@ class UIState:
       ss = self.sm["selfdriveState"]
       state = ss.state
 
-      if self.sm["controlsState"].ngpAlccActive and not ss.enabled:
+      if self.sm["controlsState"].alccActive and not ss.enabled:
         self.status = UIStatus.ALCC
       elif state in (log.SelfdriveState.OpenpilotState.preEnabled, log.SelfdriveState.OpenpilotState.overriding):
         self.status = UIStatus.OVERRIDE

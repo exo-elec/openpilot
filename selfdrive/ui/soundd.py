@@ -111,7 +111,7 @@ class Soundd:
     from exopilot.runtime.device_policy import audible_alert
     now = time.monotonic()
     if now - self.settings_updated >= 1.0:
-      self.audible_mode = self.params.get("ngp_device_audible_mode")
+      self.audible_mode = self.params.get("AlertSoundMode")
       self.settings_updated = now
     mode = self.audible_mode
     names = {AudibleAlert.engage: 'engage', AudibleAlert.disengage: 'disengage'}

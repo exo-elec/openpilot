@@ -16,7 +16,7 @@ refresh();setInterval(refresh,2000)</script></html>'''
 def snapshot(params):
   # Only non-sensitive data is exposed. Never serialize all Params.
   result = {'onroad': params.get_bool('IsOnroad')}
-  for name in ('ngp_trip_total_distance', 'ngp_trip_total_drives', 'ngp_trip_last_distance', 'ngp_trip_last_duration'):
+  for name in ('TripTotalDistance', 'TripTotalDrives', 'TripLastDistance', 'TripLastDuration'):
     value = params.get(name)
     if isinstance(value, bytes):
       value = value.decode('utf-8', errors='replace')

@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.ngp_path_selector import PObj
+from exopilot.controls.path_selector import PObj
 from exopilot.runtime.nudge_extras import NudgeExtras, boundaries_from_model
 from exopilot.runtime.pathd import Extras
 

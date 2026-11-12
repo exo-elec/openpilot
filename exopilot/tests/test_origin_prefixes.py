@@ -7,7 +7,7 @@ EOP_PORTS = ('lat_nudge', 'lon_nudge', 'predict', 'speed_reduction', 'mtsc', 'ms
 
 
 @pytest.mark.parametrize('feature', EOP_PORTS)
-def test_eop_origin_legacy_import_is_the_same_canonical_module(feature):
+def test_origin_legacy_import_is_the_same_canonical_module(feature):
   canonical = importlib.import_module(f'exopilot.controls.eop_{feature}')
   legacy = importlib.import_module(f'exopilot.controls.ngp_{feature}')
   assert canonical is legacy
@@ -42,15 +42,15 @@ def test_saved_legacy_values_survive_but_canonical_off_has_priority(canonical, l
   assert not adapter.get_bool(canonical)
 
 
-def test_ngp_origin_switches_are_not_remapped():
-  adapter = OriginParams(Params({'ngp_lat_alcc': b'1', 'ngp_lon_brsc': b'0'}))
-  assert adapter.get_bool('ngp_lat_alcc')
-  assert not adapter.get_bool('ngp_lon_brsc')
+def test_origin_switches_are_not_remapped():
+  adapter = OriginParams(Params({'LatALCC': b'1', 'BRSCEnabled': b'0'}))
+  assert adapter.get_bool('LatALCC')
+  assert not adapter.get_bool('BRSCEnabled')
 
 
 def test_saved_offset_bytes_are_decoded_before_map_configuration():
-  adapter = OriginParams(Params({'ngp_lon_slc_offsets': b'5,5,5,5,5,5,5'}))
-  assert adapter.get_text('EOPSharedSLCOffsets') == '5,5,5,5,5,5,5'
+  adapter = OriginParams(Params({'SharedSLCOffsets': b'5,5,5,5,5,5,5'}))
+  assert adapter.get_text('SharedSLCOffsets') == '5,5,5,5,5,5,5'
   from exopilot.runtime.map_speed import MapSpeed
   controller = MapSpeed(adapter.get_bool, adapter.get_text)
   controller._refresh_config(100.0)

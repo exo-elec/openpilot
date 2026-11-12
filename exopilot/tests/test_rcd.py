@@ -1,12 +1,12 @@
-"""RCD port: reproduces EOP10's original rcd.py (eop_golden_rcd.json, recorded 2026-10-04 from the built clone) in legacy mode; the fix is separate."""
+"""RCD port: reproduces EOP10's original rcd.py (golden_rcd.json, recorded 2026-10-04 from the built clone) in legacy mode; the fix is separate."""
 import json
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from exopilot.controls.eop_rcd import RCD, RoadCondition, classify_metrics
+from exopilot.controls.rcd import RCD, RoadCondition, classify_metrics
 from exopilot.runtime.rcd import RCDRuntime
 
-G = json.loads((Path(__file__).parent / 'eop_golden_rcd.json').read_text())
+G = json.loads((Path(__file__).parent / 'golden_rcd.json').read_text())
 
 
 class SM(dict):

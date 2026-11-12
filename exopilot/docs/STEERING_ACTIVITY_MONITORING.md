@@ -21,7 +21,7 @@ camera monitoring producer while retaining the control interface:
 - Disengaging restores awareness. Standstill holds awareness. Changing speed
   bands or policy preserves accumulated decay, including a critical warning.
 
-The setting is `ngp_dm_policy` on every descendant because its origin is NGP.
+The setting is `DriverActivityPolicy` on every descendant because its origin is NGP.
 The daemon refreshes it once per second without restarting or resetting the
 driver's awareness. There is no monitoring-off setting.
 

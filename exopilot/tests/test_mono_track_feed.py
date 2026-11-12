@@ -18,7 +18,7 @@ def det(x, y, name='car', conf=0.9, tid=1):
 def test_velocity_comes_from_positions_and_objects_feed_the_cores():
   clk = Clock()
   f = MonoTrackFeed(clk)
-  from exopilot.controls.ngp_cutin_speed import evaluate
+  from exopilot.controls.cutin_speed import evaluate
   mid = None
   for i in range(30):
     clk.t += 0.1

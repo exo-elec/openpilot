@@ -1,7 +1,7 @@
 from types import SimpleNamespace as NS
 
 import cereal.messaging as messaging
-from exopilot.controls.ngp_driver_activity import CRITICAL, OK, PROMPT, SOFT
+from exopilot.controls.driver_activity import CRITICAL, OK, PROMPT, SOFT
 from exopilot.runtime.driver_activityd import DriverActivityD, driver_engaged, state_msg
 
 

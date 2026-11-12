@@ -3,7 +3,7 @@
 NPBM and this package are NavPilot's own protocol and code. They follow the design lessons, constants and test ideas of
 [Jetlink](https://github.com/zoompilot/jetlink) (MIT, Copyright (c) 2026 Zeph Leggett), which this project studied while the link was
 being designed, and some behaviour is adapted from it: the held-frame and hand-back rules (`remote_state.py`, `joining.py`), the bulk
-framing padding rules (`framing.py`), the FunctionFS descriptor layout and hazard list (`ffs.py`, `scripts/ngp-bigmodel-root.sh`),
+framing padding rules (`framing.py`), the FunctionFS descriptor layout and hazard list (`ffs.py`, `scripts/bigmodel-root.sh`),
 and the swap-while-not-in-control and small-model-warm-up rules. Where code from Jetlink is copied or closely adapted, keep this notice.
 Jetlink's licence follows.
 

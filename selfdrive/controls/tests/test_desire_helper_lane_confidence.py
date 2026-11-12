@@ -128,16 +128,16 @@ def _start(dh, model):
 
 def test_gap_guard_blocks_only_when_enabled():
   closing_left = _model(lead_y=-3.0)  # right-positive model frame: left lane
-  assert _start(DesireHelper(ngp_lca_gap_eval=True), closing_left) == LaneChangeState.preLaneChange
+  assert _start(DesireHelper(lca_gap_eval=True), closing_left) == LaneChangeState.preLaneChange
   assert _start(DesireHelper(), closing_left) == LaneChangeState.laneChangeStarting
-  assert _start(DesireHelper(ngp_lca_gap_eval=True), _model()) == LaneChangeState.laneChangeStarting
-  assert _start(DesireHelper(ngp_lca_gap_eval=True), None) == LaneChangeState.laneChangeStarting
+  assert _start(DesireHelper(lca_gap_eval=True), _model()) == LaneChangeState.laneChangeStarting
+  assert _start(DesireHelper(lca_gap_eval=True), None) == LaneChangeState.laneChangeStarting
 
 
 def test_lane_width_guard_blocks_shoulder_only_when_enabled():
   shoulder = _model()
   shoulder.roadEdges = [_line(-2.4), _line(2.4)]
-  assert _start(DesireHelper(ngp_lca_lane_width=True), shoulder) == LaneChangeState.preLaneChange
+  assert _start(DesireHelper(lca_lane_width=True), shoulder) == LaneChangeState.preLaneChange
   assert _start(DesireHelper(), shoulder) == LaneChangeState.laneChangeStarting
 
 
@@ -146,16 +146,16 @@ def test_turn_desire_is_off_by_default_and_follows_the_signal_when_enabled():
   dh = DesireHelper()
   dh.update(cs, lateral_active=True, lane_change_prob=0.0)
   assert dh.desire == Desire.none
-  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh = DesireHelper(turn_desire_mph=20)
   dh.update(cs, lateral_active=True, lane_change_prob=0.0)
   assert dh.desire == Desire.turnLeft
-  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh = DesireHelper(turn_desire_mph=20)
   dh.update(_make_carstate(v_ego=5.0, right_blinker=True), lateral_active=True, lane_change_prob=0.0)
   assert dh.desire == Desire.turnRight
 
 
 def test_turn_desire_stays_out_of_lane_changes_and_fast_driving():
-  dh = DesireHelper(ngp_turn_desire_mph=20)
+  dh = DesireHelper(turn_desire_mph=20)
   dh.update(_make_carstate(v_ego=15.0, left_blinker=True), lateral_active=True, lane_change_prob=0.0)
   assert dh.desire == Desire.none  # above the ceiling, a lane change is the signal's meaning
   dh.update(_make_carstate(v_ego=5.0), lateral_active=False, lane_change_prob=0.0)

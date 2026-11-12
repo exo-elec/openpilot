@@ -84,139 +84,139 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LongitudinalManeuverMode", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, BOOL}},
     {"LongitudinalPersonality", {PERSISTENT, INT, std::to_string(static_cast<int>(cereal::LongitudinalPersonality::STANDARD))}},
     {"NetworkMetered", {PERSISTENT, BOOL}},
-    {"ngp_dashboard_enabled", {PERSISTENT, BOOL, "0"}},
-    {"ngp_device_shutdown_minutes", {PERSISTENT, INT, "-1"}},
-    {"ngp_device_logger_delay_seconds", {PERSISTENT, INT, "0"}},
-    {"ngp_device_audible_mode", {PERSISTENT, INT, "0"}},
-    {"ngp_ui_hide_hud_speed_kph", {PERSISTENT, INT, "0"}},
-    {"ngp_ui_brightness", {PERSISTENT, INT, "0"}},
-    {"ngp_device_vehicle_selected", {PERSISTENT, STRING, ""}},
-    {"ngp_device_vehicle_list", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
-    {"ngp_lat_alcc", {PERSISTENT, BOOL, "0"}},
-    // DLAT (Dynamic Lateral Profile, exopilot/controls/ngp_dlat.py) is a
+    {"DashboardEnabled", {PERSISTENT, BOOL, "0"}},
+    {"OffroadShutdownMinutes", {PERSISTENT, INT, "-1"}},
+    {"LoggerStartDelay", {PERSISTENT, INT, "0"}},
+    {"AlertSoundMode", {PERSISTENT, INT, "0"}},
+    {"UIHideHudSpeedKph", {PERSISTENT, INT, "0"}},
+    {"UIBrightness", {PERSISTENT, INT, "0"}},
+    {"DeviceModelSelected", {PERSISTENT, STRING, ""}},
+    {"VehicleModelList", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
+    {"LatALCC", {PERSISTENT, BOOL, "0"}},
+    // DLAT (Dynamic Lateral Profile, exopilot/controls/dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
     // DLP curve assist: pre-emptively force laneless on a predicted tight
-    // curve (NGPDLAT.update_model()'s curve_assist_enabled), ahead of the
-    // ordinary confidence hysteresis. Matches EOP10's EOPDLPCurvesEnabled,
+    // curve (DLAT.update_model()'s curve_assist_enabled), ahead of the
+    // ordinary confidence hysteresis. Matches EOP10's DLPCurvesEnabled,
     // including its default-on.
-    {"ngp_lat_dlp_curves", {PERSISTENT, BOOL, "1"}},
+    {"DLPCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     // Pause lateral assistance with a turn signal on below this speed (mph); 0 = off.
-    {"ngp_lat_blinker_pause_mph", {PERSISTENT, INT, "0"}},
+    {"BlinkerPauseLateralSpeed", {PERSISTENT, INT, "0"}},
     // Notice when the car is released from a planner stop (green light). Default off.
-    {"ngp_lon_green_light", {PERSISTENT, BOOL, "0"}},
-    // SOC: small slow offset away from a vehicle beside you on the highway (ngp_soc.py). Default off.
-    {"ngp_lat_soc", {PERSISTENT, BOOL, "0"}},
-    // RED: vision-only curvature nudge away from a close road edge in laneless mode (ngp_red.py).
+    {"GreenLightAlert", {PERSISTENT, BOOL, "0"}},
+    // SOC: small slow offset away from a vehicle beside you on the highway (soc.py). Default off.
+    {"SOCControllerEnabled", {PERSISTENT, BOOL, "0"}},
+    // RED: vision-only curvature nudge away from a close road edge in laneless mode (red.py).
     // ExoPilot adds YOLO/stereo corroboration. Unvalidated on road; default off.
-    {"ngp_lat_edge_guard", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lat_lca_auto_sec", {PERSISTENT, FLOAT, "0.0"}},
+    {"RedControllerEnabled", {PERSISTENT, BOOL, "0"}},
+    {"AutoLaneChangeDelay", {PERSISTENT, FLOAT, "0.0"}},
     // Lane turn desire: max speed (mph) at which a turn signal sends a turn desire to the model; 0 = off.
-    {"ngp_lat_turn_desire_mph", {PERSISTENT, INT, "0"}},
+    {"TurnDesireSpeed", {PERSISTENT, INT, "0"}},
     // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).
-    {"ngp_lat_lca_gap_eval", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lat_lca_lane_width", {PERSISTENT, BOOL, "0"}},
+    {"LCAGapEvalEnabled", {PERSISTENT, BOOL, "0"}},
+    {"LCALaneWidthEnabled", {PERSISTENT, BOOL, "0"}},
     // CAT: smoothed and validated steer ratio / stiffness from liveParameters. Default off.
-    {"ngp_lat_cat", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lat_lca_speed", {PERSISTENT, INT, "20"}},
-    {"ngp_lat_road_edge_detection", {PERSISTENT, BOOL, "0"}},
+    {"CATEnabled", {PERSISTENT, BOOL, "0"}},
+    {"LatLCASpeed", {PERSISTENT, INT, "20"}},
+    {"LatRoadEdgeDetection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
-    // via exopilot/controls/ngp_brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
+    // via exopilot/controls/brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
-    {"ngp_lon_lead_departure", {PERSISTENT, BOOL, "0"}},
+    {"LeadDepartAlert", {PERSISTENT, BOOL, "0"}},
     // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
     // 1 Android (FunctionFS bulk gadget), 2 iPhone (CDC-NCM network the phone dials), 3 USB tethering (optional). The direct
     // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
     // until the phone model is proven.
-    {"ngp_bigmodel_link", {PERSISTENT, INT, "0"}},
-    // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/controls/ngp_bigmodel_gate.py):
+    {"BigModelLink", {PERSISTENT, INT, "0"}},
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/controls/bigmodel_gate.py):
     // loading/proving blocks engagement; active is false once the big model handed back or failed.
-    {"ngp_bigmodel_active", {CLEAR_ON_MANAGER_START, BOOL}},
-    {"ngp_bigmodel_loading", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
+    {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
-    {"ngp_dm_policy", {PERSISTENT, STRING, "strict"}},
+    {"DriverActivityPolicy", {PERSISTENT, STRING, "strict"}},
     // monod (exopilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
-    // Cut-in speed trim (ngp_cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs ngp_monod_enabled.
-    {"ngp_lon_cutin", {PERSISTENT, BOOL, "0"}},
+    // Cut-in speed trim (cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs MonoDEnabled.
+    {"CutInSpeedEnabled", {PERSISTENT, BOOL, "0"}},
     // pathd add-on (exopilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
-    // pathd add-on consumers (ngp_pathd_consumer.py), default off, need ngp_pathd_enabled: lateral offset in controlsd, speed cap in the planner.
-    {"ngp_lat_pathd", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lon_pathd", {PERSISTENT, BOOL, "0"}},
-    // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs ngp_pathd_enabled.
-    {"ngp_dpp_max_mode", {PERSISTENT, INT, "0"}},
-    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/runtime/nudge_extras.py). Default off; needs ngp_pathd_enabled.
-    {"ngp_pathd_nudges", {PERSISTENT, BOOL, "0"}},
+    // pathd add-on consumers (pathd_consumer.py), default off, need PathdEnabled: lateral offset in controlsd, speed cap in the planner.
+    {"PathdLateral", {PERSISTENT, BOOL, "0"}},
+    {"PathdLongitudinal", {PERSISTENT, BOOL, "0"}},
+    // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs PathdEnabled.
+    {"DPPMaxMode", {PERSISTENT, INT, "0"}},
+    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/runtime/nudge_extras.py). Default off; needs PathdEnabled.
+    {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
     // Map / light / distraction speed caps (exopilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
-    // tripd (exopilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind ngp_tripd_enabled.
-    {"ngp_tripd_enabled", {PERSISTENT, BOOL, "0"}},
-    {"ngp_trip_a_start_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_a_start_time", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_b_start_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_b_start_time", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_last_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_last_duration", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_last_max_accel", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_last_override_free_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_last_personality_time", {PERSISTENT, STRING, ""}},
-    {"ngp_trip_lifetime_engagement_ratio", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_total_distance", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_total_drives", {PERSISTENT, INT, "0"}},
-    {"ngp_trip_daily_stats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
-    {"ngp_trip_uptime_engaged", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_trip_uptime_onroad", {PERSISTENT, FLOAT, "0.0"}},
-    {"ngp_map_enabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
+    // tripd (exopilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind TripdEnabled.
+    {"TripdEnabled", {PERSISTENT, BOOL, "0"}},
+    {"TripAStartDistance", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripAStartTime", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripBStartDistance", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripBStartTime", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripLastDistance", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripLastDuration", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripLastMaxAccel", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripLastOverrideFreeDistance", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripLastPersonalityTime", {PERSISTENT, STRING, ""}},
+    {"TripLifetimeEngagementRatio", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripTotalDistance", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripTotalDrives", {PERSISTENT, INT, "0"}},
+    {"TripDailyStats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
+    {"TripUptimeEngaged", {PERSISTENT, FLOAT, "0.0"}},
+    {"TripUptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
+    {"MapdEnabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
     // Canonical EOP-origin names; ngp_* entries below remain legacy read aliases.
-    {"EOPMTSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPMSLCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPTLSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPDDSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPRCDEnabled", {PERSISTENT, BOOL, "0"}},
-    {"EOPSharedSLCOffsets", {PERSISTENT, STRING, ""}},
-    {"EOPPathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lon_mtsc", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
-    {"ngp_lon_mslc", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
-    {"ngp_lon_tlsc", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
-    {"ngp_lon_ddsc", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
-    {"ngp_lon_rcd", {PERSISTENT, BOOL, "0"}},       // speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
-    {"ngp_lon_slc_offsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
-    {"ngp_pathd_enabled", {PERSISTENT, BOOL, "0"}},
-    {"ngp_monod_enabled", {PERSISTENT, BOOL, "0"}},
-    {"ngp_monod_hz", {PERSISTENT, INT, "5"}},
+    {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},
+    {"RCDEnabled", {PERSISTENT, BOOL, "0"}},
+    {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},
+    {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
+    {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
+    {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
+    {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
+    {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
+    {"RCDEnabled", {PERSISTENT, BOOL, "0"}},       // speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
+    {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
+    {"PathdEnabled", {PERSISTENT, BOOL, "0"}},
+    {"MonoDEnabled", {PERSISTENT, BOOL, "0"}},
+    {"MonoDHz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
-    // custom (default) writes nothing. See exopilot/controls/ngp_drive_mode.py.
-    {"ngp_lon_drive_mode", {PERSISTENT, STRING, "custom"}},
-    {"ngp_lon_accel_profile", {PERSISTENT, STRING, "normal"}},
+    // custom (default) writes nothing. See exopilot/controls/drive_mode.py.
+    {"DriveMode", {PERSISTENT, STRING, "custom"}},
+    {"AccelerationProfile", {PERSISTENT, STRING, "normal"}},
     // Adaptive follow gap uses only the standard radarState.leadOne observation.
     // Default off like EOP10's EOPAdaptiveGapEnabled; opt-in pending vehicle validation.
-    {"ngp_lon_adaptive_gap", {PERSISTENT, BOOL, "0"}},
-    {"ngp_lon_brsc", {PERSISTENT, BOOL, "1"}},
+    {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
+    {"BRSCEnabled", {PERSISTENT, BOOL, "1"}},
     // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
     // of this branch -- automatic ACC/E2E switching only. No master enable
     // toggle and no mode param: users cannot force pure E2E (Experimental)
     // or pure ACC directly. The per-trigger toggles below only tune which
     // situational signals the automatic switch considers, not force a mode.
-    {"ngp_lon_dlon_curves", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_force_stops", {PERSISTENT, BOOL, "1"}},
-    // Couples DLAT's own Laneful/Laneless arbitration (see ngp_lat above) into
+    {"DLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
+    // Couples DLAT's own Laneful/Laneless arbitration (see lat above) into
     // DLON's automatic switch: when DLAT has committed to Laneless, E2E's
     // path-only prediction fits better than lane-line-anchored ACC.
-    {"ngp_lon_dlon_lane_confidence", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_low_speed", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_navigation", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_signal", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_slow_lead", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_speed_limit", {PERSISTENT, BOOL, "1"}},
-    {"ngp_lon_dlon_stop_prediction", {PERSISTENT, BOOL, "1"}},
+    {"DLONLaneConfidenceEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONSignalEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONSlowLeadEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONSpeedLimitEnabled", {PERSISTENT, BOOL, "1"}},
+    {"DLONStopPredictionEnabled", {PERSISTENT, BOOL, "1"}},
     // Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
-    // laneChangeStarting (exopilot/controls/ngp_lc_lead_handoff.py). No panel
-    // toggle by design, matching EOP10's EOPLCAdjacentLeadHandoff. Default off.
-    {"ngp_lon_lc_lead_handoff", {PERSISTENT, BOOL, "0"}},
+    // laneChangeStarting (exopilot/controls/lc_lead_handoff.py). No panel
+    // toggle by design, matching EOP10's LCAdjacentLeadHandoff. Default off.
+    {"LCAdjacentLeadHandoff", {PERSISTENT, BOOL, "0"}},
     // NSLC-equivalent: clamp cruise speed to the posted navigation speed
-    // limit (exopilot/controls/ngp_speed_policy.py, NAVIGATION policy).
+    // limit (exopilot/controls/speed_policy.py, NAVIGATION policy).
     // Nav-only -- NGP10 has no map-data source (see
     // exopilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
-    // toggle, matching EOP10's EOPNSLCEnabled. Default off.
-    {"ngp_lon_nslc", {PERSISTENT, BOOL, "0"}},
+    // toggle, matching EOP10's NSLCEnabled. Default off.
+    {"NSLCEnabled", {PERSISTENT, BOOL, "0"}},
     // Driver preference: constant kph offset applied to the final v_cruise
     // (after all other limits), matching EOP10's EOPSpeedLimitOffset and its
     // driver_prefs.py::get_speed_with_offset() application point. Default 0
@@ -224,14 +224,14 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // driver_prefs.py also has a following_distance/get_time_gap() concept,
     // but it's never actually called anywhere in EOP10's own
     // longitudinal_planner.py -- dead code there too, not ported here.
-    {"ngp_lon_speed_offset_kph", {PERSISTENT, INT, "0"}},
+    {"SpeedLimitOffset", {PERSISTENT, INT, "0"}},
     // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
-    // using vision-only curvature (exopilot/controls/ngp_vtsc.py). Panel
-    // toggle, matching EOP10's EOPVTSCEnabled. Default off.
-    {"ngp_lon_vtsc", {PERSISTENT, BOOL, "0"}},
+    // using vision-only curvature (exopilot/controls/vtsc.py). Panel
+    // toggle, matching EOP10's VTSCEnabled. Default off.
+    {"VTSCEnabled", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"ObdMultiplexingEnabled", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
-    // The phone-hosted big model's counterparts of upstream's offroad big-model alerts (ngp_bigmodel_status.py)
+    // The phone-hosted big model's counterparts of upstream's offroad big-model alerts (bigmodel_status.py)
     {"Offroad_BigModelModelError", {CLEAR_ON_MANAGER_START, JSON}},
     {"Offroad_BigModelNotDetected", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, JSON}},
     {"Offroad_BigModelUsbSlow", {CLEAR_ON_MANAGER_START, JSON}},
