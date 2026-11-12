@@ -73,7 +73,7 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
 
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"bookmarkButton"});
 
-  // Keys are bluetoothd's (pairing_agent.py writes EOPBluetoothPairing*); the
+  // Keys are bluetoothd's (pairing_agent.py writes BluetoothPairing*); the
   // unprefixed names this used to watch do not exist, so PAIRING never showed.
   // Cache BLE pairing status via QFileSystemWatcher instead of a
   // synchronous Params().get() on every updateState() tick (UI_FREQ =

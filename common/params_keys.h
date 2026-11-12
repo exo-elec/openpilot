@@ -261,10 +261,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AEBEnabled", {PERSISTENT, BOOL, "0"}},
     {"ALCCBrakeMode", {PERSISTENT, INT, "0"}},  // ALCC on a brake press: 0 Maintain, 1 Pause, 2 Disengage
     // Driving mode: eco / normal / sport set acceleration profile, following style and adaptive gap together; custom (default) writes nothing.
-    {"DriveMode", {PERSISTENT, STRING, "custom"}},
-    {"AccelerationProfile", {PERSISTENT, STRING, "normal"}},
     {"AdaptdEnabled", {PERSISTENT, BOOL, "0"}},
-    {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
     {"AggressiveFollow", {PERSISTENT, FLOAT, "1.25"}},
     {"AggressiveJerk", {PERSISTENT, FLOAT, "0.5"}},
     {"AutoLaneChange", {PERSISTENT, BOOL, "0"}},
@@ -286,7 +283,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BLECornerPairs", {PERSISTENT, STRING, ""}},
     {"BLERadarPairingOpen", {PERSISTENT, BOOL, "0"}},
     {"BLERadarRoster", {PERSISTENT, STRING, ""}},  // extra ESP32 corner-radar WiFi STA MACs for BLE-only nodes (system/bluetoothd/ble_central.py)
-    {"CATEnabled", {PERSISTENT, BOOL, "0"}},
     {"CATManualSR", {PERSISTENT, FLOAT, "0.0"}},
     {"CATManualSREnabled", {PERSISTENT, BOOL, "0"}},
     {"CATPersist", {PERSISTENT, STRING, ""}},
