@@ -66,12 +66,12 @@ class OsmTiles(QObject):
 
   def __init__(self, parent=None, cache_dir: str | None = None):
     super().__init__(parent)
-    self.url = os.environ.get("EOP_OSM_TILE_URL", DEFAULT_URL)
-    self.attribution = os.environ.get("EOP_OSM_ATTRIBUTION", "© OpenStreetMap contributors")
+    self.url = os.environ.get("OSM_TILE_URL", DEFAULT_URL)
+    self.attribution = os.environ.get("OSM_ATTRIBUTION", "© OpenStreetMap contributors")
     self._manager = QtNetwork.QNetworkAccessManager(self)
     cache = QtNetwork.QNetworkDiskCache(self)
     cache.setCacheDirectory(cache_dir or os.environ.get(
-      "EOP_OSM_CACHE_DIR", os.path.join(
+      "OSM_CACHE_DIR", os.path.join(
         QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.CacheLocation), "osm-tiles")))
     cache.setMaximumCacheSize(64 * 1024 * 1024)
     self._manager.setCache(cache)

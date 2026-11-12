@@ -70,7 +70,7 @@ Panel list gained a new "Bluetooth" panel between "WiFi" and "Toggles", shifting
 
 - 🟠 HIGH — `experimental_mode.cc:16` (`openSettings(2, "ExperimentalMode")`) and `sidebar.cc:73` (`openSettings(2, "RecordAudio")`) both opened the **Bluetooth** panel instead of Toggles.
   - **Fix applied:** `SettingsWindow::setCurrentPanel()`'s `else` branch (the non-`"*Panel"` path) now resolves `index` by looking up the "Toggles" button by name, the same way the `"*Panel"` path already does — instead of trusting the caller's raw index. This fixes both call sites without touching them, and makes any future panel insertion/reorder safe against this exact bug recurring.
-- 🟡 MEDIUM — `langToEop` map (syncs UI language → `Language` TTS param) was missing `main_ja`/`main_ko`/`main_th`, all real selectable UI languages (`.ts` files exist for all three). Selecting any of them silently set `Language` to `"en"`.
+- 🟡 MEDIUM — `langToApp` map (syncs UI language → `Language` TTS param) was missing `main_ja`/`main_ko`/`main_th`, all real selectable UI languages (`.ts` files exist for all three). Selecting any of them silently set `Language` to `"en"`.
   - **Fix applied:** added `{"main_ja","ja"}, {"main_ko","ko"}, {"main_th","th"}` to the map.
 
 ### B2. `selfdrive/ui/qt/widgets/controls.h`
@@ -125,7 +125,7 @@ Comma Prime subscription/pairing UI stripped (no-cloud-account fork), `PrimeUser
 `CommaApi` → `ExoApi` rebrand; `sendRequest()` now immediately emits a synthetic failure instead of making a real network call (no cloud account).
 
 - 🟢 LOW — `sendRequest()` no longer sets `this->reply`, so `HttpRequest::active()` (`return reply != nullptr`) permanently reports `false`. `RequestRepeater` uses `!active()` to avoid overlapping requests on its periodic timer — harmless today (each call just schedules one more `QTimer::singleShot(0, ...)` failure emission), but silently defeats that guard.
-  - **Fix applied:** added an `eop_request_pending` bool member, set `true` at the start of `sendRequest()` (with an early-return if already pending) and cleared right before `requestDone` is emitted; `active()` now ORs it with the `reply != nullptr` check.
+  - **Fix applied:** added an `request_pending` bool member, set `true` at the start of `sendRequest()` (with an early-return if already pending) and cleared right before `requestDone` is emitted; `active()` now ORs it with the `reply != nullptr` check.
 
 ### B8. `selfdrive/ui/qt/prime_state.cc` / `.h`
 
@@ -160,7 +160,7 @@ Firehose Mode's comma-account upload UI was gutted to a static "not available �
 | P0 | B2: `ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` `refresh()` zeroing unset params | ✅ Fixed |
 | P0 | B3: sidebar BLE status ignores BLE GATT (`NavPilotPaired`) | ✅ Fixed |
 | P0 | B4: PIP/pairing overlays block clicks to `ExperimentalButton`/`bev_widget` | ✅ Fixed |
-| P1 | B1: `langToEop` missing ja/ko/th | ✅ Fixed |
+| P1 | B1: `langToApp` missing ja/ko/th | ✅ Fixed |
 | P1 | B5: `SetupWidget::openSettings` never emitted | ✅ Fixed |
 | P1 | B6: `Networking::setPrimeType()` dead code | ✅ Fixed |
 | P1 | B3/B4: unthrottled 20 Hz `Params().get()` reads (sidebar + onroad_home) | ✅ Fixed — converted both to `ParamWatcher` |
@@ -173,7 +173,7 @@ Firehose Mode's comma-account upload UI was gutted to a static "not available �
 ## Fix tracking checklist
 
 - [x] `settings.cc`: `setCurrentPanel()` resolves the Toggles panel by name instead of a hardcoded index
-- [x] `settings.cc`: `langToEop` covers ja/ko/th
+- [x] `settings.cc`: `langToApp` covers ja/ko/th
 - [x] `widgets/controls.h`: `ParamSpinBoxControl`/`ParamDoubleSpinBoxControl` store and reuse `default_value` in `refresh()`
 - [x] `sidebar.cc`: BLE status also checks `NavPilotPaired`
 - [x] `sidebar.cc`: restored the onroad bookmark-button publish, removed the stale comment

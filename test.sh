@@ -37,11 +37,11 @@ done
 set -- "${args[@]}"
 
 # Compare against the reviewed parent when its branch ref is present locally.
-ngp_parent_ref="${NGP_PARENT_REF:-dev/NGP10}"
-if git rev-parse --verify "$ngp_parent_ref^{commit}" >/dev/null 2>&1; then
-  python3 exopilot/tools/lineage.py --parent "$ngp_parent_ref" --child HEAD
+lineage_parent_ref="${LINEAGE_PARENT_REF:-dev/NGP10}"
+if git rev-parse --verify "$lineage_parent_ref^{commit}" >/dev/null 2>&1; then
+  python3 exopilot/tools/lineage.py --parent "$lineage_parent_ref" --child HEAD
 else
-  echo "==> NGP source parity skipped: fetch $ngp_parent_ref or set NGP_PARENT_REF"
+  echo "==> NGP source parity skipped: fetch $lineage_parent_ref or set LINEAGE_PARENT_REF"
 fi
 
 echo "==> Running focused ruff checks"

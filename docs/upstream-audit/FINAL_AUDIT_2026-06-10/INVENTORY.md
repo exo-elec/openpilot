@@ -434,7 +434,7 @@ xref = mentioned in a prior docs/upstream-audit review doc.
 | `scripts/settings_backup.py` | 76/0 |  | - |
 | `scripts/install_pygnssutils.sh` | 30/0 |  | DELTA_AUDIT.md |
 | `scripts/install_rockchip_deps.sh` | 335/0 |  | - |
-| `scripts/validate_eop.sh` | 200/0 |  | DELTA_AUDIT.md |
+| `scripts/validate_setup.sh` | 200/0 |  | DELTA_AUDIT.md |
 | `scripts/validate_params_api.py` | 81/0 |  | COMMIT_CORRECTIONS.md |
 | `scripts/verify_setup.py` | 79/0 |  | COMMIT_CORRECTIONS.md |
 | `selfdrive/adaptd/__init__.py` | 8/0 |  | - |
@@ -445,8 +445,8 @@ xref = mentioned in a prior docs/upstream-audit review doc.
 | `selfdrive/assets/icons/icon_empty.svg` | 35/0 |  | - |
 | `selfdrive/assets/icons/icon_minus.png` | -/- |  | - |
 | `selfdrive/assets/icons/icon_plus.png` | -/- |  | - |
-| `selfdrive/assets/images/eop_qr.png` | -/- |  | - |
-| `selfdrive/assets/images/spinner_eop.png` | -/- |  | - |
+| `selfdrive/assets/images/pairing_qr.png` | -/- |  | - |
+| `selfdrive/assets/images/spinner_logo.png` | -/- |  | - |
 | `selfdrive/assets/img_spinner_comma.png` | 45/0 |  | - |
 | `selfdrive/assets/navigation/default_marker.svg` | 5/0 |  | - |
 | `selfdrive/assets/navigation/direction_arrive.png` | -/- |  | - |

@@ -18,9 +18,9 @@ class SetupWidget(Widget):
     self._open_settings_callback = callback
 
   def _render(self, rect: rl.Rectangle):
-    self._render_eop_setup(rect)
+    self._render_setup(rect)
 
-  def _render_eop_setup(self, rect: rl.Rectangle):
+  def _render_setup(self, rect: rl.Rectangle):
     """Render EOP setup prompt — no cloud services."""
 
     rl.draw_rectangle_rounded(rl.Rectangle(rect.x, rect.y, rect.width, 590), 0.02, 20, rl.Color(51, 51, 51, 255))

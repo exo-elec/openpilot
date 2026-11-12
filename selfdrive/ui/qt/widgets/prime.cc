@@ -14,9 +14,9 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QFrame(parent) {
   subscribed->setStyleSheet("font-size: 41px; font-weight: bold; color: #86FF4E;");
   mainLayout->addWidget(subscribed);
 
-  QLabel *eopLabel = new QLabel(tr("EnhancedOpenPilot"));
-  eopLabel->setStyleSheet("font-size: 45px; font-weight: bold;");
-  mainLayout->addWidget(eopLabel);
+  QLabel *titleLabel = new QLabel(tr("EnhancedOpenPilot"));
+  titleLabel->setStyleSheet("font-size: 45px; font-weight: bold;");
+  mainLayout->addWidget(titleLabel);
 
   QLabel *desc = new QLabel(tr("All processing is local. No cloud account required."));
   desc->setStyleSheet("font-size: 45px; font-weight: light; color: #CCCCCC;");
@@ -59,9 +59,9 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   mainLayout = new QStackedWidget;
 
   // EOP setup prompt (no pairing)
-  QFrame* eopSetup = new QFrame;
-  eopSetup->setObjectName("primeWidget");
-  QVBoxLayout* setupLayout = new QVBoxLayout(eopSetup);
+  QFrame* setupFrame = new QFrame;
+  setupFrame->setObjectName("primeWidget");
+  QVBoxLayout* setupLayout = new QVBoxLayout(setupFrame);
   setupLayout->setSpacing(38);
   setupLayout->setContentsMargins(30, 20, 30, 20);
 
@@ -81,7 +81,7 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
 
   setupLayout->addStretch();
 
-  mainLayout->addWidget(eopSetup);
+  mainLayout->addWidget(setupFrame);
 
   QVBoxLayout *outer_layout = new QVBoxLayout(this);
   outer_layout->setContentsMargins(0, 0, 0, 0);

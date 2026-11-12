@@ -59,11 +59,11 @@ Control Process (selfdrive/controls/)
 ```cpp
 // selfdrive/ui/qt/offroad/exopilot_panel.h
 
-class EopPanel : public ListWidget {
+class ExoPilotPanel : public ListWidget {
   Q_OBJECT
 
 public:
-  explicit EopPanel(SettingsWindow *parent);
+  explicit ExoPilotPanel(SettingsWindow *parent);
 
 private:
   void add_lateral_toggles();             // ALCC, DLAT, LCA, SOC, RED

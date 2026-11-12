@@ -38,7 +38,7 @@ class AdaptiveProfile:
   control_authority: bool = False
 
 
-class EOPAdaptiveProfile:
+class AdaptiveProfiler:
   DEFAULT_ACCEL_MAX = 2.0
   DEFAULT_ACCEL_MIN = -3.48
 

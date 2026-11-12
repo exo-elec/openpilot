@@ -118,7 +118,7 @@ class Controls:
     # EOP-CLEANUP: Cached params — refreshed once per second, not every frame
     self._param_refresh_s = 1.0
     self._last_param_t = 0.0
-    self._cached_eop_params: dict[str, Any] = {}
+    self._cached_feature_params: dict[str, Any] = {}
 
     self.LaC: LatControl
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
@@ -175,14 +175,14 @@ class Controls:
     now = time.monotonic()
     if now - self._last_param_t >= self._param_refresh_s:
       self._last_param_t = now
-      self._cached_eop_params = {
+      self._cached_feature_params = {
         'BSDEnabled': self.params.get_bool("BSDEnabled"),
         'BSDMinSpeed': float(self.params.get("BSDMinSpeed") or 5.5),
         'BSDChimeEnabled': self.params.get_bool("BSDChimeEnabled"),
         'TTSAlertsEnabled': self.params.get_bool("TTSAlertsEnabled"),
         'AEBEnabled': self.params.get_bool("AEBEnabled"),
       }
-    p = self._cached_eop_params
+    p = self._cached_feature_params
 
     # EOP: radar zone monitor — advisory only, never intervenes in steering/braking
     # Camera-only operation remains available when a BLE corner is absent.

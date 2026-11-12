@@ -12,9 +12,10 @@ MIN_FUSED_CONF, or when vision alone is already that confident (so this is never
 import time
 import numpy as np
 from typing import Any
+from exopilot.selfdrive.controls.lib import red as base
 from exopilot.selfdrive.controls.lib.red import (
   CRITICAL_DISTANCE, MIN_EDGE_DISTANCE, MIN_FUSED_CONF, MIN_VISION_CONF, TYPE_MULTIPLIERS, WARNING_DISTANCE,
-  RED, REDState, RoadEdge, RoadEdgeType,
+  REDState, RoadEdge, RoadEdgeType,
 )
 from openpilot.common.params import Params
 
@@ -25,7 +26,7 @@ __all__ = ["RED", "REDState", "RoadEdge", "RoadEdgeType", "WARNING_DISTANCE", "C
 BARRIER_CLASSES = ['guardrail', 'wall', 'barrier', 'fence', 'curb']
 
 
-class RED(RED):
+class RED(base.RED):
   """
   Road Edge Detection Controller.
 

@@ -69,7 +69,7 @@ def main():
     print("✅ All checks passed!")
     print("\nNext steps:")
     print("1. Install pygnssutils: pip install -e third_party/pygnssutils")
-    print("2. Configure RTK: params put EOPNTRIPMount 'YOUR-MOUNTPOINT'")
+    print("2. Configure RTK: params put NTRIPMount 'YOUR-MOUNTPOINT'")
     print("3. Enable RTK: params put_bool RTKEnabled true")
     return 0
   print("❌ Some checks failed. Please review the output above.")

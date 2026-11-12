@@ -257,7 +257,7 @@ None. Deletion is justified — steamd supersedes webrtcd.
 | Change | Status | Note |
 |--------|--------|------|
 | 200+ asset files with `Bin 130 → XXXX bytes` pattern | ✅ Keep | "130 bytes" = LFS pointer size; now stored inline (correct for no-LFS policy) |
-| New EOP assets (enhancedopenpilot.svg, spinner_eop.png, eop_qr.png, nav icons) | ✅ Keep | EOP branding and navigation UI |
+| New EOP assets (enhancedopenpilot.svg, spinner_logo.png, pairing_qr.png, nav icons) | ✅ Keep | EOP branding and navigation UI |
 | Deleted: `driver_face.png`, `prompt_distracted.wav`, `prep-svg.sh` | ✅ Keep | Driver monitoring assets; not used on EOP (no driver camera) |
 
 ### Action Required

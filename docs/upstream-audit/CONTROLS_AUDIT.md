@@ -164,7 +164,7 @@ from openpilot.system.hardware.base import HardwareCapability
 **Status:** 🟠 HIGH — silent wrong behavior
 
 ```python
-p = self._cached_eop_params   # line 143 — dict of EOP params
+p = self._cached_feature_params   # line 143 — dict of EOP params
 
 # ... 170 lines later ...
 for p in ACTUATOR_FIELDS:     # line 315 — shadows the dict!

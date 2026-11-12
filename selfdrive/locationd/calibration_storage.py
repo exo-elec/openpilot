@@ -307,7 +307,7 @@ class CalibrationStorage:
 
             # Check format
             if 'camera_array' in data:
-                return cls._parse_eop_yaml(data)
+                return cls._parse_calibration_yaml(data)
             else:
                 cloudlog.error(f"Unknown YAML format in {filepath}")
                 return None
@@ -317,7 +317,7 @@ class CalibrationStorage:
             return None
 
     @classmethod
-    def _parse_eop_yaml(cls, data: dict) -> MultiCameraCalibration:
+    def _parse_calibration_yaml(cls, data: dict) -> MultiCameraCalibration:
         """Parse EOP YAML format."""
         array_data = data['camera_array']
 
@@ -513,7 +513,7 @@ class CalibrationStorage:
 
         try:
             yaml_data = yaml.safe_load(data.decode('utf-8'))
-            return cls._parse_eop_yaml(yaml_data)
+            return cls._parse_calibration_yaml(yaml_data)
         except Exception as e:
             cloudlog.error(f"Failed to load factory calibration: {e}")
             return None

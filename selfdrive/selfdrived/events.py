@@ -1011,9 +1011,9 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
 
 }
 
-from openpilot.exopilot.system.manager.eop_events import register_eop_events
+from openpilot.exopilot.selfdrive.selfdrived.events import register_events
 
-register_eop_events(
+register_events(
   EVENTS,
   EventName=EventName,
   ET=ET,
