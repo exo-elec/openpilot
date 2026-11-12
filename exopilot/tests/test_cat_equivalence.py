@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 from exopilot.tests import cat_reference as ref
-from openpilot.selfdrive.controls.lib import cat as new
+from exopilot.selfdrive.controls.lib import cat as new
 
 
 class _Params:
