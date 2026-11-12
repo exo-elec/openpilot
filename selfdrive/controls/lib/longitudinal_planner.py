@@ -129,7 +129,8 @@ class LongitudinalPlanner:
     self.a_desired_trajectory = np.zeros(CONTROL_N)
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
-    self.dlon = DLON(get_bool=Params().get_bool)
+    _dlon_params = Params()
+    self.dlon = DLON(get_bool=_dlon_params.get_bool, get=_dlon_params.get)
     self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)

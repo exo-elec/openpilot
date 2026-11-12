@@ -182,11 +182,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Default off; opt-in pending vehicle validation.
     {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
     {"BRSCEnabled", {PERSISTENT, BOOL, "1"}},
-    // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
-    // of this branch -- automatic ACC/E2E switching only. No master enable
-    // toggle and no mode param: users cannot force pure E2E (Experimental)
-    // or pure ACC directly. The per-trigger toggles below only tune which
-    // situational signals the automatic switch considers, not force a mode.
+    // DLON (Dynamic Longitudinal Profile): DlonMode picks rule-based ACC, AI/E2E, or
+    // Dynamic (automatic switching, the default). The per-trigger toggles below tune
+    // which situational signals the Dynamic switch considers.
+    {"DlonMode", {PERSISTENT, INT, "2"}},  // Drive Mode: 0 Highway (rule/ACC), 1 Urban (AI/E2E), 2 Dynamic (automatic)
     {"DLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     {"DLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
     // Couples DLAT's own Laneful/Laneless arbitration (see DLAT above) into

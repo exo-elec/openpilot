@@ -104,10 +104,12 @@ void FeaturesPanel::add_longitudinal_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
-  // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior of
-  // this branch -- automatic ACC/E2E switching, not a user-selectable mode.
-  // No master enable toggle and no panel control by design: users cannot
-  // force pure E2E (Experimental) or pure ACC directly.
+  // Drive Mode (DLON): rule-based cruise, the driving model, or automatic switching.
+  addItem(new ButtonParamControl("DlonMode", tr("Drive Mode"),
+      tr("Highway (Rule): rule-based cruise, best for open roads.\n"
+         "Urban (AI): the driving model controls speed, stops for lights.\n"
+         "Dynamic: switches between them automatically (recommended)."),
+      "", {tr("Highway (Rule)"), tr("Urban (AI)"), tr("Dynamic")}));
 
   // If no toggles were added, hide the label
   if (!has_toggle && label) {

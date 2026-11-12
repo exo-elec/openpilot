@@ -1,17 +1,19 @@
-"""NGP Dynamic Longitudinal Profile (DLON).
+"""DLON - Dynamic Longitudinal Profile.
 
 Manages longitudinal acceleration strategy, switching between comfortable
-highway cruising ("Chill") and intelligent urban driving ("Experimental"/E2E).
+highway cruising ("Chill", rule-based ACC) and intelligent urban driving
+("Experimental", E2E), or switching automatically between them.
 
-This is the comma 3 migration of EOP10's DLON behavior. It retains the mode
-selection and force-stop policy while using NGP-owned names and dependencies.
+The one DLON: written and tested here on NGP10 (comma 3) and used unchanged by
+EOP10, 01M and 02M (owner 2026-11-12: one implementation per feature, NGP10
+first). Pure policy: Params are read through the injected `get_bool` / `get`.
 """
 
 import time
 from enum import Enum
+from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from exopilot.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
-# SmoothEMA is kept local so the NGP port has no EOP runtime dependency.
 
 
 class SmoothEMA:
@@ -136,10 +138,14 @@ class DLON:
   # continuous, so a small margin avoids chatter at the zone edge).
   SPEED_LIMIT_TRIGGER_MARGIN_MS = 2.0  # m/s (~4.5 mph)
 
-  def __init__(self, get_bool=None):
-    # Param reader injected by the runtime hook (Params().get_bool); None keeps
-    # every toggle at its default, so this module does no I/O of its own.
+  # DlonMode value -> mode; anything else (unset, bad value) is AUTO.
+  MODE_BY_PARAM = {0: DLONMode.CHILL, 1: DLONMode.EXPERIMENTAL, 2: DLONMode.AUTO}
+
+  def __init__(self, get_bool=None, get=None):
+    # Param readers injected by the runtime hook (Params().get_bool / Params().get); None keeps
+    # every toggle at its default and the mode AUTO, so this module does no I/O of its own.
     self._get_bool = get_bool
+    self._get = get
     self.mode = DLONMode.AUTO
     self.last_param_update = 0
 
@@ -191,14 +197,14 @@ class DLON:
   def update_params(self):
     """Update parameters periodically (every 1 second).
 
-    Mode is always AUTO (automatic Chill/Experimental switching) -- this is a
-    default, standard behavior of NGP10, not a user-selectable choice. There
-    is no param or panel control that forces a fixed CHILL or EXPERIMENTAL
-    mode; users cannot force pure E2E driving directly.
+    The driver picks the mode with `DlonMode` (Settings: Drive Mode): 0 Highway
+    (rule-based ACC), 1 Urban (AI/E2E), 2 Dynamic (AUTO switching, the default).
+    Owner decision 2026-11-11, made on the EOP branches and moved here 2026-11-12;
+    unset or unknown values are AUTO, which is what NGP10 always did before.
     """
     current_time = time.monotonic()
     if self._get_bool is not None and current_time - self.last_param_update >= 1.0:
-      self.mode = DLONMode.AUTO
+      self.mode = self.MODE_BY_PARAM.get(self._get("DlonMode"), DLONMode.AUTO) if self._get is not None else DLONMode.AUTO
       # Per-trigger toggles (CEM merge)
       self._trigger_enabled['curves'] = self._get_bool("DLONCurvesEnabled")
       self._trigger_enabled['lane_confidence'] = self._get_bool("DLONLaneConfidenceEnabled")
@@ -303,25 +309,16 @@ class DLON:
     return False
 
   def detect_speed_limit_trigger(self, sm, v_ego) -> bool:
-    """Detect an active nav speed limit meaningfully lower than current
-    speed — E2E's smoother deceleration profile handles the transition
-    better than stock ACC.
-
-    NGP10 has no map-source speed limit: unlike EOP10, this branch's
-    log.capnp has no MapData struct/Event field and no service named
-    'mapData' is registered in cereal/services.py, and no process on this
-    branch publishes one (confirmed 2026-08-25: no mapd-equivalent in
-    process_config.py, no PubMaster('mapData') anywhere in the tree). A
-    prior session's map-then-nav port from EOP10's nslc.py subscribed to
-    'mapData' anyway, which made plannerd.py's SubMaster(...) construction
-    raise KeyError on cereal.services.SERVICE_LIST['mapData'] at startup --
-    this method's own map branch was unreachable dead code, guarded by
-    `sm.valid` so it never itself crashed, but the crash happened one layer
-    up before this method could ever run. Nav-only until NGP10 gets a real
-    map-data source; see exopilot/docs/EOP10_PARITY_CANDIDATES.md's MTSC
-    entry, which has the same gap."""
+    """Detect an active mapped/nav speed limit meaningfully lower than
+    current speed — E2E's smoother deceleration profile handles the
+    transition better than stock ACC. The map limit (mapd's `mapData`,
+    km/h) wins over the navigation limit (`navInstruction`, m/s)."""
     limit_ms = None
-    if 'navInstruction' in sm.valid and sm.valid['navInstruction']:
+    if 'mapData' in sm.valid and sm.valid['mapData']:
+      map_limit = sm['mapData'].speedLimit  # km/h
+      if map_limit > 0:
+        limit_ms = map_limit * CV.KPH_TO_MS
+    if limit_ms is None and 'navInstruction' in sm.valid and sm.valid['navInstruction']:
       nav_limit = sm['navInstruction'].speedLimit  # m/s
       if nav_limit > 0:
         limit_ms = nav_limit

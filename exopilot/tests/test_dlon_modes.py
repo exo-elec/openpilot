@@ -41,21 +41,31 @@ def test_dlon_has_chill_experimental_and_auto_modes():
   assert dlon.update(sm)["e2e_enabled"]
 
 
-def test_speed_limit_trigger_is_nav_only():
-  """No 'mapData' source exists on NGP10 (see EOP10_PARITY_CANDIDATES.md's
-  Tier 2.5 entry) -- detect_speed_limit_trigger() must work from
-  navInstruction alone."""
+def test_speed_limit_trigger_prefers_the_map_limit_then_navigation():
   dlon = DLON()
   sm = make_dlon_sm(v_ego=30.0)
-
-  # No navInstruction data at all -- no trigger.
   assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
 
-  # navInstruction present but limit not meaningfully below v_ego -- no trigger.
+  # navigation only (m/s): a limit just below v_ego is noise, a lower one triggers
   sm.valid["navInstruction"] = True
   sm["navInstruction"] = SimpleNamespace(speedLimit=29.0)
   assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
-
-  # navInstruction limit meaningfully below v_ego -- triggers.
   sm["navInstruction"] = SimpleNamespace(speedLimit=20.0)
   assert dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
+
+  # the map limit (km/h) wins over navigation: 108 km/h = 30 m/s, so no trigger
+  sm.valid["mapData"] = True
+  sm["mapData"] = SimpleNamespace(speedLimit=108.0)
+  assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
+  sm["mapData"] = SimpleNamespace(speedLimit=60.0)
+  assert dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
+
+
+def test_drive_mode_param_picks_the_mode_and_defaults_to_dynamic():
+  for raw, mode in [(0, DLONMode.CHILL), (1, DLONMode.EXPERIMENTAL), (2, DLONMode.AUTO), (None, DLONMode.AUTO), (7, DLONMode.AUTO)]:
+    dlon = DLON(get_bool=lambda k: True, get=lambda k, raw=raw: raw)
+    dlon.update_params()
+    assert dlon.mode is mode
+  dlon = DLON(get_bool=lambda k: True)
+  dlon.update_params()
+  assert dlon.mode is DLONMode.AUTO
