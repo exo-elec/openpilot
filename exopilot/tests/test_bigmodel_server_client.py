@@ -181,11 +181,14 @@ def test_a_garbled_reply_kills_the_link():
 
   def junk():
     conn, _ = l.accept()
-    conn.recv(100)
-    conn.sendall(b'garbage that is long enough to be a header....')
-  threading.Thread(target=junk, daemon=True).start()
+    with conn:                  # closed here: a leaked socket is reported later, against whichever test happens to collect it
+      conn.recv(100)
+      conn.sendall(b'garbage that is long enough to be a header....')
+  thread = threading.Thread(target=junk, daemon=True)
+  thread.start()
   with pytest.raises(LinkError):
     Client('127.0.0.1', l.getsockname()[1]).connect()
+  thread.join(timeout=2)
   l.close()
 
 

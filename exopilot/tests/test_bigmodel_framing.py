@@ -19,8 +19,23 @@ def test_padding_rules():
   assert F.pad_for_packet(b'') == b''
 
 
-def pair():
+@pytest.fixture
+def opened():
+  """Everything a test opens is closed when it ends (pytest runs with -Werror: a leaked socket fails the test)."""
+  items = []
+  yield items
+  for item in items:
+    item.close()
+
+
+def socket_pair(opened):
   a, b = socket.socketpair()
+  opened.extend((a, b))
+  return a, b
+
+
+def pair(opened):
+  a, b = socket_pair(opened)
   return F.BulkSocket(F.SocketEndpoint(a)), F.HostBulkSocket(F.SocketEndpoint(b))
 
 
@@ -35,8 +50,8 @@ def read_message(sock):
   return head, body
 
 
-def test_comma_to_phone_messages_arrive_whole_with_padding_dropped():
-  comma, phone = pair()
+def test_comma_to_phone_messages_arrive_whole_with_padding_dropped(opened):
+  comma, phone = pair(opened)
   phone.settimeout(2)
   big = P.pack_infer_req(1, 1, 0, [0] * 8, [1, 0], bytes(P.FRAME_BYTES))
   def send():
@@ -49,8 +64,8 @@ def test_comma_to_phone_messages_arrive_whole_with_padding_dropped():
   assert read_message(phone)[0][8:12] == (2).to_bytes(4, 'little')
 
 
-def test_phone_to_comma_pad_byte_only_on_exact_multiples_and_is_dropped():
-  comma, phone = pair()
+def test_phone_to_comma_pad_byte_only_on_exact_multiples_and_is_dropped(opened):
+  comma, phone = pair(opened)
   comma.settimeout(2)
   # a reply whose wire length is exactly 512: header 20 + payload 492 (12 fixed + 480 of floats)
   exact = P.pack_infer_resp(3, 1, P.OK, 5, bytes(480))
@@ -63,8 +78,8 @@ def test_phone_to_comma_pad_byte_only_on_exact_multiples_and_is_dropped():
   assert head[5] == P.PONG
 
 
-def test_a_damaged_header_on_the_bulk_stream_is_an_error():
-  a, b = socket.socketpair()
+def test_a_damaged_header_on_the_bulk_stream_is_an_error(opened):
+  a, b = socket_pair(opened)
   comma = F.BulkSocket(F.SocketEndpoint(a))
   comma.settimeout(1)
   b.sendall(b'z' * 64)
@@ -72,15 +87,15 @@ def test_a_damaged_header_on_the_bulk_stream_is_an_error():
     comma.recv(20)
 
 
-def test_a_silent_bulk_stream_times_out():
-  comma, _ = pair()
+def test_a_silent_bulk_stream_times_out(opened):
+  comma, _ = pair(opened)
   comma.settimeout(0.05)
   with pytest.raises(TimeoutError):
     comma.recv(20)
 
 
-def test_the_whole_protocol_runs_over_the_bulk_framing():
-  a, b = socket.socketpair()
+def test_the_whole_protocol_runs_over_the_bulk_framing(opened):
+  a, b = socket_pair(opened)
   server = S.Server(S.StubBackend(), listen=False)
   threading.Thread(target=server.serve, args=(F.HostBulkSocket(F.SocketEndpoint(b)),), daemon=True).start()
   with Client(sock=F.BulkSocket(F.SocketEndpoint(a))) as c:

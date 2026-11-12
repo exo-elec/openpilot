@@ -10,7 +10,7 @@
 #   teardown  unbind, stop DHCP, remove the gadget
 #   status    one line: gadget/bound/net
 #
-# Test hooks (never set on a device): BIGMODEL_CONFIGFS, BIGMODEL_UDC_DIR, BIGMODEL_RUN_DIR redirect the filesystem roots, and
+# Test hooks (never set on a device): BIGMODEL_CONFIGFS, BIGMODEL_UDC_DIR, BIGMODEL_RUN_DIR, BIGMODEL_FFS_MOUNT redirect the filesystem roots, and
 # BIGMODEL_TEST=1 skips the root check and every command that needs a real kernel (mount, ip, nmcli, dnsmasq).
 set -euo pipefail
 

@@ -89,12 +89,14 @@ def test_cable_server_serves_a_phone_over_tcp_and_refuses_other_networks():
   sink = LocateSink()
   srv = CablePLP(Hello(services=SERVICES, link='usb'), sink.attach, bind_addr='127.0.0.1', port=0, allowed_prefix='127.')
   srv.start()
+  sockets = []
   try:
     for _ in range(100):
       if srv.bound_port:
         break
       time.sleep(0.02)
     s = socket.create_connection(('127.0.0.1', srv.bound_port))
+    sockets.append(s)
     got = F.FrameDecoder()
     s.sendall(F.Frame(R.KIND_REQUEST, 0, 1, Hello(services=SERVICES, link='usb').to_json(), 0, F.ENC_JSON, 1).encode())
     s.settimeout(2)
@@ -108,8 +110,9 @@ def test_cable_server_serves_a_phone_over_tcp_and_refuses_other_networks():
         break
       time.sleep(0.02)
     assert sink.horizons_taken == 1
-    s.close()
   finally:
+    for s in sockets:
+      s.close()
     srv.stop()
   other = CablePLP(Hello(), sink.attach, bind_addr='127.0.0.1', port=0, allowed_prefix='192.168.60.')
   other.start()
@@ -118,9 +121,9 @@ def test_cable_server_serves_a_phone_over_tcp_and_refuses_other_networks():
       if other.bound_port:
         break
       time.sleep(0.02)
-    c = socket.create_connection(('127.0.0.1', other.bound_port))
-    c.settimeout(2)
-    assert c.recv(10) == b''                        # refused: closed without a word
+    with socket.create_connection(('127.0.0.1', other.bound_port)) as c:
+      c.settimeout(2)
+      assert c.recv(10) == b''                      # refused: closed without a word
   finally:
     other.stop()
 
@@ -135,12 +138,14 @@ def test_plpd_builds_a_server_that_answers_on_the_cable_address_only():
   srv = plpd.build(sink, bind_addr='127.0.0.1', port=0, allowed_prefix='127.')
   assert srv.hello.link == 'usb' and {n for n, _, _ in srv.hello.services} == {'core', 'locate'}
   srv.start()
+  sockets = []
   try:
     for _ in range(100):
       if srv.bound_port:
         break
       time.sleep(0.02)
     s = socket.create_connection(('127.0.0.1', srv.bound_port))
+    sockets.append(s)
     s.sendall(F.Frame(R.KIND_REQUEST, 0, 1, Hello(services=SERVICES, link='usb').to_json(), 0, F.ENC_JSON, 1).encode())
     s.settimeout(2)
     d = F.FrameDecoder()
@@ -148,6 +153,7 @@ def test_plpd_builds_a_server_that_answers_on_the_cable_address_only():
     while not frames:
       frames = d.feed(s.recv(4096))
     assert Hello.parse(frames[0].payload).max_payload == 16384
-    s.close()
   finally:
+    for s in sockets:
+      s.close()
     srv.stop()
