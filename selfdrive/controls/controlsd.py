@@ -22,7 +22,7 @@ from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.controls.lib.cat import CAT
 from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_force_decel
-from openpilot.selfdrive.controls.lib.dlat import DLAT
+from exopilot.selfdrive.controls.lib.dlat import DLAT, DLATSuggestion
 from openpilot.selfdrive.controls.lib.red import RED
 from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
@@ -85,11 +85,12 @@ class Controls:
     pause_mph = self.params.get("BlinkerPauseLateralSpeed", return_default=True)
     self.blinker_pause = BlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
 
-    # EOP: DLAT (Dynamic Lateral Profile)
+    # DLAT (Dynamic Lateral Profile): the shared exopilot.selfdrive.controls.lib.dlat, same as NGP10
     self.dlat = DLAT()
     self.dlat_use_laneless = False
-    self.dlat_mode = 0
-    self.dlat_state = 0
+    self.dlat_mode = "Auto"
+    self.dlat_state = "laneful"
+    self.dlat_lane_confidence = 1.0
 
     # EOP: RED (Road Edge Detection)
     self.red = RED()
@@ -181,6 +182,7 @@ class Controls:
         'BSDChimeEnabled': self.params.get_bool("BSDChimeEnabled"),
         'TTSAlertsEnabled': self.params.get_bool("TTSAlertsEnabled"),
         'AEBEnabled': self.params.get_bool("AEBEnabled"),
+        'DLPCurvesEnabled': self.params.get_bool("DLPCurvesEnabled"),
       }
     p = self._cached_feature_params
 
@@ -243,8 +245,11 @@ class Controls:
     CC = car.CarControl.new_message()
     CC.enabled = self.sm['selfdriveState'].enabled
 
-    # EOP: DLAT - Update lateral profile mode
-    self.dlat_use_laneless, self.dlat_mode, self.dlat_state = self.dlat.update(model_v2, CS)
+    # DLAT: automatic Laneful/Laneless arbitration (DLP curve assist behind DLPCurvesEnabled)
+    dlat_result = self.dlat.update_model(model_v2, v_ego=CS.vEgo, curve_assist_enabled=p.get('DLPCurvesEnabled', True))
+    self.dlat_use_laneless = dlat_result.suggestion is DLATSuggestion.LANELESS
+    self.dlat_state = dlat_result.suggestion.value
+    self.dlat_lane_confidence = float(dlat_result.lane_confidence)
 
     # EOP: RED (Road Edge Detection) - only active in laneless mode
     # Get YOLO detections from gridd if available
@@ -470,7 +475,7 @@ class Controls:
     # EOP: DLAT debug info
     cs.dlatMode = self.dlat_mode
     cs.dlatState = self.dlat_state
-    cs.dlatLaneConfidence = self.dlat.lane_confidence
+    cs.dlatLaneConfidence = self.dlat_lane_confidence
     cs.dlatUseLaneless = self.dlat_use_laneless
 
     # EOP: radar zone monitor state (for UI overlay)

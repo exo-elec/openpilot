@@ -24,7 +24,7 @@ sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
 
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LaneChangeState
-from openpilot.selfdrive.controls.lib.dlat import LANEFUL_TO_LANELESS_THRESH
+from exopilot.selfdrive.controls.lib.dlat import DEFAULT_ENTER_THRESHOLD as LANEFUL_TO_LANELESS_THRESH
 
 
 def _make_model_v2(lane_line_probs):
