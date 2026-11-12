@@ -29,7 +29,7 @@ takes that name, so the two branches share one key and EOP10's legacy-alias laye
 | `ngp_lon_accel_profile` | `AccelerationProfile` | = EOP10 |
 | `ngp_lon_adaptive_gap` | `AdaptiveGapEnabled` | = EOP10 |
 | `ngp_lon_dlon_curves` … `_stop_prediction` (9) | `DLONCurvesEnabled`, `DLONForceStopsEnabled`, `DLONLaneConfidenceEnabled`, `DLONLowSpeedEnabled`, `DLONNavigationEnabled`, `DLONSignalEnabled`, `DLONSlowLeadEnabled`, `DLONSpeedLimitEnabled`, `DLONStopPredictionEnabled` | = EOP10 |
-| `ngp_lon_mtsc` / `_mslc` / `_tlsc` / `_ddsc` / `_rcd` | `MTSCEnabled` / `MSLCEnabled` / `TLSCEnabled` / `DDSCEnabled` / `RCDEnabled` | = EOP10; NGP10's own `EOPMTSCEnabled`… merge into the same keys |
+| `ngp_lon_mtsc` / `_mslc` / `_tlsc` / `_ddsc` / `_rcd` | `MTSCEnabled` / `MSLCEnabled` / `TLSCEnabled` / `DDSCEnabled` / `RCSCEnabled` | = EOP10; NGP10's own `EOPMTSCEnabled`… merge into the same keys |
 | `ngp_lon_slc_offsets` | `SharedSLCOffsets` | = EOP10 |
 | `ngp_pathd_nudges` | `PathdNudgesEnabled` | = EOP10 |
 | `ngp_lon_vtsc` | `VTSCEnabled` | = EOP10 |
@@ -100,6 +100,7 @@ need ExoPilot hardware (side/rear YOLO, stereo, radar) stay on EOP10.
 | `ngp_lc_lead_handoff.py` / `NGPLeadHandoff` | `lc_lead_handoff.py` / `LeadHandoff` |
 | `ngp_speed_policy.py` / `NGPSpeedPolicy` | `speed_policy.py` / `SpeedPolicy` |
 | `ngp_turn_desire.py` / `NGPTurnDesire` | `turn_desire.py` / `TurnDesire` |
+| `rcd.py` / `RCD` (Road Condition Detection), `RCDEnabled` | `rcsc.py` / `RCSC`, Road Condition Speed Controller (owner 2026-11-13: matches VTSC/MTSC/TLSC/BRSC); the pure part is `RoadConditionCap`; `RCSCEnabled` |
 | `NGPFlags` / `ngp_flags` (planner feature bits) | `FeatureFlags` / `feature_flags` |
 | `runtime/bigmodel.py` `NgpSmallModel` | `LocalModel` (the comma 3's own model while the phone model is off) |
 | `runtime/bigmodel_warp.py` `NgpWarp` | `ModelWarp` |

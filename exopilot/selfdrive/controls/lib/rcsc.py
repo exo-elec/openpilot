@@ -1,5 +1,6 @@
 """
-rcd.py - Road Condition Detection speed cap (moved from EOP10's rcd.py; pure, no cereal / Params / cv2).
+rcsc.py - RCSC, Road Condition Speed Controller (moved from EOP10's rcd.py). RoadConditionCap is pure (no cereal / Params / cv2);
+RCSC around it reads the switch (RCSCEnabled) and the surface source.
 
 A road-surface classification (GOOD / WET / ICY / SNOW / DEBRIS) becomes a speed cap the planner takes `min(v_cruise, cap)` of: it only ever lowers the
 cruise speed. The condition comes from a source the caller supplies (a surface-quality score, a segmentation hint, or the three image metrics of
@@ -48,7 +49,7 @@ class RoadConditionResult:
 
 
 @dataclass
-class RCDState:
+class RCSCState:
   condition: RoadCondition
   confidence: float
   speed_limit_ms: float
@@ -119,21 +120,21 @@ class RoadConditionCap:
       self._x = (1. - self._alpha) * self._x + self._alpha * target
     return self._x
 
-  def update(self, result: RoadConditionResult | None) -> RCDState:
+  def update(self, result: RoadConditionResult | None) -> RCSCState:
     """One cycle. `result` is None when no source has anything to say."""
     if result is None:
-      return RCDState(self.current_condition, self.current_confidence, self._limit, False, "No data source available")
+      return RCSCState(self.current_condition, self.current_confidence, self._limit, False, "No data source available")
     condition = self._hysteresis(result.condition)
     self.current_condition, self.current_confidence = condition, result.confidence
     if result.confidence >= MIN_CONFIDENCE and condition != RoadCondition.GOOD:
       limit = SPEED_LIMITS[condition]
       self._limit = self._smooth(limit)
-      return RCDState(condition, result.confidence, self._limit, True, f"{condition.name}: limit={limit:.1f}m/s")
+      return RCSCState(condition, result.confidence, self._limit, True, f"{condition.name}: limit={limit:.1f}m/s")
     if self.legacy_filter_bug:
       self._x = (1. - self._alpha) * self._x
     self._cap_on = False
     self._limit = 0.0
-    return RCDState(condition, result.confidence, 0.0, False, f"{condition.name}: no limit")
+    return RCSCState(condition, result.confidence, 0.0, False, f"{condition.name}: no limit")
 
 
 PARAM_REFRESH_S = 5.0
@@ -141,14 +142,14 @@ PARAM_REFRESH_S = 5.0
 
 
 
-class RCD:
-  """RCD reads the surface source out of the SubMaster-like `sm` and feeds RoadConditionCap.
+class RCSC:
+  """RCSC reads the surface source out of the SubMaster-like `sm` and feeds RoadConditionCap.
 
 Sources, in EOP10's priority order: `surfaceStatus` (surfaced's roughness score), then `monoSegments` (the camera-tier card's road/edge/drivable hint).
-Both exist only on EOP hardware; where the service is not in this branch's SERVICE_LIST (NGP10) there is no source and RCD reports "No data source".
-Switch: `enabled_key` param (NGP10: `RCDEnabled`; EOP10's shim passes `RCDEnabled` and legacy_filter_bug=True), re-read every 5 s.
+Both exist only on EOP hardware; where the service is not in this branch's SERVICE_LIST (NGP10) there is no source and RCSC reports "No data source".
+Switch: `enabled_key` param (NGP10: `RCSCEnabled`; EOP10's shim passes `RCSCEnabled` and legacy_filter_bug=True), re-read every 5 s.
   """
-  def __init__(self, get_bool=None, enabled_key: str = "RCDEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
+  def __init__(self, get_bool=None, enabled_key: str = "RCSCEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
     self._get_bool, self._key, self._clock = get_bool or (lambda k: False), enabled_key, clock
     self.core = RoadConditionCap(legacy_filter_bug=legacy_filter_bug)
     self._t = -1e9
@@ -174,10 +175,10 @@ Switch: `enabled_key` param (NGP10: `RCDEnabled`; EOP10's shim passes `RCDEnable
     result = self.from_surface(sm)
     return result if result is not None else self.from_segmentation(sm)
 
-  def update(self, sm) -> RCDState:
+  def update(self, sm) -> RCSCState:
     now = self._clock()
     if now - self._t >= PARAM_REFRESH_S:
       self._t, self.enabled = now, bool(self._get_bool(self._key))
     if not self.enabled:
-      return RCDState(RoadCondition.GOOD, 0.0, 0.0, False, "RCD disabled")
+      return RCSCState(RoadCondition.GOOD, 0.0, 0.0, False, "RCSC disabled")
     return self.core.update(self._result(sm))

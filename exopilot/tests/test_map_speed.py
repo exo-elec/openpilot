@@ -94,8 +94,8 @@ def test_the_lowest_cap_wins_and_it_is_never_negative():
   assert r.cap == min(r.sources.values()) and set(r.sources) >= {'tlsc', 'ddsc'} and r.cap >= 0.0
 
 
-def test_rcd_cap_comes_from_a_surface_source_and_is_off_without_one():
-  ms, clk = make(flags=('rcd',))
+def test_rcsc_cap_comes_from_a_surface_source_and_is_off_without_one():
+  ms, clk = make(flags=('rcsc',))
   s = sm()
   assert ms.update(s, 25.0, 25.0, None, False, 0.05).cap is None                     # NGP10: no surfaceStatus, nothing to say
   s['surfaceStatus'] = NS(hasSurfaceQuality=True, surfaceQuality=NS(score=0.55, texture='x'))

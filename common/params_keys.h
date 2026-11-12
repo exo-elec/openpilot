@@ -172,7 +172,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
     {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
-    {"RCDEnabled", {PERSISTENT, BOOL, "0"}},       // speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
+    {"RCSCEnabled", {PERSISTENT, BOOL, "0"}},      // RCSC, Road Condition Speed Controller: speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
     {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
     {"PathdEnabled", {PERSISTENT, BOOL, "0"}},
     {"MonoDEnabled", {PERSISTENT, BOOL, "0"}},

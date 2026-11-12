@@ -3,4 +3,4 @@ LONGITUDINAL_KEYS = {"mode": "DriveMode", "accel": "AccelerationProfile", "perso
                      "gap": "AdaptiveGapEnabled"}
 
 MAP_SPEED_KEYS = {"mtsc": "MTSCEnabled", "mslc": "MSLCEnabled", "tlsc": "TLSCEnabled",
-                  "ddsc": "DDSCEnabled", "rcd": "RCDEnabled", "offsets": "SharedSLCOffsets"}
+                  "ddsc": "DDSCEnabled", "rcsc": "RCSCEnabled", "offsets": "SharedSLCOffsets"}

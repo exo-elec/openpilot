@@ -1,11 +1,11 @@
-"""RCD port: reproduces EOP10's original rcd.py (golden_rcd.json, recorded 2026-10-04 from the built clone) in legacy mode; the fix is separate."""
+"""RCSC port: reproduces EOP10's original rcd.py (golden_rcsc.json, recorded 2026-10-04 from the built clone) in legacy mode; the fix is separate."""
 import json
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from exopilot.selfdrive.controls.lib.rcd import RCD, RoadConditionCap, RoadCondition, classify_metrics
+from exopilot.selfdrive.controls.lib.rcsc import RCSC, RoadConditionCap, RoadCondition, classify_metrics
 
-G = json.loads((Path(__file__).parent / 'golden_rcd.json').read_text())
+G = json.loads((Path(__file__).parent / 'golden_rcsc.json').read_text())
 
 
 class SM(dict):
@@ -25,7 +25,7 @@ def sm_for(kind, v):
 
 
 def run(legacy, seq):
-  rt = RCD(lambda k: True, legacy_filter_bug=legacy)
+  rt = RCSC(lambda k: True, legacy_filter_bug=legacy)
   rows = []
   for kind, v in seq:
     st = rt.update(sm_for(kind, v))
@@ -41,7 +41,7 @@ def test_legacy_mode_reproduces_eop10_exactly():
 
 
 def test_disabled_reports_disabled():
-  st = RCD(lambda k: False).update(sm_for('s', 0.9))
+  st = RCSC(lambda k: False).update(sm_for('s', 0.9))
   assert [st.condition.name, st.confidence, st.speed_limit_ms, st.is_active, st.reason] == G['disabled']
 
 
@@ -71,5 +71,5 @@ def test_fix_only_changes_the_filter_never_the_decisions():
 
 def test_no_source_means_no_cap_and_core_is_pure():
   assert RoadConditionCap().update(None).is_active is False
-  st = RCD(lambda k: True).update(SM({}))
+  st = RCSC(lambda k: True).update(SM({}))
   assert not st.is_active and st.condition == RoadCondition.GOOD

@@ -135,7 +135,7 @@ void FeaturesPanel::add_extended_controls() {
     {"MSLCEnabled", tr("MSLC · Map Speed Limit"), tr("EOP-origin posted speed-limit policy.")},
     {"TLSCEnabled", tr("TLSC · Traffic Light Speed"), tr("Requires a valid traffic-light perception source.")},
     {"DDSCEnabled", tr("DDSC · Distraction Speed"), tr("Requires valid driver-awareness data.")},
-    {"RCDEnabled", tr("RCD · Road Condition Speed"), tr("Requires a valid road-condition source.")},
+    {"RCSCEnabled", tr("RCSC · Road Condition Speed"), tr("Requires a valid road-condition source.")},
     {"MonoDEnabled", tr("MONO · Camera Detection"), tr("Requires a provisioned detector model.")},
     {"PathdEnabled", tr("PATH · Object Protection Planner"), tr("Publish bounded protection proposals. Consumer switches are separate.")},
     {"PathdLateral", tr("PATH · Lateral Proposals"), tr("Requires the protection planner.")},

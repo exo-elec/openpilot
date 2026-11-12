@@ -1,8 +1,8 @@
-"""One speed-cap adapter for the map-, light- and distraction-based controllers (MTSC, MSLC, TLSC, DDSC, RCD).
+"""One speed-cap adapter for the map-, light- and distraction-based controllers (MTSC, MSLC, TLSC, DDSC, RCSC).
 
 The planner calls `update` once per cycle and takes `min(v_cruise, cap)`: these controllers only ever LOWER the cruise speed, so
 the speed the driver set is never exceeded. Per-controller switches (default off): `MTSCEnabled`, `MSLCEnabled`,
-`TLSCEnabled`, `DDSCEnabled`, `RCDEnabled`; MSLC per-range offsets `SharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
+`TLSCEnabled`, `DDSCEnabled`, `RCSCEnabled`; MSLC per-range offsets `SharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
 
 Two fixes over EOP10's inline planner code:
   - EOP10 reset the MTSC/MSLC target every cycle and set it only on the cycle a `mapData` message arrived (1 Hz): the cap existed for
@@ -25,7 +25,7 @@ from exopilot.selfdrive.controls.lib.mslc import MSLC
 from exopilot.selfdrive.controls.lib.mtsc import MTSC
 from exopilot.selfdrive.controls.lib.tlsc import TLSC
 from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_path
-from exopilot.selfdrive.controls.lib.rcd import RCD
+from exopilot.selfdrive.controls.lib.rcsc import RCSC
 
 MAP_HOLD_S = 3.0              # mapd publishes at 1 Hz: hold a result this long
 LIGHT_HOLD_S = 0.5            # same as EOP10's TLSC stale limit
@@ -52,10 +52,10 @@ class MapSpeed:
     self._get_bool = get_bool or (lambda k: False)
     self._get_str = get_str or (lambda k: "")
     self._clock = clock
-    self.flags = dict.fromkeys(('mtsc', 'mslc', 'tlsc', 'ddsc', 'rcd'), False)
+    self.flags = dict.fromkeys(('mtsc', 'mslc', 'tlsc', 'ddsc', 'rcsc'), False)
     self._cfg_t = -1e9
     self.mtsc, self.mslc, self.tlsc, self.ddsc = MTSC(enabled=True), MSLC(enabled=True), TLSC(enabled=True), DDSC()
-    self.rcd = RCD(lambda k: True)      # gated by flags['rcd'] below; the runtime's own switch is always on
+    self.rcsc = RCSC(lambda k: True)      # gated by flags['rcsc'] below; RCSC's own switch is always on
     self._map_t = -1e9
     self._mtsc: tuple[float | None, float] = (None, math.inf)      # (target, distance)
     self._mslc: float | None = None
@@ -136,10 +136,10 @@ class MapSpeed:
         sources['ddsc'] = cap
 
     # --- road condition (wet / ice / debris) from surfaced or the card, where those exist
-    if self.flags['rcd']:
-      st = self.rcd.update(sm)
+    if self.flags['rcsc']:
+      st = self.rcsc.update(sm)
       if st.is_active and st.speed_limit_ms > 0:
-        sources['rcd'] = st.speed_limit_ms
+        sources['rcsc'] = st.speed_limit_ms
 
     cap = min(sources.values()) if sources else None
     if cap is not None:
