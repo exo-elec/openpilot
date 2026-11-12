@@ -198,10 +198,7 @@ class TestDLONDriveModeParam:
   """Settings -> Driving -> Drive Mode (DlonMode) selects the DLON mode."""
 
   def _mode_for(self, value):
-    dlon = DLON()
-    dlon.params = MagicMock()
-    dlon.params.get = lambda key: value if key == "DlonMode" else None
-    dlon.params.get_bool = lambda key: False
+    dlon = DLON(get_bool=lambda key: False, get=lambda key: value if key == "DlonMode" else None)
     dlon.last_param_update = -1e9
     dlon.update_params()
     return dlon.mode
