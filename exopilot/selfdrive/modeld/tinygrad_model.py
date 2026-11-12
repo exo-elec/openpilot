@@ -1,11 +1,30 @@
 """Compiled ONNX artifact adapter for the official big-model tinygrad ABI."""
+import importlib.util
+from pathlib import Path
+
 import numpy as np
+
+
+def _openpilot_helpers():
+  """tinygrad_repo/examples/openpilot/helpers.py, loaded from beside the tinygrad package.
+
+  `examples` is not an importable package on a device: the launcher puts only the openpilot root on PYTHONPATH and
+  `tinygrad` is reached through the root symlink to tinygrad_repo/tinygrad, so `from examples.openpilot.helpers import`
+  raised ModuleNotFoundError and modeld could not load its compiled models. helpers.py needs only tinygrad and the
+  standard library.
+  """
+  import tinygrad
+  path = Path(tinygrad.__file__).resolve().parents[1] / 'examples' / 'openpilot' / 'helpers.py'
+  spec = importlib.util.spec_from_file_location('tinygrad_openpilot_helpers', path)
+  module = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(module)
+  return module
 
 
 class TinygradModel:
   def __init__(self, path, device=None):
     from tinygrad import Tensor, Context, Device
-    from examples.openpilot.helpers import load_pickle
+    load_pickle = _openpilot_helpers().load_pickle
     self.Tensor = Tensor
     self.device = device or Device.DEFAULT
     with Context(DEV=self.device):

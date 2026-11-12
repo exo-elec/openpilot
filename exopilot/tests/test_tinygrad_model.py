@@ -25,8 +25,10 @@ def compiled_model(tmp_path_factory):
   graph = onnx.helper.make_graph([onnx.helper.make_node("Add", ["input", "input"], ["outputs"])],
                                  "double", [tensor("input")], [tensor("outputs")])
   onnx.save(onnx.helper.make_model(graph, opset_imports=[onnx.helper.make_opsetid("", 17)]), source)
+  root = str(compiler.parents[2])   # the compiler imports examples.openpilot.helpers, as SConscript runs it
+  pythonpath = os.pathsep.join(p for p in (root, os.environ.get("PYTHONPATH", "")) if p)
   subprocess.run([sys.executable, str(compiler), str(source), str(artifact)],
-                 env={**os.environ, "DEV": "CPU:CLANG"}, check=True, capture_output=True)
+                 env={**os.environ, "DEV": "CPU:CLANG", "PYTHONPATH": pythonpath}, check=True, capture_output=True)
   return TinygradModel(artifact, device="CPU:CLANG")
 
 
