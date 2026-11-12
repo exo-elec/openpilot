@@ -17,7 +17,6 @@ The rule channel is idle (dppMode 0) unless `DPPMaxMode` > 0; the whole process 
 """
 import math
 import time
-from exopilot.runtime.feature_keys import OriginParams
 from dataclasses import dataclass, replace
 
 from exopilot.controls.arbiter import Proposal, arbitrate
@@ -171,7 +170,7 @@ def run(source=None) -> None:
                  ignore_alive=['monoDetections', 'radarState', 'stereoObjects'])
   params = Params()
   provider = None
-  if OriginParams(params).get_bool("PathdNudgesEnabled"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
+  if params.get_bool("PathdNudgesEnabled"):        # EOP10's LatNudge/LonNudge/speed-reduction cores as extra proposers, camera-only inputs
     from exopilot.runtime.nudge_extras import NudgeExtras
     nudges = NudgeExtras()
     provider = lambda sm, objs, v_ego: nudges.update(sm['modelV2'], objs, v_ego)  # noqa: E731

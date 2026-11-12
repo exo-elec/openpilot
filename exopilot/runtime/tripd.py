@@ -12,7 +12,6 @@ Reference: TRIPD.md design document
 """
 
 import json
-import re
 import time
 from datetime import datetime, timedelta
 from typing import Any
@@ -29,9 +28,9 @@ from openpilot.common.swaglog import cloudlog
 _PERSONALITY_NAME_MAP = {v: k for k, v in log.LongitudinalPersonality.schema.enumerants.items()}
 
 
-def _key(suffix: str) -> str:
+def _trip_key(suffix: str) -> str:
     """TotalDistance -> TripTotalDistance."""
-    return "ngp_trip_" + re.sub(r"(?<!^)(?=[A-Z])", "_", suffix).lower()
+    return "Trip" + suffix
 
 
 class DriveState(Enum):
@@ -162,9 +161,8 @@ class TripD:
     SAVE_INTERVAL = 5.0  # seconds
 
     def __init__(self, keys=None):
-        """`keys(suffix) -> param name` maps a stat to its param: `TripTotalDistance` by default, EOP10's shim passes
-        `EOPTrip<Suffix>` so its UI keeps reading the same keys."""
-        self._key_fn = keys or _key
+        """`keys(suffix) -> param name` maps a stat to its param, `TripTotalDistance` by default."""
+        self._key_fn = keys or _trip_key
         self.params = Params()
 
         # Messaging

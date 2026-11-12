@@ -147,7 +147,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/runtime/nudge_extras.py). Default off; needs PathdEnabled.
     {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
     // Map / light / distraction speed caps (exopilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
-    // tripd (exopilot/runtime/tripd.py): trip statistics; EOP10 keeps its EOPTrip* names through its shim. Process behind TripdEnabled.
+    // tripd (exopilot/runtime/tripd.py): trip statistics. Process behind TripdEnabled.
     {"TripdEnabled", {PERSISTENT, BOOL, "0"}},
     {"TripAStartDistance", {PERSISTENT, FLOAT, "0.0"}},
     {"TripAStartTime", {PERSISTENT, FLOAT, "0.0"}},
@@ -165,14 +165,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TripUptimeEngaged", {PERSISTENT, FLOAT, "0.0"}},
     {"TripUptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
     {"MapdEnabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
-    // Canonical EOP-origin names; ngp_* entries below remain legacy read aliases.
-    {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},
-    {"RCDEnabled", {PERSISTENT, BOOL, "0"}},
-    {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},
-    {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
     {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
@@ -187,7 +179,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DriveMode", {PERSISTENT, STRING, "custom"}},
     {"AccelerationProfile", {PERSISTENT, STRING, "normal"}},
     // Adaptive follow gap uses only the standard radarState.leadOne observation.
-    // Default off like EOP10's EOPAdaptiveGapEnabled; opt-in pending vehicle validation.
+    // Default off; opt-in pending vehicle validation.
     {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
     {"BRSCEnabled", {PERSISTENT, BOOL, "1"}},
     // DLON (Dynamic Longitudinal Profile) is a default, always-on behavior
@@ -197,7 +189,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // situational signals the automatic switch considers, not force a mode.
     {"DLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     {"DLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
-    // Couples DLAT's own Laneful/Laneless arbitration (see lat above) into
+    // Couples DLAT's own Laneful/Laneless arbitration (see DLAT above) into
     // DLON's automatic switch: when DLAT has committed to Laneless, E2E's
     // path-only prediction fits better than lane-line-anchored ACC.
     {"DLONLaneConfidenceEnabled", {PERSISTENT, BOOL, "1"}},
@@ -218,8 +210,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // toggle, matching EOP10's NSLCEnabled. Default off.
     {"NSLCEnabled", {PERSISTENT, BOOL, "0"}},
     // Driver preference: constant kph offset applied to the final v_cruise
-    // (after all other limits), matching EOP10's EOPSpeedLimitOffset and its
-    // driver_prefs.py::get_speed_with_offset() application point. Default 0
+    // (after all other limits), applied where EOP10's
+    // driver_prefs.py::get_speed_with_offset() applies it. Default 0
     // is a no-op, so this needs no separate enable flag. EOP10's
     // driver_prefs.py also has a following_distance/get_time_gap() concept,
     // but it's never actually called anywhere in EOP10's own

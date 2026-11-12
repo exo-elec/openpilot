@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace as NS
 
 from exopilot.controls.curve_speed import blend_mtsc_vtsc
-from exopilot.runtime.feature_keys import EOP_MAP_KEYS
+from exopilot.runtime.feature_keys import MAP_SPEED_KEYS
 from exopilot.controls.ddsc import DMS_BASE_LIMIT_MPS, DDSC
 from exopilot.controls.mslc import MSLC
 from exopilot.controls.mtsc import MTSC
@@ -69,8 +69,8 @@ class MapSpeed:
     if now - self._cfg_t < CONFIG_REFRESH_S:
       return
     self._cfg_t = now
-    self.flags = {k: bool(self._get_bool(EOP_MAP_KEYS[k])) for k in self.flags}
-    raw = str(self._get_str(EOP_MAP_KEYS["offsets"]) or "")
+    self.flags = {k: bool(self._get_bool(MAP_SPEED_KEYS[k])) for k in self.flags}
+    raw = str(self._get_str(MAP_SPEED_KEYS["offsets"]) or "")
     self.mslc._offset.set_offsets_kph([float(v) for v in raw.split(',') if v.strip().lstrip('-').replace('.', '', 1).isdigit()])
 
   @staticmethod

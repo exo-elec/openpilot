@@ -40,7 +40,6 @@ from exopilot.controls.cutin_speed import CutInSpeed
 from exopilot.controls.pathd_consumer import speed_cap
 from exopilot.runtime.cutin_adapter import cutin_objects, cutin_path
 from exopilot.runtime.map_speed import MapSpeed
-from exopilot.runtime.feature_keys import OriginParams
 from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See exopilot/controls/lc_lead_handoff.py.
@@ -142,8 +141,7 @@ class LongitudinalPlanner:
     self.cutin = CutInSpeed()
     # Map / traffic-light / distraction speed caps (MTSC, MSLC, TLSC, DDSC); every one default off, they only lower the cruise speed
     _params = Params()
-    origin_params = OriginParams(_params)
-    self.map_speed = MapSpeed(origin_params.get_bool, origin_params.get_text)
+    self.map_speed = MapSpeed(_params.get_bool, lambda k: _params.get(k) or "")
     # Parallel rule channel (pathd + DPP): blends pathd's accel into the policy accel per DPP's mode (policy unchanged without it)
     self.rule_consumer = RuleChannelConsumer()
 

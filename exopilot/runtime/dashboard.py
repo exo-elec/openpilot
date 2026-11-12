@@ -1,11 +1,11 @@
-"""Loopback-only, read-only NGP status viewer; no vehicle commands or parameter writes."""
+"""Loopback-only, read-only ExoPilot status viewer; no vehicle commands or parameter writes."""
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-PAGE = b'''<!doctype html><html><meta name="viewport" content="width=device-width"><title>NGP Status</title>
+PAGE = b'''<!doctype html><html><meta name="viewport" content="width=device-width"><title>ExoPilot Status</title>
 <style>body{background:#101318;color:#edf0f4;font:20px sans-serif;margin:32px}
 pre{background:#1d232c;padding:24px;border-radius:16px;white-space:pre-wrap}</style>
-<h1>NGP Status</h1><p>Read-only device and trip information</p><pre id="state">Loading...</pre>
+<h1>ExoPilot Status</h1><p>Read-only device and trip information</p><pre id="state">Loading...</pre>
 <script>async function refresh(){
 try{const r=await fetch('/api/state');
 document.getElementById('state').textContent=JSON.stringify(await r.json(),null,2)
@@ -16,11 +16,12 @@ refresh();setInterval(refresh,2000)</script></html>'''
 def snapshot(params):
   # Only non-sensitive data is exposed. Never serialize all Params.
   result = {'onroad': params.get_bool('IsOnroad')}
-  for name in ('TripTotalDistance', 'TripTotalDrives', 'TripLastDistance', 'TripLastDuration'):
-    value = params.get(name)
+  for field, key in (('total_distance', 'TripTotalDistance'), ('total_drives', 'TripTotalDrives'),
+                     ('last_distance', 'TripLastDistance'), ('last_duration', 'TripLastDuration')):
+    value = params.get(key)
     if isinstance(value, bytes):
       value = value.decode('utf-8', errors='replace')
-    result[name.removeprefix('ngp_trip_')] = value
+    result[field] = value
   return result
 
 

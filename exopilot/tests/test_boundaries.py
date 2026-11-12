@@ -1,5 +1,6 @@
 """Code-boundary rules for the ExoPilot layer (see docs/BOUNDARIES.md)."""
 import ast
+import re
 import subprocess
 from pathlib import Path
 
@@ -10,9 +11,11 @@ NP = ROOT / "exopilot"
 PURE_DIRS = ("controls",)
 FORBIDDEN_PREFIXES = ("openpilot.selfdrive", "openpilot.system", "openpilot.common.params", "cereal.messaging")
 
-# NGP/EOP-prefixed files may live outside exopilot/ only at these reviewed UI hooks.
-ALLOWED_OUTSIDE = {"selfdrive/ui/qt/offroad/features_panel.cc", "selfdrive/ui/qt/offroad/features_panel.h", "selfdrive/ui/qt/offroad/param_controls.h"}
-SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "exopilot"}
+SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "teleoprtc"}
+# Owner decision 2026-11-12: no product prefix on any name. Only the saved-param migration may spell the old names.
+PREFIXED = re.compile(r"(?<![A-Za-z0-9])(ngp|eop)_|(?<![A-Za-z0-9])(ngp|eop|Ngp|Eop|NGP|EOP)(?=[A-Z][a-z])|(?<![A-Za-z0-9])NGP_")
+CODE_SUFFIXES = (".py", ".cc", ".h", ".capnp", ".sh", ".json", ".yaml", ".yml", ".ts", ".qml")
+MIGRATION_FILES = {"exopilot/param_migration.py", "exopilot/tests/test_param_migration.py", "exopilot/tests/test_boundaries.py"}
 
 
 def _imports(path: Path):
@@ -31,12 +34,25 @@ def test_pure_modules_do_not_import_runtime():
   assert not bad, "\n".join(bad)
 
 
-def test_no_or_eop_modules_outside_exopilot():
-  files = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n")
-  stray = [f for f in files if f and f.split("/")[0] not in SKIP_TOP and f not in ALLOWED_OUTSIDE
-           and (Path(f).name.startswith(("ngp_", "eop_")) or "/ngp_" in f or "/eop_" in f)
-           and "/tests/" not in f]
-  assert not stray, f"move under exopilot/: {stray}"
+def _tracked():
+  out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n")
+  return [f for f in out if f and f.split("/")[0] not in SKIP_TOP]
+
+
+def test_no_product_prefix_in_file_names():
+  bad = [f for f in _tracked() if PREFIXED.search(Path(f).name.replace("-", "_"))]
+  assert not bad, bad
+
+
+def test_no_product_prefix_in_code():
+  bad = []
+  for f in _tracked():
+    if not f.endswith(CODE_SUFFIXES) or f in MIGRATION_FILES or not (ROOT / f).is_file():
+      continue
+    for n, line in enumerate((ROOT / f).read_text(errors="replace").splitlines(), 1):
+      if PREFIXED.search(line):
+        bad.append(f"{f}:{n}: {line.strip()[:100]}")
+  assert not bad, "\n".join(bad[:50])
 
 
 def test_no_release_number_in_identifiers():

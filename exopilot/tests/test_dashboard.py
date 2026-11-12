@@ -10,7 +10,7 @@ class Params:
     return key == 'IsOnroad'
 
   def get(self, key):
-    assert key.startswith('ngp_trip_')
+    assert key.startswith('Trip')
     return b'12'
 
 

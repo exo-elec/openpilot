@@ -19,6 +19,7 @@ from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_I
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata, terms_version, training_version
 from openpilot.system.hardware.hw import Paths
+from exopilot.param_migration import migrate_renamed_params
 
 
 def manager_init() -> None:
@@ -27,6 +28,7 @@ def manager_init() -> None:
   build_metadata = get_build_metadata()
 
   params = Params()
+  migrate_renamed_params(params.get_param_path())  # saved params move to their unprefixed names (2026-11-12)
   params.clear_all(ParamKeyFlag.CLEAR_ON_MANAGER_START)
   params.clear_all(ParamKeyFlag.CLEAR_ON_ONROAD_TRANSITION)
   params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
@@ -36,9 +38,6 @@ def manager_init() -> None:
 
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True)
-
-  from exopilot.runtime.feature_keys import migrate_origin_params
-  migrate_origin_params(params)
 
   # set unset params to their default value
   for k in params.all_keys():

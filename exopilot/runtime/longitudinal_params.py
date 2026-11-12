@@ -1,8 +1,8 @@
-"""Cached longitudinal settings shared by NGP and EOP parameter adapters."""
+"""Cached longitudinal settings (acceleration profile, adaptive gap)."""
 import time
 
 from exopilot.controls.longitudinal_policy import ACCELERATION_PROFILES
-from exopilot.runtime.feature_keys import NGP_KEYS
+from exopilot.runtime.feature_keys import LONGITUDINAL_KEYS
 
 CACHE_S = 2.0
 
@@ -13,7 +13,7 @@ def _params():
 
 
 class LongitudinalSettings:
-  def __init__(self, keys=NGP_KEYS, params_factory=None, clock=None):
+  def __init__(self, keys=LONGITUDINAL_KEYS, params_factory=None, clock=None):
     self.keys = dict(keys)
     self.params_factory = params_factory
     self.clock = clock

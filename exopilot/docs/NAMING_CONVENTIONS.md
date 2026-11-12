@@ -4,48 +4,22 @@ Release numbers belong to branch names, release documents, and compatibility
 statements. They do not belong to implementation identifiers. This keeps code
 stable when a release advances from 10 to a later version.
 
-| Line | Branch/release label | Implementation prefix | Example |
-| --- | --- | --- | --- |
-| dragonpilot / EDP | `dev/EDP10` | `dp_` | `dp_lat_alka` |
-| ExoPilot (comma 3) | `dev/NGP10` | `ngp_` | `speed_policy.py` |
-| EnhancedOpenPilot | `dev/EOP10` | `eop_` | `settings_backup.py` |
+## No product prefix (owner decision 2026-11-12)
 
-Python classes use the corresponding stable uppercase product prefix where a
-prefix is needed, for example `DLAT` and `ALCC`, never
-`NGP10Capabilities` or `NGP10DLAT`. NGP-owned policy modules live in
-`exopilot/controls/` and retain names such as `tja.py`. Upstream runtime
-files contain only integration hooks. Cereal fields use normal lower-camel
-names such as `dlonMode`.
+Names carry no `ngp_` / `eop_` / `NGP` / `EOP` prefix, and no replacement prefix or
+suffix: a module, class, param key or capnp field says what it does (`dlon.py` / `DLON`,
+`GreenLightAlert`, `dlonMode`). Param keys follow openpilot / sunnypilot CamelCase. One
+feature has one name and one implementation: features a comma 3 can run are owned by
+NGP10 (`exopilot/controls/`) and inherited by EOP10, 01M and 02M, which only add inputs
+that need ExoPilot hardware. The full old -> new table is `NAMING_WITHOUT_PREFIX.md`.
+`exopilot/tests/test_boundaries.py` fails on a prefixed file name or code name.
 
-The EDP branch intentionally retains dragonpilot's established `dp_` names.
-Renaming those persisted parameters to `edp_` would break existing device
-settings and is not a porting-style improvement.
+Release and line labels (`dev/NGP10`, `dev/EOP10`, `dev/EDP10`) stay in branch names and
+documents, never in identifiers. The EDP branch keeps dragonpilot's `dp_` names.
 
-## Which prefix a module gets
-
-Prefixes describe the feature's owning baseline, not whichever device runs it.
-NGP-origin implementations retain `ngp_` / `NGP` when inherited by EOP10,
-01M and 02M. EOP-, 01M- and 02M-origin implementations use `eop_` / `EOP`,
-even when a portable core is subsequently made available on NGP10.
-
-The EOP-origin cores for LatNudge, LonNudge, prediction, speed reduction,
-MTSC, MSLC, TLSC, DDSC, RCD and curve-speed helpers now have canonical
-`eop_*` modules. Their old `ngp_*` modules are compatibility aliases only.
-DLAT/DLON's NGP implementation, NGP SOC, driving modes, blinker pause and
-green-light policy keep their established NGP ownership. Neutral shared
-plumbing (settings caching and geometry) needs no product prefix.
-
-Canonical EOP-origin map switches use `EOP*` keys. `OriginParams` falls back
-to old saved `ngp_lon_*` values only if the canonical key is absent; an explicit
-canonical off overrides a legacy on. Persisted keys and cereal field names
-already deployed are compatibility APIs: do not rename ordinals or discard
-saved settings merely to change spelling. Existing EOPDriveMode and related
-parameter mappings remain supported adapters for earlier device settings.
-
-Hardware availability determines adapter selection, not naming ownership.
-Do not rename an inherited feature because it runs on a different board.
-The lineage gate requires canonical cores and compatibility aliases to remain
-identical from NGP through EOP and both device profiles.
+Saved settings and logs stay readable across renames: `exopilot/param_migration.py`
+moves saved values to the new key once at manager start (a value already under the new
+name wins), and a renamed capnp field keeps its ordinal.
 
 ## Driver-facing lateral names
 

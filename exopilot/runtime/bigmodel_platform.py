@@ -1,7 +1,7 @@
 """What differs per branch in the big-model link (T16/T17): the one file a branch rewrites.
 
 Param names (a branch's naming rule), how to tell a real device from a PC, the camera geometry, and how the gadget owner drives the port. Everything else under exopilot/bigmodel/,
-exopilot/runtime/bigmodel*.py and exopilot/controls/ngp_bigmodel_*.py is byte-identical across NGP10, EOP10, 01M
+exopilot/runtime/bigmodel*.py and exopilot/controls/bigmodel_*.py is byte-identical across NGP10, EOP10, 01M
 and 02M. Standard library only at import time: the resident gadget owner imports it.
 """
 from pathlib import Path

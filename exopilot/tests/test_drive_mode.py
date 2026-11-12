@@ -1,6 +1,6 @@
 from exopilot.controls.drive_mode import CUSTOM, MODES, detect, settings_for
 from exopilot.controls.longitudinal_policy import ACCELERATION_PROFILES
-from exopilot.runtime.drive_mode import NGP_KEYS, DriveModeApplier
+from exopilot.runtime.drive_mode import LONGITUDINAL_KEYS as KEYS, DriveModeApplier
 
 
 class _Params:
@@ -49,17 +49,17 @@ def test_detect_names_the_mode_or_custom():
 
 
 def test_applier_writes_once_per_mode_change_and_never_for_custom():
-  p = _Params({NGP_KEYS["mode"]: "sport"})
+  p = _Params({KEYS["mode"]: "sport"})
   a = DriveModeApplier(p)
-  assert a.update(now=10.0) and p.store[NGP_KEYS["accel"]] == "sport" and p.store[NGP_KEYS["personality"]] == 0
+  assert a.update(now=10.0) and p.store[KEYS["accel"]] == "sport" and p.store[KEYS["personality"]] == 0
   assert a.current() == "sport"
   n = len(p.writes)
   assert not a.update(now=12.0) and len(p.writes) == n  # same mode: nothing rewritten
-  p.store[NGP_KEYS["personality"]] = 2  # the driver cycles the distance button
+  p.store[KEYS["personality"]] = 2  # the driver cycles the distance button
   assert not a.update(now=14.0) and a.current() == CUSTOM  # preset is left alone, reported as custom
-  p.store[NGP_KEYS["mode"]] = "eco"
+  p.store[KEYS["mode"]] = "eco"
   assert a.update(now=16.0) and a.current() == "eco"
-  p.store[NGP_KEYS["mode"]] = "custom"
+  p.store[KEYS["mode"]] = "custom"
   n = len(p.writes)
   assert not a.update(now=18.0) and len(p.writes) == n
 
@@ -68,6 +68,6 @@ def test_applier_polls_at_most_once_a_second_and_defaults_to_custom():
   p = _Params()
   a = DriveModeApplier(p)
   assert not a.update(now=5.0)  # no mode param: custom, nothing written
-  p.store[NGP_KEYS["mode"]] = "eco"
+  p.store[KEYS["mode"]] = "eco"
   assert not a.update(now=5.5)  # inside the poll interval
   assert a.update(now=6.1)

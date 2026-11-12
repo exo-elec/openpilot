@@ -5,11 +5,11 @@ from exopilot.controls.drive_mode import CUSTOM, detect, settings_for
 
 POLL_S = 1.0
 
-from exopilot.runtime.feature_keys import EOP_KEYS, NGP_KEYS  # noqa: F401 -- compatibility exports
+from exopilot.runtime.feature_keys import LONGITUDINAL_KEYS
 
 
 class DriveModeApplier:
-  def __init__(self, params, keys=NGP_KEYS):
+  def __init__(self, params, keys=LONGITUDINAL_KEYS):
     self.params = params
     self.keys = keys
     self._last_mode: str | None = None

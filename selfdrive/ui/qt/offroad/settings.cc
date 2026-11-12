@@ -456,7 +456,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Software"), new SoftwarePanel(this)},
     {tr("Firehose"), new FirehosePanel(this)},
     {tr("Developer"), new DeveloperPanel(this)},
-    {"NGP", new FeaturesPanel(this)},
+    {tr("Features"), new FeaturesPanel(this)},
   };
 
   nav_btns = new QButtonGroup(this);

@@ -19,7 +19,7 @@ def main():
 
   ldw = LaneDepartureWarning()
   # Driver preference: constant kph offset applied to the final v_cruise,
-  # matching EOP10's EOPSpeedLimitOffset. Default 0 is a no-op; read once,
+  # as on EOP10. Default 0 is a no-op; read once,
   # matching this branch's other panel/non-panel toggles (see
   # NGP10_FEATURE_MATRIX.md's "Live vs. next-drive toggles").
   speed_offset_kph = int(params.get("SpeedLimitOffset", return_default=True))

@@ -1,7 +1,7 @@
 from types import SimpleNamespace as NS
 
 from exopilot.runtime.map_speed import MAP_HOLD_S, MapSpeed, distraction_status
-from exopilot.runtime.feature_keys import EOP_MAP_KEYS
+from exopilot.runtime.feature_keys import MAP_SPEED_KEYS
 
 XS = [float(i * 6) for i in range(33)]
 
@@ -15,7 +15,7 @@ class Clock:
 
 def make(flags=('mtsc', 'mslc', 'tlsc', 'ddsc')):
   clk = Clock()
-  bools = {EOP_MAP_KEYS[k]: True for k in flags}
+  bools = {MAP_SPEED_KEYS[k]: True for k in flags}
   return MapSpeed(lambda k: bools.get(k, False), lambda k: "", clk), clk
 
 
