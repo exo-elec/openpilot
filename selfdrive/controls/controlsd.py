@@ -19,7 +19,7 @@ from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
 from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
-from openpilot.selfdrive.controls.lib.cat import CAT
+from exopilot.selfdrive.controls.lib.cat import CAT
 from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_force_decel
 from exopilot.selfdrive.controls.lib.dlat import DLAT, DLATSuggestion
