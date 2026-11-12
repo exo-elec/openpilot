@@ -13,7 +13,9 @@ FORBIDDEN_PREFIXES = ("openpilot.selfdrive", "openpilot.system", "openpilot.comm
 
 SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "teleoprtc"}
 # Owner decision 2026-11-12: no product prefix on any name. Only the saved-param migration may spell the old names.
-PREFIXED = re.compile(r"(?<![A-Za-z0-9])(ngp|eop)_|(?<![A-Za-z0-9])(ngp|eop|Ngp|Eop|NGP|EOP)(?=[A-Z][a-z])|(?<![A-Za-z0-9])NGP_")
+# ngp_x / x_ngp / x_ngp_y, ngpX / xNgpY / NGPFoo / NGP_X; release labels such as NGP10 or EOP10 are not prefixes.
+PREFIXED = re.compile("|".join((r"(?<![A-Za-z0-9])(ngp|eop)_", r"_(ngp|eop)(?![A-Za-z0-9])",
+                                 r"(?<![A-Z])(ngp|eop|Ngp|Eop|NGP|EOP)(?=[A-Z][a-z])", r"(?<![A-Za-z0-9])(NGP|EOP)_")))
 CODE_SUFFIXES = (".py", ".cc", ".h", ".capnp", ".sh", ".json", ".yaml", ".yml", ".ts", ".qml")
 MIGRATION_FILES = {"exopilot/param_migration.py", "exopilot/tests/test_param_migration.py", "exopilot/tests/test_boundaries.py"}
 
@@ -40,7 +42,8 @@ def _tracked():
 
 
 def test_no_product_prefix_in_file_names():
-  bad = [f for f in _tracked() if PREFIXED.search(Path(f).name.replace("-", "_"))]
+  # Documents may name the product lines (NGP10_MINIMAL_EOP_PARITY.md); code, assets and scripts may not.
+  bad = [f for f in _tracked() if not f.endswith(".md") and PREFIXED.search(Path(f).name.replace("-", "_"))]
   assert not bad, bad
 
 

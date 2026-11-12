@@ -74,7 +74,7 @@ void ui_update_params(UIState *s) {
 
 void UIState::updateStatus() {
   if (sm->updated("controlsState")) {
-    scene.alcc_active = (*sm)["controlsState"].getControlsState().getNgpAlccActive();
+    scene.alcc_active = (*sm)["controlsState"].getControlsState().getAlccActive();
   }
 
   if (scene.started && sm->updated("selfdriveState")) {

@@ -6,7 +6,7 @@ The same cores EOP10's pathd runs (`lat_nudge`, `lon_nudge`, `speed_reduction`),
   - tracked objects from gridd (PObj: dRel = x, yRel = y, vRel = vx);
   - no stereo ground, no occupancy: `drivable_limit_m` is infinite, so LonNudge acts only through its lead term.
 Output is `Extras` for SharedPathdHost, merged by the same tighten-only arbitration. On EOP10 the same `Extras` come from
-its own pathd (`extras_from_eop`); the cores are the shared ones.
+its own pathd (`extras_from_proposers`); the cores are the shared ones.
 """
 import math
 from types import SimpleNamespace as NS
@@ -51,7 +51,7 @@ class NudgeExtras:
 
   def update(self, model, objs, v_ego: float):
     """`objs`: PObj list. Returns the pathd `Extras`."""
-    from exopilot.runtime.pathd import extras_from_eop
+    from exopilot.runtime.pathd import extras_from_proposers
     tracks = [NS(trackId=o.track_id, dRel=o.x, yRel=o.y, vRel=o.vx, prob=o.conf) for o in objs if o.conf >= 0.5 and math.isfinite(o.x + o.y + o.vx)]
     lateral = [0.0]
     b = boundaries_from_model(model)
@@ -62,4 +62,4 @@ class NudgeExtras:
       lateral = [0.0]
     lon_delta = self.lon.update(math.inf, False, False, tracks, v_ego, 0.0)
     reduction = compute_speed_reduction(tracks, None, v_ego, self.max_depth, legacy_scale_bug=self.legacy)
-    return extras_from_eop(reduction, lon_delta, lateral, v_ego, lookahead_points=4)      # 0, 5, 10, 15 m
+    return extras_from_proposers(reduction, lon_delta, lateral, v_ego, lookahead_points=4)      # 0, 5, 10, 15 m

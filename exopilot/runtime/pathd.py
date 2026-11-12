@@ -95,7 +95,7 @@ class Extras:
   speed_factor: float | None = None
 
 
-def extras_from_eop(speed_reduction: float, lon_delta: float, lateral_adjustments, v_ego: float, lookahead_points: int = 1) -> Extras:
+def extras_from_proposers(speed_reduction: float, lon_delta: float, lateral_adjustments, v_ego: float, lookahead_points: int = 1) -> Extras:
   """EOP10's pathd results as Extras. Its lateral adjustments are in the path's y-RIGHT frame (flipped once here) and
   its speed reductions are m/s deltas (negative = slow down). The factor stays inside the shared contract (>= 0.8);
   EOP10's stronger emergency reduction keeps travelling in `enhancedTrajectory.speedAdjustment`."""

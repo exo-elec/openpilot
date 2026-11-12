@@ -96,11 +96,11 @@ def test_extras_flow_into_the_published_message():
 
 
 def test_extras_flip_the_lateral_frame_and_keep_the_speed_contract():
-  from exopilot.runtime.pathd import extras_from_eop
-  e = extras_from_eop(-2.5, -0.5, [0.3, 0.2], 25.0)
+  from exopilot.runtime.pathd import extras_from_proposers
+  e = extras_from_proposers(-2.5, -0.5, [0.3, 0.2], 25.0)
   assert abs(e.offset_m + 0.3) < 1e-9                                 # +0.3 right in EOP's frame is -0.3 in the left-positive frame
   assert abs(e.speed_factor - (1.0 - 3.0 / 25.0)) < 1e-9
-  e = extras_from_eop(float('inf'), 0.0, [0.0], 25.0)
+  e = extras_from_proposers(float('inf'), 0.0, [0.0], 25.0)
   assert e.offset_m is None and e.speed_factor is None               # nothing asked
-  assert extras_from_eop(-30.0, 0.0, [], 25.0).speed_factor == 0.8    # a hard emergency still only asks 20 % here
-  assert extras_from_eop(-1.0, 0.0, [float('nan')], 25.0).offset_m is None
+  assert extras_from_proposers(-30.0, 0.0, [], 25.0).speed_factor == 0.8    # a hard emergency still only asks 20 % here
+  assert extras_from_proposers(-1.0, 0.0, [float('nan')], 25.0).offset_m is None
