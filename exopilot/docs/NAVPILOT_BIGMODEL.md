@@ -9,7 +9,7 @@ This replaces [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md). Decision (2026-10-12
 no dependency on `exo-elec/jetlink`: no `jetlink_repo` gitlink, no Jetlink protocol, no JetlinkKit. What the Jetlink port
 already settled on the openpilot side (cereal slots, the `selfdrived` gate, the settling window, the `modeld` hook, the
 OpenCL warp source, the upstream-parity policy, the alerts) is kept unchanged. What Jetlink supplied is rewritten here, following
-Jetlink's design lessons with attribution (`exopilot/bigmodel/THIRD_PARTY_NOTICES.md`; Jetlink is MIT and the project is open source).
+Jetlink's design lessons with attribution (`exopilot/selfdrive/modeld/bigmodel/THIRD_PARTY_NOTICES.md`; Jetlink is MIT and the project is open source).
 
 Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md`, updated to point here).
 
@@ -34,7 +34,7 @@ Phone side lives in NavPilot (`navpilot/docs/architecture/BIGMODEL_WIRED_PLAN.md
 
 ```
 NavPilot app (phone)                                   comma 3/3X, NGP10
-  native model server  ---- dials TCP 192.168.60.1:5600 --->  exopilot/bigmodel/listener.py -> client.py
+  native model server  ---- dials TCP 192.168.60.1:5600 --->  exopilot/selfdrive/modeld/bigmodel/listener.py -> client.py
    (CoreML / ORT+QNN)         over CDC-NCM on USB          |
    history: frames, features, desire                       remote_state.RemoteModelState  (one inference = one frame)
                                                            joining.Joining  (swap, hold, hand back, backoff)
@@ -43,7 +43,7 @@ NavPilot app (phone)                                   comma 3/3X, NGP10
   bigmodeld (manager process): configfs NCM gadget + 192.168.60.1/24 + DHCP, gives the port to the phone
 ```
 
-## Wire protocol (NPBM v1, `exopilot/bigmodel/protocol.py`)
+## Wire protocol (NPBM v1, `exopilot/selfdrive/modeld/bigmodel/protocol.py`)
 
 All integers little-endian. Header, 20 bytes: `magic "NPBM"` (4), `version u8`, `type u8`, `flags u16`, `seq u32`,
 `length u32`, `hcrc u32` (crc32 of the first 16 bytes). Payload follows; its length is `length`. A header with a bad
@@ -66,7 +66,7 @@ Phone state: per camera a ring of the last `TEMPORAL_SKIP+1` frames (older = `sk
 history `(FULL_HISTORY_BUFFER_LEN, 512)` and the desire history, advanced exactly as `ModelState.run` advances them, one step
 per `INFER_REQ`. A reply that is not finite leaves the phone's state as it was before the frame.
 
-## Comma-side modules (all under `exopilot/bigmodel/`, standard library + numpy at import)
+## Comma-side modules (all under `exopilot/selfdrive/modeld/bigmodel/`, standard library + numpy at import)
 
 | Module | Replaces (Jetlink) | Does |
 | --- | --- | --- |
@@ -166,7 +166,7 @@ the way Jetlink's Swift does it) for production, and use `flutter_onnxruntime` o
 
 ## Link cost, measured (2026-10-13)
 
-`python3 -m exopilot.bigmodel.tools.bench_link HOST PORT` sends real-sized requests (393 KB frame) at 20 Hz and reports the round trip.
+`python3 -m exopilot.selfdrive.modeld.bigmodel.tools.bench_link HOST PORT` sends real-sized requests (393 KB frame) at 20 Hz and reports the round trip.
 Against the pure-Dart stub server (`packages/npbm`, no inference) on loopback, 400 frames: **p50 6.7 ms, p99 16.0 ms, max 28.8 ms** of the 50 ms
 budget. That is the protocol, framing and the Dart server's copies on a PC with no USB in the path, so it is a floor for the software cost, not a
 phone number. The cable adds the transfer of 393 KB each way-in: about 11 ms at a practical 35 MB/s (USB 2), about 3 ms at 125 MB/s (gigabit

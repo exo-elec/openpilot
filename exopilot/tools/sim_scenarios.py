@@ -13,16 +13,16 @@ import math
 import random
 from dataclasses import dataclass
 
-from exopilot.controls.arbiter import Proposal, arbitrate
-from exopilot.controls.cutin_speed import CutInSpeed, Obj
-from exopilot.controls.path_selector import PathSelector, PObj, build_profile
-from exopilot.controls.pathd_consumer import PathAdjustFollower, speed_cap
-from exopilot.controls.cutin_speed import PlannedPath
-from exopilot.controls.rule_planner import RulePlanner
-from exopilot.runtime.nudge_extras import NudgeExtras
-from exopilot.runtime.pathd import merge_extras
-from exopilot.controls.path_selector import Selection
-from exopilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer
+from exopilot.selfdrive.controls.lib.arbiter import Proposal, arbitrate
+from exopilot.selfdrive.controls.lib.cutin_speed import CutInSpeed, Obj
+from exopilot.selfdrive.controls.lib.path_selector import PathSelector, PObj, build_profile
+from exopilot.selfdrive.controls.lib.pathd_consumer import PathAdjustFollower, speed_cap
+from exopilot.selfdrive.controls.lib.cutin_speed import PlannedPath
+from exopilot.selfdrive.controls.lib.rule_planner import RulePlanner
+from exopilot.selfdrive.pathd.nudge_extras import NudgeExtras
+from exopilot.selfdrive.pathd.pathd import merge_extras
+from exopilot.selfdrive.controls.lib.path_selector import Selection
+from exopilot.selfdrive.controls.lib.rule_channel import RuleChannel, RuleChannelConsumer
 from types import SimpleNamespace as NS
 
 DT = 0.05

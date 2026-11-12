@@ -1,10 +1,10 @@
 import os
 import socket
 
-from exopilot.bigmodel import gadget as G
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel import tether as T
-from exopilot.bigmodel.client import Client
+from exopilot.selfdrive.modeld.bigmodel import gadget as G
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel import tether as T
+from exopilot.selfdrive.modeld.bigmodel.client import Client
 
 HEADER = "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT\n"
 
@@ -109,7 +109,7 @@ def test_mode_3_leaves_the_comma_as_host_and_releases_any_gadget():
 
 
 def test_the_hook_dials_for_mode_3():
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
 
   class P:
     def get(self, key, return_default=False):

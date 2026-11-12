@@ -1,8 +1,8 @@
 import math
 
-from exopilot.controls.cutin_speed import PlannedPath
-from exopilot.controls.path_selector import PObj
-from exopilot.controls.rule_planner import A_BRAKE_LIMIT, RulePlanner
+from exopilot.selfdrive.controls.lib.cutin_speed import PlannedPath
+from exopilot.selfdrive.controls.lib.path_selector import PObj
+from exopilot.selfdrive.controls.lib.rule_planner import A_BRAKE_LIMIT, RulePlanner
 
 STRAIGHT = PlannedPath([0.0, 100.0], [0.0, 0.0])
 V = 25.0

@@ -7,9 +7,9 @@ import pytest
 
 onnx = pytest.importorskip('onnx')
 
-from exopilot.bigmodel import allowlist
-from exopilot.bigmodel.spec import spec_from_onnx
-from exopilot.bigmodel.tools import allow_model
+from exopilot.selfdrive.modeld.bigmodel import allowlist
+from exopilot.selfdrive.modeld.bigmodel.spec import spec_from_onnx
+from exopilot.selfdrive.modeld.bigmodel.tools import allow_model
 
 SHAPES = {'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
           'action_t': (1, 2), 'features_buffer': (1, 32, 2, 4)}

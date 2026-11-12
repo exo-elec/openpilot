@@ -1,5 +1,5 @@
-from exopilot.controls.cutin_speed import PlannedPath
-from exopilot.controls.path_selector import MAX_NUDGE_M, SPEED_FACTOR_MIN, PathSelector, PObj
+from exopilot.selfdrive.controls.lib.cutin_speed import PlannedPath
+from exopilot.selfdrive.controls.lib.path_selector import MAX_NUDGE_M, SPEED_FACTOR_MIN, PathSelector, PObj
 
 V = 25.0
 
@@ -74,7 +74,7 @@ def test_enough_room_nudge_alone_is_enough():
 
 
 def test_profile_ramps_at_the_slew_rate_and_speed_never_exceeds_v_ego():
-  from exopilot.controls.path_selector import PROFILE_SLEW_M_PER_S, Selection, build_profile
+  from exopilot.selfdrive.controls.lib.path_selector import PROFILE_SLEW_M_PER_S, Selection, build_profile
   sel = Selection(0.4, 0.9, -0.1, 1.0, 'slow')
   offs, caps = build_profile(sel, 25.0)
   assert len(offs) == len(caps) == 12

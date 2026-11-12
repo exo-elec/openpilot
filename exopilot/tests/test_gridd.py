@@ -1,7 +1,7 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.gridd import Gridd, detections_to_objects
-from exopilot.runtime.object_sources import GriddSource
+from exopilot.selfdrive.gridd.gridd import Gridd, detections_to_objects
+from exopilot.selfdrive.pathd.object_sources import GriddSource
 
 
 class Clock:
@@ -83,7 +83,7 @@ def test_pathd_reads_gridds_message_through_the_same_gridd_source():
 
 
 def test_traffic_lights_pass_through_with_lamp_state_and_are_never_tracked():
-  from exopilot.runtime.gridd import fill_stereo_objects
+  from exopilot.selfdrive.gridd.gridd import fill_stereo_objects
   g, clk, pm = make()
   light = NS(className='traffic light', confidence=0.8, x=40.0, y=1.0, trackId=0, cameraSource='road', trafficLightState=1, trafficLightConfidence=0.4)
   tick(g, clk, pm, [light])
@@ -94,7 +94,7 @@ def test_traffic_lights_pass_through_with_lamp_state_and_are_never_tracked():
 
 def test_detector_classes_survive_real_fused_wire_message():
   import cereal.messaging as messaging
-  from exopilot.runtime.gridd import fill_stereo_objects
+  from exopilot.selfdrive.gridd.gridd import fill_stereo_objects
   message = messaging.new_message('stereoObjects')
   objects = [dict(trackId=i + 1, obstacleType=name, dRel=20.0, yRel=2.0,
                   vRel=-1.0, vyRel=-0.2, confidence=0.9)

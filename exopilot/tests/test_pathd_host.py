@@ -1,8 +1,8 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.path_selector import Selection
-from exopilot.runtime.object_sources import GriddSource
-from exopilot.runtime.pathd import Extras, SharedPathdHost, merge_extras
+from exopilot.selfdrive.controls.lib.path_selector import Selection
+from exopilot.selfdrive.pathd.object_sources import GriddSource
+from exopilot.selfdrive.pathd.pathd import Extras, SharedPathdHost, merge_extras
 
 XS = [float(i * 6) for i in range(33)]
 
@@ -96,7 +96,7 @@ def test_extras_flow_into_the_published_message():
 
 
 def test_extras_flip_the_lateral_frame_and_keep_the_speed_contract():
-  from exopilot.runtime.pathd import extras_from_proposers
+  from exopilot.selfdrive.pathd.pathd import extras_from_proposers
   e = extras_from_proposers(-2.5, -0.5, [0.3, 0.2], 25.0)
   assert abs(e.offset_m + 0.3) < 1e-9                                 # +0.3 right in EOP's frame is -0.3 in the left-positive frame
   assert abs(e.speed_factor - (1.0 - 3.0 / 25.0)) < 1e-9

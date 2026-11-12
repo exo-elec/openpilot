@@ -1,6 +1,6 @@
 import pytest
 
-from exopilot.localization.lane_filter import LaneFilter, Observation
+from exopilot.selfdrive.locationd.lane_filter import LaneFilter, Observation
 
 W = 3.5
 LINE = W / 2

@@ -1,6 +1,6 @@
 import numpy as np
 
-from exopilot.runtime.monod_ranging import GroundRanging, radar_leads
+from exopilot.selfdrive.monod.ground_ranging import GroundRanging, radar_leads
 
 VIEW = np.array([[0.0, 1, 0], [0, 0, 1], [1, 0, 0]])
 H, W = 1080, 1920

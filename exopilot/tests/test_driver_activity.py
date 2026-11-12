@@ -1,6 +1,6 @@
 import pytest
 
-from exopilot.controls.driver_activity import CRITICAL, OK, PROMPT, SOFT, DriverActivityMonitor
+from exopilot.selfdrive.controls.lib.driver_activity import CRITICAL, OK, PROMPT, SOFT, DriverActivityMonitor
 
 DT = 0.05
 

@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from cereal import log
-from exopilot.controls.lc_lead_handoff import LeadHandoff, LANE_CHANGE_SPEED_MIN
+from exopilot.selfdrive.controls.lib.lc_lead_handoff import LeadHandoff, LANE_CHANGE_SPEED_MIN
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection

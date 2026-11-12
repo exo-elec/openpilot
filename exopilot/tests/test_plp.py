@@ -2,9 +2,12 @@ import json
 
 import pytest
 
-from exopilot.plp import channel as C
-from exopilot.plp.session import PlpSession
-from exopilot.plp import dispatch, frame as F, hello as H, registry as R
+from exopilot.system.plp import channel as C
+from exopilot.system.plp.session import PlpSession
+from exopilot.system.plp import dispatch
+from exopilot.system.plp import frame as F
+from exopilot.system.plp import hello as H
+from exopilot.system.plp import registry as R
 
 
 def roundtrip(frames: bytes):
@@ -222,7 +225,7 @@ def test_golden_hello_json_is_byte_identical():
 def test_golden_exchange_is_reproduced_by_the_device_session():
   import pathlib
 
-  from exopilot.plp.session import PlpSession
+  from exopilot.system.plp.session import PlpSession
   g = json.loads((pathlib.Path(__file__).parent / 'fixtures' / 'plp_golden.json').read_text())['exchange']
   out = []
   dev = PlpSession(H.Hello.parse(g['device_hello_json'].encode()), out.append, role='device')
@@ -232,7 +235,7 @@ def test_golden_exchange_is_reproduced_by_the_device_session():
 
 
 def test_bulk_padding_follows_jetlinks_rule_and_the_decoder_skips_it():
-  from exopilot.plp import bulk
+  from exopilot.system.plp import bulk
   f = F.Frame(R.KIND_NOTIFY, 8, 2, b'x' * 100, F.CH_BULK).encode()
   assert len(bulk.pad_device_to_phone(f)) == bulk.BURST and len(bulk.pad_device_to_phone(bytes(bulk.BURST))) == bulk.BURST
   assert len(bulk.pad_phone_to_device(bytes(512))) == 513 and len(bulk.pad_phone_to_device(bytes(511))) == 511

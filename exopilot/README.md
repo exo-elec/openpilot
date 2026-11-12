@@ -5,7 +5,7 @@ kept feature-compatible with EDP10 where the hardware can support it.
 
 Runtime features are integrated directly into the normal openpilot processes.
 There is no parallel control daemon. Feature settings use the `ngp_` prefix,
-while NGP-owned controller modules live under `exopilot/controls/` and enter
+while NGP-owned controller modules live under `exopilot/selfdrive/controls/lib/` and enter
 the upstream runtime through small integration hooks.
 
 BrownPanda presents Tesla Model 3/Y-compatible party bus 0 and autopilot-party

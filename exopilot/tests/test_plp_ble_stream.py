@@ -3,10 +3,12 @@ import time
 
 import pytest
 
-from exopilot.plp import frame as F, ble_stream as B, registry as R
-from exopilot.plp.channel import Message
-from exopilot.plp.hello import Hello
-from exopilot.plp.session import PlpSession
+from exopilot.system.plp import frame as F
+from exopilot.system.plp import ble_stream as B
+from exopilot.system.plp import registry as R
+from exopilot.system.plp.channel import Message
+from exopilot.system.plp.hello import Hello
+from exopilot.system.plp.session import PlpSession
 
 
 def test_split_respects_mtu_minus_att_overhead():
@@ -85,7 +87,7 @@ def test_a_link_blocked_too_long_is_ended():
 def test_a_session_runs_over_the_ble_stream_with_small_mtu():
   """Phone and device sessions joined by two BLE streams; the horizon fixture goes through a 70-byte MTU."""
   import pathlib
-  from exopilot.plp.locate import LocateSink
+  from exopilot.system.plp.locate import LocateSink
   fixture = (pathlib.Path(__file__).parent / 'fixtures' / 'map_horizon_navpilot.json').read_bytes()
   sessions = {}
   d2p = B.BleStream(lambda c: sessions['phone'].feed(c) or True)

@@ -1,4 +1,4 @@
-from exopilot.controls.pathd_consumer import MAX_OFFSET_M, MIN_SPEED_FLOOR, PathAdjustFollower, speed_cap
+from exopilot.selfdrive.controls.lib.pathd_consumer import MAX_OFFSET_M, MIN_SPEED_FLOOR, PathAdjustFollower, speed_cap
 
 
 def run(f, cmd, n, fresh=True, allowed=True, dt=0.05):

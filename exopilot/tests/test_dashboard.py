@@ -2,7 +2,7 @@ import json
 import threading
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
-from exopilot.runtime.dashboard import handler
+from exopilot.system.dashboard.dashboard import handler
 
 
 class Params:

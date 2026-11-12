@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from exopilot import footprint
+from exopilot.tools import footprint
 
 
 @pytest.mark.skipif(not footprint.base_available(), reason="upstream v0.10.0 baseline commit not fetched")
@@ -11,4 +11,4 @@ def test_upstream_selfdrive_footprint_does_not_grow():
   budget = json.loads(footprint.BUDGET.read_text())
   assert budget["base"] == footprint.BASE
   found = footprint.violations(footprint.measure(), budget)
-  assert not found, "\n".join(found) + "\nMove logic into exopilot/ and keep a small hook, or justify and run `python3 exopilot/footprint.py --update`."
+  assert not found, "\n".join(found) + "\nMove logic into exopilot/ and keep a small hook, or justify and run `python3 exopilot/tools/footprint.py --update`."

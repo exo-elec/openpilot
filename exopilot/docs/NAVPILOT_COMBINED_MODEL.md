@@ -2,7 +2,7 @@
 
 Status 2026-10-12: **Steps 1 to 5b and the stateful layout (5c) are done and tested; only step 6, which needs a real model file, is open.** Following Jetlink's design and tests closely is deliberate: it is open source (MIT) and is the reference the community will compare against.
 Part of [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) task 8. Source of the facts below: Jetlink's `spec.py`, `queues.py` and `docs/` (MIT, credited in
-`exopilot/bigmodel/THIRD_PARTY_NOTICES.md`); not yet checked against a real model file, because none is in this tree.
+`exopilot/selfdrive/modeld/bigmodel/THIRD_PARTY_NOTICES.md`); not yet checked against a real model file, because none is in this tree.
 
 ## Why a second contract
 
@@ -104,7 +104,7 @@ Also from Jetlink and still true here: the parser itself belongs to the fork, so
 | 3 | Protocol: HELLO lists the contracts the comma accepts and the server picks the first it supports; HELLO_ACK carries the contract and, for `ngp-spec-queued`, the model spec; `INFER_REQ` is now frame id, flags, the contract's packed floats, then the frame (`pack_infer_req_packed`; the split contract's bytes are unchanged); the reply is the output less `hidden_state`. Comma side: `allowlist.py` (sha256 plus pinned frame_skip, input and output shapes and slices; ships empty), `Client` refuses a model that is not listed, differs in a pinned field, or announces frames other than the comma's warp. Phone side: `server_ref.py` serves both contracts (`StubSpecBackend`, `step_spec`). Golden vectors for both | done |
 | 4 | Comma `RemoteSpecModelState`: packs `desire` (rising-edge pulse, slot 0 cleared), `traffic_convention` and `action_t` as the spec lays them out; rebuilds the full-length output and cuts it with the spec's `output_slices` (Jetlink's path, above); hands the dict to `Parser.parse_outputs`; holds, hand-back and the rest are the split state's. `BigModelHook` offers the queued contract only when the allow-list is non-empty and builds the right state from the phone's reply | done |
 | 5 | Phone: Dart `ModelSpec`, `PolicyQueues`, `SpecBackend`, `stepSpec` and the queued server in `packages/npbm`. Ten frames reproduce the Python replies exactly; a Python comma (`RemoteSpecModelState`) ran 12 frames against the Dart server with no mismatch | done |
-| 5b | `exopilot/bigmodel/tools/allow_model.py`: turns a model's ONNX into an allow-list entry (refusing what the comma cannot serve, requiring evidence) | done |
+| 5b | `exopilot/selfdrive/modeld/bigmodel/tools/allow_model.py`: turns a model's ONNX into an allow-list entry (refusing what the comma cannot serve, requiring evidence) | done |
 | 5c | The stateful layout: `StateLoop` (states advance only after a finite frame, a deliberate difference from Jetlink's in-engine loop), contract `ngp-spec-stateful` (the client refuses a contract that does not match the graph), `StubStatefulBackend`, the Dart port, golden vectors, the allow-list tool accepting state pairs | done |
 | 6 | **`modeld` itself**, which needs a real model file and its metadata: add the entry with the tool, check the 18,452-float output against `Parser.parse_outputs` (names, shapes, the `action` head and its units), the constants (`MODEL_RUN_FREQ`/`MODEL_CONTEXT_FREQ`, `ACTION_WIDTH`), `fill_model_msg` for a combined output, cereal fields, then replay a recorded route through the phone and the small model and compare | **blocked on a model file** |
 

@@ -1,5 +1,5 @@
-from exopilot.controls.blinker_pause import BlinkerPause
-from exopilot.controls.green_light import GreenLightNotice
+from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
+from exopilot.selfdrive.controls.lib.green_light import GreenLightNotice
 
 MIN = 9.0  # m/s
 

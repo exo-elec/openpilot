@@ -28,7 +28,7 @@ their Rockchip RKNN backend remains a hardware adapter.
 
 ## Phone-hosted big model (no external dependency)
 
-The phone link is NavPilot's own (`exopilot/bigmodel/`, protocol NPBM v1, [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md)). It
+The phone link is NavPilot's own (`exopilot/selfdrive/modeld/bigmodel/`, protocol NPBM v1, [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md)). It
 imports nothing but the standard library and numpy; there is no `jetlink_repo` gitlink and no `exo-elec/jetlink` checkout, so rules
 2 to 4 have nothing to pin for it. The earlier Jetlink port (pinned `exo-elec/jetlink` `37e89e32`) is superseded.
 

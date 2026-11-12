@@ -5,13 +5,13 @@ import math
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.allowlist import AllowList
-from exopilot.bigmodel.client import Client, LinkError, ServerInfo
-from exopilot.bigmodel.queues import PolicyQueues
-from exopilot.bigmodel.remote_state import RemoteSpecModelState
-from exopilot.bigmodel.spec import ModelSpec
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.allowlist import AllowList
+from exopilot.selfdrive.modeld.bigmodel.client import Client, LinkError, ServerInfo
+from exopilot.selfdrive.modeld.bigmodel.queues import PolicyQueues
+from exopilot.selfdrive.modeld.bigmodel.remote_state import RemoteSpecModelState
+from exopilot.selfdrive.modeld.bigmodel.spec import ModelSpec
 
 SHAPES = {'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
           'action_t': (1, 2), 'features_buffer': (1, 32, 2, 4)}
@@ -135,7 +135,7 @@ def test_a_desire_or_scalar_of_the_wrong_width_is_an_error_not_a_wrong_input():
 
 
 def test_with_raw_output_logging_the_comma_asks_for_the_whole_output_and_gets_the_real_hidden_state(monkeypatch):
-  from exopilot.bigmodel import remote_state as R
+  from exopilot.selfdrive.modeld.bigmodel import remote_state as R
   monkeypatch.setattr(R, 'SEND_RAW_PRED', '1')
   state, _ = make_state()
   state.client.recv_response = lambda seq, timeout: P.InferResp(1, P.OK, 1, memoryview((np.arange(28, dtype=np.float32) + 100).tobytes()))

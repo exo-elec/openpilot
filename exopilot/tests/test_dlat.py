@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from exopilot.controls.dlat import DLATSuggestion, DLAT
+from exopilot.selfdrive.controls.lib.dlat import DLATSuggestion, DLAT
 
 
 def model_sample(lane_probs=(0.9, 0.9, 0.9, 0.9), path_y=0.0, path_std=0.25,

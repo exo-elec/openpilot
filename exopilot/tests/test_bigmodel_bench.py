@@ -1,6 +1,6 @@
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.client import Client
-from exopilot.bigmodel.tools import bench_link
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.client import Client
+from exopilot.selfdrive.modeld.bigmodel.tools import bench_link
 
 
 def test_percentile_picks_from_the_sorted_list():

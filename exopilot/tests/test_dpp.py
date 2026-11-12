@@ -1,5 +1,5 @@
-from exopilot.controls.dpp import DEESCALATE_S, DPP, Situation, classify
-from exopilot.controls.policy_arbiter import Mode
+from exopilot.selfdrive.controls.lib.dpp import DEESCALATE_S, DPP, Situation, classify
+from exopilot.selfdrive.controls.lib.policy_arbiter import Mode
 
 
 def sit(**kw):

@@ -2,7 +2,7 @@
 """Offline shadow-mode metrics for monod + the cut-in speed trim, from a logged route.
 
 Feeds `monoDetections`, `carState` and `radarState` from a log through the same pure policy the
-planner uses (exopilot/controls/cutin_speed.py) and reports what it WOULD have done, plus
+planner uses (exopilot/selfdrive/controls/lib/cutin_speed.py) and reports what it WOULD have done, plus
 detector health and ranging agreement. Nothing is actuated.
 
   python3 -m exopilot.tools.replay_object_guard <route> [<route> ...]
@@ -15,9 +15,9 @@ import math
 import statistics
 import sys
 
-from exopilot.controls.cutin_speed import CutInSpeed, Obj, PlannedPath
-from exopilot.controls.path_selector import PathSelector, PObj
-from exopilot.runtime.path_adapter import lane_room
+from exopilot.selfdrive.controls.lib.cutin_speed import CutInSpeed, Obj, PlannedPath
+from exopilot.selfdrive.controls.lib.path_selector import PathSelector, PObj
+from exopilot.selfdrive.controls.lib.path_adapter import lane_room
 
 BEARING_GATE_RAD = 0.04
 RANGE_RATIO_GATE = (0.5, 2.0)

@@ -93,7 +93,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DeviceModelSelected", {PERSISTENT, STRING, ""}},
     {"VehicleModelList", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
     {"LatALCC", {PERSISTENT, BOOL, "0"}},
-    // DLAT (Dynamic Lateral Profile, exopilot/controls/dlat.py) is a
+    // DLAT (Dynamic Lateral Profile, exopilot/selfdrive/controls/lib/dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
     // DLP curve assist: pre-emptively force laneless on a predicted tight
@@ -124,7 +124,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LatLCASpeed", {PERSISTENT, INT, "20"}},
     {"LatRoadEdgeDetection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
-    // via exopilot/controls/brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
+    // via exopilot/selfdrive/controls/lib/brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
     {"LeadDepartAlert", {PERSISTENT, BOOL, "0"}},
     // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
@@ -132,25 +132,25 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
     // until the phone model is proven.
     {"BigModelLink", {PERSISTENT, INT, "0"}},
-    // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/controls/bigmodel_gate.py):
+    // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/selfdrive/modeld/bigmodel/gate.py):
     // loading/proving blocks engagement; active is false once the big model handed back or failed.
     {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     // Driver-activity decay: relaxed/tight; strict retains the deployed relaxed table.
     {"DriverActivityPolicy", {PERSISTENT, STRING, "strict"}},
-    // monod (exopilot/runtime/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
+    // monod (exopilot/selfdrive/monod/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs MonoDEnabled.
     {"CutInSpeedEnabled", {PERSISTENT, BOOL, "0"}},
-    // pathd add-on (exopilot/runtime/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
+    // pathd add-on (exopilot/selfdrive/pathd/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
     // pathd add-on consumers (pathd_consumer.py), default off, need PathdEnabled: lateral offset in controlsd, speed cap in the planner.
     {"PathdLateral", {PERSISTENT, BOOL, "0"}},
     {"PathdLongitudinal", {PERSISTENT, BOOL, "0"}},
     // DPP ceiling for the parallel rule channel (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both). DPP picks the mode by case inside it. Needs PathdEnabled.
     {"DPPMaxMode", {PERSISTENT, INT, "0"}},
-    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/runtime/nudge_extras.py). Default off; needs PathdEnabled.
+    // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/selfdrive/pathd/nudge_extras.py). Default off; needs PathdEnabled.
     {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
-    // Map / light / distraction speed caps (exopilot/runtime/map_speed.py), all default off, they only lower the cruise speed.
-    // tripd (exopilot/runtime/tripd.py): trip statistics. Process behind TripdEnabled.
+    // Map / light / distraction speed caps (exopilot/selfdrive/controls/lib/map_speed.py), all default off, they only lower the cruise speed.
+    // tripd (exopilot/selfdrive/tripd/tripd.py): trip statistics. Process behind TripdEnabled.
     {"TripdEnabled", {PERSISTENT, BOOL, "0"}},
     {"TripAStartDistance", {PERSISTENT, FLOAT, "0.0"}},
     {"TripAStartTime", {PERSISTENT, FLOAT, "0.0"}},
@@ -178,7 +178,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"MonoDEnabled", {PERSISTENT, BOOL, "0"}},
     {"MonoDHz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
-    // custom (default) writes nothing. See exopilot/controls/drive_mode.py.
+    // custom (default) writes nothing. See exopilot/selfdrive/controls/lib/drive_mode.py.
     {"DriveMode", {PERSISTENT, STRING, "custom"}},
     {"AccelerationProfile", {PERSISTENT, STRING, "normal"}},
     // Adaptive follow gap uses only the standard radarState.leadOne observation.
@@ -202,11 +202,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DLONSpeedLimitEnabled", {PERSISTENT, BOOL, "1"}},
     {"DLONStopPredictionEnabled", {PERSISTENT, BOOL, "1"}},
     // Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
-    // laneChangeStarting (exopilot/controls/lc_lead_handoff.py). No panel
+    // laneChangeStarting (exopilot/selfdrive/controls/lib/lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's LCAdjacentLeadHandoff. Default off.
     {"LCAdjacentLeadHandoff", {PERSISTENT, BOOL, "0"}},
     // NSLC-equivalent: clamp cruise speed to the posted navigation speed
-    // limit (exopilot/controls/speed_policy.py, NAVIGATION policy).
+    // limit (exopilot/selfdrive/controls/lib/speed_policy.py, NAVIGATION policy).
     // Nav-only -- NGP10 has no map-data source (see
     // exopilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
     // toggle, matching EOP10's NSLCEnabled. Default off.
@@ -220,7 +220,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // longitudinal_planner.py -- dead code there too, not ported here.
     {"SpeedLimitOffset", {PERSISTENT, INT, "0"}},
     // VTSC (Vision Turn Speed Control): slow down for upcoming curves (0-250m)
-    // using vision-only curvature (exopilot/controls/vtsc.py). Panel
+    // using vision-only curvature (exopilot/selfdrive/controls/lib/vtsc.py). Panel
     // toggle, matching EOP10's VTSCEnabled. Default off.
     {"VTSCEnabled", {PERSISTENT, BOOL, "0"}},
     {"ObdMultiplexingChanged", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},

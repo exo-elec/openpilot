@@ -5,7 +5,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from exopilot.controls.driver_activity import DriverActivityMonitor, monitoring_force_decel, monitoring_speed_target
+from exopilot.selfdrive.controls.lib.driver_activity import DriverActivityMonitor, monitoring_force_decel, monitoring_speed_target
 
 
 @pytest.mark.parametrize("awareness,soft_disabling,expected", [(1.0, False, False), (0.25, False, False),

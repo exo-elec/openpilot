@@ -1,4 +1,4 @@
-from exopilot.runtime.fusion_tracks import CameraTrackAnnotator
+from exopilot.selfdrive.gridd.fusion_tracks import CameraTrackAnnotator
 
 
 class Clock:

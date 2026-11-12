@@ -1,5 +1,5 @@
 import pytest
-from exopilot.runtime.device_policy import RecordingDelay, audible_alert, custom_shutdown_due, vehicle_override
+from exopilot.system.manager.device_policy import RecordingDelay, audible_alert, custom_shutdown_due, vehicle_override
 
 
 @pytest.mark.parametrize('ignition,in_car,disabled,seen', [(True,True,False,True),(False,False,False,True),(False,True,True,True),(False,True,False,False)])

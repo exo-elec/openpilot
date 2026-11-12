@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.path_adapter import lane_room, pobjects
+from exopilot.selfdrive.controls.lib.path_adapter import lane_room, pobjects
 
 
 def model(left_y=-1.8, right_y=1.8, pl=0.9, pr=0.9):

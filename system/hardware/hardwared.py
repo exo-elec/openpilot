@@ -25,7 +25,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.power_monitoring import PowerMonitoring
 from openpilot.system.hardware.fan_controller import TiciFanController
 from openpilot.system.version import terms_version, training_version
-from exopilot.runtime.bigmodel_link import PhoneLinkMonitor
+from exopilot.selfdrive.modeld.bigmodel.link import PhoneLinkMonitor
 from openpilot.system.athena.registration import UNREGISTERED_DONGLE_ID
 
 ThermalStatus = log.DeviceState.ThermalStatus

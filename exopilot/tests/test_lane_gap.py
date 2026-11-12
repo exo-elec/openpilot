@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.lane_gap import evaluate_gap, validate_lane_width
+from exopilot.selfdrive.controls.lib.lane_gap import evaluate_gap, validate_lane_width
 
 
 def _line(y, n=8):

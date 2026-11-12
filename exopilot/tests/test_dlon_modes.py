@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from exopilot.controls.dlon import DLON, DLONMode, DriveMode
+from exopilot.selfdrive.controls.lib.dlon import DLON, DLONMode, DriveMode
 
 
 class FakeSubMaster(dict):

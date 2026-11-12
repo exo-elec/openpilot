@@ -8,9 +8,9 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from exopilot.mapd.curvature_calc import get_upcoming_curves, parse_osm_geometry
-from exopilot.mapd.geohash_cache import OSMCache, encode_geohash, haversine_distance
-from exopilot.mapd.osm_client import parse_speed_limit
+from exopilot.selfdrive.mapd.curvature_calc import get_upcoming_curves, parse_osm_geometry
+from exopilot.selfdrive.mapd.geohash_cache import OSMCache, encode_geohash, haversine_distance
+from exopilot.selfdrive.mapd.osm_client import parse_speed_limit
 
 LAT0, LON0 = 13.7500, 100.5000
 
@@ -52,7 +52,7 @@ def test_geohash_distance_and_the_tile_cache_round_trip(tmp_path):
 
 def daemon():
   try:
-    from exopilot.mapd import mapd as mod
+    from exopilot.selfdrive.mapd import mapd as mod
   except Exception as e:           # needs a built cereal (EOP10 clone / device); pure runners skip it
     pytest.skip(f"built cereal needed: {e}")
   sent = []

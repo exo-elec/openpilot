@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.object_sources import GriddSource, MonoDetectionsSource
+from exopilot.selfdrive.pathd.object_sources import GriddSource, MonoDetectionsSource
 
 
 class SM(dict):

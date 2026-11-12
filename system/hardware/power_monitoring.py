@@ -5,7 +5,7 @@ from openpilot.common.params import Params
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.statsd import statlog
-from exopilot.runtime.device_policy import custom_shutdown_due
+from exopilot.system.manager.device_policy import custom_shutdown_due
 
 CAR_VOLTAGE_LOW_PASS_K = 0.011 # LPF gain for 45s tau (dt/tau / (dt/tau + 1))
 

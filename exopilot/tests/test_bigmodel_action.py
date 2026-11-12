@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from exopilot.controls.bigmodel_action import action_from_head, action_times, should_stop
+from exopilot.selfdrive.modeld.bigmodel.action import action_from_head, action_times, should_stop
 
 
 def smooth(val, prev, tau):  # drive_helpers.smooth_value with dt = 0.05

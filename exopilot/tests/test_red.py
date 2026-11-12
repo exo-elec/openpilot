@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.red import RED, REDState, RoadEdge, RoadEdgeType, curvature_nudge, vision_edges
+from exopilot.selfdrive.controls.lib.red import RED, REDState, RoadEdge, RoadEdgeType, curvature_nudge, vision_edges
 
 
 def _edge(y, n=10):

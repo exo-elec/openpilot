@@ -5,9 +5,9 @@ import time
 
 import pytest
 
-from exopilot.bigmodel import ffs
-from exopilot.bigmodel import framing as F
-from exopilot.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import ffs
+from exopilot.selfdrive.modeld.bigmodel import framing as F
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
 
 
 def test_descriptors_follow_the_functionfs_v2_layout():
@@ -142,8 +142,8 @@ def test_the_protocol_runs_over_endpoint_files_with_bulk_framing():
   """Client -> BulkSocket -> FfsEndpoint(pipes) -> a host thread speaking the phone's framing -> the reference server."""
   import numpy as np
 
-  from exopilot.bigmodel import server_ref as S
-  from exopilot.bigmodel.client import Client
+  from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+  from exopilot.selfdrive.modeld.bigmodel.client import Client
   ep, host_w, host_r = endpoint_pair()
 
   class HostEnd:

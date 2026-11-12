@@ -1,8 +1,8 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.path_selector import PObj
-from exopilot.runtime.nudge_extras import NudgeExtras, boundaries_from_model
-from exopilot.runtime.pathd import Extras
+from exopilot.selfdrive.controls.lib.path_selector import PObj
+from exopilot.selfdrive.pathd.nudge_extras import NudgeExtras, boundaries_from_model
+from exopilot.selfdrive.pathd.pathd import Extras
 
 XS = [float(i * 6) for i in range(33)]
 
@@ -51,8 +51,8 @@ def test_in_lane_lead_trim_and_the_distance_scale_fix():
 
 
 def test_host_uses_the_extras_provider_when_no_extras_are_passed():
-  from exopilot.runtime.object_sources import GriddSource
-  from exopilot.runtime.pathd import SharedPathdHost
+  from exopilot.selfdrive.pathd.object_sources import GriddSource
+  from exopilot.selfdrive.pathd.pathd import SharedPathdHost
   calls = []
 
   class PM:

@@ -1,6 +1,6 @@
 import numpy as np
 
-from exopilot.controls.detect import Letterbox, decode, nms
+from exopilot.selfdrive.controls.lib.detect import Letterbox, decode, nms
 
 
 def head(rows, n_cls=80, n=8400):

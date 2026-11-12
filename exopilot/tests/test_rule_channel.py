@@ -1,9 +1,9 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.path_selector import PObj
-from exopilot.controls.policy_arbiter import Mode
-from exopilot.runtime.pathd import PathD, fill_path_adjust
-from exopilot.runtime.rule_channel import RuleChannel, RuleChannelConsumer, apply_accel, apply_curvature, lane_polyline
+from exopilot.selfdrive.controls.lib.path_selector import PObj
+from exopilot.selfdrive.controls.lib.policy_arbiter import Mode
+from exopilot.selfdrive.pathd.pathd import PathD, fill_path_adjust
+from exopilot.selfdrive.controls.lib.rule_channel import RuleChannel, RuleChannelConsumer, apply_accel, apply_curvature, lane_polyline
 
 XS = [float(i * 6) for i in range(33)]
 

@@ -1,4 +1,4 @@
-from exopilot.controls.bigmodel_status import MODEL_ERROR, NOT_DETECTED, NOT_DETECTED_AFTER_S, SLOW_MBPS, USB_SLOW, PhoneLinkStatus
+from exopilot.selfdrive.modeld.bigmodel.status import MODEL_ERROR, NOT_DETECTED, NOT_DETECTED_AFTER_S, SLOW_MBPS, USB_SLOW, PhoneLinkStatus
 
 
 def step(s, now, offroad=True, enabled=True, cable=True, speed=5000.0, loading=False, active=None):

@@ -1279,7 +1279,7 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   tjaCutIn @44 :Bool;
   tjaDesiredGap @45 :Float32;
 
-  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via exopilot/controls)
+  # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy, shared via exopilot/selfdrive/controls/lib)
   brscActive @46 :Bool;
   brscSpeed @47 :Float32;
   brscRoughness @48 :Float32;
@@ -2540,7 +2540,7 @@ struct Touch {
 }
 
 # Fused camera objects (same structs and ids as EOP10). EOP10's gridd publishes them; on NGP10 `gridd` does
-# (exopilot/runtime/gridd.py), tracking monod's detections so pathd reads the same message everywhere.
+# (exopilot/selfdrive/gridd/gridd.py), tracking monod's detections so pathd reads the same message everywhere.
 struct CameraObject @0xf3d1e4a9b2c5d6e7 {
   trackId @0 :UInt64;
   dRel @1 :Float32;

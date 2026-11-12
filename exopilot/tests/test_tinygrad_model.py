@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import pytest
 
-from exopilot.runtime.tinygrad_model import TinygradModel
+from exopilot.selfdrive.modeld.tinygrad_model import TinygradModel
 
 
 @pytest.fixture(scope="module")

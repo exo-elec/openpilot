@@ -1,5 +1,5 @@
 """
-Adapted from Jetlink's tests/test_queues.py (MIT, Copyright (c) 2026 Zeph Leggett; notice in exopilot/bigmodel/THIRD_PARTY_NOTICES.md).
+Adapted from Jetlink's tests/test_queues.py (MIT, Copyright (c) 2026 Zeph Leggett; notice in exopilot/selfdrive/modeld/bigmodel/THIRD_PARTY_NOTICES.md).
 
 The history queues against openpilot's own, as golden vectors. The fixture (tests/fixtures/policy_queues_openpilot.json, from Jetlink) holds a
 digest of everything openpilot's shift_and_sample / sample_skip / sample_desire fed the model over 300 frames, enough for every ring to wrap twice, for the
@@ -16,8 +16,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from exopilot.bigmodel.queues import PolicyQueues
-from exopilot.bigmodel.spec import ModelSpec
+from exopilot.selfdrive.modeld.bigmodel.queues import PolicyQueues
+from exopilot.selfdrive.modeld.bigmodel.spec import ModelSpec
 
 FIXTURE = Path(__file__).parent / 'fixtures' / 'policy_queues_openpilot.json'
 # the longest ring is desire_q at frame_skip * 33 = 132 rows

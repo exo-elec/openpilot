@@ -1,7 +1,7 @@
 import pytest
 
-from exopilot.runtime.feature_keys import LONGITUDINAL_KEYS as KEYS
-from exopilot.runtime.longitudinal_params import LongitudinalSettings
+from exopilot.selfdrive.controls.lib.feature_keys import LONGITUDINAL_KEYS as KEYS
+from exopilot.selfdrive.controls.lib.longitudinal_params import LongitudinalSettings
 
 
 class Params:

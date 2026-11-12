@@ -4,9 +4,9 @@ import time
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.client import Client, LinkError
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.client import Client, LinkError
 
 
 def frame(value=0):
@@ -198,7 +198,7 @@ def test_a_comma_on_another_contract_is_refused(server, monkeypatch):
 
 def test_the_phone_dials_the_comma_and_the_comma_drives_the_protocol():
   import threading
-  from exopilot.bigmodel.listener import Listener
+  from exopilot.selfdrive.modeld.bigmodel.listener import Listener
   listener = Listener('127.0.0.1', 0).start()
   deadline = time.monotonic() + 10
   while not listener.bound and time.monotonic() < deadline:
@@ -219,7 +219,7 @@ def test_the_phone_dials_the_comma_and_the_comma_drives_the_protocol():
 
 
 def test_the_listener_keeps_only_the_newest_phone():
-  from exopilot.bigmodel.listener import Listener
+  from exopilot.selfdrive.modeld.bigmodel.listener import Listener
   listener = Listener('127.0.0.1', 0).start()
   deadline = time.monotonic() + 10
   while not listener.bound and time.monotonic() < deadline:
@@ -237,7 +237,7 @@ def test_the_listener_keeps_only_the_newest_phone():
 
 
 def test_the_listener_waits_for_the_cable_interface_to_exist():
-  from exopilot.bigmodel import listener as L
+  from exopilot.selfdrive.modeld.bigmodel import listener as L
   l = L.Listener('203.0.113.9', 0)         # an address this machine does not have
   l.start()
   time.sleep(0.2)

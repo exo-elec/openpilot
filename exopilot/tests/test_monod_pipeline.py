@@ -1,7 +1,7 @@
 import numpy as np
 
-from exopilot.controls.detect import Box
-from exopilot.runtime.monod import MonoPipeline, fill_detections, vanishing_point
+from exopilot.selfdrive.controls.lib.detect import Box
+from exopilot.selfdrive.monod.monod import MonoPipeline, fill_detections, vanishing_point
 
 K = np.array([[2648.0, 0, 964.0], [0, 2648.0, 604.0], [0, 0, 1.0]])
 VIEW_FROM_CALIB = np.array([[0.0, 1, 0], [0, 0, 1], [1, 0, 0]])   # calibrated x-forward/y-right/z-down -> view x-right/y-down/z-forward
@@ -58,7 +58,7 @@ def test_fill_detections_fields_and_occluded_confidence():
 
 
 def test_detect_is_sensing_only_untracked_and_fill_raw_publishes_it():
-  from exopilot.runtime.monod import fill_raw_detections
+  from exopilot.selfdrive.monod.monod import fill_raw_detections
   p = MonoPipeline(K, W, H)
   meas = p.detect([box_at(30.0, u=900.0)], [], VIEW_FROM_CALIB)
   assert len(meas) == 1 and abs(meas[0].x - 30.0) < 0.5 and p.tracker.tracks == []        # nothing tracked here

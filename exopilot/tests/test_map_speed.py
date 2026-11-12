@@ -1,7 +1,7 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.map_speed import MAP_HOLD_S, MapSpeed, distraction_status
-from exopilot.runtime.feature_keys import MAP_SPEED_KEYS
+from exopilot.selfdrive.controls.lib.map_speed import MAP_HOLD_S, MapSpeed, distraction_status
+from exopilot.selfdrive.controls.lib.feature_keys import MAP_SPEED_KEYS
 
 XS = [float(i * 6) for i in range(33)]
 

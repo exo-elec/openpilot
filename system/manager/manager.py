@@ -19,7 +19,7 @@ from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_I
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata, terms_version, training_version
 from openpilot.system.hardware.hw import Paths
-from exopilot.param_migration import migrate_renamed_params
+from exopilot.common.param_migration import migrate_renamed_params
 
 
 def manager_init() -> None:
@@ -130,7 +130,7 @@ def manager_thread() -> None:
   write_onroad_params(False, params)
   ensure_running(managed_processes.values(), False, params=params, CP=sm['carParams'], not_run=ignore)
 
-  from exopilot.runtime.device_policy import RecordingDelay
+  from exopilot.system.manager.device_policy import RecordingDelay
   recording_delay = RecordingDelay()
   started_prev = False
   ignition_prev = False

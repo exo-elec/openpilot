@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from exopilot.localization import crosscheck as X
-from exopilot.localization import phone_fix as P
+from exopilot.selfdrive.locationd import crosscheck as X
+from exopilot.selfdrive.locationd import phone_fix as P
 
 
 def msg(**kw):

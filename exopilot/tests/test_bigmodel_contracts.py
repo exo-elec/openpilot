@@ -4,11 +4,11 @@ import math
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.allowlist import AllowList, NotAllowed
-from exopilot.bigmodel.client import Client, LinkError
-from exopilot.bigmodel.spec import ModelSpec
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.allowlist import AllowList, NotAllowed
+from exopilot.selfdrive.modeld.bigmodel.client import Client, LinkError
+from exopilot.selfdrive.modeld.bigmodel.spec import ModelSpec
 
 SHAPES = {'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
           'action_t': (1, 2), 'features_buffer': (1, 32, 2, 4)}
@@ -105,7 +105,7 @@ def test_frames_round_trip_and_match_an_independent_replay(served):
 
 
 def PolicyQ(sp):
-  from exopilot.bigmodel.queues import PolicyQueues
+  from exopilot.selfdrive.modeld.bigmodel.queues import PolicyQueues
   q = PolicyQueues(sp)
   q.new_client()
   return q

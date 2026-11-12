@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from exopilot.controls.bigmodel_frames import FRAME_BYTES, OUTPUT_SHAPE, fill_output, newest_frame
+from exopilot.selfdrive.modeld.bigmodel.frames import FRAME_BYTES, OUTPUT_SHAPE, fill_output, newest_frame
 
 
 def two_frames(old=1, new=2):

@@ -2,9 +2,9 @@ import math
 
 import numpy as np
 
-from exopilot.controls.object_tracker import (MAX_COAST_S, Measurement, ObjectTracker, measurement_sigma,
+from exopilot.selfdrive.controls.lib.object_tracker import (MAX_COAST_S, Measurement, ObjectTracker, measurement_sigma,
                                                     predict_path, time_to_corridor)
-from exopilot.controls.ranging import LeadAnchoredRanger, RoadCamera
+from exopilot.selfdrive.controls.lib.ranging import LeadAnchoredRanger, RoadCamera
 
 CAM = RoadCamera()
 HORIZON, VP = 604.0, 964.0

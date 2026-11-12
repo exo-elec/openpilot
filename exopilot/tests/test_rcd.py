@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from exopilot.controls.rcd import RCD, RoadConditionCap, RoadCondition, classify_metrics
+from exopilot.selfdrive.controls.lib.rcd import RCD, RoadConditionCap, RoadCondition, classify_metrics
 
 G = json.loads((Path(__file__).parent / 'golden_rcd.json').read_text())
 

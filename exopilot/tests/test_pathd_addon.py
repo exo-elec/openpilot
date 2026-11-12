@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.pathd import PathD, fill_path_adjust
+from exopilot.selfdrive.pathd.pathd import PathD, fill_path_adjust
 
 
 class SM(dict):

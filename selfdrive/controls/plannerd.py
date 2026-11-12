@@ -5,7 +5,7 @@ from openpilot.common.realtime import Priority, config_realtime_process
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning
 from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner, FeatureFlags
-from exopilot.controls.drive_mode import DriveModeApplier
+from exopilot.selfdrive.controls.lib.drive_mode import DriveModeApplier
 import cereal.messaging as messaging
 
 
@@ -27,7 +27,7 @@ def main():
   drive_mode = DriveModeApplier(params)  # DriveMode: eco / normal / sport write the style params; custom writes nothing
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
   # 'mapData' (mapd), 'stereoObjects' (gridd: traffic lights) and 'driverMonitoringState' feed the map/light/distraction speed
-  # caps (exopilot/runtime/map_speed.py). 'mapData' used to be left out because NGP10 had no MapData struct and no entry in
+  # caps (exopilot/selfdrive/controls/lib/map_speed.py). 'mapData' used to be left out because NGP10 had no MapData struct and no entry in
   # cereal/services.py, which crashed SubMaster.__init__ with KeyError('mapData'); both now exist (see cereal/log.capnp).
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
                             'navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapData', 'stereoObjects', 'driverMonitoringState'],

@@ -46,11 +46,11 @@ Following distance behind a lead at the same speed, `t_follow * v + 6 m stop dis
 
 ### Design chosen
 
-- Pure `exopilot/controls/drive_mode.py`: presets and `detect(...)`; no Params access.
+- Pure `exopilot/selfdrive/controls/lib/drive_mode.py`: presets and `detect(...)`; no Params access.
   - eco: profile eco, relaxed, adaptive gap off
   - normal: profile normal, standard, adaptive gap off
   - sport: profile sport, aggressive, adaptive gap off (adaptive gap stays an explicit opt-in)
-- `exopilot/runtime/drive_mode.py`: applies a preset by writing the three params, only when the mode param changes.
+- `exopilot/selfdrive/controls/lib/drive_mode.py`: applies a preset by writing the three params, only when the mode param changes.
 - One hook in `plannerd` (NGP10) that calls the applier in its loop. Param `DriveMode` (`custom` default). ExoPilot
   uses its own keys (`EOPAccelerationProfile`, `EOPAdaptiveGapEnabled`) through the same pure presets.
 

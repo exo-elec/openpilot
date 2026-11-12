@@ -12,14 +12,14 @@
 8. [`STEERING_ACTIVITY_MONITORING.md`](STEERING_ACTIVITY_MONITORING.md) — shared decay policies and the existing controlsd warning/deceleration contract.
 
 8. [`NAVPILOT_BIGMODEL.md`](NAVPILOT_BIGMODEL.md) — big model hosted on the phone over USB, NavPilot-owned link (NPBM protocol, no external dependency); plan, decisions, status. [`JETLINK_BIGMODEL.md`](JETLINK_BIGMODEL.md) is the superseded Jetlink-port record.
-9. [`PLP_V5_SPEC.md`](PLP_V5_SPEC.md) — PLP v5, the Pilot Link Protocol (replaces NCP): framing, session, USB-C and BLE transports, registry, security, migration. `exopilot/plp/` is the code; USB is the baseline here (comma 3 has no BLE).
+9. [`PLP_V5_SPEC.md`](PLP_V5_SPEC.md) — PLP v5, the Pilot Link Protocol (replaces NCP): framing, session, USB-C and BLE transports, registry, security, migration. `exopilot/system/plp/` is the code; USB is the baseline here (comma 3 has no BLE).
 
 Runtime code follows the same order:
 
-1. `exopilot/speed_zones.py` defines the shared 2/6/12/24/36 m/s contract.
-2. `exopilot/controls/tja.py` gates positive acceleration from lead state.
+1. `exopilot/common/speed_zones.py` defines the shared 2/6/12/24/36 m/s contract.
+2. `exopilot/selfdrive/controls/lib/tja.py` gates positive acceleration from lead state.
 3. `selfdrive/controls/lib/longitudinal_planner.py` is the small upstream hook
-   that composes `exopilot/controls/dlon.py` and `tja.py`.
+   that composes `exopilot/selfdrive/controls/lib/dlon.py` and `tja.py`.
 4. `selfdrive/controls/controlsd.py` and car control produce commands.
 5. OpenDBC/Panda enforces vehicle-model steering safety.
 6. NGP10 uses standard comma card/OpenDBC; EOP10 owns BrownPanda vehicled/socketd integration.

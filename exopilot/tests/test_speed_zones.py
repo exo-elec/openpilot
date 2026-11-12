@@ -1,4 +1,4 @@
-from exopilot.speed_zones import (CITY_SPEED_MPS, CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS,
+from exopilot.common.speed_zones import (CITY_SPEED_MPS, CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS,
                                     URBAN_SPEED_MPS, WALK_SPEED_MPS, SpeedZone, longitudinal_accel_max,
                                     longitudinal_jerk_up, speed_zone)
 

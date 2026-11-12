@@ -1,7 +1,7 @@
 import numpy as np
 
-from exopilot.controls.bigmodel_frames import FRAME_BYTES
-from exopilot.runtime.bigmodel_warp import ModelWarp, reset_function
+from exopilot.selfdrive.modeld.bigmodel.frames import FRAME_BYTES
+from exopilot.selfdrive.modeld.bigmodel.warp import ModelWarp, reset_function
 
 
 class FakeFrame:

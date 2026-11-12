@@ -10,14 +10,14 @@ Names carry no `ngp_` / `eop_` / `NGP` / `EOP` prefix, and no replacement prefix
 suffix: a module, class, param key or capnp field says what it does (`dlon.py` / `DLON`,
 `GreenLightAlert`, `dlonMode`). Param keys follow openpilot / sunnypilot CamelCase. One
 feature has one name and one implementation: features a comma 3 can run are owned by
-NGP10 (`exopilot/controls/`) and inherited by EOP10, 01M and 02M, which only add inputs
+NGP10 (`exopilot/selfdrive/controls/lib/`) and inherited by EOP10, 01M and 02M, which only add inputs
 that need ExoPilot hardware. The full old -> new table is `NAMING_WITHOUT_PREFIX.md`.
 `exopilot/tests/test_boundaries.py` fails on a prefixed file name or code name.
 
 Release and line labels (`dev/NGP10`, `dev/EOP10`, `dev/EDP10`) stay in branch names and
 documents, never in identifiers. The EDP branch keeps dragonpilot's `dp_` names.
 
-Saved settings and logs stay readable across renames: `exopilot/param_migration.py`
+Saved settings and logs stay readable across renames: `exopilot/common/param_migration.py`
 moves saved values to the new key once at manager start (a value already under the new
 name wins), and a renamed capnp field keeps its ordinal.
 

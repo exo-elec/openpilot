@@ -3,7 +3,7 @@ import zlib
 
 import pytest
 
-from exopilot.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
 
 
 def test_header_is_20_bytes_and_golden():

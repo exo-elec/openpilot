@@ -1,7 +1,7 @@
 import pytest
 
-from exopilot.localization import crosscheck as X
-from exopilot.localization import lever_arm as L
+from exopilot.selfdrive.locationd import crosscheck as X
+from exopilot.selfdrive.locationd import lever_arm as L
 
 LAT, LON = 13.75, 100.5
 

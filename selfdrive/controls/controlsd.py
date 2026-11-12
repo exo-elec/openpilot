@@ -11,21 +11,21 @@ from openpilot.common.realtime import config_realtime_process, Priority, Ratekee
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
-from exopilot.controls.vehicle_model import VehicleModel
+from exopilot.selfdrive.controls.lib.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
-from exopilot.controls.dlat import DLAT, DLATSuggestion
-from exopilot.controls.cat import CAT
-from exopilot.controls.red import RED, curvature_nudge
-from exopilot.controls.blinker_pause import BlinkerPause
-from exopilot.controls.driver_activity import monitoring_force_decel
-from exopilot.controls.arbiter import Proposal, arbitrate
-from exopilot.controls.pathd_consumer import BIAS_PER_METER, PathAdjustFollower
-from exopilot.runtime.rule_channel import RuleChannelConsumer, apply_curvature
-from exopilot.controls.soc import SOC, SOCInput, threats_from
-from exopilot.runtime.path_adapter import lane_room
-from exopilot.controls.alcc import ALCCInput, ALCC
-from exopilot.runtime.lateral_authorization import lateral_authorized
-from exopilot.controls.steering_policy import SteeringResumeRamp
+from exopilot.selfdrive.controls.lib.dlat import DLAT, DLATSuggestion
+from exopilot.selfdrive.controls.lib.cat import CAT
+from exopilot.selfdrive.controls.lib.red import RED, curvature_nudge
+from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
+from exopilot.selfdrive.controls.lib.driver_activity import monitoring_force_decel
+from exopilot.selfdrive.controls.lib.arbiter import Proposal, arbitrate
+from exopilot.selfdrive.controls.lib.pathd_consumer import BIAS_PER_METER, PathAdjustFollower
+from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_curvature
+from exopilot.selfdrive.controls.lib.soc import SOC, SOCInput, threats_from
+from exopilot.selfdrive.controls.lib.path_adapter import lane_room
+from exopilot.selfdrive.controls.lib.alcc import ALCCInput, ALCC
+from exopilot.selfdrive.controls.lib.lateral_authorization import lateral_authorized
+from exopilot.selfdrive.controls.lib.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
@@ -198,7 +198,7 @@ class Controls:
     if self.red is not None and CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
     # Lateral add-ons (SOC, pathd) are proposers merged by the tighten-only arbiter: same-side offsets do not add,
-    # opposite sides cancel, and the result stays inside the lane room (exopilot/controls/arbiter.py).
+    # opposite sides cancel, and the result stays inside the lane room (exopilot/selfdrive/controls/lib/arbiter.py).
     proposals = []
     if self.soc is not None and CC.latActive:
       left, right = threats_from(CS, model_v2)

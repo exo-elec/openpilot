@@ -1,7 +1,7 @@
 import json
 from types import SimpleNamespace as NS
 
-import exopilot.controls.cat as runtime
+import exopilot.selfdrive.controls.lib.cat as runtime
 
 
 class FakeParams:

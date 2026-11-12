@@ -15,7 +15,7 @@ SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "ms
 PREFIXED = re.compile("|".join((r"(?<![A-Za-z0-9])(ngp|eop)_", r"_(ngp|eop)(?![A-Za-z0-9])",
                                  r"(?<![A-Z])(ngp|eop|Ngp|Eop|NGP|EOP)(?=[A-Z][a-z])", r"(?<![A-Za-z0-9])(NGP|EOP)_")))
 CODE_SUFFIXES = (".py", ".cc", ".h", ".capnp", ".sh", ".json", ".yaml", ".yml", ".ts", ".qml")
-MIGRATION_FILES = {"exopilot/param_migration.py", "exopilot/tests/test_param_migration.py", "exopilot/tests/test_boundaries.py"}
+MIGRATION_FILES = {"exopilot/common/param_migration.py", "exopilot/tests/test_param_migration.py", "exopilot/tests/test_boundaries.py"}
 
 
 def _tracked():

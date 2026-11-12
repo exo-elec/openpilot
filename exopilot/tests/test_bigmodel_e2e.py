@@ -5,12 +5,12 @@ import time
 
 import numpy as np
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.client import Client
-from exopilot.bigmodel.joining import Joining
-from exopilot.bigmodel.listener import Listener
-from exopilot.bigmodel.remote_state import RemoteModelState
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.client import Client
+from exopilot.selfdrive.modeld.bigmodel.joining import Joining
+from exopilot.selfdrive.modeld.bigmodel.listener import Listener
+from exopilot.selfdrive.modeld.bigmodel.remote_state import RemoteModelState
 
 VISION, POLICY = 1024, 600
 

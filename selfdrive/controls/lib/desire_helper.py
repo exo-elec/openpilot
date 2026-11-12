@@ -1,9 +1,9 @@
-from exopilot.controls.radar2d import blindspot_blocked
+from exopilot.selfdrive.controls.lib.radar2d import blindspot_blocked
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
-from exopilot.controls.turn_desire import TurnDesire
-from exopilot.controls.lane_gap import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
+from exopilot.selfdrive.controls.lib.turn_desire import TurnDesire
+from exopilot.selfdrive.controls.lib.lane_gap import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
 
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection

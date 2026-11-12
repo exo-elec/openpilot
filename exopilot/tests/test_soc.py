@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.soc import SOC, SOCInput, curvature_bias, threats_from
+from exopilot.selfdrive.controls.lib.soc import SOC, SOCInput, curvature_bias, threats_from
 
 
 def _lines(width=3.2):

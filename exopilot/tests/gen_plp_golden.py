@@ -8,9 +8,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-from exopilot.plp import frame as F, registry as R  # noqa: E402
-from exopilot.plp.hello import Hello  # noqa: E402
-from exopilot.plp.session import PlpSession  # noqa: E402
+from exopilot.system.plp import frame as F, registry as R  # noqa: E402
+from exopilot.system.plp.hello import Hello  # noqa: E402
+from exopilot.system.plp.session import PlpSession  # noqa: E402
 
 
 def case(name, f):

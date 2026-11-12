@@ -1,6 +1,6 @@
 import random
 
-from exopilot.controls.ranging import LeadAnchoredRanger, RoadCamera
+from exopilot.selfdrive.controls.lib.ranging import LeadAnchoredRanger, RoadCamera
 from exopilot.tools.sim_bridge import Actor, Pose, ground_truth_detections, project_box, range_from_box
 
 EGO = Pose(0.0, 0.0, 25.0)

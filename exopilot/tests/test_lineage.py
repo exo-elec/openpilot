@@ -1,4 +1,4 @@
-from exopilot.lineage import violations
+from exopilot.tools.lineage import violations
 
 
 def test_child_additions_are_allowed_but_parent_edits_and_deletions_are_reported():

@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.cat import MIN_SAMPLES, SteerRatioFilter, live_params_gated
+from exopilot.selfdrive.controls.lib.cat import MIN_SAMPLES, SteerRatioFilter, live_params_gated
 
 BASE_SR = 15.0
 

@@ -21,7 +21,7 @@ import math
 import statistics
 import sys
 
-from exopilot.controls.ranging import LeadAnchoredRanger, Ranged, RoadCamera
+from exopilot.selfdrive.controls.lib.ranging import LeadAnchoredRanger, Ranged, RoadCamera
 
 IMG_W, IMG_H = 1928, 1208
 BEARING_GATE_RAD = 0.05
@@ -64,7 +64,7 @@ def _match(x: float, y: float, ref):
 def analyze(msgs, view_from_calib_fn, depth_ok=lambda o: str(getattr(o, 'depthSource', 'unknown')) != 'bboxCenter',
             cam: RoadCamera | None = None) -> dict:
   """`msgs`: log messages. `view_from_calib_fn(roll, pitch, yaw) -> 3x3`: calibrated frame to camera view frame."""
-  from exopilot.runtime.monod import vanishing_point
+  from exopilot.selfdrive.monod.monod import vanishing_point
   import numpy as np
 
   cam = cam or RoadCamera()

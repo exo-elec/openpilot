@@ -1,8 +1,8 @@
 import numpy as np
 
-from exopilot.controls.detect import LIGHT_CLASSES, Box
-from exopilot.runtime.monod import detect_lights, fill_raw_detections
-from exopilot.runtime.traffic_light import classify_rgb, head_position
+from exopilot.selfdrive.controls.lib.detect import LIGHT_CLASSES, Box
+from exopilot.selfdrive.monod.monod import detect_lights, fill_raw_detections
+from exopilot.selfdrive.controls.lib.traffic_light import classify_rgb, head_position
 
 
 def frame_with_lamp(rgb, size=(40, 24)):

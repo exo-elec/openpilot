@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from exopilot.bigmodel import typec as T
+from exopilot.selfdrive.modeld.bigmodel import typec as T
 
 
 class Clock:

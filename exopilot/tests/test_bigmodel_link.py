@@ -1,6 +1,6 @@
-from exopilot.controls.bigmodel_status import MODEL_ERROR, NOT_DETECTED, USB_SLOW
-from exopilot.runtime import bigmodel_platform as platform
-from exopilot.runtime.bigmodel_link import PhoneLinkMonitor, cable_connected, udc_speed_mbps
+from exopilot.selfdrive.modeld.bigmodel.status import MODEL_ERROR, NOT_DETECTED, USB_SLOW
+from exopilot.selfdrive.modeld.bigmodel import platform
+from exopilot.selfdrive.modeld.bigmodel.link import PhoneLinkMonitor, cable_connected, udc_speed_mbps
 
 
 def udc(root, state, speed):

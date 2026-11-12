@@ -1,7 +1,7 @@
-from exopilot.controls.drive_mode import CUSTOM, MODES, detect, settings_for
-from exopilot.controls.longitudinal_policy import ACCELERATION_PROFILES
-from exopilot.runtime.feature_keys import LONGITUDINAL_KEYS as KEYS
-from exopilot.controls.drive_mode import DriveModeApplier
+from exopilot.selfdrive.controls.lib.drive_mode import CUSTOM, MODES, detect, settings_for
+from exopilot.selfdrive.controls.lib.longitudinal_policy import ACCELERATION_PROFILES
+from exopilot.selfdrive.controls.lib.feature_keys import LONGITUDINAL_KEYS as KEYS
+from exopilot.selfdrive.controls.lib.drive_mode import DriveModeApplier
 
 
 class _Params:

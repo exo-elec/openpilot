@@ -1,6 +1,6 @@
 import math
 
-from exopilot.controls.cutin_speed import CAR, HOLD_S, MIN_TARGET_SPEED, CutInSpeed, Obj, evaluate
+from exopilot.selfdrive.controls.lib.cutin_speed import CAR, HOLD_S, MIN_TARGET_SPEED, CutInSpeed, Obj, evaluate
 
 
 def obj(x=22.0, y=3.0, vx=-6.0, vy=-1.5, sigma=2.0, conf=0.8, tid=1, name='car'):
@@ -101,7 +101,7 @@ def test_non_cut_in_classes_ignored():
 
 
 def test_planned_path_corridor_follows_a_curve():
-  from exopilot.controls.cutin_speed import PlannedPath
+  from exopilot.selfdrive.controls.lib.cutin_speed import PlannedPath
   # we are steering left: the path is 4 m left of the car at 40 m. A car at y=+4 (left) is IN our corridor,
   # a car at y=-0.5 (ahead-right) is 4.5 m outside it.
   curve = PlannedPath([0.0, 20.0, 40.0, 80.0], [0.0, 1.0, 4.0, 12.0])
@@ -116,7 +116,7 @@ def test_planned_path_corridor_follows_a_curve():
 
 
 def test_update_passes_path_and_bad_path_falls_back_to_straight():
-  from exopilot.controls.cutin_speed import PlannedPath
+  from exopilot.selfdrive.controls.lib.cutin_speed import PlannedPath
   c = CutInSpeed()
   bad = PlannedPath([1.0], [0.0])
   for _ in range(3):

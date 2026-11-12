@@ -1,4 +1,4 @@
-from exopilot.controls.speed_policy import (
+from exopilot.selfdrive.controls.lib.speed_policy import (
   SpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource,
 )
 

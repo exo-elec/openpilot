@@ -38,14 +38,14 @@ On NGP10 that adapter must supply:
 
 - `selfdrive/` stays near upstream: only hooks in `modeld.py`, `selfdrived.py`,
   `cereal/log.capnp`. Everything else is under `exopilot/` (pure cores in
-  `exopilot/controls`-style modules, adapter in `exopilot/runtime/`).
+  `exopilot/selfdrive/controls/lib`-style modules, adapter in `exopilot/runtime/`).
 - New behaviour is default off behind `ngp_` params; the small model is always
   loaded and authoritative, the phone model is additive with one-way fallback.
 - The model-swap safety rules are kept as Jetlink has them: never swap while
   the plan is steering, a proving window after a swap, held frame on a late
   reply, hand back after 5 late frames in a row or more than 20 in 10 s, lost
   link (0.2 s) hands back, an engaged failure soft-disables.
-- Footprint budget is ratcheted per hook (`exopilot/footprint.py`); every
+- Footprint budget is ratcheted per hook (`exopilot/tools/footprint.py`); every
   added hook line is named in the budget diff.
 - Cereal: ordinals keep the cross-branch policy of T15 (an ordinal means the same on NGP10 and EOP10).
   **Decided:** upstream's own `bigModelLoading @100` and `bigModelFailed @102` take over NGP10's reserved
@@ -65,8 +65,8 @@ On NGP10 that adapter must supply:
 
 | Task | State |
 | --- | --- |
-| T16.1 warp source | ☑ spike below; implemented as `exopilot/runtime/bigmodel_warp.py` |
-| T16.3 modeld | ☑ hook (+12 lines, budgeted) over `exopilot/runtime/bigmodel.py`: facade between modeld and Jetlink's joining model, `action_t`, `prepare_only`, `modelV2.big`, handover reset |
+| T16.1 warp source | ☑ spike below; implemented as `exopilot/selfdrive/modeld/bigmodel/warp.py` |
+| T16.3 modeld | ☑ hook (+12 lines, budgeted) over `exopilot/selfdrive/modeld/bigmodel/hook.py`: facade between modeld and Jetlink's joining model, `action_t`, `prepare_only`, `modelV2.big`, handover reset |
 | T16.4 cereal | ☑ `bigModelLoading @100`, `bigModelFailed @102` (renamed placeholders), `ModelDataV2.big @27` |
 | T16.5 selfdrived | ☑ `bigmodel_gate.py`: loading blocks entry; failure announces once and soft-disables only if it was driving while engaged; latch clears on disengage |
 | T16.6 adapter | ☑ `jetlink_adapter.py` passes Jetlink's `conformance()` and uses Jetlink's optional `warp_source` seam; the Jetlink changes are on `exo-elec/jetlink` branch `static-role-platform` and `jetlink_repo` is pinned to `37e89e32` (see `DEPENDENCY_POLICY.md`) |

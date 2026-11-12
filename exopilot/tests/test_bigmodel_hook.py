@@ -3,10 +3,10 @@ import logging
 import numpy as np
 import pytest
 
-from exopilot.runtime import bigmodel_platform as platform
-from exopilot.runtime.bigmodel import (BIG_MODEL_TIMEOUT, ONE_WAY, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
+from exopilot.selfdrive.modeld.bigmodel import platform
+from exopilot.selfdrive.modeld.bigmodel.hook import (BIG_MODEL_TIMEOUT, ONE_WAY, ENUMERATION_TIMEOUT, LATE_JOIN, PROVING_FRAMES, BigModelFacade,
                                          LocalModel)
-from exopilot.runtime.bigmodel_link import cable_connected, host_enumerated
+from exopilot.selfdrive.modeld.bigmodel.link import cable_connected, host_enumerated
 
 LOADING, ACTIVE = platform.LOADING, platform.ACTIVE
 
@@ -184,7 +184,7 @@ class FakeSub:
 
 
 def in_control_with(sm):
-  from exopilot.runtime.bigmodel import InControl
+  from exopilot.selfdrive.modeld.bigmodel.hook import InControl
   a = InControl()
   a._sm = sm
   return a
@@ -229,7 +229,7 @@ def test_a_swap_and_a_handback_through_the_real_joining_model(monkeypatch):
   import threading
   import time
 
-  from exopilot.bigmodel import joining as joining_module
+  from exopilot.selfdrive.modeld.bigmodel import joining as joining_module
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
@@ -307,7 +307,7 @@ def test_a_swap_and_a_handback_through_the_real_joining_model(monkeypatch):
 
 
 def test_with_the_link_off_the_hook_touches_neither_the_camera_client_nor_any_param_but_a_clear():
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
 
   class Exploding:
     @property
@@ -474,7 +474,7 @@ def test_one_way_policy_through_the_real_joining_model_a_hand_back_is_not_follow
   import threading
   import time
 
-  from exopilot.bigmodel import joining as joining_module
+  from exopilot.selfdrive.modeld.bigmodel import joining as joining_module
   monkeypatch.setattr(joining_module, 'SMALL_WARMUP_FRAMES', 0)
 
   class Big:
@@ -575,10 +575,10 @@ def test_a_cable_that_enumerated_is_waited_for_the_whole_window_not_ten_seconds(
 def test_the_hook_counts_a_model_as_built_only_when_the_metadata_is(tmp_path):
   import pickle
 
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
   hook = BigModelHook(FakeParams(), lambda *a: None, models_dir=tmp_path)
   assert hook._runnable() is False          # nothing read yet: unknown never holds engagement off
-  from exopilot.bigmodel import metadata
+  from exopilot.selfdrive.modeld.bigmodel import metadata
   assert metadata.load(tmp_path) is None     # no files
   for name, size in (('vision', 12), ('policy', 8)):
     with open(tmp_path / f'driving_{name}_metadata.pkl', 'wb') as f:
@@ -628,7 +628,7 @@ class LinkParams(FakeParams):
 
 
 def test_prepare_does_nothing_with_the_link_off(stub_swaglog, tmp_path):
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
   write_metadata(tmp_path)
   FakeListener.started = 0
   hook = BigModelHook(FakeParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
@@ -636,7 +636,7 @@ def test_prepare_does_nothing_with_the_link_off(stub_swaglog, tmp_path):
 
 
 def test_prepare_without_built_metadata_stays_on_the_small_model(stub_swaglog, tmp_path):
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
   FakeListener.started = 0
   hook = BigModelHook(LinkParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
   assert hook.prepare() is False and hook.contract is None and FakeListener.started == 0
@@ -645,7 +645,7 @@ def test_prepare_without_built_metadata_stays_on_the_small_model(stub_swaglog, t
 
 
 def test_prepare_then_attach_gives_the_facade_over_a_joining_model(stub_swaglog, tmp_path):
-  from exopilot.runtime.bigmodel import BigModelFacade, BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelFacade, BigModelHook
   write_metadata(tmp_path)
   FakeListener.started = 0
   hook = BigModelHook(LinkParams(), lambda *a: None, models_dir=tmp_path, listener_factory=FakeListener)
@@ -665,9 +665,9 @@ def test_prepare_then_attach_gives_the_facade_over_a_joining_model(stub_swaglog,
 
 
 def test_the_setting_picks_the_listener_for_the_phone():
-  from exopilot.bigmodel.ffs import FfsListener
-  from exopilot.bigmodel.listener import Listener
-  from exopilot.runtime.bigmodel import BigModelHook
+  from exopilot.selfdrive.modeld.bigmodel.ffs import FfsListener
+  from exopilot.selfdrive.modeld.bigmodel.listener import Listener
+  from exopilot.selfdrive.modeld.bigmodel.hook import BigModelHook
 
   class P(FakeParams):
     def __init__(self, mode):

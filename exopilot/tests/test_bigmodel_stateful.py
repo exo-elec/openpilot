@@ -4,13 +4,13 @@ import logging
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.allowlist import AllowList
-from exopilot.bigmodel.client import Client, LinkError, ServerInfo
-from exopilot.bigmodel.queues import PolicyQueues, StateLoop, make_history
-from exopilot.bigmodel.remote_state import RemoteSpecModelState
-from exopilot.bigmodel.spec import ModelSpec
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.allowlist import AllowList
+from exopilot.selfdrive.modeld.bigmodel.client import Client, LinkError, ServerInfo
+from exopilot.selfdrive.modeld.bigmodel.queues import PolicyQueues, StateLoop, make_history
+from exopilot.selfdrive.modeld.bigmodel.remote_state import RemoteSpecModelState
+from exopilot.selfdrive.modeld.bigmodel.spec import ModelSpec
 
 SHAPES = {'new_img': (2, 6, 128, 256), 'desire': (1, 8), 'traffic_convention': (1, 2), 'action_t': (1, 2),
           'state_feat': (1, 16), 'state_hist': (1, 4, 3)}

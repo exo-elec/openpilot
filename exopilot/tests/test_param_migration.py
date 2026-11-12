@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from exopilot.param_migration import RENAMED, migrate_renamed_params
+from exopilot.common.param_migration import RENAMED, migrate_renamed_params
 
 ROOT = Path(__file__).resolve().parents[2]
 

@@ -1,4 +1,4 @@
-from exopilot.controls.arbiter import MAX_OFFSET_M, Proposal, arbitrate
+from exopilot.selfdrive.controls.lib.arbiter import MAX_OFFSET_M, Proposal, arbitrate
 
 
 def test_speed_is_the_minimum_and_never_raised():

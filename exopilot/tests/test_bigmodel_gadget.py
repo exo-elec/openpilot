@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from exopilot.bigmodel import gadget as G
+from exopilot.selfdrive.modeld.bigmodel import gadget as G
 
 SCRIPT = Path(G.SCRIPT)
 

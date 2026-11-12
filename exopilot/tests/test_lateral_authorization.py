@@ -1,5 +1,5 @@
 from types import SimpleNamespace as NS
-from exopilot.runtime.lateral_authorization import lateral_authorized
+from exopilot.selfdrive.controls.lib.lateral_authorization import lateral_authorized
 
 
 def setup():

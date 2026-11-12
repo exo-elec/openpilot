@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.runtime.cutin_adapter import cutin_objects
+from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_objects
 
 
 def det(**k):
@@ -26,7 +26,7 @@ def test_not_alive_or_invalid_is_not_fresh_and_empty():
 
 
 def test_cutin_path_flips_model_y_once():
-  from exopilot.runtime.cutin_adapter import cutin_path
+  from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_path
   sm = {'modelV2': NS(position=NS(x=[0.0, 20.0, 40.0], y=[0.0, 1.0, 2.0]))}
   sm = type('S', (dict,), {})(sm)
   sm.valid = {'modelV2': True}

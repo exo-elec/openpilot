@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import remote_state as R
-from exopilot.bigmodel.client import LinkError, ServerInfo
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import remote_state as R
+from exopilot.selfdrive.modeld.bigmodel.client import LinkError, ServerInfo
 
 
 class Clock:

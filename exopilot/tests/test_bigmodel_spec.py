@@ -3,9 +3,9 @@ import math
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel.queues import PolicyQueues
-from exopilot.bigmodel.spec import ModelSpec
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel.queues import PolicyQueues
+from exopilot.selfdrive.modeld.bigmodel.spec import ModelSpec
 
 BIG = {'img': (1, 12, 128, 256), 'big_img': (1, 12, 128, 256), 'desire_pulse': (1, 33, 8), 'traffic_convention': (1, 2),
        'action_t': (1, 2), 'features_buffer': (1, 32, 32, 512)}

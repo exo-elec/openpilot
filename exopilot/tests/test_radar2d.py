@@ -1,5 +1,5 @@
 import math
-from exopilot.controls.radar2d import blindspot_blocked, ground_range
+from exopilot.selfdrive.controls.lib.radar2d import blindspot_blocked, ground_range
 
 
 def test_can_flags_are_side_specific_presence():

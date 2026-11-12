@@ -1,8 +1,8 @@
 from types import SimpleNamespace as NS
 
 import cereal.messaging as messaging
-from exopilot.controls.driver_activity import CRITICAL, OK, PROMPT, SOFT
-from exopilot.runtime.driver_activityd import DriverActivityD, driver_engaged, state_msg
+from exopilot.selfdrive.controls.lib.driver_activity import CRITICAL, OK, PROMPT, SOFT
+from exopilot.selfdrive.monitoring.driver_activityd import DriverActivityD, driver_engaged, state_msg
 
 
 def _cs(v=15.0, pressed=False, torque=0.0, standstill=False, brake=False, gas=False):

@@ -7,7 +7,7 @@ hardware or duplicate upstream estimators.
 Design rules:
 
 - integrate through normal openpilot planner, controls, model, UI, and safety paths;
-- keep NGP-owned implementations in `exopilot/controls/` with `ngp_` names;
+- keep NGP-owned implementations in `exopilot/selfdrive/controls/lib/` with `ngp_` names;
 - reuse upstream `paramsd` for real-time steering ratio/stiffness learning and persistence;
 - enforce steering with continuous vehicle-model ISO accel/jerk limits plus physical limits;
 - treat 2/6/12/24/36 m/s as ranges, not equality triggers;

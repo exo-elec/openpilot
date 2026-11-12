@@ -32,7 +32,7 @@ try:
 except Exception as e:                      # needs a built cereal (EOP10 clone / ~/work/ngp10 / device)
   pytest.skip(f"built cereal needed: {e}", allow_module_level=True)
 
-from exopilot.runtime.tripd import TripD as _TripD, TripStats
+from exopilot.selfdrive.tripd.tripd import TripD as _TripD, TripStats
 
 
 def TripD():
@@ -150,6 +150,6 @@ if __name__ == '__main__':
 
 
 def test_default_keys_are_trip_camel_case():
-  from exopilot.runtime.tripd import _trip_key as _key
+  from exopilot.selfdrive.tripd.tripd import _trip_key as _key
   assert _key("TotalDistance") == "TripTotalDistance" and _key("LastOverrideFreeDistance") == "TripLastOverrideFreeDistance"
   assert _key("AStartDistance") == "TripAStartDistance" and _key("DailyStats") == "TripDailyStats"

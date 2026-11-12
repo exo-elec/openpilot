@@ -4,10 +4,10 @@ import threading
 import numpy as np
 import pytest
 
-from exopilot.bigmodel import framing as F
-from exopilot.bigmodel import protocol as P
-from exopilot.bigmodel import server_ref as S
-from exopilot.bigmodel.client import Client
+from exopilot.selfdrive.modeld.bigmodel import framing as F
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import server_ref as S
+from exopilot.selfdrive.modeld.bigmodel.client import Client
 
 
 def test_padding_rules():

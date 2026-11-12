@@ -1,6 +1,6 @@
-from exopilot.controls.alcc import ALCCInput, ALCCState, ALCC
-from exopilot.controls.road_edge import evaluate_road_edges
-from exopilot.controls.speed_policy import (
+from exopilot.selfdrive.controls.lib.alcc import ALCCInput, ALCCState, ALCC
+from exopilot.selfdrive.controls.lib.road_edge import evaluate_road_edges
+from exopilot.selfdrive.controls.lib.speed_policy import (
   SpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource,
 )
 

@@ -3,13 +3,14 @@ import pathlib
 import socket
 import time
 
-from exopilot.localization.map_horizon import MapHorizon
-from exopilot.plp import frame as F, registry as R
-from exopilot.plp.cable import CablePLP
-from exopilot.plp.channel import Message
-from exopilot.plp.hello import Hello
-from exopilot.plp.locate import LocateSink
-from exopilot.plp.session import PlpSession
+from exopilot.selfdrive.locationd.map_horizon import MapHorizon
+from exopilot.system.plp import frame as F
+from exopilot.system.plp import registry as R
+from exopilot.system.plp.cable import CablePLP
+from exopilot.system.plp.channel import Message
+from exopilot.system.plp.hello import Hello
+from exopilot.system.plp.locate import LocateSink
+from exopilot.system.plp.session import PlpSession
 
 FIXTURE = pathlib.Path(__file__).parent / 'fixtures' / 'map_horizon_navpilot.json'
 SERVICES = (('core', 1, 1), ('locate', 1, 1))
@@ -129,7 +130,7 @@ def test_fixture_still_parses_as_a_horizon():
 
 
 def test_plpd_builds_a_server_that_answers_on_the_cable_address_only():
-  from exopilot.plp import plpd
+  from exopilot.system.plp import plpd
   sink = LocateSink()
   srv = plpd.build(sink, bind_addr='127.0.0.1', port=0, allowed_prefix='127.')
   assert srv.hello.link == 'usb' and {n for n, _, _ in srv.hello.services} == {'core', 'locate'}

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from exopilot.controls.vtsc import VTSC, VTSCState
+from exopilot.selfdrive.controls.lib.vtsc import VTSC, VTSCState
 
 
 def model(rates, velocities):

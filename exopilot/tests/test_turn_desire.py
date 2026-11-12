@@ -1,4 +1,4 @@
-from exopilot.controls.turn_desire import TurnDesire
+from exopilot.selfdrive.controls.lib.turn_desire import TurnDesire
 
 MAX = 9.0
 

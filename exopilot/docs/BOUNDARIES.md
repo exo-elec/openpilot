@@ -5,7 +5,7 @@ Enforced by `exopilot/tests/test_boundaries.py`.
 | Layer | Location | Rule |
 | --- | --- | --- |
 | Upstream runtime | `selfdrive/`, `system/`, `cereal/` | Integration hooks only. A hook reads params, passes plain values/callables into `exopilot`, and applies the result. |
-| Pure policy | `exopilot/controls/` (`ngp_*`, later `eop_*`) | No `selfdrive`/`system` imports, no `Params`, no `cereal.messaging`. Inputs are arguments; outputs are suggestions. |
+| Pure policy | `exopilot/selfdrive/controls/lib/` (`ngp_*`, later `eop_*`) | No `selfdrive`/`system` imports, no `Params`, no `cereal.messaging`. Inputs are arguments; outputs are suggestions. |
 | Real daemons (stereod/gridd/pathd/radar3d etc., `eop_`; EOP branches only) | `exopilot/<name>d/` | The only place allowed to publish new cereal services; registered in `process_config.py` by a single hook. |
 | Board layer (RK3588 / ExoPilot 01M, 02M) | `system/hardware/<board>/` | Never imported from `exopilot`. Hardware support is decided by the branch, not by runtime flags. |
 | UI | `selfdrive/ui/qt/offroad/ngp_{panel,controls}.*` | Reviewed exception; keep upstream edits to a registration line. |

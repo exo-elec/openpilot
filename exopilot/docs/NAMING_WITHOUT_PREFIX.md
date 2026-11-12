@@ -8,7 +8,7 @@ How it is applied, one branch at a time, from the base up:
 
 1. `dev/NGP10` (base) gets one rename commit for every name it owns (this table).
 2. `dev/EOP10` is rebased onto it: each of its commits is replayed with the NGP10 names
-   translated, so its history and lineage (`exopilot/lineage.py`) carry over. Then one
+   translated, so its history and lineage (`exopilot/tools/lineage.py`) carry over. Then one
    EOP10 rename commit covers the names EOP10 adds.
 3. Same for `dev/01M` on the new EOP10, then `dev/02M` on the new 01M.
 
@@ -88,7 +88,7 @@ need ExoPilot hardware (side/rear YOLO, stereo, radar) stay on EOP10.
 | `ngp_dlat.py` / `NGPDLAT` | `dlat.py` / `DLAT` |
 | `ngp_vtsc.py` / `NGPVTSC` | `vtsc.py` / `VTSC` |
 | `ngp_alcc.py` / `NGPALCC` | `alcc.py` / `ALCC` |
-| `ngp_cat.py` / `NGPCAT` | `cat.py` / `SteerRatioFilter` (the pure gate + smoothing + confidence); the feature, with its switch, manual steer ratio and saved per-car values, is `CAT` in `exopilot/runtime/cat.py` (moved from EOP10's `lib/cat.py`) |
+| `ngp_cat.py` / `NGPCAT` | `cat.py` / `SteerRatioFilter` (the pure gate + smoothing + confidence); the feature, with its switch, manual steer ratio and saved per-car values, is `CAT` in `exopilot/selfdrive/controls/lib/cat.py` (moved from EOP10's `lib/cat.py`) |
 | `ngp_red.py` / `NGPRED` | `red.py` / `RED` |
 | `ngp_soc.py` / `NGPSOC` | `soc.py` / `SOC` |
 | `ngp_brsc.py` / `NGPBRSC` | `brsc.py` / `BRSC` |
@@ -112,7 +112,7 @@ need ExoPilot hardware (side/rear YOLO, stereo, radar) stay on EOP10.
 | `bigmodel/scripts/ngp-bigmodel-root.sh`, `/dev/ffs-ngpbigmodel`, `NGP_CONFIGFS`, `NGP_UDC_DIR`, `NGP_RUN_DIR`, `NGP_TEST`, `NGP_FFS_MOUNT`, `NGP_USER` | `bigmodel-root.sh`, `/dev/ffs-bigmodel`, `BIGMODEL_CONFIGFS`, ... (test hooks named after the feature) |
 | `validate_ranging.py` report fields `ngp_by_class`, `ngp_median_*`, `ngp_p90_*` | `ground_by_class`, `ground_median_*`, `ground_p90_*` (the ground-plane ranger) |
 | `docs/integration/SHARED_NGP_EOP_PIPELINE.md` | `SHARED_BRANCH_PIPELINE.md` |
-| `feature_keys.py` `NGP_KEYS` / `EOP_KEYS` / `EOP_MAP_KEYS` / `EOP_LEGACY_KEYS` / `OriginParams` | `LONGITUDINAL_KEYS` / (same) / `MAP_SPEED_KEYS` / removed: one key per feature, saved values moved by `exopilot/param_migration.py` |
+| `feature_keys.py` `NGP_KEYS` / `EOP_KEYS` / `EOP_MAP_KEYS` / `EOP_LEGACY_KEYS` / `OriginParams` | `LONGITUDINAL_KEYS` / (same) / `MAP_SPEED_KEYS` / removed: one key per feature, saved values moved by `exopilot/common/param_migration.py` |
 
 `exopilot/tests/test_boundaries.py` fails on any `ngp_` / `eop_` / `NGP` / `EOP` prefix in a file
 name or in code; only the saved-param migration spells the old names.

@@ -22,9 +22,9 @@ from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
-from exopilot.controls.bigmodel_gate import BigModelGate
-from exopilot.controls.green_light import GreenLightNotice
-from exopilot.controls.lead_departure import LeadDepartureNotice
+from exopilot.selfdrive.modeld.bigmodel.gate import BigModelGate
+from exopilot.selfdrive.controls.lib.green_light import GreenLightNotice
+from exopilot.selfdrive.controls.lib.lead_departure import LeadDepartureNotice
 from openpilot.system.version import get_build_metadata
 
 REPLAY = "REPLAY" in os.environ

@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from exopilot.localization import lever_arm as L
+from exopilot.selfdrive.locationd import lever_arm as L
 
 
 def test_facing_north_with_the_phone_on_the_left_the_comma_is_east_of_it():

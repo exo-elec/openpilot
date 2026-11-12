@@ -4,7 +4,7 @@ from types import SimpleNamespace as NS
 import numpy as np
 import pytest
 
-from exopilot.controls.vehicle_model import VehicleModel
+from exopilot.selfdrive.controls.lib.vehicle_model import VehicleModel
 
 
 @pytest.mark.parametrize("speed", [0.0, 0.1, 0.2, 11.0, 22.0, 33.0, 45.0])

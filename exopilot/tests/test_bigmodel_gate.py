@@ -1,4 +1,4 @@
-from exopilot.controls.bigmodel_gate import SETTLING_S, BigModelGate, tier_flag
+from exopilot.selfdrive.modeld.bigmodel.gate import SETTLING_S, BigModelGate, tier_flag
 
 
 def test_nothing_written_raises_nothing():

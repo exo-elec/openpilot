@@ -3,8 +3,8 @@ import math
 
 import pytest
 
-from exopilot.localization import lever_arm as L
-from exopilot.localization import map_horizon as M
+from exopilot.selfdrive.locationd import lever_arm as L
+from exopilot.selfdrive.locationd import map_horizon as M
 
 LAT0, LON0 = 13.75, 100.5
 

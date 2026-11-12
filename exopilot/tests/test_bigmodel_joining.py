@@ -1,7 +1,7 @@
 import pytest
 
-from exopilot.bigmodel import joining as J
-from exopilot.bigmodel import protocol as P
+from exopilot.selfdrive.modeld.bigmodel import joining as J
+from exopilot.selfdrive.modeld.bigmodel import protocol as P
 
 
 class Clock:

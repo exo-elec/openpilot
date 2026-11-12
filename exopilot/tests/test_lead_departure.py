@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.lead_departure import LeadDepartureNotice
+from exopilot.selfdrive.controls.lib.lead_departure import LeadDepartureNotice
 
 
 def lead(d, v=0.0, status=True, track=3):

@@ -108,7 +108,7 @@ class Soundd:
     data_out[:frames, 0] = self.get_sound_data(frames)
 
   def update_alert(self, new_alert):
-    from exopilot.runtime.device_policy import audible_alert
+    from exopilot.system.manager.device_policy import audible_alert
     now = time.monotonic()
     if now - self.settings_updated >= 1.0:
       self.audible_mode = self.params.get("AlertSoundMode")
