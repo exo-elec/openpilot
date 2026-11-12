@@ -24,7 +24,7 @@ _fake_msgq.MAX_FDS = 64
 sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
 
-from openpilot.selfdrive.controls.lib.dlon import DLON, DLONMode, DriveMode
+from exopilot.selfdrive.controls.lib.dlon import DLON, DLONMode, DriveMode
 
 
 def _make_car_state(v_ego=0.0, gas_pressed=False, left_blinker=False, right_blinker=False):
