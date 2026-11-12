@@ -1,4 +1,9 @@
-"""Comma 3-safe DLAT arbitration for the NGP10 proving line.
+"""DLAT - Dynamic Lateral Profile: Laneful/Laneless arbitration from lane-line confidence.
+
+The one DLAT: written and tested here on NGP10 (comma 3) and used unchanged by EOP10, 01M and 02M
+(owner 2026-11-12: one implementation per feature, NGP10 first). EOP10's former copy added a path-deviation
+trigger that read `predictedPath`, which the v0.10 modelV2 does not have, so it never fired; this module
+computes the deviation from `position` and reports it without acting on it.
 
 This module itself has no Params or cereal access -- it converts lane-line
 confidence (plus, since 2026-08-25, DLP curve assist's pre-emptive override)
