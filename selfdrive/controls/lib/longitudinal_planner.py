@@ -40,7 +40,7 @@ from exopilot.selfdrive.controls.lib.longitudinal_policy import (
 # EOP: Vision Turn Speed Control
 from openpilot.selfdrive.controls.lib.vtsc import VTSC
 # EOP: Dynamic Longitudinal Profile
-from openpilot.selfdrive.controls.lib.dlon import DLON
+from exopilot.selfdrive.controls.lib.dlon import DLON
 # EOP: Map Turn Speed Control (includes learned speeds)
 from openpilot.selfdrive.controls.lib.mtsc import MTSC
 # EOP: Map Speed Limit Control (MSLC - OSM posted limits)
@@ -164,7 +164,8 @@ class LongitudinalPlanner:
     self.vtsc_v_target = None
 
     # EOP: DLON initialization
-    self.dlon = DLON()
+    _dlon_params = Params()
+    self.dlon = DLON(get_bool=_dlon_params.get_bool, get=_dlon_params.get)
     self.dlon_e2e_enabled = False
     self.dlon_force_stop = False
     self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}

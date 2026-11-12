@@ -2,7 +2,7 @@ import time
 from cereal import log
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.params import Params
-from openpilot.selfdrive.controls.lib.dlat import DLAT, LANEFUL_TO_LANELESS_THRESH
+from exopilot.selfdrive.controls.lib.dlat import DLAT, DEFAULT_ENTER_THRESHOLD
 from exopilot.common.speed_zones import URBAN_SPEED_MPS
 from exopilot.selfdrive.controls.lib.turn_desire import turn_signal_direction
 from exopilot.selfdrive.controls.lib.lane_change import (Dir, MIN_LANE_WIDTH, blindspot_blocked, evaluate_gap,
@@ -97,15 +97,16 @@ class DesireHelper:
     """DLAT-based initiation safety gate: don't start an automatic/nudged lane
     change while lane-line confidence is too low to trust the geometry.
 
-    Reuses DLAT's own calculate_lane_confidence() formula and its
-    LANEFUL_TO_LANELESS_THRESH -- the same threshold DLAT itself uses to
+    Reuses DLAT's own lane_confidence() formula and its
+    DEFAULT_ENTER_THRESHOLD -- the same threshold DLAT itself uses to
     decide lane lines are unreliable -- rather than inventing a second
     number. Missing/invalid model_v2 resolves to the neutral 0.5 confidence
-    built into calculate_lane_confidence(), so this never blocks on absent
+    built into lane_confidence(), so this never blocks on absent
     data. Always on, no toggle: pairs with the blindspot check as core
     initiation safety, not an opt-in feature.
     """
-    return DLAT.calculate_lane_confidence(model_v2) >= LANEFUL_TO_LANELESS_THRESH
+    probs = getattr(model_v2, "laneLineProbs", None) if model_v2 else None
+    return DLAT.lane_confidence(probs) >= DEFAULT_ENTER_THRESHOLD
 
   def _blindspot_blocked(self, carstate, blind_spot_alert, direction) -> bool:
     return blindspot_blocked(carstate, blind_spot_alert, direction)
