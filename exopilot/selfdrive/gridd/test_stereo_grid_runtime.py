@@ -1,6 +1,6 @@
 """Host calibration/fusion contracts, plus opt-in mandatory real GPU execution.
 
-Run directly. EOP_GPU_TESTS=1 requires a GPU; absent OpenCL is then a failure.
+Run directly. GPU_TESTS=1 requires a GPU; absent OpenCL is then a failure.
 """
 import importlib.util
 import ast
@@ -380,7 +380,7 @@ class TestStereoGridContracts(unittest.TestCase):
       self.assertEqual(event.stereoStatus.faultReason, 'gpu_unavailable')
 
 
-@unittest.skipUnless(os.environ.get('EOP_GPU_TESTS') == '1', 'explicit real GPU acceptance required')
+@unittest.skipUnless(os.environ.get('GPU_TESTS') == '1', 'explicit real GPU acceptance required')
 class TestActualGPU(unittest.TestCase):
   def test_full_q_and_measured_mount_share_one_gpu_projection(self):
     compute = load('mount_gpu_required', 'common/gpu_compute.py')

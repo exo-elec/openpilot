@@ -372,12 +372,12 @@ class InferenceClient:
 
         Priority order:
           1. RKNN NPU when running on real ARM hardware (not mock)
-          2. ONNX Runtime (dev PC / x86_64, or explicit override via EOP_BACKEND=onnx)
+          2. ONNX Runtime (dev PC / x86_64, or explicit override via INFERENCE_BACKEND=onnx)
           3. RKNN NPU in mock mode (last resort — returns random outputs)
 
-        Set EOP_BACKEND=onnx to force ONNX on any platform (useful in CI).
+        Set INFERENCE_BACKEND=onnx to force ONNX on any platform (useful in CI).
         """
-        force_onnx = os.getenv("EOP_BACKEND", "").lower() == "onnx"
+        force_onnx = os.getenv("INFERENCE_BACKEND", "").lower() == "onnx"
 
         if not force_onnx:
             try:

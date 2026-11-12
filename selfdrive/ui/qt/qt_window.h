@@ -31,11 +31,11 @@ const QString ASSET_PATH = ":/";
 // whose screen cannot physically fit 1024x600, setMainWindow() applies a
 // uniform scale -- the same layout, smaller -- rather than letting the
 // window take an arbitrary shape the layout was never designed for.
-constexpr int EOP_PANEL_WIDTH = 1024;
-constexpr int EOP_PANEL_HEIGHT = 600;
+constexpr int PANEL_WIDTH = 1024;
+constexpr int PANEL_HEIGHT = 600;
 
 inline QSize deviceScreenSize() {
-  return {EOP_PANEL_WIDTH, EOP_PANEL_HEIGHT};
+  return {PANEL_WIDTH, PANEL_HEIGHT};
 }
 
 void setMainWindow(QWidget *w);

@@ -62,4 +62,4 @@ used to test `key.startswith("EOP")` uses that set. `exopilot/common/param_migra
 moves saved `EOP<name>` files to `<name>` once at manager start, keeping any
 value already saved under the new name. Shared NGP keys (`ngp_*`) and
 dragonpilot keys (`dp_*`) are unchanged. Module and class names (`speed_utils`,
-`EopPanel`) are a separate rename step.
+`ExoPilotPanel`) are a separate rename step.

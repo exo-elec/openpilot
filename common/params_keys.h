@@ -93,8 +93,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"UIBrightness", {PERSISTENT, INT, "0"}},
     {"DeviceModelSelected", {PERSISTENT, STRING, ""}},
     {"VehicleModelList", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
-    {"LatALCC", {PERSISTENT, BOOL, "0"}},
-    {"ALCCBrakeMode", {PERSISTENT, INT, "0"}},  // ALCC on a brake press: 0 Maintain, 1 Pause, 2 Disengage
     // DLAT (Dynamic Lateral Profile, exopilot/selfdrive/controls/lib/dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.
@@ -107,24 +105,11 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BlinkerPauseLateralSpeed", {PERSISTENT, INT, "0"}},
     // Notice when the car is released from a planner stop (green light). Default off.
     {"GreenLightAlert", {PERSISTENT, BOOL, "0"}},
-    // SOC: small slow offset away from a vehicle beside you on the highway (soc.py). Default off.
-    {"SOCControllerEnabled", {PERSISTENT, BOOL, "0"}},
-    // RED: vision-only curvature nudge away from a close road edge in laneless mode (red.py).
-    // ExoPilot adds YOLO/stereo corroboration. Unvalidated on road; default off.
-    {"RedControllerEnabled", {PERSISTENT, BOOL, "0"}},
     {"AutoLaneChangeDelay", {PERSISTENT, FLOAT, "0.0"}},
     // Lane turn desire: max speed (mph) at which a turn signal sends a turn desire to the model; 0 = off.
     {"TurnDesireSpeed", {PERSISTENT, INT, "0"}},
-    // Opt-in LCA guards from modelV2: adjacent-lane TTC gap, target-lane width (>= 2.5 m).
-    {"LCAGapEvalEnabled", {PERSISTENT, BOOL, "0"}},
-    {"LCALaneWidthEnabled", {PERSISTENT, BOOL, "0"}},
     // CAT: smoothed and validated steer ratio / stiffness from liveParameters. Default off.
     {"CATEnabled", {PERSISTENT, BOOL, "0"}},
-    {"CATManualSR", {PERSISTENT, FLOAT, "0.0"}},          // fixed steer ratio when CATManualSREnabled
-    {"CATManualSREnabled", {PERSISTENT, BOOL, "0"}},
-    {"CATPersist", {PERSISTENT, STRING, ""}},             // JSON: learned steer ratio / stiffness / angle offset per fingerprint
-    {"LatLCASpeed", {PERSISTENT, INT, "20"}},
-    {"LatRoadEdgeDetection", {PERSISTENT, BOOL, "0"}},
     // BRSC: Bumpy Road Speed Controller — shared verbatim across EOP10/NGP10/EDP10
     // via exopilot/selfdrive/controls/lib/brsc.py. See docs/eop/03_Software/Controllers/BRSC.md on dev/EOP10.
     // Notice when the lead pulls away while stopped (radarState only). Default off.
@@ -133,13 +118,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Run the big driving model on a phone over the USB cable (NavPilot's NPBM link, NAVPILOT_BIGMODEL.md). 0 off,
     // 1 Android (FunctionFS bulk gadget), 2 iPhone (CDC-NCM network the phone dials), 3 USB tethering (optional). The direct
     // modes 1 and 2 are the default way (NAVPILOT_BIGMODEL.md D11). Default off; the small model stays loaded and drives
-    // until the phone model is proven. NGP-origin, so ngp_ on every branch (D12).
+    // until the phone model is proven. Same key on every branch (D12).
     {"BigModelLink", {PERSISTENT, INT, "0"}},
     // Big model state, written by modeld's BigModelHook and read by selfdrived (exopilot/selfdrive/modeld/bigmodel/gate.py).
     {"BigModelActive", {CLEAR_ON_MANAGER_START, BOOL}},
     {"BigModelLoading", {CLEAR_ON_MANAGER_START, BOOL}},
     {"DriverActivityPolicy", {PERSISTENT, STRING, "strict"}},
-    // monod (exopilot/selfdrive/monod/monod.py): road-camera YOLO detections, publish-only. Default off; needs a detector model compiled in.
     // Cut-in speed trim (cutin_speed.py): lowers cruise speed for a predicted cut-in seen by monod. Default off; needs MonoDEnabled.
     {"CutInSpeedEnabled", {PERSISTENT, BOOL, "0"}},
     // pathd add-on (exopilot/selfdrive/pathd/pathd.py): publishes pathAdjust (lateral offset + speed factor). Publish-only, default off.
@@ -150,7 +134,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DPPMaxMode", {PERSISTENT, INT, "0"}},
     // pathd: also run the ported EOP10 proposers (LatNudge, LonNudge, speed reduction) from camera-only inputs (exopilot/selfdrive/pathd/nudge_extras.py). Default off; needs PathdEnabled.
     {"PathdNudgesEnabled", {PERSISTENT, BOOL, "0"}},
-    // Map / light / distraction speed caps (exopilot/selfdrive/controls/lib/map_speed.py), all default off, they only lower the cruise speed.
     // tripd (exopilot/selfdrive/tripd/tripd.py): trip statistics. Process behind TripdEnabled.
     {"TripdEnabled", {PERSISTENT, BOOL, "0"}},
     {"TripAStartDistance", {PERSISTENT, FLOAT, "0.0"}},
@@ -178,19 +161,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
     {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
     {"RCSCEnabled", {PERSISTENT, BOOL, "0"}},      // RCSC, Road Condition Speed Controller: speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
-    // Posted speed limit (MSLC map, NSLC navigation): one policy and one set of offsets for both.
-    {"SpeedLimitPolicy", {PERSISTENT, INT, "4"}},  // 0 none, 1 car, 2 map, 3 navigation, 4 the lower of all, 5 map/navigation, car as fallback
-    {"SLCOffset1", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits below 29 km/h
-    {"SLCOffset2", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 29-48 km/h
-    {"SLCOffset3", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 49-58 km/h
-    {"SLCOffset4", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 59-78 km/h
-    {"SLCOffset5", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 79-98 km/h
-    {"SLCOffset6", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 99-118 km/h
-    {"SLCOffset7", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 119 km/h and up
-    {"SLCConfirmLower", {PERSISTENT, BOOL, "0"}},   // a lower limit waits for the gas pedal (or 30 s) before it applies
-    {"SLCConfirmHigher", {PERSISTENT, BOOL, "0"}},  // a higher limit waits for the gas pedal (or 30 s) before it applies
+    {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
     {"PathdEnabled", {PERSISTENT, BOOL, "0"}},
-    {"MonoDEnabled", {PERSISTENT, BOOL, "0"}},
     {"MonoDHz", {PERSISTENT, INT, "5"}},
     // Driving mode: eco / normal / sport set the acceleration profile, following style and adaptive gap together;
     // custom (default) writes nothing. See exopilot/selfdrive/controls/lib/drive_mode.py.
@@ -200,13 +172,10 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // Default off; opt-in pending vehicle validation.
     {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
     {"BRSCEnabled", {PERSISTENT, BOOL, "1"}},
-    // pathd hosts the shared planner (exopilot/selfdrive/pathd/pathd.py: protection layer + rule channel + DPP) and publishes pathAdjust. Default off.
     // monod: range road-camera boxes on the road plane with a radar-anchored scale (exopilot/selfdrive/monod/ground_ranging.py) instead of the class-height prior. Default off until validate_ranging passes on a stereo route.
     {"MonoDGroundRanging", {PERSISTENT, BOOL, "0"}},
     // pathd: use the corrected distance-scale lookup in compute_speed_reduction. EOP10's original lookup never reduced speed (exopilot/selfdrive/controls/lib/speed_reduction.py). Default off = behaviour unchanged.
     {"PathdFixScaleEnabled", {PERSISTENT, BOOL, "0"}},
-    {"PathdFixScaleEnabled", {PERSISTENT, BOOL, "0"}},  // legacy persisted alias
-    // DPP ceiling (0 idle, 1 shadow, 2 supervise, 3 primary long, 4 primary lat, 5 primary both); DPP picks the mode by case inside it. Needs PathdEnabled.
     // DLON (Dynamic Longitudinal Profile): DlonMode picks rule-based ACC, AI/E2E, or
     // Dynamic (automatic switching, the default). The per-trigger toggles below tune
     // which situational signals the Dynamic switch considers.
@@ -227,9 +196,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // laneChangeStarting (exopilot/selfdrive/controls/lib/lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's LCAdjacentLeadHandoff. Default off.
     {"LCAdjacentLeadHandoff", {PERSISTENT, BOOL, "0"}},
-    // NSLC: cap the cruise speed at the navigation route's posted limit (exopilot/selfdrive/controls/lib/nslc.py, through
-    // map_speed's speed-limit policy with MSLC). No panel toggle, matching EOP10. Default off.
-    {"NSLCEnabled", {PERSISTENT, BOOL, "0"}},
     // Driver preference: constant kph offset applied to the final v_cruise
     // (after all other limits), applied where EOP10's
     // driver_prefs.py::get_speed_with_offset() applies it. Default 0
@@ -303,10 +269,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ALCCSteeringModeOnBrake", {PERSISTENT, INT, "1"}},
     {"ALCCUnifiedEngagement", {PERSISTENT, BOOL, "0"}},
     // Driving mode: eco / normal / sport set acceleration profile, following style and adaptive gap together; custom (default) writes nothing.
-    {"DriveMode", {PERSISTENT, STRING, "custom"}},
-    {"AccelerationProfile", {PERSISTENT, STRING, "normal"}},
     {"AdaptdEnabled", {PERSISTENT, BOOL, "0"}},
-    {"AdaptiveGapEnabled", {PERSISTENT, BOOL, "0"}},
     {"AggressiveFollow", {PERSISTENT, FLOAT, "1.25"}},
     {"AggressiveJerk", {PERSISTENT, FLOAT, "0.5"}},
     {"AutoLaneChange", {PERSISTENT, BOOL, "0"}},
@@ -324,7 +287,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BLECornerPairs", {PERSISTENT, STRING, ""}},
     {"BLERadarPairingOpen", {PERSISTENT, BOOL, "0"}},
     {"BLERadarRoster", {PERSISTENT, STRING, ""}},  // extra ESP32 corner-radar WiFi STA MACs for BLE-only nodes (system/bluetoothd/ble_central.py)
-    {"CATEnabled", {PERSISTENT, BOOL, "0"}},
     {"CATManualSR", {PERSISTENT, FLOAT, "0.0"}},
     {"CATManualSREnabled", {PERSISTENT, BOOL, "0"}},
     {"CATPersist", {PERSISTENT, STRING, ""}},
@@ -334,29 +296,18 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // DLAT (Dynamic Lateral Profile, dlat.py) is a default, always-on
     // automatic Laneful/Laneless arbitration -- no user-selectable mode
     // param, matching dev/NGP10's design.
-    {"DLONCurvesEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONForceStopsEnabled", {PERSISTENT, BOOL, "1"}},
     // Couples DLAT's own Laneful/Laneless arbitration (dlat.py) into DLON's
     // automatic switch: when DLAT has committed to Laneless, E2E's path-only
     // prediction fits better than lane-line-anchored ACC.
-    {"DLONLaneConfidenceEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONLowSpeedEnabled", {PERSISTENT, BOOL, "1"}},
     // DLON (Dynamic Longitudinal Profile) is a default, always-on automatic
     // ACC/E2E switch -- no mode param: users cannot force pure E2E
     // (Experimental) or pure ACC directly, matching dev/NGP10's design.
-    {"DLONNavigationEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONSignalEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONSlowLeadEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONSpeedLimitEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLONStopPredictionEnabled", {PERSISTENT, BOOL, "1"}},
-    {"DLPCurvesEnabled", {PERSISTENT, BOOL, "1"}},
     {"DeviceAudibleAlertMode", {PERSISTENT, STRING, "Std"}},
     {"DeviceAutoShutdownIn", {PERSISTENT, INT, "0"}},
     {"DeviceBeep", {PERSISTENT, BOOL, "1"}},
     {"DeviceGoOffRoad", {PERSISTENT, BOOL, "0"}},
     {"DeviceIsRhd", {PERSISTENT, BOOL, "0"}},
     {"DeviceModelList", {PERSISTENT, STRING, ""}},
-    {"DeviceModelSelected", {PERSISTENT, STRING, ""}},
     {"DeviceName", {PERSISTENT, STRING, "EXOPILOT"}},
     {"FactoryCalibrated", {PERSISTENT, BOOL, "0"}},
     {"FeatureAdvancedAnalytics", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
@@ -387,7 +338,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LCAGapEvalEnabled", {PERSISTENT, BOOL, "1"}},
     {"LCALaneWidthEnabled", {PERSISTENT, BOOL, "1"}},
     {"LCASurroundOverride", {PERSISTENT, BOOL, "0"}},
-    {"LCAdjacentLeadHandoff", {PERSISTENT, BOOL, "0"}},
     {"LaneChangeDelay", {PERSISTENT, FLOAT, "1.0"}},
     {"Language", {PERSISTENT, STRING, "en"}},
     {"LatALCC", {PERSISTENT, BOOL, "1"}},
@@ -398,7 +348,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"MSLCAlert", {CLEAR_ON_MANAGER_START, STRING, ""}},
     {"MSLCOffsetFixed", {PERSISTENT, INT, "0"}},
     {"MSLCOffsetPercent", {PERSISTENT, INT, "0"}},
-    {"MapdEnabled", {PERSISTENT, BOOL, "0"}},
     {"MicAdaptiveLoudness", {PERSISTENT, BOOL, "1"}},
     {"MinimumLaneWidth", {PERSISTENT, FLOAT, "3.0"}},
     {"MonoDEnabled", {PERSISTENT, BOOL, "1"}},
@@ -438,7 +387,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"RecorddQuality", {PERSISTENT, STRING, "medium"}},
     {"RecorddSnapAutoG", {PERSISTENT, FLOAT, "2.0"}},
     {"RecorddSnapImuMs", {PERSISTENT, INT, "500"}},
-    // Pause lateral assistance with a turn signal on below this speed (mph); 0 = off. Shared with NGP10 (ngp_ prefix).
+    // Pause lateral assistance with a turn signal on below this speed (mph); 0 = off. Shared with NGP10.
     {"RedControllerEnabled", {PERSISTENT, BOOL, "1"}},
     {"RelaxedFollow", {PERSISTENT, FLOAT, "1.75"}},
     {"RelaxedJerk", {PERSISTENT, FLOAT, "1.0"}},
@@ -507,7 +456,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"SimPlatform", {PERSISTENT, STRING, ""}},
     {"SimScenario", {PERSISTENT, STRING, ""}},
     {"SimWeather", {PERSISTENT, STRING, ""}},
-    {"SpeedLimitOffset", {PERSISTENT, INT, "0"}},
     {"StandardFollow", {PERSISTENT, FLOAT, "1.45"}},
     {"StandardJerk", {PERSISTENT, FLOAT, "1.0"}},
     {"StereoEnabled", {PERSISTENT, BOOL, "1"}},
@@ -540,26 +488,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TrackEnabled", {PERSISTENT, BOOL, "1"}},
     {"TrafficFollow", {PERSISTENT, FLOAT, "1.35"}},
     {"TrafficJerk", {PERSISTENT, FLOAT, "0.8"}},
-    {"TripAStartDistance", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripAStartTime", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripBStartDistance", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripBStartTime", {PERSISTENT, FLOAT, "0.0"}},
     {"TripCurrentEngagementRatio", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripLastDistance", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripLastDuration", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripLastMaxAccel", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripLastOverrideFreeDistance", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripLastPersonalityTime", {PERSISTENT, STRING, ""}},
-    {"TripLifetimeEngagementRatio", {PERSISTENT, FLOAT, "0.0"}},
     {"TripMode", {PERSISTENT, INT, "0"}},
-    {"TripTotalDistance", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripTotalDrives", {PERSISTENT, INT, "0"}},
-    {"TripDailyStats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
-    {"TripUptimeEngaged", {PERSISTENT, FLOAT, "0.0"}},
-    {"TripUptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
-    {"UIBrightness", {PERSISTENT, INT, "0"}},
     {"UIDisplayMode", {PERSISTENT, BOOL, "0"}},
-    {"UIHideHudSpeedKph", {PERSISTENT, INT, "0"}},
     {"UIRadarTracks", {PERSISTENT, BOOL, "0"}},
     {"UIRainbow", {PERSISTENT, BOOL, "0"}},
     {"UploadCurrentHeaders", {CLEAR_ON_MANAGER_START, STRING, ""}},
@@ -568,7 +499,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"UploadCurrentProgress", {CLEAR_ON_MANAGER_START, STRING, ""}},
     {"UploadCurrentSize", {CLEAR_ON_MANAGER_START, STRING, ""}},
     {"UploadCurrentUrl", {CLEAR_ON_MANAGER_START, STRING, ""}},
-    {"VTSCEnabled", {PERSISTENT, BOOL, "0"}},
     {"ValhallaUrl", {PERSISTENT, STRING, ""}},
     {"VehicleType", {PERSISTENT, STRING, "SUV_C"}},
     {"WideHDR", {PERSISTENT, STRING, "hdr4"}},

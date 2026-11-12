@@ -47,9 +47,9 @@ alert `audioData`; cloudd owns the distinct `cloudAudioData` stream.
 The 02M systemd unit already reads `/etc/openpilot/env`. Add:
 
 ```ini
-EOP_CLOUD_URL=https://YOUR-GATEWAY-HOST
-EOP_CLOUD_TOKEN_FILE=/etc/exopilot/cloudd.token
-EOP_CLOUD_LANGUAGE=th-TH
+CLOUDD_URL=https://YOUR-GATEWAY-HOST
+CLOUDD_TOKEN_FILE=/etc/exopilot/cloudd.token
+CLOUDD_LANGUAGE=th-TH
 ```
 
 Provision a high-entropy device token in that file with mode **0600**. The
@@ -163,7 +163,7 @@ bash scripts/install_wake_cpu.sh .venv/bin/python --reference-model
 ```
 
 The installed reference model recognizes **Hey Jarvis**. Set
-`EOP_WAKE_MODEL=/data/models/wake_word/hi_exo.onnx` for a trained **Hi EXO**
+`WAKE_MODEL=/data/models/wake_word/hi_exo.onnx` for a trained **Hi EXO**
 model. Changing a label does not change the recognized phrase. No Hi EXO
 weights were found in the workspace or reference repository. The installer
 makes no automatic model downloads during normal runtime. The upstream

@@ -1,6 +1,6 @@
 """Host contract/recovery tests; no camera, cereal extension or GPU required.
 
-Run this file directly with unittest. EOP_GPU_TESTS=1 additionally requires and
+Run this file directly with unittest. GPU_TESTS=1 additionally requires and
 executes a real OpenCL GPU; requested device tests fail if GPU setup fails.
 """
 import importlib.util
@@ -331,7 +331,7 @@ class TestDepthHelper(unittest.TestCase):
     self.assertFalse(result.success)
 
 
-@unittest.skipUnless(os.environ.get('EOP_GPU_TESTS') == '1', 'Set EOP_GPU_TESTS=1 on a real GPU to require numerical checks')
+@unittest.skipUnless(os.environ.get('GPU_TESTS') == '1', 'Set GPU_TESTS=1 on a real GPU to require numerical checks')
 class TestRealGPUStereo(unittest.TestCase):
   @classmethod
   def setUpClass(cls):

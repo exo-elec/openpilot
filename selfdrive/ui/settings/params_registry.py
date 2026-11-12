@@ -37,7 +37,7 @@ class ParamKey:
   flags: str
 
   @property
-  def is_eop(self) -> bool:
+  def is_fork(self) -> bool:
     return self.name in FORK_KEYS  # ExoPilot-added keys (unprefixed since 2026-11-12)
 
 
@@ -57,9 +57,9 @@ def all_params() -> tuple[ParamKey, ...]:
   return tuple(out)
 
 
-def eop_params() -> tuple[ParamKey, ...]:
-  return tuple(p for p in all_params() if p.is_eop)
+def fork_params() -> tuple[ParamKey, ...]:
+  return tuple(p for p in all_params() if p.is_fork)
 
 
-def eop_keys() -> frozenset[str]:
-  return frozenset(p.name for p in eop_params())
+def fork_keys() -> frozenset[str]:
+  return frozenset(p.name for p in fork_params())

@@ -41,7 +41,7 @@ protected:
   // requests are disabled), so active() can't rely on `reply` anymore --
   // this stands in for it so RequestRepeater's re-entrancy guard still
   // means something instead of silently always reporting "not busy".
-  bool eop_request_pending = false;
+  bool request_pending = false;
 
 private:
   static QNetworkAccessManager *nam();

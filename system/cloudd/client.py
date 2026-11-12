@@ -18,7 +18,7 @@ class CloudClient:
   def __init__(self, url, token, opener=None):
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
-      raise ValueError('EOP_CLOUD_URL must be an HTTPS base URL')
+      raise ValueError('CLOUDD_URL must be an HTTPS base URL')
     if not token or len(token) > 4096 or '\n' in token or '\r' in token:
       raise ValueError('Invalid cloud credential')
     self.url, self.token = url.rstrip('/'), token
@@ -26,8 +26,8 @@ class CloudClient:
 
   @classmethod
   def configured(cls):
-    url = os.environ.get('EOP_CLOUD_URL', '')
-    token_file = Path(os.environ.get('EOP_CLOUD_TOKEN_FILE', '/etc/exopilot/cloudd.token'))
+    url = os.environ.get('CLOUDD_URL', '')
+    token_file = Path(os.environ.get('CLOUDD_TOKEN_FILE', '/etc/exopilot/cloudd.token'))
     if not url or not token_file.exists():
       return None
     if token_file.stat().st_mode & 0o077 or token_file.stat().st_size > 4096:

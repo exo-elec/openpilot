@@ -26,32 +26,32 @@ def export_settings(path: str):
   """Export all EOP* params to JSON."""
   p = Params()
   keys = p.all_keys()
-  eop_settings = {}
+  saved = {}
   for key in keys:
     if key in FORK_KEYS:
       val = p.get(key)
       if val is not None:
         try:
           # Try decode as string; fall back to bytes repr
-          eop_settings[key] = val.decode('utf-8')
+          saved[key] = val.decode('utf-8')
         except (UnicodeDecodeError, AttributeError):
-          eop_settings[key] = repr(val)
+          saved[key] = repr(val)
 
   with open(path, 'w') as f:
-    json.dump(eop_settings, f, indent=2, sort_keys=True)
+    json.dump(saved, f, indent=2, sort_keys=True)
 
-  print(f"Exported {len(eop_settings)} EOP settings to {path}")
+  print(f"Exported {len(saved)} EOP settings to {path}")
 
 
 def import_settings(path: str):
   """Import EOP* params from JSON."""
   with open(path) as f:
-    eop_settings = json.load(f)
+    saved = json.load(f)
 
   p = Params()
   imported = 0
   skipped = 0
-  for key, val in eop_settings.items():
+  for key, val in saved.items():
     if key not in FORK_KEYS:
       skipped += 1
       continue

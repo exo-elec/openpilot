@@ -1477,8 +1477,8 @@ struct ControlsState @0x97ff69c53601abf1 {
 
   # DLAT: Dynamic Lateral Profile -- automatic Laneful/Laneless confidence
   # arbitration. Always-on behavior of this branch; no user-selectable mode.
-  dlatUseLaneless @77 :Bool;    # resolved laneless state actually in effect
-  dlatLaneConfidence @78 :Float32;
+  dlatUseLanelessDEPRECATED @77 :Bool;  # was the NGP-side copy of dlatUseLaneless; kept so old logs parse
+  dlatLaneConfidenceDEPRECATED @78 :Float32;  # was the NGP-side copy of dlatLaneConfidence; kept so old logs parse
   tjaActive @67 :Bool;
   tjaResumeRequired @68 :Bool;
   tjaHoldTime @69 :Float32;
@@ -1558,7 +1558,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   }
 
   # EOP LQR Controller State
-  struct EOPLQRState @0xc8c6abfb6c37f2d4 {
+  struct LQRState @0xc8c6abfb6c37f2d4 {
     enabled @0 :Bool;
     lateralError @1 :Float32;
     headingError @2 :Float32;
@@ -1892,9 +1892,9 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   allowBrake @39: Bool;
   # NGP10-specific fields use high ordinals so they do not collide with the
   # EOP longitudinal controller telemetry below.
-  dlonMode @69 :Text;  # DEPRECATED: free-form string, use dlonModeKind; remove after one release
-  dlonE2EEnabled @70 :Bool;
-  dlonForceStop @71 :Bool;
+  dlonModeDEPRECATED @69 :Text;  # was the NGP-side copy of dlonMode; kept so old logs parse
+  dlonE2EEnabledDEPRECATED @70 :Bool;  # was the NGP-side copy of dlonE2EEnabled; kept so old logs parse
+  dlonForceStopDEPRECATED @71 :Bool;  # was the NGP-side copy of dlonForceStop; kept so old logs parse
   tjaActive @72 :Bool;
   tjaCutIn @73 :Bool;
   tjaDesiredGap @74 :Float32;
@@ -3512,9 +3512,9 @@ struct Event {
     voxelObjects @212 :VoxelObjects;
     sendcan @17 :List(CanData);
     liveCalibration @19 :LiveCalibrationData;
-    eopReserved2 @250 :Custom.CustomReserved9;
-    eopReserved3 @251 :Custom.CustomReserved10;
-    eopReserved4 @252 :Custom.CustomReserved11;
+    reserved250 @250 :Custom.CustomReserved9;
+    reserved251 @251 :Custom.CustomReserved10;
+    reserved252 @252 :Custom.CustomReserved11;
     calibrationState @253 :CalibrationState;  # EOP: Multi-camera calibration state
     systemState @254 :SystemState;             # EOP: system state
     carState @22 :Car.CarState;
@@ -3684,7 +3684,7 @@ struct Event {
     # DON'T change which struct it points to
     epPlateOverlayDEPRECATED @107 :Custom.CustomReserved0;
     epPlateDebugDEPRECATED @108 :Custom.CustomReserved1;
-    epControlsState @150 :Custom.EopControlsState;
+    reservedControlsState @150 :Custom.ReservedControlsState;
     modelExt @151 :Custom.ModelExt;
     speedLimitState @110 :Custom.SpeedLimitState;
     alccState @109 :Custom.AlccState;
@@ -3738,7 +3738,7 @@ struct Event {
     rearDetections @281 :Custom.RearDetections;
     rearStatus @282 :Custom.RearStatus;
     vehicleState @283 :Custom.VehicleState;
-    thermalStatus @284 :Custom.EopThermalStatus;
+    thermalStatus @284 :Custom.BoardThermalStatus;
 
     # Point cloud processing pipeline
     pointcloudProcessed @238 :Custom.PointcloudProcessed;  # pointcloudd: clean cloud to surfaced/mapper
@@ -3763,8 +3763,8 @@ struct Event {
     fusedPosition @244 :Custom.FusedPosition;
 
     # Point cloud recording daemon (pointcloudd)
-    eopReserved0 @228 :Custom.CustomReserved7;
-    eopReserved1 @229 :Custom.CustomReserved8;
+    reserved228 @228 :Custom.CustomReserved7;
+    reserved229 @229 :Custom.CustomReserved8;
     pointcloudStatus @230 :Custom.PointcloudStatus;
 
     # Grid detection daemon status (gridd, 1Hz)

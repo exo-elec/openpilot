@@ -17,7 +17,7 @@ def load(name, path):
   return module
 
 
-policy = load('eop_compute_policy_test', ROOT / 'exopilot/system/manager/compute_fault_policy.py')
+policy = load('compute_policy_test', ROOT / 'exopilot/system/manager/compute_fault_policy.py')
 POLICY_MODULE = 'openpilot.exopilot.system.manager.compute_fault_policy'
 
 
@@ -34,9 +34,9 @@ class Names:
 
 class TestComputeFaultPolicy(unittest.TestCase):
   def test_optional_events_do_not_disable_or_block_engagement(self):
-    implementation = load('compute_policy_events_test', ROOT / 'exopilot/system/manager/eop_events.py')
+    implementation = load('compute_policy_events_test', ROOT / 'exopilot/selfdrive/selfdrived/events.py')
     events = {'cameraMalfunction': {}}
-    implementation.register_eop_events(events, EventName=Names(), ET=Names(), Alert=Mock(),
+    implementation.register_events(events, EventName=Names(), ET=Names(), Alert=Mock(),
                                        AlertStatus=Names(), AlertSize=Names(), Priority=Names(), VisualAlert=Names(), AudibleAlert=Names(),
                                        ImmediateDisableAlert=Mock(), NoEntryAlert=Mock(), NormalPermanentAlert=Mock(),
                                        EngagementAlert=Mock(), soft_disable_alert=Mock())

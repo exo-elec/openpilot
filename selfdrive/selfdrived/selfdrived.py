@@ -96,21 +96,21 @@ class SelfdriveD:
       ignore += ['roadCameraState', 'wideRoadCameraState']
     if not self.params.get_bool("RearCameraEnabled"):
       ignore += ['rearCameraState']
-    _eop_status = ['stereoStatus', 'monoStatus', 'gridStatus', 'pointcloudStatus',
+    _status_services = ['stereoStatus', 'monoStatus', 'gridStatus', 'pointcloudStatus',
                    'rgaStatus', 'mppStatus', 'inferencedStatus', 'blindSpotAlert']
     # Optional perception sockets (absent when the feature param is off)
     # radar4d is a 02M-only service; subscribing to a service this branch does not define raises in SubMaster
-    _eop_optional = [svc for svc in ['radar4d'] if svc in SERVICE_LIST]
+    _optional_services = [svc for svc in ['radar4d'] if svc in SERVICE_LIST]
     self.sm = messaging.SubMaster(
       ['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
        'carOutput', 'longitudinalPlan', 'livePose', 'liveDelay',
        'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
        'controlsState', 'carControl', 'driverAssistance', 'alertDebug',
-       'driverMonitoringState', 'adaptiveDrivingState'] + _eop_status + _eop_optional + \
+       'driverMonitoringState', 'adaptiveDrivingState'] + _status_services + _optional_services + \
       self.camera_packets + self.sensor_packets + self.gps_packets,
-      ignore_alive=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
-      ignore_avg_freq=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
-      ignore_valid=ignore + _eop_status + _eop_optional + ['pandaStates', 'peripheralState'],
+      ignore_alive=ignore + _status_services + _optional_services + ['pandaStates', 'peripheralState'],
+      ignore_avg_freq=ignore + _status_services + _optional_services + ['pandaStates', 'peripheralState'],
+      ignore_valid=ignore + _status_services + _optional_services + ['pandaStates', 'peripheralState'],
       frequency=int(1/DT_CTRL))
 
     # read params

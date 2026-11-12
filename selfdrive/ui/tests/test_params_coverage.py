@@ -19,8 +19,8 @@ from openpilot.selfdrive.ui.settings.exclusions import (
 )
 from openpilot.selfdrive.ui.settings.params_registry import (
   all_params,
-  eop_keys,
-  eop_params,
+  fork_keys,
+  fork_params,
 )
 
 
@@ -28,15 +28,15 @@ class TestRegistry:
   def test_header_parses(self):
     # Guards the regex in params_registry against the header's format moving.
     assert len(all_params()) > 300
-    assert len(eop_params()) > 200
+    assert len(fork_params()) > 200
 
   def test_types_are_known(self):
-    assert {p.type for p in eop_params()} <= {"BOOL", "INT", "FLOAT", "STRING", "BYTES"}
+    assert {p.type for p in fork_params()} <= {"BOOL", "INT", "FLOAT", "STRING", "BYTES"}
 
 
 class TestCoverage:
-  def test_every_eop_param_is_accounted_for(self):
-    missing = eop_keys() - declared_keys() - excluded_keys()
+  def test_every_fork_param_is_accounted_for(self):
+    missing = fork_keys() - declared_keys() - excluded_keys()
     assert not missing, (
       f"{len(missing)} EOP params are neither exposed nor excluded. "
       + "Add them to descriptor.py, or to exclusions.py with a reason:\n  "
@@ -55,7 +55,7 @@ class TestCoverage:
   def test_untriaged_debt_is_visible(self):
     # Not a failure -- a ratchet. It reports the gap inherited from the C++
     # panel so it stays in view rather than quietly becoming permanent.
-    total = len(eop_keys())
+    total = len(fork_keys())
     print(f"\nsettings coverage: {len(declared_keys())}/{total} exposed, "
           + f"{len(TRIAGED)} triaged, {len(UNTRIAGED)} untriaged")
     assert len(UNTRIAGED) <= 219, "untriaged set grew -- triage before adding"

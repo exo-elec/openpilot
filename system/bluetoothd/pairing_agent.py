@@ -50,7 +50,7 @@ except ImportError:
 
 logger = logging.getLogger('bluetoothd.pairing_agent')
 
-AGENT_PATH = '/org/bluez/eop_agent'
+AGENT_PATH = '/org/bluez/pairing_agent'
 AGENT_INTERFACE = 'org.bluez.Agent1'
 # DisplayOnly → SSP IO-capability matrix: initiator(KeyboardDisplay) × responder(DisplayOnly)
 # resolves to Passkey Entry — device displays passkey, phone user must TYPE it.

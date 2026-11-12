@@ -330,9 +330,9 @@ board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
   of stepping, and a retriggerable hold (capped) rides out closely-spaced bumps.
 - Pure policy lives in `exopilot/selfdrive/controls/lib/brsc.py` (`BRSC` class, zero
   cereal/Params deps) so the identical file ports to `dev/NGP10` and `dev/EDP10`.
-  `NGP`-prefixed (not `EOP`-prefixed) param `BRSCEnabled` is a deliberate
-  exception to the unprefixed `<Feature><Param>` rule (the `EOP` prefix was dropped 2026-11-12), made for features shared verbatim
-  across branches — see `docs/eop/03_Software/Controllers/BRSC.md`.
+  Switch: `BRSCEnabled`, the same key on every branch (no product prefix on any
+  name since 2026-11-12, `exopilot/docs/NAMING_WITHOUT_PREFIX.md`) — see
+  `docs/eop/03_Software/Controllers/BRSC.md`.
 - EOP10 wiring: `selfdrive/controls/plannerd.py` (subscribes `accelerometer`) +
   `selfdrive/controls/lib/longitudinal_planner.py` (same `_apply_speed_limit`
   pattern as SQSC/RCD/TLSC — applied after VTSC/MTSC's curve-speed blend).

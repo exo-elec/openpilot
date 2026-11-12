@@ -31,7 +31,7 @@ Implementation:
   unhealthy, not silently ignored.
 - On ARM/Rockchip, missing RKNNLite fails backend initialization. Offline x86
   mock support is retained for development and never used as target readiness.
-- `eop_events.py` gives optional stereo/grid/RGA faults permanent degradation
+- `events.py` gives optional stereo/grid/RGA faults permanent degradation
   alerts without disable/no-entry event types. Core inference/mono alerts and
   CPU/control health guards retain their prior disabling authority.
 - Selfdrived consumes the explicit critical-inference classifier. Optional

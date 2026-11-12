@@ -85,7 +85,7 @@ controlsd, schemas or the full hardware pipeline.
 | --- | --- | --- |
 | Shared portable baseline | 94 matching protected files; mapd source matches | Keep byte-identical; shared policy changes originate on NGP10 |
 | Explicit platform adapter | runtime/bigmodel_platform.py differs in device detection and USB platform (`agnos` vs `static`); its own docstring permits branch rewriting | Resolve guard vs adapter contract on the baseline; do not copy Qualcomm detection onto Rockchip just to pass |
-| Allowed EOP additions | controls/eop_curvature.py, lane_change.py, eop_profile.py, eop_soc.py; runtime/runtime_policy.py, eop_speed_limit_resolver.py, speed_utils.py | Review input and output contracts; presence alone does not prove behavior parity |
+| Allowed EOP additions | controls/route_curvature.py, lane_change.py, adaptive_profile.py, eop_soc.py; runtime/runtime_policy.py, speed_limit_resolver.py, speed_utils.py | Review input and output contracts; presence alone does not prove behavior parity |
 | Shared inference interface, different execution backend | NGP modeld uses TinygradModel; EOP modeld has RKNN adaptation; both publish modelV2/drivingModelData/cameraOdometry | Preserve outputs and fallback semantics with platform-specific execution |
 | Shared monocular perception/planning | NGP process registry has modeld, runtime.monod, runtime.gridd and runtime.pathd | NGP already has a monocular loop; earlier docs saying pathd/gridd begin only on EOP are stale |
 | EOP stereo addition | No tracked selfdrive/stereod or daemons/stereod subtree on NGP tip; EOP manager registers stereod and richer gridd/segd | Stereo and extra sensor acquisition stay on EOP |

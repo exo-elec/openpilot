@@ -12,7 +12,7 @@ import unittest  # noqa: TID251
 
 
 def main() -> int:
-  os.environ['EOP_GPU_TESTS'] = '1'
+  os.environ['GPU_TESTS'] = '1'
   spec = importlib.util.spec_from_file_location('stereo_target_tests', Path(__file__).with_name('test_stereo_runtime.py'))
   module = importlib.util.module_from_spec(spec)
   spec.loader.exec_module(module)

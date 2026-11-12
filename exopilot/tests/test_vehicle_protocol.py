@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_can_output_matches_482_reference_messages_byte_for_byte():
-  cases = json.loads(Path(__file__).with_name('eop_protocol_golden.json').read_text())
+  cases = json.loads(Path(__file__).with_name('protocol_golden.json').read_text())
   cp = car.CarParams.new_message()
   protocol = TeslaCAN(cp, CANPacker('tesla_model3_party'))
   for case in cases:
@@ -24,7 +24,7 @@ def test_can_output_matches_482_reference_messages_byte_for_byte():
 
 
 def test_vehicle_state_matches_reference_over_speed_braking_steering_and_bsd_changes():
-  cases = json.loads(Path(__file__).with_name('eop_state_golden.json').read_text())
+  cases = json.loads(Path(__file__).with_name('state_golden.json').read_text())
   state = CarState(car.CarParams.new_message(carFingerprint='TESLA_MODEL_3', flags=4))
   for i, case in enumerate(cases):
     messages = [(address, bytes.fromhex(data), bus) for address, data, bus in case['messages']]
@@ -34,7 +34,7 @@ def test_vehicle_state_matches_reference_over_speed_braking_steering_and_bsd_cha
 
 
 def test_full_controller_retains_limits_driver_override_counters_and_aeb():
-  cases = json.loads(Path(__file__).with_name('eop_controller_golden.json').read_text())
+  cases = json.loads(Path(__file__).with_name('controller_golden.json').read_text())
   for case in cases:
     cp = car.CarParams.new_message(carFingerprint='TESLA_MODEL_3', flags=case['flags'],
                                   openpilotLongitudinalControl=case['longitudinal'])
@@ -52,9 +52,9 @@ def test_full_controller_retains_limits_driver_override_counters_and_aeb():
       assert [[a, d.hex(), b] for a, d, b in messages] == entry['messages']
 
 
-def test_shared_vehicle_math_preserves_eop_parameters_and_fallbacks():
+def test_shared_vehicle_math_preserves_parameters_and_fallbacks():
   from openpilot.system.socketd.vehicle.car.vehicle_model import VehicleModel
-  cases = json.loads(Path(__file__).with_name('eop_vehicle_model_golden.json').read_text())
+  cases = json.loads(Path(__file__).with_name('vehicle_model_golden.json').read_text())
   for case in cases:
     model = VehicleModel(car.CarParams.new_message(**case['physical']))
     model.update_params(case['stiffness'], case['ratio'])

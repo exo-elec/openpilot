@@ -560,18 +560,18 @@ void SetupWidget::leaveEvent(QEvent *event) {
 }
 
 void SetupWidget::showInfoDialog() {
-  EopInfoDialog *dialog = new EopInfoDialog(this);
+  DriveInfoDialog *dialog = new DriveInfoDialog(this);
   dialog->exec();
   dialog->deleteLater();
 }
 
-// EopInfoDialog implementation - full-width dark dialog, tap to close
-EopInfoDialog::EopInfoDialog(QWidget *parent) : DialogBase(parent) {
+// DriveInfoDialog implementation - full-width dark dialog, tap to close
+DriveInfoDialog::DriveInfoDialog(QWidget *parent) : DialogBase(parent) {
   QVBoxLayout *vlayout = new QVBoxLayout(this);
   vlayout->setContentsMargins(48, 40, 48, 40);
   vlayout->setSpacing(20);
 
-  setStyleSheet("EopInfoDialog { background-color: #2a2a2a; }");
+  setStyleSheet("DriveInfoDialog { background-color: #2a2a2a; }");
 
   QLabel *title = new QLabel(tr("ExoPilot — Advanced ADAS"), this);
   title->setStyleSheet("font-size: 28px; color: #86FF4E; font-weight: bold;");
@@ -606,7 +606,7 @@ EopInfoDialog::EopInfoDialog(QWidget *parent) : DialogBase(parent) {
 }
 
 // Override mouse press event to close dialog when anywhere is clicked
-void EopInfoDialog::mousePressEvent(QMouseEvent *event) {
+void DriveInfoDialog::mousePressEvent(QMouseEvent *event) {
   if (event->button() == Qt::LeftButton) {
     reject();  // Close dialog on any click
   }

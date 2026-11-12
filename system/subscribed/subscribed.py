@@ -239,7 +239,7 @@ class SubscribedD:
     #
     # PRODUCTION: Use PyNaCl (nacl.signing) or cryptography library
     # to verify a JWT signed by NavPilot backend.
-    build_secret = os.getenv("EOP_BUILD_SECRET", "")
+    build_secret = os.getenv("SUBSCRIPTION_BUILD_SECRET", "")
     if not build_secret:
       return False, SubscriptionTier.NONE
 
