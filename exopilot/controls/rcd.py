@@ -11,6 +11,7 @@ Here the cap steps straight to the limit on activation and is smoothed only betw
 """
 from __future__ import annotations
 
+import time
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
@@ -87,7 +88,7 @@ def from_segmentation(has_road: bool, has_edge: bool, has_drivable: bool) -> Roa
   return None
 
 
-class RCD:
+class RoadConditionCap:
   def __init__(self, legacy_filter_bug: bool = False):
     self.legacy_filter_bug = legacy_filter_bug
     self.current_condition = RoadCondition.GOOD
@@ -133,3 +134,50 @@ class RCD:
     self._cap_on = False
     self._limit = 0.0
     return RCDState(condition, result.confidence, 0.0, False, f"{condition.name}: no limit")
+
+
+PARAM_REFRESH_S = 5.0
+
+
+
+
+class RCD:
+  """RCD reads the surface source out of the SubMaster-like `sm` and feeds RoadConditionCap.
+
+Sources, in EOP10's priority order: `surfaceStatus` (surfaced's roughness score), then `monoSegments` (the camera-tier card's road/edge/drivable hint).
+Both exist only on EOP hardware; where the service is not in this branch's SERVICE_LIST (NGP10) there is no source and RCD reports "No data source".
+Switch: `enabled_key` param (NGP10: `RCDEnabled`; EOP10's shim passes `RCDEnabled` and legacy_filter_bug=True), re-read every 5 s.
+  """
+  def __init__(self, get_bool=None, enabled_key: str = "RCDEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
+    self._get_bool, self._key, self._clock = get_bool or (lambda k: False), enabled_key, clock
+    self.core = RoadConditionCap(legacy_filter_bug=legacy_filter_bug)
+    self._t = -1e9
+    self.enabled = False
+
+  @staticmethod
+  def from_surface(sm):
+    if sm.valid.get('surfaceStatus', False):
+      s = sm['surfaceStatus']
+      if s.hasSurfaceQuality:
+        return from_surface_score(s.surfaceQuality.score, s.surfaceQuality.texture)
+    return None
+
+  @staticmethod
+  def from_segmentation(sm):
+    if sm.valid.get('monoSegments', False):
+      seg = next((x for x in sm['monoSegments'].segments if x.camera == 'road'), None)
+      if seg is not None and seg.hasRoad:
+        return from_segmentation(True, seg.hasEdge, seg.hasDrivable)
+    return None
+
+  def _result(self, sm):
+    result = self.from_surface(sm)
+    return result if result is not None else self.from_segmentation(sm)
+
+  def update(self, sm) -> RCDState:
+    now = self._clock()
+    if now - self._t >= PARAM_REFRESH_S:
+      self._t, self.enabled = now, bool(self._get_bool(self._key))
+    if not self.enabled:
+      return RCDState(RoadCondition.GOOD, 0.0, 0.0, False, "RCD disabled")
+    return self.core.update(self._result(sm))

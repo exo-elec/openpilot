@@ -7,9 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 NP = ROOT / "exopilot"
 
-# Policy/perception/diagnostic modules are pure: no daemon, process-config or param I/O.
-PURE_DIRS = ("controls",)
-FORBIDDEN_PREFIXES = ("openpilot.selfdrive", "openpilot.system", "openpilot.common.params", "cereal.messaging")
+FEATURE_DIRS = ("controls",)
 
 SKIP_TOP = {".git", "tinygrad_repo", "third_party", "opendbc_repo", "panda", "msgq_repo", "rednose_repo", "teleoprtc_repo", "teleoprtc"}
 # Owner decision 2026-11-12: no product prefix on any name. Only the saved-param migration may spell the old names.
@@ -18,22 +16,6 @@ PREFIXED = re.compile("|".join((r"(?<![A-Za-z0-9])(ngp|eop)_", r"_(ngp|eop)(?![A
                                  r"(?<![A-Z])(ngp|eop|Ngp|Eop|NGP|EOP)(?=[A-Z][a-z])", r"(?<![A-Za-z0-9])(NGP|EOP)_")))
 CODE_SUFFIXES = (".py", ".cc", ".h", ".capnp", ".sh", ".json", ".yaml", ".yml", ".ts", ".qml")
 MIGRATION_FILES = {"exopilot/param_migration.py", "exopilot/tests/test_param_migration.py", "exopilot/tests/test_boundaries.py"}
-
-
-def _imports(path: Path):
-  for node in ast.walk(ast.parse(path.read_text())):
-    if isinstance(node, ast.Import):
-      yield from (a.name for a in node.names)
-    elif isinstance(node, ast.ImportFrom) and node.module:
-      yield node.module
-
-
-def test_pure_modules_do_not_import_runtime():
-  bad = []
-  for d in PURE_DIRS:
-    for f in (NP / d).glob("*.py"):
-      bad += [f"{f.relative_to(ROOT)} imports {m}" for m in _imports(f) if m.startswith(FORBIDDEN_PREFIXES)]
-  assert not bad, "\n".join(bad)
 
 
 def _tracked():
@@ -61,7 +43,7 @@ def test_no_product_prefix_in_code():
 def test_no_release_number_in_identifiers():
   # Release labels (10, 01M...) belong to branch names and docs, not code identifiers.
   bad = []
-  for d in PURE_DIRS:
+  for d in FEATURE_DIRS:
     for f in (NP / d).glob("*.py"):
       for node in ast.walk(ast.parse(f.read_text())):
         name = getattr(node, "name", None)

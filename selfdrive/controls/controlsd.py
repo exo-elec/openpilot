@@ -14,7 +14,7 @@ from opendbc.car.car_helpers import interfaces
 from exopilot.controls.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from exopilot.controls.dlat import DLAT, DLATSuggestion
-from exopilot.runtime.cat import CAT
+from exopilot.controls.cat import CAT
 from exopilot.controls.red import RED, curvature_nudge
 from exopilot.controls.blinker_pause import BlinkerPause
 from exopilot.controls.driver_activity import monitoring_force_decel

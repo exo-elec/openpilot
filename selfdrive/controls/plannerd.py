@@ -5,7 +5,7 @@ from openpilot.common.realtime import Priority, config_realtime_process
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.ldw import LaneDepartureWarning
 from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPlanner, FeatureFlags
-from exopilot.runtime.drive_mode import DriveModeApplier
+from exopilot.controls.drive_mode import DriveModeApplier
 import cereal.messaging as messaging
 
 

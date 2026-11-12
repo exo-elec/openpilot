@@ -25,7 +25,7 @@ from exopilot.controls.mslc import MSLC
 from exopilot.controls.mtsc import MTSC
 from exopilot.controls.tlsc import TLSC
 from exopilot.runtime.cutin_adapter import cutin_path
-from exopilot.runtime.rcd import RCDRuntime
+from exopilot.controls.rcd import RCD
 
 MAP_HOLD_S = 3.0              # mapd publishes at 1 Hz: hold a result this long
 LIGHT_HOLD_S = 0.5            # same as EOP10's TLSC stale limit
@@ -55,7 +55,7 @@ class MapSpeed:
     self.flags = dict.fromkeys(('mtsc', 'mslc', 'tlsc', 'ddsc', 'rcd'), False)
     self._cfg_t = -1e9
     self.mtsc, self.mslc, self.tlsc, self.ddsc = MTSC(enabled=True), MSLC(enabled=True), TLSC(enabled=True), DDSC()
-    self.rcd = RCDRuntime(lambda k: True)      # gated by flags['rcd'] below; the runtime's own switch is always on
+    self.rcd = RCD(lambda k: True)      # gated by flags['rcd'] below; the runtime's own switch is always on
     self._map_t = -1e9
     self._mtsc: tuple[float | None, float] = (None, math.inf)      # (target, distance)
     self._mslc: float | None = None
