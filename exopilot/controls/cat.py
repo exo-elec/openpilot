@@ -1,12 +1,12 @@
-"""CAT — Car Adaptive Tuning: smoothed, validated steer ratio / stiffness / angle offset.
+"""SteerRatioFilter: the pure part of CAT (Car Adaptive Tuning). Smoothed, validated steer ratio / stiffness / angle offset.
 
 Wraps what openpilot's `paramsd` already learns (`liveParameters`) with validity gates, a first-order
 smoothing filter and a confidence counter, so steering geometry only changes once it is trustworthy.
 Pure policy (no Params, messaging or clock): the caller passes `now` and the live values, like the other
 `exopilot/controls` modules. Comma-3 inputs only (`liveParameters`, `carState`).
 
-ExoPilot extends this with a persisted seed from the last drive, a manual steer-ratio override and
-per-car geometry presets (see `selfdrive/controls/lib/cat.py` on the EOP branches).
+CAT itself (exopilot/runtime/cat.py) wraps this filter with the CATEnabled switch, the manual steer-ratio
+override, the per-car seed saved from the last drive and per-car geometry presets.
 """
 from dataclasses import dataclass
 
@@ -38,7 +38,7 @@ def live_params_gated(lp, cs) -> bool:
               and abs(cs.steeringAngleDeg) < MAX_STEER_ANGLE and cs.vEgo > MIN_SPEED)
 
 
-class CAT:
+class SteerRatioFilter:
   def __init__(self, base_steer_ratio: float, min_sr: float | None = None, max_sr: float | None = None,
                seed: tuple[float, float, float] | None = None, filter_tc: float = FILTER_TC, now: float = 0.0):
     self.base_sr = float(base_steer_ratio)

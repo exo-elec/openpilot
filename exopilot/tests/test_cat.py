@@ -1,6 +1,6 @@
 from types import SimpleNamespace as NS
 
-from exopilot.controls.cat import MIN_SAMPLES, CAT, live_params_gated
+from exopilot.controls.cat import MIN_SAMPLES, SteerRatioFilter, live_params_gated
 
 BASE_SR = 15.0
 
@@ -24,7 +24,7 @@ def test_gate_requires_valid_learner_speed_and_small_angle():
 
 
 def test_becomes_adaptive_only_after_enough_valid_ticks_and_follows_the_learner():
-  cat = CAT(BASE_SR)
+  cat = SteerRatioFilter(BASE_SR)
   t = 0.0
   for i in range(MIN_SAMPLES - 1):
     t += 0.05
@@ -39,7 +39,7 @@ def test_becomes_adaptive_only_after_enough_valid_ticks_and_follows_the_learner(
 
 
 def test_not_adaptive_returns_base_values_and_confidence_decays_when_gated_out():
-  cat = CAT(BASE_SR)
+  cat = SteerRatioFilter(BASE_SR)
   t = 0.0
   for _ in range(MIN_SAMPLES + 5):
     t += 0.05
@@ -53,7 +53,7 @@ def test_not_adaptive_returns_base_values_and_confidence_decays_when_gated_out()
 
 
 def test_learner_steer_ratio_is_clamped_to_half_and_double_the_base():
-  cat = CAT(BASE_SR)
+  cat = SteerRatioFilter(BASE_SR)
   t = 0.0
   for _ in range(MIN_SAMPLES * 40):
     t += 0.05
@@ -62,6 +62,6 @@ def test_learner_steer_ratio_is_clamped_to_half_and_double_the_base():
 
 
 def test_manual_steer_ratio_pins_the_value():
-  cat = CAT(BASE_SR)
+  cat = SteerRatioFilter(BASE_SR)
   status = cat.step(0.05, True, 17.0, 1.0, 0.0, manual_sr=14.0)
   assert status.adaptive and status.steer_ratio == 14.0 and status.note == "manual_sr"

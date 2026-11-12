@@ -1,4 +1,4 @@
-"""CAT - Car Adaptive Tuning at runtime: Params, persistence and the manual override around the pure core.
+"""CAT - Car Adaptive Tuning: the switch, the manual steer ratio and the per-car saved values around SteerRatioFilter.
 
 Wraps openpilot's liveParameters learner with validation gates, smoothing and a confidence counter
 (exopilot/controls/cat.py), so the vehicle model only takes a learned steer ratio / stiffness once it is
@@ -19,7 +19,7 @@ from exopilot.controls import cat as base
 from exopilot.controls.cat import CATStatus, live_params_gated
 
 
-class CATRuntime:
+class CAT:
   """
   Car Adaptive Tuning — smoothed steer-ratio / stiffness override.
 
@@ -44,7 +44,7 @@ class CATRuntime:
 
     self._apply_model_overrides()
 
-    self.core = base.CAT(self.base_sr, self.min_sr, self.max_sr, self._load_persisted_seed(), filter_tc, now=time.monotonic())
+    self.core = base.SteerRatioFilter(self.base_sr, self.min_sr, self.max_sr, self._load_persisted_seed(), filter_tc, now=time.monotonic())
 
     self.last_param_t   = 0.0
     self.last_persist_t = 0.0

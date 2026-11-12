@@ -88,7 +88,7 @@ need ExoPilot hardware (side/rear YOLO, stereo, radar) stay on EOP10.
 | `ngp_dlat.py` / `NGPDLAT` | `dlat.py` / `DLAT` |
 | `ngp_vtsc.py` / `NGPVTSC` | `vtsc.py` / `VTSC` |
 | `ngp_alcc.py` / `NGPALCC` | `alcc.py` / `ALCC` |
-| `ngp_cat.py` / `NGPCAT` | `cat.py` / `CAT` |
+| `ngp_cat.py` / `NGPCAT` | `cat.py` / `SteerRatioFilter` (the pure gate + smoothing + confidence); the feature, with its switch, manual steer ratio and saved per-car values, is `CAT` in `exopilot/runtime/cat.py` (moved from EOP10's `lib/cat.py`) |
 | `ngp_red.py` / `NGPRED` | `red.py` / `RED` |
 | `ngp_soc.py` / `NGPSOC` | `soc.py` / `SOC` |
 | `ngp_brsc.py` / `NGPBRSC` | `brsc.py` / `BRSC` |

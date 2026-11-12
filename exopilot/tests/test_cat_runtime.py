@@ -21,7 +21,7 @@ class FakeParams:
 def make(values, fingerprint="HONDA_CIVIC", steer_ratio=15.0, monkeypatch=None):
   params = FakeParams(values)
   monkeypatch.setattr(runtime, "Params", lambda: params)
-  return runtime.CATRuntime(NS(steerRatio=steer_ratio, carFingerprint=fingerprint)), params
+  return runtime.CAT(NS(steerRatio=steer_ratio, carFingerprint=fingerprint)), params
 
 
 class SM(dict):

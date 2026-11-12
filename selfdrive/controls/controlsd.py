@@ -14,7 +14,7 @@ from opendbc.car.car_helpers import interfaces
 from exopilot.controls.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
 from exopilot.controls.dlat import DLAT, DLATSuggestion
-from exopilot.runtime.cat import CATRuntime
+from exopilot.runtime.cat import CAT
 from exopilot.controls.red import RED, curvature_nudge
 from exopilot.controls.blinker_pause import BlinkerPause
 from exopilot.controls.driver_activity import monitoring_force_decel
@@ -86,7 +86,7 @@ class Controls:
     self.red = RED() if self.params.get_bool("RedControllerEnabled") else None
     # CAT: smoothed/validated steer ratio and stiffness (CATEnabled, default off; re-read every 5 s), manual
     # steer-ratio override (CATManualSR), seed saved per fingerprint (CATPersist)
-    self.cat = CATRuntime(self.CP)
+    self.cat = CAT(self.CP)
     self.alcc_active = False
     self.alcc = ALCC()
 
