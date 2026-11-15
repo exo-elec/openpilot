@@ -147,7 +147,7 @@ class RCSC:
 
 Sources, in EOP10's priority order: `surfaceStatus` (surfaced's roughness score), then `monoSegments` (the camera-tier card's road/edge/drivable hint).
 Both exist only on EOP hardware; where the service is not in this branch's SERVICE_LIST (NGP10) there is no source and RCSC reports "No data source".
-Switch: `enabled_key` param (NGP10: `RCSCEnabled`; EOP10's shim passes `RCSCEnabled` and legacy_filter_bug=True), re-read every 5 s.
+Switch: `enabled_key` param (NGP10: `RCSCEnabled`; EOP10's planner passes `RCSCEnabled` too), re-read every 5 s.
   """
   def __init__(self, get_bool=None, enabled_key: str = "RCSCEnabled", legacy_filter_bug: bool = False, clock=time.monotonic):
     self._get_bool, self._key, self._clock = get_bool or (lambda k: False), enabled_key, clock
