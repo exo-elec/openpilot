@@ -69,7 +69,7 @@ PAGES: list[Page] = [
     Control("AEBEnabled", Kind.TOGGLE, "Automatic Emergency Braking (AEB)", desc="⚠️ SAFETY-CRITICAL: Requires extensive testing.\nRSS-based emergency braking for collision avoidance.\nUses radar + vision + monod detections.\nDisabled by default - enable only after validation."),
     Control("NavBleEnabled", Kind.TOGGLE, "BLE Navigation App", desc="Bluetooth connection for wireless destination input via mobile app."),
     Control("NudgeEnabled", Kind.TOGGLE, "Stereo Path Nudge", desc="Enable stereo-based path enhancements:\n• LatNudge — lateral obstacle avoidance using stereo boundaries\n• LonNudge — speed reduction based on drivable distance and occupancy"),
-    Control("RCDEnabled", Kind.TOGGLE, "Road Condition Detection (RCD)", desc="Detects wet, icy, snowy, or debris-covered roads.\nAutomatically reduces speed for hazardous conditions.\nUses surface data + classical CV analysis."),
+    Control("RCSCEnabled", Kind.TOGGLE, "Road Condition Speed Controller (RCSC)", desc="Detects wet, icy, snowy, or debris-covered roads.\nAutomatically reduces speed for hazardous conditions.\nUses surfaced's surface score, else the camera card's road segmentation."),
     Control("TSCTargetLatAccel", Kind.SPINBOX, "Curve Speed Limit:", desc="Max lateral acceleration for curve speed control. Lower = more cautious.", min=1.0, max=2.5, step=0.1, unit="m/s²"),
   ]),
   Page("device", [
