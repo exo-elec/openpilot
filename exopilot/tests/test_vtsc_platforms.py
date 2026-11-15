@@ -1,6 +1,8 @@
 """One VTSC for every platform: plain on a comma 3 (NGP10), with a comfort store and learned speeds on ExoPilot (EOP10)."""
 from types import SimpleNamespace as NS
 
+import numpy as np
+
 from exopilot.selfdrive.controls.lib.vtsc import (BUCKET_COMFORT, ComfortCalibration, CurvatureBucket, VTSC, VTSCState,
                                                   bucket_for_curvature)
 
@@ -58,3 +60,11 @@ def test_calibration_learns_and_persists_after_enough_samples():
 def test_bad_stored_values_fall_back_to_defaults():
   cal = ComfortCalibration(read=lambda b: "not a number")
   assert cal.comfort(0.05) == BUCKET_COMFORT[CurvatureBucket.SHARP]
+
+
+def test_numpy_model_arrays_work_like_lists():
+  as_list, as_array = VTSC(), VTSC()
+  for rate in (0.0, 0.15, 0.15):
+    a = as_list.update(20.0, curve(rate))
+    b = as_array.update(20.0, NS(orientationRate=NS(z=np.full(33, rate)), velocity=NS(x=np.full(33, 20.0))))
+    assert (a.state, a.target_speed) == (b.state, b.target_speed)

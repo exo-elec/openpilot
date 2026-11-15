@@ -143,11 +143,12 @@ class VTSC:
     if model is None:
       return []
     if isinstance(model, dict):
-      return model.get(name, []) or []
-    value = model
-    for part in name.split("."):
-      value = getattr(value, part, [])
-    return value or []
+      value = model.get(name)
+    else:
+      value = model
+      for part in name.split("."):
+        value = getattr(value, part, None)
+    return [] if value is None else value  # capnp list, list or numpy array (no truth test: arrays have none)
 
   @classmethod
   def _lateral_acceleration(cls, v_ego, model):
