@@ -4,7 +4,7 @@ from types import SimpleNamespace as NS
 import numpy as np
 
 from exopilot.selfdrive.controls.lib.vtsc import (BUCKET_COMFORT, ComfortCalibration, CurvatureBucket, VTSC, VTSCState,
-                                                  bucket_for_curvature)
+                                                  bucket_for_curvature, percentile)
 
 
 def curve(rate=0.15, v=20.0):
@@ -68,3 +68,10 @@ def test_numpy_model_arrays_work_like_lists():
     a = as_list.update(20.0, curve(rate))
     b = as_array.update(20.0, NS(orientationRate=NS(z=np.full(33, rate)), velocity=NS(x=np.full(33, 20.0))))
     assert (a.state, a.target_speed) == (b.state, b.target_speed)
+
+
+def test_percentile_matches_numpy():
+  rng = np.random.default_rng(1)
+  for n in (1, 2, 5, 10, 33):
+    xs = list(rng.uniform(0, 3, n))
+    assert abs(percentile(xs, 97) - float(np.percentile(xs, 97))) < 1e-12

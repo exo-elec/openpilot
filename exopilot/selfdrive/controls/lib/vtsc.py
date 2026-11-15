@@ -44,6 +44,16 @@ def _clip(x: float, lo: float, hi: float) -> float:
   return max(lo, min(hi, x))
 
 
+def percentile(values, q: float) -> float:
+  """numpy.percentile's default (linear interpolation), without numpy: the 97th of the predicted lateral accelerations is
+  how sunnypilot's vision turn controller (where VTSC comes from) and EOP10 picked the curve to plan for."""
+  v = sorted(values)
+  rank = (len(v) - 1) * q / 100.0
+  lo = int(rank)
+  hi = min(lo + 1, len(v) - 1)
+  return v[lo] + (v[hi] - v[lo]) * (rank - lo)
+
+
 class ComfortCalibration:
   """Per-bucket comfortable lateral acceleration, learned from what the driver accepts in curves.
 
@@ -163,10 +173,7 @@ class VTSC:
                for rate, speed in zip(rates[:10], velocities[:10], strict=False) if float(speed) > 1.0]
     if not samples:
       return current, 0.0
-    samples.sort()
-    # 97th percentile without numpy (small model horizon, comma 3 friendly).
-    index = min(len(samples) - 1, int(0.97 * (len(samples) - 1) + 0.5))
-    return current, samples[index]
+    return current, percentile(samples, 97.0)
 
   def _update_state(self, v_ego, predicted, current):
     if not self.enabled or v_ego < self.MIN_VELOCITY:
