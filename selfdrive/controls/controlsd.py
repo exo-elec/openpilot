@@ -23,7 +23,7 @@ from exopilot.selfdrive.controls.lib.cat import CAT
 from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_force_decel
 from exopilot.selfdrive.controls.lib.dlat import DLAT, DLATSuggestion
-from openpilot.selfdrive.controls.lib.red import RED
+from exopilot.selfdrive.controls.lib.red import RED, curvature_nudge
 from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
 from openpilot.selfdrive.controls.lib.aeb import AEB
@@ -92,8 +92,8 @@ class Controls:
     self.dlat_state = "laneful"
     self.dlat_lane_confidence = 1.0
 
-    # EOP: RED (Road Edge Detection)
-    self.red = RED()
+    # RED (Road Edge Detection): the shared one, with YOLO / stereo corroboration; RedControllerEnabled re-read every 2 s
+    self.red = RED(self.params.get_bool)
 
     # EOP: radar zone monitor — adjacent-lane + rear threat assessment
     self.zone_monitor = RadarZoneMonitor()
@@ -261,15 +261,8 @@ class Controls:
       yolo_detections = getattr(et, 'detections', None)
       stereo_data = getattr(et, 'stereoData', None)
 
-    red_output = self.red.update(
-      model_v2=model_v2,
-      yolo_detections=yolo_detections,
-      stereo_data=stereo_data,
-      vehicle_position=(0.0, 0.0),  # Relative to path center
-      v_ego=CS.vEgo,
-      planned_path=[],  # Path points from lateral planner
-      is_laneless=self.dlat_use_laneless
-    )
+    red_output = self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless,
+                                 yolo_detections=yolo_detections, stereo_data=stereo_data)
 
     # EOP: Enhanced ALCC (Always Lane Centering Control)
     calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
@@ -380,20 +373,8 @@ class Controls:
     new_desired_curvature = apply_curvature(self.rule_consumer, self.sm, new_desired_curvature, CC.latActive,
                                             CS.steeringPressed or CS.brakePressed or CS.gasPressed, DT_CTRL)
 
-    # EOP: RED - Apply road edge repulsive force to curvature
-    if red_output['lateral_cost'] > 0 and self.dlat_use_laneless:
-      # Apply repulsive offset: push away from detected edge
-      # The cost is converted to a small curvature adjustment
-      edge_offset = red_output['lateral_cost'] * 0.001  # Scale factor
-      if red_output.get('edges_detected', 0) > 0:
-        # Determine which side the edge is on and push away
-        closest_dist = red_output.get('closest_distance', float('inf'))
-        if closest_dist < 1.0:  # Only adjust if edge is close
-          # edge_side: -1 = left edge → push right (negative curvature delta)
-          #            +1 = right edge → push left (positive curvature delta)
-          # positive desiredCurvature = left turn, so right-push = negative delta
-          edge_sign = 1 if red_output.get('edge_side', 0) > 0 else -1
-          new_desired_curvature += edge_sign * abs(edge_offset)
+    # RED: push away from a close road edge (zero unless laneless and an edge is within 1 m)
+    new_desired_curvature += curvature_nudge(red_output)
 
     self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
 
