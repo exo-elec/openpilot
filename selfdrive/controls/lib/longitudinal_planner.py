@@ -169,8 +169,7 @@ class LongitudinalPlanner:
     vp = self._vtsc_params
     self.vtsc = VTSC(enabled=False, comfort=ComfortCalibration(
       read=lambda b: vp.get(VTSC_COMFORT_KEYS[b]),
-      write=lambda b, v: vp.put_nonblocking(VTSC_COMFORT_KEYS[b], float(v)),
-      seed_fallback=lambda: vp.get('TSCTargetLatAccel')))
+      write=lambda b, v: vp.put_nonblocking(VTSC_COMFORT_KEYS[b], float(v))))
     self._vtsc_flags = (False, False)  # (VTSCEnabled, CurveSpeedLearnEnabled), re-read at most once per second
     self._vtsc_flags_t = -1e9
     self.vtsc_v_target = None
