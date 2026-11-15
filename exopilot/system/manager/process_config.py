@@ -168,7 +168,6 @@ procs = [
 
   # Map and Navigation
   NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
-  PythonProcess("osm_mapd", "exopilot.selfdrive.mapd.mapd", always_run),  # online Overpass mapd (mapData), until mapdOut feeds MTSC/MSLC
   PythonProcess("navd", "selfdrive.navd.navd", always_run),
 
   # ADAS Pipeline

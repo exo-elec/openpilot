@@ -106,7 +106,7 @@ SERVICES = [
   "micStatus",
   "fusedPosition",
   "gpsLocationExternal",
-  "mapData",
+  "mapdOut",
   "alccState",
 ]
 
@@ -538,10 +538,10 @@ class UIState(QObject):
     # road the car is on, where navInstruction's is the limit for the route
     # step, which lags at the moment the limit actually changes.
     speed_limit_ms = 0.0
-    if _sm_valid(sm, "mapData"):
-      osm_kph = float(getattr(sm["mapData"], "speedLimit", 0.0))
-      if osm_kph > 0:
-        speed_limit_ms = osm_kph / MS_TO_KPH
+    if _sm_valid(sm, "mapdOut"):
+      osm_ms = float(sm["mapdOut"].speedLimit)
+      if osm_ms > 0:
+        speed_limit_ms = osm_ms
     if speed_limit_ms == 0.0 and _sm_valid(sm, "navInstruction"):
       nav_ms = float(getattr(sm["navInstruction"], "speedLimit", 0.0))
       if nav_ms > 0:

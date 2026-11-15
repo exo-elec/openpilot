@@ -65,7 +65,7 @@ typedef struct UIScene {
   bool alcc_active = false;
   uint64_t started_frame;
 
-  // Speed limit (m/s, 0 = not available) — priority: mapData OSM > navInstruction
+  // Speed limit (m/s, 0 = not available) — priority: mapdOut (offline OSM) > navInstruction
   float nav_speed_limit_ms = 0.0f;
 
   // OBD2 telemetry — plain copies from obdState (safe across sm updates)

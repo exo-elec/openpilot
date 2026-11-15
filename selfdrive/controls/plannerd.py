@@ -27,10 +27,10 @@ def main() -> int:
     drive_mode = DriveModeApplier(params)  # DriveMode: eco / normal / sport write the style params; custom writes nothing
     pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance', 'speedLimitState', 'ttsRequest'])
     sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                              'mapData', 'navInstruction', 'stereoObjects', 'surfaceStatus', 'liveLocationKalman',
+                              'mapdOut', 'mapdExtendedOut', 'navInstruction', 'stereoObjects', 'surfaceStatus', 'liveLocationKalman',
                               'enhancedTrajectory', 'accelerometer', 'pathAdjust'],
                              poll='modelV2',
-                             ignore_alive=['mapData', 'navInstruction', 'stereoObjects',
+                             ignore_alive=['mapdOut', 'mapdExtendedOut', 'navInstruction', 'stereoObjects',
                                            'surfaceStatus', 'liveLocationKalman', 'enhancedTrajectory',
                                            'accelerometer', 'pathAdjust'])
 
