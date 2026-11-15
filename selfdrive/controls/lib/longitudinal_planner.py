@@ -39,7 +39,7 @@ from exopilot.selfdrive.controls.lib.longitudinal_policy import (
 
 # EOP: Vision Turn Speed Control
 from exopilot.selfdrive.controls.lib.vtsc import VTSC, ComfortCalibration, CurvatureBucket
-from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc
+from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc, curves_from_path
 from exopilot.selfdrive.controls.lib.speed_utils import get_learned_speed
 # VTSC comfort per curve sharpness, read from and learned into these params (the shared VTSC has no Params of its own)
 VTSC_COMFORT_KEYS = {CurvatureBucket.MILD: 'TSCTargetLatAccelMild', CurvatureBucket.MEDIUM: 'TSCTargetLatAccelMedium',
@@ -363,9 +363,10 @@ class LongitudinalPlanner:
 
     # EOP: MTSC - Map Turn Speed Control (250-500m range, with learned speeds)
     # Uses learned driver speeds from database, falls back to OSM physics
-    self.mtsc_v_target = None  # reset each cycle; only re-set if mapData is fresh
-    if sm.updated['mapData']:
-      mtsc_output = self.mtsc.update(sm['mapData'], v_ego, lat, lon)
+    self.mtsc_v_target = None  # reset each cycle; only re-set when mapd's path (mapdExtendedOut, 1 Hz) is fresh
+    if sm.updated['mapdExtendedOut']:
+      ext = sm['mapdExtendedOut']
+      mtsc_output = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego, lat, lon)
       self.mtsc_v_target = mtsc_output['v_target']
       self.handover_distance = mtsc_output.get('distance', float('inf'))
       self.mtsc_using_learned = mtsc_output.get('using_learned', False)
@@ -384,11 +385,13 @@ class LongitudinalPlanner:
       v_cruise = min(v_cruise, curve_target)
 
     # EOP: MSLC - Map Speed Limit Control (OSM posted limits)
-    self.mslc_v_target = None  # reset each cycle; only re-set if mapData is fresh
-    if sm.updated['mapData']:
+    self.mslc_v_target = None  # reset each cycle; re-set from mapdOut (20 Hz, so every planner cycle)
+    if sm.updated['mapdOut']:
       driver_overriding = sm['carState'].gasPressed
       current_time = sm.logMonoTime['carState'] * 1e-9
-      self.mslc_v_target, _ = self.mslc.update(sm['mapData'], v_ego, driver_overriding, current_time)
+      mo = sm['mapdOut']
+      self.mslc_v_target, _ = self.mslc.update(mo.speedLimit, mo.nextSpeedLimit, mo.nextSpeedLimitDistance, v_ego, driver_overriding,
+                                               current_time)
 
     # EOP: Map-based speed limit pre-announcement TTS
     # When a significant speed limit change is ahead (<300m), announce it early
