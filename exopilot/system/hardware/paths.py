@@ -103,6 +103,11 @@ class Paths:
     return "/data"
 
   @staticmethod
+  def mapd_root() -> str:
+    """mapd's working directory and offline map tiles (data_root/media/0/osm: /data/media/0/osm on boards, where mapd looks)."""
+    return os.path.join(Paths.data_root(), "media", "0", "osm")
+
+  @staticmethod
   def shm_path() -> str:
     return "/dev/shm"
 
