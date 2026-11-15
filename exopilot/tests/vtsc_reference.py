@@ -1,3 +1,4 @@
+# LEGACY reference copy of EOP10's selfdrive/controls/lib/vtsc.py (pre-refactor), kept only for test_vtsc_equivalence.py.
 """
 vtsc.py - Vision Turn Speed Control (VTSC)
 
