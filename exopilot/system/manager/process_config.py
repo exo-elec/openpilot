@@ -151,6 +151,7 @@ procs = [
   PythonProcess("bigmodeld", "exopilot.selfdrive.modeld.bigmodel.gadget", bigmodel_link),  # phone-hosted big model: USB gadget owner (modes 1 and 2)
   PythonProcess("plpd", "exopilot.system.plp.plpd", plp_link),  # PLP v5 over the iPhone cable (mode 2); the BLE transport joins bluetoothd
   PythonProcess("pigeond", "system.ubloxd.pigeond", always_run),
+  NativeProcess("ubloxd", "system/ubloxd", ["./ubloxd"], always_run),  # pigeond's ubloxRaw -> gpsLocationExternal (u-blox NEO-M8U / ZED-F9P)
   PythonProcess("inferenced", "system.inferenced.inferenced", always_run),  # Centralized compute HAL
   PythonProcess("subscribed", "system.subscribed.subscribed", always_run),  # EOP: NavPilot subscription & hardware auth
   PythonProcess("bluetoothd", "system.bluetoothd.bluetoothd", always_run),
