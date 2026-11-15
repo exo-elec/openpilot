@@ -155,7 +155,7 @@ Order: what the driver sees first, the new screens last. Each step must build (`
     - [ ] **ALCC**: EOP10's `lib/alcc.py` `AlccController` (always-allow, hold at standstill, unified engagement, steering mode on brake, events, panda mismatch, `alccState`) onto NGP10's `exopilot/selfdrive/controls/lib/alcc.py`; lateral engagement, needs a careful port and a drive.
     - [ ] **VTSC**: EOP10's `lib/vtsc.py` adds per-sharpness lateral-accel buckets, self-calibration and the learned curve-speed database to NGP10's vision-only `vtsc.py`.
     - [ ] **SOC**: EOP10 runs `exopilot/selfdrive/pathd/soc.py` (tracked objects) next to the shared comma-3 `exopilot/selfdrive/controls/lib/soc.py`.
-    - [ ] **RED**: EOP10's `lib/red.py` subclasses the shared RED to add YOLO barriers and stereo depth; fold those in as optional inputs of the one RED.
+    - [x] (2026-11-15) **RED**: done on NGP10 first, then rebased up. The one `exopilot/selfdrive/controls/lib/red.py` takes YOLO barriers and stereo depth as optional inputs (`detect_edges`, `RED(get_bool)`, `update(..., yolo_detections, stereo_data)`); EOP10's subclass is gone and its controlsd uses the shared `curvature_nudge`. Vision-only output identical to NGP10's previous code over 5000 random frames; `test_red_equivalence` (moved to NGP10) matches EOP10's original with YOLO/stereo.
     - [ ] **monod**: EOP10's monod daemon vs NGP10's `exopilot/selfdrive/monod/monod.py` (road-camera YOLOv8; the driver-camera budget is free on the comma 3).
     - [ ] **Planner integration**: EOP10's planner (VTSC/MTSC handover blend, speed-limit resolver) vs NGP10's `map_speed`; one planner path.
   - [x] **"Driving Personality" -> "Driver Personality"** (owner, row rename only; translation sources updated).
