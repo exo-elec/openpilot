@@ -251,17 +251,17 @@ void ExoPilotPanel::add_enhanced_controllers_section() {
   addItem(aeb_toggle);
   toggles["AEBEnabled"] = aeb_toggle;
   
-  // RCD Toggle
-  auto rcd_toggle = new ParamControl(
-      "RCDEnabled",
-      tr("Road Condition Detection (RCD)"),
+  // RCSC Toggle
+  auto rcsc_toggle = new ParamControl(
+      "RCSCEnabled",
+      tr("Road Condition Speed Controller (RCSC)"),
       tr("Detects wet, icy, snowy, or debris-covered roads.\n"
          "Automatically reduces speed for hazardous conditions.\n"
-         "Uses surface data + classical CV analysis."),
+         "Uses surfaced's surface score, else the camera card's road segmentation."),
       "", this);
-  rcd_toggle->setEnabled(has_stereo);
-  addItem(rcd_toggle);
-  toggles["RCDEnabled"] = rcd_toggle;
+  rcsc_toggle->setEnabled(has_stereo);
+  addItem(rcsc_toggle);
+  toggles["RCSCEnabled"] = rcsc_toggle;
 }
 
 void ExoPilotPanel::add_longitudinal_toggles() {

@@ -53,15 +53,15 @@ from openpilot.selfdrive.controls.lib.tlsc import TLSC
 from openpilot.selfdrive.controls.lib.driver_prefs import DriverPrefs
 # EOP: SQSC - Surface Quality Speed Controller (road quality speed control)
 from openpilot.selfdrive.controls.lib.sqsc import SQSC
-# EOP: RCD - Road Condition Detection (speed limits for wet/icy/debris)
-from openpilot.selfdrive.controls.lib.rcd import RCD
+# RCSC - Road Condition Speed Controller (speed cap on a wet / icy / debris road), shared with NGP10
+from exopilot.selfdrive.controls.lib.rcsc import RCSC
 # EOP: Speed Limit Resolver (Topic 05 — offset + policy)
 from exopilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 # EOP: Lane Change Lead Handoff (pure camera — adjacent lead tracking during lane change)
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
 # EOP10/NGP10/EDP10 via exopilot/selfdrive/controls/lib (see exopilot/selfdrive/controls/lib/brsc.py).
-# Interacts with v_cruise the same way VTSC/SQSC/RCD do: it only ever tightens the
+# Interacts with v_cruise the same way VTSC/SQSC/RCSC do: it only ever tightens the
 # clamp already established by VTSC/MTSC's curve-speed blend earlier in update().
 from exopilot.selfdrive.controls.lib.brsc import BRSC
 
@@ -198,9 +198,9 @@ class LongitudinalPlanner:
     self.sqsc = SQSC()
     self.sqsc_v_target = None
 
-    # EOP: RCD initialization (Road Condition Detection)
-    self.rcd = RCD()
-    self.rcd_v_target = None
+    # RCSC: Road Condition Speed Controller
+    self.rcsc = RCSC(Params().get_bool, "RCSCEnabled")
+    self.rcsc_v_target = None
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
     self.brsc = BRSC()
@@ -510,13 +510,13 @@ class LongitudinalPlanner:
     self.sqsc_v_target = self.sqsc.update(v_ego, sm)
     v_cruise = self._apply_speed_limit(v_cruise, self.sqsc_v_target)
 
-    # EOP: RCD - Road Condition Detection (wet/icy/debris speed limits)
-    rcd_state = self.rcd.update(sm)
-    self.rcd_v_target = rcd_state.speed_limit_ms if rcd_state.is_active else None
-    v_cruise = self._apply_speed_limit(v_cruise, self.rcd_v_target)
+    # RCSC - Road Condition Speed Controller (wet/icy/debris speed limits)
+    rcsc_state = self.rcsc.update(sm)
+    self.rcsc_v_target = rcsc_state.speed_limit_ms if rcsc_state.is_active else None
+    v_cruise = self._apply_speed_limit(v_cruise, self.rcsc_v_target)
 
     # BRSC: reduce cruise speed while rough-road hold is active, on top of whatever
-    # VTSC/MTSC/SQSC/RCD/TLSC already set v_cruise to. Gated on v_ego (matches VTSC's
+    # VTSC/MTSC/SQSC/RCSC/TLSC already set v_cruise to. Gated on v_ego (matches VTSC's
     # MIN_VELOCITY) and floored so a long rough stretch can't crawl the car below a
     # safe minimum.
     self.brsc_v_target = None
@@ -707,10 +707,10 @@ class LongitudinalPlanner:
     if self.sqsc_v_target is not None:
       longitudinalPlan.sqscSpeed = float(self.sqsc_v_target)
 
-    # EOP: RCD debug info
-    longitudinalPlan.rcdActive = self.rcd_v_target is not None
-    if self.rcd_v_target is not None:
-      longitudinalPlan.rcdSpeed = float(self.rcd_v_target)
+    # RCSC debug info (cereal fields keep their rcd* names)
+    longitudinalPlan.rcdActive = self.rcsc_v_target is not None
+    if self.rcsc_v_target is not None:
+      longitudinalPlan.rcdSpeed = float(self.rcsc_v_target)
 
     # BRSC debug info
     if self.brsc_result is not None:
