@@ -51,12 +51,12 @@ static void update_state(UIState *s) {
   scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
   scene.recording_audio = params.getBool("RecordAudio") && scene.started;
 
-  // Speed limit: OSM mapData (km/h → m/s) has priority over navInstruction (already m/s)
+  // Speed limit: the offline mapd's posted limit (mapdOut, m/s) has priority over navInstruction (m/s)
   float speed_limit_ms = 0.0f;
-  if (sm.valid("mapData")) {
-    float osl = sm["mapData"].getMapData().getSpeedLimit();
+  if (sm.valid("mapdOut")) {
+    float osl = sm["mapdOut"].getMapdOut().getSpeedLimit();
     if (osl > 0.0f) {
-      speed_limit_ms = osl / 3.6f;  // km/h → m/s
+      speed_limit_ms = osl;
     }
   }
   if (speed_limit_ms == 0.0f && sm.valid("navInstruction")) {
@@ -146,7 +146,7 @@ UIState::UIState(QObject *parent) : QObject(parent) {
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
     "carParams", "driverMonitoringState", "carState",
     "wideRoadCameraState", "managerState", "selfdriveState", "longitudinalPlan",
-    "navInstruction", "navRoute", "liveLocationKalman", "mapData",
+    "navInstruction", "navRoute", "liveLocationKalman", "mapdOut",
     "obdState", "voiceState", "ttsStatus", "micStatus",
     "gpsLocation", "gpsLocationExternal",
     "pandaState", "sensorEvents", "alccState",

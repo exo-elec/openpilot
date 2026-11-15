@@ -337,12 +337,12 @@ class TestUIState:
     assert ui_state(sm, IgnitionOn=True)._read().v_ego == pytest.approx(13.5)
 
   def test_osm_speed_limit_outranks_the_route_step(self, app):
-    sm = onroad_sm(mapData=Msg(speedLimit=80.0),
+    sm = onroad_sm(mapdOut=Msg(speedLimit=80.0 / 3.6),
                    navInstruction=Msg(speedLimit=25.0, maneuverType="none"))
     assert ui_state(sm, IgnitionOn=True)._read().speed_limit_ms == pytest.approx(80.0 / 3.6)
 
   def test_nav_speed_limit_is_used_when_osm_has_none(self, app):
-    sm = onroad_sm(mapData=Msg(speedLimit=0.0),
+    sm = onroad_sm(mapdOut=Msg(speedLimit=0.0),
                    navInstruction=Msg(speedLimit=25.0, maneuverType="none"))
     assert ui_state(sm, IgnitionOn=True)._read().speed_limit_ms == pytest.approx(25.0)
 

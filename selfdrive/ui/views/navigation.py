@@ -9,7 +9,7 @@ Best of both, and they split cleanly:
   (fastest / shortest / eco / avoid tolls / avoid highways). Nagasware's
   engine assumes one route.
 
-Data comes from `mapd`/`navd` via `navInstruction`, `navRoute` and `mapData`
+Data comes from `navd` and the offline `mapd` via `navInstruction`, `navRoute` and `mapdOut`
 (plan section 5.2) -- not from Nagasware's Mapbox client, which is a cloud
 dependency this device does not need: routing is already on-device through
 Valhalla and OSM.
