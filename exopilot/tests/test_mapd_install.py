@@ -48,11 +48,12 @@ def test_services_are_registered():
 
 def test_paths_and_process_entry():
   from openpilot.system.hardware.hw import Paths
-  from openpilot.system.manager import process_config as pc
-  p = pc.managed_processes['mapd']
-  assert p.cwd == Paths.mapd_root() and p.cmdline == [pc.MAPD_BIN]
-  assert p.enabled == os.path.isfile(pc.MAPD_BIN)
-  assert pc.MAPD_BIN.startswith(MAPD_DIR + os.sep) and pc.MAPD_ARCH in ("larch64", "aarch64", "x86_64", "arm64")
+  from openpilot.system.manager.manager import managed_processes  # the registry the manager runs, on every branch
+  p = managed_processes['mapd']
+  (binary,) = p.cmdline
+  assert p.cwd == Paths.mapd_root()
+  assert os.path.dirname(os.path.dirname(binary)) == MAPD_DIR and os.path.basename(binary) == "mapd"
+  assert p.enabled == os.path.isfile(binary)
 
   class P:
     def __init__(self, on):
