@@ -30,13 +30,13 @@ class MSLC(base.MSLC):
     self._offset.set_offsets_kph([self.params.get(f"SLCOffset{i + 1}") for i in range(len(self._offset.BUCKET_EDGES_MS) - 1)])
     self._confirmation.configure(self.params.get_bool("SLCConfirmLower"), self.params.get_bool("SLCConfirmHigher"))
 
-  def update(self, map_data, v_ego, driver_overriding, t, nav_speed_limit_ms: float = 0.0):
+  def update(self, limit_ms, next_limit_ms, next_distance_m, v_ego, driver_overriding, t, nav_speed_limit_ms: float = 0.0):
     if self.frame + 1 >= int(1.0 / DT_MDL):
       self.frame = -1                       # the core adds 1 back
       self._update_params()
       self._refresh_config(t)
     prev_alert = self._prev_alert_text
-    result = super().update(map_data, v_ego, driver_overriding, t, nav_speed_limit_ms)
+    result = super().update(limit_ms, next_limit_ms, next_distance_m, v_ego, driver_overriding, t, nav_speed_limit_ms)
     if self._prev_alert_text != prev_alert:
       cloudlog.info(f"MSLC: {self._prev_alert_text}")
     return result

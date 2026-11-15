@@ -27,7 +27,7 @@ class MTSC(base.MTSC):
     except (ValueError, TypeError):
       self.a_comfort = 1.8
 
-  def update(self, map_data, v_ego: float, lat: float = 0.0, lon: float = 0.0) -> dict:
+  def update(self, curves, v_ego: float, lat: float = 0.0, lon: float = 0.0) -> dict:
     if self.frame % int(1.0 / DT_MDL) == 0:
       self._update_params()
-    return super().update(map_data, v_ego, lat, lon)
+    return super().update(curves, v_ego, lat, lon)
