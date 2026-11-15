@@ -285,7 +285,7 @@ from selfdrive.locationd.calibration_storage import CalibrationStorage
 
 ```python
 from openpilot.selfdrive.locationd.calibration_storage import CalibrationStorage
-from openpilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 
 # RECOMMENDED: Get merged calibration (factory intrinsics + runtime extrinsics)
 calib = CalibrationStorage.get_merged_calibration()

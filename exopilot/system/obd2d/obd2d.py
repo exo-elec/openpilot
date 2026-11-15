@@ -25,17 +25,17 @@ from openpilot.common.realtime import Ratekeeper
 from openpilot.common.params import Params
 from openpilot.common.core_config import set_daemon_affinity
 
-from openpilot.exopilot.system.obd2d.vehicle_db import (
+from exopilot.system.obd2d.vehicle_db import (
     VehicleType, VEHICLE_PIDS, VEHICLE_WMI_MAP,
     detect_vehicle_type as db_detect_vehicle_type,
     decode_pid_by_name, is_chinese_ev
 )
-from openpilot.exopilot.system.obd2d.telemetry import VehicleInfo
+from exopilot.system.obd2d.telemetry import VehicleInfo
 from openpilot.common.swaglog import cloudlog
 
 # UDS adapter (new)
 try:
-    from openpilot.exopilot.system.obd2d.adapters.udsoncan_adapter import (
+    from exopilot.system.obd2d.adapters.udsoncan_adapter import (
         UDSVehicleAdapter, UDSConfig
     )
     UDS_AVAILABLE = True
@@ -513,7 +513,7 @@ class OBD2D:
             return
 
         # Get Mode 22 PIDs for this vehicle
-        from openpilot.exopilot.system.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter
+        from exopilot.system.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter
         vehicle_dids = UDSVehicleAdapter.MODE22_DIDS.get(self.vehicle_type, {})
 
         for did_id, (name, _codec) in vehicle_dids.items():

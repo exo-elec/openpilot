@@ -56,7 +56,7 @@ import json
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
-from openpilot.exopilot.system.obd2d.vehicle_db import detect_vehicle_type_from_wmi
+from exopilot.system.obd2d.vehicle_db import detect_vehicle_type_from_wmi
 from openpilot.system.hardware import HARDWARE
 
 PROTOCOL_VERSION = "4.1.0"
@@ -359,7 +359,7 @@ def parse_navigate_command(payload: dict) -> tuple[float, float, str | None, str
 # ---------------------------------------------------------------------------
 
 # VEHICLE_WMI_MAP, detect_vehicle_type_from_vin and is_chinese_ev used to be
-# defined here as a second copy of the tables in selfdrive/obd2d/vehicle_db.py.
+# defined here as a second copy of the tables in exopilot/system/obd2d/vehicle_db.py.
 # The maps stayed identical but the fallbacks drifted: this module returned
 # 'generic_ev' for an unlisted 'L' WMI while vehicle_db returned 'generic_ice',
 # so the same VIN selected a different PID table over BLE than over OBD.

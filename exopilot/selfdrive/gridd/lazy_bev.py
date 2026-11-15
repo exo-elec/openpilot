@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from typing import cast
 import numpy as np
 from openpilot.system.hardware import HARDWARE
-from openpilot.exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 
 # Grid parameters
 SAFE_WIDTH_M = 2.2      # corridor half-width each side

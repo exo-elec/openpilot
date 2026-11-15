@@ -5,7 +5,7 @@ import cereal.messaging as messaging
 
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.exopilot.system.steamd.config import SteamDConfig
+from exopilot.system.steamd.config import SteamDConfig
 
 
 class CarControlPublisher:

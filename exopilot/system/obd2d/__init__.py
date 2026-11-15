@@ -12,13 +12,13 @@ Services:
 - UDS (ISO 14229) via python-udsoncan
 """
 
-from openpilot.exopilot.system.obd2d.obd2d import OBD2D, main
-from openpilot.exopilot.system.obd2d.vehicle_db import VehicleType, VEHICLE_PIDS
-from openpilot.exopilot.system.obd2d.telemetry import VehicleTelemetry, VehicleInfo
+from exopilot.system.obd2d.obd2d import OBD2D, main
+from exopilot.system.obd2d.vehicle_db import VehicleType, VEHICLE_PIDS
+from exopilot.system.obd2d.telemetry import VehicleTelemetry, VehicleInfo
 
 # UDS adapter (optional, requires submodules)
 try:
-    from openpilot.exopilot.system.obd2d.adapters.udsoncan_adapter import (
+    from exopilot.system.obd2d.adapters.udsoncan_adapter import (
         UDSVehicleAdapter, UDSConfig
     )
     __all__ = ['OBD2D', 'main', 'VehicleType', 'VEHICLE_PIDS',

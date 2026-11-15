@@ -13,7 +13,7 @@ from typing import Any
 from pathlib import Path
 
 from openpilot.system.inferenced.compute import HardwareBackend, BackendType, InferenceResult, ModelConfig
-from openpilot.exopilot.system.manager.compute_fault_policy import allow_rknn_mock
+from exopilot.system.manager.compute_fault_policy import allow_rknn_mock
 
 logger = logging.getLogger(__name__)
 

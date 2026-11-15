@@ -1,5 +1,0 @@
-"""Compatibility import for the relocated coordinationd daemon."""
-import importlib
-import sys
-_implementation = importlib.import_module("openpilot.exopilot.selfdrive.coordinationd.osm_localizer")
-sys.modules[__name__] = _implementation

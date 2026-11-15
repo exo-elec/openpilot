@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch  # noqa: TID251
 import numpy as np
 
 # Import recordd components
-from openpilot.selfdrive.recordd.recordd import (
+from exopilot.system.recordd.recordd import (
     RecordingMode, ClipInfo, StorageInfo, RecordingSettings,
     ImpactEvent, IMUSample, Snapshot, PreImpactBuffer, ImpactDetector,
     VideoEncoder, RecordD, SENSITIVITY_THRESHOLDS
@@ -317,7 +317,7 @@ class TestVideoEncoder(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch('openpilot.selfdrive.recordd.recordd.HAS_INFERENCED', False)
+    @patch('exopilot.system.recordd.recordd.HAS_INFERENCED', False)
     def test_ffmpeg_fallback(self):
         """Test FFmpeg fallback when inferenced not available."""
         encoder = VideoEncoder()
@@ -344,7 +344,7 @@ class TestVideoEncoder(unittest.TestCase):
 class TestRecordDSettings(unittest.TestCase):
     """Test RecordD settings management."""
 
-    @patch('openpilot.selfdrive.recordd.recordd.Params')
+    @patch('exopilot.system.recordd.recordd.Params')
     def test_load_settings(self, mock_params_class):
         """Test loading settings from params."""
         mock_params = Mock()
@@ -353,9 +353,9 @@ class TestRecordDSettings(unittest.TestCase):
         mock_params_class.return_value = mock_params
 
         # Create minimal RecordD for testing
-        with patch('openpilot.selfdrive.recordd.recordd.set_daemon_affinity'):
-            with patch('openpilot.selfdrive.recordd.recordd.messaging.SubMaster'):
-                with patch('openpilot.selfdrive.recordd.recordd.messaging.PubMaster'):
+        with patch('exopilot.system.recordd.recordd.set_daemon_affinity'):
+            with patch('exopilot.system.recordd.recordd.messaging.SubMaster'):
+                with patch('exopilot.system.recordd.recordd.messaging.PubMaster'):
                     recordd = RecordD()
                     recordd._load_settings()
 

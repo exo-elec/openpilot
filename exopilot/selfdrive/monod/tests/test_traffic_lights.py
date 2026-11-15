@@ -13,13 +13,13 @@ import numpy as np
 
 from cereal import log
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor
-from openpilot.selfdrive.sided.simple_tracker import SideObject
-from openpilot.selfdrive.sided.yolo_detector import (RELEVANT_COCO_CLASSES, ROAD_COCO_CLASSES, TRAFFIC_LIGHT,
+from exopilot.selfdrive.sided.simple_tracker import SideObject
+from exopilot.selfdrive.sided.yolo_detector import (RELEVANT_COCO_CLASSES, ROAD_COCO_CLASSES, TRAFFIC_LIGHT,
                                                       YoloDetector)
 
 with patch.dict(sys.modules, {m: sys.modules.get(m, MagicMock()) for m in ('cereal.messaging', 'msgq', 'msgq.visionipc')}):
-  from openpilot.selfdrive.gridd import gridd
-  from openpilot.selfdrive.monod.monod import CameraLens, RKNNMonoProcessor, objects_to_road_frame, split_traffic_lights
+  from exopilot.selfdrive.gridd import occupancy as gridd
+  from exopilot.selfdrive.monod.rknn import CameraLens, RKNNMonoProcessor, objects_to_road_frame, split_traffic_lights
 
 
 def _light(bbox, conf=0.7):

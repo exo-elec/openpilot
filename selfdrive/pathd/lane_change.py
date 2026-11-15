@@ -1,5 +1,0 @@
-"""Compatibility import for the relocated pathd daemon."""
-import importlib
-import sys
-_implementation = importlib.import_module("openpilot.exopilot.selfdrive.pathd.lane_change")
-sys.modules[__name__] = _implementation

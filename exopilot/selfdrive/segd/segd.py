@@ -34,11 +34,11 @@ from cereal import car
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.swaglog import cloudlog
-from openpilot.exopilot.selfdrive.segd.card_segmenter import CardSegmenter, summarize
-from openpilot.exopilot.selfdrive.segd.schedule import Scheduler, SegContext
-from openpilot.exopilot.selfdrive.segd.drivable_bev import (
+from exopilot.selfdrive.segd.card_segmenter import CardSegmenter, summarize
+from exopilot.selfdrive.segd.schedule import Scheduler, SegContext
+from exopilot.selfdrive.segd.drivable_bev import (
   DEFAULT_CAMERA_HEIGHT_M, FRONT_LENS, BevLut, build_lut, front_geometry, project, side_rear_geometry)
-from openpilot.exopilot.selfdrive.gridd.lazy_bev import BEV_GRID
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID
 from openpilot.system.hardware import HARDWARE
 
 try:

@@ -27,7 +27,7 @@ sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
 from cereal import log
 
-from openpilot.selfdrive.tripd.tripd import TripD, TripStats
+from exopilot.selfdrive.tripd.keys import TripD, TripStats
 
 
 class MockParams:

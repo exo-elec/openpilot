@@ -1,1 +1,1 @@
-from openpilot.exopilot.selfdrive.gridd.occupancy import GridD, main  # noqa: F401
+from exopilot.selfdrive.gridd.occupancy import GridD, main  # noqa: F401

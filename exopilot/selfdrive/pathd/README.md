@@ -121,7 +121,7 @@ Pathd performs multi-layer validation (most to least critical):
 **Solution** (apply to `pathd.py`):
 ```python
 # In StarD.__init__:
-from openpilot.selfdrive.pathd.lateral_offset import LateralOffsetController
+from exopilot.selfdrive.pathd.lateral_offset import LateralOffsetController
 self._lateral_offset_ctrl = LateralOffsetController()
 
 # In StarD.update():
@@ -147,7 +147,7 @@ lateral_adjustments = self._lateral_offset_ctrl.offsets_for_trajectory(
 ```python
 # In StarD.update() after turn signal detection:
 if self.lane_change_direction and self.lane_change_timer > 0.5:
-    from openpilot.selfdrive.pathd.lane_change import evaluate_lane_change_gate
+    from exopilot.selfdrive.pathd.lane_change import evaluate_lane_change_gate
     
     gate_result = evaluate_lane_change_gate(
         self.lane_change_direction,
@@ -178,7 +178,7 @@ if self.lane_change_direction and self.lane_change_timer > 0.5:
 **Solution** (apply to `pathd.py`):
 ```python
 # In StarD.__init__:
-from openpilot.selfdrive.pathd.path_corridor_fusion import fuse_corridor_boundaries
+from exopilot.selfdrive.pathd.path_corridor_fusion import fuse_corridor_boundaries
 
 # In StarD.update(), replace hardcoded boundaries:
 left_boundary, right_boundary, source, confidence = fuse_corridor_boundaries(

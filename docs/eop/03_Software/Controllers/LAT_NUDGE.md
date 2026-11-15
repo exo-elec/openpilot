@@ -393,7 +393,7 @@ class LatNudge:
 ```python
 # selfdrive/pathd/pathd.py
 
-from openpilot.selfdrive.pathd.lat_nudge import LatNudge
+from exopilot.selfdrive.pathd.lat_nudge import LatNudge
 
 class PathD:
     def __init__(self):

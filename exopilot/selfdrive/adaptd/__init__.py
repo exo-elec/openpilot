@@ -3,6 +3,6 @@
 Receives interpreted OBD VehicleData from NavPilot via BLE/NCP,
 computes adaptive driving profiles, and publishes adaptiveDrivingState.
 """
-from openpilot.exopilot.selfdrive.adaptd.adaptd import AdaptD, AdaptiveDrivingComputer, AdaptiveProfile
+from exopilot.selfdrive.adaptd.adaptd import AdaptD, AdaptiveDrivingComputer, AdaptiveProfile
 
 __all__ = ['AdaptD', 'AdaptiveDrivingComputer', 'AdaptiveProfile']

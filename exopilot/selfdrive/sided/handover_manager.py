@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from openpilot.exopilot.selfdrive.sided.simple_tracker import SideObject
+from exopilot.selfdrive.sided.simple_tracker import SideObject
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Tuning constants

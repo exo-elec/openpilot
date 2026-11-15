@@ -31,11 +31,11 @@ A **daemon** is a long-running background service with these characteristics:
 
 | File | Class | Process Name | Registration |
 |------|-------|--------------|--------------|
-| `pathd.py` | `PathD` | `pathd` | `PythonProcess("pathd", "selfdrive.pathd.pathd", ...)` |
-| `gridd.py` | `GridD` | `gridd` | `PythonProcess("gridd", "selfdrive.gridd.gridd", ...)` |
+| `pathd.py` | `PathD` | `pathd` | `PythonProcess("pathd", "exopilot.selfdrive.pathd.avoidance", ...)` |
+| `gridd.py` | `GridD` | `gridd` | `PythonProcess("gridd", "exopilot.selfdrive.gridd.occupancy", ...)` |
 | `socketd.py` | `SocketD` | `socketd` | `PythonProcess("socketd", "system.socketd.socketd", ...)` |
 | `v4l2d.py` | `V4L2D` | `v4l2d` | `PythonProcess("v4l2d", "system.v4l2d.v4l2d", ...)` |
-| `recordd.py` | `RecordD` | `recordd` | `PythonProcess("recordd", "selfdrive.recordd.recordd", ...)` |
+| `recordd.py` | `RecordD` | `recordd` | `PythonProcess("recordd", "exopilot.system.recordd.recordd", ...)` |
 | `bluetoothd.py` | `BluetoothD` | `bluetoothd` | `PythonProcess("bluetoothd", "system.bluetoothd.bluetoothd", ...)` |
 
 `v4l2d` provides the VisionIPC server for front-facing camera frames consumed by `modeld`, `monod`, and `ui`.
@@ -51,7 +51,7 @@ class Path:  # Should be PathD
 # path.py  # Should be pathd.py for a daemon
 
 # Wrong: Process name doesn't match file
-PythonProcess("vision", "selfdrive.gridd.gridd", ...)  # Should be "gridd"
+PythonProcess("vision", "exopilot.selfdrive.gridd.occupancy", ...)  # Should be "gridd"
 ```
 
 ---
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 # File: selfdrive/pathd/pathd.py
 # Class: PathD
 # Process name matches implementation:
-PythonProcess("pathd", "selfdrive.pathd.pathd", only_onroad)
+PythonProcess("pathd", "exopilot.selfdrive.pathd.avoidance", only_onroad)
 ```
 
 ### Compatibility Registration (Name ≠ File)
@@ -332,7 +332,7 @@ selfdrive/controls/lib/
 |---------|---------|-----|
 | Missing `D` in class | `class Path:` | `class PathD:` |
 | Missing `d` in file | `path.py` | `pathd.py` |
-| Inconsistent registration | `PythonProcess("path", "selfdrive.pathd.pathd", ...)` | Use `"pathd"` as name |
+| Inconsistent registration | `PythonProcess("path", "exopilot.selfdrive.pathd.avoidance", ...)` | Use `"pathd"` as name |
 | UI app with `d` suffix | `uide.py` | Should be `ui.py` |
 | Doc without `D` | `PATH.md` | Should be `PATHD.md` for daemons |
 

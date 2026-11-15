@@ -1,8 +1,8 @@
 # stereod - Stereo Depth Daemon
-from openpilot.exopilot.selfdrive.stereod.stereod import StereoD, main
+from exopilot.selfdrive.stereod.stereod import StereoD, main
 
 # SGM implementation (unified ACL-based)
-from openpilot.exopilot.selfdrive.stereod.sgm import (
+from exopilot.selfdrive.stereod.sgm import (
     SGM,
     SGMConfig,
     SGMResult,

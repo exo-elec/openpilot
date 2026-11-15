@@ -1,6 +1,6 @@
 import math
 from types import SimpleNamespace as NS
-from openpilot.exopilot.system.radar4d.surround_tracks import surround_tracks, tracked_obstacles
+from exopilot.system.radar4d.surround_tracks import surround_tracks, tracked_obstacles
 
 
 def track(corner=0, elevation=60):
