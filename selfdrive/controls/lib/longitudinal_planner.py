@@ -38,7 +38,11 @@ from exopilot.selfdrive.controls.lib.longitudinal_policy import (
 )
 
 # EOP: Vision Turn Speed Control
-from openpilot.selfdrive.controls.lib.vtsc import VTSC
+from exopilot.selfdrive.controls.lib.vtsc import VTSC, ComfortCalibration, CurvatureBucket
+from exopilot.selfdrive.controls.lib.speed_utils import get_learned_speed
+# VTSC comfort per curve sharpness, read from and learned into these params (the shared VTSC has no Params of its own)
+VTSC_COMFORT_KEYS = {CurvatureBucket.MILD: 'TSCTargetLatAccelMild', CurvatureBucket.MEDIUM: 'TSCTargetLatAccelMedium',
+                     CurvatureBucket.SHARP: 'TSCTargetLatAccelSharp'}
 # EOP: Dynamic Longitudinal Profile
 from exopilot.selfdrive.controls.lib.dlon import DLON
 # EOP: Map Turn Speed Control (includes learned speeds)
@@ -159,8 +163,15 @@ class LongitudinalPlanner:
     self.j_desired_trajectory = np.zeros(CONTROL_N)
     self.solverExecutionTime = 0.0
 
-    # EOP: VTSC initialization
-    self.vtsc = VTSC()
+    # VTSC: the shared one, with EOP10's Params-backed comfort calibration and its learned curve speeds
+    self._vtsc_params = Params()
+    vp = self._vtsc_params
+    self.vtsc = VTSC(enabled=False, comfort=ComfortCalibration(
+      read=lambda b: vp.get(VTSC_COMFORT_KEYS[b]),
+      write=lambda b, v: vp.put_nonblocking(VTSC_COMFORT_KEYS[b], float(v)),
+      seed_fallback=lambda: vp.get('TSCTargetLatAccel')))
+    self._vtsc_flags = (False, False)  # (VTSCEnabled, CurveSpeedLearnEnabled), re-read at most once per second
+    self._vtsc_flags_t = -1e9
     self.vtsc_v_target = None
 
     # EOP: DLON initialization
@@ -341,7 +352,16 @@ class LongitudinalPlanner:
       lat = loc.positionGeodetic.value[0]
       lon = loc.positionGeodetic.value[1]
 
-    self.vtsc_v_target, vtsc_state, self.vtsc_using_learned = self.vtsc.update(v_ego, sm['modelV2'], lat, lon)
+    now = time.monotonic()
+    if now - self._vtsc_flags_t >= 1.0:
+      self._vtsc_flags_t = now
+      self._vtsc_flags = (self._vtsc_params.get_bool('VTSCEnabled'), self._vtsc_params.get_bool('CurveSpeedLearnEnabled'))
+    vtsc_enabled, curve_learn = self._vtsc_flags
+    learned = None
+    if curve_learn and lat != 0.0 and lon != 0.0:
+      learned = lambda kappa: get_learned_speed(lat, lon, kappa, True, min_speed_kph=15.0)  # noqa: E731
+    vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled, learned_speed=learned)
+    self.vtsc_v_target, self.vtsc_using_learned = vtsc_result.target_speed, vtsc_result.using_learned
 
     # EOP: MTSC - Map Turn Speed Control (250-500m range, with learned speeds)
     # Uses learned driver speeds from database, falls back to OSM physics
