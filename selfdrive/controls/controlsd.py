@@ -92,7 +92,7 @@ class Controls:
     self.dlat_state = "laneful"
     self.dlat_lane_confidence = 1.0
 
-    # RED (Road Edge Detection): the shared one, with YOLO / stereo corroboration; RedControllerEnabled re-read every 2 s
+    # RED (Road Edge Detection): the shared one; RedControllerEnabled re-read every 2 s
     self.red = RED(self.params.get_bool)
 
     # EOP: radar zone monitor — adjacent-lane + rear threat assessment
@@ -251,18 +251,8 @@ class Controls:
     self.dlat_state = dlat_result.suggestion.value
     self.dlat_lane_confidence = float(dlat_result.lane_confidence)
 
-    # EOP: RED (Road Edge Detection) - only active in laneless mode
-    # Get YOLO detections from gridd if available
-    yolo_detections = None
-    stereo_data = None
-    if self.sm.valid.get('enhancedTrajectory', False):
-      et = self.sm['enhancedTrajectory']
-      # gridd provides detections via enhancedTrajectory
-      yolo_detections = getattr(et, 'detections', None)
-      stereo_data = getattr(et, 'stereoData', None)
-
-    red_output = self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless,
-                                 yolo_detections=yolo_detections, stereo_data=stereo_data)
+    # RED (Road Edge Detection): only active in laneless mode
+    red_output = self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless)
 
     # EOP: Enhanced ALCC (Always Lane Centering Control)
     calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
