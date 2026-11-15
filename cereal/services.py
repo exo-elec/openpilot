@@ -29,6 +29,9 @@ _services: dict[str, tuple] = {
   "pandaStates": (True, 10., 1),
   "peripheralState": (True, 2., 1),
   "mapData": (True, 1., 1),             # OSM speed limits and curvature (mapd)
+  "mapdOut": (True, 20., 20),           # offline OSM mapd (third_party/mapd): limits, curve speeds, road
+  "mapdExtendedOut": (False, 1.),       # mapd: download progress, path, settings
+  "mapdIn": (False, 0.),                # to mapd: downloads, settings
   "stereoObjects": (True, 20., 5),     # fused camera objects (gridd / gridd)
   "pathAdjust": (True, 20., 5),         # exopilot pathd add-on
   "monoDetections": (True, 20., 5),    # road-camera YOLO detections (exopilot monod)

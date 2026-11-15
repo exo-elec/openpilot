@@ -167,7 +167,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TripDailyStats", {PERSISTENT, STRING}},  // JSON {date: [distance, onroad_time, engaged_time, drives]}, last 7 days
     {"TripUptimeEngaged", {PERSISTENT, FLOAT, "0.0"}},
     {"TripUptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
-    {"MapdEnabled", {PERSISTENT, BOOL, "0"}},    // mapd: OSM tiles for MTSC/MSLC (uses the public Overpass servers; see docs)
+    {"MapdEnabled", {PERSISTENT, BOOL, "0"}},    // map daemons: offline mapd (third_party/mapd, mapdOut) and, until MTSC/MSLC read mapdOut, the Overpass one (mapData)
+    {"MapdSettings", {PERSISTENT, JSON}},         // mapd's own settings (third_party/mapd), written by mapd
     {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)

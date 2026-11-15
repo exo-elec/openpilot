@@ -53,6 +53,12 @@ def manager_init() -> None:
   except PermissionError:
     print(f"WARNING: failed to make {Paths.shm_path()}")
 
+  # mapd's working directory (its offline map tiles)
+  try:
+    os.makedirs(Paths.mapd_root(), exist_ok=True)
+  except PermissionError:
+    print(f"WARNING: failed to make {Paths.mapd_root()}")
+
   # set params
   serial = HARDWARE.get_serial()
   params.put("Version", build_metadata.openpilot.version)

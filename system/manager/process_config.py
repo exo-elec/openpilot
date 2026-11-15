@@ -4,11 +4,17 @@ import platform
 
 from cereal import car
 from openpilot.common.params import Params
+from openpilot.common.basedir import BASEDIR
 from openpilot.system.hardware import PC, TICI
+from openpilot.system.hardware.hw import Paths
 from openpilot.system.manager.process import PythonProcess, NativeProcess, DaemonProcess
 from exopilot.selfdrive.modeld.bigmodel import platform as bigmodel_platform
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
+
+# mapd (third_party/mapd): one static arm64 build, in the arch folders SConstruct uses (larch64 = AGNOS, aarch64 = other Linux)
+MAPD_ARCH = "larch64" if TICI and platform.machine() == "aarch64" else platform.machine()
+MAPD_BIN = os.path.join(BASEDIR, "third_party", "mapd", MAPD_ARCH, "mapd")
 
 def dashboard_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return params.get_bool("DashboardEnabled")
@@ -21,6 +27,9 @@ def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
 
 def map_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("MapdEnabled")
+
+def mapd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return params.get_bool("MapdEnabled")  # also offroad: that is when maps download
 
 def tripd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("TripdEnabled")
@@ -118,7 +127,8 @@ procs = [
   # perception for one camera: tracks monod's detections into the fused-object message pathd reads (EOP10's gridd does this and more)
   PythonProcess("gridd", "exopilot.selfdrive.gridd.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
-  PythonProcess("mapd", "exopilot.selfdrive.mapd.mapd", map_enabled),
+  NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
+  PythonProcess("osm_mapd", "exopilot.selfdrive.mapd.mapd", map_enabled),  # online Overpass mapd (mapData), until mapdOut feeds MTSC/MSLC
   PythonProcess("dashboard", "exopilot.system.dashboard.dashboard", dashboard_enabled),
   PythonProcess("tripd", "exopilot.selfdrive.tripd.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "exopilot.selfdrive.pathd.pathd", pathd_enabled),
