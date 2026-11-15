@@ -1,11 +1,11 @@
 import math
 
 import cereal.messaging as messaging
-from openpilot.selfdrive.controls.lib.radar4d_points import (
+from exopilot.system.radar4d.radar4d_points import (
   FUSE_COST_MOVING, FUSE_COST_STATIC, FUSE_MAX_POINTS, FUSE_RADIUS_M,
 )
-from openpilot.selfdrive.gridd.fusion_costmap import COST_OBSTACLE
-from openpilot.selfdrive.gridd.gridd import GridD
+from exopilot.selfdrive.gridd.fusion_costmap import COST_OBSTACLE
+from exopilot.selfdrive.gridd.occupancy import GridD
 
 
 def _radar4d_msg(points: list[dict]):

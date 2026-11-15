@@ -411,7 +411,7 @@ class HybridAStarWithCorridor:
     """
 
     def __init__(self):
-        from openpilot.exopilot.selfdrive.pathd.hybrid_astar import HybridAStarPlanner, PlannerConfig
+        from exopilot.selfdrive.pathd.hybrid_astar import HybridAStarPlanner, PlannerConfig
 
         self.planner = HybridAStarPlanner(PlannerConfig(
             xy_resolution=0.5,

@@ -1,8 +1,8 @@
 import math
 
 import cereal.messaging as messaging
-from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmap
-from openpilot.selfdrive.gridd.gridd import GridD
+from exopilot.selfdrive.gridd.fusion_costmap import FusionCostmap
+from exopilot.selfdrive.gridd.occupancy import GridD
 from openpilot.selfdrive.controls.radar_corner_geometry import (
     corner_local_to_vehicle_frame, encode_corner_track_id,
 )

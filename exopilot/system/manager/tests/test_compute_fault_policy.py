@@ -18,7 +18,7 @@ def load(name, path):
 
 
 policy = load('compute_policy_test', ROOT / 'exopilot/system/manager/compute_fault_policy.py')
-POLICY_MODULE = 'openpilot.exopilot.system.manager.compute_fault_policy'
+POLICY_MODULE = 'exopilot.system.manager.compute_fault_policy'
 
 
 def stub(name, **attrs):

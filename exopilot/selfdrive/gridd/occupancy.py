@@ -55,12 +55,12 @@ See: docs/eop/daemons/GRIDD.md
 """
 from __future__ import annotations
 
-from openpilot.exopilot.selfdrive.gridd.source_health import fresh_stereo, grid_source_flags
-from openpilot.exopilot.selfdrive.gridd.stereo_grid import StereoGridSource
+from exopilot.selfdrive.gridd.source_health import fresh_stereo, grid_source_flags
+from exopilot.selfdrive.gridd.stereo_grid import StereoGridSource
 from openpilot.system.inferenced import InferenceClient
 
 from exopilot.selfdrive.controls.lib.radar2d import ground_range
-from openpilot.exopilot.system.radar4d.surround_tracks import tracked_obstacles
+from exopilot.system.radar4d.surround_tracks import tracked_obstacles
 
 import logging
 import math
@@ -74,9 +74,9 @@ from openpilot.common.realtime import Ratekeeper
 from openpilot.common.params import Params
 from openpilot.common.core_config import set_daemon_affinity
 
-from openpilot.exopilot.selfdrive.gridd.drivable_fusion import DrivableFusion
-from openpilot.exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, LazyBEV
-from openpilot.exopilot.selfdrive.gridd.fusion_costmap import (
+from exopilot.selfdrive.gridd.drivable_fusion import DrivableFusion
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, LazyBEV
+from exopilot.selfdrive.gridd.fusion_costmap import (
     COST_OBSTACLE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN, FusionCostmap)
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.swaglog import cloudlog
@@ -84,7 +84,7 @@ from exopilot.system.hardware.paths import Paths
 from exopilot.selfdrive.gridd.fusion_tracks import CAMERA_CLASSES, CameraTrackAnnotator
 from openpilot.selfdrive.controls.radar_corner_geometry import (
     corner_local_to_vehicle_frame, encode_corner_track_id, load_corner_poses)
-from openpilot.exopilot.system.radar4d.radar4d_points import points_to_obstacles
+from exopilot.system.radar4d.radar4d_points import points_to_obstacles
 
 RATE = 20  # Hz
 OCCUPIED_THRESHOLD = 0.7   # stereo occupancy -> obstacle cost; pathd's own grid collision threshold

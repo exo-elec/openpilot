@@ -59,15 +59,15 @@ import cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
-from openpilot.exopilot.selfdrive.stereod.semantic_fusion import SemanticFusion
-from openpilot.exopilot.selfdrive.stereod.yolo_3d import YOLO3DEstimator
-from openpilot.exopilot.selfdrive.stereod.stereo_input import calibration_maps, calibration_id, measured_mount
+from exopilot.selfdrive.stereod.semantic_fusion import SemanticFusion
+from exopilot.selfdrive.stereod.yolo_3d import YOLO3DEstimator
+from exopilot.selfdrive.stereod.stereo_input import calibration_maps, calibration_id, measured_mount
 from exopilot.system.hardware.paths import Paths
-from openpilot.exopilot.selfdrive.pointcloudd.semantic_filter import (
+from exopilot.selfdrive.pointcloudd.semantic_filter import (
     SemanticPointFilter, FilterConfig
 )
-from openpilot.exopilot.selfdrive.pointcloudd.adaptive_voxel import AdaptiveVoxelFilter
-from openpilot.exopilot.selfdrive.pointcloudd.feature_extractor import SemanticFeatureExtractor
+from exopilot.selfdrive.pointcloudd.adaptive_voxel import AdaptiveVoxelFilter
+from exopilot.selfdrive.pointcloudd.feature_extractor import SemanticFeatureExtractor
 from openpilot.common.swaglog import cloudlog
 
 # Centralized HAL - ONLY way to access hardware

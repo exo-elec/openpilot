@@ -23,7 +23,7 @@ from enum import Enum
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.exopilot.system.steamd.inputs import ControlCommand
+from exopilot.system.steamd.inputs import ControlCommand
 
 
 class AuthorityState(Enum):

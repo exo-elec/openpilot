@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import time
 
-from openpilot.selfdrive.sided.camera_health import CameraHealthTracker
+from exopilot.selfdrive.sided.camera_health import CameraHealthTracker
 
 
 def test_no_fault_during_startup_grace():

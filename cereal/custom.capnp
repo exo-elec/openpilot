@@ -505,7 +505,7 @@ struct MonoSegments @0xc1d2e3f4a5b6c7d8 {
 
 struct DrivableBev @0xf90fe3954fc1387e {
   # segd: one camera's card segmentation projected onto the road, in gridd's
-  # BEV layout (selfdrive/gridd/lazy_bev.py BEV_GRID): rows forward, cols
+  # BEV layout (exopilot/selfdrive/gridd/lazy_bev.py BEV_GRID): rows forward, cols
   # lateral with y LEFT positive (like every yRel), originX lateral (right
   # edge), originY forward (rear edge), as gridObjects. One entry per card
   # job, i.e. per message; gridd fuses each once, on arrival.
@@ -1297,7 +1297,7 @@ struct BoardThermalStatus @0xcd5de0a9f675e8a5 {
 
 struct Radar4DPoint @0xa1b2c3d4e5f60718 {
   # ESP32 corner-radar point (ESP32_RADAR dev/ATR24, Infineon BGT60ATR24C, over WiFi).
-  # Vehicle-frame polar: selfdrive/controls/radar4d.py places each corner's
+  # Vehicle-frame polar: exopilot/system/radar4d/radar4d.py places each corner's
   # points with the confirmed corner pose. Raw detections, not tracks.
   trackId       @0 :UInt64;   # 0 = raw point (no tracker on this stream)
   rangM         @1 :Float32;  # horizontal distance from the vehicle origin (m)
@@ -1339,7 +1339,7 @@ struct Radar4DObject @0xb3c4d5e6f7a80921 {
 
 struct Radar4D @0xf2a3b4c5d6e7f8e1 {
   # Socket: radar4d | Canonical surround output on every Exopilot board
-  # Consumed by: selfdrive/gridd/gridd.py (_fuse_radar4d)
+  # Consumed by: exopilot/selfdrive/gridd/gridd.py (_fuse_radar4d)
   points  @0 :List(Radar4DPoint);
   objects @1 :List(Radar4DObject);  # lidar-style clustered objects (new)
   # Environment inference from the raw return cloud (radar4d_pointcloud.py):

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from openpilot.exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
 
 COST_LANE = 0         # lane marking on the road
 COST_ROAD = 10        # confident drivable road

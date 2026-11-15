@@ -39,18 +39,17 @@ echo "1. Python Syntax Checks"
 echo "-----------------------"
 
 MODULES=(
-    "selfdrive/pathd/pathd.py"
-    "selfdrive/pathd/track.py"
-    "selfdrive/pathd/predict.py"
-    "selfdrive/pathd/elat.py"
-    "selfdrive/pathd/lane_change.py"
-    "selfdrive/pathd/blindspot.py"
-    "selfdrive/pathd/path_corridor_fusion.py"
-    "selfdrive/gridd/gridd.py"
-    "selfdrive/gridd/lazy_bev.py"
+    "exopilot/selfdrive/pathd/pathd.py"
+    "exopilot/selfdrive/pathd/track.py"
+    "exopilot/selfdrive/pathd/predict.py"
+    "exopilot/selfdrive/pathd/lane_change.py"
+    "exopilot/selfdrive/pathd/blindspot.py"
+    "exopilot/selfdrive/pathd/path_corridor_fusion.py"
+    "exopilot/selfdrive/gridd/gridd.py"
+    "exopilot/selfdrive/gridd/lazy_bev.py"
     "system/socketd/socketd.py"
     "system/bluetoothd/bluetoothd.py"
-    "selfdrive/obd2d/obd2d.py"
+    "exopilot/system/obd2d/obd2d.py"
 )
 
 for module in "${MODULES[@]}"; do
@@ -68,13 +67,13 @@ echo "2. Import Checks (non-hardware modules)"
 echo "----------------------------------------"
 
 IMPORTS=(
-    "openpilot.selfdrive.pathd.track:ObjectTracker"
-    "openpilot.selfdrive.pathd.predict:predict"
-    "openpilot.selfdrive.pathd.lane_change:evaluate_lane_change_gate"
-    "openpilot.selfdrive.pathd.blindspot:check_lane_change_safety"
-    "openpilot.selfdrive.pathd.path_corridor_fusion:fuse_corridor_boundaries"
-    "openpilot.selfdrive.gridd.lazy_bev:LazyBEV"
-    "openpilot.selfdrive.obd2d.obd2d:OBD2SocketCANBridge"
+    "exopilot.selfdrive.pathd.track:ObjectTracker"
+    "exopilot.selfdrive.pathd.predict:predict"
+    "exopilot.selfdrive.pathd.lane_change:evaluate_lane_change_gate"
+    "exopilot.selfdrive.pathd.blindspot:check_lane_change_safety"
+    "exopilot.selfdrive.pathd.path_corridor_fusion:fuse_corridor_boundaries"
+    "exopilot.selfdrive.gridd.lazy_bev:LazyBEV"
+    "exopilot.system.obd2d.obd2d:OBD2SocketCANBridge"
 )
 
 for import_str in "${IMPORTS[@]}"; do
@@ -119,7 +118,7 @@ echo "---------------------"
 
 DOCS=(
     "AGENTS.md"
-    "selfdrive/pathd/README.md"
+    "exopilot/selfdrive/pathd/README.md"
     "docs/eop/EOP.md"
 )
 
@@ -137,7 +136,7 @@ echo ""
 echo "5. Process Configuration"
 echo "-----------------------"
 
-if grep -q "pathd.*selfdrive.pathd.pathd" system/manager/process_config.py; then
+if grep -q "pathd.*exopilot.selfdrive.pathd.avoidance" system/manager/process_config.py; then
     check_pass "pathd registered in process_config.py"
 else
     check_fail "pathd not found in process_config.py"

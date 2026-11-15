@@ -37,11 +37,11 @@ def load_pointcloud():
   for name, attrs in [('stereod.semantic_fusion', ['SemanticFusion']), ('stereod.yolo_3d', ['YOLO3DEstimator']),
                       ('pointcloudd.semantic_filter', ['SemanticPointFilter', 'FilterConfig']),
                       ('pointcloudd.adaptive_voxel', ['AdaptiveVoxelFilter']), ('pointcloudd.feature_extractor', ['SemanticFeatureExtractor'])]:
-    stub(f'openpilot.exopilot.daemons.{name}', **{attr: Mock() for attr in attrs})
+    stub(f'exopilot.daemons.{name}', **{attr: Mock() for attr in attrs})
   stub('openpilot.system.inferenced', InferenceClient=Mock())
   stub('openpilot.system.hardware', HARDWARE=Mock())
   stub('exopilot.system.hardware.paths', Paths=Mock(data_root=Mock(return_value='/data/eop')))
-  modules['openpilot.exopilot.selfdrive.stereod.stereo_input'] = support.inputs
+  modules['exopilot.selfdrive.stereod.stereo_input'] = support.inputs
   modules['openpilot.system.inferenced.opencl_reproject'] = projection
   with patch.dict(sys.modules, modules):
     return load('pointcloudd_host_test', ROOT / 'exopilot/selfdrive/pointcloudd/pointcloudd.py')
@@ -55,7 +55,7 @@ class TestPointCloudGPUContract(unittest.TestCase):
     transform = np.array([[0, 0, 1, 0], [-1, 0, 0, 0], [0, -1, 0, 1.2], [0, 0, 0, 1]], np.float32)
     with patch.object(pointcloud.HARDWARE, 'load_stereo_intrinsics', return_value=support.calibration() if cal else None), \
          patch.object(pointcloud, 'measured_mount', return_value=(transform, None)), \
-         patch.dict(sys.modules, {'openpilot.exopilot.selfdrive.stereod.stereo_input': support.inputs}):
+         patch.dict(sys.modules, {'exopilot.selfdrive.stereod.stereo_input': support.inputs}):
       return pointcloud.Reconstructor3D(Mock(), use_gpu=use_gpu)
 
   def test_missing_calibration_never_builds_nominal_geometry(self):
@@ -179,7 +179,7 @@ class TestStereoDegradation(unittest.TestCase):
   def test_dropout_ages_occupied_and_free_evidence_toward_unknown(self):
     hardware = ModuleType('openpilot.system.hardware')
     hardware.HARDWARE = Mock(get_max_reliable_depth_m=Mock(return_value=80))
-    cameras = ModuleType('openpilot.exopilot.selfdrive.gridd.camera_geometry')
+    cameras = ModuleType('exopilot.selfdrive.gridd.camera_geometry')
     cameras.CameraArrayGeometry = object
     with patch.dict(sys.modules, {hardware.__name__: hardware, cameras.__name__: cameras}):
       bev = load('lazy_bev_dropout_test', ROOT / 'exopilot/selfdrive/gridd/lazy_bev.py')

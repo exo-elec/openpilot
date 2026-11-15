@@ -226,7 +226,7 @@ class RockchipHardware(HardwareBase):
 
         Mounting positions and lens data come from
         hal.platform.<soc>_camera_geometry -- the same source
-        selfdrive/gridd/camera_geometry.py uses -- so this stays consistent
+        exopilot/selfdrive/gridd/camera_geometry.py uses -- so this stays consistent
         with the actual calibration geometry rather than carrying a second
         copy of it.
         """

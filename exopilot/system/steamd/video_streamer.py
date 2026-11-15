@@ -7,9 +7,9 @@ import threading
 
 import numpy as np
 
-from openpilot.exopilot.system.steamd.camera_client import StreamConfig
-from openpilot.exopilot.system.steamd.hud_renderer import HudRenderer
-from openpilot.exopilot.system.steamd.stereo_correction import StereoCorrection
+from exopilot.system.steamd.camera_client import StreamConfig
+from exopilot.system.steamd.hud_renderer import HudRenderer
+from exopilot.system.steamd.stereo_correction import StereoCorrection
 
 logger = logging.getLogger("SteamD.video_streamer")
 

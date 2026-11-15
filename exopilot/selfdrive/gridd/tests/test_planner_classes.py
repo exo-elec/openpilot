@@ -2,7 +2,7 @@ from types import SimpleNamespace as NS
 import sys
 
 import cereal.messaging as messaging
-from openpilot.selfdrive.gridd.gridd import GridD
+from exopilot.selfdrive.gridd.occupancy import GridD
 from exopilot.selfdrive.pathd.object_sources import GriddSource
 
 

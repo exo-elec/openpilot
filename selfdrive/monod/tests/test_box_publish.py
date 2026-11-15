@@ -1,5 +1,5 @@
 """monod publishes the detector's box (u, v, w, h) so logs can validate ranging against stereo."""
-from openpilot.selfdrive.monod.monod import MonoD
+from exopilot.selfdrive.monod.rknn import MonoD
 
 
 def test_box_fields_normalised_and_guards():

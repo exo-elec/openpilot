@@ -15,17 +15,18 @@ import time
 import unittest  # noqa: TID251
 from unittest.mock import MagicMock, patch  # noqa: TID251
 
-# Mock compiled dependencies before importing arbiter
+# Mock compiled dependencies only while importing the arbiter, so other tests
+# in the same process still see the real cereal and msgq
 _mock_msgq = MagicMock()
-_mock_msgq.visionipc = MagicMock()
-sys.modules['msgq'] = _mock_msgq
-sys.modules['msgq.visionipc'] = _mock_msgq.visionipc
-sys.modules['cereal'] = MagicMock()
-sys.modules['cereal.messaging'] = MagicMock()
-sys.modules['openpilot.common.swaglog'] = MagicMock()
-
-from openpilot.selfdrive.steamd.arbiter import ControlArbiter, AuthorityState
-from openpilot.selfdrive.steamd.inputs import ControlCommand
+with patch.dict(sys.modules, {
+  'msgq': _mock_msgq,
+  'msgq.visionipc': _mock_msgq.visionipc,
+  'cereal': MagicMock(),
+  'cereal.messaging': MagicMock(),
+  'openpilot.common.swaglog': MagicMock(),
+}):
+  from exopilot.system.steamd.arbiter import ControlArbiter, AuthorityState
+  from exopilot.system.steamd.inputs import ControlCommand
 
 
 class FakeCarState:
@@ -43,6 +44,9 @@ class TestControlArbiter(unittest.TestCase):
 
   def setUp(self):
     self.arbiter = ControlArbiter()
+    # A plain fake: the compiled Params type does not allow patching its methods
+    self.arbiter.params = MagicMock()
+    self.arbiter.params.get_bool.return_value = False
     # Ensure clean state
     self.arbiter._last_cmd_time = time.monotonic()
     self.arbiter._state = AuthorityState.LOCAL_ONLY

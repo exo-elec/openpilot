@@ -48,15 +48,15 @@ except ImportError:
 VISION_STREAM_SIDE_LEFT = VisionStreamType.VISION_STREAM_SIDE_LEFT
 VISION_STREAM_SIDE_RIGHT = VisionStreamType.VISION_STREAM_SIDE_RIGHT
 
-from openpilot.exopilot.selfdrive.sided.bev_reprojector import (
+from exopilot.selfdrive.sided.bev_reprojector import (
   SideCameraGeometry, reproject_side_camera, make_default_geometry,
   geometry_from_calibration, hal_geometry,
 )
 from openpilot.selfdrive.locationd.calibration_storage import CalibrationStorage
-from openpilot.exopilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
-from openpilot.exopilot.selfdrive.sided.handover_manager import HandoverManager
-from openpilot.exopilot.selfdrive.sided.yolo_detector import YoloDetector
-from openpilot.exopilot.selfdrive.sided.camera_health import CameraHealthTracker
+from exopilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
+from exopilot.selfdrive.sided.handover_manager import HandoverManager
+from exopilot.selfdrive.sided.yolo_detector import YoloDetector
+from exopilot.selfdrive.sided.camera_health import CameraHealthTracker
 
 RATE = 20  # 20 Hz
 

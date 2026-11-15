@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass
 from collections.abc import Sequence
 
-from openpilot.exopilot.selfdrive.pathd import blindspot
+from exopilot.selfdrive.pathd import blindspot
 
 
 @dataclass

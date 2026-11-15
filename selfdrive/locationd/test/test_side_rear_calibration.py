@@ -126,8 +126,8 @@ def test_sided_geometry_projects_like_hal(hal, camera, hal_name):
   """sided/reard's SideCameraGeometry from the tf tree sees the road where hal's CameraModel does."""
   from hal.calibration.camera_model import from_board
   from hal.calibration.tf_tree import Transform
-  from openpilot.selfdrive.sided.bev_reprojector import hal_geometry
-  from openpilot.selfdrive.sided.bev_reprojector import SideCameraGeometry
+  from exopilot.selfdrive.sided.bev_reprojector import hal_geometry
+  from exopilot.selfdrive.sided.bev_reprojector import SideCameraGeometry
   geo = hal_geometry(camera, 1280, 720, geometry=hal)
   model = from_board(hal, hal_name, hal.NOMINAL_UNIT_HEIGHT_M)
   L = model.link
