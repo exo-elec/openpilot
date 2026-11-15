@@ -1,8 +1,12 @@
+import os
+import platform
 import time
 
 from cereal import car
 from openpilot.common.build_profile import UI_BACKEND
-from openpilot.system.hardware import HARDWARE
+from openpilot.common.basedir import BASEDIR
+from openpilot.system.hardware import HARDWARE, TICI
+from openpilot.system.hardware.hw import Paths
 from openpilot.common.params import Params
 from openpilot.system.manager.process import PythonProcess, NativeProcess
 from exopilot.selfdrive.modeld.bigmodel import platform as bigmodel_platform
@@ -38,6 +42,13 @@ def iscar(started: bool, params: Params, CP: car.CarParams) -> bool:
 def logging(started: bool, params: Params, CP: car.CarParams) -> bool:
   run = (not CP.notCar) or not _cached_param_bool(params, "DisableLogging")
   return started and run
+
+# mapd (third_party/mapd): one static arm64 build, in the arch folders SConstruct uses (larch64 = AGNOS, aarch64 = other Linux)
+MAPD_ARCH = "larch64" if TICI and platform.machine() == "aarch64" else platform.machine()
+MAPD_BIN = os.path.join(BASEDIR, "third_party", "mapd", MAPD_ARCH, "mapd")
+
+def mapd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return params.get_bool("MapdEnabled")  # also offroad: that is when maps download
 
 def always_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   return True
@@ -155,7 +166,8 @@ procs = [
    PythonProcess("ui", "selfdrive.ui.main", always_run, watchdog_max_dt=5)),
 
   # Map and Navigation
-  PythonProcess("mapd", "selfdrive.mapd.mapd", always_run),
+  NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
+  PythonProcess("osm_mapd", "exopilot.selfdrive.mapd.mapd", always_run),  # online Overpass mapd (mapData), until mapdOut feeds MTSC/MSLC
   PythonProcess("navd", "selfdrive.navd.navd", always_run),
 
   # ADAS Pipeline
