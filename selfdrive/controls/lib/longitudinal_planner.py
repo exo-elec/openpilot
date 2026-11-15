@@ -38,6 +38,7 @@ from exopilot.selfdrive.controls.lib.longitudinal_policy import (
 
 # EOP: Vision Turn Speed Control
 from exopilot.selfdrive.controls.lib.vtsc import VTSC, ComfortCalibration, CurvatureBucket
+from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc
 from exopilot.selfdrive.controls.lib.speed_utils import get_learned_speed
 # VTSC comfort per curve sharpness, read from and learned into these params (the shared VTSC has no Params of its own)
 VTSC_COMFORT_KEYS = {CurvatureBucket.MILD: 'TSCTargetLatAccelMild', CurvatureBucket.MEDIUM: 'TSCTargetLatAccelMedium',
@@ -213,9 +214,7 @@ class LongitudinalPlanner:
 
     # EOP: VTSC/MTSC handover smoothing
     # Prevents acceleration spikes during MTSC→VTSC transition at ~250m
-    self.prev_vtsc_target = None
-    self.prev_mtsc_target = None
-    self.handover_active = False
+    self._curve_both = None  # previous frame had both VTSC and MTSC targets (handover rate limit)
     self.handover_distance = 0.0
     self.vtsc_using_learned = False
     self.mtsc_using_learned = False
@@ -358,81 +357,11 @@ class LongitudinalPlanner:
     # which enqueues for batch write every 5 seconds.
     # Placeholder — background learning handled by cslb
 
-    # EOP: VTSC/MTSC handover smoothing (prevents acceleration spikes)
-    # VTSC gets more precise as we get closer, so extend MTSC influence to 150m
-    #
-    # Range allocation:
-    #   MTSC: 500m - 150m (long-range, less precise)
-    #   Handover: 200m - 150m (smooth transition zone)
-    #   VTSC: 150m - 0m (short-range, most precise)
-    HANDOVER_START = 200.0  # meters - start blending MTSC→VTSC
-    HANDOVER_END = 150.0    # meters - VTSC takes full control
-
-    vtsc_active = self.vtsc_v_target is not None
-    mtsc_active = self.mtsc_v_target is not None
-
-    if vtsc_active and mtsc_active and self.handover_distance <= HANDOVER_START:
-      # In transition zone (150-200m) - both controllers active
-      # Blend smoothly from MTSC to VTSC as we get closer
-      # VTSC gets more weight as distance decreases
-
-      # Calculate blend factor (0.0 = all MTSC, 1.0 = all VTSC)
-      # At 200m: factor = 0.0 (mostly MTSC)
-      # At 150m: factor = 1.0 (mostly VTSC)
-      if self.handover_distance >= HANDOVER_END:
-        blend_factor = (HANDOVER_START - self.handover_distance) / (HANDOVER_START - HANDOVER_END)
-        blend_factor = np.clip(blend_factor, 0.0, 1.0)
-      else:
-        blend_factor = 1.0  # Within 150m, use VTSC only
-
-      # Weighted blend: closer = more VTSC influence
-      # But always use the minimum (most conservative) of the two for safety
-      if blend_factor < 0.5:
-        # Closer to 200m - trust MTSC more, but cap at VTSC if it's lower
-        blended_target = min(self.mtsc_v_target, self.vtsc_v_target * 1.1)  # 10% VTSC tolerance
-      else:
-        # Closer to 150m - trust VTSC more, but cap at MTSC if it's lower
-        blended_target = min(self.vtsc_v_target, self.mtsc_v_target * 1.05)  # 5% MTSC tolerance
-
-      # Rate limiting during handover to prevent acceleration spikes
-      if self.prev_vtsc_target is not None and self.prev_mtsc_target is not None:
-        max_change = 1.5 * DT_MDL  # Conservative: max 1.5 m/s change per step
-        current_limit = v_cruise
-        delta = blended_target - current_limit
-
-        if abs(delta) > max_change:
-          # Rate limit the change
-          blended_target = current_limit + np.sign(delta) * max_change
-
-      if blended_target < v_cruise:
-        v_cruise = blended_target
-        self.handover_active = True
-      else:
-        self.handover_active = False
-
-    elif vtsc_active and self.handover_distance < HANDOVER_END:
-      # Within 150m - VTSC has full control (most precise)
-      self.handover_active = False
-      if self.vtsc_v_target < v_cruise:
-        v_cruise = self.vtsc_v_target
-
-    elif mtsc_active and self.handover_distance >= HANDOVER_START:
-      # Beyond 200m - MTSC has full control (only option available)
-      self.handover_active = False
-      if self.mtsc_v_target < v_cruise:
-        v_cruise = self.mtsc_v_target
-
-    else:
-      # Fallback: apply whichever is active and more conservative
-      self.handover_active = False
-      if vtsc_active and self.vtsc_v_target < v_cruise:
-        v_cruise = self.vtsc_v_target
-      if mtsc_active and self.mtsc_v_target < v_cruise:
-        v_cruise = self.mtsc_v_target
-
-    # Store previous targets for next iteration
-    self.prev_vtsc_target = self.vtsc_v_target
-    self.prev_mtsc_target = self.mtsc_v_target
+    # VTSC / MTSC handover: the shared rule (MTSC beyond 200 m, a rate-limited conservative blend to 150 m, VTSC inside)
+    curve_target, self._curve_both = blend_mtsc_vtsc(self.mtsc_v_target, self.vtsc_v_target, self.handover_distance, v_cruise,
+                                                     self._curve_both, DT_MDL)
+    if curve_target is not None:
+      v_cruise = min(v_cruise, curve_target)
 
     # EOP: MSLC - Map Speed Limit Control (OSM posted limits)
     self.mslc_v_target = None  # reset each cycle; only re-set if mapData is fresh
