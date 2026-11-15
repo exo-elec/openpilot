@@ -152,7 +152,7 @@ FORK_KEYS = frozenset({
   "PowerSaverEntryDuration",
   "PredictEnabled",
   "QuietMode",
-  "RCDEnabled",
+  "RCSCEnabled",
   "RTKEnabled",
   "RearCameraEnabled",
   "RearCameraHeight",

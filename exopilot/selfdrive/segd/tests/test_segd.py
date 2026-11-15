@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""segd: card segmentation round-robin, summaries, and the rcd consumer."""
+"""segd: card segmentation round-robin, summaries, and the RCSC consumer."""
 
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ import numpy as np
 
 from cereal import custom
 
-from openpilot.selfdrive.segd.card_segmenter import DRIVABLE, LANE, OTHER, CardSegmenter, summarize
+from exopilot.selfdrive.segd.card_segmenter import DRIVABLE, LANE, OTHER, CardSegmenter, summarize
 from openpilot.system.inferenced.compute import BackendType, InferenceResult
 
 with patch.dict(sys.modules, {m: sys.modules.get(m, MagicMock()) for m in ('cereal.messaging', 'msgq', 'msgq.visionipc')}):
-  from openpilot.selfdrive.segd.segd import decode_frame
-  from openpilot.selfdrive.gridd import gridd
+  from exopilot.selfdrive.segd.segd import decode_frame
+  from exopilot.selfdrive.gridd import occupancy as gridd
 
 
 class TestCardSegmenter(unittest.TestCase):
@@ -80,22 +80,19 @@ class TestDecode(unittest.TestCase):
     self.assertEqual(decode_frame(nv12, 6, 4).shape, (4, 6, 3))
 
 
-class TestRcdReadsTheRoadEntry(unittest.TestCase):
+class TestRcscReadsTheRoadEntry(unittest.TestCase):
 
   def test_road_segment_is_picked_from_the_list(self):
-    from openpilot.selfdrive.controls.lib import rcd
-    detector = rcd.RCD.__new__(rcd.RCD)
-    from exopilot.selfdrive.controls.lib.rcd import RCDRuntime
-    detector._rt = RCDRuntime()
+    from exopilot.selfdrive.controls.lib import rcsc
     segs = [SimpleNamespace(camera='side_left', hasRoad=True, hasEdge=False, hasDrivable=True),
             SimpleNamespace(camera='road', hasRoad=True, hasEdge=True, hasDrivable=False)]
     sm = {'monoSegments': SimpleNamespace(segments=segs)}
     sm_obj = MagicMock()
     sm_obj.valid = {'monoSegments': True}
     sm_obj.__getitem__ = lambda _self, k: sm[k]
-    result = detector._update_from_segmentation(sm_obj)
+    result = rcsc.RCSC.from_segmentation(sm_obj)
     self.assertIsNotNone(result)
-    self.assertEqual(result.condition, rcd.RoadCondition.DEBRIS)
+    self.assertEqual(result.condition, rcsc.RoadCondition.DEBRIS)
 
 
 class TestGriddDegradesWithoutTheCard(unittest.TestCase):
