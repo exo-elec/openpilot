@@ -61,7 +61,7 @@ class MapSpeed:
     self._mslc: float | None = None
     self._light_t = -1e9
     self._light: float | None = None
-    self._blend_state: float | None = None
+    self._blend_state: bool | None = None   # previous frame had both MTSC and VTSC targets
     self._critical_s = 0.0
     self._last = None
 

@@ -57,9 +57,13 @@ def test_tlsc_reproduces_the_original():
 
 def test_curve_speed_helpers_and_the_handover_blend():
   assert math.isinf(calculate_speed_for_curvature(0.0005, 1.8)) and abs(calculate_speed_for_curvature(0.004, 1.8) - 21.213) < 1e-3
-  assert blend_mtsc_vtsc(20.0, None, 300.0, 25.0, None, 0.05) == (20.0, None)             # MTSC alone beyond 200 m
-  assert blend_mtsc_vtsc(None, 18.0, 100.0, 25.0, None, 0.05) == (18.0, None)             # VTSC alone
+  assert blend_mtsc_vtsc(20.0, None, 300.0, 25.0, None, 0.05) == (20.0, False)            # MTSC alone beyond 200 m
+  assert blend_mtsc_vtsc(None, 18.0, 100.0, 25.0, None, 0.05) == (18.0, False)            # VTSC alone
   assert blend_mtsc_vtsc(20.0, 18.0, 100.0, 25.0, None, 0.05)[0] == 18.0                  # inside 150 m: VTSC
-  t, state = blend_mtsc_vtsc(20.0, 18.0, 180.0, 25.0, 25.0, 0.05)                        # transition zone, rate-limited from the cruise speed
-  assert abs(t - (25.0 - 1.5 * 0.05)) < 1e-9 and state == t
-  assert blend_mtsc_vtsc(None, None, 100.0, 25.0, None, 0.05) == (None, None)
+  t, state = blend_mtsc_vtsc(20.0, 18.0, 180.0, 25.0, True, 0.05)                        # transition zone, rate-limited from the cruise speed
+  assert abs(t - (25.0 - 1.5 * 0.05)) < 1e-9 and state is True
+  assert blend_mtsc_vtsc(None, None, 100.0, 25.0, None, 0.05) == (None, False)
+  # both targets beyond 200 m, then the first frame in the zone: already rate-limited (EOP10's rule)
+  _, state = blend_mtsc_vtsc(20.0, 18.0, 260.0, 25.0, None, 0.05)
+  t, _ = blend_mtsc_vtsc(20.0, 18.0, 190.0, 25.0, state, 0.05)
+  assert abs(t - (25.0 - 1.5 * 0.05)) < 1e-9

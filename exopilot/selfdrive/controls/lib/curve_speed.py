@@ -17,12 +17,13 @@ def calculate_speed_for_curvature(curvature: float, a_comfort: float, min_curvat
   return (a_comfort / curvature) ** 0.5
 
 
-def blend_mtsc_vtsc(mtsc: float | None, vtsc: float | None, distance_m: float, v_cruise: float, prev_blended: float | None,
-                    dt: float) -> tuple[float | None, float | None]:
-  """Return (curve_target, blended_state). `curve_target` is None when neither controller asks for anything.
+def blend_mtsc_vtsc(mtsc: float | None, vtsc: float | None, distance_m: float, v_cruise: float, prev_both: bool | None,
+                    dt: float) -> tuple[float | None, bool]:
+  """Return (curve_target, both). `curve_target` is None when neither controller asks for anything; pass `both` back next frame.
 
   Same rules as EOP10's planner: both active inside the transition zone -> the more conservative of (MTSC, VTSC with a tolerance),
-  rate-limited relative to the current cruise speed; VTSC alone inside 150 m; MTSC alone beyond 200 m; otherwise the lower active one.
+  rate-limited relative to the current cruise speed whenever the previous frame also had both targets (so the first frame in the
+  zone cannot jump either); VTSC alone inside 150 m; MTSC alone beyond 200 m; otherwise the lower active one.
   """
   both = vtsc is not None and mtsc is not None
   if both and distance_m <= HANDOVER_START_M:
@@ -31,15 +32,15 @@ def blend_mtsc_vtsc(mtsc: float | None, vtsc: float | None, distance_m: float, v
     else:
       blend = 1.0
     target = min(mtsc, vtsc * 1.1) if blend < 0.5 else min(vtsc, mtsc * 1.05)
-    if prev_blended is not None:
+    if prev_both:
       step = MAX_BLEND_STEP_MS * dt
       delta = target - v_cruise
       if abs(delta) > step:
         target = v_cruise + math.copysign(step, delta)
-    return target, target
+    return target, both
   if vtsc is not None and (mtsc is None or distance_m < HANDOVER_END_M):
-    return vtsc, None
+    return vtsc, both
   if mtsc is not None and distance_m >= HANDOVER_START_M:
-    return mtsc, None
+    return mtsc, both
   active = [t for t in (vtsc, mtsc) if t is not None]
-  return (min(active) if active else None), None
+  return (min(active) if active else None), both
