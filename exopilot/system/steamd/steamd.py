@@ -29,15 +29,15 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.basedir import BASEDIR
 
-from openpilot.exopilot.system.steamd.config import SteamDConfig
-from openpilot.exopilot.system.steamd.camera_client import StreamConfig, MultiCameraClient
-from openpilot.exopilot.system.steamd.video_streamer import UdpVideoStreamer
-from openpilot.exopilot.system.steamd.inputs import JoystickInput, KeyboardInput, UdpInput, ControlCommand
-from openpilot.exopilot.system.steamd.arbiter import ControlArbiter
-from openpilot.exopilot.system.steamd.publisher import CarControlPublisher
-from openpilot.exopilot.system.steamd.audit import AuditLog
-from openpilot.exopilot.system.steamd.geofence import Geofence
-from openpilot.exopilot.system.steamd.stereo_correction import StereoCorrection
+from exopilot.system.steamd.config import SteamDConfig
+from exopilot.system.steamd.camera_client import StreamConfig, MultiCameraClient
+from exopilot.system.steamd.video_streamer import UdpVideoStreamer
+from exopilot.system.steamd.inputs import JoystickInput, KeyboardInput, UdpInput, ControlCommand
+from exopilot.system.steamd.arbiter import ControlArbiter
+from exopilot.system.steamd.publisher import CarControlPublisher
+from exopilot.system.steamd.audit import AuditLog
+from exopilot.system.steamd.geofence import Geofence
+from exopilot.system.steamd.stereo_correction import StereoCorrection
 
 logger = logging.getLogger("SteamD")
 

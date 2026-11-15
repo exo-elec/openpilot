@@ -44,7 +44,7 @@ from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.transformations.orientation import rot_from_euler
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 from openpilot.selfdrive.locationd.calibrationd import BLOCK_SIZE, HEIGHT_INIT, INPUTS_NEEDED, INPUTS_WANTED, Calibrator
 from openpilot.selfdrive.locationd.side_rear_calibration import SideRearCalibration
 

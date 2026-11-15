@@ -92,7 +92,7 @@ class TestRecorddVideoEncoder:
 
     def test_encoder_ffmpeg_start_stop(self):
         """VideoEncoder should start and stop ffmpeg correctly."""
-        from openpilot.selfdrive.recordd.recordd import VideoEncoder
+        from exopilot.system.recordd.recordd import VideoEncoder
 
         encoder = VideoEncoder()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -114,7 +114,7 @@ class TestRecorddVideoEncoder:
 
     def test_encoder_ffmpeg_multiple_segments(self):
         """VideoEncoder should handle multiple start/stop cycles."""
-        from openpilot.selfdrive.recordd.recordd import VideoEncoder
+        from exopilot.system.recordd.recordd import VideoEncoder
 
         encoder = VideoEncoder()
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -133,7 +133,7 @@ class TestRecorddVideoEncoder:
 
     def test_encoder_ffmpeg_fallback_quality_presets(self):
         """VideoEncoder should work with all quality presets."""
-        from openpilot.selfdrive.recordd.recordd import VideoEncoder, QUALITY_PRESETS
+        from exopilot.system.recordd.recordd import VideoEncoder, QUALITY_PRESETS
 
         encoder = VideoEncoder()
         with tempfile.TemporaryDirectory() as tmpdir:

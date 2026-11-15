@@ -8,6 +8,6 @@ Tracks lifetime, trip-level, and daily statistics including:
 - Engagement ratio
 """
 
-from openpilot.exopilot.selfdrive.tripd.keys import TripD, main
+from exopilot.selfdrive.tripd.keys import TripD, main
 
 __all__ = ['TripD', 'main']

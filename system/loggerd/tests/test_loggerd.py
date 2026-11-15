@@ -16,7 +16,7 @@ from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 from openpilot.common.timeout import Timeout
 from openpilot.system.hardware.hw import Paths
-from openpilot.system.manager.process_config import managed_processes
+from exopilot.system.manager.process_config import managed_processes
 from openpilot.system.version import get_version
 from openpilot.tools.lib.helpers import RE
 from openpilot.tools.lib.logreader import LogReader

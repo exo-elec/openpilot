@@ -20,8 +20,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from openpilot.exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
-from openpilot.exopilot.selfdrive.sided.bev_reprojector import (
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
+from exopilot.selfdrive.sided.bev_reprojector import (
   SideCameraGeometry, hal_geometry, make_default_geometry, make_rear_geometry)
 
 # drivableBev cell values (custom.capnp DrivableBev.CameraBev.data)

@@ -74,11 +74,11 @@ from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.transformations.coordinates import geodetic2ecef
 
 # Import localization modules
-from openpilot.exopilot.selfdrive.coordinationd.osm_localizer import (
+from exopilot.selfdrive.coordinationd.osm_localizer import (
     OSMLocalizerModule, MapMatchResult
 )
-from openpilot.exopilot.selfdrive.coordinationd.sgm_localizer import SGMLocalizerModule
-from openpilot.exopilot.selfdrive.coordinationd.fusion import FusionEngine, PositionEstimate, GNSSMeasurement, RoadConstraint
+from exopilot.selfdrive.coordinationd.sgm_localizer import SGMLocalizerModule
+from exopilot.selfdrive.coordinationd.fusion import FusionEngine, PositionEstimate, GNSSMeasurement, RoadConstraint
 
 
 class GlobalD:

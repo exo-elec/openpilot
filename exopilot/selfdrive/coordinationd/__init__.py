@@ -5,7 +5,7 @@ coordinationd - Coordination Daemon for openpilot.
 Coordinates odometry + GPS + OSM/SGM constraints into fused ECEF position.
 """
 
-from openpilot.exopilot.selfdrive.coordinationd.osm_localizer import (
+from exopilot.selfdrive.coordinationd.osm_localizer import (
     OSMLocalizerModule,
     OSMWay,
     MapMatchResult,
@@ -13,14 +13,14 @@ from openpilot.exopilot.selfdrive.coordinationd.osm_localizer import (
     OSMCacheDB,
 )
 
-from openpilot.exopilot.selfdrive.coordinationd.sgm_localizer import (
+from exopilot.selfdrive.coordinationd.sgm_localizer import (
     SGMLocalizerModule,
     SGMMapTile,
     PointCloudFrame,
     ICPMatchResult,
 )
 
-from openpilot.exopilot.selfdrive.coordinationd.fusion import (
+from exopilot.selfdrive.coordinationd.fusion import (
     FusionEngine,
     PositionEstimate,
     GNSSMeasurement,

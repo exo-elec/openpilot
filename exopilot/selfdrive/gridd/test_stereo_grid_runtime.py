@@ -27,12 +27,12 @@ def load(name, path):
 
 inputs = load('grid_input_test', 'exopilot/selfdrive/stereod/stereo_input.py')
 projection = load('grid_projection_test', 'system/inferenced/opencl_reproject.py')
-with patch.dict(sys.modules, {'openpilot.exopilot.selfdrive.stereod.stereo_input': inputs,
+with patch.dict(sys.modules, {'exopilot.selfdrive.stereod.stereo_input': inputs,
                              'openpilot.system.inferenced.opencl_reproject': projection}):
   mapping = load('grid_mapping_test', 'exopilot/selfdrive/gridd/stereo_grid.py')
 hardware = ModuleType('openpilot.system.hardware')
 hardware.HARDWARE = Mock(get_max_reliable_depth_m=Mock(return_value=80))
-camera = ModuleType('openpilot.exopilot.selfdrive.gridd.camera_geometry')
+camera = ModuleType('exopilot.selfdrive.gridd.camera_geometry')
 camera.CameraArrayGeometry = object
 with patch.dict(sys.modules, {hardware.__name__: hardware, camera.__name__: camera}):
   bev = load('grid_evidence_test', 'exopilot/selfdrive/gridd/lazy_bev.py')
@@ -260,7 +260,7 @@ class TestStereoGridContracts(unittest.TestCase):
     import capnp
     log = capnp.load(str(ROOT / 'cereal/log.capnp'), imports=[str(ROOT / 'cereal')])
     health = load('grid_wire_source_flags', 'exopilot/selfdrive/gridd/source_health.py')
-    with patch.dict(sys.modules, {'openpilot.exopilot.selfdrive.gridd.lazy_bev': bev}):
+    with patch.dict(sys.modules, {'exopilot.selfdrive.gridd.lazy_bev': bev}):
       costs = load('grid_wire_costs', 'exopilot/selfdrive/gridd/fusion_costmap.py')
     def message(name):
       event = log.Event.new_message(valid=False)  # cereal.messaging explicitly overrides the schema default.

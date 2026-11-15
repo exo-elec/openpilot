@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-from openpilot.exopilot.selfdrive.pathd.hybrid_astar import (
+from exopilot.selfdrive.pathd.hybrid_astar import (
     HybridAStarPlanner, PlannerConfig
 )
 from openpilot.common.swaglog import cloudlog

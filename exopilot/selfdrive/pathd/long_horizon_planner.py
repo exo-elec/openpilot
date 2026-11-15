@@ -25,10 +25,10 @@ from typing import Any
 
 import numpy as np
 
-from openpilot.exopilot.selfdrive.pathd.hybrid_astar import (
+from exopilot.selfdrive.pathd.hybrid_astar import (
     HybridAStarPlanner, PlannerConfig, BEVCostmap
 )
-from openpilot.exopilot.selfdrive.surfaced.pcd_matcher import HistoricalPCDMatcher
+from exopilot.selfdrive.surfaced.pcd_matcher import HistoricalPCDMatcher
 from openpilot.common.swaglog import cloudlog
 
 # Range tiers for 500m planning

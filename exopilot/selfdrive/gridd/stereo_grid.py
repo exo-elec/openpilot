@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 
-from openpilot.exopilot.selfdrive.stereod.stereo_input import calibration_id, calibration_maps, measured_mount
+from exopilot.selfdrive.stereod.stereo_input import calibration_id, calibration_maps, measured_mount
 from openpilot.system.inferenced.opencl_reproject import OpenCLReprojector
 
 

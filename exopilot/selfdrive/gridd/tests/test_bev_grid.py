@@ -9,11 +9,11 @@ from types import SimpleNamespace
 import numpy as np
 
 import cereal.messaging as messaging
-from openpilot.selfdrive.gridd.fusion_costmap import (
+from exopilot.selfdrive.gridd.fusion_costmap import (
     COST_OBSTACLE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN, FusionCostmap)
-from openpilot.selfdrive.gridd.gridd import GridD, fill_grid_objects
-from openpilot.selfdrive.gridd.lazy_bev import BEV_GRID, LazyBEV
-from openpilot.selfdrive.pathd.pathd import OccupancyGridView
+from exopilot.selfdrive.gridd.occupancy import GridD, fill_grid_objects
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, LazyBEV
+from exopilot.selfdrive.pathd.avoidance import OccupancyGridView
 
 
 def test_grid_extent_is_the_decided_one():

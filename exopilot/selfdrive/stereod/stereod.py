@@ -32,9 +32,9 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.inferenced import InferenceClient
 
 # SGM via HAL
-from openpilot.exopilot.selfdrive.stereod.stereo_input import luma_plane, capture_timestamp, calibration_maps, calibration_id
+from exopilot.selfdrive.stereod.stereo_input import luma_plane, capture_timestamp, calibration_maps, calibration_id
 from openpilot.system.inferenced.opencl_rectify import OpenCLRectifier
-from openpilot.exopilot.selfdrive.stereod.sgm import SGM, SGMConfig, SGMError, SGMDeviceError, SGMTimeoutError
+from exopilot.selfdrive.stereod.sgm import SGM, SGMConfig, SGMError, SGMDeviceError, SGMTimeoutError
 
 # Constants
 RATE = 20  # Hz

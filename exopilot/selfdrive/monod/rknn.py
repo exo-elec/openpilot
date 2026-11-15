@@ -34,8 +34,8 @@ from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.modeld.runners.rknn_platform import get_platform_npu_config
-from openpilot.exopilot.selfdrive.monod.traffic_light_classifier import classify as classify_traffic_light
-from openpilot.exopilot.selfdrive.sided.yolo_detector import ROAD_COCO_CLASSES, TRAFFIC_LIGHT, YoloDetector
+from exopilot.selfdrive.monod.traffic_light_classifier import classify as classify_traffic_light
+from exopilot.selfdrive.sided.yolo_detector import ROAD_COCO_CLASSES, TRAFFIC_LIGHT, YoloDetector
 from openpilot.system.hardware import HARDWARE
 
 # VisionIPC integration (optional - falls back to zero frames if unavailable)

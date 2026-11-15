@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from openpilot.selfdrive.controls.lib.radar4d_points import (
+from exopilot.system.radar4d.radar4d_points import (
   FUSE_COST_MOVING, FUSE_COST_STATIC, FUSE_MAX_POINTS, MAX_POINTS, STALE_S,
   CornerCloudCache, detection_to_vehicle, expected_static_vrel, points_to_obstacles,
 )

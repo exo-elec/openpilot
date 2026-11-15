@@ -25,7 +25,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.selfdrive.selfdrived.events import EmptyAlert
 
 from openpilot.system.hardware import HARDWARE
-from openpilot.exopilot.system.manager.compute_fault_policy import critical_inference_fault
+from exopilot.system.manager.compute_fault_policy import critical_inference_fault
 from exopilot.selfdrive.modeld.bigmodel.gate import BigModelGate
 from exopilot.selfdrive.controls.lib.green_light import GreenLightNotice
 from exopilot.selfdrive.controls.lib.lead_departure import LeadDepartureNotice

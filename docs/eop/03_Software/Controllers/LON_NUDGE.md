@@ -459,7 +459,7 @@ class LonNudge:
 ```python
 # selfdrive/pathd/pathd.py
 
-from openpilot.selfdrive.pathd.lon_nudge import LonNudge
+from exopilot.selfdrive.pathd.lon_nudge import LonNudge
 
 class PathD:
     def __init__(self):

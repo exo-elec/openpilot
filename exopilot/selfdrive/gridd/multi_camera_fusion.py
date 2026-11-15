@@ -18,7 +18,7 @@ Output: Unified perception with:
 - Multi-scale detection fusion
 
 Usage:
-    from openpilot.exopilot.selfdrive.gridd.multi_camera_fusion import MultiCameraFusion
+    from exopilot.selfdrive.gridd.multi_camera_fusion import MultiCameraFusion
 
     # Create fusion system
     fusion = MultiCameraFusion()
@@ -44,7 +44,7 @@ from enum import Enum, auto
 from collections import deque
 import time
 
-from openpilot.exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware import HARDWARE
 

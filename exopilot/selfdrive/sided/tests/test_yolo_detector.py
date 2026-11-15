@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch  # noqa: TID251
 
 import numpy as np
 
-from openpilot.selfdrive.sided.yolo_detector import DETECTION_CORE, YoloDetector
+from exopilot.selfdrive.sided.yolo_detector import DETECTION_CORE, YoloDetector
 from openpilot.system.inferenced.compute import InferenceResult
 
 
@@ -100,7 +100,7 @@ def _daemon_module(name):
   # sided/reard import cereal.messaging at module scope; the processors need none of it
   stubs = {m: sys.modules.get(m, MagicMock()) for m in ('cereal.messaging', 'msgq', 'msgq.visionipc')}
   with patch.dict(sys.modules, stubs):
-    return __import__(f'openpilot.selfdrive.{name}.{name}', fromlist=['_'])
+    return __import__(f'exopilot.selfdrive.{name}.{name}', fromlist=['_'])
 
 
 class TestSideRearRates(unittest.TestCase):

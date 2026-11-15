@@ -25,9 +25,9 @@ from cereal import log  # noqa: E402
 from openpilot.selfdrive.controls.lib.aeb import AEB  # noqa: E402
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper  # noqa: E402
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff  # noqa: E402
-from openpilot.exopilot.selfdrive.pathd.lat_nudge import LatNudge  # noqa: E402
-from openpilot.selfdrive.pathd.soc import SOC  # noqa: E402
-from openpilot.selfdrive.pathd.track import TrackedCluster, _extract_clusters  # noqa: E402
+from exopilot.selfdrive.pathd.lat_nudge import LatNudge  # noqa: E402
+from exopilot.selfdrive.pathd.soc import SOC  # noqa: E402
+from exopilot.selfdrive.pathd.track import TrackedCluster, _extract_clusters  # noqa: E402
 
 LCD = log.LaneChangeDirection
 MODEL_LEFT = -3.5  # a car one lane to the left, in modelV2's frame (y right positive)

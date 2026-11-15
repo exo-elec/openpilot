@@ -13,7 +13,7 @@ from tqdm import trange
 from openpilot.common.params import Params
 from openpilot.common.timeout import Timeout
 from openpilot.system.hardware import TICI
-from openpilot.system.manager.process_config import managed_processes
+from exopilot.system.manager.process_config import managed_processes
 from openpilot.tools.lib.logreader import LogReader
 from openpilot.system.hardware.hw import Paths
 

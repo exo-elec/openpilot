@@ -2,10 +2,10 @@
 moving with the car (after Autoware's log-odds fusion + LOBF updater)."""
 import numpy as np
 
-from openpilot.selfdrive.gridd.drivable_fusion import (
+from exopilot.selfdrive.gridd.drivable_fusion import (
     DEGRADED_AFTER_S, DRIVABLE, LANE, OTHER, UNKNOWN, TAU_S, DrivableFusion)
-from openpilot.selfdrive.gridd.fusion_costmap import COST_LANE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN
-from openpilot.selfdrive.gridd.lazy_bev import BEV_GRID
+from exopilot.selfdrive.gridd.fusion_costmap import COST_LANE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID
 
 
 def _map(value=UNKNOWN):
@@ -121,8 +121,8 @@ class _Host:
 
 
 def test_gridd_fuses_segds_message_into_the_cost_layer():
-    from openpilot.selfdrive.gridd.fusion_costmap import FusionCostmap
-    from openpilot.selfdrive.gridd.gridd import GridD
+    from exopilot.selfdrive.gridd.fusion_costmap import FusionCostmap
+    from exopilot.selfdrive.gridd.occupancy import GridD
     cells = _map()
     cells[_cell(20.0, 0.0)] = DRIVABLE
     host = _Host(_bev_msg('road', cells))
@@ -134,7 +134,7 @@ def test_gridd_fuses_segds_message_into_the_cost_layer():
 
 
 def test_gridd_ignores_a_map_on_another_grid():
-    from openpilot.selfdrive.gridd.gridd import GridD
+    from exopilot.selfdrive.gridd.occupancy import GridD
     host = _Host(_bev_msg('road', _map(DRIVABLE), originY=-5.0))
     GridD._fuse_drivable_bev(host)
     assert not host.drivable.has_evidence(0.0)

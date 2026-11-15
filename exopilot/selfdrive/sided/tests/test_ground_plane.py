@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch  # noqa: TID251
 
 import numpy as np
 
-from openpilot.selfdrive.sided.bev_reprojector import CLASS_WIDTHS_M, make_default_geometry, make_rear_geometry, reproject_side_camera
-from openpilot.selfdrive.sided.simple_tracker import SideObject
+from exopilot.selfdrive.sided.bev_reprojector import CLASS_WIDTHS_M, make_default_geometry, make_rear_geometry, reproject_side_camera
+from exopilot.selfdrive.sided.simple_tracker import SideObject
 
 
 def project(geo, point_vehicle) -> tuple[float, float]:
@@ -84,7 +84,7 @@ class TestRearProcessor(unittest.TestCase):
   def test_publishes_metres_from_the_ground_plane(self):
     stubs = {m: sys.modules.get(m, MagicMock()) for m in ('cereal.messaging', 'msgq', 'msgq.visionipc')}
     with patch.dict(sys.modules, stubs):
-      from openpilot.selfdrive.reard.reard import RknnRearProcessor
+      from exopilot.selfdrive.reard.reard import RknnRearProcessor
     geo = make_rear_geometry()
     u, v = project(geo, (-6.0, -1.0, 0.0))
     det = MagicMock(is_available=True)

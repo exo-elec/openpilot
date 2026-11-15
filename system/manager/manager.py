@@ -14,7 +14,7 @@ from openpilot.system.hardware import HARDWARE, HAS_SPEAKER, HAS_VOICE_INPUT, HA
 from exopilot.system.hardware.base import HardwareCapability
 from openpilot.system.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
 from openpilot.system.manager.process import ensure_running
-from openpilot.system.manager.process_config import managed_processes
+from exopilot.system.manager.process_config import managed_processes
 from exopilot.system.manager.power_monitoring import PowerMonitoring
 # Offline mode - no cloud registration needed
 from openpilot.common.swaglog import cloudlog, add_file_handler

@@ -16,7 +16,7 @@ sys.modules['cereal.messaging'] = mock_messaging
 
 from cereal import log
 from cereal import custom
-from openpilot.selfdrive.adaptd.adaptd import (
+from exopilot.selfdrive.adaptd.adaptd import (
   AdaptiveDrivingComputer, AdaptD,
 )
 

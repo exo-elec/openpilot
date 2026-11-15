@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.mapd.geohash_cache import OSMCache
-from openpilot.exopilot.selfdrive.coordinationd.fusion import RoadConstraint  # noqa: F401 — re-exported
+from exopilot.selfdrive.coordinationd.fusion import RoadConstraint  # noqa: F401 — re-exported
 from exopilot.system.hardware.paths import Paths
 
 

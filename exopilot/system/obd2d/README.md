@@ -241,7 +241,7 @@ git submodule update --init --recursive third_party/python-can-isotp
 ## UDS Adapter Usage
 
 ```python
-from openpilot.selfdrive.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter, UDSConfig
+from exopilot.system.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter, UDSConfig
 
 # Create adapter
 config = UDSConfig(
@@ -318,7 +318,7 @@ When CAN interface is not available, obd2d runs in mock mode:
 
 ```python
 # system/manager/process_config.py
-PythonProcess("obd2d", "selfdrive.obd2d.obd2d", always_run)
+PythonProcess("obd2d", "exopilot.system.obd2d.obd2d", always_run)
 ```
 
 ## Git Submodules

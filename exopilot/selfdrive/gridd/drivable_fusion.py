@@ -20,8 +20,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from openpilot.exopilot.selfdrive.gridd.fusion_costmap import COST_LANE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN
-from openpilot.exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
+from exopilot.selfdrive.gridd.fusion_costmap import COST_LANE, COST_ROAD, COST_UNCERTAIN, COST_UNKNOWN
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID, BEVGridSpec
 
 # segd drivableBev cell values
 UNKNOWN, OTHER, DRIVABLE, LANE = 0, 1, 2, 3
