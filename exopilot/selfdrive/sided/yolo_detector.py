@@ -30,7 +30,7 @@ from openpilot.selfdrive.modeld.runners.rknn_platform import get_platform_npu_co
 from openpilot.system.inferenced.client import InferenceClient
 from openpilot.system.inferenced.compute import ModelConfig
 
-from openpilot.exopilot.selfdrive.sided.simple_tracker import SideObject
+from exopilot.selfdrive.sided.simple_tracker import SideObject
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 

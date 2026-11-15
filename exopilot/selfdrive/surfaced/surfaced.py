@@ -61,12 +61,12 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.core_config import set_daemon_affinity
 
-from openpilot.exopilot.selfdrive.surfaced.surface_detector import (
+from exopilot.selfdrive.surfaced.surface_detector import (
     SurfaceQualityDB,
     SurfacePrediction,
     SurfaceQuality,
 )
-from openpilot.exopilot.selfdrive.pointcloudd.pointcloudd import PcdReader
+from exopilot.selfdrive.pointcloudd.pointcloudd import PcdReader
 from openpilot.common.swaglog import cloudlog
 from exopilot.system.hardware.paths import Paths
 

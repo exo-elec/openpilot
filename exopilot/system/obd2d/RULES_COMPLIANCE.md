@@ -66,8 +66,8 @@ import cereal.messaging as messaging
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.params import Params
 from openpilot.common.core_config import set_daemon_affinity
-from openpilot.selfdrive.obd2d.vehicle_db import VehicleType, VEHICLE_PIDS
-from openpilot.selfdrive.obd2d.telemetry import VehicleInfo
+from exopilot.system.obd2d.vehicle_db import VehicleType, VEHICLE_PIDS
+from exopilot.system.obd2d.telemetry import VehicleInfo
 ```
 ✅ All imports use correct prefix
 
@@ -190,7 +190,7 @@ The UDS adapter (`udsoncan_adapter.py`) follows RULES.md while wrapping third-pa
 
 1. **Class Naming:** `UDSVehicleAdapter`, `UDSConfig`, `BatterySOHCodec` - all PascalCase
 2. **Method Naming:** `connect()`, `read_vin()`, `read_mode22_pid()` - all snake_case
-3. **Imports:** Uses `openpilot.selfdrive.obd2d.vehicle_db` - correct prefix
+3. **Imports:** Uses `exopilot.system.obd2d.vehicle_db` - correct prefix
 4. **Documentation:** Docstrings follow Google style
 
 ### Third-Party Library Integration

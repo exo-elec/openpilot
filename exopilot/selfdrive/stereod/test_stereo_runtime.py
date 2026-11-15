@@ -46,8 +46,8 @@ def daemon_module():
   stub('openpilot.system.hardware.camera_geometry', CameraGeometry=Mock())
   stub('openpilot.system.hardware.registry', PlatformRegistry=Mock())
   stub('openpilot.system.inferenced', InferenceClient=Mock())
-  replacements['openpilot.exopilot.selfdrive.stereod.stereo_input'] = inputs
-  replacements['openpilot.exopilot.selfdrive.stereod.sgm'] = sgm
+  replacements['exopilot.selfdrive.stereod.stereo_input'] = inputs
+  replacements['exopilot.selfdrive.stereod.sgm'] = sgm
   stub('openpilot.system.inferenced.opencl_rectify',
        OpenCLRectifier=Mock(side_effect=lambda *args: Mock(remap=Mock(side_effect=lambda left, right: (left, right)))))
   with patch.dict(sys.modules, replacements):
@@ -302,7 +302,7 @@ class TestDepthHelper(unittest.TestCase):
   def setUpClass(cls):
     log = ModuleType('openpilot.common.swaglog')
     log.cloudlog = Mock()
-    with patch.dict(sys.modules, {'openpilot.exopilot.selfdrive.stereod.sgm': sgm, 'openpilot.common.swaglog': log}):
+    with patch.dict(sys.modules, {'exopilot.selfdrive.stereod.sgm': sgm, 'openpilot.common.swaglog': log}):
       cls.pipeline = load('depth_pipeline_host_test', ROOT / 'exopilot/selfdrive/stereod/depth_pipeline.py')
 
   def make_pipeline(self):

@@ -1,5 +1,5 @@
 """segd's demand-driven card feed: what each drive context sends to the card."""
-from openpilot.selfdrive.segd.schedule import Scheduler, SegContext, grant, wanted_rates
+from exopilot.selfdrive.segd.schedule import Scheduler, SegContext, grant, wanted_rates
 
 HIGHWAY = 28.0
 URBAN = 8.0

@@ -23,7 +23,7 @@ Author: EnhancedOpenPilot Team
 import numpy as np
 from dataclasses import dataclass
 
-from openpilot.exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 from openpilot.system.hardware.camera_geometry import CameraGeometry, CameraPosition
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware import HARDWARE

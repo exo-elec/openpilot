@@ -8,9 +8,9 @@ import math
 
 import numpy as np
 
-from openpilot.selfdrive.gridd.lazy_bev import BEV_GRID
-from openpilot.selfdrive.segd.card_segmenter import DRIVABLE as CARD_DRIVABLE, OTHER as CARD_OTHER
-from openpilot.selfdrive.segd.drivable_bev import (
+from exopilot.selfdrive.gridd.lazy_bev import BEV_GRID
+from exopilot.selfdrive.segd.card_segmenter import DRIVABLE as CARD_DRIVABLE, OTHER as CARD_OTHER
+from exopilot.selfdrive.segd.drivable_bev import (
   DRIVABLE, OTHER, UNKNOWN, build_lut, front_geometry, project, side_rear_geometry)
 
 MAP_HW = (540, 960)
@@ -71,7 +71,7 @@ def test_segd_caches_the_lookup_table_per_pose():
   from types import SimpleNamespace
   from unittest.mock import MagicMock, patch  # noqa: TID251
   with patch.dict(sys.modules, {m: sys.modules.get(m, MagicMock()) for m in ('cereal.messaging', 'msgq', 'msgq.visionipc')}):
-    from openpilot.selfdrive.segd.segd import SegD
+    from exopilot.selfdrive.segd.segd import SegD
   sd = SegD.__new__(SegD)
   lc = SimpleNamespace(rpyCalib=[0.0, 0.0, 0.0], wideFromDeviceEuler=[], height=[1.3])
 

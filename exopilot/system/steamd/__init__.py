@@ -13,7 +13,7 @@ Modules:
   video_utils    : NV12 conversion helpers
 """
 
-from openpilot.exopilot.system.steamd.config import SteamDConfig
-from openpilot.exopilot.system.steamd.steamd import SteamD
+from exopilot.system.steamd.config import SteamDConfig
+from exopilot.system.steamd.steamd import SteamD
 
 __all__ = ["SteamD", "SteamDConfig"]

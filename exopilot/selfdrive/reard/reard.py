@@ -33,11 +33,11 @@ except ImportError:
 
 VISION_STREAM_REAR = VisionStreamType.VISION_STREAM_REAR
 
-from openpilot.exopilot.selfdrive.sided.bev_reprojector import (SideCameraGeometry, geometry_from_calibration, hal_geometry, make_rear_geometry,
+from exopilot.selfdrive.sided.bev_reprojector import (SideCameraGeometry, geometry_from_calibration, hal_geometry, make_rear_geometry,
                                                        reproject_side_camera)
-from openpilot.exopilot.selfdrive.sided.yolo_detector import YoloDetector
-from openpilot.exopilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
-from openpilot.exopilot.selfdrive.sided.camera_health import CameraHealthTracker
+from exopilot.selfdrive.sided.yolo_detector import YoloDetector
+from exopilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject
+from exopilot.selfdrive.sided.camera_health import CameraHealthTracker
 
 RATE = 20  # 20 Hz
 

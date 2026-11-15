@@ -78,10 +78,10 @@ def _board_literals(path: Path, rel: str) -> list[tuple[int, str]]:
 
 @pytest.mark.parametrize("rel", [
   "selfdrive/locationd/calibration_storage.py",
-  "selfdrive/locationd/camera_calibrationd.py",
-  "selfdrive/gridd/camera_geometry.py",
-  "selfdrive/gridd/multi_camera_fusion.py",
-  "selfdrive/monod/calibration_fusion.py",
+  "exopilot/selfdrive/camera_calibrationd/camera_calibrationd.py",
+  "exopilot/selfdrive/gridd/camera_geometry.py",
+  "exopilot/selfdrive/gridd/multi_camera_fusion.py",
+  "exopilot/selfdrive/monod/calibration_fusion.py",
   "tools/sim/bridge/carla/carla_world.py",
 ])
 def test_no_board_name_as_a_default(rel):
@@ -134,10 +134,10 @@ def test_fusion_config_defaults_to_the_running_board():
   other board ran with 01M's optics. None means "ask the hardware".
 
   The optics themselves are covered by
-  selfdrive/gridd/tests/test_camera_specs.py, which checks both boards
+  exopilot/selfdrive/gridd/tests/test_camera_specs.py, which checks both boards
   against the HAL.
   """
-  from openpilot.selfdrive.gridd.multi_camera_fusion import FusionConfig
+  from exopilot.selfdrive.gridd.multi_camera_fusion import FusionConfig
   assert FusionConfig().platform is None
 
 

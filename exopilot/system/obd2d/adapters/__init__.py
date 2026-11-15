@@ -5,6 +5,6 @@ This package provides wrappers around python-udsoncan and python-can-isotp
 for ExoPilot's OBD2 diagnostic daemon.
 """
 
-from openpilot.exopilot.system.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter, BatterySOHCodec, BatteryVoltageCodec
+from exopilot.system.obd2d.adapters.udsoncan_adapter import UDSVehicleAdapter, BatterySOHCodec, BatteryVoltageCodec
 
 __all__ = ['UDSVehicleAdapter', 'BatterySOHCodec', 'BatteryVoltageCodec']

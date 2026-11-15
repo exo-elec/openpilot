@@ -36,7 +36,7 @@ import numpy as np
 import cv2
 
 # Import SGM (stereo matching)
-from openpilot.exopilot.selfdrive.stereod.sgm import SGM, SGMConfig
+from exopilot.selfdrive.stereod.sgm import SGM, SGMConfig
 
 from openpilot.common.swaglog import cloudlog
 

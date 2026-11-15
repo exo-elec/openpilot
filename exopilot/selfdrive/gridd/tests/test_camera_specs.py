@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from openpilot.selfdrive.gridd.multi_camera_fusion import (
+from exopilot.selfdrive.gridd.multi_camera_fusion import (
   FALLBACK_OPTICS,
   HAL_NAME_BY_ROLE,
   ROLE_RANGE_M,

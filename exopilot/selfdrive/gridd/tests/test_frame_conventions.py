@@ -7,7 +7,7 @@ and the object's side cannot silently flip again.
 """
 from types import SimpleNamespace as NS
 
-from openpilot.selfdrive.gridd.gridd import GridD, lane_cache_from_model
+from exopilot.selfdrive.gridd.occupancy import GridD, lane_cache_from_model
 
 XS = [0.0, 10.0, 20.0, 40.0, 60.0]
 

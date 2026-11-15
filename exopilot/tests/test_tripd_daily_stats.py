@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 from openpilot.common.params import Params
-from openpilot.selfdrive.tripd.tripd import DailyStats, TripD
+from exopilot.selfdrive.tripd.keys import DailyStats, TripD
 
 
 def _today(offset=0):

@@ -3,11 +3,11 @@
 
 import pytest
 
-from openpilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject, _iou
-from openpilot.selfdrive.sided.bev_reprojector import (
+from exopilot.selfdrive.sided.simple_tracker import SimpleTracker, SideObject, _iou
+from exopilot.selfdrive.sided.bev_reprojector import (
   make_default_geometry, reproject_side_camera,
 )
-from openpilot.selfdrive.sided.handover_manager import HandoverManager
+from exopilot.selfdrive.sided.handover_manager import HandoverManager
 
 
 class TestIoU:
@@ -96,7 +96,7 @@ class TestBEVReprojector:
     assert z <= geo.cam_z_m  # ground plane intersection
 
   def test_class_widths(self):
-    from openpilot.selfdrive.sided.bev_reprojector import CLASS_WIDTHS_M, CLASS_LENGTHS_M
+    from exopilot.selfdrive.sided.bev_reprojector import CLASS_WIDTHS_M, CLASS_LENGTHS_M
     assert CLASS_WIDTHS_M['person'] < CLASS_WIDTHS_M['truck']
     assert CLASS_LENGTHS_M['bus'] > CLASS_LENGTHS_M['car']
 

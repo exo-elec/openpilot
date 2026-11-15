@@ -5,7 +5,7 @@ import pytest
 
 from cereal import log
 from openpilot.selfdrive.locationd.calibrationd import BLOCK_SIZE, HEIGHT_INIT, INPUTS_NEEDED, INPUTS_WANTED, MIN_SPEED_FILTER
-from openpilot.selfdrive.locationd.camera_calibrationd import MultiCameraCalibrator
+from exopilot.selfdrive.camera_calibrationd.camera_calibrationd import MultiCameraCalibrator
 from openpilot.selfdrive.locationd.test.test_calibrationd import process_messages
 
 

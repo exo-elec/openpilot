@@ -9,12 +9,12 @@ from unittest.mock import MagicMock, patch  # noqa: TID251
 
 import numpy as np
 
-from openpilot.selfdrive.sided.simple_tracker import SideObject
+from exopilot.selfdrive.sided.simple_tracker import SideObject
 
 # monod pulls in cereal.messaging at import; the code under test needs none of it.
 with patch.dict(sys.modules, {'cereal.messaging': sys.modules.get('cereal.messaging', MagicMock())}):
-  from openpilot.selfdrive.monod import monod
-  from openpilot.selfdrive.monod.monod import (CameraLens, MultiCameraFusion, RKNNMonoProcessor,
+  from exopilot.selfdrive.monod import rknn as monod
+  from exopilot.selfdrive.monod.rknn import (CameraLens, MultiCameraFusion, RKNNMonoProcessor,
                                                objects_to_road_frame)
 
 

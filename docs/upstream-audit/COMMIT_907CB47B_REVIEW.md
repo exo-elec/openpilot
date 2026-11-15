@@ -33,7 +33,7 @@
 **Code:**
 ```python
 # osm_localizer.py:23
-from openpilot.selfdrive.coordinationd.fusion import RoadConstraint  # noqa: F401 — re-exported
+from exopilot.selfdrive.coordinationd.fusion import RoadConstraint  # noqa: F401 — re-exported
 ```
 
 ---

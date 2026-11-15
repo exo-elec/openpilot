@@ -6,16 +6,13 @@ Validates point-in-polygon logic and edge cases.
 
 import sys
 import unittest  # noqa: TID251
-from unittest.mock import MagicMock  # noqa: TID251
+from unittest.mock import MagicMock, patch  # noqa: TID251
 
-# Mock compiled dependencies before importing
-sys.modules['msgq'] = MagicMock()
-sys.modules['msgq.visionipc'] = MagicMock()
-sys.modules['cereal'] = MagicMock()
-sys.modules['cereal.messaging'] = MagicMock()
-sys.modules['openpilot.common.swaglog'] = MagicMock()
-
-from openpilot.selfdrive.steamd.geofence import Geofence
+# Mock compiled dependencies only while importing, so other tests in the
+# same process still see the real cereal and msgq
+with patch.dict(sys.modules, {name: MagicMock() for name in (
+    'msgq', 'msgq.visionipc', 'cereal', 'cereal.messaging', 'openpilot.common.swaglog')}):
+  from exopilot.system.steamd.geofence import Geofence
 
 
 class TestGeofence(unittest.TestCase):

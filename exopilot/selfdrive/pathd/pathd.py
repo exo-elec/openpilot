@@ -2,7 +2,7 @@
 """pathd: the planner. Bounded add-on layer plus an optional parallel rule channel, published as `pathAdjust`.
 
 One process name, `pathd`, on every branch: NGP10 registers `exopilot.selfdrive.pathd.pathd`; EOP10/01M/02M keep their
-`selfdrive.pathd.pathd` and host `SharedPathdHost` inside it with the gridd source. FUSION is not here: gridd (EOP10)
+`exopilot.selfdrive.pathd.avoidance` and host `SharedPathdHost` inside it with the gridd source. FUSION is not here: gridd (EOP10)
 or monod's own tracker (NGP10) deliver the objects.
 
 Reads modelV2 (policy path, lane lines, policy action), carState, radarState and monoDetections and publishes

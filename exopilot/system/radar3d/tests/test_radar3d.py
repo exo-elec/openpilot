@@ -1,6 +1,6 @@
 import math
 
-from openpilot.system.radar3d.radar3d import detection_to_point
+from exopilot.system.radar3d.radar3d import detection_to_point
 
 
 def _det_stub(track_id, range_m, vel_mps, azimuth_deg, elevation_deg=0.0, snr_db=20.0):

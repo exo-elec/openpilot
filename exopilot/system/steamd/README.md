@@ -247,7 +247,7 @@ config = SteamDConfig(
 ## Configuration
 
 ```python
-from openpilot.selfdrive.steamd.config import SteamDConfig
+from exopilot.system.steamd.config import SteamDConfig
 
 config = SteamDConfig(
     web_port=5000,

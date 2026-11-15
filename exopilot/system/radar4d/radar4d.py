@@ -13,11 +13,11 @@ import cereal.messaging as messaging
 from openpilot.common.realtime import DT_MDL, Priority, Ratekeeper, config_realtime_process
 from openpilot.common.core_config import set_daemon_affinity
 from openpilot.common.swaglog import cloudlog
-from openpilot.exopilot.system.radar4d.radar4d_points import CornerCloudCache
+from exopilot.system.radar4d.radar4d_points import CornerCloudCache
 from openpilot.selfdrive.controls.radar_corner_geometry import load_corner_poses
 from openpilot.system.hardware import HARDWARE
 from exopilot.selfdrive.controls.lib.radar2d import ground_range
-from openpilot.exopilot.system.radar4d.surround_tracks import surround_tracks
+from exopilot.system.radar4d.surround_tracks import surround_tracks
 
 _radar_hal = HARDWARE.hal_import("drivers.radar")   # exopilot's hal, through the one seam
 HAL_AVAILABLE = _radar_hal is not None and hasattr(_radar_hal, "RadarCornerReceiver")

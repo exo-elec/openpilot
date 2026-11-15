@@ -36,7 +36,7 @@ Stereo baseline: 80mm
 ```
 
 Usage:
-    from openpilot.exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
+    from exopilot.selfdrive.gridd.camera_geometry import CameraArrayGeometry
 
     # Load from calibration file
     geometry = CameraArrayGeometry.from_calibration_file('camera_calibration.yaml')

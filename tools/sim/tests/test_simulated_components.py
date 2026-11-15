@@ -5,7 +5,7 @@ import math
 import pytest
 
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneAlertLevel
-from openpilot.selfdrive.sided.bev_reprojector import make_default_geometry
+from exopilot.selfdrive.sided.bev_reprojector import make_default_geometry
 from openpilot.tools.sim.lib.scenario_spawner import ScenarioSpawner, SCENARIOS
 from openpilot.tools.sim.lib.weather_controller import WEATHER_PRESETS, WeatherController
 
