@@ -44,8 +44,8 @@ from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, ap
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See exopilot/selfdrive/controls/lib/lc_lead_handoff.py.
 from exopilot.selfdrive.controls.lib.lc_lead_handoff import LeadHandoff
-# VTSC: vision-only turn speed advisory (0-250m), comma-3-safe slice of EOP10's
-# vtsc.py -- no learned-speed DB, no self-calibration. See vtsc.py.
+# VTSC: vision turn speed advisory (0-250m); the one module shared with EOP10
+# (NGP10 passes no comfort store and no learned speeds: plain vision target). See vtsc.py.
 from exopilot.selfdrive.controls.lib.vtsc import VTSC
 # NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
 # NSLCEnabled (no panel toggle there either). Nav-only on this branch --
