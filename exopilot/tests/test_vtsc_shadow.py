@@ -26,11 +26,11 @@ def test_vtsc_turning_then_leaves_without_target():
   assert result.target_speed is None
 
 
-def test_vtsc_missing_model_and_disable_are_safe():
+def test_vtsc_empty_plan_and_disable_are_safe():
   vtsc = VTSC()
-  result = vtsc.update(20.0, None)
+  result = vtsc.update(20.0, model([], []))
   assert result.state is VTSCState.ENABLED
   assert result.target_speed is None
-  result = vtsc.update(20.0, {}, enabled=False)
+  result = vtsc.update(20.0, model([], []), enabled=False)
   assert result.state is VTSCState.DISABLED
   assert result.target_speed is None

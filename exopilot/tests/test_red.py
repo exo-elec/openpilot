@@ -1,6 +1,8 @@
 from types import SimpleNamespace as NS
 
-from exopilot.selfdrive.controls.lib.red import RED, REDState, RoadEdge, RoadEdgeType, curvature_nudge, vision_edges
+from exopilot.selfdrive.controls.lib.red import PARAM_REFRESH_S, RED, REDState, RoadEdge, curvature_nudge, vision_edges
+
+ON = lambda key: True  # noqa: E731
 
 
 def _edge(y, n=10):
@@ -26,40 +28,49 @@ def test_confidence_comes_from_the_road_edge_std_and_weak_edges_are_ignored():
 
 
 def test_inactive_outside_laneless_and_before_the_history_fills():
-  red = RED()
+  red = RED(ON)
   assert _run(red, _model(right_y=0.8), laneless=False)['state'] == 'INACTIVE'
-  red = RED()
+  red = RED(ON)
   assert red.update(_model(right_y=0.8), (0.0, 0.0), 20.0, [], True)['edges_detected'] == 0  # first frame: history not full
 
 
 def test_states_by_distance():
-  assert _run(RED(), _model())['state'] == REDState.MONITORING.name  # edges 1.8 m away
-  assert _run(RED(), _model(right_y=0.8))['state'] == REDState.WARNING.name
-  assert _run(RED(), _model(right_y=0.4))['state'] == REDState.CRITICAL.name
+  assert _run(RED(ON), _model())['state'] == REDState.MONITORING.name  # edges 1.8 m away
+  assert _run(RED(ON), _model(right_y=0.8))['state'] == REDState.WARNING.name
+  assert _run(RED(ON), _model(right_y=0.4))['state'] == REDState.CRITICAL.name
 
 
 def test_edge_on_the_right_pushes_left_and_vice_versa():
   # modelV2 y is right-positive: right edge y > 0 -> push left = positive curvature delta
-  right = _run(RED(), _model(right_y=0.7))
+  right = _run(RED(ON), _model(right_y=0.7))
   assert right['edge_side'] == 1 and curvature_nudge(right) > 0
-  left = _run(RED(), _model(left_y=-0.7))
+  left = _run(RED(ON), _model(left_y=-0.7))
   assert left['edge_side'] == -1 and curvature_nudge(left) < 0
 
 
 def test_no_nudge_when_far_or_inactive():
-  assert curvature_nudge(_run(RED(), _model())) == 0.0
-  assert curvature_nudge(_run(RED(), _model(right_y=0.7), laneless=False)) == 0.0
+  assert curvature_nudge(_run(RED(ON), _model())) == 0.0
+  assert curvature_nudge(_run(RED(ON), _model(right_y=0.7), laneless=False)) == 0.0
 
 
 def test_cost_grows_with_proximity_and_speed_and_is_capped():
-  edge = RoadEdge('right', [(5.0, 0.9)], RoadEdgeType.UNKNOWN, 0.9)
-  near = RoadEdge('right', [(5.0, 0.3)], RoadEdgeType.UNKNOWN, 0.9)
+  edge = RoadEdge('right', [(5.0, 0.9)], 0.9)
+  near = RoadEdge('right', [(5.0, 0.3)], 0.9)
   assert RED.repulsive_cost(0.0, near, 20.0) > RED.repulsive_cost(0.0, edge, 20.0) > 0.0
   assert RED.repulsive_cost(0.0, edge, 30.0) > RED.repulsive_cost(0.0, edge, 0.0)
-  assert RED.repulsive_cost(0.0, RoadEdge('right', [(5.0, 2.0)], RoadEdgeType.UNKNOWN, 0.9), 20.0) == 0.0
+  assert RED.repulsive_cost(0.0, RoadEdge('right', [(5.0, 2.0)], 0.9), 20.0) == 0.0
 
 
 def test_path_override_pushes_a_path_that_hugs_the_left_edge_to_the_right():
-  left = RoadEdge('left', [(5.0, -0.2)], RoadEdgeType.UNKNOWN, 0.9)
+  left = RoadEdge('left', [(5.0, -0.2)], 0.9)
   path, active = RED.path_override([(5.0, -0.1), (10.0, -0.1)], [left])
   assert active and all(y > -0.1 for _, y in path)
+
+
+def test_the_switch_is_read_and_off_means_inactive():
+  state, t = {'on': False}, [0.0]
+  red = RED(lambda key: state['on'], clock=lambda: t[0])
+  assert all(_run(red, _model(right_y=0.4))['state'] == REDState.INACTIVE.name for _ in range(2))
+  state['on'] = True
+  t[0] += PARAM_REFRESH_S
+  assert _run(red, _model(right_y=0.4))['state'] == REDState.CRITICAL.name

@@ -69,7 +69,7 @@ class ComfortCalibration:
   WRITE_EVERY_S = 30.0
   READ_TTL_S = 2.0
 
-  def __init__(self, read=None, write=None, seed_fallback=None, clock=time.monotonic):
+  def __init__(self, read=None, write=None, clock=time.monotonic):
     self._read, self._write, self._clock = read or (lambda b: None), write or (lambda b, v: None), clock
     self._alpha = self.DT / (self.FILTER_TC + self.DT)
     self.x: dict[CurvatureBucket, float] = {}
@@ -78,14 +78,12 @@ class ComfortCalibration:
     self._cache: dict[CurvatureBucket, tuple[float, float]] = {}
     for b in CurvatureBucket:
       stored = self._stored(b)
-      if stored is None and seed_fallback is not None:
-        stored = seed_fallback()
       self.x[b] = _clip(stored, self.MIN_LAT_ACC, self.MAX_LAT_ACC) if stored is not None else BUCKET_COMFORT[b]
 
   def _stored(self, bucket):
     try:
       v = self._read(bucket)
-      return float(v) if v not in (None, b'', '') else None
+      return None if v is None else float(v)
     except (ValueError, TypeError):
       return None
 
@@ -148,26 +146,10 @@ class VTSC:
     self.comfort = comfort
     self.state = VTSCState.DISABLED
 
-  @staticmethod
-  def _field(model, name):
-    if model is None:
-      return []
-    if isinstance(model, dict):
-      value = model.get(name)
-    else:
-      value = model
-      for part in name.split("."):
-        value = getattr(value, part, None)
-    return [] if value is None else value  # capnp list, list or numpy array (no truth test: arrays have none)
-
   @classmethod
   def _lateral_acceleration(cls, v_ego, model):
-    rates = list(cls._field(model, "orientationRate.z"))
-    if not rates:
-      rates = list(cls._field(model, "orientation_rate_z"))
-    velocities = list(cls._field(model, "velocity.x"))
-    if not velocities:
-      velocities = list(cls._field(model, "velocity_x"))
+    rates = list(model.orientationRate.z)
+    velocities = list(model.velocity.x)
     current = abs(float(rates[0])) * max(0.0, float(v_ego)) if rates else 0.0
     samples = [abs(float(rate)) * float(speed)
                for rate, speed in zip(rates[:10], velocities[:10], strict=False) if float(speed) > 1.0]

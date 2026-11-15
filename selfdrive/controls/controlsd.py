@@ -82,8 +82,8 @@ class Controls:
     self.pathd_lat = PathAdjustFollower() if self.params.get_bool("PathdLateral") else None
     # Parallel rule channel (pathd + DPP): applies pathd's mode to the policy curvature; no pathd or mode < 4 = policy unchanged
     self.rule_consumer = RuleChannelConsumer()
-    # RED (RedControllerEnabled, default off): push away from a close road edge in laneless mode, vision only
-    self.red = RED() if self.params.get_bool("RedControllerEnabled") else None
+    # RED (RedControllerEnabled, default off, re-read every 2 s): push away from a close road edge in laneless mode
+    self.red = RED(self.params.get_bool)
     # CAT: smoothed/validated steer ratio and stiffness (CATEnabled, default off; re-read every 5 s), manual
     # steer-ratio override (CATManualSR), seed saved per fingerprint (CATPersist)
     self.cat = CAT(self.CP)
@@ -195,7 +195,7 @@ class Controls:
     # Steering PID loop and lateral MPC
     # Reset desired curvature to current to avoid violating the limits on engage
     new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
-    if self.red is not None and CC.latActive:
+    if CC.latActive:
       new_desired_curvature += curvature_nudge(self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless))
     # Lateral add-ons (SOC, pathd) are proposers merged by the tighten-only arbiter: same-side offsets do not add,
     # opposite sides cancel, and the result stays inside the lane room (exopilot/selfdrive/controls/lib/arbiter.py).
