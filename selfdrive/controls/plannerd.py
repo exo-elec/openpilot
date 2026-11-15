@@ -26,14 +26,14 @@ def main():
   longitudinal_planner = LongitudinalPlanner(CP, speed_offset_kph=speed_offset_kph)
   drive_mode = DriveModeApplier(params)  # DriveMode: eco / normal / sport write the style params; custom writes nothing
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
-  # 'mapData' (mapd), 'stereoObjects' (gridd: traffic lights) and 'driverMonitoringState' feed the map/light/distraction speed
-  # caps (exopilot/selfdrive/controls/lib/map_speed.py). 'mapData' used to be left out because NGP10 had no MapData struct and no entry in
-  # cereal/services.py, which crashed SubMaster.__init__ with KeyError('mapData'); both now exist (see cereal/log.capnp).
+  # 'mapdOut' / 'mapdExtendedOut' (offline mapd), 'stereoObjects' (gridd: traffic lights) and 'driverMonitoringState' feed the
+  # map/light/distraction speed caps (exopilot/selfdrive/controls/lib/map_speed.py).
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapData', 'stereoObjects', 'driverMonitoringState'],
+                            'navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapdOut', 'mapdExtendedOut', 'stereoObjects',
+                            'driverMonitoringState'],
                            poll='modelV2',
-                           ignore_alive=['navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapData', 'stereoObjects',
-                                         'driverMonitoringState'])
+                           ignore_alive=['navInstruction', 'accelerometer', 'monoDetections', 'pathAdjust', 'mapdOut', 'mapdExtendedOut',
+                                         'stereoObjects', 'driverMonitoringState'])
 
   # DLON runs unconditionally -- a default, always-on behavior of this
   # branch, not a user-selectable feature.

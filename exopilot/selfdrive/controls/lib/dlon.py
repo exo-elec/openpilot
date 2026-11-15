@@ -11,7 +11,6 @@ first). Pure policy: Params are read through the injected `get_bool` / `get`.
 
 import time
 from enum import Enum
-from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
 from exopilot.common.speed_zones import HIGHWAY_SPEED_MPS, URBAN_SPEED_MPS
 
@@ -311,13 +310,13 @@ class DLON:
   def detect_speed_limit_trigger(self, sm, v_ego) -> bool:
     """Detect an active mapped/nav speed limit meaningfully lower than
     current speed — E2E's smoother deceleration profile handles the
-    transition better than stock ACC. The map limit (mapd's `mapData`,
-    km/h) wins over the navigation limit (`navInstruction`, m/s)."""
+    transition better than stock ACC. The map limit (offline mapd's `mapdOut`,
+    m/s) wins over the navigation limit (`navInstruction`, m/s)."""
     limit_ms = None
-    if 'mapData' in sm.valid and sm.valid['mapData']:
-      map_limit = sm['mapData'].speedLimit  # km/h
+    if sm.valid.get('mapdOut', False):
+      map_limit = sm['mapdOut'].speedLimit  # m/s
       if map_limit > 0:
-        limit_ms = map_limit * CV.KPH_TO_MS
+        limit_ms = map_limit
     if limit_ms is None and 'navInstruction' in sm.valid and sm.valid['navInstruction']:
       nav_limit = sm['navInstruction'].speedLimit  # m/s
       if nav_limit > 0:

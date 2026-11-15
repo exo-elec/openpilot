@@ -5,8 +5,9 @@ the speed the driver set is never exceeded. Per-controller switches (default off
 `TLSCEnabled`, `DDSCEnabled`, `RCSCEnabled`; MSLC per-range offsets `SharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
 
 Two fixes over EOP10's inline planner code:
-  - EOP10 reset the MTSC/MSLC target every cycle and set it only on the cycle a `mapData` message arrived (1 Hz): the cap existed for
+  - EOP10 reset the MTSC/MSLC target every cycle and set it only on the cycle a map message arrived (1 Hz): the cap existed for
     one planner cycle in twenty. Here the last result is HELD for MAP_HOLD_S after the last map message.
+Map data comes from the offline mapd (third_party/mapd): limits from `mapdOut`, curves from `mapdExtendedOut`'s path.
   - TLSC gets the lights that lie ahead on our planned path (|lateral - path| <= LIGHT_LATERAL_M), not every light in view.
 MTSC -> VTSC handover is the shared `blend_mtsc_vtsc` (the planner passes its VTSC target in).
 DDSC has no DMS here: its "distracted" input comes from the driver-activity monitor (`driverMonitoringState.awarenessStatus`):
@@ -18,7 +19,7 @@ import time
 from dataclasses import dataclass
 from types import SimpleNamespace as NS
 
-from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc
+from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc, curves_from_path
 from exopilot.selfdrive.controls.lib.feature_keys import MAP_SPEED_KEYS
 from exopilot.selfdrive.controls.lib.ddsc import DMS_BASE_LIMIT_MPS, DDSC
 from exopilot.selfdrive.controls.lib.mslc import MSLC
@@ -27,7 +28,7 @@ from exopilot.selfdrive.controls.lib.tlsc import TLSC
 from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_path
 from exopilot.selfdrive.controls.lib.rcsc import RCSC
 
-MAP_HOLD_S = 3.0              # mapd publishes at 1 Hz: hold a result this long
+MAP_HOLD_S = 3.0              # mapdExtendedOut is 1 Hz: hold a result this long after its last message
 LIGHT_HOLD_S = 0.5            # same as EOP10's TLSC stale limit
 LIGHT_LATERAL_M = 3.5         # a light for our lane is within this of the planned path
 PROMPT_AWARENESS = 0.25
@@ -56,7 +57,7 @@ class MapSpeed:
     self._cfg_t = -1e9
     self.mtsc, self.mslc, self.tlsc, self.ddsc = MTSC(enabled=True), MSLC(enabled=True), TLSC(enabled=True), DDSC()
     self.rcsc = RCSC(lambda k: True)      # gated by flags['rcsc'] below; RCSC's own switch is always on
-    self._map_t = -1e9
+    self._mslc_t = self._mtsc_t = -1e9
     self._mtsc: tuple[float | None, float] = (None, math.inf)      # (target, distance)
     self._mslc: float | None = None
     self._light_t = -1e9
@@ -86,18 +87,20 @@ class MapSpeed:
     cs = sm['carState']
     gas = bool(cs.gasPressed)
 
-    # --- map: MTSC + MSLC on mapData, held between messages
-    if (self.flags['mtsc'] or self.flags['mslc']) and sm.updated.get('mapData', False) and self._fresh(sm, 'mapData'):
-      lat = lon = 0.0
-      md = sm['mapData']
-      if self.flags['mtsc']:
-        out = self.mtsc.update(md, v_ego, lat, lon)
-        self._mtsc = (out['v_target'], out['distance'])
-      if self.flags['mslc']:
-        self._mslc, _ = self.mslc.update(md, v_ego, gas, now)
-      self._map_t = now
-    if now - self._map_t > MAP_HOLD_S:
-      self._mtsc, self._mslc = (None, math.inf), None
+    # --- map (offline mapd): MSLC on mapdOut, MTSC on mapdExtendedOut's path; results held between messages
+    if self.flags['mslc'] and sm.updated.get('mapdOut', False) and self._fresh(sm, 'mapdOut'):
+      mo = sm['mapdOut']
+      self._mslc, _ = self.mslc.update(mo.speedLimit, mo.nextSpeedLimit, mo.nextSpeedLimitDistance, v_ego, gas, now)
+      self._mslc_t = now
+    if self.flags['mtsc'] and sm.updated.get('mapdExtendedOut', False) and self._fresh(sm, 'mapdExtendedOut'):
+      ext = sm['mapdExtendedOut']
+      out = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego)
+      self._mtsc = (out['v_target'], out['distance'])
+      self._mtsc_t = now
+    if now - self._mtsc_t > MAP_HOLD_S:
+      self._mtsc = (None, math.inf)
+    if now - self._mslc_t > MAP_HOLD_S:
+      self._mslc = None
     curve, self._blend_state = blend_mtsc_vtsc(self._mtsc[0] if self.flags['mtsc'] else None, vtsc_target, self._mtsc[1], v_cruise, self._blend_state, dt)
     if self.flags['mtsc'] and curve is not None:
       sources['mtsc'] = curve

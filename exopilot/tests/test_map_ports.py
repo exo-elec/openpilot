@@ -26,7 +26,7 @@ def same(a, b):
 def test_mtsc_reproduces_the_original():
   m = MTSC(enabled=True)
   for row in G['mtsc']:
-    r = m.update(NS(upcomingCurvatureDEPRECATED=[NS(x=x, y=y) for x, y in row['curves']]), 25.0, 0.0, 0.0)
+    r = m.update([(x, y) for x, y in row['curves']], 25.0, 0.0, 0.0)
     assert same(r['v_target'], row['v_target']) and r['state'] == row['state'] and r['is_active'] == row['active']
     assert r['handover_to_vtsc'] == row['handover'] and abs(r['curvature'] - row['curvature']) < 1e-12
     assert same(None if r['distance'] == float('inf') else r['distance'], row['distance'])
@@ -35,8 +35,8 @@ def test_mtsc_reproduces_the_original():
 def test_mslc_reproduces_the_original():
   s = MSLC(enabled=True)
   for row in G['mslc']:
-    md = NS(speedLimit=row['speedLimit'], nextSpeedLimit=row['next'], nextSpeedLimitDistance=row['dist'])
-    target, state = s.update(md, row['v'], row['drv'], row['t'], row['nav'])
+    # the golden rows are km/h (EOP10's mapData); mapd gives m/s
+    target, state = s.update(row['speedLimit'] / 3.6, row['next'] / 3.6, row['dist'], row['v'], row['drv'], row['t'], row['nav'])
     assert same(target, row['target']) and state == row['state']
 
 

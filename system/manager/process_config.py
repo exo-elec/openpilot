@@ -25,9 +25,6 @@ def monod_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
 def pathd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and params.get_bool("PathdEnabled")
 
-def map_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started and params.get_bool("MapdEnabled")
-
 def mapd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
   return params.get_bool("MapdEnabled")  # also offroad: that is when maps download
 
@@ -128,7 +125,6 @@ procs = [
   PythonProcess("gridd", "exopilot.selfdrive.gridd.gridd", monod_enabled),
   # OSM speed limits and curve lookahead for MTSC/MSLC (public Overpass servers + a local tile cache): default off, needs a GPS fix
   NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
-  PythonProcess("osm_mapd", "exopilot.selfdrive.mapd.mapd", map_enabled),  # online Overpass mapd (mapData), until mapdOut feeds MTSC/MSLC
   PythonProcess("dashboard", "exopilot.system.dashboard.dashboard", dashboard_enabled),
   PythonProcess("tripd", "exopilot.selfdrive.tripd.tripd", tripd_enabled),   # trip statistics, not a driving function
   PythonProcess("pathd", "exopilot.selfdrive.pathd.pathd", pathd_enabled),

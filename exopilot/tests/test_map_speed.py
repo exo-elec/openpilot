@@ -19,20 +19,34 @@ def make(flags=('mtsc', 'mslc', 'tlsc', 'ddsc')):
   return MapSpeed(lambda k: bools.get(k, False), lambda k: "", clk), clk
 
 
-def sm(map_data=None, updated=False, lights=(), lead=False, awareness=1.0, gas=False, v=25.0, vlead=20.0):
+def sm(mapd=None, updated=False, lights=(), lead=False, awareness=1.0, gas=False, v=25.0, vlead=20.0):
+  """`mapd` = (mapdOut, mapdExtendedOut) as the offline mapd publishes them."""
+  out, ext = mapd or (None, None)
   s = type('S', (dict,), {})({
     'carState': NS(gasPressed=gas, vEgo=v, standstill=False),
     'radarState': NS(leadOne=NS(status=lead, vLead=vlead)),
-    'mapData': map_data or NS(), 'stereoObjects': NS(objects=[NS(obstacleType='trafficLight', trafficLightState=st, trafficLightConfidence=0.5, dRel=d, yRel=y) for st, d, y in lights]),
+    'mapdOut': out, 'mapdExtendedOut': ext,
+    'stereoObjects': NS(objects=[NS(obstacleType='trafficLight', trafficLightState=st, trafficLightConfidence=0.5, dRel=d, yRel=y) for st, d, y in lights]),
     'driverMonitoringState': NS(awarenessStatus=awareness),
     'modelV2': NS(position=NS(x=XS, y=[0.0] * 33))})
-  s.updated = {'mapData': updated}
-  s.valid = {'carState': True, 'radarState': True, 'mapData': map_data is not None, 'stereoObjects': True, 'driverMonitoringState': True, 'modelV2': True}
+  s.updated = {'mapdOut': updated, 'mapdExtendedOut': updated}
+  s.valid = {'carState': True, 'radarState': True, 'mapdOut': out is not None, 'mapdExtendedOut': ext is not None, 'stereoObjects': True,
+             'driverMonitoringState': True, 'modelV2': True}
   return s
 
 
-def curve(x=300.0, y=0.004):
-  return NS(upcomingCurvatureDEPRECATED=[NS(x=x, y=y)], speedLimit=0.0, nextSpeedLimit=0.0, nextSpeedLimitDistance=0.0)
+M_PER_DEG_LAT = 6371000.0 * 3.141592653589793 / 180.0
+
+
+def mapd(limit_ms=0.0, curve_at=None, k=0.004):
+  """mapdOut + mapdExtendedOut: a straight path north from (0, 0) with one curved point `curve_at` metres ahead."""
+  points = [NS(latitude=d / M_PER_DEG_LAT, longitude=0.0, curvature=(k if d == curve_at else 0.0)) for d in range(0, 501, 50)]
+  return (NS(speedLimit=limit_ms, nextSpeedLimit=0.0, nextSpeedLimitDistance=0.0),
+          NS(position=NS(latitude=0.0, longitude=0.0), path=points))
+
+
+def curve(x=300, y=0.004):
+  return mapd(curve_at=x, k=y)
 
 
 def test_nothing_enabled_means_no_cap():
@@ -54,8 +68,7 @@ def test_map_result_is_held_between_one_hz_messages_and_expires():
 
 def test_mslc_cap_never_raises_the_cruise_speed_and_follows_the_posted_limit():
   ms, _ = make(flags=('mslc',))
-  md = NS(upcomingCurvatureDEPRECATED=[], speedLimit=80.0, nextSpeedLimit=0.0, nextSpeedLimitDistance=0.0)
-  r = ms.update(sm(md, updated=True), 20.0, 30.0, None, False, 0.05)
+  r = ms.update(sm(mapd(limit_ms=80.0 / 3.6), updated=True), 20.0, 30.0, None, False, 0.05)
   assert abs(r.cap - 80.0 / 3.6) < 1e-6 and r.cap <= 30.0 + 1e-9
 
 
@@ -105,3 +118,14 @@ def test_rcsc_cap_comes_from_a_surface_source_and_is_off_without_one():
     clk.t += 0.05
     caps.append(ms.update(s, 25.0, 25.0, None, False, 0.05).cap)
   assert caps[-1] == 12.0 and caps[-1] is not None                                    # wet road: 12 m/s, from the first active cycle
+
+
+def test_curves_from_path_starts_at_our_position_and_adds_distance_along_the_path():
+  from exopilot.selfdrive.controls.lib.curve_speed import curves_from_path
+  _, ext = mapd(curve_at=300, k=0.01)
+  ext.position = NS(latitude=100.0 / M_PER_DEG_LAT, longitude=0.0)        # already 100 m along: the first two points are behind us
+  curves = curves_from_path(ext.position, ext.path)
+  assert len(curves) == 9 and abs(curves[0][0]) < 1e-6
+  d, k = next(c for c in curves if c[1] > 0)
+  assert abs(d - 200.0) < 0.5 and k == 0.01
+  assert curves_from_path(ext.position, []) == []

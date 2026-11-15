@@ -44,3 +44,30 @@ def blend_mtsc_vtsc(mtsc: float | None, vtsc: float | None, distance_m: float, v
     return mtsc, both
   active = [t for t in (vtsc, mtsc) if t is not None]
   return (min(active) if active else None), both
+
+
+EARTH_RADIUS_M = 6371000.0
+
+
+def _ground_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+  """Distance on the ground (m) between two nearby points (equirectangular: exact enough over a few km)."""
+  x = math.radians(lon2 - lon1) * math.cos(math.radians((lat1 + lat2) / 2.0))
+  return EARTH_RADIUS_M * math.hypot(x, math.radians(lat2 - lat1))
+
+
+def curves_from_path(position, path) -> list[tuple[float, float]]:
+  """(distance ahead m, |curvature| 1/m) along mapd's path (mapdExtendedOut.path / .position).
+
+  The path can start behind us: it is followed from the point nearest to `position`, and distances add up along it.
+  """
+  points = list(path)
+  if not points:
+    return []
+  lat, lon = position.latitude, position.longitude
+  start = min(range(len(points)), key=lambda i: _ground_m(lat, lon, points[i].latitude, points[i].longitude))
+  out, d = [], _ground_m(lat, lon, points[start].latitude, points[start].longitude)
+  for i in range(start, len(points)):
+    if i > start:
+      d += _ground_m(points[i - 1].latitude, points[i - 1].longitude, points[i].latitude, points[i].longitude)
+    out.append((d, abs(float(points[i].curvature))))
+  return out

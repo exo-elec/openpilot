@@ -61,32 +61,10 @@ class MTSC:
   # EOP-CLEANUP: Removed _get_gps_tolerance() and get_learned_speed() —
   # duplicated in vtsc.py. Now using speed_utils.get_learned_speed().
 
-  def extract_upcoming_curvature(self, map_data, v_ego: float) -> list:
-    """
-    Extract upcoming curves from OSM map data.
-
-    Args:
-      map_data: MapD data message with OSM geometry
-      v_ego: Current speed for time-based filtering
-
-    Returns:
-      List of (distance, curvature) tuples
-    """
-    if not map_data or not hasattr(map_data, 'upcomingCurvatureDEPRECATED'):
-      return []
-
-    curves = []
-    for curve in map_data.upcomingCurvatureDEPRECATED:
-      distance = curve.x  # Distance along path
-      curvature = abs(curve.y)  # Curvature value
-
-      # Filter to MTSC range
-      if self.MTSC_MIN_DISTANCE <= distance <= self.MTSC_MAX_DISTANCE:
-        # Cap curvature for safety
-        curvature = np.clip(curvature, self.MIN_CURVATURE, self.MAX_CURVATURE)
-        curves.append((distance, curvature))
-
-    return curves
+  def extract_upcoming_curvature(self, curves) -> list:
+    """The (distance, curvature) pairs within MTSC's range, curvature capped."""
+    return [(d, float(np.clip(abs(k), self.MIN_CURVATURE, self.MAX_CURVATURE)))
+            for d, k in curves if self.MTSC_MIN_DISTANCE <= d <= self.MTSC_MAX_DISTANCE]
 
   # EOP-CLEANUP: calculate_speed_target() moved to speed_utils.calculate_speed_for_curvature().
 
@@ -106,14 +84,14 @@ class MTSC:
       # VTSC takes over - return to disabled
       self.state = MTSCState.disabled
 
-  def update(self, map_data, v_ego: float, lat: float = 0.0, lon: float = 0.0) -> dict:
+  def update(self, curves, v_ego: float, lat: float = 0.0, lon: float = 0.0) -> dict:
     """
     Main update method.
 
     Priority: Learned speed > Physics calculation
 
     Args:
-      map_data: MapD data message
+      curves: (distance ahead m, curvature 1/m) pairs along the road (curve_speed.curves_from_path)
       v_ego: Current speed
       lat, lon: GPS coordinates (for learned speed lookup)
 
@@ -137,7 +115,7 @@ class MTSC:
       }
 
     # Extract upcoming curves
-    upcoming_curves = self.extract_upcoming_curvature(map_data, v_ego)
+    upcoming_curves = self.extract_upcoming_curvature(curves)
 
     if not upcoming_curves:
       self.update_state_machine(False, float('inf'))

@@ -53,11 +53,11 @@ def test_speed_limit_trigger_prefers_the_map_limit_then_navigation():
   sm["navInstruction"] = SimpleNamespace(speedLimit=20.0)
   assert dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
 
-  # the map limit (km/h) wins over navigation: 108 km/h = 30 m/s, so no trigger
-  sm.valid["mapData"] = True
-  sm["mapData"] = SimpleNamespace(speedLimit=108.0)
+  # the map limit (mapd, m/s) wins over navigation: 30 m/s, so no trigger
+  sm.valid["mapdOut"] = True
+  sm["mapdOut"] = SimpleNamespace(speedLimit=30.0)
   assert not dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
-  sm["mapData"] = SimpleNamespace(speedLimit=60.0)
+  sm["mapdOut"] = SimpleNamespace(speedLimit=60.0 / 3.6)
   assert dlon.detect_speed_limit_trigger(sm, v_ego=30.0)
 
 

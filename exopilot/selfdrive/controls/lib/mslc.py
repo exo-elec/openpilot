@@ -142,31 +142,6 @@ class MSLC:
     self._confirmation = SpeedLimitConfirmation()
     self._confirmation.configure(confirm_lower, confirm_higher)
 
-  def _parse_speed_limit(self, maxspeed_tag):
-    if maxspeed_tag is None:
-      return None
-    if isinstance(maxspeed_tag, str):
-      numeric_part = ''.join(c for c in maxspeed_tag if c.isdigit())
-      if numeric_part:
-        return int(numeric_part)
-    elif isinstance(maxspeed_tag, (int, float)):
-      return int(maxspeed_tag)
-    return None
-
-  def _get_speed_limit(self, map_data):
-    if not map_data:
-      return None, None, float('inf')
-    current_limit = None
-    if hasattr(map_data, 'speedLimit') and map_data.speedLimit > 0:
-      current_limit = int(map_data.speedLimit)
-    upcoming_limit = current_limit
-    distance_to_change = float('inf')
-    if hasattr(map_data, 'nextSpeedLimit') and map_data.nextSpeedLimit > 0:
-      upcoming_limit = int(map_data.nextSpeedLimit)
-      if hasattr(map_data, 'nextSpeedLimitDistance'):
-        distance_to_change = float(map_data.nextSpeedLimitDistance)
-    return current_limit, upcoming_limit, distance_to_change
-
   def _calculate_target(self, v_ego_kmh, current_limit, upcoming_limit, distance):
     if current_limit is None:
       return None
@@ -188,7 +163,9 @@ class MSLC:
 
     return target_ms * 3.6
 
-  def update(self, map_data, v_ego, driver_overriding, t, nav_speed_limit_ms: float = 0.0):
+  def update(self, limit_ms: float, next_limit_ms: float, next_distance_m: float, v_ego, driver_overriding, t,
+             nav_speed_limit_ms: float = 0.0):
+    """Limits in m/s as mapd gives them (mapdOut speedLimit / nextSpeedLimit / nextSpeedLimitDistance); 0 = none."""
     self.frame += 1
 
     if not self.enabled:
@@ -201,7 +178,10 @@ class MSLC:
     if self.state == self.STATE_OVERRIDDEN and t - self.override_time > self.OVERRIDE_TIMEOUT:
       self.state = self.STATE_ACTIVE
 
-    current_limit, upcoming_limit, distance = self._get_speed_limit(map_data)
+    current_limit = round(limit_ms * 3.6) if limit_ms > 0 else None
+    upcoming_limit, distance = current_limit, float('inf')
+    if next_limit_ms > 0:
+      upcoming_limit, distance = round(next_limit_ms * 3.6), float(next_distance_m)
     if current_limit is None and nav_speed_limit_ms > 0:
       current_limit = int(nav_speed_limit_ms * 3.6)
       upcoming_limit = current_limit
