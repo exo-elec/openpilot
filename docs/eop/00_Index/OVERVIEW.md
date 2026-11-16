@@ -332,8 +332,6 @@ Quick reference:
 | `DLPCurvesEnabled` | 1 | DLAT curves |
 | `EOPDLATMode` | 2 | Dynamic Lateral: 0=Laneful, 1=Laneless, 2=Dynamic |
 | `EOPDLONMode` | 2 | Dynamic Longitudinal: 0=ACC, 1=E2E, 2=Dynamic |
-| `ALCCAllowAlways` | 0 | ALCC unconditional |
-| `ALCCHoldAtStandstill` | 0 | ALCC at stop |
 | `VTSCEnabled` | 0 | Vision turn speed control (0-150m, with learned speeds) |
 | `MTSCEnabled` | 0 | Map turn speed control (150-500m, with learned speeds) |
 | `MSLCEnabled` | 0 | Map speed limit control |

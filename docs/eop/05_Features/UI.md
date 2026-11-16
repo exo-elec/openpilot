@@ -88,9 +88,7 @@ private:
 | Parameter | UI Element | Description |
 |-----------|------------|-------------|
 | `LatALCC` | Toggle | Always-on Lane Centering Control (ALCC) |
-| `ALCCAllowAlways` | Toggle | ALCC without cruise main |
-| `ALCCHoldAtStandstill` | Toggle | Keep lateral torque at stop |
-| `ALCCBrakeMode` | ButtonSelect | Maintain/Pause/Disengage |
+| `ALCCBrakeMode` | ButtonSelect | Maintain/Pause/Disengage (0/1/2) |
 | `EOPDLATMode` | ButtonSelect | Laneful/Auto/Laneless |
 | `DLPCurvesEnabled` | Toggle | Pre-switch to laneless in curves |
 | `LCAControllerEnabled` | Toggle | Lane Change Assistant |
@@ -247,9 +245,7 @@ selfdrive/ui/qt/onroad/
 | Section | Parameter | Type | Default | UI Element |
 |---------|-----------|------|---------|------------|
 | **Lateral** | LatALCC | Bool | 0 | Toggle |
-| | ALCCAllowAlways | Bool | 0 | Toggle |
-| | ALCCHoldAtStandstill | Bool | 0 | Toggle |
-| | ALCCBrakeMode | String | "Maintain" | ButtonSelect |
+| | ALCCBrakeMode | Int | 0 | ButtonSelect |
 | | EOPDLATMode | String | "Auto" | ButtonSelect |
 | | DLPCurvesEnabled | Bool | 0 | Toggle |
 | | LCAControllerEnabled | Bool | 0 | Toggle |
