@@ -82,8 +82,6 @@ offset added to a y-right path), SOC (read `yRel` as right),
 
 | File | Purpose |
 |------|---------|
-| `ARCHITECTURE.md` | System design + daemon overview |
-| `SYSTEM_CONFIG.md` | Hardware specs (RK3588) |
 | `docs/eop/` | Feature documentation |
 | `docs/eop/04_Integration/BLE_DESIGN.md` | BLE/NCP v4.1 architecture (dual transport); successor protocol: `exopilot/docs/PLP_V5_SPEC.md` |
 | `docs/upstream-audit/DELTA_AUDIT.md` | Audit trail + revert plan |
@@ -429,48 +427,3 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 **Last updated**: 2026-09-21  
 **Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
-
----
-
-## Local Inference Stack
-
-This workstation runs a two-tier local inference stack. All code changes use local GPU+CPU automatically — no flag needed. Use `// --claude` to skip local and go cloud-only.
-
-```
-:8000  GPU  Qwen3-Coder-30B AWQ    (RTX 3090) — code generation, 20-30 tok/s
-:8001  CPU  DeepSeek-R1-70B Q8_0   (i9-13900K) — deep review, 2-4 tok/s
-:8002  LiteLLM proxy               — unified endpoint, auto-failover
-```
-
-### Usage
-
-```
-# Local (free — GPU codes, CPU reviews in parallel)
-You: "fix the capnp list assignment in adaptd.py"
-
-# Deep review (safety-critical, arch, auth)
-You: "review the BLE session state machine @deep"
-
-# Cloud only
-You: "design the new daemon lifecycle architecture // --claude"
-```
-
-### Task Tiers
-
-| Tier | Type | Review timeout |
-|------|------|---------------|
-| 1 Quick fix | rename, typo, comment | 300s |
-| 2 Routine | fix bug, add function, test | 900s |
-| 3 Moderate | refactor, new module | 1800s |
-| 4 Deep | arch, safety-critical, auth | 2400s |
-
-Add `// @deep` to force Tier 4 on any task.
-
-### Check Status
-
-```bash
-curl -s http://localhost:8002/v1/models \
-  -H "Authorization: Bearer sk-local-dev-not-secret" | jq '.data[].id'
-```
-
-See `~/RTX3090/` for full setup and service management.
