@@ -7,7 +7,9 @@ upstream wrote it; ExoPilot follows the same code (owner 2026-11-16: refer to co
 
 | Here | Upstream | Change |
 |------|----------|--------|
-| `selfdrive/navigation/{helpers,mapsd,pmtiles,renderer,route,tiles,vector_tile}.py` | `openpilot/selfdrive/navigation/` | import paths only (`cereal.messaging`, `msgq.visionipc`, `openpilot.system.hardware`) |
+| `selfdrive/navigation/{helpers,pmtiles,renderer,route,tiles,vector_tile}.py` | `openpilot/selfdrive/navigation/` | import paths only (`cereal.messaging`, `msgq.visionipc`, `openpilot.system.hardware`) |
+| `selfdrive/navigation/mapsd.py` | same | import paths, and the tile source comes from `open_tiles()` (a local archive first) |
+| `selfdrive/navigation/local_tiles.py`, `tests/test_local_tiles.py` | (new) | a local PMTiles file as the tile source |
 | `selfdrive/navigation/navd.py`, `tests/test_navigation.py` | same | import paths, and **routing by Valhalla instead of Mapbox** (owner 2026-11-16: no Mapbox): `calculate_route` posts to Valhalla's `/route`; a step without `bannerInstructions` counts as none |
 | `system/athena/athenad.py` `setNavDestination` / `clearNavDestination` (+ test) | same | validation written out (upstream's `number(-90, 90)` decorator is newer than this athenad) |
 | `system/manager/process_config.py` `navigation()`, `navd`, `mapsd` | same | module paths without `openpilot.` |
@@ -39,6 +41,9 @@ the same three import replacements.
 
 - Routing needs a Valhalla server with tiles for the area: on the device (EOP boards) or on a reachable machine. Not yet run
   against a live Valhalla here; the response shape follows Valhalla's documented OSRM output.
-- The map tiles still come from comma's hosted Protomaps PMTiles basemap (not Mapbox), which needs network and the
-  device's comma account. `pmtiles.py` reads any byte-range source, so a local per-region PMTiles file can replace
-  `tiles.RemoteTiles` (next step for offline maps).
+- **Offline map:** `mapsd` reads a local Protomaps basemap when there is one (`selfdrive/navigation/local_tiles.py`:
+  `NAV_PMTILES`, else `/data/media/0/navigation/map.pmtiles`), and only otherwise comma's hosted archive (network and
+  the device's comma account). Make the file once per region with the protomaps CLI, e.g.
+  `pmtiles extract https://build.protomaps.com/<date>.pmtiles map.pmtiles --bbox=97.3,5.6,105.7,20.5 --maxzoom=15`
+  (Thailand), and copy it to the device. The only change in upstream's files is the one line in `mapsd` that opens
+  the source.
