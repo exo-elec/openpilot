@@ -87,7 +87,7 @@ PAGES: list[Page] = [
     Control("RecordEnabled", Kind.TOGGLE, "Enable On-Road Recording", desc="When enabled and storage is present, recordd runs automatically for loop recording, impact detection, and snapshots."),
   ]),
   Page("lateral", [
-    Control("ALCCBrakeMode", Kind.BUTTONS, "ALCC Brake Behaviour", desc="Choose how ALCC responds when the brake pedal is pressed.\nMaintain - keep steering active.\nPause - hold steering until the brake is released.\nDisengage - fully release ALCC when braking.", options=("Maintain", "Pause", "Disengage")),
+    Control("ALCCBrakeMode", Kind.BUTTONS, "ALCC Brake Behaviour", desc="What ALCC does when the brake pedal is pressed.\nMaintain: keep steering.\nPause: steer again when the brake is released.\nDisengage: release ALCC until you press LKAS, SET or RESUME, or switch cruise off and on.", options=("Maintain", "Pause", "Disengage")),
     Control("AutoLaneChange", Kind.TOGGLE, "Auto Lane Change", desc="Enable automatic lane changes when turn signal is activated."),
     Control("LaneChangeDelay", Kind.SPINBOX, "Lane Change Delay:", desc="Delay before executing lane change after turn signal activation.", min=0.5, max=5.0, step=0.1, unit="s"),
     Control("LatLCASpeed", Kind.SPINBOX, "Lane Change Assist (LCA) Speed:", desc="Off = Disable Lane Change Assist", min=0, max=160, step=5, unit="km/h"),
@@ -141,9 +141,6 @@ PAGES: list[Page] = [
 PAGES.append(Page("features", [
   Control("BEVWidgetEnabled", Kind.TOGGLE, "BEV · Bird’s-Eye View", desc="Allow the live bird’s-eye visualization. Enable BEV Display Mode to replace the camera view; normal mode keeps the basic full-screen camera."),
   Control("UIDisplayMode", Kind.TOGGLE, "BEV Display Mode", desc="Show lanes, road edges, radar leads and blind-spot severity from above. Requires the BEV feature switch."),
-  Control('ALCCAllowAlways', Kind.TOGGLE, 'ALCC Allow Always', desc='Feature ID: ALCCAllowAlways. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),
-  Control('ALCCHoldAtStandstill', Kind.TOGGLE, 'ALCC Hold At Standstill', desc='Feature ID: ALCCHoldAtStandstill. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),
-  Control('ALCCUnifiedEngagement', Kind.TOGGLE, 'ALCC Unified Engagement', desc='Feature ID: ALCCUnifiedEngagement. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),
   Control('AdaptdEnabled', Kind.TOGGLE, 'Adaptd', desc='Feature ID: Adaptd. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),
   Control('BSDEnabled', Kind.TOGGLE, 'BSD · Blind Spot Detection', desc='Feature ID: BSD. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),
   Control('BluetoothEnabled', Kind.TOGGLE, 'Bluetooth', desc='Feature ID: Bluetooth. Enable or disable this feature. Hardware and parent-feature requirements still apply. Some processes read this setting at startup; restart while parked if needed.'),

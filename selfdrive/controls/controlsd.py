@@ -24,16 +24,18 @@ from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_force_decel
 from exopilot.selfdrive.controls.lib.dlat import DLAT, DLATSuggestion
 from exopilot.selfdrive.controls.lib.red import RED, curvature_nudge
-from openpilot.selfdrive.controls.lib.alcc import AlccController, AlccStatus
+from exopilot.selfdrive.controls.lib.alcc import ALCCInput, ALCC, BrakeMode
+from exopilot.selfdrive.controls.lib.lateral_authorization import lateral_authorized
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneSide
 from openpilot.selfdrive.controls.lib.aeb import AEB
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
-from openpilot.selfdrive.selfdrived.events import Events
 from exopilot.selfdrive.controls.lib.steering_policy import SteeringResumeRamp
 from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_curvature
 
 State = log.SelfdriveState.OpenpilotState
 LaneChangeState = log.LaneChangeState
+ButtonType = car.CarState.ButtonEvent.Type
+ALCC_ENGAGE_BUTTONS = (ButtonType.lkas, ButtonType.setCruise, ButtonType.resumeCruise)
 LaneChangeDirection = log.LaneChangeDirection
 
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
@@ -102,14 +104,11 @@ class Controls:
     self.aeb = AEB()
     self.rule_consumer = RuleChannelConsumer()
 
-    # EOP: ALCC (Always Lane Centering Control)
-    self.alcc = AlccController(self.CP)
-    self.alcc_status = AlccStatus()  # default-initialised; overwritten on first frame
-
-    # EOP: per-frame state needed by ALCC
-    self.CS_prev = car.CarState.new_message()  # zeroed CarState; safe on first frame
-    self.events = Events()
-    self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
+    # ALCC (LatALCC): the shared state machine, as NGP10; ALCCBrakeMode says what a brake press does
+    self.alcc_enabled = self.params.get_bool("LatALCC")
+    self.alcc = ALCC(BrakeMode.from_param(self.params.get("ALCCBrakeMode", return_default=True)))
+    self.alcc_status = None
+    self.alcc_active = False
 
     # EOP: TJA resume alert debounce
     self._tja_resume_alerted = False
@@ -140,13 +139,6 @@ class Controls:
 
   def state_control(self):
     CS = self.sm['carState']
-
-    # ALCC mutates an Events collection while evaluating the current
-    # selfdrived event snapshot. Rebuild it each frame so the ALCC state
-    # machine sees the real disable/enable events, not an empty placeholder.
-    self.events.clear()
-    if self.sm.valid.get('onroadEvents', False):
-      self.events.add_from_msg(self.sm['onroadEvents'])
 
     # Update VehicleModel — apply CAT corrections if confident
     lp = self.sm['liveParameters']
@@ -254,34 +246,36 @@ class Controls:
     # RED (Road Edge Detection): only active in laneless mode
     red_output = self.red.update(model_v2, (0.0, 0.0), CS.vEgo, [], self.dlat_use_laneless)
 
-    # EOP: Enhanced ALCC (Always Lane Centering Control)
-    calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
-    gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park, car.CarState.GearShifter.neutral, car.CarState.GearShifter.reverse)
-    safety_ok = not CS.seatbeltUnlatched and not CS.doorOpen
-    panda_states = self.sm['pandaStates'] if self.sm.all_checks(['pandaStates']) else []
-
-    alcc_status = self.alcc.update(
-      CS=CS, CS_prev=self.CS_prev,
-      events=self.events,
-      panda_states=panda_states,
-      stock_enabled=self.sm['selfdriveState'].enabled,
-      stock_active=self.sm['selfdriveState'].active,
-      calibrated=calibrated, gear_ok=gear_ok, safety_ok=safety_ok,
-      disengage_on_accelerator=self.disengage_on_accelerator
-    )
-    self.alcc_status = alcc_status
-
-    # Check which actuators can be enabled
+    # ALCC: the shared state machine, as NGP10. It never steers while the driver overrides and needs the
+    # Panda's live authorization.
     standstill = abs(CS.vEgo) <= max(self.CP.minSteerSpeed, 0.3) or CS.standstill
-
-    # Standard active or ALCC
-    CC.latActive = (self.sm['selfdriveState'].active or alcc_status.active) and \
-                   not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
-                   (not standstill or self.CP.steerAtStandstill or alcc_status.hold_at_standstill)
-
-    # Inhibit ALCC if user is actively steering (soft override)
-    if alcc_status.active and not self.sm['selfdriveState'].active and abs(CS.steeringTorque) > 1.0:
-      CC.latActive = False
+    calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
+    gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park,
+                                     car.CarState.GearShifter.neutral,
+                                     car.CarState.GearShifter.reverse)
+    safety_ok = not (CS.steerFaultTemporary or CS.steerFaultPermanent or
+                     CS.seatbeltUnlatched or CS.doorOpen)
+    self.alcc_status = self.alcc.update(ALCCInput(
+      feature_enabled=self.alcc_enabled,
+      engage_request=CS.cruiseState.available,
+      user_disable=not CS.cruiseState.available,
+      immediate_disable=not safety_ok,
+      soft_disable=self.sm['selfdriveState'].state == State.softDisabling,
+      pause_condition=standstill and not self.CP.steerAtStandstill,
+      steering_override=abs(CS.steeringTorque) > 1.0,
+      calibrated=calibrated,
+      gear_ok=gear_ok,
+      safety_ok=safety_ok,
+      brake_pressed=CS.brakePressed,
+      engage_button=any(be.pressed and be.type in ALCC_ENGAGE_BUTTONS for be in CS.buttonEvents),
+    ))
+    authorized = lateral_authorized(self.sm['pandaStates'], self.CP.safetyConfigs, self.CP.alternativeExperience,
+                                    self.sm.valid['pandaStates'] and self.sm.alive['pandaStates']
+                                    and time.monotonic() - self.sm.recv_time['pandaStates'] < 0.5)
+    self.alcc_active = self.alcc_status.active_suggestion and self.alcc_status.available and authorized
+    lat_active = self.sm['selfdriveState'].active or self.alcc_active
+    CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+                   (not standstill or self.CP.steerAtStandstill)
 
     if self.blinker_pause is not None and self.blinker_pause.update(CS.vEgo, CS.leftBlinker, CS.rightBlinker):
       CC.latActive = False
@@ -390,7 +384,6 @@ class Controls:
         cloudlog.error(f"actuators.{field_name} not finite {actuators.to_dict()}")
         setattr(actuators, field_name, 0.0)
 
-    self.CS_prev = CS
     return CC, lac_log
 
   def publish(self, CC, lac_log):
@@ -446,6 +439,7 @@ class Controls:
     # EOP: DLAT debug info
     cs.dlatMode = self.dlat_mode
     cs.dlatState = self.dlat_state
+    cs.alccActive = bool(self.alcc_active)
     cs.dlatLaneConfidence = self.dlat_lane_confidence
     cs.dlatUseLaneless = self.dlat_use_laneless
 
@@ -479,10 +473,11 @@ class Controls:
     alcc_send = messaging.new_message('alccState')
     alcc_send.valid = True
     a = alcc_send.alccState
-    a.state = int(self.alcc_status.state)
-    a.enabled = self.alcc_status.enabled
-    a.active = self.alcc_status.active
-    a.available = self.alcc_status.available
+    if self.alcc_status is not None:
+      a.state = int(self.alcc_status.state)
+      a.enabled = self.alcc_status.latched
+      a.active = self.alcc_active
+      a.available = self.alcc_status.available
     self.pm.send('alccState', alcc_send)
 
   def run(self):

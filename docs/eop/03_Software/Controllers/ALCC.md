@@ -1,102 +1,66 @@
-# ALCC - Always Lane Centering Control
+# ALCC - Always-on Lane Centering Control
 
-**Type:** Controller (runs inside `controlsd`)  
-**File:** `selfdrive/controls/controlsd.py` (integrated)
+**Type:** state machine, run by `controlsd`
+**File:** `exopilot/selfdrive/controls/lib/alcc.py` (one implementation on every branch, written on NGP10)
+**Tests:** `exopilot/tests/test_alcc.py`
 
----
+## What it does
 
-## Status
+With `LatALCC` on, ALCC keeps lane centering (lateral only) while the cruise main switch is on, even when openpilot
+itself is not engaged. It cannot create steering authority:
 
-| Aspect | Status |
-|--------|--------|
-| **Design** | ✅ Complete |
-| **Code** | ✅ `selfdrive/controls/controlsd.py` (integrated) |
-| **UI** | ✅ Toggle in EOP panel |
+- `controlsd` steers for ALCC only when the state machine suggests it **and** the Panda's live safety state
+  authorizes it (`lateral_authorization.lateral_authorized`: every configured safety model matches, controls
+  allowed, pandaStates fresh within 0.5 s).
+- While the driver steers (`|steeringTorque| > 1.0`) ALCC is OVERRIDING and does not steer. It takes over again
+  when the driver lets go.
+- Vehicle limits and the car's `steerAtStandstill` still apply. At a standstill on a car that cannot steer there,
+  ALCC stays latched but PAUSED and resumes when the car moves.
 
----
+## States
 
-## Overview
+| State | Steers | Entered when |
+|-------|--------|--------------|
+| DISABLED | no | feature off, cruise main off, door open / seatbelt unlatched / steering fault, or released by the brake (Disengage) |
+| PAUSED | no | latched but not calibrated, wrong gear, standstill (car cannot steer there), or brake pressed (Pause) |
+| ENABLED | yes | latched and nothing above applies |
+| SOFT_DISABLING | yes, 3 s | openpilot is soft-disabling |
+| OVERRIDING | no | the driver is steering |
 
-ALCC is the baseline lateral control mode that keeps the vehicle centered in the lane. It is the default lateral mode when no other lateral feature is explicitly engaged. Unlike stock openpilot which requires cruise control to be active for lane centering, ALCC can operate independently (when `ALCCAllowAlways` is enabled).
-
----
-
-## Architecture
-
-```
-modelV2.path + modelV2.laneLines ──► controlsd ──► ALCC logic ──► desired curvature
-```
-
-ALCC runs as the default lateral mode in `controlsd.py`:
-- Lines 126-148: ALCC integration
-- Uses `modelV2.path` prediction for trajectory
-- Uses `modelV2.laneLines` for lane boundary awareness
-- No additional daemon required
-
----
+`controlsState.alccActive` is true while ALCC is steering. EOP10 and up also publish `alccState` (state,
+`enabled` = latched, `active`, `available`) for the UI.
 
 ## Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `EOPALCCEnabled` | 1 | Enable ALCC |
-| `LatALCC` | 1 | Lateral ALCC offset |
-| `ALCCAllowAlways` | 0 | ALCC without cruise main |
-| `ALCCHoldAtStandstill` | 0 | Keep lateral torque at stop |
-| `ALCCBrakeMode` | "Maintain" | Maintain/Pause/Disengage on brake |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `LatALCC` | bool | 0 | Turn ALCC on (read at start) |
+| `ALCCBrakeMode` | int | 0 | What a brake press does (read at start) |
 
----
+### Brake behaviour (`ALCCBrakeMode`)
 
-## Behavior
+| Value | Mode | Brake pressed | After the brake |
+|-------|------|---------------|-----------------|
+| 0 | Maintain | keeps steering | - |
+| 1 | Pause | PAUSED | steers again when released |
+| 2 | Disengage | DISABLED | engages again on an LKAS / SET / RESUME press or when cruise main is switched off and on |
 
-### Engagement Conditions
+## History
 
-| Condition | Requirement |
-|-----------|-------------|
-| Vehicle speed | > 0 m/s (or hold at standstill if enabled) |
-| Model valid | `modelV2` message received within timeout |
-| Driver override | Steering torque < threshold |
+EOP10 had its own `selfdrive/controls/lib/alcc.py` (`AlccController`). It was replaced by the shared one on
+2026-11-16 (owner 2026-11-15: NGP10's behaviour on every branch). What was dropped and why:
 
-### Disengagement Conditions
+- It kept steering while the driver overrode; the shared one gives up authority on override.
+- `ALCCAllowAlways`, `ALCCUnifiedEngagement` and the per-brand "no main button" flags were read but never used.
+- `ALCCHoldAtStandstill` let ALCC steer at a standstill on cars whose `steerAtStandstill` is false; removed.
+- Its brake mode read `ALCCSteeringModeOnBrake`, while the UI wrote `ALCCBrakeMode`, so the setting never applied.
+  `ALCCBrakeMode` is now the one key (the index both UIs already stored, so saved values carry over).
+- Its Panda mismatch counter read `pandaState.controlsAllowedLateral`, which is not in the schema, so it never
+  counted. Panda authorization is now checked on every frame instead.
+- Door / seatbelt at a standstill paused it instead of disabling it; the shared one disables it.
 
-| Condition | Action |
-|-----------|--------|
-| Driver steering override | Temporary disengage, resume when released |
-| Brake pressed | Depends on `ALCCBrakeMode` |
-| Turn signal active | May pause (vehicle-dependent) |
-| Standstill | Hold if `ALCCHoldAtStandstill` enabled |
+## Related
 
-### Brake Mode Behavior
-
-| Mode | Brake Pressed | Release Brake |
-|------|---------------|---------------|
-| **Maintain** | ALCC stays engaged | Continues |
-| **Pause** | ALCC pauses | Resumes automatically |
-| **Disengage** | ALCC disengages | Requires re-engagement |
-
----
-
-## Integration with Other Controllers
-
-ALCC serves as the **fallback lateral mode** when:
-- DLAT is in "Laneful" mode
-- DLAT Auto mode detects high lane line confidence
-- Driver has not requested E2E/Laneless mode
-
-When DLAT selects "Laneless" mode, the path following uses `modelV2.predictedPath` instead of lane lines, but ALCC framework remains the execution layer.
-
----
-
-## File Location
-
-- **Integration**: `selfdrive/controls/controlsd.py` (lines 126-148)
-- **UI Toggle**: `selfdrive/ui/qt/offroad/exopilot_panel.cc`
-
----
-
-## Related Documents
-
-- DLAT.md - Dynamic Lateral Profile (mode switching)
+- DLAT.md - Laneful / laneless arbitration
 - LCA.md - Lane Change Assist
-- RED.md - Road Edge Detection (safety guardrail)
-- SOC.md - Smart Offset Control (truck nudge)
+- RED.md - Road Edge Detection
