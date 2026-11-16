@@ -44,8 +44,6 @@ def main():
     feature_flags |= FeatureFlags.LC_LEAD_HANDOFF
   if params.get_bool("VTSCEnabled"):
     feature_flags |= FeatureFlags.VTSC
-  if params.get_bool("NSLCEnabled"):
-    feature_flags |= FeatureFlags.NSLC
   if params.get_bool("CutInSpeedEnabled"):
     feature_flags |= FeatureFlags.CUTIN
   if params.get_bool("PathdLongitudinal"):

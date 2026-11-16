@@ -14,7 +14,6 @@ RENAMED = {
   "EOPPathdNudgesEnabled": "PathdNudgesEnabled",
   "EOPRCDEnabled": "RCSCEnabled",
   "RCDEnabled": "RCSCEnabled",
-  "EOPSharedSLCOffsets": "SharedSLCOffsets",
   "EOPTLSCEnabled": "TLSCEnabled",
   "ngp_bigmodel_active": "BigModelActive",
   "ngp_bigmodel_link": "BigModelLink",
@@ -63,7 +62,6 @@ RENAMED = {
   "ngp_lon_nslc": "NSLCEnabled",
   "ngp_lon_pathd": "PathdLongitudinal",
   "ngp_lon_rcd": "RCSCEnabled",
-  "ngp_lon_slc_offsets": "SharedSLCOffsets",
   "ngp_lon_speed_offset_kph": "SpeedLimitOffset",
   "ngp_lon_tlsc": "TLSCEnabled",
   "ngp_lon_vtsc": "VTSCEnabled",
@@ -105,4 +103,33 @@ def migrate_renamed_params(param_dir: str) -> list[str]:
     else:
       os.replace(src, dst)
       migrated.append(old)
+  if _split_slc_offsets(param_dir):
+    migrated.append(SLC_OFFSET_STRINGS[0])
   return migrated
+
+
+# MSLC's offsets were one string, "5,5,5,5,5,5,5" km/h (saved under any of these names); now SLCOffset1..7, one FLOAT each.
+SLC_OFFSET_STRINGS = ("SharedSLCOffsets", "EOPSharedSLCOffsets", "ngp_lon_slc_offsets")
+
+
+def _split_slc_offsets(param_dir: str) -> bool:
+  found = [os.path.join(param_dir, n) for n in SLC_OFFSET_STRINGS if os.path.lexists(os.path.join(param_dir, n))]
+  if not found:
+    return False
+  try:
+    with open(found[0]) as f:
+      parts = f.read().split(',')
+  except (OSError, UnicodeDecodeError):
+    parts = []
+  for i, raw in enumerate(parts[:7]):
+    dst = os.path.join(param_dir, f"SLCOffset{i + 1}")
+    try:
+      value = float(raw)
+    except ValueError:
+      continue
+    if not os.path.lexists(dst):
+      with open(dst, 'w') as f:
+        f.write(str(value))
+  for src in found:
+    os.remove(src)
+  return True

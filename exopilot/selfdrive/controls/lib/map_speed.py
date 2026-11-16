@@ -1,8 +1,12 @@
-"""One speed-cap adapter for the map-, light- and distraction-based controllers (MTSC, MSLC, TLSC, DDSC, RCSC).
+"""One speed-cap adapter for the map-, navigation-, light- and distraction-based controllers (MTSC, MSLC, NSLC, TLSC, DDSC, RCSC).
 
 The planner calls `update` once per cycle and takes `min(v_cruise, cap)`: these controllers only ever LOWER the cruise speed, so
-the speed the driver set is never exceeded. Per-controller switches (default off): `MTSCEnabled`, `MSLCEnabled`,
-`TLSCEnabled`, `DDSCEnabled`, `RCSCEnabled`; MSLC per-range offsets `SharedSLCOffsets` ("5,5,5,5,5,5,5" km/h per speed bucket).
+the speed the driver set is never exceeded. Per-controller switches: `MTSCEnabled`, `MSLCEnabled`, `NSLCEnabled`,
+`TLSCEnabled`, `DDSCEnabled`, `RCSCEnabled`. The posted limits, map (MSLC, mapdOut) and navigation (NSLC, navInstruction), are
+one speed limit: `SpeedPolicy` picks between them by `SpeedLimitPolicy` (default 4, the lower of the two). Both use the same
+per-range offsets `SLCOffset1..7` (km/h) and confirmation `SLCConfirmLower` / `SLCConfirmHigher`.
+Optional, for boards that have them: `learned_speed(lat, lon, curvature) -> m/s` (a curve-speed store, at mapd's position)
+and `lat_accel()` (MTSC's comfort lateral acceleration). Without them MTSC uses the map curvature and 1.8 m/s^2.
 
 Two fixes over EOP10's inline planner code:
   - EOP10 reset the MTSC/MSLC target every cycle and set it only on the cycle a map message arrived (1 Hz): the cap existed for
@@ -24,6 +28,8 @@ from exopilot.selfdrive.controls.lib.feature_keys import MAP_SPEED_KEYS
 from exopilot.selfdrive.controls.lib.ddsc import DMS_BASE_LIMIT_MPS, DDSC
 from exopilot.selfdrive.controls.lib.mslc import MSLC
 from exopilot.selfdrive.controls.lib.mtsc import MTSC
+from exopilot.selfdrive.controls.lib.nslc import NSLC
+from exopilot.selfdrive.controls.lib.speed_policy import SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource, SpeedPolicy
 from exopilot.selfdrive.controls.lib.tlsc import TLSC
 from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_path
 from exopilot.selfdrive.controls.lib.rcsc import RCSC
@@ -34,12 +40,22 @@ LIGHT_LATERAL_M = 3.5         # a light for our lane is within this of the plann
 PROMPT_AWARENESS = 0.25
 UNCONSCIOUS_S = 20.0
 CONFIG_REFRESH_S = 2.0
+SLC_OFFSET_KEYS = tuple(f"SLCOffset{i + 1}" for i in range(7))
 
 
 @dataclass(frozen=True)
 class MapSpeedResult:
   cap: float | None
-  sources: dict
+  sources: dict                       # the caps that applied this cycle; 'speed_limit' is the resolved posted limit
+  mslc: float | None = None           # map limit target (before the policy), m/s
+  nslc: float | None = None           # navigation limit target (before the policy), m/s
+  limit: SpeedLimitObservation | None = None    # what the policy chose
+  mtsc: float | None = None           # map curve target, m/s
+  mtsc_distance: float = math.inf
+  mtsc_using_learned: bool = False
+
+
+NO_CAP = MapSpeedResult(None, {})     # nothing enabled: the same answer every cycle, built once
 
 
 def distraction_status(awareness: float, critical_s: float) -> NS:
@@ -49,17 +65,21 @@ def distraction_status(awareness: float, critical_s: float) -> NS:
 
 
 class MapSpeed:
-  def __init__(self, get_bool=None, get_str=None, clock=time.monotonic):
+  def __init__(self, get_bool=None, get=None, clock=time.monotonic, learned_speed=None, lat_accel=None):
     self._get_bool = get_bool or (lambda k: False)
-    self._get_str = get_str or (lambda k: "")
+    self._get = get or (lambda k: None)
     self._clock = clock
-    self.flags = dict.fromkeys(('mtsc', 'mslc', 'tlsc', 'ddsc', 'rcsc'), False)
+    self._lat_accel = lat_accel
+    self.flags = dict.fromkeys(('mtsc', 'mslc', 'nslc', 'tlsc', 'ddsc', 'rcsc'), False)
     self._cfg_t = -1e9
-    self.mtsc, self.mslc, self.tlsc, self.ddsc = MTSC(enabled=True), MSLC(enabled=True), TLSC(enabled=True), DDSC()
+    self.mtsc = MTSC(enabled=True, curve_learn_enabled=learned_speed is not None, learned_speed=learned_speed)
+    self.mslc, self.nslc, self.tlsc, self.ddsc = MSLC(enabled=True), NSLC(), TLSC(enabled=True), DDSC()
+    self.policy = SpeedPolicy(SpeedLimitPolicy.LOWEST)
     self.rcsc = RCSC(lambda k: True)      # gated by flags['rcsc'] below; RCSC's own switch is always on
     self._mslc_t = self._mtsc_t = -1e9
     self._mtsc: tuple[float | None, float] = (None, math.inf)      # (target, distance)
     self._mslc: float | None = None
+    self._mtsc_learned = False
     self._light_t = -1e9
     self._light: float | None = None
     self._blend_state: bool | None = None   # previous frame had both MTSC and VTSC targets
@@ -71,8 +91,20 @@ class MapSpeed:
       return
     self._cfg_t = now
     self.flags = {k: bool(self._get_bool(MAP_SPEED_KEYS[k])) for k in self.flags}
-    raw = str(self._get_str(MAP_SPEED_KEYS["offsets"]) or "")
-    self.mslc._offset.set_offsets_kph([float(v) for v in raw.split(',') if v.strip().lstrip('-').replace('.', '', 1).isdigit()])
+    offsets = [self._get(k) for k in SLC_OFFSET_KEYS]
+    confirm = bool(self._get_bool("SLCConfirmLower")), bool(self._get_bool("SLCConfirmHigher"))
+    self.mslc._offset.set_offsets_kph(offsets)
+    self.mslc._confirmation.configure(*confirm)
+    self.nslc.configure(offsets, *confirm)
+    try:
+      self.policy.policy = SpeedLimitPolicy(int(self._get("SpeedLimitPolicy")))
+    except (TypeError, ValueError):
+      self.policy.policy = SpeedLimitPolicy.LOWEST
+    if self._lat_accel is not None:
+      try:
+        self.mtsc.a_comfort = float(self._lat_accel())
+      except (TypeError, ValueError):
+        pass
 
   @staticmethod
   def _fresh(sm, name: str) -> bool:
@@ -81,9 +113,9 @@ class MapSpeed:
   def update(self, sm, v_ego: float, v_cruise: float, vtsc_target: float | None, should_stop: bool, dt: float) -> MapSpeedResult:
     now = self._clock()
     self._refresh_config(now)
-    sources: dict[str, float] = {}
     if not any(self.flags.values()) or not math.isfinite(v_ego):
-      return MapSpeedResult(None, sources)
+      return NO_CAP
+    sources: dict[str, float] = {}
     cs = sm['carState']
     gas = bool(cs.gasPressed)
 
@@ -94,18 +126,31 @@ class MapSpeed:
       self._mslc_t = now
     if self.flags['mtsc'] and sm.updated.get('mapdExtendedOut', False) and self._fresh(sm, 'mapdExtendedOut'):
       ext = sm['mapdExtendedOut']
-      out = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego)
+      out = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego, ext.position.latitude, ext.position.longitude)
       self._mtsc = (out['v_target'], out['distance'])
+      self._mtsc_learned = bool(out.get('using_learned', False))
       self._mtsc_t = now
     if now - self._mtsc_t > MAP_HOLD_S:
       self._mtsc = (None, math.inf)
+      self._mtsc_learned = False
     if now - self._mslc_t > MAP_HOLD_S:
       self._mslc = None
     curve, self._blend_state = blend_mtsc_vtsc(self._mtsc[0] if self.flags['mtsc'] else None, vtsc_target, self._mtsc[1], v_cruise, self._blend_state, dt)
     if self.flags['mtsc'] and curve is not None:
       sources['mtsc'] = curve
-    if self.flags['mslc'] and self._mslc is not None:
-      sources['mslc'] = self._mslc
+    # --- posted limit: map (MSLC) and navigation (NSLC) through the one policy
+    nslc = None
+    if self.flags['nslc'] and self._fresh(sm, 'navInstruction'):
+      nslc = self.nslc.update(float(sm['navInstruction'].speedLimit), gas, now)
+    mslc = self._mslc if self.flags['mslc'] else None
+    observations = []
+    if mslc is not None:
+      observations.append(SpeedLimitObservation(SpeedLimitSource.MAP, mslc, getattr(self.mslc, 'distance_to_limit', None)))
+    if nslc is not None:
+      observations.append(SpeedLimitObservation(SpeedLimitSource.NAVIGATION, nslc))
+    limit = self.policy.resolve(observations)
+    if limit is not None:
+      sources['speed_limit'] = limit.limit_mps
 
     # --- traffic lights on our path, held briefly between stereoObjects
     if self.flags['tlsc'] and self._fresh(sm, 'stereoObjects'):
@@ -148,4 +193,5 @@ class MapSpeed:
     if cap is not None:
       cap = max(cap, 0.0)
     self._last = cap
-    return MapSpeedResult(cap, sources)
+    return MapSpeedResult(cap, sources, mslc, nslc, limit, self._mtsc[0] if self.flags['mtsc'] else None, self._mtsc[1],
+                          self._mtsc_learned)

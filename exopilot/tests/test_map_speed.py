@@ -129,3 +129,64 @@ def test_curves_from_path_starts_at_our_position_and_adds_distance_along_the_pat
   d, k = next(c for c in curves if c[1] > 0)
   assert abs(d - 200.0) < 0.5 and k == 0.01
   assert curves_from_path(ext.position, []) == []
+
+
+def with_nav(s, nav_ms):
+  s['navInstruction'] = NS(speedLimit=nav_ms)
+  s.valid['navInstruction'] = True
+  return s
+
+
+def make_limits(flags=('mslc', 'nslc'), policy=None, offsets=None, confirm=()):
+  clk = Clock()
+  bools = {MAP_SPEED_KEYS[k]: True for k in flags}
+  bools.update(dict.fromkeys(confirm, True))
+  values = {"SpeedLimitPolicy": policy}
+  values.update({f"SLCOffset{i + 1}": v for i, v in enumerate(offsets or [])})
+  return MapSpeed(lambda k: bools.get(k, False), values.get, clk), clk
+
+
+def test_map_and_navigation_limits_are_one_speed_limit_lowest_by_default():
+  ms, _ = make_limits()
+  r = ms.update(with_nav(sm(mapd(limit_ms=22.22), updated=True, v=20.0), 16.67), 20.0, 30.0, None, False, 0.05)
+  assert abs(r.mslc - 22.22) < 0.01 and abs(r.nslc - 16.67) < 1e-6
+  assert r.limit.source.name == 'NAVIGATION' and r.sources == {'speed_limit': r.nslc} and r.cap == r.nslc
+
+
+def test_policy_map_ignores_the_navigation_limit():
+  ms, _ = make_limits(policy=2)
+  r = ms.update(with_nav(sm(mapd(limit_ms=22.22), updated=True, v=20.0), 16.67), 20.0, 30.0, None, False, 0.05)
+  assert r.limit.source.name == 'MAP' and abs(r.cap - 22.22) < 0.01
+
+
+def test_policy_none_applies_no_limit():
+  ms, _ = make_limits(policy=0)
+  r = ms.update(with_nav(sm(mapd(limit_ms=22.22), updated=True, v=20.0), 16.67), 20.0, 30.0, None, False, 0.05)
+  assert r.limit is None and r.cap is None
+
+
+def test_offsets_apply_to_both_sources_by_posted_limit():
+  # 60 km/h sits in the 59-78 km/h bucket (SLCOffset4)
+  ms, _ = make_limits(flags=('nslc',), offsets=[0, 0, 0, 10])
+  r = ms.update(with_nav(sm(v=15.0), 60 / 3.6), 15.0, 30.0, None, False, 0.05)
+  assert abs(r.cap - 70 / 3.6) < 1e-6
+  ms, _ = make_limits(flags=('mslc',), offsets=[0, 0, 0, 10])
+  r = ms.update(sm(mapd(limit_ms=60 / 3.6), updated=True, v=15.0), 15.0, 30.0, None, False, 0.05)
+  assert abs(r.cap - 70 / 3.6) < 0.01
+
+
+def test_a_lower_navigation_limit_waits_for_confirmation_when_asked():
+  ms, clk = make_limits(flags=('nslc',), confirm=("SLCConfirmLower",))
+  assert abs(ms.update(with_nav(sm(v=20.0), 80 / 3.6), 20.0, 30.0, None, False, 0.05).cap - 80 / 3.6) < 1e-6
+  clk.t += 1.0
+  assert abs(ms.update(with_nav(sm(v=20.0), 50 / 3.6), 20.0, 30.0, None, False, 0.05).cap - 80 / 3.6) < 1e-6
+  clk.t += 1.0
+  assert abs(ms.update(with_nav(sm(v=20.0, gas=True), 50 / 3.6), 20.0, 30.0, None, False, 0.05).cap - 50 / 3.6) < 1e-6
+
+
+def test_learned_curve_speed_is_used_where_one_is_given():
+  clk = Clock()
+  bools = {MAP_SPEED_KEYS['mtsc']: True}
+  ms = MapSpeed(lambda k: bools.get(k, False), lambda k: None, clk, learned_speed=lambda lat, lon, k: 12.0)
+  r = ms.update(sm(curve(), updated=True), 25.0, 25.0, None, False, 0.05)
+  assert r.mtsc_using_learned and r.cap is not None

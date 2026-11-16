@@ -26,3 +26,13 @@ def test_saved_values_move_once_and_a_value_under_the_new_name_wins(tmp_path):
   assert (tmp_path / "MTSCEnabled").read_bytes() == b"0"
   assert not (tmp_path / "ngp_lon_brsc").exists() and not (tmp_path / "ngp_lon_mtsc").exists()
   assert migrate_renamed_params(str(tmp_path)) == []
+
+
+def test_slc_offset_string_becomes_seven_values_and_saved_values_win(tmp_path):
+  (tmp_path / "ngp_lon_slc_offsets").write_text("5,5,10,x,0,-5,8")
+  (tmp_path / "SLCOffset2").write_text("3.0")
+  assert "SharedSLCOffsets" in migrate_renamed_params(str(tmp_path))
+  read = {p.name: p.read_text() for p in tmp_path.iterdir()}
+  assert read == {"SLCOffset1": "5.0", "SLCOffset2": "3.0", "SLCOffset3": "10.0", "SLCOffset5": "0.0", "SLCOffset6": "-5.0",
+                  "SLCOffset7": "8.0"}
+  assert migrate_renamed_params(str(tmp_path)) == []

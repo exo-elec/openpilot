@@ -175,7 +175,17 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
     {"DDSCEnabled", {PERSISTENT, BOOL, "0"}},      // speed cap while the driver-activity monitor says the driver is not responding
     {"RCSCEnabled", {PERSISTENT, BOOL, "0"}},      // RCSC, Road Condition Speed Controller: speed cap on a wet / icy / debris road (needs a surface source: surfaced or the camera-tier card)
-    {"SharedSLCOffsets", {PERSISTENT, STRING, ""}},   // MSLC offsets in km/h per posted-limit bucket, e.g. "5,5,5,5,5,5,5"
+    // Posted speed limit (MSLC map, NSLC navigation): one policy and one set of offsets for both.
+    {"SpeedLimitPolicy", {PERSISTENT, INT, "4"}},  // 0 none, 1 car, 2 map, 3 navigation, 4 the lower of all, 5 map/navigation, car as fallback
+    {"SLCOffset1", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits below 29 km/h
+    {"SLCOffset2", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 29-48 km/h
+    {"SLCOffset3", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 49-58 km/h
+    {"SLCOffset4", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 59-78 km/h
+    {"SLCOffset5", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 79-98 km/h
+    {"SLCOffset6", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 99-118 km/h
+    {"SLCOffset7", {PERSISTENT, FLOAT, "0.0"}},  // km/h over the limit for posted limits 119 km/h and up
+    {"SLCConfirmLower", {PERSISTENT, BOOL, "0"}},   // a lower limit waits for the gas pedal (or 30 s) before it applies
+    {"SLCConfirmHigher", {PERSISTENT, BOOL, "0"}},  // a higher limit waits for the gas pedal (or 30 s) before it applies
     {"PathdEnabled", {PERSISTENT, BOOL, "0"}},
     {"MonoDEnabled", {PERSISTENT, BOOL, "0"}},
     {"MonoDHz", {PERSISTENT, INT, "5"}},
@@ -207,11 +217,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // laneChangeStarting (exopilot/selfdrive/controls/lib/lc_lead_handoff.py). No panel
     // toggle by design, matching EOP10's LCAdjacentLeadHandoff. Default off.
     {"LCAdjacentLeadHandoff", {PERSISTENT, BOOL, "0"}},
-    // NSLC-equivalent: clamp cruise speed to the posted navigation speed
-    // limit (exopilot/selfdrive/controls/lib/speed_policy.py, NAVIGATION policy).
-    // Nav-only -- NGP10 has no map-data source (see
-    // exopilot/docs/EOP10_PARITY_CANDIDATES.md's Tier 2.5). No panel
-    // toggle, matching EOP10's NSLCEnabled. Default off.
+    // NSLC: cap the cruise speed at the navigation route's posted limit (exopilot/selfdrive/controls/lib/nslc.py, through
+    // map_speed's speed-limit policy with MSLC). No panel toggle, matching EOP10. Default off.
     {"NSLCEnabled", {PERSISTENT, BOOL, "0"}},
     // Driver preference: constant kph offset applied to the final v_cruise
     // (after all other limits), applied where EOP10's

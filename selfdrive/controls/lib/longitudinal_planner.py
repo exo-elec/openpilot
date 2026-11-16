@@ -47,11 +47,6 @@ from exopilot.selfdrive.controls.lib.lc_lead_handoff import LeadHandoff
 # VTSC: vision turn speed advisory (0-250m); the one module shared with EOP10
 # (NGP10 passes no comfort store and no learned speeds: plain vision target). See vtsc.py.
 from exopilot.selfdrive.controls.lib.vtsc import VTSC
-# NSLC-equivalent: navigation-source speed-limit enforcement, matching EOP10's
-# NSLCEnabled (no panel toggle there either). Nav-only on this branch --
-# NGP10 has no map-data source at all (see EOP10_PARITY_CANDIDATES.md's
-# Tier 2.5 MTSC entry); MSLC is not portable here for the same reason.
-from exopilot.selfdrive.controls.lib.speed_policy import SpeedPolicy, SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = list(ACCELERATION_PROFILES["normal"])
@@ -69,7 +64,6 @@ class FeatureFlags:
   BRSC = 2 ** 3
   LC_LEAD_HANDOFF = 2 ** 4
   VTSC = 2 ** 5
-  NSLC = 2 ** 6
   CUTIN = 2 ** 7
   PATHD = 2 ** 8
 
@@ -140,9 +134,10 @@ class LongitudinalPlanner:
 
     # Cut-in speed trim: predicted cut-in from monoDetections -> lower cruise speed only (default off).
     self.cutin = CutInSpeed()
-    # Map / traffic-light / distraction speed caps (MTSC, MSLC, TLSC, DDSC); every one default off, they only lower the cruise speed
+    # Map / navigation / traffic-light / distraction speed caps (MTSC, MSLC, NSLC, TLSC, DDSC, RCSC); every one default off,
+    # they only lower the cruise speed. The posted limits (MSLC, NSLC) go through one SpeedLimitPolicy.
     _params = Params()
-    self.map_speed = MapSpeed(_params.get_bool, lambda k: _params.get(k) or "")
+    self.map_speed = MapSpeed(_params.get_bool, _params.get)
     # Parallel rule channel (pathd + DPP): blends pathd's accel into the policy accel per DPP's mode (policy unchanged without it)
     self.rule_consumer = RuleChannelConsumer()
 
@@ -154,11 +149,6 @@ class LongitudinalPlanner:
     self.vtsc_result = None
     self.vtsc_v_target = None
 
-    # NSLC-equivalent: nav-source speed-limit enforcement (nav-only, see
-    # speed_policy import comment above for why map isn't an option here).
-    self.speed_policy = SpeedPolicy(policy=SpeedLimitPolicy.NAVIGATION)
-    self.speed_policy_result = None
-    self.speed_policy_v_target = None
     self._adaptive_gap_enabled = _load_adaptive_gap_enabled()
     self._adaptive_gap_t_follow = None
     self._adaptive_gap_jerk_factor = None
@@ -287,29 +277,6 @@ class LongitudinalPlanner:
     map_speed = self.map_speed.update(sm, v_ego, v_cruise, self.vtsc_v_target, bool(self.output_should_stop), self.dt)
     if map_speed.cap is not None:
       v_cruise = min(v_cruise, map_speed.cap)
-
-    # NSLC-equivalent: clamp v_cruise to the posted nav speed limit.
-    # speed_policy.py's evaluate() never applies anything itself (it's a
-    # pure resolver, like vtsc.py/mtsc.py); this is the one place
-    # that acts on its suggestion. Uses min(v_cruise, target) rather than
-    # evaluate()'s own suggested_cruise_mps, matching BRSC/VTSC's idiom
-    # exactly -- decouples this call site from how evaluate() recomputes its
-    # own copy of v_cruise internally (same result today since v_cruise is
-    # always >= 0 here, but this avoids relying on that staying true).
-    # Asymmetry vs. EOP10's MSLC/NSLC, noted rather than hidden: this is a
-    # hard, instant, undebounced clamp on 1 Hz nav data -- no
-    # driver_overriding concept, no offset, and no SpeedLimitConfirmation
-    # (EOP10's nslc.py gates limit *changes* on driver confirmation; this
-    # doesn't). Default off, opt-in, so this isn't a surprise until enabled.
-    nslc_enabled = bool(feature_flags & FeatureFlags.NSLC)
-    self.speed_policy_v_target = None
-    if nslc_enabled and sm.valid.get('navInstruction', False):
-      nav_limit = sm['navInstruction'].speedLimit  # m/s
-      observations = (SpeedLimitObservation(source=SpeedLimitSource.NAVIGATION, limit_mps=float(nav_limit)),) if nav_limit > 0 else ()
-      self.speed_policy_result = self.speed_policy.evaluate(v_ego, v_cruise, observations)
-      self.speed_policy_v_target = self.speed_policy_result.resolved_limit_mps
-      if self.speed_policy_v_target is not None:
-        v_cruise = min(v_cruise, self.speed_policy_v_target)
 
     if force_slow_decel:
       v_cruise = 0.0

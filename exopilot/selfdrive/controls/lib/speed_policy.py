@@ -69,6 +69,10 @@ class SpeedPolicy:
       candidates = usable
     return min(candidates, key=lambda o: o.limit_mps) if candidates else None
 
+  def resolve(self, observations=()) -> SpeedLimitObservation | None:
+    """The observation the policy picks, or None."""
+    return self._resolve(observations)
+
   def evaluate(self, v_ego: float, v_cruise: float, observations=()) -> SpeedPolicyResult:
     resolved = self._resolve(observations)
     suggestion = max(0.0, float(v_cruise))
