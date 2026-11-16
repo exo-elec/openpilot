@@ -104,6 +104,14 @@ void FeaturesPanel::add_longitudinal_toggles() {
     toggles[param.toStdString()] = toggle;
   }
 
+  // ALCC brake behaviour (ALCCBrakeMode)
+  addItem(new ButtonParamControl("ALCCBrakeMode", tr("ALCC Brake Behaviour"),
+      tr("What ALCC does when the brake pedal is pressed.\n"
+         "Maintain: keep steering.\n"
+         "Pause: steer again when the brake is released.\n"
+         "Disengage: release ALCC until you press LKAS, SET or RESUME, or switch cruise off and on."),
+      "", {tr("Maintain"), tr("Pause"), tr("Disengage")}));
+
   // Drive Mode (DLON): rule-based cruise, the driving model, or automatic switching.
   addItem(new ButtonParamControl("DlonMode", tr("Drive Mode"),
       tr("Highway (Rule): rule-based cruise, best for open roads.\n"

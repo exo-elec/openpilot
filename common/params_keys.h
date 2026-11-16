@@ -93,6 +93,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"DeviceModelSelected", {PERSISTENT, STRING, ""}},
     {"VehicleModelList", {CLEAR_ON_MANAGER_START, STRING, "[]"}},
     {"LatALCC", {PERSISTENT, BOOL, "0"}},
+    {"ALCCBrakeMode", {PERSISTENT, INT, "0"}},  // ALCC on a brake press: 0 Maintain, 1 Pause, 2 Disengage
     // DLAT (Dynamic Lateral Profile, exopilot/selfdrive/controls/lib/dlat.py) is a
     // default, always-on behavior of this branch -- automatic Laneful/
     // Laneless confidence arbitration only, no user-selectable mode param.

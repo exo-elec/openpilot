@@ -23,7 +23,7 @@ from exopilot.selfdrive.controls.lib.pathd_consumer import BIAS_PER_METER, PathA
 from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_curvature
 from exopilot.selfdrive.controls.lib.soc import SOC, SOCInput, threats_from
 from exopilot.selfdrive.controls.lib.path_adapter import lane_room
-from exopilot.selfdrive.controls.lib.alcc import ALCCInput, ALCC
+from exopilot.selfdrive.controls.lib.alcc import ALCCInput, ALCC, BrakeMode
 from exopilot.selfdrive.controls.lib.lateral_authorization import lateral_authorized
 from exopilot.selfdrive.controls.lib.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -36,6 +36,8 @@ from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 State = log.SelfdriveState.OpenpilotState
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
+ButtonType = car.CarState.ButtonEvent.Type
+ALCC_ENGAGE_BUTTONS = (ButtonType.lkas, ButtonType.setCruise, ButtonType.resumeCruise)
 
 ACTUATOR_FIELDS = tuple(car.CarControl.Actuators.schema.fields.keys())
 
@@ -88,7 +90,7 @@ class Controls:
     # steer-ratio override (CATManualSR), seed saved per fingerprint (CATPersist)
     self.cat = CAT(self.CP)
     self.alcc_active = False
-    self.alcc = ALCC()
+    self.alcc = ALCC(BrakeMode.from_param(self.params.get("ALCCBrakeMode", return_default=True)))
 
     # DLAT: advisory Laneful/Laneless confidence arbitration (non-controlling
     # in the curvature/steering sense). Always automatic -- a default behavior
@@ -155,6 +157,8 @@ class Controls:
       calibrated=calibrated,
       gear_ok=gear_ok,
       safety_ok=safety_ok,
+      brake_pressed=CS.brakePressed,
+      engage_button=any(be.pressed and be.type in ALCC_ENGAGE_BUTTONS for be in CS.buttonEvents),
     ))
     authorized = lateral_authorized(self.sm['pandaStates'], self.CP.safetyConfigs, self.CP.alternativeExperience,
                                     self.sm.valid['pandaStates'] and self.sm.alive['pandaStates']
