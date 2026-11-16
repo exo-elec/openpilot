@@ -60,7 +60,6 @@ TRIAGED: dict[str, str] = {
 # Not yet classified. Populated from the current gap so the gate is meaningful
 # from day one; entries move to TRIAGED (with a reason) or into descriptor.py.
 UNTRIAGED: set[str] = {
-  "ALCCSteeringModeOnBrake",
   "AccelerationProfile",
   "AdaptiveGapEnabled",
   "AggressiveFollow",

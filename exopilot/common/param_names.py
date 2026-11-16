@@ -7,11 +7,7 @@ uses this set. Add a key here when adding one to common/params_keys.h.
 
 FORK_KEYS = frozenset({
   "AEBEnabled",
-  "ALCCAllowAlways",
   "ALCCBrakeMode",
-  "ALCCHoldAtStandstill",
-  "ALCCSteeringModeOnBrake",
-  "ALCCUnifiedEngagement",
   "AccelerationProfile",
   "AdaptdEnabled",
   "AdaptiveGapEnabled",

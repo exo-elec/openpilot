@@ -10,9 +10,6 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 |---|---|---|
 | `QuietMode` | Yes | `selfdrive/soundd/soundd.py:37` |
 | `AEBEnabled` | Yes | `exopilot/selfdrive/pathd/avoidance.py:525` |
-| `ALCCAllowAlways` | Yes | `selfdrive/controls/lib/alcc.py:68` |
-| `ALCCHoldAtStandstill` | Yes | `selfdrive/controls/lib/alcc.py:69` |
-| `ALCCUnifiedEngagement` | Yes | `selfdrive/controls/lib/alcc.py:70` |
 | `AdaptdEnabled` | Yes | `exopilot/selfdrive/adaptd/adaptd.py:293` |
 | `AdaptiveGapEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `AutoLaneChange` | Yes | `selfdrive/controls/lib/desire_helper.py:85` |
