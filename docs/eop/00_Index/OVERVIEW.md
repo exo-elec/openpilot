@@ -298,7 +298,7 @@ Quick reference:
 | `bluetoothd` | BLE SPP server — NavPilot companion app integration (NCP v4.1; PLP v5 on a second GATT service) | always-on | `system/bluetoothd/` |
 | `recordd` | DVR ring-buffer recording from stereo_right | always-on | `selfdrive/recordd/` |
 | `pigeond` | GPS (NEO-M8U-06B UDR, RK3588) | always-on | `system/ubloxd/` |
-| `navd` | On-device Valhalla routing; NavPilot turn-by-turn via BLE SPP | always-on | `selfdrive/navd/` |
+| `navd` / `mapsd` / `navvoiced` | upstream nav alpha, routed by the on-device Valhalla; NavPilot sets `NavDestination` over BLE | onroad, `NavigationEnabled` (default on) | `selfdrive/navigation/` |
 | `sided` | Side camera BSD/RCTA (YOLOv8 on RKNN) | 20 Hz | `selfdrive/sided/` |
 | `reard` | Independent rear-camera perception (camera-tier accel) | 20 Hz | `selfdrive/reard/` |
 | `stereod` | Stereo depth (SGM + semantic fusion) | 20 Hz | `selfdrive/stereod/` |
@@ -457,7 +457,7 @@ See `docs/eop/04_Integration/BLE_DESIGN.md` for full architecture.
 | **RCD** | ✅ Done | `selfdrive/controls/lib/rcd.py` |
 | **AEB** | ✅ Done | `selfdrive/controls/lib/aeb.py` |
 | **GLOBALD** | ✅ Done | `selfdrive/coordinationd/coordinationd.py` (OSM+SGM localization + fusion) |
-| **NAVD** | ✅ Done | `selfdrive/navd/navd.py` |
+| **NAVD** | ✅ upstream nav alpha (2026-11-16) | `selfdrive/navigation/navd.py` |
 | **MCAPD** | ✅ Done | `system/mcapd/mcapd.py` (Foxglove MCAP logging) |
 | **OBD2D** | ✅ Done | `selfdrive/obd2d/obd2d.py` (OBD2/UDS over BLE) |
 | **RTKD** | ⏳ Planned for 02M | No daemon exists yet; keep outside EOP10/01M. Requires a verified RTCM source and 02M UART integration. |

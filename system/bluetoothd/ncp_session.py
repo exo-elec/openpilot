@@ -256,10 +256,9 @@ class NCPSession:
             if lat is None or lon is None:
                 return protocol.make_error('Missing lat/lon')
             if self.params:
-                self.params.put('NavDestination', json.dumps({
+                self.params.put('NavDestination', {
                     'latitude': float(lat), 'longitude': float(lon), 'place_name': name,
-                }))
-                self.params.remove('NavDestinationWaypoints')
+                })
             logger.info('%s: navigate → %s (%.5f, %.5f)', self._name, name, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_NAVIGATE)
         except Exception as e:
@@ -270,7 +269,6 @@ class NCPSession:
         try:
             if self.params:
                 self.params.remove('NavDestination')
-                self.params.remove('NavDestinationWaypoints')
             return protocol.make_ack(protocol.MessageType.CMD_CANCEL_NAV)
         except Exception as e:
             return protocol.make_error(f'Cancel failed: {e}')
@@ -290,11 +288,10 @@ class NCPSession:
             if lat is None or lon is None:
                 return protocol.make_error('Missing lat/lon')
             if self.params:
-                self.params.put('NavDestination', json.dumps({
+                self.params.put('NavDestination', {
                     'latitude': float(lat), 'longitude': float(lon),
                     'place_name': f'Convoy: {friend_id}' if friend_id else 'Convoy',
-                }))
-                self.params.remove('NavDestinationWaypoints')
+                })
             logger.info('%s: convoy lead → %s (%.5f, %.5f)', self._name, friend_id, lat, lon)
             return protocol.make_ack(protocol.MessageType.CMD_CONVOY_LEAD)
         except Exception as e:
@@ -305,7 +302,6 @@ class NCPSession:
         try:
             if self.params:
                 self.params.remove('NavDestination')
-                self.params.remove('NavDestinationWaypoints')
             logger.info('%s: convoy cancelled', self._name)
             return protocol.make_ack(protocol.MessageType.CMD_CONVOY_CANCEL)
         except Exception as e:

@@ -13,8 +13,8 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `AdaptdEnabled` | Yes | `exopilot/selfdrive/adaptd/adaptd.py:293` |
 | `AdaptiveGapEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `AutoLaneChange` | Yes | `selfdrive/controls/lib/desire_helper.py:85` |
-| `AutoTileEnabled` | Yes | `selfdrive/navd/tile_auto_manager.py:157` |
-| `AutoTileWifiOnly` | Yes | `selfdrive/navd/tile_auto_manager.py:172` |
+| `AutoTileEnabled` | Yes | `exopilot/system/valhalla/tile_auto_manager.py` |
+| `AutoTileWifiOnly` | Yes | `exopilot/system/valhalla/tile_auto_manager.py` |
 | `BlindSpotIndicator` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
 | `BSDChimeEnabled` | Yes | `selfdrive/controls/controlsd.py:180` |
 | `BSDEnabled` | Yes | `selfdrive/controls/controlsd.py:178` |
@@ -68,7 +68,7 @@ Added 64 persistent on/off controls with direct runtime readers. Existing contro
 | `NavBleEnabled` | Yes | No direct reader found; review dynamic reads and integration before advertising support |
 | `NavEnabled` | Not exposed | No direct reader found; review dynamic reads and integration before advertising support |
 | `NavPilotPaired` | Not exposed | `system/subscribed/subscribed.py:275` |
-| `NavVoiceEnabled` | Yes | `selfdrive/navd/navd.py:82` |
+| `NavVoiceEnabled` | Yes | `exopilot/selfdrive/navigation/nav_voice.py` |
 | `NudgeEnabled` | Yes | `exopilot/selfdrive/pathd/avoidance.py:528` |
 | `OneLaneChange` | Yes | `selfdrive/controls/lib/desire_helper.py:86` |
 | `OsmLocalizerEnabled` | Yes | `exopilot/selfdrive/coordinationd/coordinationd.py:97` |

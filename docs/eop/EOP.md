@@ -75,7 +75,7 @@ See **INFERENCED_INDEX.md** for:
 | `driverd` | `selfdrive/driverd/` *(not implemented)**) | Driver monitoring / DMS |
 | `soundd` | [`selfdrive/soundd/`](../../selfdrive/soundd/) | TTS + alert tone generation |
 | `spkd` | [`system/spkd/`](../../system/spkd/) | I2S speaker output |
-| `navd` | [`selfdrive/navd/`](../../selfdrive/navd/) | Offline Valhalla navigation |
+| `navd`, `mapsd`, `navvoiced` | [`selfdrive/navigation/`](../../selfdrive/navigation/), `exopilot/selfdrive/navigation/nav_voice.py` | upstream openpilot's nav alpha routed by the local Valhalla; spoken turns ([UPSTREAM_NAVIGATION.md](../../exopilot/docs/UPSTREAM_NAVIGATION.md)) |
 | `pathd` | [`selfdrive/pathd/`](../../selfdrive/pathd/) | Trajectory planning + stereo nudge |
 | `coordinationd` | [`selfdrive/coordinationd/`](../../selfdrive/coordinationd/) | OSM + SGM localization fusion |
 

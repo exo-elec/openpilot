@@ -34,8 +34,6 @@ TRIAGED: dict[str, str] = {
   'LastGPSAltitude': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
   'LastGPSLatitude': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
   'LastGPSLongitude': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
-  'NavDestination': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
-  'NavDestinationWaypoints': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
   'NavPilotOAuthEmail': 'Credential, identity or structured provisioning data; never an ordinary on/off setting.',
   'NavPilotOAuthToken': 'Credential, identity or structured provisioning data; never an ordinary on/off setting.',
   'OpenBLTFirmwareVersion': 'Runtime state, action/configuration payload or specialized value; not an ordinary on/off setting.',
