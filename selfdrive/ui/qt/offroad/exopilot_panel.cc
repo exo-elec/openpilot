@@ -414,6 +414,11 @@ void ExoPilotPanel::add_device_toggles() {
   addItem(settingsSection(tr("Phone")));
   add_param_toggle("NavBleEnabled", tr("Navigation App over Bluetooth"),
       tr("Send destinations from the ExoPilot phone app over Bluetooth."));
+  add_param_toggle("NavigationEnabled", tr("Navigation"),
+      tr("Turn-by-turn with the route map beside the camera, routed on the device. "
+         "Set a destination from the phone app."));
+  add_param_toggle("NavVoiceEnabled", tr("Spoken Turns"),
+      tr("Announce the next turn at 500 m, 200 m and 80 m, and on arrival."));
 
   addItem(settingsSection(tr("Power")));
   addItem(new ParamSpinBoxControl(
