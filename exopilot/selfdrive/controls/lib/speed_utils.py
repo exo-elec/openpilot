@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import cast
 
 
-from openpilot.common.params import Params
 
 # GPS tolerance for curve-speed DB lookups (CSLB/MTSC/VTSC). ExoPilot 02M's
 # ZED-F9P is RTK-capable hardware, but no RTCM correction path exists yet
@@ -126,111 +125,7 @@ def calculate_speed_for_curvature(curvature: float, a_comfort: float, min_curvat
   return cast(float, (a_comfort / curvature) ** 0.5)
 
 
-class SpeedLimitOffset:
-  """Per-speed-range offset calculator (merged from FrogPilot SLC).
-
-  Replaces global percent+fixed offset with bucket-based offsets that
-  vary by posted speed limit. E.g., +5 km/h at 50 km/h, +10 at 120 km/h.
-  """
-
-  # Bucket edges in m/s: [0, 29, 49, 59, 79, 99, 119, 140] km/h
-  BUCKET_EDGES_MS = [0.0, 8.1, 13.6, 16.4, 21.9, 27.5, 33.1, 38.9]
-
-  def __init__(self, params: Params):
-    self._params = params
-    self._offsets = [0.0] * (len(self.BUCKET_EDGES_MS) - 1)
-    self._last_update = 0.0
-
-  def refresh(self, now: float = 0.0):
-    if now - self._last_update < 2.0:
-      return
-    self._last_update = now
-    for i in range(len(self._offsets)):
-      try:
-        val = self._params.get(f"SLCOffset{i + 1}")
-        self._offsets[i] = float(val) * (1000.0 / 3600.0) if val is not None else 0.0  # km/h -> m/s
-      except (ValueError, TypeError):
-        self._offsets[i] = 0.0
-
-  def get_offset_ms(self, limit_ms: float) -> float:
-    """Return offset in m/s for the given speed limit."""
-    for i in range(len(self.BUCKET_EDGES_MS) - 1):
-      if self.BUCKET_EDGES_MS[i] <= limit_ms < self.BUCKET_EDGES_MS[i + 1]:
-        return self._offsets[i]
-    return self._offsets[-1] if self._offsets else 0.0
-
-
-class SpeedLimitConfirmation:
-  """Require driver confirmation before applying speed limit changes.
-
-  Merged from FrogPilot speed_limit_controller.py confirmation logic.
-  """
-
-  CONFIRMATION_TIMEOUT = 30.0  # seconds before auto-confirm
-  MIN_CHANGE_MS = 2.78  # 10 km/h minimum change to trigger confirmation
-
-  def __init__(self):
-    self._confirmed_limit_ms: float | None = None
-    self._unconfirmed_limit_ms: float | None = None
-    self._change_time: float = 0.0
-    self._confirmation_lower = False
-    self._confirmation_higher = False
-    self._last_param_t = 0.0
-
-  def refresh_params(self, params: Params, now: float):
-    if now - self._last_param_t < 2.0:
-      return
-    self._last_param_t = now
-    self._confirmation_lower = params.get_bool("SLCConfirmLower")
-    self._confirmation_higher = params.get_bool("SLCConfirmHigher")
-
-  def update(self, new_limit_ms: float | None, driver_overriding: bool, now: float) -> float | None:
-    """Return the speed limit to apply, or None if not confirmed yet."""
-    if new_limit_ms is None:
-      self._confirmed_limit_ms = None
-      self._unconfirmed_limit_ms = None
-      return None
-
-    if self._confirmed_limit_ms is None:
-      self._confirmed_limit_ms = new_limit_ms
-      return new_limit_ms
-
-    delta = new_limit_ms - self._confirmed_limit_ms
-    if abs(delta) < self.MIN_CHANGE_MS:
-      return self._confirmed_limit_ms
-
-    is_lower = delta < 0
-    needs_confirm = (is_lower and self._confirmation_lower) or (not is_lower and self._confirmation_higher)
-
-    if not needs_confirm:
-      self._confirmed_limit_ms = new_limit_ms
-      return new_limit_ms
-
-    # New limit needs confirmation
-    if self._unconfirmed_limit_ms != new_limit_ms:
-      self._unconfirmed_limit_ms = new_limit_ms
-      self._change_time = now
-
-    # Driver override (gas press) acts as confirmation
-    if driver_overriding:
-      self._confirmed_limit_ms = new_limit_ms
-      self._unconfirmed_limit_ms = None
-      return new_limit_ms
-
-    # Auto-confirm after timeout
-    if now - self._change_time > self.CONFIRMATION_TIMEOUT:
-      self._confirmed_limit_ms = new_limit_ms
-      self._unconfirmed_limit_ms = None
-      return new_limit_ms
-
-    # Not confirmed yet — keep old limit
-    return self._confirmed_limit_ms
-
-  def is_unconfirmed(self) -> bool:
-    return self._unconfirmed_limit_ms is not None
-
-  def unconfirmed_limit(self) -> float | None:
-    return self._unconfirmed_limit_ms
+# SpeedLimitOffset / SpeedLimitConfirmation: the one copy is in exopilot/selfdrive/controls/lib/mslc.py (MSLC and NSLC).
 
 
 def detect_exopilot_platform() -> str:
