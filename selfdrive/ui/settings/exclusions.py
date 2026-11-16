@@ -15,9 +15,8 @@ from __future__ import annotations
 
 # key -> why it is not a user-facing setting
 TRIAGED: dict[str, str] = {
-  'DDSCEnabled': 'Canonical EOP-origin switch for NGP MapSpeed; the EOP planner retains its existing distraction path.',
+  'DDSCEnabled': 'Shared MapSpeed switch (driver-activity distraction cap); no panel row yet.',
   'PathdNudgesEnabled': 'NGP camera-only proposer adapter; EOP sensor nudges use NudgeEnabled and must not be applied twice.',
-  'SharedSLCOffsets': 'NGP MapSpeed compatibility configuration; EOP speed-limit offsets retain their existing individual settings.',
 
   'BLECornerPairs': 'Credential, identity or structured provisioning data; never an ordinary on/off setting.',
   'BLERadarPairingOpen': 'No verified switch consumer/semantics in this audit; see FEATURE_PARITY_AND_SWITCHES.md.',

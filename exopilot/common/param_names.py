@@ -210,7 +210,6 @@ FORK_KEYS = frozenset({
   "SafetyMaxSteeringRate",
   "SafetyMessageTimeout",
   "SafetyMinAccel",
-  "SharedSLCOffsets",
   "ShockDepthM",
   "ShockDetection",
   "ShockDuration",

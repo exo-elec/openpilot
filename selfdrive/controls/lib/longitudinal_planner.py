@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import time
 from types import SimpleNamespace
 import numpy as np
@@ -39,29 +40,19 @@ from exopilot.selfdrive.controls.lib.longitudinal_policy import (
 
 # EOP: Vision Turn Speed Control
 from exopilot.selfdrive.controls.lib.vtsc import VTSC, ComfortCalibration, CurvatureBucket
-from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc, curves_from_path
 from exopilot.selfdrive.controls.lib.speed_utils import get_learned_speed
 # VTSC comfort per curve sharpness, read from and learned into these params (the shared VTSC has no Params of its own)
 VTSC_COMFORT_KEYS = {CurvatureBucket.MILD: 'TSCTargetLatAccelMild', CurvatureBucket.MEDIUM: 'TSCTargetLatAccelMedium',
                      CurvatureBucket.SHARP: 'TSCTargetLatAccelSharp'}
 # EOP: Dynamic Longitudinal Profile
 from exopilot.selfdrive.controls.lib.dlon import DLON
-# EOP: Map Turn Speed Control (includes learned speeds)
-from openpilot.selfdrive.controls.lib.mtsc import MTSC
-# EOP: Map Speed Limit Control (MSLC - OSM posted limits)
-from openpilot.selfdrive.controls.lib.mslc import MSLC
-# EOP: Navigation Speed Limit Control (NSLC - Mapbox/navd limits)
-from openpilot.selfdrive.controls.lib.nslc import NSLC
-# EOP: Traffic Light Speed Control
-from openpilot.selfdrive.controls.lib.tlsc import TLSC
+# Map / navigation / traffic-light / distraction / road-condition speed caps, shared with NGP10
+# (MTSC, MSLC, NSLC, TLSC, DDSC, RCSC; the posted limits through one SpeedLimitPolicy)
+from exopilot.selfdrive.controls.lib.map_speed import MapSpeed
 # EOP: Driver Preferences (speed offset, following distance)
 from openpilot.selfdrive.controls.lib.driver_prefs import DriverPrefs
 # EOP: SQSC - Surface Quality Speed Controller (road quality speed control)
 from openpilot.selfdrive.controls.lib.sqsc import SQSC
-# RCSC - Road Condition Speed Controller (speed cap on a wet / icy / debris road), shared with NGP10
-from exopilot.selfdrive.controls.lib.rcsc import RCSC
-# EOP: Speed Limit Resolver (Topic 05 — offset + policy)
-from exopilot.selfdrive.controls.lib.speed_limit_resolver import SpeedLimitResolver
 # EOP: Lane Change Lead Handoff (pure camera — adjacent lead tracking during lane change)
 from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
 # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy, shared across
@@ -71,7 +62,6 @@ from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHando
 from exopilot.selfdrive.controls.lib.brsc import BRSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
-TLSC_MAX_STALE_CYCLES = 10  # stereoObjects missing this many cycles (0.5 s at 20 Hz) drops the TLSC target
 # EOP: breakpoints aligned with CRAWL/URBAN/HIGHWAY/MAX (0/43/86/130 km/h).
 # Upstream: [0, 10, 25, 40] m/s
 A_CRUISE_MAX_BP = [CRAWL_SPEED_MPS, URBAN_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS]
@@ -181,26 +171,12 @@ class LongitudinalPlanner:
     self.dlon_force_stop = False
     self.dlon_result = {'mode': 'Disabled', 'e2e_enabled': False, 'force_stop': False}
 
-    # EOP: MTSC initialization (Map-based curve speed with learned priority)
-    self.mtsc = MTSC()
-    self.mtsc_v_target = None
-
-    # EOP: MSLC initialization (Map posted speed limits)
-    self.mslc = MSLC()
-    self.mslc_v_target = None
-
-    # EOP: NSLC initialization (Navigation speed limits from Mapbox/navd)
-    self.nslc = NSLC()
-    self.nslc_v_target = None
-
-    # EOP: Speed Limit Resolver (Topic 05) — picks source policy across MSLC/NSLC
-    self.sl_resolver = SpeedLimitResolver()
-    self.sl_resolved = None
-
-    # EOP: TLSC initialization (Traffic light speed control)
-    self.tlsc = TLSC()
-    self.tlsc_v_target = None
-    self._tlsc_stale_cycles = 0
+    # Map / navigation / light / distraction / road-condition speed caps: the shared MapSpeed, as NGP10. ExoPilot adds the
+    # learned curve speeds (cslb, behind CurveSpeedLearnEnabled) and MTSC's comfort lateral acceleration (TSCTargetLatAccel).
+    _map_params = Params()
+    self.map_speed = MapSpeed(_map_params.get_bool, _map_params.get, learned_speed=self._mtsc_learned_speed,
+                              lat_accel=lambda: _map_params.get("TSCTargetLatAccel"))
+    self.map_speed_result = None
 
     # EOP: Driver Preferences initialization
     self.driver_prefs = DriverPrefs()
@@ -208,10 +184,6 @@ class LongitudinalPlanner:
     # EOP: SQSC initialization (Surface Quality Speed Controller)
     self.sqsc = SQSC()
     self.sqsc_v_target = None
-
-    # RCSC: Road Condition Speed Controller
-    self.rcsc = RCSC(Params().get_bool, "RCSCEnabled")
-    self.rcsc_v_target = None
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
     self.brsc = BRSC()
@@ -231,13 +203,31 @@ class LongitudinalPlanner:
     # EOP: Speed limit pre-announcement TTS deduplication
     self._sl_tts_announced_limit = None
     self._sl_tts_announced_distance = float('inf')
+    self._sl_tts_text = None
 
-    # EOP: VTSC/MTSC handover smoothing
-    # Prevents acceleration spikes during MTSC→VTSC transition at ~250m
-    self._curve_both = None  # previous frame had both VTSC and MTSC targets (handover rate limit)
-    self.handover_distance = 0.0
     self.vtsc_using_learned = False
-    self.mtsc_using_learned = False
+
+  def _announce_speed_limit_change(self) -> None:
+    """A spoken notice when the map shows a limit at least 20 km/h different within 300 m (once per limit, or again 100 m closer)."""
+    self._sl_tts_text = None
+    mslc = self.map_speed.mslc
+    upcoming, current = getattr(mslc, 'upcoming_limit', None), mslc.current_limit
+    distance = getattr(mslc, 'distance_to_limit', float('inf'))
+    if self.map_speed.flags['mslc'] and upcoming is not None and current is not None and 10.0 < distance < 300.0:
+      diff_kmh = upcoming - current
+      if abs(diff_kmh) >= 20 and (self._sl_tts_announced_limit != upcoming or distance < self._sl_tts_announced_distance - 100.0):
+        self._sl_tts_announced_limit = upcoming
+        self._sl_tts_announced_distance = distance
+        self._sl_tts_text = f"Speed limit {'drops to' if diff_kmh < 0 else 'rises to'} {upcoming} ahead."
+    elif not (upcoming is not None and current is not None and 10.0 < distance < 300.0):
+      self._sl_tts_announced_limit = None
+      self._sl_tts_announced_distance = float('inf')
+
+  def _mtsc_learned_speed(self, lat: float, lon: float, curvature: float) -> float:
+    """MTSC's learned curve speed (m/s, 0 = none) at mapd's position, while CurveSpeedLearnEnabled is on."""
+    if not self._vtsc_flags[1] or (lat == 0.0 and lon == 0.0):
+      return 0.0
+    return get_learned_speed(lat, lon, curvature, True, min_speed_kph=20.0)
 
   @staticmethod
   def parse_model(model_msg):
@@ -361,98 +351,15 @@ class LongitudinalPlanner:
     vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled, learned_speed=learned)
     self.vtsc_v_target, self.vtsc_using_learned = vtsc_result.target_speed, vtsc_result.using_learned
 
-    # EOP: MTSC - Map Turn Speed Control (250-500m range, with learned speeds)
-    # Uses learned driver speeds from database, falls back to OSM physics
-    self.mtsc_v_target = None  # reset each cycle; only re-set when mapd's path (mapdExtendedOut, 1 Hz) is fresh
-    if sm.updated['mapdExtendedOut']:
-      ext = sm['mapdExtendedOut']
-      mtsc_output = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego, lat, lon)
-      self.mtsc_v_target = mtsc_output['v_target']
-      self.handover_distance = mtsc_output.get('distance', float('inf'))
-      self.mtsc_using_learned = mtsc_output.get('using_learned', False)
+    if self.vtsc_v_target is not None:
+      v_cruise = min(v_cruise, self.vtsc_v_target)
 
-    # EOP: Curve speed learning — DISABLED in real-time loop.
-    # Database writes in 20 Hz control loops cause frame drops.
-    # Learning moved to background thread in cslb.py (CurveDatabase._bg_writer).
-    # To re-enable: call cslb.queue_curve_update(lat, lon, curvature, v_ego)
-    # which enqueues for batch write every 5 seconds.
-    # Placeholder — background learning handled by cslb
-
-    # VTSC / MTSC handover: the shared rule (MTSC beyond 200 m, a rate-limited conservative blend to 150 m, VTSC inside)
-    curve_target, self._curve_both = blend_mtsc_vtsc(self.mtsc_v_target, self.vtsc_v_target, self.handover_distance, v_cruise,
-                                                     self._curve_both, DT_MDL)
-    if curve_target is not None:
-      v_cruise = min(v_cruise, curve_target)
-
-    # EOP: MSLC - Map Speed Limit Control (OSM posted limits)
-    self.mslc_v_target = None  # reset each cycle; re-set from mapdOut (20 Hz, so every planner cycle)
-    if sm.updated['mapdOut']:
-      driver_overriding = sm['carState'].gasPressed
-      current_time = sm.logMonoTime['carState'] * 1e-9
-      mo = sm['mapdOut']
-      self.mslc_v_target, _ = self.mslc.update(mo.speedLimit, mo.nextSpeedLimit, mo.nextSpeedLimitDistance, v_ego, driver_overriding,
-                                               current_time)
-
-    # EOP: Map-based speed limit pre-announcement TTS
-    # When a significant speed limit change is ahead (<300m), announce it early
-    self._sl_tts_text = None
-    mslc = self.mslc
-    if (getattr(mslc, 'upcoming_limit', None) is not None
-        and mslc.distance_to_limit < 300.0
-        and mslc.distance_to_limit > 10.0
-        and mslc.current_limit is not None):
-      diff_kmh = mslc.upcoming_limit - mslc.current_limit
-      if abs(diff_kmh) >= 20:
-        upcoming = mslc.upcoming_limit
-        # Deduplicate: only announce if this upcoming limit is new or distance decreased significantly
-        if (self._sl_tts_announced_limit != upcoming
-            or mslc.distance_to_limit < self._sl_tts_announced_distance - 100.0):
-          self._sl_tts_announced_limit = upcoming
-          self._sl_tts_announced_distance = mslc.distance_to_limit
-          direction = "drops to" if diff_kmh < 0 else "rises to"
-          self._sl_tts_text = f"Speed limit {direction} {upcoming} ahead."
-    else:
-      self._sl_tts_announced_limit = None
-      self._sl_tts_announced_distance = float('inf')
-
-    # EOP: NSLC - Navigation Speed Limit Control (Mapbox/navd limits)
-    if sm.updated['navInstruction']:
-      driver_overriding = sm['carState'].gasPressed
-      current_time = sm.logMonoTime['carState'] * 1e-9
-      self.nslc_v_target, _ = self.nslc.update(
-        nav_instruction=sm['navInstruction'] if sm.valid.get('navInstruction', False) else None,
-        map_data=None,
-        v_ego=v_ego,
-        driver_overriding=driver_overriding,
-        current_time=current_time
-      )
-
-    # EOP: Dashboard speed limit (car-reported, most reliable fallback)
-    # CarState.speedLimit existed only in the old cereal/car.capnp fork and nothing ever wrote it (always 0.0);
-    # opendbc's CarState has no such field, so there is no dash source until a car interface provides one.
-    dash_limit_ms = 0.0
-
-    # EOP: Speed Limit Resolver (Topic 05)
-    self.sl_resolved = self.sl_resolver.update(
-      mslc_limit_mps=self.mslc_v_target,
-      nslc_limit_mps=self.nslc_v_target,
-      car_limit_mps=dash_limit_ms if dash_limit_ms > 0 else None,
-      v_ego=v_ego,
-      distance_to_change_m=getattr(self.mslc, 'distance_to_limit', 0.0) or getattr(self.nslc, 'distance_to_limit', 0.0),
-    )
-    v_cruise = self.sl_resolver.apply_to_v_cruise(v_cruise, self.sl_resolved)
-
-    # EOP: TLSC - Traffic Light Speed Control
-    # stereoObjects (gridd, 20 Hz) does not land on every modelV2 cycle: hold
-    # the last target between updates, and drop it after 0.5 s without one.
-    if sm.updated['stereoObjects']:
-      self.tlsc_v_target = self.tlsc.update(sm)
-      self._tlsc_stale_cycles = 0
-    else:
-      self._tlsc_stale_cycles += 1
-      if self._tlsc_stale_cycles > TLSC_MAX_STALE_CYCLES:
-        self.tlsc_v_target = None
-    v_cruise = self._apply_speed_limit(v_cruise, self.tlsc_v_target)
+    # Map / navigation / light / distraction / road-condition caps (shared with NGP10): MTSC with the MTSC -> VTSC handover, the
+    # posted limit (MSLC map + NSLC navigation through SpeedLimitPolicy, offsets SLCOffset1..7), TLSC on our path, DDSC, RCSC
+    self.map_speed_result = self.map_speed.update(sm, v_ego, v_cruise, self.vtsc_v_target, bool(self.output_should_stop), DT_MDL)
+    if self.map_speed_result.cap is not None:
+      v_cruise = min(v_cruise, self.map_speed_result.cap)
+    self._announce_speed_limit_change()
 
     # EOP: Driver Preferences
     self.driver_prefs.update(sm)
@@ -460,11 +367,6 @@ class LongitudinalPlanner:
     # EOP: SQSC - Surface Quality Speed Controller
     self.sqsc_v_target = self.sqsc.update(v_ego, sm)
     v_cruise = self._apply_speed_limit(v_cruise, self.sqsc_v_target)
-
-    # RCSC - Road Condition Speed Controller (wet/icy/debris speed limits)
-    rcsc_state = self.rcsc.update(sm)
-    self.rcsc_v_target = rcsc_state.speed_limit_ms if rcsc_state.is_active else None
-    v_cruise = self._apply_speed_limit(v_cruise, self.rcsc_v_target)
 
     # BRSC: reduce cruise speed while rough-road hold is active, on top of whatever
     # VTSC/MTSC/SQSC/RCSC/TLSC already set v_cruise to. Gated on v_ego (matches VTSC's
@@ -630,26 +532,25 @@ class LongitudinalPlanner:
     longitudinalPlan.dlonE2EEnabled = self.dlon_e2e_enabled
     longitudinalPlan.dlonForceStop = self.dlon_force_stop
 
-    # EOP: VTSC/MTSC/MSLC debug info
+    # EOP: VTSC/MTSC/MSLC/NSLC debug info (MTSC, MSLC, NSLC from the shared MapSpeed)
+    ms = self.map_speed_result
     longitudinalPlan.vtscActive = self.vtsc_v_target is not None
-    longitudinalPlan.mtscActive = self.mtsc_v_target is not None
-    longitudinalPlan.mslcActive = self.mslc_v_target is not None
     if self.vtsc_v_target is not None:
       longitudinalPlan.vtscSpeed = float(self.vtsc_v_target)
     longitudinalPlan.vtscUsingLearned = self.vtsc_using_learned
-
-    if self.mtsc_v_target is not None:
-      longitudinalPlan.mtscSpeed = float(self.mtsc_v_target)
-    longitudinalPlan.mtscUsingLearned = self.mtsc_using_learned
-    longitudinalPlan.mtscDistance = float(self.handover_distance)
-
-    if self.mslc_v_target is not None:
-      longitudinalPlan.mslcSpeed = float(self.mslc_v_target)
-
-    # EOP: NSLC (Navigation Speed Limit Controller)
-    longitudinalPlan.nslcActive = self.nslc_v_target is not None
-    if self.nslc_v_target is not None:
-      longitudinalPlan.nslcSpeed = float(self.nslc_v_target)
+    if ms is not None:
+      longitudinalPlan.mtscActive = ms.mtsc is not None
+      if ms.mtsc is not None:
+        longitudinalPlan.mtscSpeed = float(ms.mtsc)
+      longitudinalPlan.mtscUsingLearned = ms.mtsc_using_learned
+      if math.isfinite(ms.mtsc_distance):
+        longitudinalPlan.mtscDistance = float(ms.mtsc_distance)
+      longitudinalPlan.mslcActive = ms.mslc is not None
+      if ms.mslc is not None:
+        longitudinalPlan.mslcSpeed = float(ms.mslc)
+      longitudinalPlan.nslcActive = ms.nslc is not None
+      if ms.nslc is not None:
+        longitudinalPlan.nslcSpeed = float(ms.nslc)
 
     # EOP: SQSC debug info
     sqsc_state = self.sqsc.get_state()
@@ -659,9 +560,10 @@ class LongitudinalPlanner:
       longitudinalPlan.sqscSpeed = float(self.sqsc_v_target)
 
     # RCSC debug info (cereal fields keep their rcd* names)
-    longitudinalPlan.rcdActive = self.rcsc_v_target is not None
-    if self.rcsc_v_target is not None:
-      longitudinalPlan.rcdSpeed = float(self.rcsc_v_target)
+    rcsc = ms.sources.get('rcsc') if ms is not None else None
+    longitudinalPlan.rcdActive = rcsc is not None
+    if rcsc is not None:
+      longitudinalPlan.rcdSpeed = float(rcsc)
 
     # BRSC debug info
     if self.brsc_result is not None:
@@ -684,14 +586,17 @@ class LongitudinalPlanner:
 
     pm.send('longitudinalPlan', plan_send)
 
-    # EOP: Speed Limit State (Topic 05) — policy-only; offsets are applied inside MSLC
-    if self.sl_resolved is not None:
+    # EOP: Speed Limit State (Topic 05): the posted limit the shared SpeedLimitPolicy chose (offsets included)
+    if self.map_speed_result is not None:
+      limit = self.map_speed_result.limit
       sl_send = messaging.new_message('speedLimitState')
       sl = sl_send.speedLimitState
-      sl.source = self.sl_resolved.source
-      sl.limitMps = float(self.sl_resolved.limit_mps)
-      sl.distanceToChangeM = float(self.sl_resolved.distance_to_change_m)
-      sl.active = self.sl_resolved.active
+      sl.active = limit is not None
+      if limit is not None:
+        sl.source = int(limit.source)
+        sl.limitMps = float(limit.limit_mps)
+        if limit.distance_to_change_m is not None and math.isfinite(limit.distance_to_change_m):
+          sl.distanceToChangeM = float(limit.distance_to_change_m)
       pm.send('speedLimitState', sl_send)
 
     # EOP: Map-based speed limit pre-announcement TTS
