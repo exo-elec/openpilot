@@ -79,6 +79,9 @@ def plp_link(started: bool, params: Params, CP: car.CarParams) -> bool:
 def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started
 
+def navigation(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("NavigationEnabled")
+
 def only_offroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return not started
 
@@ -104,6 +107,8 @@ procs = [
   PythonProcess("timed", "system.timed", always_run, enabled=not PC),
 
   PythonProcess("modeld", "selfdrive.modeld.modeld", only_onroad),
+  PythonProcess("navd", "selfdrive.navigation.navd", navigation),
+  PythonProcess("mapsd", "selfdrive.navigation.mapsd", navigation),
   # No driver camera on our devices: camera-based driver monitoring (dmonitoringmodeld, dmonitoringd) is not run; driver activity is.
 
   PythonProcess("sensord", "system.sensord.sensord", only_onroad, enabled=not PC),

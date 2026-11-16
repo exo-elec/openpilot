@@ -66,6 +66,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"IsTakingSnapshot", {CLEAR_ON_MANAGER_START, BOOL}},
     {"IsTestedBranch", {CLEAR_ON_MANAGER_START, BOOL}},
     {"JoystickDebugMode", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, BOOL}},
+    {"NavigationEnabled", {PERSISTENT, BOOL, "0"}},  // upstream nav alpha (selfdrive/navigation): navd + mapsd onroad
+    {"NavDestination", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, JSON}},  // {"latitude", "longitude"}, set by athena setNavDestination
     {"LanguageSetting", {PERSISTENT, STRING, "main_en"}},
     {"LastAthenaPingTime", {CLEAR_ON_MANAGER_START, INT}},
     {"LastGPSPosition", {PERSISTENT, STRING}},

@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QStackedLayout>
 
+#include "common/timing.h"
 #include "selfdrive/ui/qt/util.h"
 
 OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
@@ -25,6 +26,10 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
     split->insertWidget(0, arCam);
   }
 
+  navigation = new NavigationPanel(this);
+  navigation->setVisible(false);
+  split->addWidget(navigation);
+
   stacked_layout->addWidget(split_wrapper);
 
   alerts = new OnroadAlerts(this);
@@ -46,6 +51,15 @@ void OnroadWindow::updateState(const UIState &s) {
 
   alerts->updateState(s);
   nvg->updateState(s);
+
+  const double t = millis_since_boot() / 1000.0;
+  if (t - nav_checked >= 1.0) {  // the params, once a second (upstream reads them with its other UI params)
+    nav_checked = t;
+    navigation->setVisible(NavigationPanel::wanted());
+  }
+  if (navigation->isVisible()) {
+    navigation->updateState(s);
+  }
 
   QColor bgColor = bg_colors[s.status];
   if (bg != bgColor) {

@@ -40,6 +40,10 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   });
   addItem(experimentalLongitudinalToggle);
 
+  // upstream nav alpha (selfdrive/navigation): navd + mapsd onroad, the panel beside the camera
+  addItem(new ParamControl("NavigationEnabled", tr("Navigation (Alpha)"),
+                           tr("Turn-by-turn navigation with a route map. Set a destination from comma connect."), ""));
+
   // Joystick and longitudinal maneuvers should be hidden on release branches
   is_release = params.getBool("IsReleaseBranch");
 

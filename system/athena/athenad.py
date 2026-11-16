@@ -5,6 +5,7 @@ import base64
 import hashlib
 import io
 import json
+import math
 import os
 import queue
 import random
@@ -337,6 +338,22 @@ def _do_upload(upload_item: UploadItem, callback: Callable = None) -> requests.R
 
 
 # security: user should be able to request any message from their car
+@dispatcher.add_method
+def setNavDestination(latitude: float, longitude: float) -> dict[str, int | str]:
+  # as upstream openpilot's athenad (nav alpha, #39066): finite, in range
+  if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in (latitude, longitude)) or \
+     not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+    return {"success": 0, "error": "Invalid destination coordinates"}
+  Params().put("NavDestination", {"latitude": latitude, "longitude": longitude})
+  return {"success": 1}
+
+
+@dispatcher.add_method
+def clearNavDestination() -> dict[str, int]:
+  Params().remove("NavDestination")
+  return {"success": 1}
+
+
 @dispatcher.add_method
 def getMessage(service: str, timeout: int = 1000) -> dict:
   if service is None or service not in SERVICE_LIST:
