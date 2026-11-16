@@ -14,7 +14,7 @@ import cereal.messaging as messaging
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 
-from openpilot.selfdrive.navd.tile_manager import TileManager, TILE_SOURCES
+from exopilot.system.valhalla.tile_manager import TileManager, TILE_SOURCES
 
 # Default WiFi-only download threshold (MB)
 WIFI_ONLY_THRESHOLD_MB = 100

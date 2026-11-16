@@ -100,7 +100,7 @@ class TestConvoy:
         response = session.handle_frame(frame)
 
         assert response.msg_type == MessageType.RESPONSE_ACK
-        dest = json.loads(session.params.get('NavDestination'))
+        dest = session.params.get('NavDestination')
         assert dest['latitude'] == pytest.approx(13.7563)
         assert dest['longitude'] == pytest.approx(100.5018)
         assert 'friend-123' in dest['place_name']

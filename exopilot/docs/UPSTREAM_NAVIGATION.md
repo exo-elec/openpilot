@@ -47,3 +47,16 @@ the same three import replacements.
   `pmtiles extract https://build.protomaps.com/<date>.pmtiles map.pmtiles --bbox=97.3,5.6,105.7,20.5 --maxzoom=15`
   (Thailand), and copy it to the device. The only change in upstream's files is the one line in `mapsd` that opens
   the source.
+
+## ExoPilot boards (EOP10 and up)
+
+- The same `selfdrive/navigation`; EOP10's own Valhalla navd (`selfdrive/navd`) is gone. Its Valhalla routing-tile
+  downloaders moved to `exopilot/system/valhalla/`; the local Valhalla server on :8002 is what `navd` asks.
+- NavPilot sets the destination over BLE (`ncp_session` CMD_NAVIGATE / CMD_CONVOY_LEAD) into the same `NavDestination`
+  ({latitude, longitude, place_name}; navd reads the first two), as athena does. `NavDestinationWaypoints` is gone
+  (nothing read it).
+- `NavigationEnabled` defaults on (EOP10's navd always ran).
+- `navvoiced` (`exopilot/selfdrive/navigation/nav_voice.py`) keeps the former navd's spoken turns on top of
+  `navInstruction`: approach (500-200 m), imminent (200-80 m), execute (80-20 m), arrival; `NavVoiceEnabled`; sends
+  `ttsRequest`, which only ExoPilot boards have.
+- The onroad panel is the same Qt `NavigationPanel` as NGP10, right of the camera.

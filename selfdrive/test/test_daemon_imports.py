@@ -38,7 +38,9 @@ CRITICAL_DAEMONS = [
     "exopilot.selfdrive.pathd.avoidance",
     "exopilot.selfdrive.gridd.occupancy",
     # EOP support daemons
-    "selfdrive.navd.navd",
+    "selfdrive.navigation.navd",
+    "selfdrive.navigation.mapsd",
+    "exopilot.selfdrive.navigation.nav_voice",
     "exopilot.selfdrive.surfaced.surfaced",
     "selfdrive.soundd.soundd",
     "exopilot.system.obd2d.obd2d",
