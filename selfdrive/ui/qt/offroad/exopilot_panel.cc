@@ -56,23 +56,13 @@ void ExoPilotPanel::add_lateral_toggles() {
       {
           "LatALCC",
           tr("Always-on Lane Centering Control (ALCC)"),
-          tr("Keeps lateral control active when cruise main is available."
-             "\nCan optionally run without cruise and hold at a stop."),
+          tr("Keeps lane centering while cruise main is on. You can always steer over it, and it needs"
+             " the Panda's live authorization."),
       },
       {
           "LatRoadEdgeDetection",
           tr("Road Edge Detection (RED)"),
           tr("Block lane change when road edge is detected."),
-      },
-      {
-          "ALCCAllowAlways",
-          tr("ALCC Without Cruise"),
-          tr("Allow ALCC even when cruise main is off. Useful for platforms without LCC button."),
-      },
-      {
-          "ALCCHoldAtStandstill",
-          tr("ALCC Hold at Standstill"),
-          tr("Keep lateral torque active while stopped if ALCC is engaged."),
       },
       {
           "DLPCurvesEnabled",
@@ -91,10 +81,10 @@ void ExoPilotPanel::add_lateral_toggles() {
       tr("Off"));
   auto alcc_brake_mode = new ButtonParamControl(
       "ALCCBrakeMode", QString::fromUtf8("　") + tr("ALCC Brake Behaviour"),
-      tr("Choose how ALCC responds when the brake pedal is pressed."
-         "\nMaintain - keep steering active."
-         "\nPause - hold steering until the brake is released."
-         "\nDisengage - fully release ALCC when braking."),
+      tr("What ALCC does when the brake pedal is pressed."
+         "\nMaintain: keep steering."
+         "\nPause: steer again when the brake is released."
+         "\nDisengage: release ALCC until you press LKAS, SET or RESUME, or switch cruise off and on."),
       "", {tr("Maintain"), tr("Pause"), tr("Disengage")});
   // DLAT (Dynamic Lateral Profile) is a default, always-on automatic
   // Laneful/Laneless arbitration -- no user-selectable mode, matching

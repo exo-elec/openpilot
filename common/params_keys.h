@@ -263,11 +263,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BluetoothPairingPin", {CLEAR_ON_MANAGER_START, STRING, ""}},
     {"CameraCalibrationParams", {PERSISTENT, BYTES}},
     {"AEBEnabled", {PERSISTENT, BOOL, "0"}},
-    {"ALCCAllowAlways", {PERSISTENT, BOOL, "0"}},
-    {"ALCCBrakeMode", {PERSISTENT, STRING, "Maintain"}},
-    {"ALCCHoldAtStandstill", {PERSISTENT, BOOL, "0"}},
-    {"ALCCSteeringModeOnBrake", {PERSISTENT, INT, "1"}},
-    {"ALCCUnifiedEngagement", {PERSISTENT, BOOL, "0"}},
+    {"ALCCBrakeMode", {PERSISTENT, INT, "0"}},  // ALCC on a brake press: 0 Maintain, 1 Pause, 2 Disengage
     // Driving mode: eco / normal / sport set acceleration profile, following style and adaptive gap together; custom (default) writes nothing.
     {"AdaptdEnabled", {PERSISTENT, BOOL, "0"}},
     {"AggressiveFollow", {PERSISTENT, FLOAT, "1.25"}},
