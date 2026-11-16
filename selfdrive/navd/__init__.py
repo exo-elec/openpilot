@@ -1,1 +1,0 @@
-# Navigation daemon package

@@ -123,8 +123,6 @@ FORK_KEYS = frozenset({
   "NSLCEnabled",
   "NTRIPEnabled",
   "NavBleEnabled",
-  "NavDestination",
-  "NavDestinationWaypoints",
   "NavEnabled",
   "NavPilotAddress",
   "NavPilotOAuthEmail",
