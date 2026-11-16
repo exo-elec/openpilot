@@ -39,11 +39,7 @@ if UI_BACKEND == "cpp":
             "qt/offroad/openblt_update_widget.cc",
             "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
             "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/hud.cc",
-            "qt/onroad/bev_widget.cc"]
-
-  # param_controls.h is header-only (Q_OBJECT widgets shared with the NGP panel), so no .cc triggers its moc
-  param_controls_moc = qt_env.Command("qt/offroad/moc_param_controls.cc", "qt/offroad/param_controls.h", "moc $SOURCE -o $TARGET")
-  qt_src.append(param_controls_moc)
+            "qt/onroad/bev_widget.cc", "qt/onroad/navigation.cc", "qt/offroad/param_controls.cc"]
 
   # build translation files
   with open(File("translations/languages.json").abspath) as f:

@@ -1,5 +1,7 @@
 #include "selfdrive/ui/qt/onroad/onroad_home.h"
 
+#include "common/timing.h"
+
 #include <QPainter>
 #include <QStackedLayout>
 
@@ -26,6 +28,10 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
     CameraWidget *arCam = new CameraWidget("v4l2d", VISION_STREAM_ROAD, this);
     split->insertWidget(0, arCam);
   }
+
+  navigation = new NavigationPanel(this);
+  navigation->setVisible(false);
+  split->addWidget(navigation);
 
   stacked_layout->addWidget(split_wrapper);
 
@@ -192,6 +198,15 @@ void OnroadWindow::updateState(const UIState &s) {
   alerts->updateState(s);
   nvg->updateState(s);
   updateOverlayVisibility(s);
+
+  const double t = millis_since_boot() / 1000.0;
+  if (t - nav_checked >= 1.0) {  // the params, once a second (upstream reads them with its other UI params)
+    nav_checked = t;
+    navigation->setVisible(NavigationPanel::wanted());
+  }
+  if (navigation->isVisible()) {
+    navigation->updateState(s);
+  }
   updatePairingOverlay();
 
   QColor bgColor = bg_colors[s.scene.alcc_active && s.status == STATUS_DISENGAGED ? STATUS_ALCC : s.status];

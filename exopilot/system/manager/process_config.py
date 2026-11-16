@@ -83,6 +83,9 @@ def only_onroad(started: bool, params: Params, CP: car.CarParams) -> bool:
 def only_offroad(started: bool, params: Params, CP: car.CarParams) -> bool:
   return not started
 
+def navigation(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("NavigationEnabled")
+
 def or_(*fns):
   # operator.or_ is strictly binary; EOP composes 3-4 conditions
   return lambda *args: any(fn(*args) for fn in fns)
@@ -168,7 +171,10 @@ procs = [
 
   # Map and Navigation
   NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
-  PythonProcess("navd", "selfdrive.navd.navd", always_run),
+  # upstream's nav alpha (selfdrive/navigation, routed by the local Valhalla); spoken turns on top of it
+  PythonProcess("navd", "selfdrive.navigation.navd", navigation),
+  PythonProcess("mapsd", "selfdrive.navigation.mapsd", navigation),
+  PythonProcess("navvoiced", "exopilot.selfdrive.navigation.nav_voice", navigation),
 
   # ADAS Pipeline
   PythonProcess("modeld", "selfdrive.modeld.modeld", ignition_on),

@@ -65,7 +65,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"IsTakingSnapshot", {CLEAR_ON_MANAGER_START, BOOL}},
     {"IsTestedBranch", {CLEAR_ON_MANAGER_START, BOOL}},
     {"JoystickDebugMode", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, BOOL}},
-    {"NavigationEnabled", {PERSISTENT, BOOL, "0"}},  // upstream nav alpha (selfdrive/navigation): navd + mapsd onroad
+    {"NavigationEnabled", {PERSISTENT, BOOL, "1"}},  // upstream nav alpha (selfdrive/navigation): navd + mapsd onroad
     {"NavDestination", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, JSON}},  // {"latitude", "longitude"}, set by athena setNavDestination
     {"LanguageSetting", {PERSISTENT, STRING, "main_en"}},
     {"LastAthenaPingTime", {CLEAR_ON_MANAGER_START, INT}},
@@ -520,8 +520,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"OpenBLTState", {CLEAR_ON_MANAGER_START, STRING, "idle"}},
     {"OpenBLTUpdateAvailable", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"UbloxAssistNowToken", {PERSISTENT | DONT_LOG, STRING}},
-    {"NavDestination", {CLEAR_ON_MANAGER_START, STRING, ""}},
-    {"NavDestinationWaypoints", {CLEAR_ON_MANAGER_START, STRING, ""}},
     {"NeuralNetworkLateralControl", {PERSISTENT, BOOL, "0"}},
     {"SpeedLimitPolicy", {PERSISTENT, INT, "4"}},
     {"SteamDAuthToken", {PERSISTENT | DONT_LOG, STRING, ""}},
