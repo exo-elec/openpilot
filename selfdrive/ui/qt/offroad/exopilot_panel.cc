@@ -57,18 +57,14 @@ void ExoPilotPanel::add_param_toggle(const char *param, const QString &title, co
 void ExoPilotPanel::add_lateral_toggles() {
   addItem(settingsSection(tr("Steering & Lane Change")));
   add_param_toggle("LatALCC", tr("Always-on Lane Centering (ALCC)"),
-      tr("Keeps steering active when cruise main is available."
-         "\nCan optionally run without cruise and hold at a stop."));
-  add_param_toggle("ALCCAllowAlways", tr("ALCC Without Cruise"),
-      tr("Allow ALCC even when cruise main is off. Useful for platforms without an LCC button."));
-  add_param_toggle("ALCCHoldAtStandstill", tr("ALCC Hold at Standstill"),
-      tr("Keep steering torque active while stopped if ALCC is engaged."));
+      tr("Keeps lane centering while cruise main is on. You can always steer over it, and it needs"
+         " the Panda's live authorization."));
   addItem(new ButtonParamControl(
       "ALCCBrakeMode", tr("ALCC on Brake"),
-      tr("What steering does when the brake pedal is pressed."
-         "\nMaintain - keep steering active."
-         "\nPause - hold steering until the brake is released."
-         "\nDisengage - fully release ALCC when braking."),
+      tr("What ALCC does when the brake pedal is pressed."
+         "\nMaintain: keep steering."
+         "\nPause: steer again when the brake is released."
+         "\nDisengage: release ALCC until you press LKAS, SET or RESUME, or switch cruise off and on."),
       "", {tr("Maintain"), tr("Pause"), tr("Disengage")}));
   add_param_toggle("DLPCurvesEnabled", tr("Curve Assist"),
       tr("Switch to laneless steering early for tight curves."));
