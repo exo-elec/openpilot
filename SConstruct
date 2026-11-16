@@ -179,6 +179,7 @@ env = Environment(
     "#third_party/linux/include",
     "#third_party",
     "#msgq",
+    "#cereal/gen/cpp",  # capnp >= 1.0 generates #include <car.capnp.h> in log.capnp.h
   ],
 
   CC='clang',
