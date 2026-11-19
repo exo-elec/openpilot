@@ -63,3 +63,25 @@ def test_paths_and_process_entry():
       return self.on and key == "MapdEnabled"
 
   assert p.should_run(False, P(True), None) and not p.should_run(True, P(False), None)  # also offroad, for downloads
+
+
+MENU_SHA256 = "7033b85d9a7ea4a500cb5134f0daa6192afb13f66069e6378e6ad4d22a74e022"  # settings/download_menu.json at v2.4.0
+
+
+def test_download_menu_is_the_one_built_into_mapd():
+  # The settings page lists areas from this file; mapd resolves the same paths from its embedded copy.
+  data = Path(MAPD_DIR, "download_menu.json").read_bytes()
+  assert hashlib.sha256(data).hexdigest() == MENU_SHA256
+  assert MENU_SHA256 in Path(MAPD_DIR, "README.md").read_text()
+  import json
+  menu = json.loads(data)
+  assert set(menu) == {"nation", "us_state"}
+  assert menu["nation"]["KR"]["full_name"] == "South Korea"
+  assert menu["nation"]["US"]["submenu"] == "us_state"  # the page lists the states instead
+  assert all("full_name" in v for group in menu.values() for v in group.values())
+
+
+def test_area_params_are_registered():
+  from openpilot.common.params import Params
+  keys = Params().all_keys()
+  assert {b"MapdAreas", b"MapdAutoUpdate", b"MapdLastDownload"} <= set(keys)

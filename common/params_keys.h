@@ -172,6 +172,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TripUptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
     {"MapdEnabled", {PERSISTENT, BOOL, "0"}},    // offline mapd (third_party/mapd): mapdOut / mapdExtendedOut for MTSC / MSLC / DLON
     {"MapdSettings", {PERSISTENT, JSON}},         // mapd's own settings (third_party/mapd), written by mapd
+    {"MapdAreas", {PERSISTENT, STRING}},          // mapd download menu paths to keep offline, comma-separated (nation.KR,us_state.OH)
+    {"MapdAutoUpdate", {PERSISTENT, INT, "0"}},   // refresh MapdAreas: 0 off, 1 weekly, 2 monthly (on Wi-Fi / Ethernet, offroad)
+    {"MapdLastDownload", {PERSISTENT, INT}},      // unix time MapdAreas last finished downloading; cleared when the areas change
     {"MTSCEnabled", {PERSISTENT, BOOL, "0"}},      // curve speed from OSM curvature (needs mapd)
     {"MSLCEnabled", {PERSISTENT, BOOL, "0"}},      // posted speed limit from OSM (needs mapd)
     {"TLSCEnabled", {PERSISTENT, BOOL, "0"}},      // stop for a red/yellow light on our path (needs monod + gridd)
