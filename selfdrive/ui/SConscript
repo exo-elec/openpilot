@@ -39,7 +39,8 @@ if UI_BACKEND == "cpp":
             "qt/offroad/openblt_update_widget.cc",
             "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",
             "qt/onroad/buttons.cc", "qt/onroad/alerts.cc", "qt/onroad/hud.cc",
-            "qt/onroad/bev_widget.cc", "qt/onroad/navigation.cc", "qt/offroad/param_controls.cc"]
+            "qt/onroad/bev_widget.cc", "qt/onroad/navigation.cc", "qt/offroad/param_controls.cc",
+            "qt/offroad/mapd_areas.cc"]
 
   # build translation files
   with open(File("translations/languages.json").abspath) as f:
@@ -68,6 +69,14 @@ if UI_BACKEND == "cpp":
 
   # build main UI
   qt_env.Program("ui", qt_src + [asset_obj], LIBS=qt_libs)
+  # offscreen settings renderer for UI checks (tests/ui_snapshot.cc); this profile builds without extras, so it is
+  # declared here but left out of the default build: `scons selfdrive/ui/tests/ui_snapshot` builds it on request
+  from common.build_profile import DISPLAY_SIZE
+  snapshot_env = qt_env.Clone()
+  snapshot_env.Append(CPPDEFINES=[('UI_SNAPSHOT_WIDTH', DISPLAY_SIZE[0]), ('UI_SNAPSHOT_HEIGHT', DISPLAY_SIZE[1])])
+  ui_snapshot = qt_env.Program('tests/ui_snapshot', [asset_obj, snapshot_env.Object('tests/ui_snapshot.cc')] +
+                               [s for s in qt_src if s != "main.cc"], LIBS=qt_libs)
+  qt_env.Ignore('.', ui_snapshot)
   if GetOption('extras'):
     qt_src.remove("main.cc")  # replaced by test_runner
     qt_env.Program('tests/test_translations', [asset_obj, 'tests/test_runner.cc', 'tests/test_translations.cc'] + qt_src, LIBS=qt_libs)
