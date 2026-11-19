@@ -29,8 +29,8 @@ signals:
   void openSettings(int index = 0, const QString &param = "");
 
 protected:
-  // Upstream emitted openSettings() via the embedded WiFiPromptWidget this
-  // fork's rewrite removed; this keeps the widget clickable (home.cc still
+  // Upstream emitted openSettings() via an embedded Wi-Fi / Firehose prompt,
+  // which this fork does not have; this keeps the widget clickable (home.cc still
   // wires openSettings to OffroadHome::openSettings) instead of leaving it
   // inert with no way to ever fire the signal it still declares.
   void mousePressEvent(QMouseEvent *event) override;
