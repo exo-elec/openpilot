@@ -147,41 +147,47 @@ void MapdDownloader::poll() {
 
 MapdAreasDialog::MapdAreasDialog(const QList<MapdArea> &menu, const QStringList &current, QWidget *parent)
     : DialogBase(parent), selection(current) {
+  // Sizes are comma's, for a 1080 px tall screen; shorter screens (the EOP boards' 600 px) get the same layout,
+  // smaller, so the list keeps room for its rows.
+  const double k = std::clamp(parent->window()->height() / 1080.0, 0.5, 1.0);
+  auto px = [k](int n) { return int(n * k); };
+
   QFrame *container = new QFrame(this);
-  container->setStyleSheet(R"(
+  container->setStyleSheet(QString(R"(
     QFrame { background-color: #1B1B1B; }
+    QPushButton { height: %1; font-size: %2px; }
     #confirm_btn { background-color: #465BEA; }
     #confirm_btn:pressed { background-color: #3049F4; }
-  )");
+  )").arg(px(160)).arg(px(55)));
   QVBoxLayout *main_layout = new QVBoxLayout(container);
-  main_layout->setContentsMargins(55, 50, 55, 50);
+  main_layout->setContentsMargins(px(55), px(50), px(55), px(50));
 
   QHBoxLayout *header = new QHBoxLayout;
   QLabel *title = new QLabel(tr("Offline Map Areas"), this);
-  title->setStyleSheet("font-size: 70px; font-weight: 500;");
+  title->setStyleSheet(QString("font-size: %1px; font-weight: 500;").arg(px(70)));
   header->addWidget(title, 1, Qt::AlignLeft);
   QLabel *count = new QLabel(this);
-  count->setStyleSheet("font-size: 50px; color: #AAAAAA;");
+  count->setStyleSheet(QString("font-size: %1px; color: #AAAAAA;").arg(px(50)));
   header->addWidget(count, 0, Qt::AlignRight | Qt::AlignVCenter);
   main_layout->addLayout(header);
-  main_layout->addSpacing(25);
+  main_layout->addSpacing(px(25));
 
   QWidget *list = new QWidget(this);
   QVBoxLayout *list_layout = new QVBoxLayout(list);
-  list_layout->setSpacing(20);
-  list->setStyleSheet(R"(
+  list_layout->setSpacing(px(20));
+  list->setStyleSheet(QString(R"(
     QPushButton {
-      height: 135;
-      padding: 0px 50px;
+      height: %1;
+      padding: 0px %2px;
       text-align: left;
-      font-size: 55px;
+      font-size: %3px;
       font-weight: 300;
       border-radius: 10px;
       background-color: #4F4F4F;
     }
     QPushButton:checked { background-color: #465BEA; }
-    QLabel { font-size: 50px; font-weight: 500; color: #AAAAAA; padding: 30px 0px 10px 10px; }
-  )");
+    QLabel { font-size: %4px; font-weight: 500; color: #AAAAAA; padding: %5px 0px %6px %6px; }
+  )").arg(px(135)).arg(px(50)).arg(px(55)).arg(px(50)).arg(px(30)).arg(px(10)));
 
   auto update_count = [=]() {
     count->setText(selection.isEmpty() ? tr("None selected") : tr("%n selected", "", selection.size()));
@@ -220,10 +226,10 @@ MapdAreasDialog::MapdAreasDialog(const QList<MapdArea> &menu, const QStringList 
   ScrollView *scroll = new ScrollView(list, this);
   scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   main_layout->addWidget(scroll);
-  main_layout->addSpacing(35);
+  main_layout->addSpacing(px(35));
 
   QHBoxLayout *buttons = new QHBoxLayout;
-  buttons->setSpacing(50);
+  buttons->setSpacing(px(50));
   QPushButton *cancel_btn = new QPushButton(tr("Cancel"));
   QPushButton *confirm_btn = new QPushButton(tr("Save"));
   confirm_btn->setObjectName("confirm_btn");
@@ -234,7 +240,7 @@ MapdAreasDialog::MapdAreasDialog(const QList<MapdArea> &menu, const QStringList 
   main_layout->addLayout(buttons);
 
   QVBoxLayout *outer = new QVBoxLayout(this);
-  outer->setContentsMargins(50, 50, 50, 50);
+  outer->setContentsMargins(px(50), px(50), px(50), px(50));
   outer->addWidget(container);
 }
 
