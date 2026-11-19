@@ -7,7 +7,7 @@ into a single 5Hz daemon. Coordinates odometry + GPS + map constraints.
 Replaces: osm_localizer, sgm_localizer.
 
 Architecture:
-  mapd (1Hz) ──► mapData ──► MTSC/MSLC controllers
+  mapd ──► mapdOut / mapdExtendedOut ──► OSM match (the way mapd matched, its path)
                     │
   ┌─────────────────┘
   │
@@ -18,7 +18,7 @@ Architecture:
 │  │ INPUTS                                                          │    │
 │  │ ├── gpsLocationExternal ──► Raw GNSS                           │    │
 │  │ ├── livePose ─────────────► Velocity/orientation               │    │
-│  │ ├── mapData ──────────────► Road geometry (optional)           │    │
+│  │ ├── mapdOut / mapdExtendedOut ► mapd's way and path (optional)  │    │
 │  │ └── pointcloudProcessed ──► 3D points (SGM matching)           │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                              ↓                                          │
@@ -26,7 +26,7 @@ Architecture:
 │  │ MODULES                                                         │    │
 │  │                                                                 │    │
 │  │ OSMLocalizerModule                                              │    │
-│  │ ├── Uses mapd OSM cache                                        │    │
+│  │ ├── Uses the offline mapd's matched way                        │    │
 │  │ ├── Map-match to road network                                  │    │
 │  │ └── Output: RoadConstraint                                     │    │
 │  │                                                                 │    │
@@ -53,7 +53,7 @@ Architecture:
 Key Design:
 - Single daemon at 5Hz (was 2 separate daemons: osm_localizer + sgm_localizer)
 - ECEF internally for accurate fusion
-- Uses mapd's OSM cache for road geometry
+- Uses the offline mapd (third_party/mapd) for road geometry
 
 Platform Support:
 - RK3588: OSM + SGM (80mm baseline)
@@ -84,7 +84,7 @@ from exopilot.selfdrive.coordinationd.fusion import FusionEngine, PositionEstima
 class GlobalD:
     """
     Global Position Daemon with OSM localization, SGM localization, and fusion.
-    Subscribes to mapData from mapd for road geometry (optional).
+    Subscribes to the offline mapd's mapdOut / mapdExtendedOut for road geometry (optional).
     """
 
     UPDATE_RATE = 5.0  # Hz
@@ -108,6 +108,8 @@ class GlobalD:
             'gpsLocationExternal',
             'pointcloudProcessed',
             'stereoGround',
+            'mapdOut',            # offline mapd: the way it matched (wayId, oneWay, highwayClass)
+            'mapdExtendedOut',    # that way and the ways ahead, in travel order
         ])
 
         # Modules
@@ -163,8 +165,6 @@ class GlobalD:
         pose = self.sm['livePose']
 
         heading = math.degrees(pose.orientationNED.z) if hasattr(pose, 'orientationNED') else 0.0
-        vx, vy = pose.velocityDevice.x, pose.velocityDevice.y
-        speed = math.sqrt(vx * vx + vy * vy)
 
         if self.current_position is None and self.last_gnss is None:
             return
@@ -172,7 +172,10 @@ class GlobalD:
         base_lat = self.current_position.lat if self.current_position else self.last_gnss.lat
         base_lon = self.current_position.lon if self.current_position else self.last_gnss.lon
 
-        match = self.osm_localizer.match(base_lat, base_lon, heading, speed)
+        if not self.sm.alive['mapdOut'] or self.sm.recv_frame['mapdExtendedOut'] == 0:  # mapd running, path seen
+            return
+        match = self.osm_localizer.match(base_lat, base_lon, heading, self.sm['mapdOut'],
+                                         self.sm['mapdExtendedOut'].path)
 
         if match and match.confidence >= 0.5:
             self.last_osm = RoadConstraint(
