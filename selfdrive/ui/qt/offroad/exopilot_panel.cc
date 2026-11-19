@@ -1,4 +1,5 @@
 #include "selfdrive/ui/qt/offroad/exopilot_panel.h"
+#include "selfdrive/ui/qt/offroad/mapd_areas.h"
 
 #include <cstdlib>
 #include <array>
@@ -333,6 +334,9 @@ void ExoPilotPanel::add_longitudinal_toggles() {
       tr("Max lateral acceleration for curve speed control. Lower = more cautious."),
       "", 1.0, 2.5, 0.1, tr(" m/s²"), tr(""));
   addItem(tsc_lat_accel_toggle);
+
+  // Offline map areas for mapd (which MTSC / MSLC read): pick, download, keep updated. Shared with NGP10.
+  new MapdAreaRows(this, QString::fromUtf8("　"));
 
   // BLE navigation app toggle
   addItem(new ParamControl(
