@@ -1,4 +1,5 @@
 #include "selfdrive/ui/qt/offroad/exopilot_panel.h"
+#include "selfdrive/ui/qt/offroad/mapd_areas.h"
 
 #include <cstdlib>
 #include <array>
@@ -222,6 +223,7 @@ void ExoPilotPanel::add_longitudinal_toggles() {
   addItem(tsc_lat_accel_toggle);
   add_param_toggle("MSLCEnabled", tr("Map Speed Limit (MSLC)"),
       tr("Follow posted speed limits from the offline map."));
+  new MapdAreaRows(this);  // offline map areas for MTSC / MSLC: pick, download, keep updated (shared, mapd_areas.h)
   add_param_toggle("TLSCEnabled", tr("Traffic Light Speed (TLSC)"),
       tr("Slow down for yellow/red lights when no car is ahead."));
   add_param_toggle("TJAEnabled", tr("Traffic Jam Assist (TJA)"),
