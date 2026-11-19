@@ -39,8 +39,12 @@ static QAbstractButton *findButton(QWidget *root, const QString &text) {
 }
 
 int main(int argc, char *argv[]) {
-  // under OPENPILOT_PREFIX, messaging lives in /dev/shm/<prefix>: create it so the UI's sockets can open
-  if (const char *prefix = getenv("OPENPILOT_PREFIX"); prefix && *prefix) QDir().mkpath(QString("/dev/shm/%1").arg(prefix));
+  // under OPENPILOT_PREFIX, messaging lives in a per-prefix directory: create it so the UI's sockets can open
+  // (/dev/shm/<prefix> for upstream msgq, /dev/shm/msgq_<prefix> for the exo msgq fork the EOP boards use)
+  if (const char *prefix = getenv("OPENPILOT_PREFIX"); prefix && *prefix) {
+    QDir().mkpath(QString("/dev/shm/%1").arg(prefix));
+    QDir().mkpath(QString("/dev/shm/msgq_%1").arg(prefix));
+  }
   QApplication app(argc, argv);
   QCommandLineParser parser;
   parser.addHelpOption();
