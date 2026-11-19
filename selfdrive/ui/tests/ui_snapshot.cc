@@ -1,5 +1,5 @@
 // Render the settings UI to a PNG without a display, a car or a route: the quick check loop for UI work
-// (change -> build -> snapshot -> look). Uses the real SettingsWindow and panels, at the device's 2160x1080.
+// (change -> build -> snapshot -> look). Uses the real SettingsWindow and panels, at the device's screen size.
 //
 //   QT_QPA_PLATFORM=offscreen selfdrive/ui/tests/ui_snapshot --panel Features --out /tmp/features.png
 //     --full          the whole panel, as tall as its content, instead of the first screen
@@ -22,6 +22,14 @@
 
 #include "selfdrive/ui/qt/offroad/settings.h"
 #include "selfdrive/ui/qt/qt_window.h"
+
+// The screen to render: a board build passes its own (UI_SNAPSHOT_WIDTH/HEIGHT from its display profile),
+// otherwise the comma device's.
+#ifdef UI_SNAPSHOT_WIDTH
+static const QSize SCREEN(UI_SNAPSHOT_WIDTH, UI_SNAPSHOT_HEIGHT);
+#else
+static const QSize SCREEN = DEVICE_SCREEN_SIZE;
+#endif
 
 static QAbstractButton *findButton(QWidget *root, const QString &text) {
   for (auto *b : root->findChildren<QAbstractButton *>()) {
@@ -58,7 +66,7 @@ int main(int argc, char *argv[]) {
   layout->setContentsMargins(0, 0, 0, 0);
   SettingsWindow *settings = new SettingsWindow(&root);
   layout->addWidget(settings);
-  root.setFixedSize(DEVICE_SCREEN_SIZE);
+  root.setFixedSize(SCREEN);
   root.show();
 
   QAbstractButton *nav = findButton(settings, parser.value("panel"));
@@ -74,7 +82,7 @@ int main(int argc, char *argv[]) {
 
   if (parser.isSet("full") && scroll) {
     const int content = scroll->widget()->sizeHint().height() + 2 * 50;  // panel + the window's margins
-    root.setFixedSize(DEVICE_SCREEN_SIZE.width(), std::max(DEVICE_SCREEN_SIZE.height(), content));
+    root.setFixedSize(SCREEN.width(), std::max(SCREEN.height(), content));
     app.processEvents();
   }
   if (parser.isSet("find") && scroll) {
@@ -115,7 +123,7 @@ int main(int argc, char *argv[]) {
         if (!dialog && w != &root && w->isVisible() && qobject_cast<QDialog *>(w)) dialog = w;
       }
       if (!dialog) qWarning() << "the button opened no dialog; saving the page";
-      if (dialog) dialog->setFixedSize(DEVICE_SCREEN_SIZE);
+      if (dialog) dialog->setFixedSize(SCREEN);
       app.processEvents();
       save(dialog ? dialog : &root);
       if (dialog) dialog->close();
