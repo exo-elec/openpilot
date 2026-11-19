@@ -7,10 +7,8 @@ Coordinates odometry + GPS + OSM/SGM constraints into fused ECEF position.
 
 from exopilot.selfdrive.coordinationd.osm_localizer import (
     OSMLocalizerModule,
-    OSMWay,
     MapMatchResult,
     RoadConstraint,
-    OSMCacheDB,
 )
 
 from exopilot.selfdrive.coordinationd.sgm_localizer import (
@@ -29,10 +27,8 @@ from exopilot.selfdrive.coordinationd.fusion import (
 __all__ = [
     # OSM Localizer
     'OSMLocalizerModule',
-    'OSMWay',
     'MapMatchResult',
     'RoadConstraint',
-    'OSMCacheDB',
     # SGM Localizer
     'SGMLocalizerModule',
     'SGMMapTile',

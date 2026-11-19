@@ -3,12 +3,12 @@
 OSM Hybrid A* 500m Planner for OpenPilot
 
 Integrates existing OpenPilot navigation stack:
-- mapd: OSM road geometry, speed limits, curvature (0-500m)
+- mapd (third_party/mapd, offline): road path, speed limits, curvature (0-500m)
 - gridd: Occupancy grid from PCD (0-100m real-time + historical)
 - Hybrid A*: Kinematically feasible path planning
 
 Architecture:
-    mapd ──► mapData (road geometry, curves, speed limits)
+    mapd ──► mapdOut / mapdExtendedOut (path, curves, speed limits)
     gridd ──► gridObjects (BEV occupancy grid from PCD)
 
     pathd ──► OsmHybridPlanner
@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
+from exopilot.selfdrive.controls.lib.curve_speed import curves_from_path
 from exopilot.selfdrive.pathd.hybrid_astar import (
     HybridAStarPlanner, PlannerConfig
 )
@@ -36,7 +37,7 @@ from openpilot.common.swaglog import cloudlog
 
 @dataclass
 class RoadSegment:
-    """Road segment from OSM mapData."""
+    """Road segment from the offline mapd."""
     start_m: float          # Distance from vehicle
     end_m: float
     curvature_1pm: float    # 0 = straight
@@ -73,75 +74,49 @@ class PlannedPath:
 
 
 class MapDataParser:
-    """Parse OSM mapData message into road segments."""
+    """Road segments up to 500 m ahead from the offline mapd (third_party/mapd).
 
-    def parse(self, map_data_msg) -> list[RoadSegment]:
-        """
-        Extract 500m road segments from mapData.
+    Curvature comes from mapd's path in travel order (mapdExtendedOut.path, the same pairs MTSC uses), the speed limit
+    and the next one from mapdOut (m/s, 0 = unknown), road class and lanes from the way mapd matched.
+    """
 
-        Uses:
-        - upcomingCurvatureDEPRECATED: List of (distance, curvature)
-        - speedLimit: Current speed limit
-        - roadType: Road classification
-        """
-        segments = []
+    HORIZON_M = 500.0
 
-        try:
-            # Get curvature points
-            curves = []
-            if hasattr(map_data_msg, 'upcomingCurvatureDEPRECATED'):
-                for pt in map_data_msg.upcomingCurvatureDEPRECATED:
-                    curves.append((float(pt.x), float(pt.y)))  # (distance, curvature)
-
-            if not curves:
-                # No map data - return single straight segment
-                return [RoadSegment(
-                    start_m=0, end_m=500,
-                    curvature_1pm=0.0,
-                    speed_limit_ms=getattr(map_data_msg, 'speedLimit', 30.0),
-                    road_type=getattr(map_data_msg, 'roadType', 'unknown')
-                )]
-
-            # Group curvature points into segments
-            # Simplified: create segments between curvature changes
-            speed_limit = getattr(map_data_msg, 'speedLimit', 30.0)
-            road_type = getattr(map_data_msg, 'roadType', 'unknown')
-
-            # Create segments from curvature data
-            prev_dist = 0.0
-            prev_curv = 0.0
-
-            for dist, curv in curves:
-                if dist > 500:
-                    break
-
-                # New segment when curvature changes significantly
-                if abs(curv - prev_curv) > 0.001 or dist - prev_dist > 100:
-                    segments.append(RoadSegment(
-                        start_m=prev_dist,
-                        end_m=dist,
-                        curvature_1pm=prev_curv,
-                        speed_limit_ms=speed_limit,
-                        road_type=road_type
-                    ))
-                    prev_dist = dist
-                    prev_curv = curv
-
-            # Final segment to 500m
-            if prev_dist < 500:
-                segments.append(RoadSegment(
-                    start_m=prev_dist,
-                    end_m=500,
-                    curvature_1pm=prev_curv,
-                    speed_limit_ms=speed_limit,
-                    road_type=road_type
-                ))
-
-            return segments
-
-        except Exception as e:
-            cloudlog.debug(f"Failed to parse mapData: {e}")
+    def parse(self, mapd_out, mapd_ext) -> list[RoadSegment]:
+        if not mapd_out.tileLoaded:
             return []
+        curves = curves_from_path(mapd_ext.position, mapd_ext.path)
+        road_type = str(mapd_out.highwayClass)
+        lanes = int(mapd_out.lanes) or 2
+        next_at = float(mapd_out.nextSpeedLimitDistance) if mapd_out.nextSpeedLimit > 0 else math.inf
+
+        def limit_at(start_m: float) -> float:
+            return float(mapd_out.nextSpeedLimit) if start_m >= next_at else float(mapd_out.speedLimit)
+
+        segments: list[RoadSegment] = []
+
+        def close(start_m: float, end_m: float, curvature: float) -> None:
+            if end_m > start_m:
+                segments.append(RoadSegment(start_m=start_m, end_m=end_m, curvature_1pm=curvature,
+                                            speed_limit_ms=limit_at(start_m), road_type=road_type, num_lanes=lanes))
+
+        # a new segment where curvature changes, every 100 m, and where the speed limit changes
+        prev_dist, prev_curv = 0.0, curves[0][1] if curves else 0.0
+        for dist, curv in curves:
+            dist = min(dist, self.HORIZON_M)
+            if prev_dist < next_at <= dist:
+                close(prev_dist, next_at, prev_curv)
+                prev_dist = next_at
+            if abs(curv - prev_curv) > 0.001 or dist - prev_dist > 100:
+                close(prev_dist, dist, prev_curv)
+                prev_dist, prev_curv = dist, curv
+            if dist >= self.HORIZON_M:
+                break
+        if prev_dist < next_at < self.HORIZON_M:
+            close(prev_dist, next_at, prev_curv)
+            prev_dist = next_at
+        close(prev_dist, self.HORIZON_M, prev_curv)
+        return segments
 
 
 class OccupancyGridParser:
@@ -269,7 +244,8 @@ class OsmHybridPlanner:
 
     def plan(
         self,
-        map_data_msg,
+        mapd_out,
+        mapd_ext,
         grid_msg,
         current_speed_ms: float,
         v_cruise_ms: float
@@ -278,7 +254,8 @@ class OsmHybridPlanner:
         Plan 500m trajectory.
 
         Args:
-            map_data_msg: mapData from mapd (OSM geometry)
+            mapd_out: mapdOut (speed limits, matched way)
+            mapd_ext: mapdExtendedOut (path ahead, position)
             grid_msg: gridObjects from gridd (occupancy)
             current_speed_ms: Current vehicle speed
             v_cruise_ms: Target cruise speed
@@ -290,7 +267,7 @@ class OsmHybridPlanner:
 
         try:
             # Step 1: Parse OSM road geometry
-            road_segments = self.map_parser.parse(map_data_msg)
+            road_segments = self.map_parser.parse(mapd_out, mapd_ext)
             if not road_segments:
                 return None
 
