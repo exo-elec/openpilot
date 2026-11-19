@@ -339,43 +339,6 @@ Steering lag calibration is complete.</source>
     </message>
 </context>
 <context>
-    <name>FirehosePanel</name>
-    <message>
-        <source>openpilot learns to drive by watching humans, like you, drive.
-
-Firehose Mode allows you to maximize your training data uploads to improve openpilot&apos;s driving models. More data means bigger models, which means better Experimental Mode.</source>
-        <translation>openpilotは人間であるあなたの運転から学び、AI学習します。
-
-Firehoseモードを有効にすると学習データを最大限アップロードし、openpilotの運転モデルを改善することができます。より多くのデータはより大きなモデルとなり、Experimentalモードの精度を向上させます。</translation>
-    </message>
-    <message>
-        <source>Firehose Mode: ACTIVE</source>
-        <translation>Firehoseモード: 作動中</translation>
-    </message>
-    <message>
-        <source>ACTIVE</source>
-        <translation>動作中</translation>
-    </message>
-    <message>
-        <source>For maximum effectiveness, bring your device inside and connect to a good USB-C adapter and Wi-Fi weekly.&lt;br&gt;&lt;br&gt;Firehose Mode can also work while you&apos;re driving if connected to a hotspot or unlimited SIM card.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Frequently Asked Questions&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter how or where I drive?&lt;/i&gt; Nope, just drive as you normally would.&lt;br&gt;&lt;br&gt;&lt;i&gt;Do all of my segments get pulled in Firehose Mode?&lt;/i&gt; No, we selectively pull a subset of your segments.&lt;br&gt;&lt;br&gt;&lt;i&gt;What&apos;s a good USB-C adapter?&lt;/i&gt; Any fast phone or laptop charger should be fine.&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter which software I run?&lt;/i&gt; Yes, only upstream openpilot (and particular forks) are able to be used for training.</source>
-        <translation>最大の効果を得るためにはデバイスを屋内に持ち込み、大容量のUSB-C充電器とWi-Fiに毎週接続してください。&lt;br&gt;&lt;br&gt;Firehoseモードは公衆無線LANや大容量契約のSIMカードに接続していれば、運転中でも動作します。&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;よくある質問(FAQ)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;運転のやり方や走る場所は重要ですか？&lt;/i&gt; いいえ、普段どおりに運転するだけで大丈夫です。&lt;br&gt;&lt;br&gt;&lt;i&gt;Firehoseモードでは全てのデータがアップロードされますか？&lt;/i&gt; いいえ、アップロードするデータを選ぶことができます。&lt;br&gt;&lt;br&gt;&lt;i&gt;大容量のUSB-C充電器とは何ですか？&lt;/i&gt; スマートフォンやノートパソコンを高速に充電できるものを使って下さい。&lt;br&gt;&lt;br&gt;&lt;i&gt;どのフォークを使うかは重要ですか？&lt;/i&gt;はい、トレーニングには公式のopenpilot(および特定のフォーク)のみが使用できます。</translation>
-    </message>
-    <message numerus="yes">
-        <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>
-            <numerusform>あなたの運転の&lt;b&gt;%nセグメント&lt;/b&gt;がこれまでのトレーニングデータに含まれています。</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INACTIVE&lt;/span&gt;: connect to an unmetered network</source>
-        <translation>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;動作停止&lt;/span&gt;: 大容量のネットワークに接続してください</translation>
-    </message>
-    <message>
-        <source>Firehose Mode</source>
-        <translation>Firehoseモード</translation>
-    </message>
-</context>
-<context>
     <name>HudRenderer</name>
     <message>
         <source>km/h</source>
@@ -658,10 +621,6 @@ Firehoseモードを有効にすると学習データを最大限アップロー
     <message>
         <source>Developer</source>
         <translation>開発</translation>
-    </message>
-    <message>
-        <source>Firehose</source>
-        <translation>データ学習</translation>
     </message>
 </context>
 <context>
@@ -1009,21 +968,6 @@ Firehoseモードを有効にすると学習データを最大限アップロー
 
 Note that this feature is only compatible with select cars.</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WiFiPromptWidget</name>
-    <message>
-        <source>Open</source>
-        <translation>開く</translation>
-    </message>
-    <message>
-        <source>Maximize your training data uploads to improve openpilot&apos;s driving models.</source>
-        <translation>openpilotの運転モデルを改善するために、大容量の学習データをアップロードして下さい。</translation>
-    </message>
-    <message>
-        <source>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose Mode &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</source>
-        <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehoseモード &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
     </message>
 </context>
 <context>

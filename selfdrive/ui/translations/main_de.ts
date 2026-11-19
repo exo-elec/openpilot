@@ -335,44 +335,6 @@ Steering lag calibration is complete.</source>
     </message>
 </context>
 <context>
-    <name>FirehosePanel</name>
-    <message>
-        <source>openpilot learns to drive by watching humans, like you, drive.
-
-Firehose Mode allows you to maximize your training data uploads to improve openpilot&apos;s driving models. More data means bigger models, which means better Experimental Mode.</source>
-        <translation>openpilot lernt das Fahren, indem es Menschen wie dir beim Fahren zuschaut.
-
-Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximieren, um die Fahrmodelle von openpilot zu verbessern. Mehr Daten bedeuten größere Modelle, was zu einem besseren Experimentellen Modus führt.</translation>
-    </message>
-    <message>
-        <source>Firehose Mode: ACTIVE</source>
-        <translation>Firehose-Modus: AKTIV</translation>
-    </message>
-    <message>
-        <source>ACTIVE</source>
-        <translation>AKTIV</translation>
-    </message>
-    <message>
-        <source>For maximum effectiveness, bring your device inside and connect to a good USB-C adapter and Wi-Fi weekly.&lt;br&gt;&lt;br&gt;Firehose Mode can also work while you&apos;re driving if connected to a hotspot or unlimited SIM card.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Frequently Asked Questions&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter how or where I drive?&lt;/i&gt; Nope, just drive as you normally would.&lt;br&gt;&lt;br&gt;&lt;i&gt;Do all of my segments get pulled in Firehose Mode?&lt;/i&gt; No, we selectively pull a subset of your segments.&lt;br&gt;&lt;br&gt;&lt;i&gt;What&apos;s a good USB-C adapter?&lt;/i&gt; Any fast phone or laptop charger should be fine.&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter which software I run?&lt;/i&gt; Yes, only upstream openpilot (and particular forks) are able to be used for training.</source>
-        <translation>Für maximale Effektivität bring dein Gerät jede Woche nach drinnen und verbinde es mit einem guten USB-C-Adapter und WLAN.&lt;br&gt;&lt;br&gt;Der Firehose-Modus funktioniert auch während der Fahrt, wenn das Gerät mit einem Hotspot oder einer ungedrosselten SIM-Karte verbunden ist.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Häufig gestellte Fragen&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Spielt es eine Rolle, wie oder wo ich fahre?&lt;/i&gt; Nein, fahre einfach wie gewohnt.&lt;br&gt;&lt;br&gt;&lt;i&gt;Werden im Firehose-Modus alle meine Segmente hochgeladen?&lt;/i&gt; Nein, wir wählen selektiv nur einen Teil deiner Segmente aus.&lt;br&gt;&lt;br&gt;&lt;i&gt;Welcher USB-C-Adapter ist gut?&lt;/i&gt; Jedes Schnellladegerät für Handy oder Laptop sollte ausreichen.&lt;br&gt;&lt;br&gt;&lt;i&gt;Spielt es eine Rolle, welche Software ich nutze?&lt;/i&gt; Ja, nur das offizielle Upstream‑openpilot (und bestimmte Forks) kann für das Training verwendet werden.</translation>
-    </message>
-    <message numerus="yes">
-        <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>
-            <numerusform>&lt;b&gt;%n Segment&lt;/b&gt; deiner Fahrten ist bisher im Trainingsdatensatz.</numerusform>
-            <numerusform>&lt;b&gt;%n Segmente&lt;/b&gt; deiner Fahrten sind bisher im Trainingsdatensatz.</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INACTIVE&lt;/span&gt;: connect to an unmetered network</source>
-        <translation>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INAKTIV&lt;/span&gt;: Verbinde dich mit einem ungedrosselten Netzwerk</translation>
-    </message>
-    <message>
-        <source>Firehose Mode</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>HudRenderer</name>
     <message>
         <source>km/h</source>
@@ -659,10 +621,6 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
     <message>
         <source>Developer</source>
         <translation>Entwickler</translation>
-    </message>
-    <message>
-        <source>Firehose</source>
-        <translation>Firehose</translation>
     </message>
 </context>
 <context>
@@ -1012,21 +970,6 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
 
 Note that this feature is only compatible with select cars.</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WiFiPromptWidget</name>
-    <message>
-        <source>Open</source>
-        <translation>Öffnen</translation>
-    </message>
-    <message>
-        <source>Maximize your training data uploads to improve openpilot&apos;s driving models.</source>
-        <translation>Maximiere deine Trainingsdaten-Uploads, um die Fahrmodelle von openpilot zu verbessern.</translation>
-    </message>
-    <message>
-        <source>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose Mode &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</source>
-        <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose-Modus &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
     </message>
 </context>
 <context>
