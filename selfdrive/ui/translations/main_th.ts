@@ -335,43 +335,6 @@ Steering lag calibration is complete.</source>
     </message>
 </context>
 <context>
-    <name>FirehosePanel</name>
-    <message>
-        <source>openpilot learns to drive by watching humans, like you, drive.
-
-Firehose Mode allows you to maximize your training data uploads to improve openpilot&apos;s driving models. More data means bigger models, which means better Experimental Mode.</source>
-        <translation>openpilot เรียนรู้วิธีขับรถจากการเฝ้าดูการขับขี่ของมนุษย์เช่นคุณ
-
-โหมดสายยางดับเพลิงช่วยให้คุณอัปโหลดข้อมูลการฝึกฝนได้มากที่สุด เพื่อนำไปพัฒนาโมเดลการขับขี่ของ openpilot ข้อมูลที่มากขึ้นหมายถึงโมเดลที่ใหญ่ขึ้น และนั่นหมายถึงโหมดทดลองที่ดีขึ้น</translation>
-    </message>
-    <message>
-        <source>Firehose Mode: ACTIVE</source>
-        <translation>โหมดสายยางดับเพลิง: เปิดใช้งาน</translation>
-    </message>
-    <message>
-        <source>ACTIVE</source>
-        <translation>เปิดใช้งาน</translation>
-    </message>
-    <message>
-        <source>For maximum effectiveness, bring your device inside and connect to a good USB-C adapter and Wi-Fi weekly.&lt;br&gt;&lt;br&gt;Firehose Mode can also work while you&apos;re driving if connected to a hotspot or unlimited SIM card.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Frequently Asked Questions&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter how or where I drive?&lt;/i&gt; Nope, just drive as you normally would.&lt;br&gt;&lt;br&gt;&lt;i&gt;Do all of my segments get pulled in Firehose Mode?&lt;/i&gt; No, we selectively pull a subset of your segments.&lt;br&gt;&lt;br&gt;&lt;i&gt;What&apos;s a good USB-C adapter?&lt;/i&gt; Any fast phone or laptop charger should be fine.&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter which software I run?&lt;/i&gt; Yes, only upstream openpilot (and particular forks) are able to be used for training.</source>
-        <translation>เพื่อประสิทธิภาพสูงสุด ควรนำอุปกรณ์เข้ามาข้างใน เชื่อมต่อกับอะแดปเตอร์ USB-C คุณภาพดี และ Wi-Fi สัปดาห์ละครั้ง&lt;br&gt;&lt;br&gt;โหมดสายยางดับเพลิงยังสามารถทำงานระหว่างขับรถได้ หากเชื่อมต่อกับฮอตสปอตหรือซิมการ์ดที่มีเน็ตไม่จำกัด&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;คำถามที่พบบ่อย&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;วิธีการขับหรือสถานที่ขับขี่มีผลหรือไม่?&lt;/i&gt;ไม่มีผล แค่ขับขี่ตามปกติของคุณ&lt;br&gt;&lt;br&gt;&lt;i&gt;เซกเมนต์ทั้งหมดของฉันจะถูกดึงข้อมูลในโหมดสายยางดับเพลิงหรือไม่?&lt;/i&gt;ไม่ใช่ เราจะเลือกดึงข้อมูลเพียงบางส่วนจากเซกเมนต์ของคุณ&lt;br&gt;&lt;br&gt;&lt;i&gt;อะแดปเตอร์ USB-C แบบไหนดี?&lt;/i&gt;ที่ชาร์จเร็วของโทรศัพท์หรือแล็ปท็อปแบบใดก็ได้ สามารถใช้ได้&lt;br&gt;&lt;br&gt;&lt;i&gt;ซอฟต์แวร์ที่ใช้มีผลหรือไม่?&lt;/i&gt;มีผล เฉพาะ openpilot ตัวหลัก (และ fork เฉพาะบางตัว) เท่านั้น ที่สามารถนำข้อมูลไปใช้ฝึกฝนโมเดลได้</translation>
-    </message>
-    <message numerus="yes">
-        <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
-        <translation>
-            <numerusform>มีการขับขี่ของคุณ &lt;b&gt;%n เซกเมนต์&lt;/b&gt; อยู่ในชุดข้อมูลการฝึกฝนแล้วในขณะนี้</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INACTIVE&lt;/span&gt;: connect to an unmetered network</source>
-        <translation>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;ไม่เปิดใช้งาน&lt;/span&gt;: เชื่อมต่อกับเครือข่ายที่ไม่จำกัดข้อมูล</translation>
-    </message>
-    <message>
-        <source>Firehose Mode</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>HudRenderer</name>
     <message>
         <source>km/h</source>
@@ -654,10 +617,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>Developer</source>
         <translation>นักพัฒนา</translation>
-    </message>
-    <message>
-        <source>Firehose</source>
-        <translation>สายยางดับเพลิง</translation>
     </message>
 </context>
 <context>
@@ -1005,21 +964,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
 
 Note that this feature is only compatible with select cars.</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>WiFiPromptWidget</name>
-    <message>
-        <source>Open</source>
-        <translation>เปิด</translation>
-    </message>
-    <message>
-        <source>Maximize your training data uploads to improve openpilot&apos;s driving models.</source>
-        <translation>อัปโหลดข้อมูลการฝึกฝนให้ได้มากที่สุด เพื่อพัฒนาโมเดลการขับขี่ของ openpilot</translation>
-    </message>
-    <message>
-        <source>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose Mode &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</source>
-        <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; โหมดสายยางดับเพลิง &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
     </message>
 </context>
 <context>
