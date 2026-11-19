@@ -12,7 +12,10 @@
 #include <QSet>
 #include <QVBoxLayout>
 
+#include "selfdrive/ui/qt/offroad/param_controls.h"
+#include "selfdrive/ui/qt/util.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
+#include "selfdrive/ui/ui.h"
 
 // ********** menu and schedule **********
 
@@ -238,4 +241,89 @@ MapdAreasDialog::MapdAreasDialog(const QList<MapdArea> &menu, const QStringList 
 QStringList MapdAreasDialog::getSelection(const QList<MapdArea> &menu, const QStringList &current, QWidget *parent) {
   MapdAreasDialog d(menu, current, parent);
   return d.exec() ? d.selection : current;
+}
+
+// ********** settings rows **********
+
+MapdAreaRows::MapdAreaRows(ListWidget *list_, const QString &title_prefix) : QObject(list_), list(list_) {
+  menu = mapdMenu("../../third_party/mapd/download_menu.json");  // the UI runs in selfdrive/ui
+  mapd = new MapdDownloader(this);
+
+  areas_btn = new ButtonControl(title_prefix + tr("Map Areas"), tr("SELECT"),
+      tr("Countries and U.S. states to keep on the device. Map data works offline once downloaded."));
+  connect(areas_btn, &ButtonControl::clicked, [=]() {
+    const QStringList current = QString::fromStdString(params.get("MapdAreas")).split(",", QString::SkipEmptyParts);
+    const QStringList selected = MapdAreasDialog::getSelection(menu, current, list);
+    if (selected != current) {
+      params.put("MapdAreas", selected.join(",").toStdString());
+      params.remove("MapdLastDownload");  // the new set has not been downloaded yet
+      refresh();
+    }
+  });
+  list->addItem(areas_btn);
+
+  download_btn = new ButtonControl(title_prefix + tr("Download Maps"), tr("DOWNLOAD"),
+      tr("Download the selected areas now. Large download; Wi-Fi recommended."));
+  connect(download_btn, &ButtonControl::clicked, [=]() {
+    if (mapd->active()) mapd->cancel();
+    else mapd->download(QString::fromStdString(params.get("MapdAreas")));
+  });
+  list->addItem(download_btn);
+
+  list->addItem(new ButtonParamControl("MapdAutoUpdate", title_prefix + tr("Keep Maps Updated"),
+      tr("Download the selected areas again on this schedule, while parked on Wi-Fi or Ethernet."),
+      "", {tr("Off"), tr("Weekly"), tr("Monthly")}));
+
+  connect(mapd, &MapdDownloader::changed, this, &MapdAreaRows::refresh);
+  ParamWatcher *watch = new ParamWatcher(this);
+  watch->addParam("MapdEnabled");
+  connect(watch, &ParamWatcher::paramChanged, this, &MapdAreaRows::refresh);
+
+  // Scheduled refresh: when the car is parked, and hourly while it stays parked.
+  connect(uiState(), &UIState::offroadTransition, [=](bool offroad) { if (offroad) checkSchedule(); });
+  QTimer *schedule = new QTimer(this);
+  connect(schedule, &QTimer::timeout, this, &MapdAreaRows::checkSchedule);
+  schedule->start(3600 * 1000);
+
+  list->installEventFilter(this);  // read mapd's progress only while the list is on screen
+  refresh();
+}
+
+bool MapdAreaRows::eventFilter(QObject *obj, QEvent *event) {
+  if (obj == list && (event->type() == QEvent::Show || event->type() == QEvent::Hide)) {
+    mapd->setWatching(event->type() == QEvent::Show);
+    refresh();
+  }
+  return QObject::eventFilter(obj, event);
+}
+
+void MapdAreaRows::checkSchedule() {
+  if (uiState()->scene.started) return;
+  const auto net = (*uiState()->sm)["deviceState"].getDeviceState().getNetworkType();
+  mapd->checkSchedule(net == cereal::DeviceState::NetworkType::WIFI || net == cereal::DeviceState::NetworkType::ETHERNET);
+}
+
+void MapdAreaRows::refresh() {
+  const QStringList areas = QString::fromStdString(params.get("MapdAreas")).split(",", QString::SkipEmptyParts);
+  const QString summary = mapdAreasSummary(areas, menu);
+  areas_btn->setValue(summary.isEmpty() ? tr("None") : summary);
+
+  const bool enabled = params.getBool("MapdEnabled");
+  QString status;
+  if (mapd->waiting()) {
+    status = tr("Waiting for mapd");
+  } else if (mapd->active()) {
+    status = tr("%1 / %2 files").arg(mapd->downloadedFiles()).arg(mapd->totalFiles());
+  } else if (!enabled) {
+    status = tr("Map Data is off");
+  } else if (areas.isEmpty()) {
+    status = tr("No areas selected");
+  } else if (const qint64 last = std::atoll(params.get("MapdLastDownload").c_str()); last > 0) {
+    status = tr("Updated %1").arg(QDateTime::fromSecsSinceEpoch(last).date().toString(Qt::ISODate));
+  } else {
+    status = tr("Not downloaded");
+  }
+  download_btn->setValue(status);
+  download_btn->setText(mapd->active() ? tr("CANCEL") : tr("DOWNLOAD"));
+  download_btn->setEnabled(mapd->active() || (enabled && !areas.isEmpty()));
 }

@@ -1,7 +1,5 @@
 #include "selfdrive/ui/qt/offroad/features_panel.h"
 #include <QComboBox>
-#include <QDateTime>
-#include <QTimer>
 #include <QJsonArray>
 #include <QJsonDocument>
 
@@ -160,7 +158,7 @@ void FeaturesPanel::add_extended_controls() {
     control->setEnabled(!params.getBool((key + "Lock").toStdString()));
     addItem(control);
     toggles[key.toStdString()] = control;
-    if (key == "MapdEnabled") add_map_area_controls();
+    if (key == "MapdEnabled") new MapdAreaRows(this, tr("OSM · "));  // map areas, download, refresh (mapd_areas.h)
   }
   addItem(new ParamSpinBoxControl("BlinkerPauseLateralSpeed", tr("BP · Blinker Pause Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
   addItem(new ParamSpinBoxControl("TurnDesireSpeed", tr("TURN · Turn Hint Below"), "", "", 0, 50, 5, tr(" mph"), tr("Off")));
@@ -207,74 +205,6 @@ void FeaturesPanel::add_extended_controls() {
   });
 }
 
-// Offline map areas for mapd: pick them, download them, keep them fresh. mapd does the download (mapd_areas.h).
-void FeaturesPanel::add_map_area_controls() {
-  mapd_menu = mapdMenu("../../third_party/mapd/download_menu.json");  // the UI runs in selfdrive/ui
-  mapd = new MapdDownloader(this);
-
-  map_areas_btn = new ButtonControl(tr("OSM · Map Areas"), tr("SELECT"),
-      tr("Countries and U.S. states to keep on the device. Map data works offline once downloaded."));
-  connect(map_areas_btn, &ButtonControl::clicked, [=]() {
-    const QStringList current = QString::fromStdString(params.get("MapdAreas")).split(",", QString::SkipEmptyParts);
-    const QStringList selected = MapdAreasDialog::getSelection(mapd_menu, current, this);
-    if (selected != current) {
-      params.put("MapdAreas", selected.join(",").toStdString());
-      params.remove("MapdLastDownload");  // the new set has not been downloaded yet
-      updateMapStates();
-    }
-  });
-  addItem(map_areas_btn);
-
-  map_download_btn = new ButtonControl(tr("OSM · Download Maps"), tr("DOWNLOAD"),
-      tr("Download the selected areas now. Large download; Wi-Fi recommended."));
-  connect(map_download_btn, &ButtonControl::clicked, [=]() {
-    if (mapd->active()) mapd->cancel();
-    else mapd->download(QString::fromStdString(params.get("MapdAreas")));
-  });
-  addItem(map_download_btn);
-
-  addItem(new ButtonParamControl("MapdAutoUpdate", tr("OSM · Keep Maps Updated"),
-      tr("Download the selected areas again on this schedule, while parked on Wi-Fi or Ethernet."),
-      "", {tr("Off"), tr("Weekly"), tr("Monthly")}));
-
-  connect(mapd, &MapdDownloader::changed, this, &FeaturesPanel::updateMapStates);
-  // Scheduled refresh: when the car is parked, and hourly while it stays parked.
-  auto check_schedule = [=]() {
-    if (uiState()->scene.started) return;
-    const auto net = (*uiState()->sm)["deviceState"].getDeviceState().getNetworkType();
-    mapd->checkSchedule(net == cereal::DeviceState::NetworkType::WIFI || net == cereal::DeviceState::NetworkType::ETHERNET);
-  };
-  connect(uiState(), &UIState::offroadTransition, [=](bool offroad) { if (offroad) check_schedule(); });
-  QTimer *schedule = new QTimer(this);
-  connect(schedule, &QTimer::timeout, check_schedule);
-  schedule->start(3600 * 1000);
-}
-
-void FeaturesPanel::updateMapStates() {
-  const QStringList areas = QString::fromStdString(params.get("MapdAreas")).split(",", QString::SkipEmptyParts);
-  const QString summary = mapdAreasSummary(areas, mapd_menu);
-  map_areas_btn->setValue(summary.isEmpty() ? tr("None") : summary);
-
-  const bool enabled = params.getBool("MapdEnabled");
-  QString status;
-  if (mapd->waiting()) {
-    status = tr("Waiting for mapd");
-  } else if (mapd->active()) {
-    status = tr("%1 / %2 files").arg(mapd->downloadedFiles()).arg(mapd->totalFiles());
-  } else if (!enabled) {
-    status = tr("Map Data is off");
-  } else if (areas.isEmpty()) {
-    status = tr("No areas selected");
-  } else if (const qint64 last = std::atoll(params.get("MapdLastDownload").c_str()); last > 0) {
-    status = tr("Updated %1").arg(QDateTime::fromSecsSinceEpoch(last).date().toString(Qt::ISODate));
-  } else {
-    status = tr("Not downloaded");
-  }
-  map_download_btn->setValue(status);
-  map_download_btn->setText(mapd->active() ? tr("CANCEL") : tr("DOWNLOAD"));
-  map_download_btn->setEnabled(mapd->active() || (enabled && !areas.isEmpty()));
-}
-
 FeaturesPanel::FeaturesPanel(SettingsWindow *parent) : ListWidget(parent) {
   add_lateral_toggles();
   add_longitudinal_toggles();
@@ -293,18 +223,12 @@ FeaturesPanel::FeaturesPanel(SettingsWindow *parent) : ListWidget(parent) {
 }
 
 void FeaturesPanel::showEvent(QShowEvent *event) {
-  mapd->setWatching(true);
   updateStates();
-}
-
-void FeaturesPanel::hideEvent(QHideEvent *event) {
-  mapd->setWatching(false);
 }
 
 void FeaturesPanel::updateStates() {
   // do fs_watch here
   fs_watch->addParam("LatLCASpeed");
-  fs_watch->addParam("MapdEnabled");
 
   if (!isVisible()) {
     return;
@@ -312,7 +236,6 @@ void FeaturesPanel::updateStates() {
 
   // do state change logic here
   lca_sec_toggle->setVisible(std::atoi(params.get("LatLCASpeed").c_str()) > 0);
-  updateMapStates();
 }
 
 void FeaturesPanel::expandToggleDescription(const QString &param) {

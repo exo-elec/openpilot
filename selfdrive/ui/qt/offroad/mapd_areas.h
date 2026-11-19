@@ -9,6 +9,7 @@
 
 #include "cereal/messaging/messaging.h"
 #include "common/params.h"
+#include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 
 // Offline map areas for mapd (third_party/mapd): which countries / US states to keep, downloading them, and refreshing
@@ -73,4 +74,30 @@ public:
   MapdAreasDialog(const QList<MapdArea> &menu, const QStringList &current, QWidget *parent);
   static QStringList getSelection(const QList<MapdArea> &menu, const QStringList &current, QWidget *parent);
   QStringList selection;
+};
+
+// The map-area rows for a settings list: Map Areas (picker), Download Maps (progress / cancel) and Keep Maps
+// Updated (MapdAutoUpdate), plus the scheduled refresh when parked. One implementation for every panel that shows
+// map settings: construct it where the rows belong in the list. It reads mapd only while the list is on screen or
+// a download runs.
+class MapdAreaRows : public QObject {
+  Q_OBJECT
+
+public:
+  // title_prefix goes before each row title, to match the panel's naming (e.g. "OSM · ").
+  MapdAreaRows(ListWidget *list, const QString &title_prefix = "");
+
+protected:
+  bool eventFilter(QObject *obj, QEvent *event) override;
+
+private:
+  void refresh();
+  void checkSchedule();
+
+  Params params;
+  ListWidget *list;
+  QList<MapdArea> menu;
+  MapdDownloader *mapd;
+  ButtonControl *areas_btn;
+  ButtonControl *download_btn;
 };
