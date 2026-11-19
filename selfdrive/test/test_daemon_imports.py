@@ -44,7 +44,6 @@ CRITICAL_DAEMONS = [
     "exopilot.selfdrive.surfaced.surfaced",
     "selfdrive.soundd.soundd",
     "exopilot.system.obd2d.obd2d",
-    "exopilot.selfdrive.mapd.mapd",
     "exopilot.system.recordd.recordd",
     "exopilot.selfdrive.tripd.keys",
     # Vehicle interface & adaptive driving

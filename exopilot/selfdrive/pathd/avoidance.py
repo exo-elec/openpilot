@@ -468,7 +468,8 @@ class PathD:
         'navInstruction',     # NAVD: speed limit + upcoming maneuver for nav-aware braking
         'navRoute',           # NAVD: route geometry for Hybrid A*
         'drivableArea',       # surfaced: BEV drivable area for planning
-        'mapData',            # MAPD: OSM road geometry, curves, speed limits (500m)
+        'mapdOut',            # offline mapd: speed limits, matched way
+        'mapdExtendedOut',    # offline mapd: road path ahead (500m long-horizon planner)
         'modelV2', 'radarState', 'stereoObjects',   # shared planner (exopilot.selfdrive.pathd.pathd): policy, radar leads, gridd's fused objects
       ],
       ignore_alive=['modelV2', 'radarState', 'stereoObjects'],
@@ -1183,12 +1184,12 @@ class PathD:
     # EOP: Long horizon planning (500m) - blend with Hybrid A* path if available
     if self._long_horizon_enabled and self._hybrid_planner:
       try:
-        map_data_msg = self.sm['mapData'] if self.sm.updated['mapData'] else None
         grid_msg = self.sm['gridObjects'] if self.sm.updated['gridObjects'] else None
 
-        if map_data_msg and grid_msg:
+        if grid_msg and self.sm.alive['mapdOut'] and self.sm.recv_frame['mapdExtendedOut'] > 0:
           planned_path = self._hybrid_planner.plan(
-            map_data_msg=map_data_msg,
+            mapd_out=self.sm['mapdOut'],
+            mapd_ext=self.sm['mapdExtendedOut'],
             grid_msg=grid_msg,
             current_speed_ms=ego_velocity,
             v_cruise_ms=getattr(car_state, 'vCruise', 30.0)
