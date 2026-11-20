@@ -60,9 +60,10 @@ def test_shared_vehicle_math_preserves_parameters_and_fallbacks():
     model.update_params(case['stiffness'], case['ratio'])
     for entry in case['frames']:
       args = entry['steering'], entry['speed'], entry['roll']
-      assert model.calc_curvature(*args) == entry['curvature']
-      assert model.yaw_rate(*args) == entry['yaw']
-      np.testing.assert_array_equal(model.steady_state_sol(*args), entry['steady'])
+      # last-bit differences between machines (fused multiply-add on aarch64) are not a change in the math
+      np.testing.assert_allclose(model.calc_curvature(*args), entry['curvature'], rtol=1e-12, atol=0)
+      np.testing.assert_allclose(model.yaw_rate(*args), entry['yaw'], rtol=1e-12, atol=0)
+      np.testing.assert_allclose(model.steady_state_sol(*args), entry['steady'], rtol=1e-12, atol=0)
 
 
 def test_vehicle_protocol_and_cereal_have_no_opendbc_imports():

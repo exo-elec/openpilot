@@ -49,9 +49,10 @@ def test_hal_calibration_is_all_or_nothing(monkeypatch):
 
 
 NO_DIRECT_HAL_IMPORT = [
-  "selfdrive/gridd/gridd.py", "selfdrive/pointcloudd/pointcloudd.py",
-  "selfdrive/steamd/stereo_correction.py", "selfdrive/modeld/runners/rknn_platform.py",
-  "selfdrive/locationd/side_rear_calibration.py", "selfdrive/sided/bev_reprojector.py",
+  "exopilot/selfdrive/gridd/gridd.py", "exopilot/selfdrive/gridd/occupancy.py",
+  "exopilot/selfdrive/pointcloudd/pointcloudd.py", "exopilot/system/steamd/stereo_correction.py",
+  "selfdrive/modeld/runners/rknn_platform.py", "selfdrive/locationd/side_rear_calibration.py",
+  "exopilot/selfdrive/sided/bev_reprojector.py",
 ]
 
 
