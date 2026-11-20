@@ -13,7 +13,7 @@ from cereal import log
 import cereal.messaging as messaging
 
 # Direct import to avoid the pathd init chain
-_spec = importlib.util.spec_from_file_location('path_corridor_fusion', 'selfdrive/pathd/path_corridor_fusion.py')
+_spec = importlib.util.spec_from_file_location('path_corridor_fusion', 'exopilot/selfdrive/pathd/path_corridor_fusion.py')
 fusion_module = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(fusion_module)
 

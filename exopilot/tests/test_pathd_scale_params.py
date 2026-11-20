@@ -5,7 +5,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-PATHD = Path(__file__).resolve().parents[1] / 'daemons/pathd/pathd.py'
+PATHD = Path(__file__).resolve().parents[1] / 'selfdrive/pathd/avoidance.py'  # the pathd process (process_config)
 
 
 @pytest.mark.parametrize('canonical,legacy,expected', [
