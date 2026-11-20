@@ -12,7 +12,7 @@ def retryWithDelay(int maxRetries, int delay, Closure body) {
 // The ExoPilot board this branch is built for: common/build_profile.py's DEFAULT_SOC
 // (every branch carries both adapters; checked by system/hardware/tests/
 // test_board_derived_defaults.py). 02M sets rk3576.
-TARGET_BOARD = "rk3588"
+TARGET_BOARD = "rk3576"
 
 def device(String ip, String step_label, String cmd) {
   withCredentials([file(credentialsId: 'id_rsa', variable: 'key_file')]) {
