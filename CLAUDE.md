@@ -8,8 +8,10 @@ Guidance for Claude Code when working on this openpilot fork.
 
 - **Codebase**: OpenPilot fork + EOP-specific daemons, controllers, UI
 - **Platform**: Shared runtime adapters for RK3588 and RK3576. Build defaults
-  live in `common/build_profile.py`: EOP10 selects native C++/Qt with RK3588;
-  01M selects PyQt5 with RK3588; 02M selects PyQt5 with RK3576 and 1600×600.
+  live in `common/build_profile.py`: every branch builds the native C++/Qt UI;
+  EOP10 and 01M target RK3588 at 1024×600, 02M targets RK3576 at 1600×600.
+  The Python (PyQt5) UI stays in the tree only as the design reference for
+  the C++ port until it is removed (`docs/eop/REFACTOR_CLEANUP_TASKS.md` Phase 6).
   Board pin maps, camera paths and bring-up data remain board-specific HAL
   data. See `docs/eop/SHARED_PIPELINE.md`.
 - **Suffix = RAM**: L=4GB / M=8GB / H=16GB
@@ -100,16 +102,17 @@ All three branches inherit the same runtime tree. Variant changes belong in
 `common/build_profile.py`, not copied controllers, managers or board checks:
 
 ```
-dev/EOP10 → dev/01M → dev/02M
-cpp / RK3588 / 1024×600 → pyqt5 / RK3588 / 1024×600 → pyqt5 / RK3576 / 1600×600
+dev/NGP10 → dev/EOP10 → dev/01M → dev/02M
+comma 3 baseline → cpp / RK3588 / 1024×600 → cpp / RK3588 / 1024×600 → cpp / RK3576 / 1600×600
 ```
 
 Both independent board adapters are always present and inherit from
 `RockchipHardware`; neither subclasses the other. Native Qt sources remain
-shared but SCons builds them only for the cpp profile. PyQt5 widgets adapt to
-width; side panels are created lazily for wide views.
+shared and built on every branch; 02M's wide layout is its own step (Phase 5).
 
-Make pipeline fixes on EOP10, then rebase 01M onto EOP10 and 02M onto 01M.
+Write shared code on NGP10 first, EOP-hardware code on EOP10, then rebase EOP10
+onto NGP10, 01M onto EOP10 and 02M onto 01M. `exopilot/tools/lineage.py` (run
+by `./test.sh`) fails if a shared NGP10 file is edited on an upper branch.
 Keep board measurements and vendor bring-up data in the matching HAL modules.
 Do not resolve a rebase by discarding backend fixes or deleting another
 board's independent adapter. See SHARED_PIPELINE.md for tests and limitations.
@@ -425,5 +428,5 @@ See `docs/eop/CODE_QUALITY_LINT_CLEANUP.md` for the full report and recommended 
 
 ---
 
-**Last updated**: 2026-09-21  
-**Branch**: dev/01M (renamed from dev/EOP10, 2026-09-10)
+**Last updated**: 2026-11-20  
+**Branch**: dev/EOP10 (carried to dev/01M and dev/02M by rebase)
