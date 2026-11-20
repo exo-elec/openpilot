@@ -36,7 +36,7 @@ Status keys: `[x]` done, `[~]` in progress, `[ ]` to do, `[!]` blocked (reason g
 - [x] 1.4 `.gitmodules`: dropped the stale `panda` entry (the submodule was removed in `863c0722d`) and `carla` (it never had a gitlink). Proof: the paths in `.gitmodules` now equal the gitlinks exactly (13), and `git submodule status` is clean.
 - [ ] 1.5 `docs/eop/RK3576_02M_SUPPORT.md` Install section: says the installer "builds PyQt5"; update it after Phase 4.
 - [ ] 1.5a **tinygrad pin (owner question):** `CLAUDE.md` says `tinygrad_repo` is pinned to the stable `v0.13.0` tag, "do not follow master". But the gitlink has been at a 0.14.0 checkout since `0b6918a37` (2026-10-09), and `d429d91f5` locked tinygrad 0.14.0 to match it. Decide which one is right: move the submodule back to `v0.13.0` (and re-lock), or update `CLAUDE.md`.
-- [~] 1.5b `./test.sh` on `d429d91f5`: ruff and the shebang check **pass**. The gate then always runs `selfdrive/ui/tests` (the PyQt5 UI, even with `--no-pytest`): 14 collection errors, because there is no PyQt5 on the board (moot after Phase 6). The hardware pytest block needs `msgq.ipc_pyx`, so it waits for the scons build (2.2). Direct run of `system/hardware/{rockchip,rk3576}` tests: 17 pass, 1 skip.
+- [x] 1.5b `./test.sh` passes on the board (2026-11-20, 02M): lineage, ruff, shebang, 81 hardware tests. It runs the Python UI tests only where `UI_BACKEND` is `pyqt5`; the lineage gate had 8 shared files edited on the upper branches (text moved to NGP10, package `__init__` files back to NGP10's); stale test paths from the 2026-11-15 layout fixed; the board tests follow the shared pipeline (both adapters per branch, Jenkins `TARGET_BOARD` = `build_profile.DEFAULT_SOC`, which caught 02M still targeting rk3588) and the `HARDWARE`-driven cases run on a PC only (the device tree wins on a board).
 ### exopilot (`main`)
 - [x] 1.6 GPU work into exopilot `main` (`656670c`'s parents): the six commits that do not depend on the eGPU were cherry-picked (Mali OpenCL check `hal/gpu.py` + `test_gpu.py`, GPU source audit docs, IWR1843 gateway docs). The three eGPU/phone-switch commits were **left out on purpose**: `main` removed the external GPU in `e934d0f` (2026-10-13), and its phone host port supersedes them. hal/tests 126 pass. Owner question: is the eGPU wanted back on 02M? (The PRO-BOX OS image keeps its eGPU helper.)
 - [x] 1.7 Board identity: `hal.platform.identity` (`board_id()`: `/etc/rk-board.json`, then DT model, then SoC; `is_exopilot_board()`, `soc()`), `BSP` uses it; exopilot `656670c`. On the PRO-BOX: `probox-rk3576`, SoC `rk3576`, not ExoPilot wiring. hal/tests 133 pass.
@@ -180,7 +180,7 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 - [ ] 4.12 UI tests: port `selfdrive/ui/tests` that test behaviour (not PyQt5 widgets) to the C++ UI's test harness
 
 ## Phase 5: carry to 02M
-- [ ] 5.1 Rebase `dev/02M` on the new `dev/01M` (its one commit sets `rk3576` and `DISPLAY_SIZE = (1600, 600)`).
+- [x] 5.1 (2026-11-20) Rebase `dev/02M` on the new `dev/01M` (its one commit sets `rk3576` and `DISPLAY_SIZE = (1600, 600)`).
 - [ ] 5.2 Wide-layout pass: the settings tab bar and the onroad side panels at 1600x600. The PyQt5 `views/offroad.py` was designed for that size (500 px of content height).
 - [ ] 5.3 Build and run on this RK3576 board (the board is the 02M SoC).
 
@@ -220,5 +220,6 @@ Order: what the driver sees first, the new screens last. Each step must build (`
 | 2026-11-12 | 4.4c | param keys without the EOP prefix: EOP10 `e4e0e262b`, 01M rebased + its 4 keys; board migrated (291 values), UI checked |
 | 2026-11-12 | 4.4c | short IDs, IP + Wi-Fi signal on Device, keyboard eye sized; prefix rename recorded, scope to confirm |
 | 2026-11-12 | 4.4b | settings restructure built and checked on :0; Drive Mode (DlonMode) + personality quick button; updater signal and Hide HUD key bugs fixed; unread-settings audit recorded |
+| 2026-11-20 | 1.5b, 5.1, cleanup | `./test.sh` green on the board (02M); Firehose leftovers removed (EOP10 up); lineage drift fixed; stale tests fixed; 02M CI target rk3576 |
 | 2026-11-19 | maps, UI loop | map-area rows (NGP10 shared, on EOP10 and 01M), coordinationd + pathd on the offline mapd, old mapd package removed; `ui_snapshot` offscreen check loop |
 | 2026-11-09 | 4.1, 4.2 | 4.1 done (no app-wide sheet: it boxed every label); 4.2 sidebar palette + BLE pairing key bug; built and checked on :0 |
