@@ -9,9 +9,9 @@ def retryWithDelay(int maxRetries, int delay, Closure body) {
   throw Exception("Failed after ${maxRetries} retries")
 }
 
-// The ExoPilot board this branch targets. One line per branch, matching
-// ROCKCHIP_SOCS in SConstruct, SUPPORTED_SOCS in system/hardware/rk_device_id.py
-// and RKNN_TARGETS in tools/convert_models_to_rknn.py -- see CLAUDE.md.
+// The ExoPilot board this branch is built for: common/build_profile.py's DEFAULT_SOC
+// (every branch carries both adapters; checked by system/hardware/tests/
+// test_board_derived_defaults.py). 02M sets rk3576.
 TARGET_BOARD = "rk3588"
 
 def device(String ip, String step_label, String cmd) {
