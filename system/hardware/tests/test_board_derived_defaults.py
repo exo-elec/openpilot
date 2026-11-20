@@ -110,7 +110,11 @@ def test_devfreq_governors_are_discovered_not_hardcoded():
   """The old fallback was a list of RK3588 device-tree addresses, which name
   nothing on another board -- throttling then controlled nothing, silently."""
   from openpilot.system.thermald.thermald import _discover_devfreq_governors
-  assert _discover_devfreq_governors("npu") == [], "no devfreq off-device"
+  found = _discover_devfreq_governors("npu")
+  if Path("/sys/class/devfreq").is_dir():  # on a board: whatever its NPU node is called, and only real nodes
+    assert all(Path(p).is_file() and p.endswith(".npu/governor") for p in found), found
+  else:
+    assert found == [], "no devfreq off-device"
   # Comments and docstrings may still *mention* the old address to explain
   # the fix; what must be gone is code depending on it.
   code = _strip_prose((REPO / "system/thermald/thermald.py").read_text())
@@ -153,23 +157,19 @@ def test_only_exopilot_socs_are_in_the_rknpu2_search_path():
     "this branch's board must have an rknpu2 runtime directory"
 
 
-def test_this_branch_carries_exactly_one_board():
-  """Each branch is one board. Two entries anywhere in the per-branch lists
-  means something inherited the other branch's value in a rebase."""
+def test_board_lists_agree_and_ci_targets_the_built_board():
+  """Every branch carries both Rockchip adapters (shared pipeline, CLAUDE.md "Branch model"); the build picks
+  one through common/build_profile.py. The lists of boards must agree, or a board is detected that cannot be
+  built for (or the other way round), and CI must run on the board this branch is built for."""
+  from openpilot.common.build_profile import DEFAULT_SOC
   from openpilot.system.hardware.rk_device_id import SUPPORTED_SOCS
   from openpilot.tools.convert_models_to_rknn import RKNN_TARGETS
-  assert len(SUPPORTED_SOCS) == 1, SUPPORTED_SOCS
-  assert len(RKNN_TARGETS) == 1, RKNN_TARGETS
-  assert SUPPORTED_SOCS[0] == RKNN_TARGETS[0], \
-    "the board built for and the board detected must be the same one"
-  socs = re.findall(r"ROCKCHIP_SOCS = \[([^\]]*)\]",
-                    (REPO / "SConstruct").read_text())
-  assert socs and socs[0].count(",") == 0, f"SConstruct: {socs}"
-  assert SUPPORTED_SOCS[0] in socs[0], f"SConstruct {socs[0]} vs {SUPPORTED_SOCS}"
+  assert tuple(RKNN_TARGETS) == tuple(SUPPORTED_SOCS), (RKNN_TARGETS, SUPPORTED_SOCS)
+  socs = re.findall(r"ROCKCHIP_SOCS = \[([^\]]*)\]", (REPO / "SConstruct").read_text())
+  assert socs and tuple(re.findall(r"'([^']+)'", socs[0])) == tuple(SUPPORTED_SOCS), f"SConstruct: {socs}"
+  assert DEFAULT_SOC in SUPPORTED_SOCS, DEFAULT_SOC
 
-  # Jenkins picks the physical device to run the on-device stage against.
-  # Drift here is the worst of the four: it runs this branch's code on the
-  # other branch's hardware, silently and successfully enough to look fine.
+  # Jenkins picks the physical device to run the on-device stage against. Drift here runs this branch's code
+  # on the other board, silently and successfully enough to look fine.
   board = re.findall(r'TARGET_BOARD = "([^"]*)"', (REPO / "Jenkinsfile").read_text())
-  assert board == [SUPPORTED_SOCS[0]], \
-    f"Jenkinsfile TARGET_BOARD {board} vs {SUPPORTED_SOCS}"
+  assert board == [DEFAULT_SOC], f"Jenkinsfile TARGET_BOARD {board} vs build_profile {DEFAULT_SOC}"

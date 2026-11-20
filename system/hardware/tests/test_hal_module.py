@@ -90,8 +90,8 @@ def test_every_hardware_class_answers_the_accessor():
 
 
 def test_the_real_board_declares_a_prefix():
-  """Whichever board this branch carries must declare HAL_PREFIX, or every
-  daemon silently falls back to its defaults on real hardware."""
+  """Every board adapter must declare HAL_PREFIX, or every daemon silently
+  falls back to its defaults on real hardware."""
   from openpilot.system.hardware.registry import PlatformRegistry
   rockchip_boards = 0
   for name in PlatformRegistry._platforms:
@@ -100,4 +100,5 @@ def test_the_real_board_declares_a_prefix():
       rockchip_boards += 1
       assert cls.HAL_PREFIX, f"{cls.__name__} declares no HAL_PREFIX"
       assert cls.HAL_PREFIX == cls().get_device_type()
-  assert rockchip_boards == 1, "one board per branch"
+  from openpilot.system.hardware.rk_device_id import SUPPORTED_SOCS
+  assert rockchip_boards == len(SUPPORTED_SOCS), "an adapter per supported board (shared pipeline)"

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from openpilot.system.hardware import hardwared as hw
+from exopilot.system.hardwared import hardwared as hw
 
 
 def _reg(root, n, name, uv=None, min_uv=None, state="enabled"):
