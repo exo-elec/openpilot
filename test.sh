@@ -79,12 +79,19 @@ fi
 # and skipping it on a bare runner would leave the largest Python addition in
 # the tree untested. Its own pytest.ini keeps it independent of the repo's
 # xdist/asyncio plugins, and --noconftest keeps it off the compiled Params.
-echo "==> Running EOP UI tests"
-QT_QPA_PLATFORM=offscreen python3 -m pytest \
-  selfdrive/ui/tests \
-  -c selfdrive/ui/tests/pytest.ini \
-  --noconftest \
-  --ignore=selfdrive/ui/tests/test_raylib_ui.py
+# selfdrive/ui/tests test the Python (PyQt5) UI; they run only where that UI is the one built
+# (common/build_profile.py). Every C++ branch keeps those files as the Phase 4 design reference until Phase 6.
+ui_backend=$(python3 -c "from common.build_profile import UI_BACKEND; print(UI_BACKEND)")
+if [ "$ui_backend" = "pyqt5" ]; then
+  echo "==> Running EOP UI tests"
+  QT_QPA_PLATFORM=offscreen python3 -m pytest \
+    selfdrive/ui/tests \
+    -c selfdrive/ui/tests/pytest.ini \
+    --noconftest \
+    --ignore=selfdrive/ui/tests/test_raylib_ui.py
+else
+  echo "==> Skipping the Python UI tests (UI_BACKEND=$ui_backend)"
+fi
 
 if [ "$NO_PYTEST" -eq 1 ]; then
   echo "==> Skipping host-side hardware tests (--no-pytest)"
