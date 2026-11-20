@@ -46,11 +46,13 @@ def test_services_are_registered():
   assert {'mapdIn', 'mapdExtendedOut'} <= set(SERVICE_LIST)
 
 
-def test_paths_and_process_entry():
+def test_paths_and_process_entry(monkeypatch):
   from openpilot.system.hardware.hw import Paths
   from openpilot.system.manager.manager import managed_processes  # the registry the manager runs, on every branch
   p = managed_processes['mapd']
   (binary,) = p.cmdline
+  # the registry is built once at import, before the test's random OPENPILOT_PREFIX: compare without it
+  monkeypatch.delenv("OPENPILOT_PREFIX", raising=False)
   assert p.cwd == Paths.mapd_root()
   assert os.path.dirname(os.path.dirname(binary)) == MAPD_DIR and os.path.basename(binary) == "mapd"
   assert p.enabled == os.path.isfile(binary)
