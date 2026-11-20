@@ -10,8 +10,9 @@ URBAN_SPEED_MPS = 12.0
 HIGHWAY_SPEED_MPS = 24.0
 MAX_SPEED_MPS = 36.0
 
-# Positive longitudinal comfort envelope. Braking remains governed by the
-# planner and hard safety limits; these values only soften gap closing.
+# Positive longitudinal comfort envelope. CRAWL is deliberately gentle; WALK
+# can close traffic-jam gaps without adopting CITY response. Braking is never
+# softened here and remains governed by planner and hard safety limits.
 LONGITUDINAL_PROFILE_SPEEDS_MPS = (CRAWL_SPEED_MPS, WALK_SPEED_MPS, CITY_SPEED_MPS,
                                    URBAN_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS)
 LONGITUDINAL_ACCEL_MAX_MPS2 = (0.45, 0.45, 0.70, 1.0, 1.2, 1.4)
