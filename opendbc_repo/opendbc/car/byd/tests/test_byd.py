@@ -1,0 +1,200 @@
+from opendbc.can import CANPacker, CANParser
+from opendbc.car import gen_empty_fingerprint, structs
+from opendbc.car.byd.bydcan import create_steering_control
+from opendbc.car.byd.fingerprints import FINGERPRINTS, FW_VERSIONS
+from opendbc.car.byd.interface import CarInterface
+from opendbc.car.byd.values import CAR, FW_QUERY_CONFIG
+
+
+def test_platform_is_lateral_active_longitudinal_passive():
+  # Flipped from noOutput/dashcamOnly (2026-08-12) - opendbc/safety/modes/byd.h's
+  # steering enforcement was already audited complete for 0x1E2/0x316. Longitudinal
+  # (0x32E) stays off: byd.h's BYD_TX_MSGS whitelist doesn't carry it yet, so
+  # openpilotLongitudinalControl would fail closed at panda's TX check regardless.
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  assert not cp.dashcamOnly
+  assert cp.safetyConfigs[0].safetyModel == structs.CarParams.SafetyModel.byd
+  assert not cp.alphaLongitudinalAvailable
+  assert not cp.openpilotLongitudinalControl
+  assert cp.radarUnavailable
+
+  # disengaged CarControl still sends nothing - test_controller_disabled_sends_nothing
+  # covers this more thoroughly; this just checks the params flip didn't also
+  # start sending unconditionally.
+  ci = CarInterface(cp)
+  ci.update([])
+  _, sends = ci.apply(structs.CarControl().as_reader(), 0)
+  assert sends == []
+
+
+def test_reference_evidence_registered():
+  assert len(FINGERPRINTS[CAR.BYD_ATTO_3]) == 1
+  assert len(FINGERPRINTS[CAR.BYD_ATTO_3][0]) == 109
+  assert len(FW_VERSIONS[CAR.BYD_ATTO_3]) == 6
+  assert FW_QUERY_CONFIG.requests[0].bus == 0
+
+
+def test_dbc_messages_and_checksum():
+  parser = CANParser("byd_atto3", [], 0)
+  required = (
+    "B_0x1F0_VCU_ESP_VehSpeed_L8_20ms", "B_0x11F_SAS_SensorState_L5_10ms", "B_0x1FC_EPS_MotorState_L8_20ms",
+    "B_0x242_VCU_DriveState_L8_20ms", "B_0x342_VCU_PedalState_L8_20ms", "B_0x133_BCM_StalkState_L8_50ms",
+    "B_0x418_VCU_BsdState_L8_50ms", "B_0x294_BCM_CabinState_L8_50ms", "B_0x32D_HUD_AdasState_L8_20ms",
+    "A_0x32E_MPC_Long_Cmd_L8_20ms", "A_0x316_MPC_MpcState_L8_20ms", "A_0x1E2_MPC_Lateral_Cmd_L8_20ms",
+  )
+  assert all(name in parser.dbc.name_to_msg for name in required)
+
+  packer = CANPacker("byd_atto3")
+  msg = packer.make_can_msg("A_0x1E2_MPC_Lateral_Cmd_L8_20ms", 0, {
+    "MPC_SteerRequestActiveLow": 1,
+    "MPC_E2EAlive1": 1,
+    "MPC_E2EAlive2": 1,
+    "SET_ME_FF": 0xFF,
+    "SET_ME_F": 0xF,
+    "COUNTER": 7,
+  })
+  assert msg[0] == 0x1E2
+  assert msg[1][7] == ((~sum(msg[1][:7])) & 0xFF)
+
+
+def test_lateral_cmd_matches_firmware_wire_layout():
+  # Byte-level cross-check against the real, car-tested firmware's WriteRaw
+  # sequence for 0x1E2 (tc275_freertos/TC275_BrownPanda DBC/byd_atto3.c,
+  # lines 1173-1201). This is the only check that would have caught the
+  # COUNTER (55->52) and Motorola->Intel bit-numbering fixes made to
+  # opendbc/dbc/byd_atto3.dbc: opendbc/safety/tests/test_byd.py only exercises
+  # the fields opendbc/safety/modes/byd.h reads directly (bits 20-23, the
+  # angle, data[5]/data[6] constants, and the checksum byte); it never reads
+  # COUNTER, so a wrong counter position was invisible to that suite.
+  packer = CANPacker("byd_atto3")
+
+  for active in (True, False):
+    addr, dat, bus = create_steering_control(packer, angle=12.3, active=active, counter=7)
+    assert addr == 0x1E2
+    assert bus == 0
+
+    # steer_req (bit 21) / steer_req_active_low (bit 20) are mutually exclusive
+    assert bool(dat[2] & (1 << 5)) == active           # bit 21 -> byte 2, bit 5
+    assert bool(dat[2] & (1 << 4)) == (not active)      # bit 20 -> byte 2, bit 4
+    # E2E alive bits (22, 23) are always set
+    assert dat[2] & (1 << 6)
+    assert dat[2] & (1 << 7)
+    # fixed sentinel bytes the EPS module requires unconditionally
+    assert dat[5] == 0xFF
+    assert dat[6] & 0x0F == 0x0F
+    # counter occupies the high nibble of byte 6 (bits 52-55)
+    assert (dat[6] >> 4) == 7
+    # checksum is the inverted sum of the first 7 bytes
+    assert dat[7] == ((~sum(dat[:7])) & 0xFF)
+
+  # angle rate fields (bits 0-9, 10-19) are fixed sentinels, not a computed
+  # rate: 251 / -252 while active, 0 / 0 while inactive
+  _, active_dat, _ = create_steering_control(packer, angle=0, active=True, counter=0)
+  active_rate_upper = active_dat[0] | ((active_dat[1] & 0x03) << 8)
+  assert active_rate_upper == 251
+  _, idle_dat, _ = create_steering_control(packer, angle=0, active=False, counter=0)
+  idle_rate_upper = idle_dat[0] | ((idle_dat[1] & 0x03) << 8)
+  assert idle_rate_upper == 0
+
+
+def test_controller_disabled_sends_nothing():
+  # Checks the controller itself is inert when CarControl.enabled is False
+  # (byd_fwd_hook forwards stock camera 0x1E2/0x316 while disengaged).
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  ci = CarInterface(cp)
+  ci.update([])
+  _, sends = ci.apply(structs.CarControl().as_reader(), 0)
+  assert sends == []
+
+
+def test_engage_from_nonzero_steering_angle_accepted_by_safety():
+  # While disengaged at a 30 deg wheel turn, apply_angle_last must track steeringAngleDeg
+  # so first-frame engagement is rate-continuous and accepted by byd_tx_hook.
+  from opendbc.safety.tests.libsafety import libsafety_py
+
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  ci = CarInterface(cp)
+  packer = CANPacker("byd_atto3")
+
+  def mk_frames(cnt):
+    sas = packer.make_can_msg("B_0x11F_SAS_SensorState_L5_10ms", 0, {
+      "SAS_SteeringAngle": 30.0, "EPS_DriverTorque": 12, "COUNTER": cnt % 16,
+    })
+    eps = packer.make_can_msg("B_0x1FC_EPS_MotorState_L8_20ms", 0, {
+      "EPS_MainTorque": 5, "COUNTER": cnt % 16,
+    })
+    return sas, eps
+
+  # First update primes lazy CANParser message subscriptions; second parses the frames.
+  ci.update([])
+  sas, eps = mk_frames(0)
+  cs = ci.update([(0, [(sas[0], sas[1], 0), (eps[0], eps[1], 0)])])
+  assert cs.steeringTorque == 12
+  assert cs.steeringTorqueEps == 5
+
+  safety = libsafety_py.libsafety
+  safety.set_safety_hooks(structs.CarParams.SafetyModel.byd, 0)
+  safety.init_tests()
+
+  # Disengaged ticks track 30 deg without sending; Panda RX tracks angle while disengaged.
+  cc_off = structs.CarControl().as_reader()
+  for i in range(1, 7):
+    sas, eps = mk_frames(i)
+    ci.update([(0, [(sas[0], sas[1], 0), (eps[0], eps[1], 0)])])
+    safety.safety_rx_hook(libsafety_py.make_CANPacket(sas[0], 0, sas[1]))
+    _, sends = ci.apply(cc_off, 0)
+    assert sends == []
+
+  # Engage from the 30 deg turn: first-frame 0x1E2 must pass byd_tx_hook.
+  safety.set_controls_allowed(True)
+  cc_on = structs.CarControl()
+  cc_on.enabled = True
+  cc_on.latActive = True
+  cc_on.actuators.steeringAngleDeg = 31.0
+  cc_on = cc_on.as_reader()
+  sent = []
+  for i in range(7, 11):
+    sas, eps = mk_frames(i)
+    ci.update([(0, [(sas[0], sas[1], 0), (eps[0], eps[1], 0)])])
+    safety.safety_rx_hook(libsafety_py.make_CANPacket(sas[0], 0, sas[1]))
+    _, sends = ci.apply(cc_on, 0)
+    for addr, dat, bus in sends:
+      sent.append(addr)
+      assert safety.safety_tx_hook(libsafety_py.make_CANPacket(addr, bus, dat))
+  assert 0x1E2 in sent
+
+
+def test_controller_engaged_matches_safety_model():
+  # The real coupling check: step the controller while engaged and verify
+  # every frame it produces would be accepted by byd_tx_hook. A controller
+  # that passes its own unit test but gets rejected by panda is the failure
+  # mode this catches - it fails immediately if the controller's ANGLE_LIMITS
+  # (opendbc/car/byd/values.py) and byd.h's BYD_STEERING_LIMITS disagree.
+  from opendbc.safety.tests.libsafety import libsafety_py
+
+  cp = CarInterface.get_params(str(CAR.BYD_ATTO_3), gen_empty_fingerprint(), [], False, False, 0, False)
+  ci = CarInterface(cp)
+  ci.update([])
+
+  safety = libsafety_py.libsafety
+  safety.set_safety_hooks(structs.CarParams.SafetyModel.byd, 0)
+  safety.init_tests()
+  safety.set_controls_allowed(True)
+
+  cc_in = structs.CarControl()
+  cc_in.enabled = True
+  cc_in.latActive = True
+  cc_in.actuators.steeringAngleDeg = 5.
+  cc_in = cc_in.as_reader()
+
+  # step through several frames so the rate limiter and counter settle, then
+  # verify the resulting wire frame would be accepted by byd_tx_hook
+  sent_any = False
+  for _ in range(20):
+    ci.update([])
+    _, sends = ci.apply(cc_in, 0)
+    for addr, dat, bus in sends:
+      sent_any = True
+      msg = libsafety_py.make_CANPacket(addr, bus, dat)
+      assert safety.safety_tx_hook(msg), (addr, list(dat))
+  assert sent_any

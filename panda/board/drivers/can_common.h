@@ -208,6 +208,29 @@ void ignition_can_hook(CANPacket_t *msg) {
       ignition_can_cnt = 0U;
     }
 
+    // BYD Atto 3: DRIVE_STATE (0x242) carries VCU_Gear on byte 5 bits 0-2 while
+    // ready. 0x242 overlaps with GM/Ford/Mazda bus-0 frames, so require BYD's
+    // companion 5-byte SAS frame (0x11F) to have been observed on bus 0 first,
+    // and never clobber another make's ignition_can to false.
+    static bool byd_sas_seen = false;
+    static bool byd_ignition_owner = false;
+    if ((addr == 0x11F) && (len == 5)) {
+      byd_sas_seen = true;
+    }
+    if (byd_sas_seen && (addr == 0x242) && (len == 8)) {
+      const uint8_t gear = msg->data[5] & 0x7U;
+      const bool byd_drive_state = (msg->data[5] & 0xF8U) == 0U;
+      if (byd_drive_state && (gear >= 1U) && (gear <= 4U)) {
+        ignition_can = true;
+        ignition_can_cnt = 0U;
+        byd_ignition_owner = true;
+      } else if (byd_drive_state && byd_ignition_owner) {
+        ignition_can = false;
+        ignition_can_cnt = 0U;
+        byd_ignition_owner = false;
+      }
+    }
+
   }
 }
 
