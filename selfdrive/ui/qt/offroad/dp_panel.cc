@@ -138,7 +138,7 @@ void DPPanel::add_lateral_toggles() {
     },
     {
       "dp_lat_alka",
-      tr("Always-on Lane Keeping Assist (ALKA)"),
+      tr("Always-on Lane Centering Control (ALCC)"),
       "",
     },
     {
@@ -204,6 +204,13 @@ void DPPanel::add_longitudinal_toggles() {
       QString::fromUtf8("🚧 ") + tr("Adaptive Experimental Mode (AEM)"),
       tr("Adaptive mode switcher between ACC and Blended based on driving context."),
     },
+    {
+      "ngp_lon_brsc",
+      tr("Bumpy Road Speed Controller (BRSC)"),
+      tr("Reduce speed and acceleration on rough pavement, detected from "
+         "vertical IMU acceleration. Recovers gradually a few seconds "
+         "after the road smooths out."),
+    },
   };
 
   QWidget *label = nullptr;
@@ -221,7 +228,7 @@ void DPPanel::add_longitudinal_toggles() {
     if ((param == "dp_lon_acm" || param == "dp_lon_acm_downhill") && !vehicle_has_long_ctrl) {
       continue;
     }
-    if (param == "dp_lon_aem" && !vehicle_has_long_ctrl) {
+    if ((param == "dp_lon_aem" || param == "ngp_lon_brsc") && !vehicle_has_long_ctrl) {
       continue;
     }
 
