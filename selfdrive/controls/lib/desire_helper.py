@@ -57,6 +57,7 @@ class DesireHelper:
       c_time = time.monotonic()
       if self.lane_change_state == LaneChangeState.off and one_blinker and not self.prev_one_blinker and not below_lane_change_speed:
         self.lane_change_state = LaneChangeState.preLaneChange
+        self.lane_change_direction = LaneChangeDirection.left if carstate.leftBlinker else LaneChangeDirection.right
         self.lane_change_ll_prob = 1.0
         if self.dp_lat_lca_auto_sec > 0.:
           self.dp_lat_lca_auto_sec_start = c_time
