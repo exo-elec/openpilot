@@ -307,3 +307,211 @@ def test_byd_8pt_backstop_lut_and_chery_car_controller_safety_parity():
   safety.init_tests()
   safety.set_controls_allowed(True)
   assert safety.get_controls_allowed()
+
+def test_aem_first_order_filter_uses_exact_time_constants(capsys):
+  """Regression: AEM must pass tau (rc seconds) to FirstOrderFilter, not alpha."""
+  from dragonpilot.selfdrive.controls.lib.aem import AEM
+  aem = AEM(debug=False)
+  out = capsys.readouterr().out
+  assert "FirstOrderFilter init failed" not in out
+  expected_alpha = DT_MDL / (AEM.EMA_TC_V_EGO + DT_MDL)
+  assert abs(aem._v_ego_ema.alpha - expected_alpha) < 1e-9
+
+
+def test_plant_dict_sm_regression():
+  """Regression: LongitudinalPlanner.update must accept Plant's plain dict sm."""
+  from openpilot.selfdrive.test.longitudinal_maneuvers.plant import Plant
+  plant = Plant(lead_relevancy=False, speed=15.0, distance_lead=50.0)
+  plant.step(15.0, 0.0, 20.0, 0.0, 1.0)
+
+
+def _curved_model_v2(v_ego: float, curvature: float):
+  """Build a modelV2 message with steady velocity and yaw rate corresponding to curvature."""
+  msg = messaging.new_message('modelV2').modelV2
+  n = len(ModelConstants.T_IDXS)
+  msg.velocity.x = [float(v_ego)] * n
+  msg.orientationRate.z = [float(v_ego * curvature)] * n
+  msg.position.x = [float(v_ego * t) for t in ModelConstants.T_IDXS]
+  msg.position.y = [0.0] * n
+  msg.position.z = [0.0] * n
+  msg.acceleration.x = [0.0] * n
+  return msg
+
+
+def test_vtsc_closed_loop_slows_for_curve_and_recovers():
+  """Real LongitudinalPlanner + VTSC: slows on sharp curve, recovers on straight, inert when flag OFF."""
+  CP = _make_cp()
+  planner_off = LongitudinalPlanner(CP, init_v=22.0)
+  planner_on = LongitudinalPlanner(CP, init_v=22.0)
+
+  v_off = 22.0
+  v_on = 22.0
+  v_on_min = v_on
+  # 8s approaching/in sharp curve (R = 50m -> kappa = 0.02 -> ~9.5 m/s comfort)
+  for _ in range(160):
+    sm_off = _make_sm(v_ego=v_off, v_cruise_kph=80.0)
+    sm_off['modelV2'] = _curved_model_v2(v_off, 0.02)
+    planner_off.update(sm_off, dp_flags=0)
+    v_off = max(0.0, v_off + float(planner_off.a_desired) * DT_MDL)
+
+    sm_on = _make_sm(v_ego=v_on, v_cruise_kph=80.0)
+    sm_on['modelV2'] = _curved_model_v2(v_on, 0.02)
+    planner_on.update(sm_on, dp_flags=DPFlags.VTSC)
+    v_on = max(0.0, v_on + float(planner_on.a_desired) * DT_MDL)
+    v_on_min = min(v_on_min, v_on)
+
+  assert planner_off.vtsc_v_target is None
+  assert v_off > 20.5, f"VTSC OFF unexpectedly slowed: {v_off:.2f}"
+  assert planner_on.vtsc_v_target is not None and planner_on.vtsc_v_target < 15.0
+  assert v_on_min < 16.0, f"VTSC ON failed to decelerate for R=50m curve: min={v_on_min:.2f}"
+
+  # Straight road recovery (10s)
+  for _ in range(200):
+    sm_on = _make_sm(v_ego=v_on, v_cruise_kph=80.0)
+    sm_on['modelV2'] = _curved_model_v2(v_on, 0.0)
+    planner_on.update(sm_on, dp_flags=DPFlags.VTSC)
+    v_on = max(0.0, v_on + float(planner_on.a_desired) * DT_MDL)
+
+  assert planner_on.vtsc_v_target is None
+  assert v_on > v_on_min + 3.0, f"VTSC failed to recover on straight road: {v_on_min:.2f} -> {v_on:.2f}"
+
+
+def _make_mapd_ext(curve_dist_m: float, curvature: float):
+  ext = messaging.new_message('mapdExtendedOut').mapdExtendedOut
+  ext.position.latitude = 13.7563
+  ext.position.longitude = 100.5018
+  # 1 deg latitude ~= 111111 m; generate points every 20m up to 460m
+  pts = ext.init('path', 24)
+  for i in range(24):
+    d = i * 20.0
+    pts[i].latitude = 13.7563 + d / 111111.0
+    pts[i].longitude = 100.5018
+    pts[i].curvature = float(curvature if abs(d - curve_dist_m) <= 30.0 else 0.0)
+    pts[i].targetVelocity = 0.0
+  return ext
+
+
+def test_mtsc_proactive_slowdown_handover_and_hold():
+  """Real LongitudinalPlanner + MTSC: slows for 260m map curve, holds across 1 Hz updates, expires after 3s."""
+  CP = _make_cp()
+  planner = LongitudinalPlanner(CP, init_v=25.0)
+  v_ego = 25.0
+
+  # Feed 1 Hz mapdExtendedOut for 4s (80 ticks) with R=60m curve at 260m
+  for step in range(80):
+    sm = _make_sm(v_ego=v_ego, v_cruise_kph=90.0)
+    if step % 20 == 0:
+      sm['mapdExtendedOut'] = _make_mapd_ext(260.0, 1.0 / 60.0)
+      sm.valid['mapdExtendedOut'] = True
+      sm.updated['mapdExtendedOut'] = True
+    planner.update(sm, dp_flags=DPFlags.MTSC | DPFlags.VTSC)
+    v_ego = max(0.0, v_ego + float(planner.a_desired) * DT_MDL)
+
+  assert planner._mtsc_v_target is not None and planner._mtsc_v_target < 15.0
+  assert v_ego < 22.0, f"MTSC did not decelerate proactively: v_ego={v_ego:.2f}"
+
+  # Verify MTSC target expires cleanly after >3.0s without map updates (no stale lock)
+  for _ in range(70):
+    sm = _make_sm(v_ego=v_ego, v_cruise_kph=90.0)
+    planner.update(sm, dp_flags=DPFlags.MTSC | DPFlags.VTSC)
+  assert planner._mtsc_v_target is None
+
+
+def test_mslc_posted_limit_hold_and_expiry():
+  """Real LongitudinalPlanner + MSLC: caps cruise to posted 60 km/h limit and expires if mapd drops out."""
+  CP = _make_cp()
+  planner = LongitudinalPlanner(CP, init_v=17.5)
+  v_ego = 17.5
+
+  for step in range(60):
+    sm = _make_sm(v_ego=v_ego, v_cruise_kph=80.0)
+    if step % 20 == 0:
+      mo = messaging.new_message('mapdOut').mapdOut
+      mo.speedLimit = 60.0 / 3.6
+      mo.nextSpeedLimit = 0.0
+      mo.nextSpeedLimitDistance = 0.0
+      sm['mapdOut'] = mo
+      sm.valid['mapdOut'] = True
+      sm.updated['mapdOut'] = True
+    planner.update(sm, dp_flags=DPFlags.MSLC)
+    v_ego = max(0.0, v_ego + float(planner.a_desired) * DT_MDL)
+
+  assert planner._mslc_v_target is not None
+  assert abs(planner._mslc_v_target - (60.0 / 3.6)) < 0.5
+  assert v_ego < 17.2
+
+  # Expire after >3s silence
+  for _ in range(70):
+    sm = _make_sm(v_ego=v_ego, v_cruise_kph=80.0)
+    planner.update(sm, dp_flags=DPFlags.MSLC)
+  assert planner._mslc_v_target is None
+
+
+def test_desire_helper_lane_gap_and_width_guards():
+  """DesireHelper blocks lane change when target lane is narrow or adjacent gap is unsafe."""
+  from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LaneChangeState
+
+  cs = messaging.new_message('carState').carState
+  cs.vEgo = 20.0
+  cs.leftBlinker = True
+  cs.steeringPressed = True
+  cs.steeringTorque = 50.0
+
+  # Narrow target left lane (left edge at y=-4.0 vs left lane line at y=-1.8 => 2.2m < 2.5m)
+  mdl = messaging.new_message('modelV2').modelV2
+  xs = [float(i * 5) for i in range(33)]
+  lines = mdl.init('laneLines', 4)
+  for ll in lines:
+    ll.x = xs
+    ll.y = [0.0] * 33
+  lines[0].y = [-5.5] * 33
+  lines[1].y = [-1.8] * 33
+  lines[2].y = [1.8] * 33
+  lines[3].y = [5.5] * 33
+  mdl.laneLineProbs = [0.9, 0.9, 0.9, 0.9]
+  edges = mdl.init('roadEdges', 2)
+  edges[0].x = xs
+  edges[0].y = [-4.0] * 33
+  edges[1].x = xs
+  edges[1].y = [5.5] * 33
+
+  dh = DesireHelper(dp_lat_lca_speed=20, lca_lane_width=True)
+  dh.update(cs, True, 0.0, False, False, model_v2=mdl)
+  assert dh.lane_change_state == LaneChangeState.preLaneChange
+  dh.update(cs, True, 0.0, False, False, model_v2=mdl)
+  assert dh.lane_change_state == LaneChangeState.preLaneChange, "Narrow target lane must block laneChangeStarting"
+
+  # Unsafe adjacent-lane gap (wide lane, but adjacent vehicle closing fast on left: modelV2 y=-3.2m right-positive)
+  edges[0].y = [-6.0] * 33
+  leads = mdl.init('leadsV3', 1)
+  leads[0].prob = 0.9
+  leads[0].x = [6.0]
+  leads[0].y = [-3.2]
+  leads[0].v = [12.0]
+  dh_gap = DesireHelper(dp_lat_lca_speed=20, lca_gap_eval=True)
+  dh_gap.update(cs, True, 0.0, False, False, model_v2=mdl)
+  dh_gap.update(cs, True, 0.0, False, False, model_v2=mdl)
+  assert dh_gap.lane_change_state == LaneChangeState.preLaneChange, "Unsafe adjacent TTC gap must block laneChangeStarting"
+
+
+def test_lead_departure_and_steering_resume_ramp():
+  """LeadDepartureNotice fires on stopped lead pulling away; SteeringResumeRamp ramps cleanly."""
+  from exopilot.selfdrive.controls.lib.lead_departure import LeadDepartureNotice
+  from exopilot.selfdrive.controls.lib.steering_policy import SteeringResumeRamp
+
+  ld = LeadDepartureNotice()
+  lead = messaging.new_message('radarState').radarState.leadOne
+  lead.status = True
+  lead.dRel = 5.0
+  lead.vLead = 0.0
+  assert not ld.update(True, lead)
+  lead.dRel = 6.5
+  lead.vLead = 1.5
+  assert ld.update(True, lead)
+
+  ramp = SteeringResumeRamp()
+  t0, a0 = ramp.update(False, 0.0, 0.0, 0.0, 0.0)
+  assert t0 == 0.0 and a0 == 0.0
+  t1, _ = ramp.update(True, 1.0, 10.0, 0.0, 0.1)
+  t2, _ = ramp.update(True, 1.0, 10.0, 0.0, 2.0)
+  assert 0.0 <= t1 < t2 <= 1.0
