@@ -228,48 +228,8 @@ class LongitudinalPlanner:
     # PCM cruise speed may be updated a few cycles later, check if initialized
     reset_state = reset_state or not v_cruise_initialized
 
-    # Update ACM status
-    if not sm['selfdriveState'].experimentalMode:
-      if not self.acm.enabled and dp_flags & DPFlags.ACM:
-        self.acm.enabled = True
-        self.acm.downhill_only = bool(dp_flags & DPFlags.ACM_DOWNHILL)
-    else:
-      self.acm.enabled = False
-
-    user_control = long_control_off if self.CP.openpilotLongitudinalControl else not sm['selfdriveState'].enabled
-    self.acm.update_states(sm['carControl'], sm['radarState'], user_control, v_ego, v_cruise)
-
-    if self.acm.just_disabled:
-      reset_state = True
-
-    # No change cost when user is controlling the speed, or when standstill
-    prev_accel_constraint = not (reset_state or sm['carState'].standstill)
-
-    if mode == 'acc':
-      accel_clip = [ACCEL_MIN, get_max_accel(v_ego)]
-      steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
-      accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP)
-    else:
-      accel_clip = [ACCEL_MIN, ACCEL_MAX]
-
-    if reset_state:
-      self.v_desired_filter.x = v_ego
-      # Clip aEgo to cruise limits to prevent large accelerations when becoming active
-      self.a_desired = np.clip(sm['carState'].aEgo, accel_clip[0], accel_clip[1])
-
-    # Prevent divergence, smooth in current v_ego
-    self.v_desired_filter.x = max(0.0, self.v_desired_filter.update(v_ego))
-    # AEM - move to top so it can access them
-    # x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])
-    # # Don't clip at low speeds since throttle_prob doesn't account for creep
-    # self.allow_throttle = throttle_prob > ALLOW_THROTTLE_THRESHOLD or v_ego <= MIN_ALLOW_THROTTLE_SPEED
-
-    if not self.allow_throttle:
-      clipped_accel_coast = max(accel_coast, accel_clip[0])
-      clipped_accel_coast_interp = np.interp(v_ego, [MIN_ALLOW_THROTTLE_SPEED, MIN_ALLOW_THROTTLE_SPEED*2], [accel_clip[1], clipped_accel_coast])
-      accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
-
     # VTSC (0-250m vision curves) + MTSC (150-500m offline mapd curves) + MSLC (posted speed limit)
+    driver_v_cruise = v_cruise
     self._map_sim_t += self.dt
     vtsc_enabled = bool(dp_flags & DPFlags.VTSC)
     mtsc_enabled = bool(dp_flags & DPFlags.MTSC)
@@ -318,6 +278,48 @@ class LongitudinalPlanner:
 
     if force_slow_decel:
       v_cruise = 0.0
+
+    # Update ACM status — yield immediately whenever a speed controller or forceDecel requests slowdown
+    if not sm['selfdriveState'].experimentalMode:
+      if not self.acm.enabled and dp_flags & DPFlags.ACM:
+        self.acm.enabled = True
+        self.acm.downhill_only = bool(dp_flags & DPFlags.ACM_DOWNHILL)
+    else:
+      self.acm.enabled = False
+
+    user_control = long_control_off if self.CP.openpilotLongitudinalControl else not sm['selfdriveState'].enabled
+    speed_cap_active = (v_cruise < driver_v_cruise - 1e-3) or force_slow_decel
+    self.acm.update_states(sm['carControl'], sm['radarState'], user_control or speed_cap_active, v_ego, driver_v_cruise)
+
+    if self.acm.just_disabled:
+      reset_state = True
+
+    # No change cost when user is controlling the speed, or when standstill
+    prev_accel_constraint = not (reset_state or sm['carState'].standstill)
+
+    if mode == 'acc':
+      accel_clip = [ACCEL_MIN, get_max_accel(v_ego)]
+      steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
+      accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP)
+    else:
+      accel_clip = [ACCEL_MIN, ACCEL_MAX]
+
+    if reset_state:
+      self.v_desired_filter.x = v_ego
+      # Clip aEgo to cruise limits to prevent large accelerations when becoming active
+      self.a_desired = np.clip(sm['carState'].aEgo, accel_clip[0], accel_clip[1])
+
+    # Prevent divergence, smooth in current v_ego
+    self.v_desired_filter.x = max(0.0, self.v_desired_filter.update(v_ego))
+    # AEM - move to top so it can access them
+    # x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])
+    # # Don't clip at low speeds since throttle_prob doesn't account for creep
+    # self.allow_throttle = throttle_prob > ALLOW_THROTTLE_THRESHOLD or v_ego <= MIN_ALLOW_THROTTLE_SPEED
+
+    if not self.allow_throttle:
+      clipped_accel_coast = max(accel_coast, accel_clip[0])
+      clipped_accel_coast_interp = np.interp(v_ego, [MIN_ALLOW_THROTTLE_SPEED, MIN_ALLOW_THROTTLE_SPEED*2], [accel_clip[1], clipped_accel_coast])
+      accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
 
     self.aem.set_personality(v_ego, sm['selfdriveState'].personality)
     self.mpc.set_weights(prev_accel_constraint, personality=self.aem.personality)

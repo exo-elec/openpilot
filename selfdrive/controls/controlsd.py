@@ -65,8 +65,8 @@ class Controls:
     self.alka_active = False
     self.cat = CAT(self.CP)
     self.steering_resume_ramp = SteeringResumeRamp()
-    pause_mph = self.params.get("BlinkerPauseLateralSpeed", return_default=True)
-    self.blinker_pause = BlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
+    pause_mph = float(self.params.get("BlinkerPauseLateralSpeed", return_default=True) or 0)
+    self.blinker_pause = BlinkerPause(pause_mph * CV.MPH_TO_MS) if pause_mph > 0.0 else None
 
   def update(self):
     self.sm.update(15)
