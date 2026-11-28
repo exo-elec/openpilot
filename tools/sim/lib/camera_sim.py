@@ -6,6 +6,7 @@ import pyopencl.array as cl_array
 from msgq.visionipc import VisionIpcServer, VisionStreamType
 from cereal import messaging
 
+from openpilot.common import build_profile
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
 from openpilot.tools.sim.lib.common import W, H
@@ -18,8 +19,11 @@ class CameraSim:
   """Simulates v4l2d + stereod VisionIPC servers."""
   def __init__(self, dual_camera=False, tele_camera=None, stereo_camera=None):
     params = Params()
-    # ExoPilot 01M (RK3588) has no tele camera — that's an ExoPilot 02M feature
-    self.tele_camera = False
+    # ExoPilot 02M (RK3576) carries a telephoto road camera; 01M/EOP10 (RK3588) does not.
+    if tele_camera is None:
+      self.tele_camera = build_profile.DEFAULT_SOC == "rk3576"
+    else:
+      self.tele_camera = bool(tele_camera)
     self.stereo_camera = stereo_camera if stereo_camera is not None else params.get_bool("StereoEnabled")
 
     pub_types = ['roadCameraState', 'wideRoadCameraState']
