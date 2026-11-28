@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
 #include <QButtonGroup>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -11,6 +13,7 @@
 #include <QPushButton>
 
 #include "common/params.h"
+#include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 #include "selfdrive/ui/qt/widgets/toggle.h"
 
@@ -188,29 +191,15 @@ class MultiButtonControl : public AbstractControl {
 public:
   MultiButtonControl(const QString &title, const QString &desc, const QString &icon,
                      const std::vector<QString> &button_texts, const int minimum_button_width = 100) : AbstractControl(title, desc, icon) {
-    const QString style = R"(
-      QPushButton {
-        border-radius: 10px;
-        font-size: 18px;
-        font-weight: 500;
-        height: 44px;
-        padding: 0 10px;
-        color: #E4E4E4;
-        background-color: #393939;
-      }
-      QPushButton:pressed {
-        background-color: #4a4a4a;
-      }
-      QPushButton:checked:enabled {
-        background-color: #33Ab4C;
-      }
-      QPushButton:checked:disabled {
-        background-color: #9933Ab4C;
-      }
-      QPushButton:disabled {
-        color: #33E4E4E4;
-      }
-    )";
+    const QString style = theme::controlStyle(theme::Control::SEGMENTED);
+
+    // The choices get their own line under the title: title + three labels
+    // do not fit one 1024x600 settings row without clipping. Indented to
+    // stay inside the panel, the line is not indented under an icon.
+    QHBoxLayout *choices = new QHBoxLayout;
+    choices->setContentsMargins(0, 8, 0, 0);  // full row width, icon or not
+    choices->setSpacing(12);
+    qobject_cast<QVBoxLayout *>(layout())->insertLayout(1, choices);
 
     button_group = new QButtonGroup(this);
     button_group->setExclusive(true);
@@ -219,8 +208,11 @@ public:
       button->setCheckable(true);
       button->setChecked(i == 0);
       button->setStyleSheet(style);
-      button->setMinimumWidth(minimum_button_width);
-      hlayout->addWidget(button);
+      // never narrower than its label (the QSS font: 24 px, medium)
+      const int label_w = QFontMetrics(theme::inter(theme::CONTROL_FONT_PX, QFont::DemiBold))
+                              .horizontalAdvance(button_texts[i]) + 2 * 16 + 8;
+      button->setMinimumWidth(std::max(minimum_button_width, label_w));
+      choices->addWidget(button, 1);
       button_group->addButton(button, i);
     }
 
@@ -295,8 +287,14 @@ private:
   void paintEvent(QPaintEvent *) override {
     QPainter p(this);
     p.setPen(Qt::gray);
+    auto is_section = [&](int i) {
+      QWidget *w = inner_layout.itemAt(i)->widget();
+      return w != nullptr && w->objectName() == "settingsSection";
+    };
     for (int i = 0; i < inner_layout.count() - 1; ++i) {
       QWidget *widget = inner_layout.itemAt(i)->widget();
+      // a section header draws its own rule; no divider above or below it
+      if (is_section(i) || is_section(i + 1)) continue;
       if (widget == nullptr || widget->isVisible()) {
         QRect r = inner_layout.itemAt(i)->geometry();
         int bottom = r.bottom() + inner_layout.spacing() / 2;

@@ -6,6 +6,35 @@
 #include "common/params.h"
 #include "selfdrive/ui/qt/util.h"
 
+void Sidebar::drawButton(QPainter &p, const QRect &r, const QPixmap &icon, const QString &text, bool pressed) {
+  // Same family as the status cards (drawMetric): 14 px radius, soft white
+  // outline, a blue tab on the left; filled a step lighter so it reads as a
+  // button, darker while pressed.
+  p.setPen(Qt::NoPen);
+  p.setBrush(pressed ? QColor(0x2a, 0x2a, 0x2a) : QColor(0x4a, 0x4a, 0x4a));
+  p.drawRoundedRect(r, 14, 14);
+
+  p.setBrush(theme::GOOD);
+  p.setClipRect(r.x() + 4, r.y(), 18, r.height(), Qt::ReplaceClip);
+  p.drawRoundedRect(QRect(r.x() + 3, r.y() + 3, 70, r.height() - 6), 12, 12);
+  p.setClipping(false);
+
+  QPen pen(QColor(0xff, 0xff, 0xff, 0x55));
+  pen.setWidth(2);
+  p.setPen(pen);
+  p.setBrush(Qt::NoBrush);
+  p.drawRoundedRect(r, 14, 14);
+
+  p.setFont(theme::inter(24, QFont::DemiBold));
+  const int text_w = p.fontMetrics().horizontalAdvance(text);
+  const int gap = 14;
+  const QRect content = r.adjusted(22, 0, 0, 0);  // right of the tab
+  int x = content.x() + (content.width() - icon.width() - gap - text_w) / 2;
+  p.drawPixmap(x, r.y() + (r.height() - icon.height()) / 2, icon);
+  p.setPen(theme::WHITE);
+  p.drawText(QRect(x + icon.width() + gap, r.y(), text_w + 2, r.height()), Qt::AlignLeft | Qt::AlignVCenter, text);
+}
+
 void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y) {
   const QRect rect = {15, y, 230, 85};
 
@@ -27,9 +56,10 @@ void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QCol
 }
 
 Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(false), settings_pressed(false), mic_indicator_pressed(false) {
-  home_img = loadPixmap("../assets/images/button_home.png", home_btn.size());
-  flag_img = loadPixmap("../assets/images/button_flag.png", home_btn.size());
-  settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
+  // Dark buttons with white icons (PyQt5 design), not comma's white button
+  // images; the offroad home button did nothing, so offroad it is not drawn.
+  gear_img = loadPixmap("../assets/icons/settings.png", QSize(32, 32));
+  flag_img = loadPixmap("../assets/images/button_flag.png", QSize(34, 34));
   mic_img = loadPixmap("../assets/icons/microphone.png", QSize(22, 22));
   link_img = loadPixmap("../assets/icons/link.png", QSize(36, 36));
 
@@ -37,12 +67,14 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
 
   setAttribute(Qt::WA_OpaquePaintEvent);
   setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-  setFixedWidth(260);
+  setFixedWidth(theme::SIDEBAR_W);
 
   QObject::connect(uiState(), &UIState::uiUpdate, this, &Sidebar::updateState);
 
   pm = std::make_unique<PubMaster>(std::vector<const char*>{"bookmarkButton"});
 
+  // Keys are bluetoothd's (pairing_agent.py writes BluetoothPairing*); the
+  // unprefixed names this used to watch do not exist, so PAIRING never showed.
   // Cache BLE pairing status via QFileSystemWatcher instead of a
   // synchronous Params().get() on every updateState() tick (UI_FREQ =
   // 20 Hz) -- same pattern as exopilot_panel.cc's fs_watch.
@@ -89,7 +121,7 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
-    emit openSettings(2, "RecordAudio");
+    emit openSettings(0, "DevicePanel");
   }
 }
 
@@ -141,7 +173,7 @@ void Sidebar::updateState(const UIState &s) {
     } else if (eth_up) {
       wifiStatus = {{tr("ETH"), tr("OK")}, good_color};
     } else {
-      wifiStatus = {{tr("WIFI"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+      wifiStatus = {{tr("WIFI"), tr("OFF")}, theme::INACTIVE};
     }
   }
   setProperty("wifiStatus", QVariant::fromValue(wifiStatus));
@@ -175,7 +207,7 @@ void Sidebar::updateState(const UIState &s) {
   } else if (cached_gatt_connected || cached_spp_connected) {
     bleStatus = {{tr("BLE"), tr("ON")}, good_color};
   } else {
-    bleStatus = {{tr("BLE"), tr("OFF")}, QColor(0x54, 0x54, 0x54)};
+    bleStatus = {{tr("BLE"), tr("OFF")}, theme::INACTIVE};
   }
   setProperty("bleStatus", QVariant::fromValue(bleStatus));
 
@@ -187,13 +219,14 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setPen(Qt::NoPen);
   p.setRenderHint(QPainter::Antialiasing);
 
-  p.fillRect(rect(), QColor(57, 57, 57));
+  p.fillRect(rect(), theme::SIDEBAR_BG);
 
   // buttons
-  p.setOpacity(settings_pressed ? 0.65 : 1.0);
-  p.drawPixmap(settings_btn.x(), settings_btn.y(), settings_img);
-  p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
-  p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
+  drawButton(p, settings_btn, gear_img, tr("Settings"), settings_pressed);
+  if (onroad) {
+    drawButton(p, home_btn, flag_img, tr("Bookmark"), flag_pressed);
+  }
+  p.setPen(Qt::NoPen);
   if (recording_audio) {
     p.setBrush(danger_color);
     p.setOpacity(mic_indicator_pressed ? 0.65 : 1.0);
@@ -206,7 +239,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
 
   // network
   int x = 35;
-  const QColor gray(0x54, 0x54, 0x54);
+  const QColor gray = theme::INACTIVE;
   for (int i = 0; i < 5; ++i) {
     p.setBrush(i < net_strength ? Qt::white : gray);
     p.drawEllipse(x, 115, 16, 16);

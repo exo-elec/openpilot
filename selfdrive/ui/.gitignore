@@ -6,3 +6,7 @@ installer/installers/*
 
 # ui_snapshot (tests/ui_snapshot.cc), the offscreen settings renderer
 tests/ui_snapshot
+
+# Build output: Qt moc sources and the ui binary (scons)
+moc_*.cc
+/ui

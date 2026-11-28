@@ -99,7 +99,7 @@ private:
   bool hovered = false;
 };
 
-// EnhancedOpenPilot Information Dialog
+// ExoPilot Information Dialog
 class DriveInfoDialog : public DialogBase {
   Q_OBJECT
 public:

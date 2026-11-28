@@ -18,7 +18,7 @@ if UI_BACKEND == "cpp":
   # FIXME: remove this once we're on 5.15 (24.04)
   qt_env['CXXFLAGS'] += ["-Wno-deprecated-declarations"]
 
-  qt_util = qt_env.Library("qt_util", ["#selfdrive/ui/qt/api.cc", "#selfdrive/ui/qt/util.cc"], LIBS=base_libs)
+  qt_util = qt_env.Library("qt_util", ["#selfdrive/ui/qt/api.cc", "#selfdrive/ui/qt/util.cc", "#selfdrive/ui/qt/theme.cc"], LIBS=base_libs)
   widgets_src = ["qt/widgets/input.cc", "qt/prime_state.cc",
                  "qt/widgets/ssh_keys.cc", "qt/widgets/toggle.cc", "qt/widgets/controls.cc",
                  "qt/widgets/offroad_alerts.cc", "qt/widgets/keyboard.cc",
@@ -33,8 +33,8 @@ if UI_BACKEND == "cpp":
 
   qt_src = ["main.cc", "ui.cc", "qt/sidebar.cc", "qt/body.cc",
             "qt/window.cc", "qt/home.cc", "qt/offroad/settings.cc",
-            "qt/offroad/software_settings.cc", "qt/offroad/developer_panel.cc", "qt/offroad/onboarding.cc",
-            "qt/offroad/experimental_mode.cc",
+            "qt/offroad/software_settings.cc", "qt/offroad/onboarding.cc",
+            "qt/offroad/drive_mode.cc",
             "qt/offroad/exopilot_panel.cc", "qt/offroad/model_selector.cc",
             "qt/offroad/openblt_update_widget.cc",
             "qt/onroad/onroad_home.cc", "qt/onroad/annotated_camera.cc", "qt/onroad/model.cc",

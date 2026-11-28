@@ -268,6 +268,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"AggressiveJerk", {PERSISTENT, FLOAT, "0.5"}},
     {"AutoLaneChange", {PERSISTENT, BOOL, "0"}},
     {"AutoTileEnabled", {PERSISTENT, BOOL, "1"}},
+    {"MapRegion", {PERSISTENT, STRING, "thailand"}},
+    {"MapDownloadRequest", {CLEAR_ON_MANAGER_START, STRING}},  // region name; consumed by the tile manager
+    {"MapStatus", {PERSISTENT, STRING}},  // tile manager: e.g. "installed 2026-11-11", "downloading 40%"
     {"AutoTileWifiOnly", {PERSISTENT, BOOL, "1"}},
     {"BlindSpotIndicator", {PERSISTENT, BOOL, "1"}},
     {"BSDChimeEnabled", {PERSISTENT, BOOL, "1"}},

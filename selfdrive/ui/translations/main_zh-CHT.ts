@@ -920,7 +920,7 @@ Steering lag calibration is complete.</source>
         <translation>舒適</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>駕駛風格</translation>
     </message>
     <message>

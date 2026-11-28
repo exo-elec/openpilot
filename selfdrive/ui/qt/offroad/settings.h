@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QWidget>
 
 #include "selfdrive/ui/ui.h"
@@ -33,10 +34,13 @@ signals:
   void scrollToToggle(const QString &param);
 
 private:
+  void unlockAdvanced();
+
   QPushButton *sidebar_alert_widget;
   QWidget *sidebar_widget;
   QButtonGroup *nav_btns;
   QStackedWidget *panel_widget;
+  QPushButton *advanced_btn = nullptr;  // hidden until unlocked on Device
 };
 
 class DevicePanel : public ListWidget {
@@ -46,6 +50,10 @@ public:
 
 signals:
   void reviewTrainingGuide();
+  void advancedUnlocked();  // 8 quick taps on the Dongle ID row
+
+protected:
+  bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
   void poweroff();
@@ -53,8 +61,21 @@ private slots:
   void updateCalibDescription();
 
 private:
+  void addOfflineMaps();
+  void updateMapStatus();
+  void updateNetworkInfo();
+  void showEvent(QShowEvent *event) override;
+  void hideEvent(QHideEvent *event) override;
+
   Params params;
   ButtonControl *resetCalibBtn;
+  ButtonControl *mapRegionBtn = nullptr;
+  ButtonControl *mapDownloadBtn = nullptr;
+  LabelControl *ipLbl = nullptr;
+  LabelControl *wifiLbl = nullptr;
+  QTimer *net_timer = nullptr;
+  int dongle_taps = 0;
+  qint64 last_tap_ms = 0;
 };
 
 class TogglesPanel : public ListWidget {
@@ -74,6 +95,7 @@ private:
   Params params;
   std::map<std::string, ParamControl*> toggles;
   ButtonParamControl *long_personality_setting;
+  ButtonParamControl *drive_mode_setting;
 
   void updateToggles();
 };
@@ -94,7 +116,6 @@ private:
   LabelControl *versionLbl;
   ButtonControl *installBtn;
   ButtonControl *downloadBtn;
-  ButtonControl *targetBranchBtn;
 
   Params params;
   ParamWatcher *fs_watch;

@@ -6,6 +6,7 @@
 #include <QMap>
 
 #include "selfdrive/ui/ui.h"
+#include "selfdrive/ui/qt/theme.h"
 #include "selfdrive/ui/qt/network/networking.h"
 #include "selfdrive/ui/qt/util.h"
 
@@ -38,8 +39,9 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   void drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y);
+  void drawButton(QPainter &p, const QRect &r, const QPixmap &icon, const QString &text, bool pressed);
 
-  QPixmap home_img, flag_img, settings_img, mic_img, link_img;
+  QPixmap flag_img, gear_img, mic_img, link_img;
   bool onroad, recording_audio, flag_pressed, settings_pressed, mic_indicator_pressed;
   const QMap<cereal::DeviceState::NetworkType, QString> network_type = {
     {cereal::DeviceState::NetworkType::NONE, tr("--")},
@@ -53,11 +55,12 @@ protected:
 
   // Resized for 600px height / ~260px width
   const QRect home_btn = QRect(40, 520, 180, 75);
-  const QRect settings_btn = QRect(30, 15, 200, 80);
+  const QRect settings_btn = QRect(15, 15, 230, 80);  // same x/width as the status cards
   const QRect mic_indicator_btn = QRect(140, 115, 55, 28);
-  const QColor good_color = QColor(255, 255, 255);
-  const QColor warning_color = QColor(218, 202, 37);
-  const QColor danger_color = QColor(201, 34, 49);
+  // Status palette from the PyQt5 design (theme.h): blue good, amber warning.
+  const QColor good_color = theme::GOOD;
+  const QColor warning_color = theme::WARNING;
+  const QColor danger_color = theme::DANGER;
 
   ItemStatus panda_status, temp_status, ble_status, wifi_status;
   QString net_type;

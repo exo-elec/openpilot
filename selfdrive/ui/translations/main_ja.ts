@@ -916,7 +916,7 @@ Steering lag calibration is complete.</source>
         <translation>リラックス</translation>
     </message>
     <message>
-        <source>Driving Personality</source>
+        <source>Driver Personality</source>
         <translation>運転傾向</translation>
     </message>
     <message>
