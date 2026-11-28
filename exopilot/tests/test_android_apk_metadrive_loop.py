@@ -284,6 +284,7 @@ def test_android_14_emulator_apk_plp_v5_and_npbm_metadrive_3d_closed_loop(monkey
 
   listener = Listener("127.0.0.1", 0).start()
   env = None
+  joining = None
   facade = None
   try:
     deadline = time.monotonic() + 5.0
@@ -333,17 +334,6 @@ def test_android_14_emulator_apk_plp_v5_and_npbm_metadrive_3d_closed_loop(monkey
       log=logging.getLogger("bigmodel.android_apk"),
       in_control=lambda: False,
     )
-    facade = BigModelFacade(
-      joining,
-      local_shim,
-      params,
-      lambda *a: (0.0, 0.0),
-      policy=ONE_WAY,
-      cable=lambda: True,
-      enumerated=lambda: True,
-      runnable=lambda: True,
-    )
-    facade.delays = (0.15, 0.15)
 
     _adb(serial, "logcat", "-c")
     launch = _launch_navpilot(serial)
@@ -420,7 +410,20 @@ def test_android_14_emulator_apk_plp_v5_and_npbm_metadrive_3d_closed_loop(monkey
     assert min_mtsc_target < 15.0, f"PLP-fed MTSC failed to cap curve speed (min_target={min_mtsc_target:.2f})"
     assert v_slowed < v_initial - 1.5, f"MetaDrive vehicle did not slow for Android APK PLP curve ({v_initial:.2f} -> {v_slowed:.2f})"
 
-    # Stream 12 live MetaDrive 3D dual-camera frames from openpilot into Android 14 APK NPBM server!
+    # Attach BigModelFacade as the drive frame loop starts (so ONE_WAY's 60 s load window
+    # measures drive startup, not software-TCG adb install/boot time), then stream 12 live
+    # MetaDrive 3D dual-camera frames into the Android 14 APK NPBM server!
+    facade = BigModelFacade(
+      joining,
+      local_shim,
+      params,
+      lambda *a: (0.0, 0.0),
+      policy=ONE_WAY,
+      cable=lambda: True,
+      enumerated=lambda: True,
+      runnable=lambda: True,
+    )
+    facade.delays = (0.15, 0.15)
     ref_state = S.State()
     ref_backend = S.StubBackend(1024, 600)
     apk_frames = 0
@@ -461,6 +464,8 @@ def test_android_14_emulator_apk_plp_v5_and_npbm_metadrive_3d_closed_loop(monkey
   finally:
     if facade is not None:
       facade.close()
+    elif joining is not None:
+      joining.close()
     if env is not None:
       env.close()
     listener.close()
