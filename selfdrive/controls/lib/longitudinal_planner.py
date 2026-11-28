@@ -14,7 +14,7 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import T_IDX
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, get_accel_from_plan
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX, V_CRUISE_UNSET
 from openpilot.common.swaglog import cloudlog
-from exopilot.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
+from exopilot.common.speed_zones import longitudinal_accel_max, longitudinal_jerk_up
 from openpilot.selfdrive.controls.lib.dp_tja import TrafficJamAssist
 from dragonpilot.selfdrive.controls.lib.acm import ACM
 from dragonpilot.selfdrive.controls.lib.aem import AEM
@@ -22,7 +22,12 @@ from dragonpilot.selfdrive.controls.lib.aem import AEM
 # EOP10/NGP10/EDP10 via exopilot/controls (see exopilot/controls/ngp_brsc.py).
 # Interacts with v_cruise the same way TJA interacts with accel: it only ever
 # tightens the clamp, applied after ACM/AEM's own adjustments.
-from exopilot.controls.ngp_brsc import NGPBRSC
+from exopilot.selfdrive.controls.lib.brsc import BRSC
+from exopilot.selfdrive.controls.lib.curve_speed import blend_mtsc_vtsc, curves_from_path
+from exopilot.selfdrive.controls.lib.lc_lead_handoff import LeadHandoff
+from exopilot.selfdrive.controls.lib.mslc import MSLC
+from exopilot.selfdrive.controls.lib.mtsc import MTSC
+from exopilot.selfdrive.controls.lib.vtsc import VTSC
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
@@ -38,13 +43,27 @@ _A_TOTAL_MAX_BP = [20., 40.]
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
 BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
+MAP_HOLD_S = 3.0            # seconds to hold 1 Hz offline mapd targets across 20 Hz planner ticks
 
 class DPFlags:
   ACM = 1
   ACM_DOWNHILL = 2 ** 1
   AEM = 2 ** 2
   BRSC = 2 ** 3
-  pass
+  VTSC = 2 ** 4
+  MTSC = 2 ** 5
+  MSLC = 2 ** 6
+  LC_LEAD_HANDOFF = 2 ** 7
+
+
+def _sm_valid(sm, key: str) -> bool:
+  valid = getattr(sm, 'valid', None)
+  return bool(valid.get(key, False)) if valid is not None else (key in sm)
+
+
+def _sm_updated(sm, key: str) -> bool:
+  updated = getattr(sm, 'updated', None)
+  return bool(updated.get(key, False)) if updated is not None else (key in sm)
 
 def get_max_accel(v_ego):
   return min(np.interp(v_ego, A_CRUISE_MAX_BP, A_CRUISE_MAX_VALS), longitudinal_accel_max(v_ego))
@@ -92,10 +111,23 @@ class LongitudinalPlanner:
     self.aem = AEM()
 
     # BRSC: Bumpy Road Speed Controller (vertical-IMU roughness policy)
-    self.brsc = NGPBRSC()
+    self.brsc = BRSC()
     self.brsc_enabled = False
     self.brsc_result = None
     self.brsc_v_target = None
+    self.vtsc = VTSC(enabled=False)
+    self.vtsc_result = None
+    self.vtsc_v_target = None
+    self.mtsc = MTSC(enabled=True)
+    self.mslc = MSLC(enabled=True)
+    self.lc_handoff = LeadHandoff()
+    self._map_sim_t = 0.0
+    self._mtsc_t = -MAP_HOLD_S - 1.0
+    self._mslc_t = -MAP_HOLD_S - 1.0
+    self._mtsc_v_target = None
+    self._mtsc_dist = math.inf
+    self._mslc_v_target = None
+    self._prev_both_curve = False
 
   @staticmethod
   def parse_model(model_msg):
@@ -235,6 +267,43 @@ class LongitudinalPlanner:
       clipped_accel_coast_interp = np.interp(v_ego, [MIN_ALLOW_THROTTLE_SPEED, MIN_ALLOW_THROTTLE_SPEED*2], [accel_clip[1], clipped_accel_coast])
       accel_clip[1] = min(accel_clip[1], clipped_accel_coast_interp)
 
+    # VTSC (0-250m vision curves) + MTSC (150-500m offline mapd curves) + MSLC (posted speed limit)
+    self._map_sim_t += self.dt
+    vtsc_enabled = bool(dp_flags & DPFlags.VTSC)
+    mtsc_enabled = bool(dp_flags & DPFlags.MTSC)
+    mslc_enabled = bool(dp_flags & DPFlags.MSLC)
+
+    self.vtsc_v_target = None
+    if _sm_valid(sm, 'modelV2'):
+      self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
+      self.vtsc_v_target = self.vtsc_result.target_speed
+
+    if mtsc_enabled and _sm_updated(sm, 'mapdExtendedOut') and _sm_valid(sm, 'mapdExtendedOut'):
+      ext = sm['mapdExtendedOut']
+      out = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego, ext.position.latitude, ext.position.longitude)
+      self._mtsc_v_target = out['v_target']
+      self._mtsc_dist = float(out['distance'])
+      self._mtsc_t = self._map_sim_t
+    if not mtsc_enabled or (self._map_sim_t - self._mtsc_t) > MAP_HOLD_S:
+      self._mtsc_v_target = None
+      self._mtsc_dist = math.inf
+
+    if mslc_enabled and _sm_updated(sm, 'mapdOut') and _sm_valid(sm, 'mapdOut'):
+      mo = sm['mapdOut']
+      gas = bool(sm['carState'].gasPressed)
+      self._mslc_v_target, _ = self.mslc.update(mo.speedLimit, mo.nextSpeedLimit, mo.nextSpeedLimitDistance, v_ego, gas, self._map_sim_t)
+      self._mslc_t = self._map_sim_t
+    if not mslc_enabled or (self._map_sim_t - self._mslc_t) > MAP_HOLD_S:
+      self._mslc_v_target = None
+
+    curve_target, self._prev_both_curve = blend_mtsc_vtsc(
+      self._mtsc_v_target, self.vtsc_v_target, self._mtsc_dist, v_cruise, self._prev_both_curve, self.dt
+    )
+    if curve_target is not None:
+      v_cruise = min(v_cruise, max(0.0, curve_target))
+    if self._mslc_v_target is not None:
+      v_cruise = min(v_cruise, max(0.0, self._mslc_v_target))
+
     # BRSC: reduce cruise speed while rough-road hold is active. Gated on v_ego and
     # floored so a long rough stretch can't crawl the car below a safe minimum.
     self.brsc_v_target = None
@@ -251,7 +320,23 @@ class LongitudinalPlanner:
     self.aem.set_personality(v_ego, sm['selfdriveState'].personality)
     self.mpc.set_weights(prev_accel_constraint, personality=self.aem.personality)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
-    self.mpc.update(sm['radarState'], v_cruise, x, v, a, j, personality=self.aem.personality)
+
+    # Lane Change Lead Handoff — track target-lane lead during laneChangeStarting
+    lc_lead_handoff_enabled = bool(dp_flags & DPFlags.LC_LEAD_HANDOFF)
+    radar_state_for_mpc = sm['radarState']
+    if lc_lead_handoff_enabled and _sm_valid(sm, 'modelV2'):
+      model_meta = sm['modelV2'].meta
+      radar_state_for_mpc = self.lc_handoff.update(
+        enabled=True,
+        model_v2=sm['modelV2'],
+        radar_state=sm['radarState'],
+        lc_state=model_meta.laneChangeState,
+        lc_dir=model_meta.laneChangeDirection,
+        v_ego=v_ego,
+        now=self._map_sim_t,
+      )
+
+    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=self.aem.personality)
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
@@ -331,5 +416,14 @@ class LongitudinalPlanner:
       longitudinalPlan.ngpBrscRoughness = float(self.brsc_result.roughness_rms)
     if self.brsc_v_target is not None:
       longitudinalPlan.ngpBrscSpeed = float(self.brsc_v_target)
+    if self.vtsc_v_target is not None:
+      longitudinalPlan.vtscActive = True
+      longitudinalPlan.vtscTargetSpeed = float(self.vtsc_v_target)
+    if self._mtsc_v_target is not None:
+      longitudinalPlan.mtscActive = True
+      longitudinalPlan.mtscTargetSpeed = float(self._mtsc_v_target)
+    if self._mslc_v_target is not None:
+      longitudinalPlan.mslcActive = True
+      longitudinalPlan.mslcTargetSpeed = float(self._mslc_v_target)
 
     pm.send('longitudinalPlan', plan_send)

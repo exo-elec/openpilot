@@ -97,6 +97,9 @@ _services: dict[str, tuple] = {
   "customReservedRawData2": (True, 0.),
   "dpControlsState": (False, 100., 10),
   "modelExt": (True, 20.),
+  "mapdOut": (True, 20., 20),           # offline OSM mapd (third_party/mapd): limits, curve speeds, road
+  "mapdExtendedOut": (False, 1.),       # mapd: download progress, path, settings
+  "mapdIn": (False, 0.),                # to mapd: downloads, settings
 }
 SERVICE_LIST = {name: Service(*vals) for
                 idx, (name, vals) in enumerate(_services.items())}

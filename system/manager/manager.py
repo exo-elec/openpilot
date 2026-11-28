@@ -53,6 +53,10 @@ def manager_init() -> None:
     pass
   except PermissionError:
     print(f"WARNING: failed to make {Paths.shm_path()}")
+  try:
+    os.makedirs(Paths.mapd_root(), exist_ok=True)
+  except PermissionError:
+    print(f"WARNING: failed to make {Paths.mapd_root()}")
 
   # set params
   serial = HARDWARE.get_serial()

@@ -19,6 +19,7 @@ from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 from openpilot.selfdrive.selfdrived.events import Events, ET
 from openpilot.selfdrive.selfdrived.helpers import ExcessiveActuationCheck
 from openpilot.selfdrive.selfdrived.state import StateMachine
+from exopilot.selfdrive.controls.lib.lead_departure import LeadDepartureNotice
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
 from openpilot.system.hardware import HARDWARE
@@ -97,6 +98,7 @@ class SelfdriveD:
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
+    self.lead_departure = LeadDepartureNotice() if self.params.get_bool("LeadDepartAlert") else None
 
     car_recognized = self.CP.brand != 'mock'
 
@@ -390,6 +392,9 @@ class SelfdriveD:
     planner_fcw = self.sm['longitudinalPlan'].fcw and self.enabled
     if (planner_fcw or model_fcw) and not self.CP.notCar:
       self.events.add(EventName.fcw)
+
+    if self.lead_departure and self.lead_departure.update(CS.standstill, self.sm['radarState'].leadOne):
+      self.events.add(EventName.leadDepartingAlert)
 
     # GPS checks
     gps_ok = self.sm.recv_frame[self.gps_location_service] > 0 and (self.sm.frame - self.sm.recv_frame[self.gps_location_service]) * DT_CTRL < 2.0

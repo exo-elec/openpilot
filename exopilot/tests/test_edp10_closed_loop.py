@@ -27,7 +27,7 @@ from openpilot.selfdrive.controls.lib.longitudinal_planner import (
 )
 from openpilot.selfdrive.modeld.constants import ModelConstants
 
-from exopilot.speed_zones import (
+from exopilot.common.speed_zones import (
   CITY_SPEED_MPS,
   STEER_ZONE_ANGLE_DEG,
   STEER_ZONE_RATE_DEG_20MS,

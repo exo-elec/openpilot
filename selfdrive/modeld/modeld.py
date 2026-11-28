@@ -254,7 +254,12 @@ def main(demo=False):
 
   dp_lat_lca_speed = int(params.get("dp_lat_lca_speed"))
   dp_lat_lca_auto_sec = float(params.get("dp_lat_lca_auto_sec"))
-  DH = DesireHelper(dp_lat_lca_speed=dp_lat_lca_speed, dp_lat_lca_auto_sec=dp_lat_lca_auto_sec)
+  DH = DesireHelper(
+    dp_lat_lca_speed=dp_lat_lca_speed,
+    dp_lat_lca_auto_sec=dp_lat_lca_auto_sec,
+    lca_gap_eval=params.get_bool("LCAGapEvalEnabled"),
+    lca_lane_width=params.get_bool("LCALaneWidthEnabled"),
+  )
   RED = RoadEdgeDetector(params.get_bool("dp_lat_road_edge_detection"))
 
   while True:
@@ -356,7 +361,7 @@ def main(demo=False):
       RED.update(modelv2_send.modelV2.roadEdgeStds, modelv2_send.modelV2.laneLineProbs)
       model_ext_send.modelExt.leftEdgeDetected = RED.left_edge_detected
       model_ext_send.modelExt.rightEdgeDetected = RED.right_edge_detected
-      DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob, RED.left_edge_detected, RED.right_edge_detected)
+      DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob, RED.left_edge_detected, RED.right_edge_detected, model_v2=modelv2_send.modelV2)
       modelv2_send.modelV2.meta.laneChangeState = DH.lane_change_state
       modelv2_send.modelV2.meta.laneChangeDirection = DH.lane_change_direction
       drivingdata_send.drivingModelData.meta.laneChangeState = DH.lane_change_state

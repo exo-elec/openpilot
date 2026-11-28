@@ -1,6 +1,7 @@
 from cereal import log
 from openpilot.common.constants import CV
 from openpilot.common.realtime import DT_MDL
+from exopilot.selfdrive.controls.lib.lane_gap import MIN_LANE_WIDTH, evaluate_gap, validate_lane_width
 import time
 
 LaneChangeState = log.LaneChangeState
@@ -32,7 +33,8 @@ DESIRES = {
 
 
 class DesireHelper:
-  def __init__(self, dp_lat_lca_speed=LANE_CHANGE_SPEED_MIN, dp_lat_lca_auto_sec=0.):
+  def __init__(self, dp_lat_lca_speed=LANE_CHANGE_SPEED_MIN, dp_lat_lca_auto_sec=0.,
+               lca_gap_eval: bool = False, lca_lane_width: bool = False):
     self.lane_change_state = LaneChangeState.off
     self.lane_change_direction = LaneChangeDirection.none
     self.lane_change_timer = 0.0
@@ -43,8 +45,11 @@ class DesireHelper:
     self.dp_lat_lca_speed = float(dp_lat_lca_speed * CV.MPH_TO_MS)
     self.dp_lat_lca_auto_sec = dp_lat_lca_auto_sec
     self.dp_lat_lca_auto_sec_start = 0.
+    self.lca_gap_eval = bool(lca_gap_eval)
+    self.lca_lane_width = bool(lca_lane_width)
 
-  def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected, right_edge_detected):
+  def update(self, carstate, lateral_active, lane_change_prob, left_edge_detected, right_edge_detected,
+             model_v2=None):
     v_ego = carstate.vEgo
     one_blinker = carstate.leftBlinker != carstate.rightBlinker
     below_lane_change_speed = True if self.dp_lat_lca_speed == 0. else v_ego < self.dp_lat_lca_speed
@@ -74,6 +79,12 @@ class DesireHelper:
 
         blindspot_detected = (((carstate.leftBlindspot or left_edge_detected) and self.lane_change_direction == LaneChangeDirection.left) or
                               ((carstate.rightBlindspot or right_edge_detected) and self.lane_change_direction == LaneChangeDirection.right))
+        if not blindspot_detected and model_v2 is not None:
+          side = 'left' if self.lane_change_direction == LaneChangeDirection.left else 'right'
+          if self.lca_lane_width and not validate_lane_width(model_v2, side, MIN_LANE_WIDTH):
+            blindspot_detected = True
+          elif self.lca_gap_eval and not evaluate_gap(model_v2, side, v_ego)[0]:
+            blindspot_detected = True
 
         # reset timer
         if self.dp_lat_lca_auto_sec > 0.:

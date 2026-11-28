@@ -1,4 +1,4 @@
-from exopilot.controls.ngp_brsc import NGPBRSC
+from exopilot.selfdrive.controls.lib.brsc import BRSC as NGPBRSC
 
 DT = 1.0 / 20.0  # planner rate
 GRAVITY = 9.81

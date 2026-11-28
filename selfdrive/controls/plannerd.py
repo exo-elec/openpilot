@@ -20,9 +20,9 @@ def main():
   longitudinal_planner = LongitudinalPlanner(CP)
   pm = messaging.PubMaster(['longitudinalPlan', 'driverAssistance'])
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'liveParameters', 'radarState', 'modelV2', 'selfdriveState',
-                            'accelerometer'],
+                            'accelerometer', 'mapdOut', 'mapdExtendedOut'],
                            poll='modelV2',
-                           ignore_alive=['accelerometer'])
+                           ignore_alive=['accelerometer', 'mapdOut', 'mapdExtendedOut'])
 
   dp_flags = 0
   if params.get_bool("dp_lon_acm"):
@@ -35,6 +35,14 @@ def main():
   # across EOP10/NGP10/EDP10, unlike this branch's own dp_* toggles.
   if params.get_bool("ngp_lon_brsc"):
     dp_flags |= DPFlags.BRSC
+  if params.get_bool("VTSCEnabled"):
+    dp_flags |= DPFlags.VTSC
+  if params.get_bool("MTSCEnabled"):
+    dp_flags |= DPFlags.MTSC
+  if params.get_bool("MSLCEnabled"):
+    dp_flags |= DPFlags.MSLC
+  if params.get_bool("LCAdjacentLeadHandoff"):
+    dp_flags |= DPFlags.LC_LEAD_HANDOFF
   while True:
     sm.update()
     if sm.updated['modelV2']:

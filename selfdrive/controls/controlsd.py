@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import time
 from numbers import Number
 
 from cereal import car, log
@@ -17,6 +18,9 @@ from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
 from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
+from exopilot.selfdrive.controls.lib.blinker_pause import BlinkerPause
+from exopilot.selfdrive.controls.lib.cat import CAT
+from exopilot.selfdrive.controls.lib.steering_policy import SteeringResumeRamp
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
 State = log.SelfdriveState.OpenpilotState
@@ -59,6 +63,10 @@ class Controls:
 
     self.alka_enabled = self.params.get_bool("dp_lat_alka")
     self.alka_active = False
+    self.cat = CAT(self.CP)
+    self.steering_resume_ramp = SteeringResumeRamp()
+    pause_mph = self.params.get("BlinkerPauseLateralSpeed", return_default=True)
+    self.blinker_pause = BlinkerPause(float(pause_mph) * CV.MPH_TO_MS) if pause_mph else None
 
   def update(self):
     self.sm.update(15)
@@ -75,6 +83,9 @@ class Controls:
     lp = self.sm['liveParameters']
     x = max(lp.stiffnessFactor, 0.1)
     sr = max(lp.steerRatio, 0.1)
+    cat_status = self.cat.update(self.sm)
+    if cat_status.adaptive:
+      x, sr = max(cat_status.stiffness_factor, 0.1), max(cat_status.steer_ratio, 0.1)
     self.VM.update_params(x, sr)
 
     steer_angle_without_offset = math.radians(CS.steeringAngleDeg - lp.angleOffsetDeg)
@@ -99,6 +110,8 @@ class Controls:
     lat_active = self.sm['selfdriveState'].active or self.alka_active
     CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
+    if self.blinker_pause is not None and self.blinker_pause.update(CS.vEgo, CS.leftBlinker, CS.rightBlinker):
+      CC.latActive = False
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators
@@ -129,6 +142,9 @@ class Controls:
                                                        curvature_limited)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
+    actuators.torque, actuators.steeringAngleDeg = self.steering_resume_ramp.update(
+      CC.latActive, actuators.torque, actuators.steeringAngleDeg, CS.steeringAngleDeg, time.monotonic()
+    )
     # Ensure no NaNs/Infs
     for p in ACTUATOR_FIELDS:
       attr = getattr(actuators, p)

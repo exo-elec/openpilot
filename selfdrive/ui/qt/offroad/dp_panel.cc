@@ -1,4 +1,5 @@
 #include "selfdrive/ui/qt/offroad/dp_panel.h"
+#include "selfdrive/ui/qt/offroad/mapd_areas.h"
 
 void DPPanel::add_toyota_toggles() {
   std::vector<std::tuple<QString, QString, QString>> toggle_defs{
@@ -146,9 +147,25 @@ void DPPanel::add_lateral_toggles() {
       tr("Road Edge Detection (RED)"),
       tr("Block lane change assist when the system detects the road edge.\nNOTE: This will show 'Car Detected in Blindspot' warning.")
     },
+    {
+      "LCAGapEvalEnabled",
+      tr("Lane-Change Adjacent Gap Guard"),
+      tr("Require sufficient adjacent-lane TTC gap from modelV2 before starting a lane change."),
+    },
+    {
+      "LCALaneWidthEnabled",
+      tr("Lane-Change Target Lane Width Guard"),
+      tr("Block lane change initiation when the target lane is narrower than 2.5 m."),
+    },
+    {
+      "CATEnabled",
+      tr("Car Adaptive Tuning (CAT)"),
+      tr("Smooth and validate live steering ratio and stiffness estimates before updating the vehicle model."),
+    },
   };
   auto lca_speed_toggle = new ParamSpinBoxControl("dp_lat_lca_speed", tr("LCA Speed:"), tr("Off = Disable LCA\n1 mph ≈ 1.2 km/h"), "", 0, 100, 5, tr(" mph"), tr("Off"));
   lca_sec_toggle = new ParamDoubleSpinBoxControl("dp_lat_lca_auto_sec", QString::fromUtf8("　") + tr("Auto Lane Change after:"), tr("Off = Disable Auto Lane Change."), "", 0, 5.0, 0.5, tr(" sec"), tr("Off"));
+  auto blinker_pause_toggle = new ParamSpinBoxControl("BlinkerPauseLateralSpeed", tr("Blinker Pause Lateral Below:"), tr("Pause lane centering while turn signal is active below this speed (sunnypilot style). Off = Disabled."), "", 0, 60, 5, tr(" mph"), tr("Off"));
 
   QWidget *label = nullptr;
   bool has_toggle = false;
@@ -159,6 +176,7 @@ void DPPanel::add_lateral_toggles() {
       addItem(label);
       addItem(lca_speed_toggle);
       addItem(lca_sec_toggle);
+      addItem(blinker_pause_toggle);
       has_toggle = true;
       continue;
     }
@@ -211,6 +229,36 @@ void DPPanel::add_longitudinal_toggles() {
          "vertical IMU acceleration. Recovers gradually a few seconds "
          "after the road smooths out."),
     },
+    {
+      "VTSCEnabled",
+      tr("Vision Turn Speed Controller (VTSC)"),
+      tr("Slow down for upcoming road curves predicted by the vision model (0-250 m)."),
+    },
+    {
+      "MTSCEnabled",
+      tr("Map Turn Speed Controller (MTSC)"),
+      tr("Proactively slow down for curves 150-500 m ahead using offline OSM map data (requires Offline Maps)."),
+    },
+    {
+      "MSLCEnabled",
+      tr("Map Speed Limit Controller (MSLC)"),
+      tr("Cap cruise speed to the posted road speed limit from offline OSM map data (requires Offline Maps)."),
+    },
+    {
+      "MapdEnabled",
+      tr("Offline OSM Maps (mapd)"),
+      tr("Run offline mapd v2.4.0 to supply road curvature and posted speed limits for MTSC and MSLC."),
+    },
+    {
+      "LCAdjacentLeadHandoff",
+      tr("Lane-Change Adjacent Lead Handoff"),
+      tr("Track the lead vehicle in the target lane during laneChangeStarting."),
+    },
+    {
+      "LeadDepartAlert",
+      tr("Lead Departure Alert"),
+      tr("Notify when the stopped lead vehicle ahead begins pulling away."),
+    },
   };
 
   QWidget *label = nullptr;
@@ -228,7 +276,8 @@ void DPPanel::add_longitudinal_toggles() {
     if ((param == "dp_lon_acm" || param == "dp_lon_acm_downhill") && !vehicle_has_long_ctrl) {
       continue;
     }
-    if ((param == "dp_lon_aem" || param == "ngp_lon_brsc") && !vehicle_has_long_ctrl) {
+    if ((param == "dp_lon_aem" || param == "ngp_lon_brsc" || param == "VTSCEnabled" ||
+         param == "MTSCEnabled" || param == "MSLCEnabled" || param == "LCAdjacentLeadHandoff") && !vehicle_has_long_ctrl) {
       continue;
     }
 
@@ -238,6 +287,9 @@ void DPPanel::add_longitudinal_toggles() {
     toggle->setEnabled(!locked);
     addItem(toggle);
     toggles[param.toStdString()] = toggle;
+    if (param == "MapdEnabled") {
+      new MapdAreaRows(this, tr("OSM · "));
+    }
   }
 
   // If no toggles were added, hide the label

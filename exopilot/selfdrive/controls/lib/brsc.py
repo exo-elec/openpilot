@@ -36,7 +36,7 @@ class BRSCResult:
   control_authority: bool = True
 
 
-class NGPBRSC:
+class BRSC:
   """Windowed-RMS vertical-acceleration roughness detector with retriggerable hold+decay."""
 
   # Tuning is expressed in physical units (seconds, m/s^2) so the same policy works

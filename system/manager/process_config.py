@@ -4,10 +4,19 @@ import platform
 
 from cereal import car
 from openpilot.common.params import Params
+from openpilot.common.basedir import BASEDIR
 from openpilot.system.hardware import PC, TICI
+from openpilot.system.hardware.hw import Paths
 from openpilot.system.manager.process import PythonProcess, NativeProcess, DaemonProcess
 
 WEBCAM = os.getenv("USE_WEBCAM") is not None
+
+# mapd (third_party/mapd): one static arm64 build (larch64 = AGNOS, aarch64 = other Linux)
+MAPD_ARCH = "larch64" if TICI and platform.machine() == "aarch64" else platform.machine()
+MAPD_BIN = os.path.join(BASEDIR, "third_party", "mapd", MAPD_ARCH, "mapd")
+
+def mapd_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return params.get_bool("MapdEnabled")  # also offroad: that is when maps download
 
 def driverview(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started or params.get_bool("IsDriverViewEnabled")
@@ -99,6 +108,7 @@ procs = [
   PythonProcess("selfdrived", "selfdrive.selfdrived.selfdrived", only_onroad),
   PythonProcess("card", "selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "system.loggerd.deleter", always_run),
+  NativeProcess("mapd", Paths.mapd_root(), [MAPD_BIN], mapd_enabled, enabled=os.path.isfile(MAPD_BIN)),
   PythonProcess("dmonitoringd", "selfdrive.monitoring.dmonitoringd", driverview, enabled=(WEBCAM or not PC) and not os.getenv("LITE")),
   PythonProcess("dpmonitoringd", "selfdrive.monitoring.dpmonitoringd", only_onroad, enabled=os.getenv("LITE")),
   PythonProcess("qcomgpsd", "system.qcomgpsd.qcomgpsd", qcomgps, enabled=TICI),
