@@ -82,10 +82,23 @@ class StubBackend(Backend):
 class OnnxBackend(Backend):
   """The split v0.10 models on ONNX Runtime. `hidden` is the slice of the vision output that is the feature vector."""
 
+  _ORT_DTYPES = {
+    'tensor(float16)': np.float16,
+    'tensor(float)': np.float32,
+    'tensor(double)': np.float64,
+    'tensor(uint8)': np.uint8,
+    'tensor(int8)': np.int8,
+    'tensor(int32)': np.int32,
+    'tensor(int64)': np.int64,
+    'tensor(bool)': np.bool_,
+  }
+
   def __init__(self, vision_path: str, policy_path: str, hidden: slice, vision_floats: int, policy_floats: int):
     import onnxruntime as ort
     self.vision = ort.InferenceSession(vision_path, providers=['CPUExecutionProvider'])
     self.policy = ort.InferenceSession(policy_path, providers=['CPUExecutionProvider'])
+    self._vision_dtypes = {i.name: self._ORT_DTYPES.get(i.type) for i in self.vision.get_inputs()}
+    self._policy_dtypes = {i.name: self._ORT_DTYPES.get(i.type) for i in self.policy.get_inputs()}
     self.hidden = hidden
     self.vision_floats, self.policy_floats = vision_floats, policy_floats
     h = hashlib.sha256()
@@ -95,14 +108,18 @@ class OnnxBackend(Backend):
     self.sha256 = h.hexdigest()
     self.name = 'onnx'
 
+  @staticmethod
+  def _cast(inputs: dict[str, np.ndarray], dtypes: dict[str, type | None]) -> dict[str, np.ndarray]:
+    return {k: np.asarray(v, dtype=dtypes[k]) if dtypes.get(k) is not None else v for k, v in inputs.items()}
+
   def run_vision(self, imgs):
-    return np.asarray(self.vision.run(None, dict(imgs))[0], np.float32).reshape(-1)
+    return np.asarray(self.vision.run(None, self._cast(imgs, self._vision_dtypes))[0], np.float32).reshape(-1)
 
   def hidden_state(self, vision_out):
     return vision_out[self.hidden]
 
   def run_policy(self, inputs):
-    return np.asarray(self.policy.run(None, inputs)[0], np.float32).reshape(-1)
+    return np.asarray(self.policy.run(None, self._cast(inputs, self._policy_dtypes))[0], np.float32).reshape(-1)
 
 
 class SpecBackend:
@@ -221,6 +238,7 @@ def dial(backend: Backend, host: str = P.COMMA_ADDR, port: int = P.DEFAULT_PORT,
     except OSError:
       stop.wait(retry)
       continue
+    conn.settimeout(None)
     server.serve(conn)
     stop.wait(retry)
 

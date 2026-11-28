@@ -26,7 +26,7 @@ from exopilot.selfdrive.controls.lib.object_tracker import Measurement, ObjectTr
 from exopilot.selfdrive.controls.lib.ranging import LeadAnchoredRanger, RoadCamera
 
 MODEL_SIZE = 640
-MODEL_PKL = Path(__file__).resolve().parents[2] / 'selfdrive/modeld/models/yolo_detector_tinygrad.pkl'
+MODEL_PKL = Path(__file__).resolve().parents[3] / 'selfdrive/modeld/models/yolo_detector_tinygrad.pkl'
 INPUT_NAME = os.getenv('MONOD_INPUT_NAME', 'images')
 MIN_HZ, MAX_HZ = 1, 10
 

@@ -117,7 +117,7 @@ class RemoteModelState:
       raise LinkError('the phone refused the frame: its output was not finite')
     if resp.status != P.OK:
       raise LinkError(f'the phone failed the frame (status {resp.status})')
-    out = np.frombuffer(resp.out, np.float32)
+    out = np.frombuffer(resp.out, np.float32).copy()
     if out.size != self.info.vision_floats + self.info.policy_floats:
       raise LinkError(f'reply of {out.size} floats, the phone promised {self.info.vision_floats + self.info.policy_floats}')
     if not np.isfinite(out).all():
@@ -247,7 +247,7 @@ class RemoteSpecModelState(RemoteModelState):
       raise LinkError('the phone refused the frame: its output was not finite')
     if resp.status != P.OK:
       raise LinkError(f'the phone failed the frame (status {resp.status})')
-    out = np.frombuffer(resp.out, np.float32)
+    out = np.frombuffer(resp.out, np.float32).copy()
     expect = self.spec.output_nelem if SEND_RAW_PRED else self.spec.reply_nelem
     if out.size != expect:
       raise LinkError(f'reply of {out.size} floats, the model promised {expect}')

@@ -330,6 +330,9 @@ class Joining:
     self._rejoin.set()
     with self._lock:
       joined, self._joined = self._joined, None
+      retired, self._retired = self._retired, None
+    if retired is not None:
+      self._close_retired(*retired)
     if joined is not None:
       if first:
         joined[0].leave(P.LEAVE_STOPPED)

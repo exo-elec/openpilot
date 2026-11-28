@@ -10,7 +10,7 @@ import pickle
 from dataclasses import dataclass
 from pathlib import Path
 
-MODELS_DIR = Path(__file__).resolve().parents[2] / 'selfdrive' / 'modeld' / 'models'
+MODELS_DIR = Path(__file__).resolve().parents[4] / 'selfdrive' / 'modeld' / 'models'
 
 
 @dataclass(frozen=True)
