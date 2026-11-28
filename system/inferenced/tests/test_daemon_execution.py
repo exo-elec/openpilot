@@ -443,7 +443,7 @@ class TestDaemonExecution(unittest.TestCase):
         service, msg = self.pub.sent[0]
         self.assertEqual(service, "inferencedStatus")
         status = msg.inferencedStatus
-        self.assertEqual(list(status.availableBackends), ['NPU', 'HAILO_8'])
+        self.assertEqual(list(status.availableBackends), ['NPU', 'HAILO_8', 'ACCEL'])
         self.assertEqual(sorted(status.availableModels), ['rear_yolo_accel', 'side_yolo_accel'])
         self.assertIn('NPU', status.backendHealth)
         self.assertIn('HAILO_8', status.backendHealth)

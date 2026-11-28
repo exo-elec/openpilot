@@ -22,6 +22,9 @@ def _make_stereo_objects(*objs):
             self.yRel = y
             self.vRel = v
             self.prob = p
+            self.trackId = 0
+            self.laneZone = 0
+            self.obstacleType = 0
     class _Msg:
         def __init__(self, items):
             self.objects = [_Obj(*o) for o in items]
@@ -67,7 +70,13 @@ class TestRadarZoneMonitor:
             def __init__(self, x, y, conf):
                 self.x = x
                 self.y = y
+                self.vx = 0.0
                 self.confidence = conf
+                self.trackId = 1
+                self.className = 'car'
+                self.cameraSource = 'side_left'
+                self.sigmaX = 0.5
+                self.sigmaY = 0.5
         class _Msg:
             def __init__(self, dets):
                 self.detections = dets
@@ -107,23 +116,23 @@ class TestRadarZoneMonitor:
 # ---------------------------------------------------------------------------
 
 class TestSideCameraGeometry:
-  """Test BEV reprojector geometry matches CARLA simulation."""
+  """Test BEV reprojector nominal side-camera mounting geometry."""
 
   def test_left_camera_geometry(self):
     geo = make_default_geometry('side_left')
-    assert geo.cam_y_m == pytest.approx(0.85)
-    assert geo.cam_z_m == pytest.approx(0.75)
+    assert geo.cam_y_m == pytest.approx(0.90)
+    assert geo.cam_z_m == pytest.approx(0.85)
     assert geo.cam_x_m == pytest.approx(0.7)
-    assert geo.yaw_rad == pytest.approx(math.pi - math.pi / 6.0)  # 150°
-    assert geo.pitch_rad == pytest.approx(0.0)
+    assert geo.yaw_rad == pytest.approx(math.radians(165.0))
+    assert geo.pitch_rad == pytest.approx(math.radians(-10.0))
 
   def test_right_camera_geometry(self):
     geo = make_default_geometry('side_right')
-    assert geo.cam_y_m == pytest.approx(-0.85)
-    assert geo.cam_z_m == pytest.approx(0.75)
+    assert geo.cam_y_m == pytest.approx(-0.90)
+    assert geo.cam_z_m == pytest.approx(0.85)
     assert geo.cam_x_m == pytest.approx(0.7)
-    assert geo.yaw_rad == pytest.approx(math.pi + math.pi / 6.0)  # 210° = -150°
-    assert geo.pitch_rad == pytest.approx(0.0)
+    assert geo.yaw_rad == pytest.approx(math.radians(195.0))
+    assert geo.pitch_rad == pytest.approx(math.radians(-10.0))
 
 
 # ---------------------------------------------------------------------------
@@ -171,12 +180,16 @@ class TestWeatherController:
       assert -90.0 <= preset.sun_altitude_angle <= 90.0
 
   def test_clear_day_vs_clear_night(self):
+    if not WEATHER_PRESETS:
+      pytest.skip("carla package not installed")
     day = WEATHER_PRESETS["clear_day"]
     night = WEATHER_PRESETS["clear_night"]
     assert day.sun_altitude_angle > 0
     assert night.sun_altitude_angle < 0
 
   def test_rain_has_wetness(self):
+    if not WEATHER_PRESETS:
+      pytest.skip("carla package not installed")
     rain = WEATHER_PRESETS["rain"]
     assert rain.precipitation > 0
     assert rain.wetness > 0

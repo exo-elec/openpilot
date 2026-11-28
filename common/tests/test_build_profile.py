@@ -52,6 +52,11 @@ def test_ui_build_selects_native_binary_or_disk_translations(backend, tmp_path, 
   calls = []
 
   class Env(dict):
+    def Clone(self, **kwargs):
+      cloned = Env(self)
+      cloned.update(kwargs)
+      return cloned
+
     def __getattr__(self, method):
       def record(*args, **kwargs):
         calls.append((method, args))

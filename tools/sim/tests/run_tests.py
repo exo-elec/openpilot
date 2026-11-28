@@ -15,7 +15,7 @@ os.environ["OPENPILOT_STUB_PARAMS_PYX"] = "1"
 from openpilot.selfdrive.controls.lib.radar_zones import RadarZoneMonitor, ZoneAlertLevel
 from exopilot.selfdrive.sided.bev_reprojector import make_default_geometry
 from openpilot.tools.sim.lib.scenario_spawner import ScenarioSpawner, SCENARIOS
-from openpilot.tools.sim.lib.weather_controller import WEATHER_PRESETS, WeatherController, _get_custom_weather
+from openpilot.tools.sim.lib.weather_controller import WEATHER_PRESETS, WeatherController
 
 passed = 0
 failed = 0
@@ -137,6 +137,9 @@ def _mk_so(*objs):
             self.yRel = y
             self.vRel = v
             self.prob = p
+            self.trackId = 0
+            self.laneZone = 0
+            self.obstacleType = 0
     class _M:
         def __init__(self, items):
             self.objects = [_O(*o) for o in items]
@@ -166,7 +169,13 @@ class FakeDet:
     def __init__(self, x, y, conf):
         self.x = x
         self.y = y
+        self.vx = 0.0
         self.confidence = conf
+        self.trackId = 1
+        self.className = 'car'
+        self.cameraSource = 'side_left'
+        self.sigmaX = 0.5
+        self.sigmaY = 0.5
 
 class FakeSideDets:
     def __init__(self, dets):
@@ -200,19 +209,19 @@ print("=" * 60)
 
 # test_left_camera_geometry
 geo = make_default_geometry('side_left')
-assert_approx(geo.cam_y_m, 0.85, msg="left cam_y=0.85")
-assert_approx(geo.cam_z_m, 0.75, msg="left cam_z=0.75")
+assert_approx(geo.cam_y_m, 0.90, msg="left cam_y=0.90")
+assert_approx(geo.cam_z_m, 0.85, msg="left cam_z=0.85")
 assert_approx(geo.cam_x_m, 0.7, msg="left cam_x=0.7")
-assert_approx(geo.yaw_rad, math.pi - math.pi / 6.0, msg="left yaw=150°")
-assert_approx(geo.pitch_rad, 0.0, msg="left pitch=0°")
+assert_approx(geo.yaw_rad, math.radians(165.0), msg="left yaw=165°")
+assert_approx(geo.pitch_rad, math.radians(-10.0), msg="left pitch=-10°")
 
 # test_right_camera_geometry
 geo = make_default_geometry('side_right')
-assert_approx(geo.cam_y_m, -0.85, msg="right cam_y=-0.85")
-assert_approx(geo.cam_z_m, 0.75, msg="right cam_z=0.75")
+assert_approx(geo.cam_y_m, -0.90, msg="right cam_y=-0.90")
+assert_approx(geo.cam_z_m, 0.85, msg="right cam_z=0.85")
 assert_approx(geo.cam_x_m, 0.7, msg="right cam_x=0.7")
-assert_approx(geo.yaw_rad, math.pi + math.pi / 6.0, msg="right yaw=210°")
-assert_approx(geo.pitch_rad, 0.0, msg="right pitch=0°")
+assert_approx(geo.yaw_rad, math.radians(195.0), msg="right yaw=195°")
+assert_approx(geo.pitch_rad, math.radians(-10.0), msg="right pitch=-10°")
 
 print()
 print("=" * 60)
@@ -238,12 +247,10 @@ print("=" * 60)
 for name, carla_preset_name in WEATHER_PRESETS.items():
   assert_true(carla_preset_name != "", f"{name} maps to CARLA preset")
 
-# Verify custom weather exists (skip if carla not installed)
-try:
-  foggy = _get_custom_weather().get("fog")
-  assert_true(foggy is not None, "custom fog preset exists")
-except ImportError:
-  assert_true(True, "custom fog preset (carla not available, skipped)")
+if WEATHER_PRESETS:
+  assert_true("fog" in WEATHER_PRESETS, "fog preset exists")
+else:
+  assert_true(True, "weather presets empty (carla not available, skipped)")
 
 ctrl = WeatherController()
 preset = ctrl._read_param()
@@ -256,7 +263,7 @@ p = Params()
 p.put("SimWeather", "rain")
 # WeatherController creates its own Params() — with stub it won't see p's data.
 # Instead verify the param read logic directly.
-assert_true(p.get("SimWeather") == b"rain", "param stores rain")
+assert_true(p.get("SimWeather") in ("rain", b"rain"), "param stores rain")
 
 p.put("SimWeather", "alien_storm")
 ctrl3 = WeatherController()

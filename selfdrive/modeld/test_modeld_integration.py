@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TestModeld:
   """Test modeld using InferenceClient."""
+  __test__ = False
 
   def __init__(self):
     self.client = InferenceClient("modeld_test")

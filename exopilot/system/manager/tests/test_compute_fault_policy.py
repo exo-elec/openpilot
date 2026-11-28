@@ -6,7 +6,7 @@ from types import ModuleType, SimpleNamespace
 import unittest  # noqa: TID251
 from unittest.mock import Mock, patch  # noqa: TID251
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 
 
 def load(name, path):

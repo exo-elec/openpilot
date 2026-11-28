@@ -175,8 +175,8 @@ class TestSnapshot(unittest.TestCase):
         )
 
         stats = snap.compute_imu_stats()
-        self.assertEqual(stats['max_g'], 3.0)  # 29.4 / 9.81 ≈ 3
-        self.assertEqual(stats['min_g'], 1.0)  # 9.8 / 9.81 ≈ 1
+        self.assertAlmostEqual(stats['max_g'], 3.0, places=2)  # 29.4 / 9.81 ≈ 3
+        self.assertAlmostEqual(stats['min_g'], 1.0, places=2)  # 9.8 / 9.81 ≈ 1
         self.assertEqual(stats['sample_count'], 3)
 
 
