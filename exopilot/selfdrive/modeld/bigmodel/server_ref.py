@@ -232,13 +232,14 @@ def dial(backend: Backend, host: str = P.COMMA_ADDR, port: int = P.DEFAULT_PORT,
   """The phone's real mode: dial the comma on the cable and serve it, redialling when it drops. Blocks until `stop`."""
   stop = stop or threading.Event()
   server = Server(backend, listen=False)
+  server._stop = stop
   while not stop.is_set():
     try:
       conn = socket.create_connection((host, port), timeout=2.0)
     except OSError:
       stop.wait(retry)
       continue
-    conn.settimeout(None)
+    conn.settimeout(0.5)
     server.serve(conn)
     stop.wait(retry)
 
@@ -301,11 +302,15 @@ class Server:
           pass
       threading.Thread(target=self._serve, args=(conn,), daemon=True).start()
 
-  @staticmethod
-  def _read(conn: socket.socket, n: int) -> bytes:
+  def _read(self, conn: socket.socket, n: int) -> bytes:
     buf = bytearray()
     while len(buf) < n:
-      chunk = conn.recv(n - len(buf))
+      try:
+        chunk = conn.recv(n - len(buf))
+      except TimeoutError:
+        if self._stop.is_set():
+          raise ConnectionError('stopped') from None
+        continue
       if not chunk:
         raise ConnectionError('closed')
       buf += chunk

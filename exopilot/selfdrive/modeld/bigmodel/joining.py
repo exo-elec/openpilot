@@ -285,13 +285,19 @@ class Joining:
   def _join_loop(self) -> None:
     from exopilot.selfdrive.modeld.bigmodel.priority import background_thread
     background_thread()   # off modeld's realtime core: a thread started after config_realtime_process inherits SCHED_FIFO
-    while not self._stop.is_set():
-      self._rejoin.wait()
-      delay = self._join_once()
-      if delay is not None and self._stop.wait(delay):
-        return
-      if self._available:
-        self._keep_alive()
+    try:
+      while not self._stop.is_set():
+        self._rejoin.wait()
+        delay = self._join_once()
+        if delay is not None and self._stop.wait(delay):
+          return
+        if self._available:
+          self._keep_alive()
+    finally:
+      with self._lock:
+        retired, self._retired = self._retired, None
+      if retired is not None:
+        self._close_retired(*retired)
 
   def _keep_alive(self) -> None:
     """Ping a link that is ready and has nowhere to land (a drive with no stop is the whole drive), so a phone that went away
@@ -330,9 +336,15 @@ class Joining:
     self._rejoin.set()
     with self._lock:
       joined, self._joined = self._joined, None
-      retired, self._retired = self._retired, None
+      retired = None
+      if not self._thread.is_alive():
+        retired, self._retired = self._retired, None
     if retired is not None:
-      self._close_retired(*retired)
+      # No live join thread to drain it (e.g. start=False or already exited); close non-blockingly without sendall.
+      try:
+        retired[0].close()
+      except Exception:
+        self._log.exception("bigmodel: closing the retired link")
     if joined is not None:
       if first:
         joined[0].leave(P.LEAVE_STOPPED)
