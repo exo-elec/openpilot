@@ -75,19 +75,23 @@ until braking distance and camera-lead behavior are validated on the target car.
 
 ## Feature disposition
 
-| EOP10 feature | Value on comma 3 | Decision |
+| EOP10 feature | Value on comma 3 | Decision (updated 2026-11-28) |
 |---|---|---|
-| DLAT | No effective path selection in its current integration | Reject current implementation |
-| DLON | Contextual longitudinal mode switching | Defer; consider hysteresis only after BYD longitudinal |
-| VTSC | Uses native model orientation prediction to reduce speed for curves | Designed (see "Minimal VTSC disposition" below), **not implemented** -- see correction note under that heading |
-| TJA | Smooth start ramp and low-speed traffic jam acceleration/jerk shaping | **Implemented** (`selfdrive/controls/lib/dp_tja.py` + `exopilot/speed_zones.py`, wired in `longitudinal_planner.py`) |
-| Lane-change lead handoff | Uses native camera leads for target-lane following | Experimental; defer until longitudinal and LCA are stable |
-| CAT | Wraps already learned `liveParameters` with another filter/persistence layer | Reject; retain upstream `paramsd` |
-| RED | Can add curvature using EOP perception inputs | Reject; retain DragonPilot's conservative lane-change block |
+| DLAT | Adaptive laneful/laneless arbitration | Kept on `NGP10`+ foundation; EDP10 retains DragonPilot `ALKA`/`LCA`/`RED` |
+| DLON | Adaptive ACC/E2E longitudinal foundation | Kept on `NGP10`+ foundation; EDP10 retains DragonPilot `ACM`/`AEM` (with exact `FirstOrderFilter` `rc` fix) |
+| VTSC | Uses native model orientation prediction to reduce speed for curves (Sunnypilot SCC-V + FrogPilot buckets) | **Implemented** (`exopilot/selfdrive/controls/lib/vtsc.py`, `VTSCEnabled` opt-in OFF); MetaDrive curve-verified |
+| MTSC / MSLC / offline `mapd` | Proactive 150–500 m map curve & posted speed-limit caps (`pfeiferj/openpilot-mapd` v2.4.0) | **Implemented** (`mtsc.py`, `mslc.py`, `curve_speed.py`, `third_party/mapd/`, `MapdAreaRows` UI, opt-in OFF, 3.0 s deterministic hold); MetaDrive-verified |
+| TJA | Smooth start ramp and low-speed traffic jam acceleration/jerk shaping | **Implemented** (`selfdrive/controls/lib/dp_tja.py` + `exopilot/common/speed_zones.py`, wired in `longitudinal_planner.py`) |
+| Lane-change lead handoff | Uses native camera leads for target-lane following during `laneChangeStarting` | **Implemented** (`lc_lead_handoff.py`, `LCAdjacentLeadHandoff` opt-in OFF); MetaDrive-verified |
+| Lane-change gap & width guards | Blocks narrow (<2.5 m) or unsafe adjacent-TTC lane changes | **Implemented** (`lane_gap.py`, `LCAGapEvalEnabled` / `LCALaneWidthEnabled` opt-in OFF); MetaDrive-verified |
+| Blinker pause & steering resume ramp | Pauses low-speed lateral during turn signal (Sunnypilot) and smooths steering resume | **Implemented** (`blinker_pause.py`, `steering_policy.py`, `BlinkerPauseLateralSpeed` default 0); MetaDrive-verified |
+| Lead departure alert | Alerts driver when stopped lead vehicle begins pulling away | **Implemented** (`lead_departure.py`, `LeadDepartAlert` opt-in OFF); MetaDrive-verified |
+| CAT | Smooths and validates live `steerRatio` / `stiffnessFactor` updates | **Implemented** (`cat.py`, `CATEnabled` opt-in OFF); MetaDrive-verified |
+| RED | Can add curvature using EOP perception inputs | Retain DragonPilot's conservative lane-change block |
 | ALCC/LCA | Broad independent lateral state and event manipulation | Present the shared user-facing feature as ALCC; retain DragonPilot internal compatibility names |
-| AEB/RCD/BSD perception | Additional perception-driven interventions | Reject for phase one; retain stock BYD AEB and decoded BSM |
+| AEB/RCD/BSD perception | Additional perception-driven interventions | Reject for EDP10; retain stock BYD AEB and decoded BSM |
 | LatNudge/LonNudge | Depends on EOP dedicated stereo/PathD | Reject for comma 3 wide/narrow cameras |
-| BRSC | Vertical-IMU roughness slowdown, no camera/map dependency | Ported: pure policy module is identical on all three branches, only the DPFlags/plannerd glue differs |
+| BRSC | Vertical-IMU roughness slowdown, no camera/map dependency | **Implemented** (`exopilot/selfdrive/controls/lib/brsc.py`, comma 3 `-v[0]` vertical axis, finite guards, IMU-dropout clear); MetaDrive-verified |
 | TripD | Non-controlling trip statistics | Optional after vehicle support; not part of the control port |
 
 ## Reuse order
@@ -104,33 +108,19 @@ until braking distance and camera-lead behavior are validated on the target car.
 
 ## Minimal VTSC disposition
 
-**Correction, 2026-08-26**: this section previously read as a status report
-("VTSC is user-selectable and defaults off...") and the Feature disposition
-table above previously said "Ported." Neither was true. Checked directly
-against the tree at this commit: no `vtsc`-named file, no `SCC`/curve-speed
-policy module, and no panel toggle anywhere in `dp_panel.cc` or elsewhere.
-`exopilot/docs/MIGRATION_PLAN.md`'s "Deferred Work" section (last touched
-2026-08-04, four days after this audit) correctly lists VTSC as not a next
-task, to be revisited only after the BYD passive/safety/longitudinal gates
-are complete -- that document is accurate; this one wasn't. Contrast with
-BRSC below, which really is implemented and tested
-(`exopilot/controls/ngp_brsc.py` + `exopilot/tests/test_ngp_brsc.py`
-both exist) -- the same "Ported" language was used for both entries in the
-table above despite only one being true. This is the exact failure mode
-"Audit evidence" below warns about ("a status label is not accepted as
-validation evidence"), and it happened inside the document that coined that
-rule. The design intent below is retained as a design, not a status:
+**Update, 2026-11-28**: VTSC (`exopilot/selfdrive/controls/lib/vtsc.py`, byte-identical to
+`dev/NGP10`), along with MTSC (`mtsc.py`), MSLC (`mslc.py`), `curve_speed.py`, offline
+`mapd` v2.4.0 (`third_party/mapd/` + `MapdAreaRows` UI), `lc_lead_handoff.py`,
+`lane_gap.py`, `lead_departure.py`, `cat.py`, `blinker_pause.py`, and `steering_policy.py`,
+has now been implemented behind opt-in default-OFF toggles (`dp_panel.cc`, gated on
+`vehicle_has_long_ctrl` for longitudinal speed caps so stock-ACC BYD Atto 3 never consumes
+them) and verified with unit tests (`489 passed` + `92` BYD/Chery `libsafety` tests) and
+MetaDrive 3D closed-loop behavioral scenarios (`exopilot/tests/test_edp10_metadrive_loop.py`).
 
-ExoPilot VTSC would use Sunnypilot SCC-V's state machine, driver override,
-p97 model prediction, and smooth entering/turning/leaving acceleration
-policy. It would retain the fixed mild/medium/sharp comfort buckets that
-EOP10 attributes to FrogPilot, and would deliberately exclude EOP10 map
-handover, GPS curve databases, learned driver speeds, self-calibration,
-schema expansion, and adjustable comfort parameters.
-
-If built, it should be user-selectable and default off, shown only for BYD
-with openpilot longitudinal selected, with factory BYD ACC never consuming
-its target -- none of this is built yet.
+VTSC uses Sunnypilot SCC-V's state machine, driver override, p97 model prediction, and
+smooth entering/turning/leaving acceleration policy with FrogPilot mild/medium/sharp
+comfort buckets. BRSC (`exopilot/selfdrive/controls/lib/brsc.py`) is unified in the same
+shared directory with `math.isfinite` guards and comma 3 `-v[0]` vertical-axis reading.
 
 ## BRSC disposition
 

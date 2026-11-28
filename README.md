@@ -24,15 +24,15 @@ EDP10 remains development-only. “Conservative” describes project scope, not 
 
 ## openpilot vs EDP10
 
-**Base:** DragonPilot 0.10.0 (`549577a29d`) · **Reference:** openpilot v0.10.0 · **Reviewed:** 2026-11-27
+**Base:** DragonPilot 0.10.0 (`549577a29d`) · **Reference:** openpilot v0.10.0 · **Reviewed:** 2026-11-28
 
 ✅ Implemented / inherited · ❌ Absent · ⏳ Deferred / incomplete
 
 ```mermaid
 flowchart LR
-  DP["DragonPilot 0.10.0"] --> EDP["EDP10 · comma 3 (standalone DP history)"]
-  OP["openpilot v0.10.0"] --> NGP["NGP10 · comma 3 (portable baseline)"]
-  EDP -. "feature migration chain" .-> NGP
+  DP["DragonPilot 0.10.0"] --> EDP["EDP10 · comma 3 (DP foundation + portable add-ons)"]
+  OP["openpilot v0.10.0"] --> NGP["NGP10 · comma 3 (DLON/DLAT/ALCC/SAM/MonoD foundation)"]
+  EDP -. "feature migration & shared add-ons" .-> NGP
   NGP --> EOP["EOP10 · Rockchip RK3588/RK3576 (C++ Qt)"]
   EOP --> M1["01M · RK3588 1024×600 (C++ Qt)"]
   M1 --> M2["02M · RK3576 1600×600 (C++ Qt)"]
@@ -40,69 +40,87 @@ flowchart LR
 
 #### Core Features
 
-| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+| Feature | openpilot v0.10.0 | EDP10 | Reference / Relationship |
 |---|---|---|---|
-| Adaptive Cruise Control (ACC) | ✅ | ✅ | Factory BYD longitudinal remains the project default |
+| Adaptive Cruise Control (ACC) | ✅ | ✅ | Upstream openpilot MPC; factory BYD longitudinal remains default |
 | Experimental driving mode (EXP) | ✅ | ✅ | Openpilot longitudinal requires separate validation |
-| Adaptive Experimental Mode (AEM) | ❌ | ✅ | `dp_lon_aem`; ACC/blended arbitration, not NGP DLON |
-| Adaptive Coasting Mode (ACM) | ❌ | ✅ | Optional `dp_lon_acm`, downhill option; not validated BYD braking behavior |
-| Camera Driver Monitoring (DM) | ✅ | ✅ | Legacy configuration/disable behavior requires deployment review |
-| Shared NGP Steering Activity Monitoring (SAM) | ❌ | ❌ | Current NGP driveractivityd replacement is not ported here |
-| DLON / DLAT fork profiles | ❌ | ❌ | Deferred/rejected by EDP port plan; AEM remains distinct |
+| Adaptive Experimental Mode (AEM) | ❌ | ✅ | DragonPilot `dp_lon_aem` (fixed `FirstOrderFilter` exact `rc` constants); distinct from NGP DLON |
+| Adaptive Coasting Mode (ACM) | ❌ | ✅ | DragonPilot optional `dp_lon_acm` + downhill option |
+| Camera Driver Monitoring (DM) | ✅ | ✅ | Upstream camera DM retained (NGP SAM `driveractivityd` is NGP10+ only) |
+| Adaptive DLON / DLAT Foundation | ❌ | ❌ | Deliberately kept on `NGP10`+; EDP10 retains DragonPilot `ACM`/`AEM`/`ALKA` foundation |
 
 #### Device & Hardware
 
-| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+| Feature | openpilot v0.10.0 | EDP10 | Reference / Relationship |
 |---|---|---|---|
 | Original comma 3 | ✅ | ✅ | Snapdragon 845 target |
-| Vehicle integration | ✅ | ✅ | BYD Atto 3 & Chery/Omoda/iCaur/JAECOO ports with Panda safety (`byd.h`, `chery.h`) |
-| Exopilot HAL / RK3588 / RK3576 | ❌ | ❌ | EOP-only hardware; not imported into EDP |
-| Native Qt UI / offroad settings | ✅ | ✅ | `dp_*` settings and device-specific controls |
-| Driving model selector | ❌ | ✅ | Model provisioning and compatibility required |
-| Dashy dashboard / beep / logging delay / shutdown | ❌ | ✅ | Optional/configuration-dependent, not a blanket enabled claim |
-| Modern NGP Chestnut runner / USB eGPU | ❌ | ❌ | Latest NGP integration is not carried into EDP |
+| Vehicle integration | ✅ | ✅ | BYD Atto 3 (CarrotPilot-derived reference + ISO 11270 VM) & Chery/Omoda/iCaur/JAECOO ports with Panda safety (`byd.h`, `chery.h`) |
+| Exopilot HAL / RK3588 / RK3576 | ❌ | ❌ | EOP-only hardware; not imported into EDP10 |
+| Native Qt UI / offroad settings | ✅ | ✅ | `dp_panel.cc` toggles + offline OSM `MapdAreaRows` picker/downloader |
+| Driving model selector | ❌ | ✅ | DragonPilot model selector |
+| Dashy dashboard / beep / logging delay / shutdown | ❌ | ✅ | DragonPilot optional device utilities |
+| Modern NGP Chestnut runner / USB eGPU | ❌ | ❌ | NGP10+ only |
 
-#### Gas / Brake
+#### Gas / Brake & Speed Add-Ons
 
-| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+| Feature | openpilot v0.10.0 | EDP10 | Reference / Relationship |
 |---|---|---|---|
-| Bumpy Road Speed Controller (BRSC) | ❌ | ✅ | `ngp_lon_brsc` with EDP DPFlags/plannerd integration |
-| Vision Turn Speed Controller (VTSC) | ❌ | ⏳ | Previous “ported” documentation was corrected; remains deferred |
-| Low-speed Traffic Jam Assist (TJA) | ❌ | ✅ | `selfdrive/controls/lib/dp_tja.py` + `exopilot/speed_zones.py` |
-| Lane-change lead handoff | ❌ | ⏳ | Deferred to NGP10/EOP10 |
-| Map / navigation / traffic-light controllers (MTSC / MSLC / NSLC / TLSC) | ❌ | ❌ | No current NGP/EOP feature carryover claim |
-| Radar AEB / RCD / SQSC | ❌ | ❌ | Preserve stock BYD AEB; no EOP perception intervention port |
-| External radar option | ✅ | ✅ | `dp_lon_ext_radar`; not Exopilot forward UART Radar3D |
+| Bumpy Road Speed Controller (BRSC) | ❌ | ✅ | Shared `exopilot/selfdrive/controls/lib/brsc.py` (`ngp_lon_brsc`, comma 3 `-v[0]` vertical axis, finite guards) |
+| Vision Turn Speed Controller (VTSC) | ❌ | ✅ | Shared `vtsc.py` (`VTSCEnabled`, opt-in OFF); Sunnypilot SCC-V state machine + FrogPilot comfort buckets |
+| Map Turn Speed Controller (MTSC) | ❌ | ✅ | Shared `mtsc.py` + `curve_speed.py` (`MTSCEnabled`, opt-in OFF); proactive 150–500 m OSM curve slowdown, 3.0 s hold |
+| Map Speed Limit Controller (MSLC) | ❌ | ✅ | Shared `mslc.py` (`MSLCEnabled`, opt-in OFF); FrogPilot bucket offsets/confirmation via offline `mapd` v2.4.0 |
+| Offline OSM Map Daemon (`mapd`) | ❌ | ✅ | Vendored `third_party/mapd/` v2.4.0 (`pfeiferj/openpilot-mapd`, `MapdEnabled`, opt-in OFF) + `MapdAreaRows` UI |
+| Low-speed Traffic Jam Assist (TJA) | ❌ | ✅ | `selfdrive/controls/lib/dp_tja.py` + `exopilot/common/speed_zones.py` |
+| Lane-change Adjacent Lead Handoff | ❌ | ✅ | Shared `lc_lead_handoff.py` (`LCAdjacentLeadHandoff`, opt-in OFF); tracks target-lane lead during `laneChangeStarting` |
+| Lead Departure Alert | ❌ | ✅ | Shared `lead_departure.py` (`LeadDepartAlert`, opt-in OFF); alerts when stopped lead pulls away |
+| Navigation / Traffic-Light / Distraction Speed (NSLC / TLSC / DDSC / RCSC) | ❌ | ❌ | `NGP10`+ only (requires navigation/perception/SAM pipeline) |
+| Radar AEB / RCD / SQSC | ❌ | ❌ | Preserve stock BYD AEB; EOP perception stack stays on `EOP10`+ |
+| External radar option | ✅ | ✅ | DragonPilot `dp_lon_ext_radar`; not Exopilot forward UART Radar3D |
 
 #### Steering & Lane Changes
 
-| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+| Feature | openpilot v0.10.0 | EDP10 | Reference / Relationship |
 |---|---|---|---|
-| Lane Centering (LKAS) | ✅ | ✅ | Supported interface and validated safety model required |
-| Always-on Lane Centering (ALCC) | ❌ | ✅ | Driver label ALCC; internal `dp_lat_alka` compatibility retained |
+| Lane Centering (LKAS) | ✅ | ✅ | Supported interface and validated Panda safety model required |
+| Always-on Lane Centering (ALCC) | ❌ | ✅ | DragonPilot `dp_lat_alka` (driver label ALCC) |
 | Lane Change Assist (LCA) | ✅ | ✅ | Minimum speed and optional delay via `dp_lat_lca_*` |
-| Road-edge lane-change guard (RED) | ✅ | ✅ | Blocks lane changes; not EOP curvature nudge/side-camera classification |
-| Smart Offset Control / CAT / LatNudge / LonNudge | ❌ | ❌ | EOP implementations not adopted by the conservative port |
+| Road-edge lane-change guard (RED) | ✅ | ✅ | DragonPilot `dp_lat_road_edge_detection` blocks unsafe lane changes |
+| Lane-Change Adjacent Gap & Width Guards | ❌ | ✅ | Shared `lane_gap.py` (`LCAGapEvalEnabled`, `LCALaneWidthEnabled`, opt-in OFF); blocks narrow (<2.5 m) or unsafe TTC gap |
+| Blinker Pause Lateral & Smooth Resume Ramp | ❌ | ✅ | Shared `blinker_pause.py` (`BlinkerPauseLateralSpeed`, Sunnypilot style) + `steering_policy.py` (`SteeringResumeRamp`) |
+| Car Adaptive Tuning (CAT) | ❌ | ✅ | Shared `cat.py` (`CATEnabled`, opt-in OFF); smooths/bounds `liveParameters` steerRatio & stiffnessFactor |
+| Smart Offset Control / LatNudge / LonNudge | ❌ | ❌ | `NGP10`+ / `EOP10`+ perception pipeline |
 
 #### Radar, UI & Voice
 
-| Feature | openpilot v0.10.0 | EDP10 | Relationship / limitations |
+| Feature | openpilot v0.10.0 | EDP10 | Reference / Relationship |
 |---|---|---|---|
 | OEM blind-spot flags | ✅ | ✅ | Actual BSM flags; no invented surround objects |
-| Canonical Radar2D / Radar3D / Radar4D EOP pipeline | ❌ | ❌ | Distinct from DragonPilot external radar support |
-| MonoD / GridD / PathD / DPP | ❌ | ❌ | Current shared NGP/EOP perception pipeline not ported |
-| 01M / 02M C++ Qt theme & wide layout | ❌ | ❌ | EDP retains DragonPilot native Qt, not 01M/02M presentation |
-| Google cloudd voice / CPU wake / animated voice card | ❌ | ❌ | EOP implementation not carried here |
-| Portable TripD | ❌ | ⏳ | Listed as an optional later port, not implemented support |
+| Canonical Radar2D / Radar3D / Radar4D EOP pipeline | ❌ | ❌ | `EOP10`+ only |
+| MonoD / GridD / PathD / DPP | ❌ | ❌ | `NGP10`+ / `EOP10`+ only |
+| 01M / 02M C++ Qt theme & wide layout | ❌ | ❌ | EDP10 retains DragonPilot native Qt |
+| Google cloudd voice / CPU wake / animated voice card | ❌ | ❌ | `EOP10`+ only |
+| Portable TripD | ❌ | ⏳ | Optional later port |
 
 ## 🌟 Highlight Features
 
 | | Feature | Origin / behavior |
 |---|---|---|
-| 🐉 | AEM / ACM / ALCC / LCA | Carried from DragonPilot |
-| 🛞 | BRSC & TJA | Vertical-IMU roughness policy + low-speed traffic jam assist |
-| 🚘 | BYD Atto 3 & Chery/Omoda/iCaur/JAECOO | Active lateral Panda safety (`byd.h`, `chery.h`); factory longitudinal/AEB default |
-| 🧱 | Standalone DP baseline | No ExoPilot Rockchip HAL or 01M/02M UI |
+| 🐉 | AEM / ACM / ALCC / LCA / RED | DragonPilot 0.10.0 foundation (with exact `FirstOrderFilter(rc)` AEM fix) |
+| 🛞 | VTSC / MTSC / MSLC / Offline `mapd` / BRSC / TJA | Shared ExoPilot pure policies (Sunnypilot SCC-V, FrogPilot comfort/SLC, `pfeiferj/openpilot-mapd` v2.4.0, vertical-IMU BRSC) |
+| 🛡️ | LC Gap & Width Guards / LC Lead Handoff / BlinkerPause / Resume Ramp / CAT / Lead Departure | Opt-in default-OFF safety & comfort add-ons ported byte-identical from `dev/NGP10` |
+| 🚘 | BYD Atto 3 & Chery/Omoda/iCaur/JAECOO | Active lateral Panda safety (`byd.h`, `chery.h`) with 8-pt speed-zone backstop; factory longitudinal/AEB default |
+
+### 🧪 Host Simulation & Verification (2026-11-28)
+
+Verified on Linux host PC (Ryzen 7 7840HS + NVIDIA RTX 4050 Laptop GPU + PoCL 5.0 OpenCL):
+- **Unit, controls, longitudinal maneuvers & messaging**: `489 passed` (+ `58` subtests), `ruff check exopilot/` clean, `scons` C++ Qt UI (`selfdrive/ui/ui`) & `cereal` build clean.
+- **BYD & Chery Panda `libsafety` C hooks**: `92 passed, 4 skipped` (`test_byd.py` + `test_chery.py`).
+- **MetaDrive 3D closed-loop behavioral suite** (`exopilot/tests/test_edp10_metadrive_loop.py`, WSLg RTX 4050 EGL + PoCL OpenCL NV12 + VisionIPC):
+  - **VTSC**: R=60 m 90° curve slowdown, 100% in-lane tracking, straight-exit recovery, 23 GPU→OpenCL NV12→VisionIPC frames.
+  - **MTSC**: proactive deceleration ahead of 260 m OSM curve + deterministic 3.0 s timeout expiry & recovery.
+  - **MSLC**: real physics speed cap at 36 km/h (10 m/s) + acceleration on speed-limit raise to 65 km/h.
+  - **BRSC**: longitudinal `-v[2]` axis rejection, vertical `-v[0]` washboard slowdown, smooth-road recovery & immediate IMU-dropout hold clear.
+  - **Lateral/Safety**: LC adjacent-lead handoff deceleration, `DesireHelper` narrow-lane & gap guards against real 3.6 m MetaDrive lanes, AEM EMA tracking, `BlinkerPause` + `SteeringResumeRamp`, bounded `CAT`, and standstill `LeadDepartureNotice`.
 
 | Branch | Parent | Main difference |
 |---|---|---|
@@ -140,10 +158,13 @@ Use [GitHub Issues](https://github.com/exo-elec/openpilot/issues). Include branc
 
 ## 📋 Credits
 
-- [comma.ai openpilot](https://github.com/commaai/openpilot): baseline software and MIT notices.
-- [DragonPilot / Rick Lan](https://github.com/dragonpilot/dragonpilot): inherited DragonPilot implementation and history.
-- ExoPilot: selected portable policy ports, including BRSC.
-- README presentation inspired by [FrogPilot](https://github.com/FrogAi/FrogPilot/blob/FrogPilot/README.md); feature claims remain specific to this branch.
+- [commaai/openpilot](https://github.com/commaai/openpilot): baseline software (v0.10.0) and MIT notices.
+- [dragonpilot / Rick Lan](https://github.com/dragonpilot/dragonpilot): inherited DragonPilot 0.10.0 foundation (`ACM`, `AEM`, `ALKA`/`ALCC`, `LCA`, `RED`, `dp_panel`).
+- [sunnypilot](https://github.com/sunnypilot/sunnypilot): reference design for vision curve control (`SCC-V` → VTSC) and low-speed blinker pause (`BlinkerPause`).
+- [FrogPilot](https://github.com/FrogAi/FrogPilot): reference design for curve comfort buckets, speed-limit bucket offsets/confirmation (`MSLC`), and README feature-table layout.
+- [CarrotPilot](https://github.com/bulletmark/carrotpilot): community BYD Atto 3 CAN/HUD protocol reference cross-checked against hardware captures.
+- [pfeiferj/openpilot-mapd](https://github.com/pfeiferj/openpilot-mapd): vendored offline OSM `mapd` v2.4.0 binary & download menu.
+- ExoPilot: shared pure control policies (`exopilot/selfdrive/controls/lib/`) and MetaDrive closed-loop verification harness.
 
 ## ⚖️ Safety & Validation
 

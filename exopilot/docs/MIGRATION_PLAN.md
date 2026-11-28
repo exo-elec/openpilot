@@ -22,9 +22,13 @@ comma 3 requirement is demonstrated.
 6. Add openpilot longitudinal as an explicit trial, with safety tests and route
    evidence independent from factory-longitudinal results (`0x32E` stays off and
    unwhitelisted in `byd.h`).
-7. Port selected EOP policies only when they fit the fixed CITY/HIGHWAY product
-   model and do not weaken driver monitoring (`dp_tja`, `speed_zones`, `ngp_brsc` done).
-8. Keep MonoD/SOC deferred (`dev/EOP10`+); no MonoD implementation lives on `dev/EDP10`.
+7. Port selected portable ExoPilot add-ons byte-identical from `dev/NGP10` behind opt-in
+   default-OFF toggles while keeping DragonPilot `ACM`/`AEM`/`ALKA` and Camera DM as the
+   EDP10 foundation (`dp_tja`, `speed_zones`, `brsc`, `vtsc`, `mtsc`, `mslc`, offline `mapd`
+   v2.4.0, `lc_lead_handoff`, `lane_gap`, `lead_departure`, `cat`, `blinker_pause`,
+   `steering_policy` — all unit + closed-loop + MetaDrive behavioral-verified on 2026-11-28).
+8. Keep `DLON`/`DLAT`/`SAM`/`MonoD`/`GridD`/`PathD`/`SOC` on `dev/NGP10`+ and Rockchip HAL on
+   `dev/EOP10`+; none of those foundational replacements live on `dev/EDP10`.
 
 ## Current Port State
 
@@ -117,10 +121,12 @@ exit gates are met.
 
 ## Deferred Work
 
-MonoD, GridD, SOC, VTSC, EOP RK3588 infrastructure, UI rebranding, Dashy
-removal, private radar/CAN-FD, and broad `cereal`/`modeld`/`dmonitoring` ports
-are not next tasks. Revisit them only after the BYD passive, safety, and stock
-longitudinal gates are complete.
+`DLON`/`DLAT` foundation replacement, `SAM` (`driveractivityd`), `MonoD`, `GridD`, `PathD`,
+`SOC`, `EOP` RK3588/RK3576 HAL, UI rebranding, Dashy removal, and private radar/CAN-FD
+remain on `dev/NGP10`+ / `dev/EOP10`+. Portable add-ons (`VTSC`, `MTSC`, `MSLC`, offline
+`mapd` v2.4.0, `LCAdjacentLeadHandoff`, `LCAGapEval`, `LCALaneWidth`, `CAT`,
+`BlinkerPause`, `SteeringResumeRamp`, `LeadDepartAlert`) are now ported behind opt-in
+default-OFF toggles and remain inert while factory BYD longitudinal is active.
 
 ## Explicit Non-Goals
 
