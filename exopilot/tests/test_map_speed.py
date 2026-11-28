@@ -94,6 +94,38 @@ def test_light_target_is_held_briefly_between_object_messages():
   assert ms.update(sm(lights=[]), 15.0, 25.0, None, False, 0.05).cap is None
 
 
+def test_tlsc_clears_immediately_on_gas_or_lead_even_without_fresh_stereo_objects():
+  ms, clk = make(flags=('tlsc',))
+  r0 = ms.update(sm(lights=[('red', 20.0, 0.0)]), 10.0, 25.0, None, False, 0.05)
+  assert r0.cap is not None and r0.tlsc_distance == 20.0
+  # Next frame stereoObjects is invalid, driver presses gas -> must clear immediately, not hold 0.5 s.
+  s_gas = sm(lights=[], gas=True)
+  s_gas.valid['stereoObjects'] = False
+  r_gas = ms.update(s_gas, 10.0, 25.0, None, False, 0.05)
+  assert r_gas.cap is None and r_gas.tlsc_distance is None
+  # Same for a new real lead appearing while stereoObjects is invalid.
+  ms.update(sm(lights=[('red', 20.0, 0.0)]), 10.0, 25.0, None, False, 0.05)
+  s_lead = sm(lights=[], lead=True)
+  s_lead.valid['stereoObjects'] = False
+  r_lead = ms.update(s_lead, 10.0, 25.0, None, False, 0.05)
+  assert r_lead.cap is None and r_lead.tlsc_distance is None
+
+
+def test_tlsc_expires_if_stereo_objects_producer_dies():
+  ms, clk = make(flags=('tlsc',))
+  s_live = sm(lights=[('red', 25.0, 0.0)])
+  s_live.alive = {'stereoObjects': True}
+  assert ms.update(s_live, 12.0, 25.0, None, False, 0.05).cap is not None
+  # Producer stops (alive=False, valid still True): hold must expire after LIGHT_HOLD_S instead of refreshing forever.
+  s_dead = sm(lights=[('red', 25.0, 0.0)])
+  s_dead.alive = {'stereoObjects': False}
+  clk.t += 0.3
+  assert ms.update(s_dead, 12.0, 25.0, None, False, 0.05).cap is not None
+  clk.t += 0.3
+  r_exp = ms.update(s_dead, 12.0, 25.0, None, False, 0.05)
+  assert r_exp.cap is None and r_exp.tlsc_distance is None
+
+
 def test_ddsc_input_comes_from_the_driver_activity_monitor():
   assert distraction_status(0.9, 0.0).safeSpeedLimitMps == 0.0
   assert abs(distraction_status(0.2, 0.0).safeSpeedLimitMps - 16.67) < 1e-9 and not distraction_status(0.2, 0.0).unconsciousActive

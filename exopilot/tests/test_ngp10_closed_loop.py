@@ -802,3 +802,23 @@ def test_plp_v5_tcp_loopback_ble_mtu_and_locate_sink():
   for ch in chunks:
     frames.extend(dec.feed(ch))
   assert len(frames) == 1 and dec.bad_crc == 0 and frames[0].payload == b'plp-ble-loopback-payload-1234567890'
+
+
+def test_tlsc_virtual_lead_preserves_lead_two_and_yields_to_gas_at_standstill():
+  from openpilot.selfdrive.controls.lib.longitudinal_planner import _with_virtual_stop_lead
+  rs = messaging.new_message('radarState').radarState
+  rs.leadTwo.status = True
+  rs.leadTwo.dRel = 42.0
+  wrapped = _with_virtual_stop_lead(rs, 25.0, 10.0)
+  assert wrapped.leadOne.status is True and wrapped.leadOne.modelProb == 0.0 and wrapped.leadOne.aLeadTau == 1.5
+  assert wrapped.leadTwo.status is True and wrapped.leadTwo.dRel == 42.0
+
+  planner = LongitudinalPlanner(_make_cp(), init_v=0.2, init_a=-1.0, dt=DT_MDL)
+  planner.map_speed = MapSpeed(lambda k: k == 'TLSCEnabled', lambda _k: None)
+  sm_hold = _make_sm(v_ego=0.2, a_ego=-1.0, v_cruise_kph=50.0, traffic_light=('red', 0.9, 4.0), gas_pressed=False)
+  planner.update(sm_hold, feature_flags=0)
+  assert planner.output_should_stop is True and planner.output_a_target <= -1.0
+
+  sm_gas = _make_sm(v_ego=0.2, a_ego=0.0, v_cruise_kph=50.0, traffic_light=('red', 0.9, 4.0), gas_pressed=True)
+  planner.update(sm_gas, feature_flags=0)
+  assert planner.output_a_target > -0.5, f"TLSC standstill hold fought driver gasPressed: {planner.output_a_target}"

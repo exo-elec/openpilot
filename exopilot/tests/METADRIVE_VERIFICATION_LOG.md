@@ -20,6 +20,8 @@
    - `Joining.close()` did not drain `self._retired`, and calling `self._close_retired()` directly inside `close()` (which `BigModelFacade._give_up()` invokes on `modeld`'s realtime frame thread) would risk a 1 s `sendall()` block on `LEAVE`. Fixed by draining `self._retired` in `_join_loop()`'s `finally:` on the background thread (delivering `LEAVE` off-RT) and falling back to non-blocking `retired[0].close()` in `Joining.close()` only when no live join thread exists.
 6. **`exopilot/selfdrive/monod/monod.py:29` (stale `MODEL_PKL` path after relocation)**:
    - Updated `parents[2]` -> `parents[3]` so `MODEL_PKL` points to `selfdrive/modeld/models/yolo_detector_tinygrad.pkl`.
+7. **`exopilot/selfdrive/controls/lib/map_speed.py` & `selfdrive/controls/lib/longitudinal_planner.py` (Scrutinize audit fixes on TLSC override, stale-producer expiry, and `leadTwo` preservation)**:
+   - Moved `gas` / `lead_present` TLSC clear outside the `stereoObjects` freshness gate (immediate release on frame 0 even when `stereoObjects` is invalid), gated `stereoObjects` refresh on `sm.alive['stereoObjects']` so a stalled producer expires after `LIGHT_HOLD_S = 0.5 s`, replaced the bare `new_message('radarState')` with `_with_virtual_stop_lead()` (preserving `leadTwo` and setting `aLeadTau=1.5`, `modelProb=0.0`), and gated close-zone standstill hold on `not sm['carState'].gasPressed`.
 
 ## Scenario-by-Scenario Test Design & Measured Telemetry
 
