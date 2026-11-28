@@ -52,3 +52,17 @@ export PYTHONPATH=$(pwd)
 pytest -n 0 -v -s exopilot/tests/test_eop10_metadrive_loop.py exopilot/tests/test_hal_brownpanda_metadrive_loop.py exopilot/tests/test_bigmodel_navpilot_jetlink_metadrive_loop.py exopilot/tests/test_android_apk_metadrive_loop.py
 ./test.sh
 ```
+
+---
+
+## 01M Variant Delta Verification (`dev/01M` on top of `dev/EOP10`)
+
+- **Profile**: `UI_BACKEND="cpp"`, `DEFAULT_SOC="rk3588"`, `DISPLAY_SIZE=(1024, 600)`
+- **Additional Test Script**: `exopilot/tests/test_01m_profile_and_ui.py`
+- **Lineage**: `128 / 128` portable modules match `dev/NGP10 -> dev/01M`
+
+| # | Test Function & 01M Feature | Test Design & Stimulus | Expected Behavior | Measured Result | Status |
+|---|---|---|---|---|---|
+| 6 | `test_01m_build_profile_targets_cpp_rk3588_1024x600`<br>**01M Build Profile** | Verify `common/build_profile.py` constants. | `UI_BACKEND=cpp`, `DEFAULT_SOC=rk3588`, `DISPLAY_SIZE=(1024, 600)`. | Exact match | **PASS** |
+| 7 | `test_01m_cpp_ui_snapshot_renders_panels_and_hides_advanced`<br>**01M Themed 1024×600 C++ Qt UI & Hidden Advanced** | Offscreen `selfdrive/ui/tests/ui_snapshot` rendering `Device`, `WiFi`, `Bluetooth`, `Driving` (verifying `Drive Mode` row), `Safety`, `Display`, plus verifying `Advanced` panel is hidden by default. | All 6 panels render non-blank (`std > 10`) at `1024×600`; `Drive Mode` found in `Driving`; `Advanced` rejected until 8-tap unlock. | `6/6` panels `1024×600`, `Drive Mode` found, `Advanced` hidden (`2.51 s`) | **PASS** |
+| 8 | `test_01m_metadrive_dlon_drive_modes_highway_urban_dynamic`<br>**01M `DlonMode` (`Highway` / `Urban` / `Dynamic`) Closed-Loop MetaDrive** | Live MetaDrive straight highway (`15 m/s`): test `DlonMode=0` (`CHILL`) under `R=40 m` curvature, `DlonMode=1` (`EXPERIMENTAL`) on open highway, and `DlonMode=2` (`AUTO`) transitioning from straight highway (`kappa=0`) into sharp curve (`R=35 m`). | Highway stays ACC (`e2e=False`); Urban engages E2E (`e2e=True`); Dynamic stays ACC on straight (`e2e=False`) and switches to E2E (`sharp_curve=True, e2e=True`) on sharp curve. | `highway_e2e=False`, `urban_e2e=True`, `dynamic_straight_e2e=False`, `dynamic_curve_trigger=True`, `dynamic_curve_e2e=True` (`1.32 s`) | **PASS** |
