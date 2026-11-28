@@ -28,7 +28,7 @@ from openpilot.system.socketd.vehicle.car.cruise import V_CRUISE_MAX, V_CRUISE_U
 from openpilot.common.swaglog import cloudlog
 from exopilot.common.speed_zones import (CRAWL_SPEED_MPS, HIGHWAY_SPEED_MPS, MAX_SPEED_MPS, URBAN_SPEED_MPS,
                                     longitudinal_accel_max, longitudinal_jerk_up)
-from openpilot.selfdrive.controls.lib.tja import TrafficJamAssist
+from exopilot.selfdrive.controls.lib.tja import TrafficJamAssist
 from exopilot.selfdrive.controls.lib.runtime_policy import limit_accel_in_turns
 from exopilot.selfdrive.controls.lib.driver_activity import monitoring_speed_target
 from exopilot.selfdrive.controls.lib.longitudinal_params import LongitudinalSettings
