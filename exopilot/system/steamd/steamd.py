@@ -69,7 +69,9 @@ class SteamD:
     self.sm = messaging.SubMaster(["carState", "gpsLocationExternal"])
 
     # Geofence
-    self.geofence = Geofence(self.params.get("SteamDGeofencePolygon", b"").decode())
+    raw_geofence = self.params.get("SteamDGeofencePolygon")
+    geofence_str = raw_geofence.decode() if isinstance(raw_geofence, bytes) else (raw_geofence or "")
+    self.geofence = Geofence(geofence_str)
 
     # Web server (status page only)
     self.app: web.Application | None = None
@@ -118,7 +120,7 @@ class SteamD:
       return token.decode() if isinstance(token, bytes) else token
     import secrets
     token = secrets.token_urlsafe(32)
-    self.params.put("SteamDAuthToken", token.encode())
+    self.params.put("SteamDAuthToken", token)
     logger.info("Generated new SteamD auth token (check params to share with client)")
     return token
 

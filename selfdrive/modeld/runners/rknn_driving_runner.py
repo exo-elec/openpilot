@@ -135,12 +135,18 @@ class RKNNDrivingRunner(DrivingRunner):
       raise RuntimeError("RKNNDrivingRunner: models not loaded")
 
     # Reorder against the metadata's ``desire`` key first, then rename for
-    # ONNX in place — renaming before reordering would drop the input, since
-    # spec.input_shapes (loaded from the shared metadata pkl) always keys it
-    # as ``desire``, never ``desire_pulse``.
+    # legacy ONNX policy models whose input is ``desire_pulse`` (v0.10.0 ONNX
+    # models keep ``desire`` — inspect the loaded session when available).
     inputs = self._ordered(self.policy_spec, inputs)
     if self._backend_type == "ONNX" and "desire" in inputs:
-      inputs = {("desire_pulse" if k == "desire" else k): v for k, v in inputs.items()}
+      sessions = getattr(self._npu, "_sessions", None)
+      session = sessions.get(self.policy_spec.name) if isinstance(sessions, dict) else None
+      if session is not None:
+        input_names = {n.name for n in session.get_inputs()}
+        if "desire" not in input_names and "desire_pulse" in input_names:
+          inputs = {("desire_pulse" if k == "desire" else k): v for k, v in inputs.items()}
+      else:
+        inputs = {("desire_pulse" if k == "desire" else k): v for k, v in inputs.items()}
 
     return self._run_model(self.policy_spec.name, inputs)
 

@@ -80,6 +80,8 @@ def build_blindspot_payload(bsa, radar2d, decision_valid: bool) -> dict:
     }
     if radar2d is not None:
         for ret in radar2d.returns:
+            if getattr(ret, 'stale', False):
+                continue
             key = _RADAR_SIDE_KEYS.get(int(ret.side))
             if key:
                 payload['radarPresence'][key] = payload['radarPresence'][key] or bool(ret.present)

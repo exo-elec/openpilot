@@ -329,9 +329,14 @@ class SocketD:
     self.running = False
     self.message_bridge: canbridge | None = None
     self.vehicle = None
+    self.simulation = bool(os.getenv("SIMULATION"))
     self.disable_bridge_tx = os.getenv("SOCKETCAN_DISABLE_BRIDGE_TX", "0").lower() in ("1", "true", "on")
 
   def initialize(self) -> None:
+    if self.simulation:
+      cloudlog.info("Initializing socketd in SIMULATION cereal-only mode (no SocketCAN bridge)")
+      return
+
     cloudlog.info("Initializing socketd CAN bridge and OpenDBC vehicle adapter")
 
     interfaces = HARDWARE.get_can_interfaces()
@@ -366,11 +371,14 @@ class SocketD:
       cloudlog.info("CAN bridge initialized (TX forwarding disabled)")
 
   def start(self) -> None:
-    if not self.devices:
+    if not self.simulation and not self.devices:
       raise RuntimeError("No CAN devices initialized - call initialize() first")
 
     self.running = True
-    cloudlog.info(f"Starting socketd with {len(self.devices)} interfaces")
+    if self.simulation:
+      cloudlog.info("Starting socketd vehicle adapter in SIMULATION cereal-only mode")
+    else:
+      cloudlog.info(f"Starting socketd with {len(self.devices)} interfaces")
 
     if self.message_bridge:
       self.message_bridge.start()

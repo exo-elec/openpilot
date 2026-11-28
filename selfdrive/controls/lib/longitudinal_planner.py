@@ -49,6 +49,7 @@ from exopilot.selfdrive.controls.lib.dlon import DLON
 # Map / navigation / traffic-light / distraction / road-condition speed caps, shared with NGP10
 # (MTSC, MSLC, NSLC, TLSC, DDSC, RCSC; the posted limits through one SpeedLimitPolicy)
 from exopilot.selfdrive.controls.lib.map_speed import MapSpeed
+from exopilot.selfdrive.controls.lib.tlsc import TLSC_STOP_BUFFER
 # EOP: Driver Preferences (speed offset, following distance)
 from openpilot.selfdrive.controls.lib.driver_prefs import DriverPrefs
 # EOP: SQSC - Surface Quality Speed Controller (road quality speed control)
@@ -104,7 +105,32 @@ def _with_virtual_stop_lead(radar_state, stop_dist_m: float, v_ego: float):
 
 def get_max_accel(v_ego):
   profile = _load_accel_profile()
-  return min(acceleration_profile_limit(v_ego, profile, A_CRUISE_MAX_BP, _A_CRUISE_PROFILES), longitudinal_accel_max(v_ego))
+  profile_limit = acceleration_profile_limit(v_ego, profile, A_CRUISE_MAX_BP, _A_CRUISE_PROFILES)
+  if v_cruise is not None:
+    profile_limit = _apply_adaptive_accel_limit(profile_limit, v_cruise, v_ego)
+  return min(profile_limit, longitudinal_accel_max(v_ego))
+
+
+def _sm_valid(sm, key: str) -> bool:
+  valid = getattr(sm, 'valid', None)
+  return bool(valid.get(key, False)) if valid is not None else (key in sm)
+
+
+def _sm_updated(sm, key: str) -> bool:
+  updated = getattr(sm, 'updated', None)
+  return bool(updated.get(key, False)) if updated is not None else (key in sm)
+
+
+def _with_virtual_stop_lead(radar_state, stop_dist_m: float):
+  """Inject a stationary virtual stop-line lead into LongitudinalMpc when TLSC requests a red-light stop
+  and no closer real lead exists (CarrotPilot/FrogPilot stop-line MPC pattern)."""
+  # Shift target stopping point inside TLSC_STOP_BUFFER (+2.0m nose margin) so MPC holds before the stop line
+  virtual_d_rel = max(0.0, stop_dist_m - TLSC_STOP_BUFFER - 2.0) + STOP_DISTANCE
+  lead_one = radar_state.leadOne
+  if lead_one.status and lead_one.dRel <= virtual_d_rel:
+    return radar_state
+  vlead = SimpleNamespace(status=True, dRel=float(virtual_d_rel), vLead=0.0, aLeadK=0.0, aLeadTau=1.5)
+  return SimpleNamespace(leadOne=vlead, leadTwo=radar_state.leadTwo)
 
 
 # BRSC: Bumpy Road Speed Controller — reduce speed/accel on rough pavement, detected
@@ -148,6 +174,7 @@ class LongitudinalPlanner:
     self.rule_consumer = RuleChannelConsumer()  # shared parallel rule channel (pathadjustd + DPP); policy unchanged without it
     self.output_should_stop = False
     self.tja = TrafficJamAssist(self.dt)
+    self.tja_result = self.tja.update(init_v, None)
 
     self.v_desired_trajectory = np.zeros(CONTROL_N)
     self.a_desired_trajectory = np.zeros(CONTROL_N)
@@ -277,13 +304,21 @@ class LongitudinalPlanner:
 
     # BRSC: Bumpy Road Speed Controller — vertical-IMU roughness policy (always fed
     # so its internal baseline/hold state stays current; application is gated below).
+    # locationd.py maps raw accelerometer [x, y, z] via meas = [-v[2], -v[1], -v[0]],
+    # so the vertical (up/down) axis is -v[0], not longitudinal v[2].
     brsc_enabled = _load_brsc_enabled()
-    if sm.valid.get('accelerometer', False):
-      az = sm['accelerometer'].acceleration.v[2]
-      # accel_max_full=1.0 makes result.accel_max double as the [0-1] accel-scale
-      # fraction directly, since the real max_accel isn't computed until below.
-      self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
-    tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
+    if _sm_valid(sm, 'accelerometer'):
+      accel_v = sm['accelerometer'].acceleration.v
+      if len(accel_v) >= 1:
+        self.brsc_result = self.brsc.update(-accel_v[0], self.dt, accel_max_full=1.0)
+      else:
+        self.brsc.reset()
+        self.brsc_result = None
+    else:
+      self.brsc.reset()
+      self.brsc_result = None
+    self.tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
+    tja_result = self.tja_result
     v_cruise_kph = min(sm['carState'].vCruise, V_CRUISE_MAX)
     v_cruise = v_cruise_kph * CV.KPH_TO_MS
     v_cruise_initialized = sm['carState'].vCruise != V_CRUISE_UNSET
@@ -300,9 +335,9 @@ class LongitudinalPlanner:
     prev_accel_constraint = not (reset_state or sm['carState'].standstill)
 
     if mode == 'acc':
-      max_accel = get_max_accel(v_ego)
-      # EOP: Adaptive acceleration limit (low-speed clamp + ramp-off near cruise)
-      max_accel = _apply_adaptive_accel_limit(max_accel, v_cruise, v_ego)
+      # Apply adaptive accel limit to the profile curve before clamping by speed_zones
+      # so low-speed acceleration is not double-clamped at standstill.
+      max_accel = get_max_accel(v_ego, v_cruise=v_cruise)
       # BRSC: cap positive accel while rough-road hold is active.
       if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
         accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
@@ -335,10 +370,11 @@ class LongitudinalPlanner:
     # EOP: VTSC - Vision Turn Speed Control (0-250m range, with learned speeds)
     # Get GPS coordinates for learned speed lookup
     lat, lon = 0.0, 0.0
-    if sm.updated['liveLocationKalman']:
+    if _sm_updated(sm, 'liveLocationKalman'):
       loc = sm['liveLocationKalman']
-      lat = loc.positionGeodetic.value[0]
-      lon = loc.positionGeodetic.value[1]
+      if len(loc.positionGeodetic.value) >= 2:
+        lat = loc.positionGeodetic.value[0]
+        lon = loc.positionGeodetic.value[1]
 
     now = time.monotonic()
     if now - self._vtsc_flags_t >= 1.0:
@@ -399,7 +435,7 @@ class LongitudinalPlanner:
     self.lhlc_v_target = None
     self.lhlc_active = False
 
-    if sm.valid.get('enhancedTrajectory', False):
+    if _sm_valid(sm, 'enhancedTrajectory'):
       et = sm['enhancedTrajectory']
       if et.lhlcActive and len(et.lhlcSpeeds) > 0:
         # Find waypoint closest to lookahead distance
@@ -432,7 +468,7 @@ class LongitudinalPlanner:
     # EOP: Lane Change Lead Handoff — pure camera adjacent lead tracking
     # If laneChangeStarting, replace radarState.leadOne with the lead in the target lane
     radar_state_for_mpc = sm['radarState']
-    if sm.valid.get('modelV2', False):
+    if _sm_valid(sm, 'modelV2'):
       model_meta = sm['modelV2'].meta
       radar_state_for_mpc = self.lc_handoff.update(
         model_v2=sm['modelV2'],
@@ -487,15 +523,20 @@ class LongitudinalPlanner:
       self.output_should_stop = True
       output_a_target = min(output_a_target, -1.0)
 
+    # Hold standstill cleanly inside the TLSC red-light stop zone so the car cannot creep past the stop line
+    if tlsc_dist is not None and tlsc_dist <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5:
+      self.output_should_stop = True
+      output_a_target = min(output_a_target, -1.0)
+
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
-    # Limit only rising acceleration. Planner-requested braking remains
-    # immediately available.
+    # Limit only rising positive acceleration. Planner-requested braking and
+    # brake-release transitions toward 0.0 remain immediately responsive.
     if tja_result.active:
       output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * tja_result.accel_scale)
-    if not reset_state:
+    if not reset_state and output_a_target > 0.0:
       output_a_target = min(output_a_target,
-                            self.output_a_target + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)
+                            max(self.output_a_target, 0.0) + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)
     output_a_target = apply_accel(self.rule_consumer, sm, float(output_a_target), self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip
@@ -577,7 +618,7 @@ class LongitudinalPlanner:
     if self.lhlc_v_target is not None:
       longitudinalPlan.lhlcTargetSpeed = float(self.lhlc_v_target)
     # Publish target curvature from enhancedTrajectory if available
-    if sm.valid.get('enhancedTrajectory', False):
+    if _sm_valid(sm, 'enhancedTrajectory'):
       et = sm['enhancedTrajectory']
       if et.lhlcActive and len(et.lhlcCurvatures) > 0:
         target_idx = int(200.0 / 10.0)

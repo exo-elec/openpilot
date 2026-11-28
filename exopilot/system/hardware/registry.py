@@ -39,13 +39,13 @@ class PlatformRegistry:
     @classmethod
     def detect(cls) -> str:
         """Auto-detect hardware platform."""
-        # Check device tree
+        # Check device tree (NUL-delimited compatible strings)
         try:
             with open('/proc/device-tree/compatible') as f:
-                compatible = f.read().lower()
-                if 'rk3588' in compatible:
+                tokens = {t.strip().lower() for t in f.read().split('\x00') if t.strip()}
+                if any(t in ('rockchip,rk3588', 'rockchip,rk3588s', 'rockchip,rk3588s2', 'rk3588', 'rk3588s', 'rk3588s2') for t in tokens):
                     return 'rk3588'
-                if 'rk3576' in compatible:
+                if any(t in ('rockchip,rk3576', 'rk3576') for t in tokens):
                     return 'rk3576'
         except Exception:
             pass

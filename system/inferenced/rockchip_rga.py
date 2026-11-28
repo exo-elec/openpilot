@@ -113,102 +113,82 @@ class RGABackend(HardwareBackend):
 
   def _cvtcolor(self, inputs: dict[str, Any]) -> Any:
     """Color conversion: supports packed src (BGR→RGB) and planar src_y/src_uv (NV12→RGB)."""
+    import cv2
     import numpy as np
 
-    if self._use_opencv_fallback:
-      import cv2
-      src_fmt = inputs.get('src_fmt', 'nv12')
-      dst_fmt = inputs.get('dst_fmt', 'rgb')
+    # Hardware RGA ctypes path is not implemented yet — always run the verified OpenCV implementation
+    # rather than returning unconverted input arrays.
+    src_fmt = inputs.get('src_fmt') or inputs.get('src_format', 'nv12')
+    dst_fmt = inputs.get('dst_fmt') or inputs.get('dst_format', 'rgb')
 
-      # Packed array path (e.g. yolo_rknn passes BGR frame as 'src')
-      src = inputs.get('src')
-      if src is not None:
-        if not isinstance(src, np.ndarray):
-          src = np.array(src, dtype=np.uint8)
-        if src_fmt.lower() in ('bgr', 'nv12') and dst_fmt.lower() == 'rgb':
-          return cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
-        return src
+    # Packed array path (e.g. yolo_rknn passes BGR frame as 'src')
+    src = inputs.get('src')
+    if src is not None:
+      if not isinstance(src, np.ndarray):
+        src = np.array(src, dtype=np.uint8)
+      if src_fmt.lower() in ('bgr', 'nv12') and dst_fmt.lower() == 'rgb':
+        return cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
+      return src
 
-      # Planar NV12 path (src_y + src_uv)
-      y = inputs.get('src_y')
-      uv = inputs.get('src_uv')
+    # Planar NV12 path (src_y + src_uv)
+    y = inputs.get('src_y')
+    uv = inputs.get('src_uv')
 
-      if y is None:
-        return np.zeros(inputs.get('shape', (480, 640, 3)), dtype=np.uint8)
+    if y is None:
+      return np.zeros(inputs.get('shape', (480, 640, 3)), dtype=np.uint8)
 
-      if not isinstance(y, np.ndarray):
-        y = np.array(y, dtype=np.uint8)
-      if uv is not None and not isinstance(uv, np.ndarray):
-        uv = np.array(uv, dtype=np.uint8)
+    if not isinstance(y, np.ndarray):
+      y = np.array(y, dtype=np.uint8)
+    if uv is not None and not isinstance(uv, np.ndarray):
+      uv = np.array(uv, dtype=np.uint8)
 
-      # NV12 to RGB conversion via BGR intermediate
-      if src_fmt.lower() == 'nv12':
-        import numpy as np
-        if uv is None:
-          # Y-only: can't convert without UV
-          bgr = cv2.cvtColor(y, cv2.COLOR_GRAY2BGR)
-        else:
-          # NV12 format: Y plane + UV plane
-          # Y is (height, width), UV is (height/2, width/2)
-          # For cv2.cvtColor with COLOR_YUV2BGR_NV12, need (height + height/2, width)
-          h, w = y.shape
-          uv_h, uv_w = uv.shape
-          # UV needs to be replicated horizontally to match width: (height/2, width)
-          uv_expanded = np.tile(uv, (1, w // uv_w))
-          nv12_data = np.concatenate([y, uv_expanded], axis=0)
-          bgr = cv2.cvtColor(nv12_data, cv2.COLOR_YUV2BGR_NV12)
-        if dst_fmt.lower() == 'rgb':
-          return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        return bgr
+    if src_fmt.lower() == 'nv12':
+      if uv is None:
+        bgr = cv2.cvtColor(y, cv2.COLOR_GRAY2BGR)
+      else:
+        h, w = y.shape
+        uv_h, uv_w = uv.shape
+        uv_expanded = np.tile(uv, (1, w // uv_w))
+        nv12_data = np.concatenate([y, uv_expanded], axis=0)
+        bgr = cv2.cvtColor(nv12_data, cv2.COLOR_YUV2BGR_NV12)
+      if dst_fmt.lower() == 'rgb':
+        return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+      return bgr
 
-      logger.warning(f"Unsupported conversion: {src_fmt} → {dst_fmt}")
-      return y
-
-    # Hardware RGA (placeholder)
-    logger.debug("RGA: NV12→RGB conversion")
-    return inputs.get('src_y', np.zeros((480, 640), dtype=np.uint8))
+    logger.warning(f"Unsupported conversion: {src_fmt} → {dst_fmt}")
+    return y
 
   def _resize(self, inputs: dict[str, Any]) -> Any:
     """Image resize operation."""
+    import cv2
     import numpy as np
 
-    if self._use_opencv_fallback:
-      import cv2
-      src = inputs.get('input') if inputs.get('input') is not None else inputs.get('src')
-      width = inputs.get('width', 640)
-      height = inputs.get('height', 480)
-
-      if src is None:
-        return np.zeros((height, width, 3), dtype=np.uint8)
-
-      if not isinstance(src, np.ndarray):
-        src = np.array(src, dtype=np.uint8)
-
-      return cv2.resize(src, (width, height))
-
-    logger.debug(f"RGA: Resize to {inputs.get('width')}x{inputs.get('height')}")
     src = inputs.get('input') if inputs.get('input') is not None else inputs.get('src')
-    return src if isinstance(src, np.ndarray) else np.array(src)
+    width = inputs.get('width', 640)
+    height = inputs.get('height', 480)
+
+    if src is None:
+      return np.zeros((height, width, 3), dtype=np.uint8)
+
+    if not isinstance(src, np.ndarray):
+      src = np.array(src, dtype=np.uint8)
+
+    return cv2.resize(src, (width, height))
 
   def _crop(self, inputs: dict[str, Any]) -> Any:
     """Image crop operation."""
     import numpy as np
 
-    if self._use_opencv_fallback:
-      src = inputs.get('input')
-      x = inputs.get('x', 0)
-      y = inputs.get('y', 0)
-      width = inputs.get('width', 640)
-      height = inputs.get('height', 480)
-
-      if src is None:
-        return np.zeros((height, width, 3), dtype=np.uint8)
-
-      if not isinstance(src, np.ndarray):
-        src = np.array(src, dtype=np.uint8)
-
-      return src[y:y+height, x:x+width]
-
-    logger.debug(f"RGA: Crop {inputs.get('width')}x{inputs.get('height')} @ ({inputs.get('x')},{inputs.get('y')})")
     src = inputs.get('input')
-    return src if isinstance(src, np.ndarray) else np.array(src)
+    x = inputs.get('x', 0)
+    y = inputs.get('y', 0)
+    width = inputs.get('width', 640)
+    height = inputs.get('height', 480)
+
+    if src is None:
+      return np.zeros((height, width, 3), dtype=np.uint8)
+
+    if not isinstance(src, np.ndarray):
+      src = np.array(src, dtype=np.uint8)
+
+    return src[y:y+height, x:x+width]

@@ -6,8 +6,8 @@ export SIMULATION="1"
 export SKIP_FW_QUERY="1"
 # EOP: vehicled is Tesla-protocol, no fingerprinting needed
 
-# Block hardware daemons that cannot run on PC
-export BLOCK="${BLOCK},v4l2d,loggerd,encoderd,micd,spkd,logmessaged,socketd,inferenced,uvcd,wdgd,imud,pigeond,hardwared,thermald,bluetoothd,rtkd,mcapd"
+# Block hardware daemons that cannot run on PC (socketd runs in SIMULATION cereal-only mode)
+export BLOCK="${BLOCK},v4l2d,loggerd,encoderd,micd,spkd,logmessaged,inferenced,uvcd,wdgd,imud,pigeond,hardwared,thermald,bluetoothd,rtkd,mcapd"
 if [[ "$CI" ]]; then
   # TODO: offscreen UI should work
   export BLOCK="${BLOCK},ui"

@@ -186,14 +186,31 @@ class SurfaceRecord:
 class SurfaceQualityDB:
     """SQLite database for surface quality with active learning (EMA updates)."""
 
-    DB_PATH = Path("/data/shared/exopilot/surface.db")
+    DB_PATH: Path | None = None
     SCHEMA_VERSION = "1.0"
     GEOHASH_PRECISION = 7  # ~150m precision
     CACHE_SIZE = 128  # LRU cache size for lookups
     CACHE_TTL_SECONDS = 5.0  # Cache TTL for dynamic data
 
-    def __init__(self):
-        self.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    @classmethod
+    def _resolve_db_path(cls) -> Path:
+        if cls.DB_PATH is not None:
+            return cls.DB_PATH
+        from exopilot.system.hardware.paths import Paths
+        for root in (Paths.persist_root(), Paths.comma_home()):
+            candidate = Path(root) / "exopilot" / "surface.db"
+            try:
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                return candidate
+            except OSError:
+                continue
+        fallback = Path("/tmp/exopilot/surface.db")
+        fallback.parent.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+    def __init__(self, db_path: Path | None = None):
+        self.db_path = db_path if db_path is not None else self._resolve_db_path()
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.platform = self._detect_platform()
         self._conn: sqlite3.Connection | None = None
         self._init_schema()
@@ -203,7 +220,7 @@ class SurfaceQualityDB:
     def _get_conn(self) -> sqlite3.Connection:
         """Get or create persistent SQLite connection."""
         if self._conn is None:
-            self._conn = sqlite3.connect(self.DB_PATH)
+            self._conn = sqlite3.connect(self.db_path)
         return self._conn
 
     def close(self):

@@ -118,10 +118,11 @@ class RK3588Hardware(RockchipHardware):
 
     @staticmethod
     def detect() -> bool:
-        """Detect RK3588 hardware."""
+        """Detect RK3588 hardware (exact NUL-delimited device-tree compatible token)."""
         try:
             with open('/proc/device-tree/compatible') as f:
-                return 'rk3588' in f.read().lower()
+                tokens = {t.strip().lower() for t in f.read().split('\x00') if t.strip()}
+                return any(t in ('rockchip,rk3588', 'rockchip,rk3588s', 'rockchip,rk3588s2', 'rk3588', 'rk3588s', 'rk3588s2') for t in tokens)
         except OSError:
             return False
 

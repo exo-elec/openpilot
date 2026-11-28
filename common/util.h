@@ -41,14 +41,14 @@ const double METER_TO_FOOT = 3.28084;
 
 namespace util {
 
-// CPU Core Constants (RK3588)
-constexpr int BIG_CORES[] = {0, 1, 2, 3};      // A76 - Performance cores
-constexpr int LITTLE_CORES[] = {4, 5, 6, 7};   // A55 - Power efficient cores
+// CPU Core Constants (RK3588 / RK3576: CPUs 0-3 are A55 little, CPUs 4-7 are A76/A72 big)
+constexpr int LITTLE_CORES[] = {0, 1, 2, 3};   // A55 - Power efficient cores
+constexpr int BIG_CORES[] = {4, 5, 6, 7};      // A76/A72 - Performance cores
 
 // Core type enum for simple allocation
 enum class CoreType {
-  BIG,    // A76 cores (0-3)
-  LITTLE  // A55 cores (4-7)
+  BIG,    // A76/A72 cores (4-7)
+  LITTLE  // A55 cores (0-3)
 };
 
 void set_thread_name(const char* name);

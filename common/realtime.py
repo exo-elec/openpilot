@@ -16,13 +16,11 @@ DT_MDL = 0.05  # model
 DT_HW = 0.5  # hardwared and manager
 DT_DMON = 0.05  # driver monitoring
 
-# 4 big + 4 little CPU cores — same topology on both supported platforms:
-# RK3588: 4x A76 + 4x A55; RK3576: 4x A72 + 4x A55.
-# Core *indices* are identical across both; only the big-core microarchitecture
-# differs, which doesn't affect affinity assignment. Not yet verified against
-# real RK3576 hardware — see docs/eop/RK3576_02M_SUPPORT.md.
-BIG_CORES = [0, 1, 2, 3]      # board-specific big CPU cores
-LITTLE_CORES = [4, 5, 6, 7]   # A55 - power efficient
+# 4 little + 4 big CPU cores — same topology on both supported Rockchip SoCs:
+# RK3588: 4x Cortex-A55 (0..3) + 4x Cortex-A76 (4..7);
+# RK3576: 4x Cortex-A55 (0..3) + 4x Cortex-A72 (4..7).
+LITTLE_CORES = [0, 1, 2, 3]   # A55 - power efficient
+BIG_CORES = [4, 5, 6, 7]      # A76 (RK3588) / A72 (RK3576) - performance cores
 
 # Core type constants for simple allocation
 CORE_BIG = "big"       # Use big cores

@@ -99,6 +99,7 @@ _OBSTACLE_TYPES = {
     'motorcycle': 'motorcycle', 'bicycle': 'motorcycle',
     'person': 'person',
     'traffic light': 'trafficLight',
+    'trafficlight': 'trafficLight',
 }
 
 
@@ -365,45 +366,51 @@ class GridD:
         if model_v2 is None:
             return fused_objects
 
-        # Extract leads from modelV2 (drive_vision output)
-        if hasattr(model_v2, 'leads'):
-            for lead in model_v2.leads:
-                if not lead.status:
-                    continue
+        # Extract leads from modelV2 (leadsV3 is populated by fill_model_msg; fall back to legacy leads if absent)
+        leads_v3 = getattr(model_v2, 'leadsV3', None) or ()
+        if len(leads_v3) > 0:
+            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0))) for lead in leads_v3 if float(getattr(lead, 'prob', 0.0)) > 0.5]
+        elif hasattr(model_v2, 'leads'):
+            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0))) for lead in model_v2.leads if getattr(lead, 'status', False)]
+        else:
+            raw_leads = []
 
-                x = lead.x[0]  # forward (m)
-                y = lead.y[0]  # lateral (m), calibrated frame: right positive
-                v = lead.v[0]  # velocity (m/s)
-                prob = lead.prob
+        for lead, prob in raw_leads:
+            if not len(lead.x) or not len(lead.y) or not len(lead.v):
+                continue
 
-                # Validate with stereo depth
-                confidence = prob
-                if xyz_points is not None and len(xyz_points) > 0:
-                    dists = np.sqrt(
-                        (xyz_points[:, 2] - x)**2 +
-                        (xyz_points[:, 0] - y)**2  # stereo X and model y both point right
-                    )
-                    close_mask = dists < 3.0
+            x = lead.x[0]  # forward (m)
+            y = lead.y[0]  # lateral (m), calibrated frame: right positive
+            v = lead.v[0]  # velocity (m/s)
 
-                    if np.any(close_mask):
-                        stereo_x = np.median(xyz_points[close_mask, 2])
-                        if abs(stereo_x - x) < 5.0:
-                            x = 0.6 * stereo_x + 0.4 * x
-                            confidence = min(prob * 1.2, 1.0)
-                        else:
-                            confidence = prob * 0.7
+            # Validate with stereo depth
+            confidence = prob
+            if xyz_points is not None and len(xyz_points) > 0:
+                dists = np.sqrt(
+                    (xyz_points[:, 2] - x)**2 +
+                    (xyz_points[:, 0] - y)**2  # stereo X and model y both point right
+                )
+                close_mask = dists < 3.0
 
-                fused_objects.append({
-                    'dRel': float(x),
-                    'yRel': float(-y),
-                    'vRel': float(v),
-                    'obstacleType': 'lead',
-                    'confidence': float(confidence),
-                    'trackId': 0,
-                    'source': 'drive_vision',
-                    'width': 1.8,
-                    'height': 1.5,
-                })
+                if np.any(close_mask):
+                    stereo_x = np.median(xyz_points[close_mask, 2])
+                    if abs(stereo_x - x) < 5.0:
+                        x = 0.6 * stereo_x + 0.4 * x
+                        confidence = min(prob * 1.2, 1.0)
+                    else:
+                        confidence = prob * 0.7
+
+            fused_objects.append({
+                'dRel': float(x),
+                'yRel': float(-y),
+                'vRel': float(v),
+                'obstacleType': 'lead',
+                'confidence': float(confidence),
+                'trackId': 0,
+                'source': 'drive_vision',
+                'width': 1.8,
+                'height': 1.5,
+            })
 
         return fused_objects
 

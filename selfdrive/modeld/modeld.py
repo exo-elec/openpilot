@@ -617,7 +617,7 @@ def main(demo=False) -> int:
                 r_lane_change_prob = desire_state[log.Desire.laneChangeRight]
                 lane_change_prob = l_lane_change_prob + r_lane_change_prob
                 bsa = sm['blindSpotAlert'] if sm.valid.get('blindSpotAlert') else None
-                mdl_v2 = sm['modelV2'] if sm.valid.get('modelV2') else None
+                mdl_v2 = modelv2_send.modelV2
                 DH.update(sm['carState'], sm['carControl'].latActive, lane_change_prob,
                           model_v2=mdl_v2, blind_spot_alert=bsa)
                 modelv2_send.modelV2.meta.laneChangeState = DH.lane_change_state

@@ -68,10 +68,11 @@ class RK3576Hardware(RockchipHardware):
 
     @staticmethod
     def detect() -> bool:
-        """Detect RK3576 hardware."""
+        """Detect RK3576 hardware (exact NUL-delimited device-tree compatible token)."""
         try:
             with open('/proc/device-tree/compatible') as f:
-                return 'rk3576' in f.read().lower()
+                tokens = {t.strip().lower() for t in f.read().split('\x00') if t.strip()}
+                return any(t in ('rockchip,rk3576', 'rk3576') for t in tokens)
         except OSError:
             return False
 

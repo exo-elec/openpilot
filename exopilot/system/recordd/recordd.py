@@ -792,6 +792,12 @@ class VideoEncoder:
                 cloudlog.warning(f"FFmpeg encoder stop error: {e}")
                 self._process.kill()
             finally:
+                for stream in (self._process.stdin, self._process.stdout, self._process.stderr):
+                    if stream is not None and not stream.closed:
+                        try:
+                            stream.close()
+                        except Exception:
+                            pass
                 self._process = None
         return duration
 

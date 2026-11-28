@@ -102,7 +102,22 @@ public:
     if (platform && std::string(platform) == name) {
       return true;
     }
-    return deviceTreeCompatible().find(name) != std::string::npos;
+    const std::string &compat = deviceTreeCompatible();
+    const std::string target = name;
+    const std::string vendor_target = std::string("rockchip,") + name;
+    size_t pos = 0;
+    while (pos < compat.size()) {
+      size_t end = compat.find('\0', pos);
+      if (end == std::string::npos) end = compat.size();
+      std::string token = compat.substr(pos, end - pos);
+      if (token == target || token == vendor_target ||
+          (target == "rk3588" && (token == "rockchip,rk3588s" || token == "rockchip,rk3588s2" ||
+                                  token == "rk3588s" || token == "rk3588s2"))) {
+        return true;
+      }
+      pos = end + 1;
+    }
+    return false;
   }
 
   static const std::string &deviceTreeCompatible() {
