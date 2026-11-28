@@ -12,6 +12,8 @@ Guidance for Claude Code when working on this openpilot fork.
   EOP10 and 01M target RK3588 at 1024×600, 02M targets RK3576 at 1600×600.
   The Python (PyQt5) UI stays in the tree only as the design reference for
   the C++ port until it is removed (`docs/eop/REFACTOR_CLEANUP_TASKS.md` Phase 6).
+  PyQt5 was dropped on 2026-11-09: no aarch64 wheel, and the on-board build runs
+  out of memory.
   Board pin maps, camera paths and bring-up data remain board-specific HAL
   data. See `docs/eop/SHARED_PIPELINE.md`.
 - **Suffix = RAM**: L=4GB / M=8GB / H=16GB
@@ -20,6 +22,16 @@ Guidance for Claude Code when working on this openpilot fork.
   for every camera; object detection (YOLOv8) and the driving model stay on
   RKNN — see New Features below
 - **Status**: In development — dev PC testing phase (not hardware-deployed)
+
+## Sibling repos (development checkouts)
+
+Cloned over SSH from `exo-elec`, outside `~/Pilot`:
+
+| Path | Repo | Purpose |
+|------|------|---------|
+| `~/Panda/TC275_BrownPanda` | `exo-elec/TC275_BrownPanda` | BrownPanda TC275 firmware (CAN/GPIO) |
+| `~/Radar/IWRx843_RADAR` | `exo-elec/IWRx843_RADAR` | IWRx843 radar firmware |
+| `~/Radar/IWRx843_HOST` | `exo-elec/IWRx843_HOST` | IWRx843 host-side code |
 
 ## Prerequisites (on real hardware)
 
