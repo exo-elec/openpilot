@@ -317,3 +317,12 @@ tests still pass unchanged after promoting `DEFAULT_ENTER_THRESHOLD` to a
 module constant. The identical gate was implemented on `dev/EOP10`
 (`dlat.py`, `desire_helper.py`) the same day — see that branch's
 `docs/eop/03_Software/Controllers/DLAT.md` §11.
+
+---
+
+## 2026-11-28 Safety, Simulation & Loop Verification Log
+
+- **TLSC P0 red-light fix (`tlsc.py`, `map_speed.py`, `longitudinal_planner.py`)**: replaced `TLSC_MIN_DIST = 3.0 m` dropout with `TLSC_STOP_BUFFER = 3.0 m` (holds `0.0 m/s` for `d <= 3.0 m`), immediate clear on confirmed green light or gas override, and a CarrotPilot/FrogPilot-pattern stationary virtual stop-line lead into `LongitudinalMpc` when no real lead is present. Verified full stop before stop line and green-light release in both kinematic closed-loop (`test_ngp10_regressions.py`) and MetaDrive 3D physics (`test_ngp10_metadrive_loop.py`).
+- **TinygradModel `float16` fix (`exopilot/selfdrive/modeld/tinygrad_model.py`)**: cast compiled output to `np.float32` so real `driving_vision.onnx` / `driving_policy.onnx` float16 tensors do not crash `fill_model_msg.py:47` (`np.linalg.lstsq`) on frame #1.
+- **BRSC & LongitudinalPlanner fixes (`brsc.py`, `longitudinal_planner.py`)**: aligned `brsc.py` with `EDP10`'s `math.isfinite` fail-safe guards, fixed vertical accelerometer axis to comma-3/locationd `-v[0]` (rejecting longitudinal `v[2]`), added IMU-dropout hold reset, fixed double low-speed acceleration clamping (`_apply_adaptive_accel_limit` now applies to `profile_limit` before `min(..., longitudinal_accel_max)`), fixed brake-release jerk-up clamp (never throttles releasing brakes toward `0.0`), and added `Plant` plain-dict `sm` compatibility across `longitudinal_planner.py`, `dlon.py`, `map_speed.py`, `cutin_adapter.py`, and `rule_channel.py` (restoring 62/62 `test_longitudinal.py` + 18/18 `test_following_distance.py`).
+- **Simulation & test hygiene (`simulated_sensors.py`, `modeld.py`, tests)**: dropped duplicate `driverMonitoringState` publisher from `SimulatedSensors` so `driveractivityd` owns it in MetaDrive sim without `MultiplePublishersError`; changed `modeld.py` `DEV` assignment to `setdefault`; fixed `test_longitudinal_planner_adaptive_accel.py` import and prevented `test_desire_helper_lane_confidence.py` / `test_tripd.py` from clobbering real `cereal`/`params_pyx`/`msgq` in `sys.modules`.
