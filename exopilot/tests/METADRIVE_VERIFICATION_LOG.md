@@ -2,9 +2,24 @@
 
 - **Branch**: `dev/NGP10`
 - **Date**: 2026-11-28
-- **Test Script**: `exopilot/tests/test_ngp10_metadrive_loop.py`
-- **Host / Simulator**: Linux WSL2 (AMD Ryzen 7 7840HS + NVIDIA RTX 4050 EGL + PoCL OpenCL CPU), Python 3.12.14, MetaDrive `0.4.2.4`, `pytest 9.2.0`
-- **Result**: **3 / 3 MetaDrive suites PASSED (38.9 s)** + **765 passed, 4 skipped host unit/boundary tests (14.62 s)**
+- **Test Scripts**: `exopilot/tests/test_ngp10_metadrive_loop.py`, `exopilot/tests/test_bigmodel_navpilot_jetlink_metadrive_loop.py`
+- **Host / Simulator**: Linux WSL2 (AMD Ryzen 7 7840HS + NVIDIA RTX 4050 EGL + PoCL OpenCL CPU), Python 3.12.14, Dart 3.13.4 / Flutter 3.47.5, MetaDrive `0.4.2.4`, `pytest 9.2.0`
+- **Result**: **3 / 3 NGP10 MetaDrive suites PASSED (38.9 s)** + **4 / 4 Cross-Repo Big-Model / NavPilot Dart / PLP v5 / JetLink v3 MetaDrive suites PASSED (31.66 s)** + **306/306 bigmodel/PLP/boundary + 765 host unit tests PASSED**
+
+## Real Product Bugs Exposed & Fixed During Cross-Repo Big-Model Verification
+
+1. **`exopilot/selfdrive/modeld/bigmodel/metadata.py:13` (`BigModelHook.prepare()` always failed on hardware)**:
+   - `MODELS_DIR` used `parents[2]` (stale after relocation under `exopilot/selfdrive/modeld/bigmodel/`), resolving to `exopilot/selfdrive/selfdrive/modeld/models` instead of `selfdrive/modeld/models`. Fixed to `parents[4]`.
+2. **`exopilot/selfdrive/modeld/bigmodel/server_ref.py` (`OnnxBackend` crashed on real `float16` policy ONNX models)**:
+   - `OnnxBackend.run_policy()` passed `float32` tensors to real `driving_policy.onnx` / `big_driving_policy.onnx` (`tensor(float16)`), raising `ONNXRuntimeError: INVALID_ARGUMENT` on frame 1. Fixed to cast inputs to each ONNX session's declared tensor dtypes.
+3. **`exopilot/selfdrive/modeld/bigmodel/server_ref.py` (`dial()` dropped idle TCP connections every 2 s)**:
+   - `socket.create_connection((host, port), timeout=2.0)` left the 2 s read timeout on the socket passed to `server.serve(conn)`, killing idle dialed links before `Joining`'s `KEEPALIVE_PERIOD = 10 s`. Fixed with `conn.settimeout(None)`.
+4. **`exopilot/selfdrive/modeld/bigmodel/remote_state.py` (real `Parser.softmax()` crashed on frame 1)**:
+   - `np.frombuffer(resp.out, np.float32)` returned a read-only view, causing openpilot's real `Parser.softmax()` (`x -= np.max(...)`) to raise `ValueError: output array is read-only` and immediately demote to the small model. Fixed with `.copy()` in both `RemoteModelState._take()` and `RemoteSpecModelState._take()`.
+5. **`exopilot/selfdrive/modeld/bigmodel/joining.py` (socket fd leak on shutdown after demotion)**:
+   - `Joining.close()` did not drain/close `self._retired`. Fixed to close `_retired` under `self._lock`.
+6. **`exopilot/selfdrive/monod/monod.py:29` (stale `MODEL_PKL` path after relocation)**:
+   - Updated `parents[2]` -> `parents[3]` so `MODEL_PKL` points to `selfdrive/modeld/models/yolo_detector_tinygrad.pkl`.
 
 ## Scenario-by-Scenario Test Design & Measured Telemetry
 
@@ -18,6 +33,10 @@
 | 6 | `test_ngp10_metadrive_3d_traffic_mtsc_rcsc_tja_red_alcc_cat_lca_and_notices`<br>**MTSC -> VTSC Handover (`blend_mtsc_vtsc`) + 3 s Expiry + RCSC Wet Slowdown** | Cruise `17.5 m/s`: 1 Hz `mapdExtendedOut` `R=55 m` curve at `240 m` overlapped with vision `R=55 m` curvature (steps 60..109), then silence `> 3 s`. Next feed `surfaceStatus` wet score `0.55` -> dry `0.05` (`RCSCEnabled=True`). | Overlap handover active; MTSC expires cleanly after `> 3 s`; RCSC steps immediately to `12.0 m/s` (no legacy `0.3 m/s` filter dip), slows MetaDrive car, and recovers on dry road. | `mtsc: 17.51 -> 6.67 -> 13.79 m/s`, `handover=True`, `rcsc: 13.79 -> 9.23 -> 14.72 m/s` | **PASS** |
 | 7 | `test_ngp10_metadrive_3d_traffic_mtsc_rcsc_tja_red_alcc_cat_lca_and_notices`<br>**Real 3D Lead ACC Stop-and-Go + `GreenLightNotice` + 3D `LeadDepartureNotice` + 3D TJA + `MonoD CutInSpeed` + `PathD/DPP` (`SUPERVISE` & `PRIMARY_LAT`)** | Real 3D `DefaultVehicle` lead (`48 m`) brakes `11 -> 0 m/s` then departs `0 -> 6 m/s`; two real 3D vehicles (crawl lead + adjacent-lane `cutin_car` merging into ego lane) feeding `TJA` & `MonoD CutInSpeed`; `RuleChannelConsumer` in `SUPERVISE` and `PRIMARY_LAT` + driver override. | Safe 3D stop (`min_gap > 2 m`, `v < 0.4 m/s`); `GreenLightNotice` & 3D `LeadDepartureNotice` fire cleanly; `TJA` clamps accel & `CutInSpeed` brakes for 3D cut-in; `DPP PRIMARY_LAT` smoothly ramps curvature and yields to policy on override. | `min_gap=8.00 m`, `v_stop=0.17 m/s`, `gln=True`, `ld=True`, `tja_cutin=True`, `cutin_braked=True`, `dpp_curv=0.0026` | **PASS** |
 | 8 | `test_ngp10_metadrive_3d_traffic_mtsc_rcsc_tja_red_alcc_cat_lca_and_notices`<br>**ALCC (3 BrakeModes) + RED (Warning/Critical Override) + BlinkerPause/Ramp + CAT + DesireHelper/TurnDesire + 3D `LCAdjacentLeadHandoff` + 3D `SOC`** | Exercise `ALCC` `MAINTAIN` / `PAUSE` / `DISENGAGE`+re-arm + override; `RED` right edge `0.75 m` (`WARNING`) & `0.25 m` (`CRITICAL` path shift); `CAT` `SteerRatioFilter` (35 ticks + manual SR); `BlinkerPause` + `SteeringResumeRamp`; `DesireHelper` blindspot & `TurnDesire`; real 3D adjacent-lane car (`22 m` ahead at `6 m/s`) driving `LCAdjacentLeadHandoff` and highway `SOC` offset. | All 3 ALCC brake modes & override exact; RED nudges left (`+curv`) & shifts path `-y`; CAT adapts smoothly; 3D adjacent car slows ego during `laneChangeStarting` (`>= 2.5 m/s`) and triggers bounded away-from-threat `SOC` offset. | `alcc_modes=3/3`, `red_nudge=+0.00006`, `cat_sr=14.71`, `3d_lc_handoff: 15.01 -> 8.94 m/s`, `3d_soc=+0.015 m` | **PASS** |
+| 9 | `test_metadrive_3d_real_onnx_bigmodel_and_one_way_unplug_fallback`<br>**Real `big_driving_{vision,policy}.onnx` over TCP (`server_ref.dial` -> `Listener` -> `Client` -> `RemoteModelState` -> `Joining` -> `BigModelFacade(ONE_WAY)` -> `BigModelGate` -> `Parser`)** | Dual-camera (`RGBCameraRoad` + `RGBCameraWide`) MetaDrive 3D `R=60 m` curve track; real 46.3 MB + 12.3 MB ONNX server dials comma listener over TCP; drives past `PROVING_FRAMES=20`; forcibly closes phone socket mid-drive while engaged with server still redialing. | Warm-up on local small ONNX (`3` frames) -> swap to phone big model (`BigModelLoading` clears after 20 proving frames, `BigModelActive=True`) -> finite 33-pt plan; mid-drive unplug triggers immediate fallback, `BigModelGate` `soft_disable=True` + 5 s settling, car stays on-lane, and `ONE_WAY` locks out onroad rejoin. | `big_frames=28`, `post_fallback_small=15`, `p50=34.4 ms`, `p99=94.0 ms`, `server_avg=32.0 ms`, `max_lat_err=0.001 m`, `soft_disable=True`, `one_way_locked=True` | **PASS** |
+| 10 | `test_metadrive_3d_navpilot_dart_npbm_live_tcp_loop`<br>**Live NavPilot Dart VM NPBM Server (`navpilot/packages/npbm/tool/serve_stub.dart dial`) in MetaDrive 3D** | Spawn real Dart VM phone server dialing openpilot `Listener` over TCP; stream 12 live MetaDrive 3D dual-camera `(2,6,128,256)` uint8 frames; compare against Python `server_ref.step` bit-for-bit; `SIGKILL` Dart process mid-drive. | Real Dart server completes `NPBM v1` `HELLO`, returns bit-exact vision+policy tensors (`np.array_equal`), and `SIGKILL` immediately hands back to local small model with zero leaked sockets. | `dart_frames=12`, `bit_exact=True`, `p50=6.0 ms`, `p99=11.9 ms`, `server_avg=3.7 ms`, `fallback_on_sigkill=True` | **PASS** |
+| 11 | `test_metadrive_3d_navpilot_dart_plp_v5_locate_and_horizon_loop`<br>**Live NavPilot Dart VM PLP v5 (`PlpTcpLink`) -> openpilot `plpd` (`CablePLP` + `LocateSink`) -> MetaDrive 3D `MTSC`** | Spawn real Dart client importing `package:plp/plp_tcp.dart` dialing openpilot `plpd` over TCP; send live MetaDrive 3D GNSS fix + `264 m` `R=60 m` curve `MapHorizon`; extract curvature from decoded `HorizonTracker` and drive `MTSC` closed-loop in MetaDrive 3D. | PLP v5 negotiates `maxPayload=16384` + `locate`; `LocateSink` decodes GNSS within `1e-6 deg` & curve `peak_kappa ~ 0.0167`; `MTSC` decelerates MetaDrive car into curve. | `mtu=16384`, `peak_kappa=0.0167`, `mtsc_target=10.39 m/s`, `v_ego=16.09 -> 10.39 m/s` | **PASS** |
+| 12 | `test_metadrive_3d_jetlink_v3_protocol_and_transport_loop`<br>**Live `jetlink` v3 (`MAGIC='JLNK'`, `VERSION=3`, `TcpTransport`, `JetlinkClient`, `ModelSpec`) in MetaDrive 3D** | Real `jetlink` v3 TCP server & `JetlinkClient` streaming 15 live evolving MetaDrive 3D dual-camera frames (`393,216 B/frame`) with `RESET_QUEUES` on frame 1, hidden-state zero-fill check, `LEAVE_LOST`, and peer socket drop. | `HELLO` v3 succeeds; 15 frames round-trip with exact pixel means and zero-filled server-held `hidden_state`; `LEAVE_LOST` received; peer close raises `LinkError` and marks `client.dead=True`. | `frames=15`, `resets=1`, `p50=0.91 ms`, `max=1.44 ms`, `frame_mean_span=136.63..136.72`, `leave=lost` | **PASS** |
 
 ## Reproducer Command
 
@@ -27,6 +46,6 @@ export DISPLAY=:0
 export OCL_ICD_VENDORS=/home/vcar/exo-sim/pocl/etc/OpenCL/vendors
 export PYOPENCL_CTX=0
 export PYTHONPATH=$(pwd)
-pytest -n 0 -v -s exopilot/tests/test_ngp10_metadrive_loop.py
-pytest -q --ignore=exopilot/tests/test_ngp10_metadrive_loop.py exopilot/tests/
+pytest -n 0 -v -s exopilot/tests/test_ngp10_metadrive_loop.py exopilot/tests/test_bigmodel_navpilot_jetlink_metadrive_loop.py
+pytest -q --ignore=exopilot/tests/test_ngp10_metadrive_loop.py --ignore=exopilot/tests/test_bigmodel_navpilot_jetlink_metadrive_loop.py exopilot/tests/
 ```
