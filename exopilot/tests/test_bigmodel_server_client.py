@@ -246,3 +246,34 @@ def test_the_listener_waits_for_the_cable_interface_to_exist():
   time.sleep(0.2)
   assert not l.bound and l.take(0.05) is None
   l.close()
+
+
+def test_dial_survives_idle_poll_and_stops_cleanly_on_stop_event():
+  import threading
+  from exopilot.selfdrive.modeld.bigmodel.listener import Listener
+
+  listener = Listener('127.0.0.1', 0).start()
+  deadline = time.monotonic() + 10
+  while not listener.bound and time.monotonic() < deadline:
+    time.sleep(0.01)
+  assert listener.bound
+  stop = threading.Event()
+  t = threading.Thread(target=S.dial, args=(S.StubBackend(), '127.0.0.1', listener.port), kwargs=dict(retry=0.05, stop=stop), daemon=True)
+  t.start()
+  try:
+    sock = listener.take(5.0)
+    assert sock is not None
+    with Client(sock=sock) as c:
+      assert c.connect().model == 'stub'
+      # Stay idle past the 0.5 s recv poll window: link must remain open and serve frames.
+      time.sleep(0.65)
+      assert infer(c, 1, 7).status == P.OK
+      # Setting stop while client holds the idle socket open must exit dial() promptly without hanging.
+      t0 = time.monotonic()
+      stop.set()
+      t.join(timeout=2.0)
+      assert not t.is_alive(), 'dial() ignored stop while idle in recv()'
+      assert time.monotonic() - t0 < 1.5
+  finally:
+    stop.set()
+    listener.close()

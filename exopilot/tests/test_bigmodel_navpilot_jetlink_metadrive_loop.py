@@ -6,7 +6,9 @@ and vehicle physics:
      dialing openpilot's Listener -> Client -> RemoteModelState -> Joining -> BigModelFacade(ONE_WAY)
      + BigModelGate + Parser in MetaDrive 3D:
        - Warm-up on local small model -> swap to remote phone big model -> prove past PROVING_FRAMES
-         (BigModelLoading True -> False, BigModelActive True) -> closed-loop MetaDrive 3D curve drive
+         (BigModelLoading True -> False, BigModelActive True) -> live MetaDrive 3D curve drive (lane-keeper
+         tracks the curve with bounded 0.04 blend from the live parsed ONNX (33, 15) plan, because MetaDrive
+         supplies resized RGB rather than comma's exact calibrated OpenCL warp homography)
        - Mid-drive USB cable unplug fault injection -> immediate hand-back to local small model,
          BigModelGate emits bigModelFailed + soft-disable + 5s settling window, vehicle stays safely
          on-lane, and ONE_WAY policy refuses re-join onroad even if the server redials.

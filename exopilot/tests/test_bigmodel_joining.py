@@ -292,3 +292,62 @@ def test_reads_follow_the_model_that_drives():
   assert j._big.lat_delay == 0.3 and j.test.small.lat_delay == 0.3
   with pytest.raises(AttributeError):
     _ = j._nothing
+
+
+def test_close_after_demote_leaves_retired_to_background_thread_without_rt_leave():
+  import threading
+  import time
+
+  leave_threads = []
+
+  class TrackingClient(Client):
+    def leave(self, reason, **stats):
+      leave_threads.append(threading.current_thread().ident)
+      super().leave(reason, **stats)
+
+  connected = threading.Event()
+  clients = []
+
+  def connect():
+    c = TrackingClient()
+    clients.append(c)
+    connected.set()
+    return c, object()
+
+  holder = {}
+
+  def build(c, i):
+    holder['big'] = Big(c)
+    return holder['big']
+
+  j = J.Joining(Small(), connect, build, log=Log(), in_control=lambda: False, start=True)
+  try:
+    assert connected.wait(2.0)
+    deadline = time.monotonic() + 2.0
+    while j.big_model_state != 'ready' and time.monotonic() < deadline:
+      time.sleep(0.01)
+    warm(j)
+    assert frame(j) == 'big'
+    holder['big'].behind = 'lag'
+    assert frame(j) == 'big'
+    # Frame thread demotes then immediately calls close() (as BigModelFacade ONE_WAY._give_up does).
+    assert frame(j) == 'small'
+    main_tid = threading.current_thread().ident
+    j.close()
+    assert main_tid not in leave_threads, 'Joining.close() must not send LEAVE on the realtime frame thread'
+    j._thread.join(timeout=2.0)
+    assert not j._thread.is_alive()
+    assert clients[0].left and clients[0].left[0][0] == P.LEAVE_BEHIND
+    assert clients[0].closed == 1
+  finally:
+    j.close()
+
+
+def test_close_without_live_join_thread_still_closes_retired_nonblockingly():
+  j = make(build=lambda c, i: Big(c, fail=True))
+  join(j)
+  warm(j)
+  assert frame(j) == 'small'
+  c = j.test.clients[0]
+  j.close()
+  assert c.closed == 1 and c.left == []
