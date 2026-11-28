@@ -72,41 +72,17 @@ class AEM:
         self._lead_absence_frames = 0
         self.personality = log.LongitudinalPersonality.standard
 
-        # --- Calculate alpha values from time constants (tau) ---
-        def get_alpha(tau, dt):
-            """Calculates EMA alpha from time constant and time step."""
-            # Ensure tau > 0 to avoid division by zero if dt=0 somehow
-            # Also handle potential case where dt is zero
-            return dt / (tau + dt) if tau > 1e-5 and dt > 1e-5 else 1.0 # Default to alpha=1 (no filtering) if tau or dt is invalid/zero
+        # --- Initialize EMA Filters using time constants (rc in seconds) ---
+        self._v_ego_ema = FirstOrderFilter(0.0, AEM.EMA_TC_V_EGO, DT_MDL)
+        self._lead_drel_ema = FirstOrderFilter(AEM.LEAD_DIST_DEFAULT_NO_LEAD, AEM.EMA_TC_LEAD_DREL, DT_MDL)
+        self._lead_v_ema = FirstOrderFilter(0.0, AEM.EMA_TC_LEAD_V_ABS, DT_MDL)
+        self._lead_alead_ema = FirstOrderFilter(0.0, AEM.EMA_TC_LEAD_ALEAD, DT_MDL)
+        self._steering_angle_abs_ema = FirstOrderFilter(0.0, AEM.EMA_TC_STEERING_ANGLE_ABS, DT_MDL)
 
-        alpha_v_ego = get_alpha(AEM.EMA_TC_V_EGO, DT_MDL)
-        alpha_lead_drel = get_alpha(AEM.EMA_TC_LEAD_DREL, DT_MDL)
-        alpha_lead_v_abs = get_alpha(AEM.EMA_TC_LEAD_V_ABS, DT_MDL)
-        alpha_lead_alead = get_alpha(AEM.EMA_TC_LEAD_ALEAD, DT_MDL)
-        alpha_steering_angle_abs = get_alpha(AEM.EMA_TC_STEERING_ANGLE_ABS, DT_MDL)
-        alpha_v_model_error = get_alpha(AEM.EMA_TC_V_MODEL_ERROR, DT_MDL)
-
-        # --- Initialize EMA Filters using alpha ---
-        # Ensure FirstOrderFilter takes 'alpha' as keyword arg
-        try:
-            self._v_ego_ema = FirstOrderFilter(0.0, alpha=alpha_v_ego, dt=DT_MDL)
-            self._lead_drel_ema = FirstOrderFilter(AEM.LEAD_DIST_DEFAULT_NO_LEAD, alpha=alpha_lead_drel, dt=DT_MDL)
-            self._lead_v_ema = FirstOrderFilter(0.0, alpha=alpha_lead_v_abs, dt=DT_MDL) # Filters absolute V_lead
-            self._lead_alead_ema = FirstOrderFilter(0.0, alpha=alpha_lead_alead, dt=DT_MDL)
-            self._steering_angle_abs_ema = FirstOrderFilter(0.0, alpha=alpha_steering_angle_abs, dt=DT_MDL)
-            # self._v_model_error_ema = FirstOrderFilter(0.0, alpha=alpha_v_model_error, dt=DT_MDL)
-        except TypeError:
-            # Fallback if the specific FirstOrderFilter expects positional args differently
-            print("Warning: FirstOrderFilter init failed with keyword 'alpha', attempting positional.")
-            self._v_ego_ema = FirstOrderFilter(0.0, alpha_v_ego, DT_MDL)
-            self._lead_drel_ema = FirstOrderFilter(AEM.LEAD_DIST_DEFAULT_NO_LEAD, alpha_lead_drel, DT_MDL)
-            self._lead_v_ema = FirstOrderFilter(0.0, alpha_lead_v_abs, DT_MDL)
-            self._lead_alead_ema = FirstOrderFilter(0.0, alpha_lead_alead, DT_MDL)
-            self._steering_angle_abs_ema = FirstOrderFilter(0.0, alpha_steering_angle_abs, DT_MDL)
-            # self._v_model_error_ema = FirstOrderFilter(0.0, alpha_v_model_error, DT_MDL)
-
-
-        self._log(f"AEM Initialized. Alphas: v_ego={alpha_v_ego:.3f}, dRel={alpha_lead_drel:.3f}, vLead={alpha_lead_v_abs:.3f}, aLead={alpha_lead_alead:.3f}, steer={alpha_steering_angle_abs:.3f}, v_err={alpha_v_model_error:.3f}")
+        self._log(
+            f"AEM Initialized. Alphas: v_ego={self._v_ego_ema.alpha:.3f}, dRel={self._lead_drel_ema.alpha:.3f}, "
+            f"vLead={self._lead_v_ema.alpha:.3f}, aLead={self._lead_alead_ema.alpha:.3f}, steer={self._steering_angle_abs_ema.alpha:.3f}"
+        )
 
     def _log(self, msg: str):
         """Logs debug messages if debug is enabled."""
