@@ -11,7 +11,7 @@ Adapters only; the policy of every decision lives in exopilot/selfdrive/controls
 import math
 from dataclasses import dataclass
 
-from exopilot.selfdrive.controls.lib.cutin_speed import CutInSpeed, Obj, PlannedPath, evaluate
+from exopilot.selfdrive.controls.lib.cutin_speed import Obj, PlannedPath, evaluate
 from exopilot.selfdrive.controls.lib.dpp import DPP, Situation
 from exopilot.selfdrive.controls.lib.path_selector import LONG_WINDOW_M, PObj
 from exopilot.selfdrive.controls.lib.policy_arbiter import Mode, PolicyArbiter
@@ -133,7 +133,11 @@ class RuleChannelConsumer:
 
 
 def _fresh(sm) -> bool:
-  return bool(sm.alive.get('pathAdjust', False) and sm.valid.get('pathAdjust', False))
+  alive = getattr(sm, 'alive', None)
+  valid = getattr(sm, 'valid', None)
+  if alive is None or valid is None:
+    return 'pathAdjust' in sm
+  return bool(alive.get('pathAdjust', False) and valid.get('pathAdjust', False))
 
 
 def apply_curvature(consumer: RuleChannelConsumer, sm, policy_curv: float, lat_active: bool, driver_override: bool, dt: float) -> float:

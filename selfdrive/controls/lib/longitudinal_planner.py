@@ -40,6 +40,7 @@ from exopilot.selfdrive.controls.lib.cutin_speed import CutInSpeed
 from exopilot.selfdrive.controls.lib.pathd_consumer import speed_cap
 from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_objects, cutin_path
 from exopilot.selfdrive.controls.lib.map_speed import MapSpeed
+from exopilot.selfdrive.controls.lib.tlsc import TLSC_STOP_BUFFER
 from exopilot.selfdrive.controls.lib.rule_channel import RuleChannelConsumer, apply_accel
 # Lane Change Lead Handoff: pure-camera adjacent-lane lead tracking during
 # laneChangeStarting. See exopilot/selfdrive/controls/lib/lc_lead_handoff.py.
@@ -70,6 +71,16 @@ class FeatureFlags:
 # BRSC: only applies above walking speed and never cuts speed below a floor.
 BRSC_MIN_V_EGO = 5.0        # m/s — below this, don't apply the speed cut
 BRSC_MIN_SPEED_MS = 8.3     # m/s (~30 km/h) — never cut speed below this floor
+
+
+def _sm_valid(sm, service: str) -> bool:
+  valid = getattr(sm, 'valid', None)
+  return bool(valid.get(service, False)) if valid is not None else (service in sm)
+
+
+def _sm_alive(sm, service: str) -> bool:
+  alive = getattr(sm, 'alive', None)
+  return bool(alive.get(service, False)) if alive is not None else (service in sm)
 
 
 def get_max_accel(v_ego):
@@ -181,9 +192,15 @@ class LongitudinalPlanner:
     # result.accel_max double as the [0-1] accel-scale fraction directly, matching
     # TJA's own accel_scale usage below.
     brsc_enabled = bool(feature_flags & FeatureFlags.BRSC)
-    if sm.valid.get('accelerometer', False):
-      az = sm['accelerometer'].acceleration.v[2]
-      self.brsc_result = self.brsc.update(az, self.dt, accel_max_full=1.0)
+    if _sm_valid(sm, 'accelerometer'):
+      # locationd.py maps raw IMU [v0, v1, v2] -> meas = [-v2, -v1, -v0] (vertical is -v[0]).
+      v_acc = sm['accelerometer'].acceleration.v
+      if len(v_acc) >= 3 and math.isfinite(v_acc[0]):
+        self.brsc_result = self.brsc.update(-float(v_acc[0]), self.dt, accel_max_full=1.0)
+    else:
+      # Clear hold on IMU dropout so a stale roughness timer cannot stay latched forever.
+      self.brsc.reset()
+      self.brsc_result = None
 
     # DLON: always-on standard behavior of this branch, not user-selectable
     # (automatic ACC/E2E switching only -- no forced-mode override exists).
@@ -214,8 +231,8 @@ class LongitudinalPlanner:
     prev_accel_constraint = not (reset_state or sm['carState'].standstill)
 
     if mode == 'acc':
-      max_accel = get_max_accel(v_ego)
-      max_accel = _apply_adaptive_accel_limit(max_accel, v_cruise, v_ego)
+      profile_limit = acceleration_profile_limit(v_ego, _load_accel_profile(), A_CRUISE_MAX_BP)
+      max_accel = min(_apply_adaptive_accel_limit(profile_limit, v_cruise, v_ego), longitudinal_accel_max(v_ego))
       accel_clip = [ACCEL_MIN, max_accel]
       steer_angle_without_offset = sm['carState'].steeringAngleDeg - sm['liveParameters'].angleOffsetDeg
       accel_clip = limit_accel_in_turns(v_ego, steer_angle_without_offset, accel_clip, self.CP)
@@ -255,7 +272,7 @@ class LongitudinalPlanner:
 
     # pathd add-on speed factor (opt-in): only ever lowers v_cruise, floored; the MPC keeps braking authority.
     if feature_flags & FeatureFlags.PATHD:
-      pa_cap = speed_cap(v_ego, sm['pathAdjust'].speedFactor, bool(sm.alive.get('pathAdjust', False) and sm.valid.get('pathAdjust', False)))
+      pa_cap = speed_cap(v_ego, sm['pathAdjust'].speedFactor, bool(_sm_alive(sm, 'pathAdjust') and _sm_valid(sm, 'pathAdjust')))
       if pa_cap is not None:
         v_cruise = min(v_cruise, pa_cap)
 
@@ -268,7 +285,7 @@ class LongitudinalPlanner:
     # than being a gap relative to it.
     vtsc_enabled = bool(feature_flags & FeatureFlags.VTSC)
     self.vtsc_v_target = None
-    if sm.valid.get('modelV2', False):
+    if _sm_valid(sm, 'modelV2'):
       self.vtsc_result = self.vtsc.update(v_ego, sm['modelV2'], enabled=vtsc_enabled)
       self.vtsc_v_target = self.vtsc_result.target_speed
       if self.vtsc_v_target is not None:
@@ -312,7 +329,7 @@ class LongitudinalPlanner:
     # with the lead in the target lane so MPC tracks it instead of the old lane's lead.
     lc_lead_handoff_enabled = bool(feature_flags & FeatureFlags.LC_LEAD_HANDOFF)
     radar_state_for_mpc = sm['radarState']
-    if sm.valid.get('modelV2', False):
+    if _sm_valid(sm, 'modelV2'):
       model_meta = sm['modelV2'].meta
       radar_state_for_mpc = self.lc_handoff.update(
         enabled=lc_lead_handoff_enabled,
@@ -323,6 +340,21 @@ class LongitudinalPlanner:
         v_ego=v_ego,
         now=time.monotonic(),
       )
+
+    # TLSC virtual stop-line lead (CarrotPilot / FrogPilot pattern): when a red/yellow traffic
+    # light is active ahead with no real lead car, feed a stationary stop-line lead into
+    # LongitudinalMpc so the MPC executes a smooth, jerk-limited full stop at TLSC_STOP_BUFFER
+    # before the light and asserts shouldStop instead of overshooting on soft cruise-setpoint braking.
+    if map_speed.tlsc_distance is not None and not radar_state_for_mpc.leadOne.status:
+      rs_tlsc = messaging.new_message('radarState').radarState
+      rs_tlsc.leadOne.status = True
+      # Target stop bar 2.0 m ahead of TLSC_STOP_BUFFER so MPC settles cleanly to v=0 before the stop line.
+      rs_tlsc.leadOne.dRel = float(max(0.0, map_speed.tlsc_distance - TLSC_STOP_BUFFER - 2.0) + STOP_DISTANCE)
+      rs_tlsc.leadOne.vLead = 0.0
+      rs_tlsc.leadOne.vLeadK = 0.0
+      rs_tlsc.leadOne.aLeadK = 0.0
+      rs_tlsc.leadOne.vRel = float(-v_ego)
+      radar_state_for_mpc = rs_tlsc
 
     v_cruise = monitoring_speed_target(v_cruise, force_slow_decel)
     self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=personality,
@@ -357,6 +389,9 @@ class LongitudinalPlanner:
 
     if self.dlon_result.get('force_stop', False):
       self.output_should_stop = True
+    if map_speed.tlsc_distance is not None and map_speed.tlsc_distance <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5:
+      self.output_should_stop = True
+      output_a_target = min(output_a_target, -1.0)
 
     for idx in range(2):
       accel_clip[idx] = np.clip(accel_clip[idx], self.prev_accel_clip[idx] - 0.05, self.prev_accel_clip[idx] + 0.05)
@@ -368,9 +403,11 @@ class LongitudinalPlanner:
     if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
       accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
       output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * accel_scale)
-    if not reset_state:
+    if not reset_state and output_a_target > 0.0:
+      # Only throttle positive acceleration buildup; releasing brakes toward 0.0 must stay immediate.
+      jerk_up_base = max(self.output_a_target, 0.0)
       output_a_target = min(output_a_target,
-                            self.output_a_target + longitudinal_jerk_up(v_ego) * self.tja_result.jerk_scale * self.dt)
+                            jerk_up_base + longitudinal_jerk_up(v_ego) * self.tja_result.jerk_scale * self.dt)
     output_a_target = apply_accel(self.rule_consumer, sm, float(output_a_target), self.dt)
     self.output_a_target = np.clip(output_a_target, accel_clip[0], accel_clip[1])
     self.prev_accel_clip = accel_clip

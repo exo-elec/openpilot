@@ -3,7 +3,6 @@ import time
 from cereal import log
 import cereal.messaging as messaging
 
-from openpilot.common.realtime import DT_DMON
 from openpilot.tools.sim.lib.camerad import Camerad
 
 from typing import TYPE_CHECKING
@@ -12,13 +11,15 @@ if TYPE_CHECKING:
 
 
 class SimulatedSensors:
-  """Simulates the C3 sensors (acc, gyro, gps, peripherals, dm state, cameras) to OpenPilot"""
+  """Simulates the C3 sensors (acc, gyro, gps, peripherals, cameras) to OpenPilot.
+
+  driverMonitoringState is owned by driveractivityd (SAM) and is not published here.
+  """
 
   def __init__(self, dual_camera=False):
-    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'driverMonitoringState', 'peripheralState'])
+    self.pm = messaging.PubMaster(['accelerometer', 'gyroscope', 'gpsLocationExternal', 'peripheralState'])
     self.camerad = Camerad(dual_camera=dual_camera)
     self.last_perp_update = 0
-    self.last_dmon_update = 0
 
   def send_imu_message(self, simulator_state: 'SimulatorState'):
     for _ in range(5):
@@ -81,16 +82,6 @@ class SimulatedSensors:
     }
     self.pm.send('peripheralState', dat)
 
-  def send_fake_driver_monitoring(self):
-    # driverMonitoringState (driver-activity monitor output)
-    dat = messaging.new_message('driverMonitoringState', valid=True)
-    dat.driverMonitoringState = {
-      "faceDetected": True,
-      "isDistracted": False,
-      "awarenessStatus": 1.,
-    }
-    self.pm.send('driverMonitoringState', dat)
-
   def send_camera_images(self, world: 'World'):
     world.image_lock.acquire()
     yuv = self.camerad.rgb_to_yuv(world.road_image)
@@ -104,10 +95,6 @@ class SimulatedSensors:
     now = time.monotonic()
     self.send_imu_message(simulator_state)
     self.send_gps_message(simulator_state)
-
-    if (now - self.last_dmon_update) > DT_DMON/2:
-      self.send_fake_driver_monitoring()
-      self.last_dmon_update = now
 
     if (now - self.last_perp_update) > 0.25:
       self.send_peripheral_state()

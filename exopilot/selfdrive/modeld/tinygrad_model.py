@@ -56,7 +56,7 @@ class TinygradModel:
           raise ValueError(f'Model input shape mismatch: {name}')
         tensors[name] = tensor.to(device).realize()
       self.run(output_buffers=self.output_buffers, **tensors)
-    output = self.output_buffers[self.output_name].numpy()
+    output = np.asarray(self.output_buffers[self.output_name].numpy(), dtype=np.float32)
     if not np.all(np.isfinite(output)):
       raise RuntimeError('Model output is not finite')
     return output

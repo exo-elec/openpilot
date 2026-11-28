@@ -30,7 +30,7 @@ from exopilot.selfdrive.controls.lib.mslc import MSLC
 from exopilot.selfdrive.controls.lib.mtsc import MTSC
 from exopilot.selfdrive.controls.lib.nslc import NSLC
 from exopilot.selfdrive.controls.lib.speed_policy import SpeedLimitObservation, SpeedLimitPolicy, SpeedLimitSource, SpeedPolicy
-from exopilot.selfdrive.controls.lib.tlsc import TLSC
+from exopilot.selfdrive.controls.lib.tlsc import TLSC, TLSC_CONFIDENCE
 from exopilot.selfdrive.controls.lib.cutin_adapter import cutin_path
 from exopilot.selfdrive.controls.lib.rcsc import RCSC
 
@@ -53,6 +53,7 @@ class MapSpeedResult:
   mtsc: float | None = None           # map curve target, m/s
   mtsc_distance: float = math.inf
   mtsc_using_learned: bool = False
+  tlsc_distance: float | None = None  # distance to active red/yellow light ahead, m
 
 
 NO_CAP = MapSpeedResult(None, {})     # nothing enabled: the same answer every cycle, built once
@@ -82,6 +83,7 @@ class MapSpeed:
     self._mtsc_learned = False
     self._light_t = -1e9
     self._light: float | None = None
+    self._light_dist: float | None = None
     self._blend_state: bool | None = None   # previous frame had both MTSC and VTSC targets
     self._critical_s = 0.0
     self._last = None
@@ -108,7 +110,13 @@ class MapSpeed:
 
   @staticmethod
   def _fresh(sm, name: str) -> bool:
-    return bool(sm.valid.get(name, False))
+    valid = getattr(sm, 'valid', None)
+    return bool(valid.get(name, False)) if valid is not None else (name in sm)
+
+  @staticmethod
+  def _updated(sm, name: str) -> bool:
+    updated = getattr(sm, 'updated', None)
+    return bool(updated.get(name, False)) if updated is not None else (name in sm)
 
   def update(self, sm, v_ego: float, v_cruise: float, vtsc_target: float | None, should_stop: bool, dt: float) -> MapSpeedResult:
     now = self._clock()
@@ -120,11 +128,11 @@ class MapSpeed:
     gas = bool(cs.gasPressed)
 
     # --- map (offline mapd): MSLC on mapdOut, MTSC on mapdExtendedOut's path; results held between messages
-    if self.flags['mslc'] and sm.updated.get('mapdOut', False) and self._fresh(sm, 'mapdOut'):
+    if self.flags['mslc'] and self._updated(sm, 'mapdOut') and self._fresh(sm, 'mapdOut'):
       mo = sm['mapdOut']
       self._mslc, _ = self.mslc.update(mo.speedLimit, mo.nextSpeedLimit, mo.nextSpeedLimitDistance, v_ego, gas, now)
       self._mslc_t = now
-    if self.flags['mtsc'] and sm.updated.get('mapdExtendedOut', False) and self._fresh(sm, 'mapdExtendedOut'):
+    if self.flags['mtsc'] and self._updated(sm, 'mapdExtendedOut') and self._fresh(sm, 'mapdExtendedOut'):
       ext = sm['mapdExtendedOut']
       out = self.mtsc.update(curves_from_path(ext.position, ext.path), v_ego, ext.position.latitude, ext.position.longitude)
       self._mtsc = (out['v_target'], out['distance'])
@@ -164,11 +172,21 @@ class MapSpeed:
           continue
         lights.append((str(o.trafficLightState), float(o.trafficLightConfidence), d))
       lead = sm['radarState'].leadOne if self._fresh(sm, 'radarState') else None
-      target = self.tlsc.update_from(bool(lead is not None and lead.status), v_ego, lights)
-      if target is not None:
-        self._light, self._light_t = target, now
+      lead_present = bool(lead is not None and lead.status)
+      if gas or lead_present:
+        self._light = None
+        self._light_dist = None
+      else:
+        target = self.tlsc.update_from(False, v_ego, lights)
+        if target is not None:
+          self._light, self._light_dist, self._light_t = target, self.tlsc.best_dist, now
+        elif any(s == 'green' and c >= TLSC_CONFIDENCE for s, c, _ in lights):
+          # Confirmed green light on our path: release stop hold immediately instead of dragging for LIGHT_HOLD_S.
+          self._light = None
+          self._light_dist = None
     if now - self._light_t > LIGHT_HOLD_S:
       self._light = None
+      self._light_dist = None
     if self.flags['tlsc'] and self._light is not None:
       sources['tlsc'] = self._light
 
@@ -194,4 +212,4 @@ class MapSpeed:
       cap = max(cap, 0.0)
     self._last = cap
     return MapSpeedResult(cap, sources, mslc, nslc, limit, self._mtsc[0] if self.flags['mtsc'] else None, self._mtsc[1],
-                          self._mtsc_learned)
+                          self._mtsc_learned, self._light_dist if (self.flags['tlsc'] and self._light is not None) else None)

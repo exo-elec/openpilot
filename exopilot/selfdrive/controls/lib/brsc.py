@@ -75,24 +75,24 @@ class BRSC:
 
   def update(self, az: float, dt: float, accel_max_full: float = 2.0) -> BRSCResult:
     """Feed one vertical-accelerometer sample (m/s^2, gravity included) and dt (s)."""
-    dt = max(dt, 1e-3)
+    dt = max(dt, 1e-3) if math.isfinite(dt) else 1e-3
     self._t += dt
 
-    # Slow EMA baseline removes gravity + road grade; what's left is dynamic motion.
-    alpha = 1.0 - math.exp(-dt / self.BASELINE_TC_S)
-    if not self._baseline_initialized:
-      self._baseline = az
-      self._baseline_initialized = True
-    else:
-      self._baseline += alpha * (az - self._baseline)
-    sample = az - self._baseline
-
-    self._window.append((self._t, sample))
+    if math.isfinite(az):
+      # Slow EMA baseline removes gravity + road grade; what's left is dynamic motion.
+      alpha = 1.0 - math.exp(-dt / self.BASELINE_TC_S)
+      if not self._baseline_initialized:
+        self._baseline = az
+        self._baseline_initialized = True
+      else:
+        self._baseline += alpha * (az - self._baseline)
+      sample = az - self._baseline
+      self._window.append((self._t, sample))
     while self._window and self._t - self._window[0][0] > self.WINDOW_S:
       self._window.popleft()
     rms = math.sqrt(sum(s * s for _, s in self._window) / len(self._window)) if self._window else 0.0
 
-    rough_now = rms >= self.RMS_MILD
+    rough_now = math.isfinite(az) and rms >= self.RMS_MILD
     self._attack_timer = self._attack_timer + dt if rough_now else 0.0
     triggered = self._attack_timer >= self.ATTACK_S
 
@@ -124,11 +124,17 @@ class BRSC:
       self._accel_scale = min(1.0, self._accel_scale + self.RELEASE_RATE * dt)
 
     active = holding or self._speed_factor < 0.999 or self._accel_scale < 0.999
+    if not math.isfinite(accel_max_full):
+      accel_max = 0.0
+    elif accel_max_full > 0.0:
+      accel_max = self._accel_scale * accel_max_full
+    else:
+      accel_max = accel_max_full
 
     return BRSCResult(
       active=active,
       roughness_rms=rms,
       speed_factor=self._speed_factor,
-      accel_max=self._accel_scale * accel_max_full,
+      accel_max=accel_max,
       hold_remaining=self._hold_timer,
     )

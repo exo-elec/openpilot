@@ -11,10 +11,11 @@ import math
 from typing import cast
 
 # Tuning
-TLSC_DECEL      = 1.5    # m/s²  comfortable stop deceleration
-TLSC_MIN_DIST   = 3.0    # m     below this, too close to engage
-TLSC_MAX_DIST   = 80.0   # m     beyond this, light too far to act
-TLSC_CONFIDENCE = 0.06   # frac  minimum trafficLightConfidence from classifier
+TLSC_DECEL       = 1.5    # m/s²  comfortable stop deceleration
+TLSC_STOP_BUFFER = 3.0    # m     stop-line setback before the traffic light; hold 0 m/s inside this zone
+TLSC_MIN_DIST    = 0.0    # m     minimum valid light distance (hold stop all the way to the light)
+TLSC_MAX_DIST    = 80.0   # m     beyond this, light too far to act
+TLSC_CONFIDENCE  = 0.06   # frac  minimum trafficLightConfidence from classifier
 
 
 class TLSC:
@@ -27,6 +28,7 @@ class TLSC:
     def __init__(self, enabled: bool = True) -> None:
         self.enabled = enabled
         self._v_target: float | None = None
+        self._best_dist: float | None = None
 
     def update_from(self, lead_present: bool, v_ego: float, lights) -> float | None:
         """Compute speed target for active red/yellow traffic light.
@@ -36,11 +38,13 @@ class TLSC:
         """
         if not self.enabled:
             self._v_target = None
+            self._best_dist = None
             return None
 
         # Skip when a lead vehicle is present — ACC handles that case
         if lead_present:
             self._v_target = None
+            self._best_dist = None
             return None
 
         # Scan stereoObjects for the closest red or yellow traffic light
@@ -58,14 +62,22 @@ class TLSC:
 
         if best_dist is None:
             self._v_target = None
+            self._best_dist = None
             return None
 
-        # v = sqrt(2 * a * d): the speed at which the car, decelerating at
-        # TLSC_DECEL, will reach 0 exactly at best_dist.
-        v_target = math.sqrt(2.0 * TLSC_DECEL * best_dist)
+        # v = sqrt(2 * a * d_eff): decelerate at TLSC_DECEL to reach 0 m/s at
+        # TLSC_STOP_BUFFER before the light, and hold 0 m/s while d <= TLSC_STOP_BUFFER
+        # so the vehicle never drops TLSC and accelerates through an active red light.
+        d_eff = max(0.0, best_dist - TLSC_STOP_BUFFER)
+        v_target = math.sqrt(2.0 * TLSC_DECEL * d_eff)
         v_target = max(0.0, min(v_target, v_ego))
         self._v_target = v_target
+        self._best_dist = best_dist
         return cast(float | None, v_target)
+
+    @property
+    def best_dist(self) -> float | None:
+        return self._best_dist
 
     @property
     def active(self) -> bool:

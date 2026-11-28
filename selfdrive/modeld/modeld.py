@@ -2,7 +2,7 @@
 import os
 from openpilot.system.hardware import TICI
 from exopilot.selfdrive.modeld.tinygrad_model import TinygradModel
-os.environ['DEV'] = 'QCOM' if TICI else 'CPU:LLVM'
+os.environ.setdefault('DEV', 'QCOM' if TICI else 'CPU:LLVM')
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
 import time

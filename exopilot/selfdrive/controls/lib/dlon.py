@@ -271,6 +271,11 @@ class DLON:
 
     return max_lat_acc > self.CURVE_LAT_ACC_THRESHOLD
 
+  @staticmethod
+  def _sm_valid(sm, service: str) -> bool:
+    valid = getattr(sm, 'valid', None)
+    return bool(valid.get(service, False)) if valid is not None else (service in sm)
+
   def detect_lane_confidence_trigger(self, sm) -> bool:
     """Detect low DLAT lane confidence (controlsd, cross-process via controlsState).
 
@@ -287,7 +292,7 @@ class DLON:
     matching DLAT's own convention of defaulting to laneful/neutral rather than
     laneless when its input is missing (see dlat.py's model_valid handling).
     """
-    if 'controlsState' not in sm.valid or not sm.valid['controlsState']:
+    if not self._sm_valid(sm, 'controlsState'):
       return False
     return bool(sm['controlsState'].dlatUseLaneless)
 
@@ -299,7 +304,7 @@ class DLON:
 
   def detect_nav_trigger(self, sm) -> bool:
     """Detect navigation-based trigger (upcoming maneuver)."""
-    if 'navInstruction' not in sm.valid or not sm.valid['navInstruction']:
+    if not self._sm_valid(sm, 'navInstruction'):
       return False
     nav = sm['navInstruction']
     # Trigger if approaching a maneuver that benefits from E2E
@@ -313,11 +318,11 @@ class DLON:
     transition better than stock ACC. The map limit (offline mapd's `mapdOut`,
     m/s) wins over the navigation limit (`navInstruction`, m/s)."""
     limit_ms = None
-    if sm.valid.get('mapdOut', False):
+    if self._sm_valid(sm, 'mapdOut'):
       map_limit = sm['mapdOut'].speedLimit  # m/s
       if map_limit > 0:
         limit_ms = map_limit
-    if limit_ms is None and 'navInstruction' in sm.valid and sm.valid['navInstruction']:
+    if limit_ms is None and self._sm_valid(sm, 'navInstruction'):
       nav_limit = sm['navInstruction'].speedLimit  # m/s
       if nav_limit > 0:
         limit_ms = nav_limit
@@ -341,7 +346,7 @@ class DLON:
 
     CS = sm['carState']
     model_v2 = sm['modelV2']
-    radar_state = sm['radarState'] if 'radarState' in sm.valid else None
+    radar_state = sm['radarState'] if self._sm_valid(sm, 'radarState') else None
 
     v_ego = CS.vEgo
 
