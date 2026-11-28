@@ -515,3 +515,25 @@ def test_lead_departure_and_steering_resume_ramp():
   t1, _ = ramp.update(True, 1.0, 10.0, 0.0, 0.1)
   t2, _ = ramp.update(True, 1.0, 10.0, 0.0, 2.0)
   assert 0.0 <= t1 < t2 <= 1.0
+
+
+def test_acm_coasts_on_open_road_but_yields_to_speed_cap_deceleration():
+  """ACM suppresses mild overspeed braking on open highway, but yields immediately to VTSC/MSLC/BRSC slowdowns."""
+  planner = LongitudinalPlanner(_make_cp(), init_v=20.2, init_a=0.0, dt=DT_MDL)
+  # Open highway, slight overspeed (20.2 m/s vs 20.0 m/s cruise): ACM engages and suppresses mild coast braking.
+  sm_open = _make_sm(v_ego=20.2, a_ego=0.0, v_cruise_kph=72.0, enabled=True)
+  planner.update(sm_open, dp_flags=DPFlags.ACM | DPFlags.MSLC)
+  assert planner.acm.active is True
+  assert planner.output_a_target >= -1e-6, f"ACM should suppress mild overspeed braking, got {planner.output_a_target}"
+
+  # Posted speed limit drops to 65 km/h (~18.06 m/s) -> MSLC reduces v_cruise, ACM must yield so MPC decelerates!
+  mo = messaging.new_message('mapdOut').mapdOut
+  mo.speedLimit = 65.0 / 3.6
+  sm_mslc = _make_sm(v_ego=20.2, a_ego=0.0, v_cruise_kph=72.0, enabled=True)
+  sm_mslc['mapdOut'] = mo
+  sm_mslc.valid['mapdOut'] = True
+  sm_mslc.updated['mapdOut'] = True
+  for _ in range(5):
+    planner.update(sm_mslc, dp_flags=DPFlags.ACM | DPFlags.MSLC)
+  assert planner.acm.active is False, "ACM stayed active and suppressed MSLC deceleration"
+  assert planner.output_a_target < -0.1, f"Expected MSLC deceleration after ACM yielded, got {planner.output_a_target}"

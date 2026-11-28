@@ -8,11 +8,11 @@
 
 ## Real Product Bug Exposed & Fixed During Verification
 
-1. **`dragonpilot/selfdrive/controls/lib/acm.py` (`ACM` coasting brake suppression was a complete no-op)**:
-   - `self.allowed_brake_val` was initialized to `0.0` and never updated, while `update_a_desired_trajectory()` and `update_output_a_target()` checked `a < 0 and a > self.allowed_brake_val` (`a < 0 and a > 0.0` — mathematically impossible for any real number).
-   - **Fix**: Initialize `self.allowed_brake_val = MIN_BRAKE_ALLOW_VALS[1]` (`-0.5` m/s²) so mild downhill cruise-overspeed braking in `(-0.5, 0.0)` is suppressed to `0.0` for smooth coasting, while stronger safety/curve braking (`<= -0.5` m/s²) and close-lead braking (`TTC < 3.5 s`) still pass through uninhibited.
-2. **`selfdrive/controls/lib/longitudinal_planner.py`**:
-   - Persisted `self.tja_result` from `__init__` / `update()` for consistent planner telemetry inspection.
+1. **`dragonpilot/selfdrive/controls/lib/acm.py` & `selfdrive/controls/lib/longitudinal_planner.py` (`ACM` coasting brake suppression + yield to speed controllers)**:
+   - `self.allowed_brake_val` was initialized to `0.0` and never updated, while `update_a_desired_trajectory()` and `update_output_a_target()` checked `a < 0 and a > self.allowed_brake_val` (`a < 0 and a > 0.0` — mathematically impossible). Fixed to `MIN_BRAKE_ALLOW_VALS[1]` (`-0.5` m/s²).
+   - **Scrutinize follow-up**: moved `self.acm.update_states()` after `VTSC`/`MTSC`/`MSLC`/`BRSC`/`force_slow_decel` and pass `user_control or speed_cap_active` so ACM coasts smoothly on open road/downhill but yields immediately whenever any speed controller requests deceleration.
+2. **`selfdrive/controls/lib/longitudinal_planner.py` & `selfdrive/controls/controlsd.py`**:
+   - Persisted `self.tja_result` from `__init__` / `update()` for consistent planner telemetry inspection, and hardened `BlinkerPauseLateralSpeed` parsing against `"0"` / negative values (`float(val or 0) > 0.0`).
 
 ## Scenario-by-Scenario Test Design & Measured Telemetry
 
