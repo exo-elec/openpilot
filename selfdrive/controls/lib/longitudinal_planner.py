@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import math
 import time
+from types import SimpleNamespace
 import numpy as np
 
 import cereal.messaging as messaging
@@ -81,6 +82,26 @@ def _sm_valid(sm, service: str) -> bool:
 def _sm_alive(sm, service: str) -> bool:
   alive = getattr(sm, 'alive', None)
   return bool(alive.get(service, False)) if alive is not None else (service in sm)
+
+
+def _with_virtual_stop_lead(radar_state, stop_dist_m: float, v_ego: float):
+  """Inject a stationary virtual stop-line lead into LongitudinalMpc when TLSC requests a red-light stop
+  and no closer real lead exists, preserving leadTwo."""
+  virtual_d_rel = max(0.0, stop_dist_m - TLSC_STOP_BUFFER - 2.0) + STOP_DISTANCE
+  lead_one = radar_state.leadOne
+  if lead_one.status and lead_one.dRel <= virtual_d_rel:
+    return radar_state
+  vlead = SimpleNamespace(
+    status=True,
+    dRel=float(virtual_d_rel),
+    vLead=0.0,
+    vLeadK=0.0,
+    vRel=float(-v_ego),
+    aLeadK=0.0,
+    aLeadTau=1.5,
+    modelProb=0.0,
+  )
+  return SimpleNamespace(leadOne=vlead, leadTwo=radar_state.leadTwo)
 
 
 def get_max_accel(v_ego):
@@ -342,19 +363,10 @@ class LongitudinalPlanner:
       )
 
     # TLSC virtual stop-line lead (CarrotPilot / FrogPilot pattern): when a red/yellow traffic
-    # light is active ahead with no real lead car, feed a stationary stop-line lead into
-    # LongitudinalMpc so the MPC executes a smooth, jerk-limited full stop at TLSC_STOP_BUFFER
-    # before the light and asserts shouldStop instead of overshooting on soft cruise-setpoint braking.
-    if map_speed.tlsc_distance is not None and not radar_state_for_mpc.leadOne.status:
-      rs_tlsc = messaging.new_message('radarState').radarState
-      rs_tlsc.leadOne.status = True
-      # Target stop bar 2.0 m ahead of TLSC_STOP_BUFFER so MPC settles cleanly to v=0 before the stop line.
-      rs_tlsc.leadOne.dRel = float(max(0.0, map_speed.tlsc_distance - TLSC_STOP_BUFFER - 2.0) + STOP_DISTANCE)
-      rs_tlsc.leadOne.vLead = 0.0
-      rs_tlsc.leadOne.vLeadK = 0.0
-      rs_tlsc.leadOne.aLeadK = 0.0
-      rs_tlsc.leadOne.vRel = float(-v_ego)
-      radar_state_for_mpc = rs_tlsc
+    # light is active ahead with no closer real lead, feed a stationary stop-line lead into
+    # LongitudinalMpc (preserving leadTwo) so MPC executes a smooth, jerk-limited full stop.
+    if map_speed.tlsc_distance is not None:
+      radar_state_for_mpc = _with_virtual_stop_lead(radar_state_for_mpc, map_speed.tlsc_distance, v_ego)
 
     v_cruise = monitoring_speed_target(v_cruise, force_slow_decel)
     self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=personality,
@@ -389,7 +401,7 @@ class LongitudinalPlanner:
 
     if self.dlon_result.get('force_stop', False):
       self.output_should_stop = True
-    if map_speed.tlsc_distance is not None and map_speed.tlsc_distance <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5:
+    if map_speed.tlsc_distance is not None and map_speed.tlsc_distance <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5 and not sm['carState'].gasPressed:
       self.output_should_stop = True
       output_a_target = min(output_a_target, -1.0)
 

@@ -118,6 +118,11 @@ class MapSpeed:
     updated = getattr(sm, 'updated', None)
     return bool(updated.get(name, False)) if updated is not None else (name in sm)
 
+  @staticmethod
+  def _alive(sm, name: str) -> bool:
+    alive = getattr(sm, 'alive', None)
+    return bool(alive.get(name, False)) if alive is not None else True
+
   def update(self, sm, v_ego: float, v_cruise: float, vtsc_target: float | None, should_stop: bool, dt: float) -> MapSpeedResult:
     now = self._clock()
     self._refresh_config(now)
@@ -161,7 +166,12 @@ class MapSpeed:
       sources['speed_limit'] = limit.limit_mps
 
     # --- traffic lights on our path, held briefly between stereoObjects
-    if self.flags['tlsc'] and self._fresh(sm, 'stereoObjects'):
+    lead = sm['radarState'].leadOne if self._fresh(sm, 'radarState') else None
+    lead_present = bool(lead is not None and lead.status)
+    if gas or lead_present:
+      self._light = None
+      self._light_dist = None
+    elif self.flags['tlsc'] and self._fresh(sm, 'stereoObjects') and self._alive(sm, 'stereoObjects'):
       path = cutin_path(sm)
       lights = []
       for o in sm['stereoObjects'].objects:
@@ -171,19 +181,13 @@ class MapSpeed:
         if path is not None and abs(float(o.yRel) - path.y_at(d)) > LIGHT_LATERAL_M:
           continue
         lights.append((str(o.trafficLightState), float(o.trafficLightConfidence), d))
-      lead = sm['radarState'].leadOne if self._fresh(sm, 'radarState') else None
-      lead_present = bool(lead is not None and lead.status)
-      if gas or lead_present:
+      target = self.tlsc.update_from(False, v_ego, lights)
+      if target is not None:
+        self._light, self._light_dist, self._light_t = target, self.tlsc.best_dist, now
+      elif any(s == 'green' and c >= TLSC_CONFIDENCE for s, c, _ in lights):
+        # Confirmed green light on our path: release stop hold immediately instead of dragging for LIGHT_HOLD_S.
         self._light = None
         self._light_dist = None
-      else:
-        target = self.tlsc.update_from(False, v_ego, lights)
-        if target is not None:
-          self._light, self._light_dist, self._light_t = target, self.tlsc.best_dist, now
-        elif any(s == 'green' and c >= TLSC_CONFIDENCE for s, c, _ in lights):
-          # Confirmed green light on our path: release stop hold immediately instead of dragging for LIGHT_HOLD_S.
-          self._light = None
-          self._light_dist = None
     if now - self._light_t > LIGHT_HOLD_S:
       self._light = None
       self._light_dist = None
