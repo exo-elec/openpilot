@@ -77,6 +77,11 @@ _LZ_SHOULDER_LEFT  = 6
 _LZ_SHOULDER_RIGHT = 7
 
 
+def _lane_zone_int(val) -> int:
+    """Convert a pycapnp _DynamicEnum (has .raw) or integer laneZone to int."""
+    return int(val.raw) if hasattr(val, 'raw') else int(val)
+
+
 class ZoneSide(Enum):
     LEFT  = "left"
     RIGHT = "right"
@@ -361,7 +366,7 @@ class RadarZoneMonitor:
             'dRel': float(obj.dRel), 'yRel': float(obj.yRel),
             'vRel': float(obj.vRel), 'confidence': float(obj.prob),
             'prob': float(obj.prob), 'trackId': int(obj.trackId),
-            'laneZone': int(obj.laneZone),
+            'laneZone': _lane_zone_int(obj.laneZone),
         }
 
     def _associate_camera_objects(self, objects, t: float) -> list[dict]:
@@ -584,7 +589,7 @@ class RadarZoneMonitor:
             lz = None
             if hasattr(o, 'laneZone'):
                 try:
-                    lz = int(o.laneZone)
+                    lz = _lane_zone_int(o.laneZone)
                 except (AttributeError, TypeError):
                     lz = None
             elif isinstance(o, dict):

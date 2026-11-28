@@ -387,9 +387,18 @@ class BrakingController:
           return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "Braking released")
         return _r(AEBLevel.EMERGENCY, AEBState.BRAKING, float('inf'), 0.0, self._current_decel, True, False, "Threat cleared, releasing")
 
+    if ego_state.v_ego < 0.5:
+      self.state = AEBState.HOLD
+      self._current_decel = self.DECEL_HOLD
+      return _r(AEBLevel.EMERGENCY, AEBState.HOLD, float('inf'), threat.x, self.DECEL_HOLD, True, False,
+                "Hold at standstill", threat.obj_type)
+
     ttc = threat.x / max(0.1, ego_state.v_ego - threat.v_x) if ego_state.v_ego > threat.v_x else float('inf')
 
-    if ttc > self.TTC_RELEASE:
+    # Do not interpret high TTC (= d / v_ego as ego slows toward 0 m/s) as a
+    # "receding threat" while a stationary obstacle is still close ahead in lane.
+    close_stopped_obstacle = threat.x <= 12.0 and threat.v_x < 0.5
+    if ttc > self.TTC_RELEASE and not close_stopped_obstacle:
       # Threat receding, release gradually
       self._current_decel = min(0.0, self._current_decel + 2.0 * dt)
       if self._current_decel >= -0.1:
@@ -548,15 +557,22 @@ class AEB:
     min_range = 0.1 if active else self.MIN_ENTRY_RANGE_M
     if not (min_range <= threat.x <= self.MAX_ENTRY_RANGE_M):
       return False
-    if ego.v_ego < self.MIN_EGO_SPEED_MS or threat.confidence < self.MIN_RADAR_CONFIDENCE:
+    if threat.confidence < self.MIN_RADAR_CONFIDENCE:
+      return False
+    # Entry gates prevent nuisance activation at low speed; once AEB is actively
+    # braking, keep tracking down to standstill (<0.5 m/s -> HOLD) instead of
+    # releasing the brakes at 2.0 m/s right in front of a stopped obstacle.
+    if not active and ego.v_ego < self.MIN_EGO_SPEED_MS:
       return False
     closing_speed = ego.v_ego - threat.v_x
-    if closing_speed < self.MIN_CLOSING_SPEED_MS:
+    if not active and closing_speed < self.MIN_CLOSING_SPEED_MS:
       return False
+    if active:
+      return True
     ttc = threat.x / closing_speed
     usable_distance = max(threat.x - BrakingController.STOP_BUFFER_M, 0.5)
     required_decel = closing_speed * closing_speed / (2.0 * usable_distance)
-    return active or (ttc <= self.MAX_ENTRY_TTC_S and required_decel >= self.MIN_REQUIRED_DECEL_MS2)
+    return ttc <= self.MAX_ENTRY_TTC_S and required_decel >= self.MIN_REQUIRED_DECEL_MS2
 
   def _collect_objects(self, sm) -> list[TrackedObject]:
     """Collect only leads measured by the vehicle's built-in 77 GHz radar.

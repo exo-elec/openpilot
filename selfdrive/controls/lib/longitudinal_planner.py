@@ -129,7 +129,7 @@ def _with_virtual_stop_lead(radar_state, stop_dist_m: float):
   lead_one = radar_state.leadOne
   if lead_one.status and lead_one.dRel <= virtual_d_rel:
     return radar_state
-  vlead = SimpleNamespace(status=True, dRel=float(virtual_d_rel), vLead=0.0, aLeadK=0.0, aLeadTau=1.5)
+  vlead = SimpleNamespace(status=True, dRel=float(virtual_d_rel), vLead=0.0, aLeadK=0.0, aLeadTau=1.5, modelProb=0.0)
   return SimpleNamespace(leadOne=vlead, leadTwo=radar_state.leadTwo)
 
 

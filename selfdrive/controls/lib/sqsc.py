@@ -399,7 +399,7 @@ class SQSC:
             self.quality_confidence = quality.confidence
         return limit, quality
 
-    def _phase_fusion(self, predictive_limit: float | None, realtime_limit: float | None):
+    def _phase_fusion(self, predictive_limit: float | None, realtime_limit: float | None, v_ego_kph: float | None = None):
         """Phase 4: Combine predictive + real-time (most restrictive wins)."""
         if predictive_limit is not None and realtime_limit is not None:
             self.target_limit_kph = min(predictive_limit, realtime_limit) * 3.6
@@ -409,6 +409,11 @@ class SQSC:
             self.target_limit_kph = realtime_limit * 3.6
         else:
             self.target_limit_kph = 200.0
+
+        # When entering an active cap from the 200 kph inactive sentinel, seed the
+        # ramp from current vehicle speed instead of burning 15-30s ramping from 200 kph.
+        if self.current_limit_kph >= 150.0 and self.target_limit_kph < 150.0 and v_ego_kph is not None:
+            self.current_limit_kph = min(self.current_limit_kph, max(v_ego_kph, self.target_limit_kph))
 
         # Apply rate limiting
         dt = DT_MDL
@@ -493,7 +498,7 @@ class SQSC:
         realtime_limit, surface_quality = self._phase_realtime(v_ego, sm)
 
         # Phase 4: Fusion
-        self._phase_fusion(predictive_limit, realtime_limit)
+        self._phase_fusion(predictive_limit, realtime_limit, v_ego * 3.6)
 
         # Phase 5: Record to database
         self._phase_record(v_ego, surface_quality, sm, current_time)
