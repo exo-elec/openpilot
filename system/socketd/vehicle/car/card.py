@@ -20,7 +20,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.socketd.vehicle.tesla.values import VEHICLE, CarControllerParams
 from openpilot.system.socketd.vehicle.car.carstate import CarState
 from openpilot.system.socketd.vehicle.car.carcontroller import CarController
-from openpilot.system.socketd.vehicle.safety.safety_manager import SafetyManager, SafetyLimits
+from openpilot.system.socketd.safety import SafetyManager, SafetyLimits
 from openpilot.system.socketd.vehicle.car.cruise import VCruiseHelper
 from openpilot.system.socketd.vehicle.car.events import VehicleEvents
 from openpilot.system.socketd import can_capnp_to_list, can_list_to_can_capnp

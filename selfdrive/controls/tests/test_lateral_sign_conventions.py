@@ -21,13 +21,13 @@ _fake_msgq = MagicMock()
 _fake_msgq.MAX_FDS = 64
 sys.modules.setdefault('msgq.ipc_pyx', _fake_msgq)
 
-from cereal import log  # noqa: E402
-from openpilot.selfdrive.controls.lib.aeb import AEB  # noqa: E402
-from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper  # noqa: E402
-from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff  # noqa: E402
-from exopilot.selfdrive.pathd.lat_nudge import LatNudge  # noqa: E402
-from exopilot.selfdrive.pathd.soc import SOC  # noqa: E402
-from exopilot.selfdrive.pathd.track import TrackedCluster, _extract_clusters  # noqa: E402
+from cereal import log
+from openpilot.selfdrive.controls.lib.aeb import AEB
+from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
+from openpilot.selfdrive.controls.lib.lc_lead_handoff import LaneChangeLeadHandoff
+from exopilot.selfdrive.controls.lib.lat_nudge import LatNudge
+from exopilot.selfdrive.pathd.soc import SOC
+from exopilot.selfdrive.pathd.track import TrackedCluster, _extract_clusters
 
 LCD = log.LaneChangeDirection
 MODEL_LEFT = -3.5  # a car one lane to the left, in modelV2's frame (y right positive)

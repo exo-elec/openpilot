@@ -72,7 +72,7 @@ from cereal import log
 from openpilot.system.hardware import HARDWARE
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from exopilot.selfdrive.pathd.track import ObjectTracker
-from exopilot.selfdrive.pathd.predict import predict as predict_clusters
+from exopilot.selfdrive.controls.lib.predict import predict as predict_clusters
 from exopilot.selfdrive.controls.lib.speed_reduction import compute_speed_reduction as _shared_speed_reduction
 from exopilot.selfdrive.pathd.path_corridor_fusion import (
     fuse_corridor_boundaries,
@@ -82,8 +82,8 @@ from exopilot.selfdrive.pathd.soc import SOC, OffsetResult
 from exopilot.selfdrive.pathd.pathd import SharedPathdHost, extras_from_proposers
 from exopilot.selfdrive.pathd.object_sources import GriddSource
 from exopilot.selfdrive.pathd.lane_change import evaluate_lane_change_gate
-from exopilot.selfdrive.pathd.lat_nudge import LatNudge, BOUNDARY_DISTANCES as LN_BOUNDARY_DISTANCES
-from exopilot.selfdrive.pathd.lon_nudge import LonNudge
+from exopilot.selfdrive.controls.lib.lat_nudge import LatNudge, BOUNDARY_DISTANCES as LN_BOUNDARY_DISTANCES
+from exopilot.selfdrive.controls.lib.lon_nudge import LonNudge
 
 
 # Longitudinal control parameters

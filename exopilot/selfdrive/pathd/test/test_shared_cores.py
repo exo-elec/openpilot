@@ -5,9 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 
 from exopilot.selfdrive.pathd import avoidance as P
-from exopilot.selfdrive.pathd.lat_nudge import LatNudge
-from exopilot.selfdrive.pathd.lon_nudge import LonNudge
-from exopilot.selfdrive.pathd.predict import predict
+from exopilot.selfdrive.controls.lib.lat_nudge import LatNudge
+from exopilot.selfdrive.controls.lib.lon_nudge import LonNudge
+from exopilot.selfdrive.controls.lib.predict import predict
 
 G = json.loads((Path(__file__).resolve().parents[4] / 'exopilot/tests/golden.json').read_text())
 
