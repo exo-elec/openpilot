@@ -102,6 +102,7 @@ class LongitudinalPlanner:
     self.output_a_target = 0.0
     self.output_should_stop = False
     self.tja = TrafficJamAssist(self.dt)
+    self.tja_result = None
 
     self.v_desired_trajectory = np.zeros(CONTROL_N)
     self.a_desired_trajectory = np.zeros(CONTROL_N)
@@ -175,6 +176,7 @@ class LongitudinalPlanner:
       self.brsc_result = None
 
     tja_result = self.tja.update(v_ego, sm['radarState'].leadOne)
+    self.tja_result = tja_result
 
     # --- Calculate current cycle variables needed by AEM ---
     x, v, a, j, throttle_prob = self.parse_model(sm['modelV2'])

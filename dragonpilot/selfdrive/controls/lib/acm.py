@@ -36,7 +36,9 @@ class ACM:
 
     self.active = False
     self.just_disabled = False
-    self.allowed_brake_val = 0.
+    # Suppress mild cruise-overspeed braking in (allowed_brake_val, 0.0) while
+    # allowing stronger deceleration (<= allowed_brake_val) for safety/curves.
+    self.allowed_brake_val = MIN_BRAKE_ALLOW_VALS[1]
 
   def update_states(self, cs, rs, user_ctrl_lon, v_ego, v_cruise):
     self.lead_ttc = float('inf')  # Default if no lead
