@@ -1,9 +1,9 @@
 <div align="center" style="text-align: center;">
 
-<h1>ExoPilot 01M 🚀</h1>
+<h1>ExoPilot 02M 🚀</h1>
 
 <p>
-  <b>Themed 1024×600 native C++ Qt ADAS for ExoPilot 01M (Rockchip RK3588) — inheriting the full verified NGP10 + EOP10 stack, Drive Mode settings restructure, multi-camera RKNN/Hailo/DX perception, corner/forward radar, and BrownPanda gateway.</b>
+  <b>Wide 1600×600 native C++ Qt ADAS for ExoPilot 02M (Rockchip RK3576) — inheriting the full verified NGP10 + EOP10 + 01M stack, 8-camera RKNN/Hailo/DX perception (with telephoto road camera), corner/forward/Wi-Fi radar, and BrownPanda gateway.</b>
 </p>
 
 <h3>
@@ -23,8 +23,8 @@
 </h3>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Branch](https://img.shields.io/badge/Branch-dev%2F01M-blue)](https://github.com/exo-elec/openpilot/tree/dev/01M)
-[![Latest commit](https://img.shields.io/github/last-commit/exo-elec/openpilot/dev%2F01M?label=Latest%20commit)](https://github.com/exo-elec/openpilot/commits/dev/01M)
+[![Branch](https://img.shields.io/badge/Branch-dev%2F02M-blue)](https://github.com/exo-elec/openpilot/tree/dev/02M)
+[![Latest commit](https://img.shields.io/github/last-commit/exo-elec/openpilot/dev%2F02M?label=Latest%20commit)](https://github.com/exo-elec/openpilot/commits/dev/02M)
 [![Issues](https://img.shields.io/github/issues/exo-elec/openpilot?label=Issues)](https://github.com/exo-elec/openpilot/issues)
 
 </div>
@@ -62,11 +62,11 @@ flowchart LR
 
 ### Platform, Vehicle Integration & Display
 
-| Capability | openpilot v0.10.0 | EDP10 | NGP10 | EOP10 | 01M (this branch) | 02M |
+| Capability | openpilot v0.10.0 | EDP10 | NGP10 | EOP10 | 01M | 02M (this branch) |
 |---|---|---|---|---|---|---|
-| Platform / SoC | comma 3/3X | comma 3/3X | comma 3/3X | Rockchip RK3588 / RK3576 HAL | **RK3588 default (`8 GB` 01M)** | RK3576 default |
-| Vehicle interface | `card` + OpenDBC | `card` + vendored OpenDBC (BYD/Chery) | `card` + pinned OpenDBC | `socketd` + Tesla DBC + BrownPanda gateway | **Carried** | Carried |
-| UI backend | Native C++ Qt | DragonPilot C++ Qt | Native C++ Qt (`features_panel`) | Native C++ Qt (`1024×600`) | **Themed C++ Qt (`1024×600`, Drive Mode + QSS + `MapdAreaRows`)** | Native C++ Qt (`1600×600` wide) |
+| Platform / SoC | comma 3/3X | comma 3/3X | comma 3/3X | Rockchip RK3588 / RK3576 HAL | RK3588 default (`8 GB` 01M) | **RK3576 default (`8 GB` 02M)** |
+| Vehicle interface | `card` + OpenDBC | `card` + vendored OpenDBC (BYD/Chery) | `card` + pinned OpenDBC | `socketd` + Tesla DBC + BrownPanda gateway | Carried | **Carried** |
+| UI backend | Native C++ Qt | DragonPilot C++ Qt | Native C++ Qt (`features_panel`) | Native C++ Qt (`1024×600`) | Themed C++ Qt (`1024×600`) | **Wide C++ Qt (`1600×600`, Drive Mode + QSS + `MapdAreaRows`)** |
 | Driving inference | Tinygrad (QCOM) | Tinygrad (QCOM) | Tinygrad + Phone BigModel | **Split RKNN (`driving_vision` + `driving_policy`) + ONNX PC + Phone BigModel** | Carried | Carried (RK3576 RKNN) |
 | Multi-camera & accel card | Front + Wide | Front + Wide | Front + Wide + exp `monod` | **RKNN YOLO (road/tele/side/rear @ 20 Hz) + Hailo-8 / DX-M1M `segd` drivable** | Carried (7 cam) | Carried (8 cam + tele) |
 | Phone link | — | — | PLP v5 USB/TCP (`plpd`) | **PLP v5 USB/TCP + BLE GATT + legacy NCP v4.1** | Carried | Carried |
@@ -113,8 +113,8 @@ flowchart LR
 ### 🧪 Host Simulation & MetaDrive Verification (2026-11-28)
 
 Verified on Linux host PC (Ryzen 7 7840HS + NVIDIA RTX 4050 Laptop GPU + PoCL 5.0 OpenCL):
-- **Build & Gate (`dev/01M`)**: `scons -j8 cereal common selfdrive/ui/ui selfdrive/ui/tests/ui_snapshot` clean; `test_01m_profile_and_ui.py` verified `cpp`/`rk3588`/`(1024, 600)` and offscreen `ui_snapshot` rendering of Device, WiFi, Bluetooth, Driving (with Drive Mode), Safety, Display, plus hidden Advanced panel; `lineage.py` **128/128** match `dev/NGP10`; `./test.sh` **74/74** hardware + lint + shebang passed; `test_boundaries.py` **4/4** passed.
-- **Closed-Loop, DLON, Regressions & MetaDrive (`44/44 passed`)**: all EOP10 regressions, DLON Drive Mode tests, closed-loop planner/perception/HAL tests, and BOTH MetaDrive 3D behavioral suites (`test_eop10_metadrive_loop.py`) pass on `dev/01M`.
+- **Build & Gate (`dev/02M`)**: `scons -j8 cereal common selfdrive/ui/ui selfdrive/ui/tests/ui_snapshot` clean; `test_02m_profile_and_ui.py` verified `cpp`/`rk3576`/`(1600, 600)`, `Jenkinsfile` targeting `rk3576`, and offscreen `ui_snapshot` rendering of Device, WiFi, Bluetooth, Driving (with Drive Mode), Safety, Display at `1600×600`, plus hidden Advanced panel; `lineage.py` **128/128** match `dev/NGP10`; `./test.sh` **74/74** hardware + lint + shebang passed; `test_boundaries.py` **4/4** passed.
+- **Closed-Loop, Regressions & MetaDrive (`23/23 passed`)**: all EOP10 regressions, closed-loop planner/perception/HAL tests, and BOTH MetaDrive 3D behavioral suites (`test_eop10_metadrive_loop.py`) pass on `dev/02M`.
 - **MetaDrive 3D Behavioral Suite** (`exopilot/tests/test_eop10_metadrive_loop.py`, WSLg RTX 4050 EGL + PoCL OpenCL `CameraSim` → `v4l2d` VisionIPC):
   - **VTSC + DLON + DLAT + CameraSim**: R=60 m curve slowdown & straight exit recovery, 100% in-lane, DLAT laneful↔laneless arbitration, DLON sharp-curve trigger, OpenCL NV12 VisionIPC streaming.
   - **TLSC P0 Safety**: virtual stop-line MPC stops MetaDrive car cleanly before 60 m red light (`x <= stop_line`, `v < 0.5 m/s`), holds standstill, and immediately accelerates on confirmed green.
@@ -141,10 +141,10 @@ All three EOP branches share one runtime tree; `common/build_profile.py` selects
 ## 🧰 How to Install
 
 ```bash
-git clone -b dev/01M https://github.com/exo-elec/openpilot.git
+git clone -b dev/02M https://github.com/exo-elec/openpilot.git
 ```
 
-Install the ExoPilot BSP on real RK3588 hardware first (`sudo ~/pilot/exopilot/scripts/install/setup_rk3588.sh && sudo reboot`).
+Install the ExoPilot RK3576 BSP on real 02M hardware first (`sudo ~/pilot/exopilot/scripts/install/setup_rk3576.sh && sudo reboot`).
 
 ---
 
