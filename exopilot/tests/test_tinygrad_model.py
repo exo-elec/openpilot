@@ -58,3 +58,24 @@ def test_legacy_pickle_requires_rebuild(tmp_path):
   path.write_bytes(pickle.dumps({"old_model": True}))
   with pytest.raises(ValueError, match="Rebuild"):
     TinygradModel(path, device="CPU:CLANG")
+
+
+def test_float16_compiled_output_is_returned_as_float32(tmp_path):
+  onnx = pytest.importorskip("onnx")
+  tinygrad = pytest.importorskip("tinygrad")
+  compiler = Path(tinygrad.__file__).parents[1] / "examples/openpilot/compile_onnx.py"
+  if not compiler.exists():
+    pytest.skip("Pinned tinygrad checkout required")
+  src, dst = tmp_path / "fp16.onnx", tmp_path / "fp16.pkl"
+  t_in = onnx.helper.make_tensor_value_info("input", onnx.TensorProto.FLOAT16, [1, 4])
+  t_out = onnx.helper.make_tensor_value_info("outputs", onnx.TensorProto.FLOAT16, [1, 4])
+  graph = onnx.helper.make_graph([onnx.helper.make_node("Identity", ["input"], ["outputs"])], "fp16_id", [t_in], [t_out])
+  onnx.save(onnx.helper.make_model(graph, opset_imports=[onnx.helper.make_opsetid("", 17)]), src)
+  root = str(compiler.parents[2])
+  pythonpath = os.pathsep.join(p for p in (root, os.environ.get("PYTHONPATH", "")) if p)
+  subprocess.run([sys.executable, str(compiler), str(src), str(dst)],
+                 env={**os.environ, "DEV": "CPU:CLANG", "PYTHONPATH": pythonpath}, check=True, capture_output=True)
+  model = TinygradModel(dst, device="CPU:CLANG")
+  out = model(input=np.array([[1.0, 2.0, 3.0, 4.0]], dtype=np.float16))
+  assert out.dtype == np.float32
+  np.testing.assert_allclose(out, [[1.0, 2.0, 3.0, 4.0]])

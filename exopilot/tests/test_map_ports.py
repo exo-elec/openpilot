@@ -48,11 +48,25 @@ def test_ddsc_reproduces_the_original():
     assert same(cap, row['cap']) and same(d.a_limit, row['a']) and d.active == row['active'] and d.standstill_latched == row['latched']
 
 
-def test_tlsc_reproduces_the_original():
+def test_tlsc_safe_stop_buffer_and_filtering():
+  from exopilot.selfdrive.controls.lib.tlsc import TLSC_DECEL, TLSC_STOP_BUFFER
+
   t = TLSC(enabled=True)
-  for row in G['tlsc']:
-    out = t.update_from(row['lead'], row['v'], [(s, c, d) for s, c, d in row['objs']])
-    assert same(out, row['out'])
+  # Decelerates smoothly toward TLSC_STOP_BUFFER (3.0 m) before the light
+  assert same(t.update_from(False, 15.0, [('red', 0.9, 40.0)]), math.sqrt(2.0 * TLSC_DECEL * (40.0 - TLSC_STOP_BUFFER)))
+  assert same(t.update_from(False, 15.0, [('yellow', 0.9, 25.0), ('red', 0.9, 60.0)]), math.sqrt(2.0 * TLSC_DECEL * (25.0 - TLSC_STOP_BUFFER)))
+  # Critical safety invariant: inside stop buffer (d <= 3.0 m), hold 0.0 m/s instead of dropping TLSC and running the red light
+  assert t.update_from(False, 15.0, [('red', 0.9, 3.0)]) == 0.0
+  assert t.update_from(False, 3.0, [('red', 0.9, 2.0)]) == 0.0
+  assert t.update_from(False, 0.0, [('red', 0.9, 1.5)]) == 0.0
+  # Green, lead present, low confidence, beyond max dist, or empty -> None
+  assert t.update_from(False, 15.0, [('green', 0.9, 30.0)]) is None
+  assert t.update_from(True, 15.0, [('red', 0.9, 40.0)]) is None
+  assert t.update_from(False, 15.0, [('red', 0.01, 40.0)]) is None
+  assert t.update_from(False, 15.0, [('red', 0.9, 90.0)]) is None
+  assert t.update_from(False, 15.0, []) is None
+  # Never exceeds current v_ego
+  assert t.update_from(False, 3.0, [('red', 0.9, 40.0)]) == 3.0
 
 
 def test_curve_speed_helpers_and_the_handover_blend():

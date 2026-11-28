@@ -4,26 +4,32 @@ import time
 import json
 from unittest.mock import MagicMock  # noqa: TID251
 
-# Stub out missing Cython extensions before any imports
-_fake_params_pyx = MagicMock()
-_fake_params_pyx.Params = MagicMock
-_fake_params_pyx.ParamKeyFlag = MagicMock()
-_fake_params_pyx.ParamKeyType = MagicMock()
-_fake_params_pyx.UnknownKeyName = Exception
-sys.modules['openpilot.common.params_pyx'] = _fake_params_pyx
+# Stub out missing Cython extensions ONLY when not built (never overwrite real extensions in-process)
+try:
+  import openpilot.common.params_pyx  # noqa: F401
+except Exception:
+  _fake_params_pyx = MagicMock()
+  _fake_params_pyx.Params = MagicMock
+  _fake_params_pyx.ParamKeyFlag = MagicMock()
+  _fake_params_pyx.ParamKeyType = MagicMock()
+  _fake_params_pyx.UnknownKeyName = Exception
+  sys.modules['openpilot.common.params_pyx'] = _fake_params_pyx
 
-_fake_msgq = MagicMock()
-_fake_msgq.Context = MagicMock
-_fake_msgq.Poller = MagicMock
-_fake_msgq.SubSocket = MagicMock
-_fake_msgq.PubSocket = MagicMock
-_fake_msgq.SocketEventHandle = MagicMock
-_fake_msgq.toggle_fake_events = MagicMock()
-_fake_msgq.fake_event_callback = MagicMock()
-_fake_msgq.async_sleep = MagicMock()
-_fake_msgq.async_wait_for_one_event = MagicMock()
-_fake_msgq.MAX_FDS = 64
-sys.modules['msgq.ipc_pyx'] = _fake_msgq
+try:
+  import msgq.ipc_pyx  # noqa: F401
+except Exception:
+  _fake_msgq = MagicMock()
+  _fake_msgq.Context = MagicMock
+  _fake_msgq.Poller = MagicMock
+  _fake_msgq.SubSocket = MagicMock
+  _fake_msgq.PubSocket = MagicMock
+  _fake_msgq.SocketEventHandle = MagicMock
+  _fake_msgq.toggle_fake_events = MagicMock()
+  _fake_msgq.fake_event_callback = MagicMock()
+  _fake_msgq.async_sleep = MagicMock()
+  _fake_msgq.async_wait_for_one_event = MagicMock()
+  _fake_msgq.MAX_FDS = 64
+  sys.modules['msgq.ipc_pyx'] = _fake_msgq
 
 import pytest
 

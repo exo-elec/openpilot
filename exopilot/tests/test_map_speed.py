@@ -1,3 +1,4 @@
+import math
 from types import SimpleNamespace as NS
 
 from exopilot.selfdrive.controls.lib.map_speed import MAP_HOLD_S, MapSpeed, distraction_status
@@ -74,7 +75,9 @@ def test_mslc_cap_never_raises_the_cruise_speed_and_follows_the_posted_limit():
 
 def test_traffic_light_on_our_path_stops_and_a_side_road_light_is_ignored():
   ms, _ = make(flags=('tlsc',))
-  assert abs(ms.update(sm(lights=[('red', 40.0, 1.0)]), 15.0, 25.0, None, False, 0.05).cap - 10.954) < 1e-2
+  r = ms.update(sm(lights=[('red', 40.0, 1.0)]), 15.0, 25.0, None, False, 0.05)
+  assert abs(r.cap - math.sqrt(2.0 * 1.5 * (40.0 - 3.0))) < 1e-2 and r.tlsc_distance == 40.0
+  assert ms.update(sm(lights=[('green', 40.0, 1.0)]), 15.0, 25.0, None, False, 0.05).cap is None          # confirmed green releases immediately
   ms, _ = make(flags=('tlsc',))
   assert ms.update(sm(lights=[('red', 40.0, 12.0)]), 15.0, 25.0, None, False, 0.05).cap is None          # a signal for another road
   ms, _ = make(flags=('tlsc',))

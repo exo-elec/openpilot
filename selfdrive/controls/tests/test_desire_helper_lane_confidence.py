@@ -10,53 +10,57 @@ import sys
 import types
 from enum import IntEnum
 
+try:
+  from cereal import log as _real_log
+  LaneChangeState = _real_log.LaneChangeState
+  LaneChangeDirection = _real_log.LaneChangeDirection
+  Desire = _real_log.Desire
+except Exception:
+  class LaneChangeState(IntEnum):
+    off = 0
+    preLaneChange = 1
+    laneChangeStarting = 2
+    laneChangeFinishing = 3
 
-class LaneChangeState(IntEnum):
-  off = 0
-  preLaneChange = 1
-  laneChangeStarting = 2
-  laneChangeFinishing = 3
+  class LaneChangeDirection(IntEnum):
+    none = 0
+    left = 1
+    right = 2
 
+  class Desire(IntEnum):
+    none = 0
+    laneChangeLeft = 1
+    laneChangeRight = 2
+    keepLeft = 3
+    keepRight = 4
+    turnLeft = 5
+    turnRight = 6
 
-class LaneChangeDirection(IntEnum):
-  none = 0
-  left = 1
-  right = 2
+  _fake_log = types.SimpleNamespace(LaneChangeState=LaneChangeState, LaneChangeDirection=LaneChangeDirection, Desire=Desire)
+  _fake_cereal = types.ModuleType('cereal')
+  _fake_cereal.log = _fake_log
+  sys.modules['cereal'] = _fake_cereal
 
+  pkg_openpilot = types.ModuleType('openpilot')
+  pkg_openpilot.__path__ = []
+  sys.modules.setdefault('openpilot', pkg_openpilot)
+  pkg_common = types.ModuleType('openpilot.common')
+  pkg_common.__path__ = []
+  sys.modules.setdefault('openpilot.common', pkg_common)
 
-class Desire(IntEnum):
-  none = 0
-  laneChangeLeft = 1
-  laneChangeRight = 2
-  keepLeft = 3
-  keepRight = 4
-  turnLeft = 5
-  turnRight = 6
+  mod_constants = types.ModuleType('openpilot.common.constants')
+  class CV:
+    MPH_TO_MS = 0.44704
+  mod_constants.CV = CV
+  sys.modules.setdefault('openpilot.common.constants', mod_constants)
 
-
-_fake_log = types.SimpleNamespace(LaneChangeState=LaneChangeState, LaneChangeDirection=LaneChangeDirection, Desire=Desire)
-_fake_cereal = types.ModuleType('cereal')
-_fake_cereal.log = _fake_log
-sys.modules['cereal'] = _fake_cereal
-
-pkg_openpilot = types.ModuleType('openpilot'); pkg_openpilot.__path__ = []
-sys.modules.setdefault('openpilot', pkg_openpilot)
-pkg_common = types.ModuleType('openpilot.common'); pkg_common.__path__ = []
-sys.modules.setdefault('openpilot.common', pkg_common)
-
-mod_constants = types.ModuleType('openpilot.common.constants')
-class CV:
-  MPH_TO_MS = 0.44704
-mod_constants.CV = CV
-sys.modules['openpilot.common.constants'] = mod_constants
-
-mod_realtime = types.ModuleType('openpilot.common.realtime')
-mod_realtime.DT_MDL = 0.05
-sys.modules['openpilot.common.realtime'] = mod_realtime
+  mod_realtime = types.ModuleType('openpilot.common.realtime')
+  mod_realtime.DT_MDL = 0.05
+  sys.modules.setdefault('openpilot.common.realtime', mod_realtime)
 
 sys.path.insert(0, '.')
 from types import SimpleNamespace
-from selfdrive.controls.lib.desire_helper import DesireHelper
+from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
 
 
 def _make_carstate(v_ego=15.0, left_blinker=False, right_blinker=False,
