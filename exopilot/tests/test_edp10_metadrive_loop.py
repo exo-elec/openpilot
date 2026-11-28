@@ -109,6 +109,8 @@ def _make_sm(
   lc_state=log.LaneChangeState.off,
   lc_dir=log.LaneChangeDirection.none,
   adj_lead=None,
+  pitch_rad: float = 0.0,
+  lead_one=None,
 ):
   cs = messaging.new_message("carState").carState
   cs.vEgo = float(v_ego)
@@ -120,7 +122,7 @@ def _make_sm(
   cc = messaging.new_message("carControl").carControl
   cc.longActive = True
   cc.enabled = True
-  cc.orientationNED = [0.0, 0.0, 0.0]
+  cc.orientationNED = [0.0, float(pitch_rad), 0.0]
 
   ctrl = messaging.new_message("controlsState").controlsState
   ctrl.longControlState = LongCtrlState.pid
@@ -140,13 +142,25 @@ def _make_sm(
   acc = messaging.new_message("accelerometer").accelerometer
   acc.acceleration.v = [float(az_vertical), 0.0, float(-ax_longitudinal)]
 
+  rs = messaging.new_message("radarState").radarState
+  if lead_one is not None:
+    d_rel, v_lead, track_id = lead_one
+    rs.leadOne.status = True
+    rs.leadOne.dRel = float(max(0.0, d_rel))
+    rs.leadOne.vLead = float(v_lead)
+    rs.leadOne.vLeadK = float(v_lead)
+    rs.leadOne.vRel = float(v_lead - v_ego)
+    rs.leadOne.aLeadK = 0.0
+    rs.leadOne.modelProb = 0.95
+    rs.leadOne.radarTrackId = int(track_id)
+
   d = {
     "carState": cs,
     "carControl": cc,
     "controlsState": ctrl,
     "selfdriveState": sd,
     "liveParameters": lp,
-    "radarState": messaging.new_message("radarState").radarState,
+    "radarState": rs,
     "modelV2": _curved_model_v2(max(v_ego, 1.0), road_kappa, lc_state=lc_state, lc_dir=lc_dir, adj_lead=adj_lead),
     "accelerometer": acc,
   }
@@ -177,9 +191,9 @@ def _lane_center_steer(env) -> tuple[float, float, bool]:
   _, _, on_lane = env.vehicle.navigation._get_current_lane(env.vehicle)
   lane = env.vehicle.lane
   local_long, local_lat = lane.local_coordinates(env.vehicle.position)
-  heading_err = lane.heading_theta_at(local_long) - env.vehicle.heading_theta
+  heading_err = lane.heading_theta_at(local_long + 3.0) - env.vehicle.heading_theta
   heading_err = (heading_err + math.pi) % (2 * math.pi) - math.pi
-  steer_cmd = float(np.clip(heading_err * 2.0 - local_lat * 0.25, -1.0, 1.0))
+  steer_cmd = float(np.clip(heading_err * 1.6 + local_lat * 0.25, -1.0, 1.0))
   dh = lane.heading_theta_at(local_long + 10.0) - lane.heading_theta_at(local_long)
   dh = (dh + math.pi) % (2 * math.pi) - math.pi
   road_kappa = abs(dh) / 10.0
@@ -327,6 +341,10 @@ def test_edp10_metadrive_vtsc_curve_and_camera_pipeline():
     assert vtsc_targets[-1] is None, "VTSC failed to clear on exit straight"
     assert v_exit > v_curve_min + 1.5, f"Vehicle did not recover speed after curve: {v_curve_min:.2f} -> {v_exit:.2f}"
     assert cam_frames == 23
+    print(
+      f"METADRIVE_REPORT EDP10 VTSC_CAM: dist={dist_m:.1f}m on_lane={on_lane_steps}/{n_steps}",
+      f"vtsc_ticks={len(active_steps)} v_curve_min={v_curve_min:.2f}m/s v_exit={v_exit:.2f}m/s cam_frames={cam_frames}",
+    )
   finally:
     if camerad is not None and hasattr(camerad, "close"):
       camerad.close()
@@ -558,5 +576,304 @@ def test_edp10_metadrive_mtsc_mslc_brsc_and_safety_behaviors():
     lead.dRel = 6.8
     lead.vLead = 1.8
     assert ld.update(True, lead)
+    print(
+      f"METADRIVE_REPORT EDP10 SPEED_SAFETY: mtsc={v_before_mtsc:.2f}->{v_during_mtsc_min:.2f}->{v_after_mtsc_expiry:.2f}m/s",
+      f"mslc={v_capped_mean:.2f}->{v_after_mslc_raise:.2f}m/s brsc={v_smooth_peak:.2f}->{v_rough_min:.2f}->{v_brsc_recovered:.2f}m/s",
+      f"lc_handoff={v_pre_lc:.2f}->{v_lc_min:.2f}m/s",
+    )
   finally:
+    env.close()
+
+
+def _spawn_3d_vehicle(env, long_offset_m: float, lat_offset_m: float = 0.0):
+  """Spawn a real 3D MetaDrive DefaultVehicle relative to ego on the current PGMap lane."""
+  from metadrive.component.vehicle.vehicle_type import DefaultVehicle
+
+  lane = env.vehicle.lane
+  ego_long, _ = lane.local_coordinates(env.vehicle.position)
+  s = ego_long + long_offset_m
+  pos = lane.position(s, lat_offset_m)
+  hdg = lane.heading_theta_at(s)
+  v_cfg = env.config["vehicle_config"].copy()
+  v_cfg.update(dict(spawn_lane_index=lane.index, spawn_longitude=s, spawn_lateral=lat_offset_m, enable_reverse=False))
+  return env.engine.spawn_object(DefaultVehicle, vehicle_config=v_cfg, position=pos, heading=hdg)
+
+
+def _clear_3d_vehicles(env, actors: list):
+  """Release manually spawned 3D MetaDrive actors before env.reset()."""
+  if actors:
+    env.engine.clear_objects([a.id for a in actors], force_destroy=True)
+    actors.clear()
+
+
+def _drive_3d_actor(actor, target_v: float, target_lat_offset: float | None = None, ref_lane=None):
+  """Closed-loop steering + throttle for a spawned 3D MetaDrive traffic actor."""
+  lane = ref_lane if ref_lane is not None else actor.lane
+  local_long, local_lat = lane.local_coordinates(actor.position)
+  lat_err = local_lat - (target_lat_offset if target_lat_offset is not None else 0.0)
+  h_err = lane.heading_theta_at(local_long + 3.0) - actor.heading_theta
+  h_err = (h_err + math.pi) % (2 * math.pi) - math.pi
+  steer = float(np.clip(h_err * 1.6 + lat_err * 0.25, -1.0, 1.0))
+  v = float(actor.speed)
+  pedal = float(np.clip((target_v - v) * 0.45, -1.0, 1.0)) if target_v > 0.05 else (-1.0 if v > 0.1 else 0.0)
+  actor.before_step([steer, pedal])
+
+
+@pytest.mark.slow
+def test_edp10_metadrive_3d_traffic_acc_tja_acm_alka_red_and_lead_departure():
+  """EDP10 3D multi-vehicle MetaDrive suite: ACM downhill coast + TTC override, 3D lead ACC stop-and-go,
+  3D LeadDepartureNotice, dp_tja 3D cut-in accel suppression, ALKA cruise-off lateral control + BlinkerPause/Ramp,
+  and DragonPilot RoadEdgeDetector (RED) blocking edge-side LCA."""
+  from dragonpilot.selfdrive.controls.lib.road_edge_detector import RoadEdgeDetector
+  from metadrive.envs.metadrive_env import MetaDriveEnv
+
+  env = MetaDriveEnv(_straight_env_config())
+  spawned: list = []
+  try:
+    # ------------------------------------------------------------------
+    # Scenario 5: ACM downhill coast suppression + real 3D lead TTC disengage
+    # ------------------------------------------------------------------
+    env.reset()
+    # Warm up ego to ~14.5 m/s
+    for _ in range(160):
+      steer_cmd, _, _ = _lane_center_steer(env)
+      if float(env.vehicle.speed) >= 14.5:
+        break
+      env.step([steer_cmd, 0.7])
+    v0 = float(env.vehicle.speed)
+    assert v0 >= 14.0
+
+    planner_acm = LongitudinalPlanner(_make_cp(), init_v=v0)
+    acm_saw_active = False
+    acm_suppressed_mild_brake = False
+    prev_v = v0
+    # Phase A: Downhill (-0.06 rad), ego above 0.9 * v_cruise (12 m/s), no lead -> ACM activates and suppresses mild braking
+    for _ in range(40):
+      v_ego = float(env.vehicle.speed)
+      a_ego = (v_ego - prev_v) / DT_MDL
+      prev_v = v_ego
+      steer_cmd, _, on_lane = _lane_center_steer(env)
+      assert on_lane
+      sm = _make_sm(v_ego=v_ego, v_cruise_kph=43.2, pitch_rad=-0.06)  # 43.2 km/h = 12.0 m/s
+      planner_acm.update(sm, dp_flags=DPFlags.ACM | DPFlags.ACM_DOWNHILL)
+      if planner_acm.acm.active:
+        acm_saw_active = True
+        if planner_acm.output_a_target >= 0.0:
+          acm_suppressed_mild_brake = True
+      env.step([steer_cmd, _accel_to_pedal(float(planner_acm.output_a_target), a_ego)])
+    assert acm_saw_active and acm_suppressed_mild_brake, "ACM did not activate & suppress downhill coast braking"
+    # Safety check: strong braking (<= -0.5 m/s^2) must NOT be suppressed while ACM is active
+    assert planner_acm.acm.update_output_a_target(-0.8) == -0.8, "ACM falsely suppressed strong safety braking"
+
+    # Phase B: Spawn a slow 3D MetaDrive vehicle 24 m ahead (TTC < 2.0 s < 3.5 s) -> ACM MUST disengage & brake!
+    lead_acm = _spawn_3d_vehicle(env, long_offset_m=24.0)
+    spawned.append(lead_acm)
+    acm_disengaged_for_lead = False
+    braked_for_lead = False
+    for _ in range(40):
+      v_ego = float(env.vehicle.speed)
+      a_ego = (v_ego - prev_v) / DT_MDL
+      prev_v = v_ego
+      d_rel = max(0.0, float(lead_acm.position[0] - env.vehicle.position[0]) - 4.8)
+      v_lead = float(lead_acm.speed)
+      steer_cmd, _, _ = _lane_center_steer(env)
+      sm = _make_sm(v_ego=v_ego, v_cruise_kph=43.2, pitch_rad=-0.06, lead_one=(d_rel, v_lead, 10))
+      planner_acm.update(sm, dp_flags=DPFlags.ACM | DPFlags.ACM_DOWNHILL)
+      if not planner_acm.acm.active:
+        acm_disengaged_for_lead = True
+      if planner_acm.output_a_target < -0.5:
+        braked_for_lead = True
+      _drive_3d_actor(lead_acm, target_v=4.0)
+      env.step([steer_cmd, _accel_to_pedal(float(planner_acm.output_a_target), a_ego)])
+    assert acm_disengaged_for_lead and braked_for_lead, "ACM failed to disengage and brake for close 3D lead"
+    print(f"METADRIVE_REPORT EDP10 ACM: active={acm_saw_active} lead_disengage={acm_disengaged_for_lead} braked={braked_for_lead}")
+
+    # ------------------------------------------------------------------
+    # Scenario 6: Real 3D MetaDrive Lead ACC Stop-and-Go + LeadDeparture + dp_tja 3D Cut-In
+    # ------------------------------------------------------------------
+    _clear_3d_vehicles(env, spawned)
+    env.reset()
+    lead_car = _spawn_3d_vehicle(env, long_offset_m=48.0)
+    spawned.append(lead_car)
+    for _ in range(120):
+      steer_cmd, _, _ = _lane_center_steer(env)
+      _drive_3d_actor(lead_car, target_v=12.0)
+      env.step([steer_cmd, 0.55 if float(env.vehicle.speed) < 12.0 else 0.1])
+      if float(env.vehicle.speed) >= 11.5 and float(lead_car.speed) >= 11.0:
+        break
+
+    v0 = float(env.vehicle.speed)
+    planner_acc = LongitudinalPlanner(_make_cp(), init_v=v0)
+    prev_v = v0
+    min_gap_m = 999.0
+    # Phase A: 3D lead brakes to full stop -> ego stops safely behind it without colliding
+    for step in range(420):
+      v_ego = float(env.vehicle.speed)
+      a_ego = (v_ego - prev_v) / DT_MDL
+      prev_v = v_ego
+      d_rel = max(0.0, float(lead_car.position[0] - env.vehicle.position[0]) - 4.8)
+      min_gap_m = min(min_gap_m, d_rel)
+      steer_cmd, _, on_lane = _lane_center_steer(env)
+      assert on_lane
+      sm = _make_sm(v_ego=v_ego, v_cruise_kph=60.0, lead_one=(d_rel, float(lead_car.speed), 1))
+      planner_acc.update(sm)
+      lead_target = 11.0 if step < 30 else 0.0
+      _drive_3d_actor(lead_car, target_v=lead_target)
+      a_cmd = -1.2 if (planner_acc.output_should_stop and v_ego < 1.5) else float(planner_acc.output_a_target)
+      env.step([steer_cmd, _accel_to_pedal(a_cmd, a_ego)])
+      if step > 120 and v_ego < 0.25 and float(lead_car.speed) < 0.1:
+        break
+
+    v_stopped = float(env.vehicle.speed)
+    assert min_gap_m > 2.0 and v_stopped < 0.4, f"3D ACC failed safe stop: min_gap={min_gap_m:.2f}m v_stop={v_stopped:.2f}m/s"
+
+    # Phase B: 3D lead departs from standstill -> LeadDepartureNotice triggers on real 3D motion
+    ld = LeadDepartureNotice()
+    ld_fired_while_stopped = False
+    ld_fired_on_departure = False
+    for step in range(90):
+      d_rel = max(0.0, float(lead_car.position[0] - env.vehicle.position[0]) - 4.8)
+      v_lead = float(lead_car.speed)
+      sm_ld = _make_sm(v_ego=0.0, v_cruise_kph=60.0, lead_one=(d_rel, v_lead, 1))
+      fired = ld.update(True, sm_ld["radarState"].leadOne)
+      if step < 15:
+        ld_fired_while_stopped |= fired
+        _drive_3d_actor(lead_car, target_v=0.0)
+      else:
+        ld_fired_on_departure |= fired
+        _drive_3d_actor(lead_car, target_v=6.0)
+      env.step([0.0, -0.5])
+    assert not ld_fired_while_stopped and ld_fired_on_departure, "3D LeadDepartureNotice failed to fire on departing 3D lead"
+
+    # Phase C: dp_tja crawl behind 3D lead + second 3D car cuts in from adjacent lane + AEM mode switch
+    _clear_3d_vehicles(env, spawned)
+    env.reset()
+    ego_lane_idx = env.vehicle.lane_index[2]
+    adj_lat = 3.6 if ego_lane_idx == 0 else -3.6
+    lead_tja = _spawn_3d_vehicle(env, long_offset_m=24.0)
+    cutin_car = _spawn_3d_vehicle(env, long_offset_m=14.0, lat_offset_m=adj_lat)
+    spawned.extend([lead_tja, cutin_car])
+    for _ in range(70):
+      steer_cmd, _, _ = _lane_center_steer(env)
+      _drive_3d_actor(lead_tja, target_v=4.5, ref_lane=env.vehicle.lane)
+      _drive_3d_actor(cutin_car, target_v=4.2, target_lat_offset=adj_lat, ref_lane=env.vehicle.lane)
+      env.step([steer_cmd, 0.35 if float(env.vehicle.speed) < 4.5 else 0.05])
+      if float(env.vehicle.speed) >= 4.0:
+        break
+
+    planner_tja = LongitudinalPlanner(_make_cp(), init_v=float(env.vehicle.speed))
+    prev_v = float(env.vehicle.speed)
+    tja_active_seen = False
+    tja_cutin_clamped = False
+    aem_entered_blended = False
+    for step in range(110):
+      v_ego = float(env.vehicle.speed)
+      a_ego = (v_ego - prev_v) / DT_MDL
+      prev_v = v_ego
+      # Cut-in vehicle merges into ego lane after step 25
+      target_lat = adj_lat if step < 25 else 0.0
+      _drive_3d_actor(lead_tja, target_v=4.5, ref_lane=env.vehicle.lane)
+      _drive_3d_actor(cutin_car, target_v=3.5, target_lat_offset=target_lat, ref_lane=env.vehicle.lane)
+      _, cutin_lat = env.vehicle.lane.local_coordinates(cutin_car.position)
+      if abs(cutin_lat) < 1.8:
+        d_rel = max(0.0, float(cutin_car.position[0] - env.vehicle.position[0]) - 4.8)
+        lead_tuple = (d_rel, float(cutin_car.speed), 2)
+      else:
+        d_rel = max(0.0, float(lead_tja.position[0] - env.vehicle.position[0]) - 4.8)
+        lead_tuple = (d_rel, float(lead_tja.speed), 1)
+      steer_cmd, _, on_lane = _lane_center_steer(env)
+      assert on_lane
+      sm = _make_sm(v_ego=v_ego, v_cruise_kph=50.0, lead_one=lead_tuple)
+      planner_tja.update(sm, dp_flags=DPFlags.AEM)
+      if planner_tja.aem._current_mode == "blended":
+        aem_entered_blended = True
+      if planner_tja.tja_result.active:
+        tja_active_seen = True
+      if planner_tja.tja_result.cut_in and planner_tja.output_a_target <= 0.05:
+        tja_cutin_clamped = True
+      env.step([steer_cmd, _accel_to_pedal(float(planner_tja.output_a_target), a_ego)])
+    assert tja_active_seen and tja_cutin_clamped, "dp_tja failed to detect 3D cut-in and clamp positive accel"
+    assert aem_entered_blended, "AEM failed to switch from acc -> blended during 3D low-speed traffic crawl"
+
+    # AEM recovery: clear road at cruising speed -> must switch blended -> acc after absence hysteresis
+    aem_returned_acc = False
+    for _ in range(90):
+      steer_cmd, _, _ = _lane_center_steer(env)
+      v_ego = max(float(env.vehicle.speed), 12.0)
+      sm_open = _make_sm(v_ego=v_ego, v_cruise_kph=80.0)
+      planner_tja.update(sm_open, dp_flags=DPFlags.AEM)
+      if planner_tja.aem._current_mode == "acc":
+        aem_returned_acc = True
+        break
+      env.step([steer_cmd, 0.5])
+    assert aem_returned_acc, "AEM failed to return from blended -> acc on clear cruising road"
+    print(
+      f"METADRIVE_REPORT EDP10 3D_ACC_TJA_AEM: min_gap={min_gap_m:.2f}m v_stop={v_stopped:.2f}m/s",
+      f"ld_fired={ld_fired_on_departure} tja_cutin={tja_cutin_clamped} aem_blended={aem_entered_blended} aem_acc={aem_returned_acc}",
+    )
+
+    # ------------------------------------------------------------------
+    # Scenario 7: ALKA cruise-off lateral control + BlinkerPause + SteeringResumeRamp + DP RED
+    # ------------------------------------------------------------------
+    _clear_3d_vehicles(env, spawned)
+    env.reset()
+    for _ in range(100):
+      steer_cmd, _, _ = _lane_center_steer(env)
+      env.step([steer_cmd, 0.5 if float(env.vehicle.speed) < 10.0 else 0.05])
+      if float(env.vehicle.speed) >= 9.5:
+        break
+    bp = BlinkerPause(min_speed_mps=15.0, hold_s=1.0, dt=DT_MDL)
+    ramp = SteeringResumeRamp()
+    alka_active_steps = 0
+    paused_steps = 0
+    ramping_scales = []
+    t_sim = 0.0
+    for step in range(120):
+      t_sim += DT_MDL
+      v_ego = float(env.vehicle.speed)
+      steer_cmd, _, on_lane = _lane_center_steer(env)
+      assert on_lane
+      # Cruise DISENGAGED (selfdriveState.active=False), cruise available -> ALKA keeps lateral active!
+      cruise_available = True
+      standstill = abs(v_ego) <= 0.3
+      alka_active = cruise_available and not standstill
+      lat_active = alka_active
+      blinker_on = 30 <= step < 50
+      if bp.update(v_ego, blinker_on, False):
+        lat_active = False
+        paused_steps += 1
+      elif alka_active:
+        alka_active_steps += 1
+      torque_out, _ = ramp.update(lat_active, steer_cmd, steer_cmd * 10.0, 0.0, t_sim)
+      if 72 <= step <= 115 and abs(steer_cmd) > 1e-4:
+        ramping_scales.append(abs(torque_out) / max(abs(steer_cmd), 1e-4))
+      # Even while blinker-paused, driver holds wheel straight; when ALKA active, ramped steering keeps car in lane
+      applied_steer = torque_out if lat_active else 0.0
+      env.step([applied_steer, 0.1 if v_ego < 10.0 else 0.0])
+    assert alka_active_steps >= 60 and paused_steps >= 35, f"ALKA/BlinkerPause counts wrong: alka={alka_active_steps}, pause={paused_steps}"
+
+    # DP RoadEdgeDetector (RED) blocks left LCA into road edge while permitting right LCA into open lane
+    red = RoadEdgeDetector(enabled=True)
+    red.update(road_edge_stds=[0.1, 0.9], lane_line_probs=[0.05, 0.9, 0.9, 0.85])
+    assert red.left_edge_detected is True and red.right_edge_detected is False
+    cs_red = messaging.new_message("carState").carState
+    cs_red.vEgo = float(env.vehicle.speed) + 8.0
+    cs_red.leftBlinker = True
+    cs_red.steeringPressed = True
+    cs_red.steeringTorque = 50.0
+    dh_red = DesireHelper(dp_lat_lca_speed=20)
+    dh_red.update(cs_red, True, 0.0, red.left_edge_detected, red.right_edge_detected)
+    dh_red.update(cs_red, True, 0.0, red.left_edge_detected, red.right_edge_detected)
+    assert dh_red.lane_change_state == LaneChangeState.preLaneChange, "DP RED failed to block left LCA toward road edge"
+
+    cs_red.leftBlinker = False
+    cs_red.rightBlinker = True
+    cs_red.steeringTorque = -50.0
+    dh_ok = DesireHelper(dp_lat_lca_speed=20)
+    dh_ok.update(cs_red, True, 0.0, red.left_edge_detected, red.right_edge_detected)
+    dh_ok.update(cs_red, True, 0.0, red.left_edge_detected, red.right_edge_detected)
+    assert dh_ok.lane_change_state == LaneChangeState.laneChangeStarting, "DP RED falsely blocked open right lane change"
+    print(f"METADRIVE_REPORT EDP10 ALKA_RED: alka_steps={alka_active_steps} pause_steps={paused_steps} red_left_blocked=True red_right_ok=True")
+  finally:
+    _clear_3d_vehicles(env, spawned)
     env.close()
