@@ -185,3 +185,67 @@ def test_regression_rknn_driving_runner_unconditional_desire_rename_for_onnx(tmp
   runner.load()
   res = runner.run_policy({"desire": np.zeros((1, 25, 8), dtype=np.float32)})
   assert res.success, f"RKNNDrivingRunner renamed 'desire' -> 'desire_pulse' for ONNX model expecting 'desire': {res.error_message}"
+
+
+def test_regression_aeb_receding_lead_during_precharge_aborts_to_idle():
+  """Scrutinize BLOCKER regression: a lead that accelerates away during PRECHARGE must abort to IDLE,
+  never escalate into -3.0 m/s^2 emergency braking."""
+  from openpilot.selfdrive.controls.lib.aeb import AEB, AEBState, EgoState, TrackedObject
+
+  aeb = AEB()
+  ego = EgoState(v_ego=12.0, a_ego=0.0, brake_pressed=False, throttle_pressed=False, steering_torque=0.0)
+  closing = TrackedObject(track_id=1, x=14.0, y=0.0, v_x=2.0, v_y=0.0, width=1.8, length=4.5, obj_type='car', confidence=0.95)
+  for _ in range(4):
+    t = aeb._confirmed_entry_threat(closing, ego)
+    res = aeb.braking.update(ego, t, 0.05)
+  assert res.state is AEBState.PRECHARGE
+
+  # Lead suddenly accelerates away faster than ego (closing_speed = -6 m/s, ttc = inf): must abort cleanly to IDLE.
+  receding = TrackedObject(track_id=1, x=18.0, y=0.0, v_x=18.0, v_y=0.0, width=1.8, length=4.5, obj_type='car', confidence=0.95)
+  t_rec = aeb._confirmed_entry_threat(receding, ego)
+  assert t_rec is None, "Active AEB kept tracking a receding lead"
+  res_after = aeb.braking.update(ego, t_rec, 0.05)
+  assert res_after.state is AEBState.IDLE and res_after.target_decel == 0.0
+
+  # Direct BrakingController safety check: _state_precharge with receding threat also aborts to IDLE.
+  aeb.braking.state = AEBState.PRECHARGE
+  aeb.braking._precharge_elapsed_s = 1.0
+  res_direct = aeb.braking.update(ego, receding, 0.05)
+  assert res_direct.state is AEBState.IDLE and res_direct.target_decel == 0.0
+
+
+def test_regression_gridd_fuse_modeld_converts_leadsV3_absolute_v_to_vRel():
+  """Scrutinize BLOCKER regression: modelV2.leadsV3.v[0] is absolute velocity (vLead);
+  GridD._fuse_modeld_detections must subtract modelV2.velocity.x[0] to publish true relative vRel."""
+  from exopilot.selfdrive.gridd.occupancy import GridD
+
+  class _Host:
+    _fuse_modeld_detections = GridD._fuse_modeld_detections
+
+  mdl = messaging.new_message('modelV2').modelV2
+  mdl.velocity.x = [25.0]
+  leads = mdl.init('leadsV3', 1)
+  leads[0].prob = 0.95
+  leads[0].x = [30.0]
+  leads[0].y = [1.5]
+  leads[0].v = [20.0]  # absolute vLead = 20 m/s while ego = 25 m/s -> closing at -5 m/s
+  fused = _Host()._fuse_modeld_detections(mdl, None)
+  assert len(fused) == 1
+  assert abs(fused[0]['vRel'] - (-5.0)) < 1e-3, f"Expected vRel=-5.0 m/s, got {fused[0]['vRel']}"
+  assert abs(fused[0]['yRel'] - (-1.5)) < 1e-3
+
+
+def test_regression_rga_cvtcolor_packed_nv12_and_3d_uv():
+  """Scrutinize regression: RGABackend._cvtcolor must handle packed 2D NV12 src and 3D (h/2, w/2, 2) src_uv."""
+  import numpy as np
+  from openpilot.system.inferenced.rockchip_rga import RGABackend
+
+  rga = RGABackend()
+  packed_nv12 = np.full((24, 16), 128, dtype=np.uint8)
+  rgb_packed = rga._cvtcolor({'src': packed_nv12, 'src_fmt': 'nv12', 'dst_fmt': 'rgb'})
+  assert rgb_packed.shape == (16, 16, 3)
+
+  y = np.full((16, 16), 128, dtype=np.uint8)
+  uv_3d = np.full((8, 8, 2), 128, dtype=np.uint8)
+  rgb_planar = rga._cvtcolor({'src_y': y, 'src_uv': uv_3d, 'src_fmt': 'nv12', 'dst_fmt': 'rgb'})
+  assert rgb_planar.shape == (16, 16, 3)

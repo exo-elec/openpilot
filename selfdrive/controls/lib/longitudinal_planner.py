@@ -83,27 +83,7 @@ _load_accel_profile = _longitudinal_settings.load_accel_profile
 _load_adaptive_gap_enabled = _longitudinal_settings.load_adaptive_gap_enabled
 
 
-def _with_virtual_stop_lead(radar_state, stop_dist_m: float, v_ego: float):
-  """Inject a stationary virtual stop-line lead into LongitudinalMpc when TLSC requests a red-light stop
-  and no closer real lead exists, preserving leadTwo."""
-  virtual_d_rel = max(0.0, stop_dist_m - TLSC_STOP_BUFFER - 2.0) + STOP_DISTANCE
-  lead_one = radar_state.leadOne
-  if lead_one.status and lead_one.dRel <= virtual_d_rel:
-    return radar_state
-  vlead = SimpleNamespace(
-    status=True,
-    dRel=float(virtual_d_rel),
-    vLead=0.0,
-    vLeadK=0.0,
-    vRel=float(-v_ego),
-    aLeadK=0.0,
-    aLeadTau=1.5,
-    modelProb=0.0,
-  )
-  return SimpleNamespace(leadOne=vlead, leadTwo=radar_state.leadTwo)
-
-
-def get_max_accel(v_ego):
+def get_max_accel(v_ego, v_cruise=None):
   profile = _load_accel_profile()
   profile_limit = acceleration_profile_limit(v_ego, profile, A_CRUISE_MAX_BP, _A_CRUISE_PROFILES)
   if v_cruise is not None:
@@ -121,7 +101,7 @@ def _sm_updated(sm, key: str) -> bool:
   return bool(updated.get(key, False)) if updated is not None else (key in sm)
 
 
-def _with_virtual_stop_lead(radar_state, stop_dist_m: float):
+def _with_virtual_stop_lead(radar_state, stop_dist_m: float, v_ego: float = 0.0):
   """Inject a stationary virtual stop-line lead into LongitudinalMpc when TLSC requests a red-light stop
   and no closer real lead exists (CarrotPilot/FrogPilot stop-line MPC pattern)."""
   # Shift target stopping point inside TLSC_STOP_BUFFER (+2.0m nose margin) so MPC holds before the stop line
@@ -129,7 +109,16 @@ def _with_virtual_stop_lead(radar_state, stop_dist_m: float):
   lead_one = radar_state.leadOne
   if lead_one.status and lead_one.dRel <= virtual_d_rel:
     return radar_state
-  vlead = SimpleNamespace(status=True, dRel=float(virtual_d_rel), vLead=0.0, aLeadK=0.0, aLeadTau=1.5, modelProb=0.0)
+  vlead = SimpleNamespace(
+    status=True,
+    dRel=float(virtual_d_rel),
+    vLead=0.0,
+    vLeadK=0.0,
+    vRel=float(-v_ego),
+    aLeadK=0.0,
+    aLeadTau=1.5,
+    modelProb=0.0,
+  )
   return SimpleNamespace(leadOne=vlead, leadTwo=radar_state.leadTwo)
 
 
@@ -479,15 +468,12 @@ class LongitudinalPlanner:
         now=time.monotonic(),
       )
 
-    # TLSC virtual stop-line lead (CarrotPilot / FrogPilot pattern): when a red/yellow traffic
-    # light is active ahead with no closer real lead, feed a stationary stop-line lead into
-    # LongitudinalMpc (preserving leadTwo) so MPC executes a smooth, jerk-limited full stop.
-    if map_speed.tlsc_distance is not None:
-      radar_state_for_mpc = _with_virtual_stop_lead(radar_state_for_mpc, map_speed.tlsc_distance, v_ego)
+    tlsc_dist = self.map_speed_result.tlsc_distance if self.map_speed_result is not None else None
+    if tlsc_dist is not None:
+      radar_state_for_mpc = _with_virtual_stop_lead(radar_state_for_mpc, tlsc_dist, v_ego)
 
     v_cruise = monitoring_speed_target(v_cruise, force_slow_decel)
-    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=personality,
-                    t_follow_override=self._adaptive_gap_t_follow)
+    self.mpc.update(radar_state_for_mpc, v_cruise, x, v, a, j, personality=sm['selfdriveState'].personality, t_follow_override=t_follow_override)
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
@@ -519,12 +505,9 @@ class LongitudinalPlanner:
     # EOP: DLON force stop override — forces full stop at traffic lights/signs
     if self.dlon_force_stop:
       self.output_should_stop = True
-    if map_speed.tlsc_distance is not None and map_speed.tlsc_distance <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5 and not sm['carState'].gasPressed:
-      self.output_should_stop = True
-      output_a_target = min(output_a_target, -1.0)
 
     # Hold standstill cleanly inside the TLSC red-light stop zone so the car cannot creep past the stop line
-    if tlsc_dist is not None and tlsc_dist <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5:
+    if tlsc_dist is not None and tlsc_dist <= TLSC_STOP_BUFFER + 3.0 and v_ego < 1.5 and not sm['carState'].gasPressed:
       self.output_should_stop = True
       output_a_target = min(output_a_target, -1.0)
 
@@ -534,6 +517,9 @@ class LongitudinalPlanner:
     # brake-release transitions toward 0.0 remain immediately responsive.
     if tja_result.active:
       output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * tja_result.accel_scale)
+    if brsc_enabled and self.brsc_result is not None and self.brsc_result.active:
+      accel_scale = min(max(self.brsc_result.accel_max, 0.0), 1.0)
+      output_a_target = min(output_a_target, longitudinal_accel_max(v_ego) * accel_scale)
     if not reset_state and output_a_target > 0.0:
       output_a_target = min(output_a_target,
                             max(self.output_a_target, 0.0) + longitudinal_jerk_up(v_ego) * tja_result.jerk_scale * self.dt)

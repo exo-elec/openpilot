@@ -121,12 +121,15 @@ class RGABackend(HardwareBackend):
     src_fmt = inputs.get('src_fmt') or inputs.get('src_format', 'nv12')
     dst_fmt = inputs.get('dst_fmt') or inputs.get('dst_format', 'rgb')
 
-    # Packed array path (e.g. yolo_rknn passes BGR frame as 'src')
+    # Packed array path (e.g. yolo_rknn passes BGR frame as 'src', or packed 2D NV12)
     src = inputs.get('src')
     if src is not None:
       if not isinstance(src, np.ndarray):
         src = np.array(src, dtype=np.uint8)
-      if src_fmt.lower() in ('bgr', 'nv12') and dst_fmt.lower() == 'rgb':
+      if src_fmt.lower() == 'nv12' and src.ndim == 2:
+        code = cv2.COLOR_YUV2RGB_NV12 if dst_fmt.lower() == 'rgb' else cv2.COLOR_YUV2BGR_NV12
+        return cv2.cvtColor(src, code)
+      if src_fmt.lower() in ('bgr', 'nv12') and dst_fmt.lower() == 'rgb' and src.ndim == 3 and src.shape[2] == 3:
         return cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
       return src
 
@@ -147,8 +150,9 @@ class RGABackend(HardwareBackend):
         bgr = cv2.cvtColor(y, cv2.COLOR_GRAY2BGR)
       else:
         h, w = y.shape
-        uv_h, uv_w = uv.shape
-        uv_expanded = np.tile(uv, (1, w // uv_w))
+        uv_2d = uv.reshape(uv.shape[0], -1) if uv.ndim > 2 else uv
+        uv_h, uv_w = uv_2d.shape
+        uv_expanded = np.tile(uv_2d, (1, w // uv_w)) if uv_w < w else uv_2d
         nv12_data = np.concatenate([y, uv_expanded], axis=0)
         bgr = cv2.cvtColor(nv12_data, cv2.COLOR_YUV2BGR_NV12)
       if dst_fmt.lower() == 'rgb':

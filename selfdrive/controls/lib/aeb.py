@@ -346,9 +346,17 @@ class BrakingController:
     """Apply smooth partial braking while the threat remains feasible."""
     if threat is None:
       self.state = AEBState.IDLE
+      self._current_decel = 0.0
+      self._precharge_elapsed_s = 0.0
       return _r(AEBLevel.NONE, AEBState.IDLE, float('inf'), 0.0, 0.0, False, False, "Threat cleared")
 
     ttc = threat.x / max(0.1, ego_state.v_ego - threat.v_x) if ego_state.v_ego > threat.v_x else float('inf')
+    close_stopped_obstacle = threat.x <= 12.0 and threat.v_x < 0.5
+    if ttc > self.TTC_RELEASE and not close_stopped_obstacle:
+      self.state = AEBState.IDLE
+      self._current_decel = 0.0
+      self._precharge_elapsed_s = 0.0
+      return _r(AEBLevel.NONE, AEBState.IDLE, ttc, threat.x, 0.0, False, False, "Threat receding", threat.obj_type)
     self._precharge_elapsed_s += dt
 
     # UN R152 calls for warning before emergency braking when the collision is
@@ -560,15 +568,15 @@ class AEB:
     if threat.confidence < self.MIN_RADAR_CONFIDENCE:
       return False
     # Entry gates prevent nuisance activation at low speed; once AEB is actively
-    # braking, keep tracking down to standstill (<0.5 m/s -> HOLD) instead of
-    # releasing the brakes at 2.0 m/s right in front of a stopped obstacle.
+    # braking, keep tracking down to standstill (<0.5 m/s -> HOLD) for a closing
+    # or close stationary obstacle, while dropping receding threats immediately.
     if not active and ego.v_ego < self.MIN_EGO_SPEED_MS:
       return False
     closing_speed = ego.v_ego - threat.v_x
-    if not active and closing_speed < self.MIN_CLOSING_SPEED_MS:
-      return False
     if active:
-      return True
+      return closing_speed > 0.0 or (threat.x <= 12.0 and threat.v_x < 0.5)
+    if closing_speed < self.MIN_CLOSING_SPEED_MS:
+      return False
     ttc = threat.x / closing_speed
     usable_distance = max(threat.x - BrakingController.STOP_BUFFER_M, 0.5)
     required_decel = closing_speed * closing_speed / (2.0 * usable_distance)

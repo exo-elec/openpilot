@@ -31,12 +31,12 @@ from openpilot.common.swaglog import cloudlog
 # Daemon CPU Allocation - OpenPilot Only
 # =============================================================================
 #
-# CORE_BIG (A76 0-3): Safety-Critical ADAS
+# CORE_BIG (A76/A72 4-7): Safety-Critical ADAS
 #   - Direct vehicle control
 #   - Perception and planning
 #   - Real-time sensor input (camera, IMU, CAN)
 #
-# CORE_LITTLE (A55 4-7): Support Functions
+# CORE_LITTLE (A55 0-3): Support Functions
 #   - I/O and networking
 #   - User interface
 #   - Non-critical services

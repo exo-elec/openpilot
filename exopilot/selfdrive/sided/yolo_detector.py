@@ -32,7 +32,7 @@ from openpilot.system.inferenced.compute import ModelConfig
 
 from exopilot.selfdrive.sided.simple_tracker import SideObject
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # NPU core that segmentation freed when it moved to the card (both boards).
 DETECTION_CORE = 1

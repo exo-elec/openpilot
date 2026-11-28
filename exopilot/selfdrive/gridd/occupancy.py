@@ -369,19 +369,24 @@ class GridD:
         # Extract leads from modelV2 (leadsV3 is populated by fill_model_msg; fall back to legacy leads if absent)
         leads_v3 = getattr(model_v2, 'leadsV3', None) or ()
         if len(leads_v3) > 0:
-            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0))) for lead in leads_v3 if float(getattr(lead, 'prob', 0.0)) > 0.5]
+            vel = getattr(model_v2, 'velocity', None)
+            vel_x = getattr(vel, 'x', None) if vel is not None else None
+            model_v_ego = float(vel_x[0]) if vel_x is not None and len(vel_x) > 0 else 0.0
+            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0)), model_v_ego)
+                         for lead in leads_v3 if float(getattr(lead, 'prob', 0.0)) > 0.5]
         elif hasattr(model_v2, 'leads'):
-            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0))) for lead in model_v2.leads if getattr(lead, 'status', False)]
+            raw_leads = [(lead, float(getattr(lead, 'prob', 0.0)), 0.0)
+                         for lead in model_v2.leads if getattr(lead, 'status', False)]
         else:
             raw_leads = []
 
-        for lead, prob in raw_leads:
+        for lead, prob, model_v_ego in raw_leads:
             if not len(lead.x) or not len(lead.y) or not len(lead.v):
                 continue
 
             x = lead.x[0]  # forward (m)
             y = lead.y[0]  # lateral (m), calibrated frame: right positive
-            v = lead.v[0]  # velocity (m/s)
+            v_rel = float(lead.v[0]) - model_v_ego  # leadsV3.v[0] is absolute velocity (vLead); convert once to vRel
 
             # Validate with stereo depth
             confidence = prob
@@ -403,7 +408,7 @@ class GridD:
             fused_objects.append({
                 'dRel': float(x),
                 'yRel': float(-y),
-                'vRel': float(v),
+                'vRel': float(v_rel),
                 'obstacleType': 'lead',
                 'confidence': float(confidence),
                 'trackId': 0,
